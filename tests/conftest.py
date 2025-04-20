@@ -97,7 +97,7 @@ def pytest_addoption(parser: Parser) -> None:
         help="use given proxy in session network tests",
     )
     parser.addoption(
-        "--no-proxy",
+        "--no-proxy-env",
         action="store_true",
         default=False,
         help="ignore any configured proxies in session network tests",

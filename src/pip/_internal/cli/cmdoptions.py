@@ -276,7 +276,7 @@ proxy: Callable[..., Option] = partial(
 
 no_proxy: Callable[..., Option] = partial(
     Option,
-    "--no-proxy",
+    "--no-proxy-env",
     dest="no_proxy",
     action="store_true",
     default=False,

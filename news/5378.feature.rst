@@ -1,1 +1,1 @@
-Add ``--no-proxy`` option to bypass http proxy.  Using this option will ignore any configured http proxies, including any environmental variables
+Add ``--no-proxy-env`` option to bypass http proxy.  Using this option will ignore any configured http proxies, including any environmental variables

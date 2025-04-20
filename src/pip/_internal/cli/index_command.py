@@ -126,7 +126,7 @@ class SessionCommandMixin(CommandContextMixIn):
 
         # Handle no proxy option
         if options.no_proxy:
-            # Handle case of both --no-proxy being set along with --proxy=<proxy>.
+            # Handle case of both --no-proxy-env being set along with --proxy=<proxy>.
             # In this case, the proxies from the environmental variables will be
             # ignored, but the command line proxy will be used.
             http_proxy = options.proxy if options.proxy else None
