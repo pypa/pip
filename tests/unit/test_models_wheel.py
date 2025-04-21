@@ -180,6 +180,56 @@ class TestWheelFile:
         w = Wheel("simple-0.1-cp313-none-ios_15_1_arm64_iphoneos.whl")
         assert not w.supported(tags=tags)
 
+    def test_android(self) -> None:
+        arm_old = compatibility_tags.get_supported(
+            "313", platforms=["android_21_arm64_v8a"], impl="cp"
+        )
+        arm_new = compatibility_tags.get_supported(
+            "313", platforms=["android_30_arm64_v8a"], impl="cp"
+        )
+        x86_old = compatibility_tags.get_supported(
+            "313", platforms=["android_21_x86_64"], impl="cp"
+        )
+        x86_new = compatibility_tags.get_supported(
+            "313", platforms=["android_30_x86_64"], impl="cp"
+        )
+
+        w = Wheel("simple-0.1-cp313-none-android_21_arm64_v8a.whl")
+        assert w.supported(arm_old)
+        assert w.supported(arm_new)
+        assert not w.supported(x86_old)
+        assert not w.supported(x86_new)
+
+        w = Wheel("simple-0.1-cp313-none-android_22_arm64_v8a.whl")
+        assert not w.supported(arm_old)
+        assert w.supported(arm_new)
+        assert not w.supported(x86_old)
+        assert not w.supported(x86_new)
+
+        w = Wheel("simple-0.1-cp313-none-android_31_arm64_v8a.whl")
+        assert not w.supported(arm_old)
+        assert not w.supported(arm_new)
+        assert not w.supported(x86_old)
+        assert not w.supported(x86_new)
+
+        w = Wheel("simple-0.1-cp313-none-android_20_x86_64.whl")
+        assert not w.supported(arm_old)
+        assert not w.supported(arm_new)
+        assert w.supported(x86_old)
+        assert w.supported(x86_new)
+
+        w = Wheel("simple-0.1-cp313-none-android_30_x86_64.whl")
+        assert not w.supported(arm_old)
+        assert not w.supported(arm_new)
+        assert not w.supported(x86_old)
+        assert w.supported(x86_new)
+
+        w = Wheel("simple-0.1-cp313-none-android_31_x86_64.whl")
+        assert not w.supported(arm_old)
+        assert not w.supported(arm_new)
+        assert not w.supported(x86_old)
+        assert not w.supported(x86_new)
+
     def test_support_index_min(self) -> None:
         """
         Test results from `support_index_min`
