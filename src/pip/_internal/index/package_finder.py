@@ -6,7 +6,8 @@ import itertools
 import logging
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from optparse import Values
+from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union, Dict
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -21,6 +22,7 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.index.index_group import IndexGroup
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -336,7 +338,7 @@ class CandidatePreferences:
 
 @dataclass(frozen=True)
 class BestCandidateResult:
-    """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
+    """A collection of candidates, returned by `jPackageFinder.find_best_candidate`.
 
     This class is only intended to be instantiated by CandidateEvaluator's
     `compute_best_candidate()` method.
@@ -560,6 +562,70 @@ class CandidateEvaluator:
 
 
 class PackageFinder:
+    """This finds packages for all configured index groups.
+
+    This implements priority between groups, while preserving the
+    assumption of index equivalence within a group.
+
+    This achieves priority behavior by iterating over the groups in order,
+    yielding the first match found.
+    """
+    _package_finders: List["InternalPackageFinder"]
+    _current_package_finder: int = 0
+
+
+    def __init__(self, package_finders: List["InternalPackageFinder"] ) -> None:
+        self._package_finders = package_finders
+
+    def create(cls,
+               link_collector: Optional[LinkCollector] = None,
+               selection_prefs: Optional[SelectionPreferences] = None,
+               target_python: Optional[TargetPython] = None,
+               # Args above are for the InternalPackageFinder constructor.
+               # Args below are the new constructor that handles multiple
+               # PackageFinder instances.
+               options: Values | None = None,
+               session: "PipSession" | None = None,
+               ) -> "PackageFinder":
+        """Create an InternalPackageFinder for each index group."""
+
+        # This is the old constructor that only handles a single
+        # PackageFinder - so no priority between indexes
+        if link_collector is not None and selection_prefs is not None:
+            return PackageFinder([InternalPackageFinder.create(
+                link_collector=link_collector,
+                selection_prefs=selection_prefs,
+                target_python=target_python,
+            )])
+
+        index_groups = []
+        # If no explicit index groups are specified, then create one for
+        # the --index-url, --extra-index-url, and --find-links options.
+        index_groups = options.get("index_groups")
+        if not index_groups:
+            index_groups = [IndexGroup.create_(options, session)]
+
+        package_finders: Dict[str,"InternalPackageFinder"] = {}
+        for index_group in index_groups:
+            link_collector = LinkCollector.create(session, index_group)
+            selection_prefs = SelectionPreferences(
+                allow_yanked=index_group.allow_yanked,
+                format_control=index_group.format_control,
+                ignore_requires_python=index_group.ignore_requires_python,
+                prefer_binary=index_group.prefer_binary,
+            )
+            # TODO: should index groups be named, and have the order
+            # be the list of names?
+            package_finders[index_group.name] = InternalPackageFinder.create(
+                link_collector=link_collector, selection_prefs=selection_prefs)
+
+        return PackageFinder([package_finders[name] for name in options.get("index_groups_order") or package_finders.keys()])
+
+    def __getattr__(self, attr):
+        """Forward attribute access to the current index group."""
+        return getattr(self._index_groups[self._current_index_group], attr)
+
+class InternalPackageFinder:
     """This finds packages.
 
     This is meant to match easy_install's technique for looking for
@@ -611,8 +677,8 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: Optional[TargetPython] = None,
-    ) -> "PackageFinder":
-        """Create a PackageFinder.
+    ) -> "InternalPackageFinder":
+        """Create a InternalPackageFinder for a single index group.
 
         :param selection_prefs: The candidate selection preferences, as a
             SelectionPreferences object.
