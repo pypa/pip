@@ -5,7 +5,7 @@ from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import InvalidVersion, Version
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
@@ -285,12 +285,14 @@ class ListCommand(IndexGroupCommand):
             self.output_package_listing_columns(data, header)
         elif options.list_format == "freeze":
             for dist in packages:
+                try:
+                    req_string = f"{dist.raw_name}=={dist.version}"
+                except InvalidVersion:
+                    req_string = f"{dist.raw_name}==={dist.raw_version}"
                 if options.verbose >= 1:
-                    write_output(
-                        "%s==%s (%s)", dist.raw_name, dist.version, dist.location
-                    )
+                    write_output("%s (%s)", req_string, dist.location)
                 else:
-                    write_output("%s==%s", dist.raw_name, dist.version)
+                    write_output(req_string)
         elif options.list_format == "json":
             write_output(format_for_json(packages, options))
 
@@ -374,9 +376,13 @@ def format_for_columns(
 def format_for_json(packages: "_ProcessedDists", options: Values) -> str:
     data = []
     for dist in packages:
+        try:
+            version = str(dist.version)
+        except InvalidVersion:
+            version = dist.raw_version
         info = {
             "name": dist.raw_name,
-            "version": str(dist.version),
+            "version": version,
         }
         if options.verbose >= 1:
             info["location"] = dist.location or ""
