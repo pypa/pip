@@ -2,22 +2,24 @@
 util tests
 
 """
-import codecs
+
 import os
 import shutil
 import stat
 import sys
 import time
 from io import BytesIO
+from pathlib import Path
 from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Type
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
+
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.egg_link import egg_link_path_from_location
-from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
     glibc_version_string,
     glibc_version_string_confstr,
@@ -36,6 +38,7 @@ from pip._internal.utils.misc import (
     normalize_path,
     normalize_version_info,
     parse_netloc,
+    redact_auth_from_requirement,
     redact_auth_from_url,
     redact_netloc,
     remove_auth_from_url,
@@ -46,14 +49,12 @@ from pip._internal.utils.misc import (
     tabulate,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
-from tests.lib.path import Path
 
 
 class Tests_EgglinkPath:
     "util.egg_link_path_from_location() tests"
 
-    def setup(self) -> None:
-
+    def setup_method(self) -> None:
         project = "foo"
 
         self.mock_dist = Mock(project_name=project)
@@ -81,7 +82,7 @@ class Tests_EgglinkPath:
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         from pip._internal.utils import egg_link as utils
 
         utils.site_packages = self.old_site_packages
@@ -246,10 +247,10 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     by the given unreadable directory.
     """
     # Create directory without read permission
-    subdir_path = tmpdir / "subdir"
-    subdir_path.mkdir()
-    path = str(subdir_path)
-    os.chmod(path, stat.S_IWRITE)
+    path = tmpdir / "subdir"
+    path.mkdir()
+    old_mode = path.stat().st_mode
+    path.chmod(stat.S_IWRITE)
 
     mock_func = Mock()
 
@@ -258,9 +259,16 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     except RuntimeError:
         # Make sure the handler reraises an exception
         with pytest.raises(RuntimeError, match="test message"):
-            # Argument 3 to "rmtree_errorhandler" has incompatible type "None"; expected
-            # "Tuple[Type[BaseException], BaseException, TracebackType]"
-            rmtree_errorhandler(mock_func, path, None)  # type: ignore[arg-type]
+            # Argument 3 to "rmtree_errorhandler" has incompatible type
+            # "Union[Tuple[Type[BaseException], BaseException, TracebackType],
+            # Tuple[None, None, None]]"; expected "Tuple[Type[BaseException],
+            # BaseException, TracebackType]"
+            rmtree_errorhandler(
+                mock_func, path, sys.exc_info()  # type: ignore[arg-type]
+            )
+    finally:
+        # Restore permissions to let pytest to clean up temp dirs
+        path.chmod(old_mode)
 
     mock_func.assert_not_called()
 
@@ -389,7 +397,7 @@ class TestHashes:
                 "md5": ["5d41402abc4b2a76b9719d911017c592"],
             }
         )
-        hashes.check_against_path(file)
+        hashes.check_against_path(os.fspath(file))
 
     def test_failure(self) -> None:
         """Hashes should raise HashMismatch when no hashes match."""
@@ -426,47 +434,13 @@ class TestHashes:
         cache[Hashes({"sha256": ["ab", "cd"]})] = 42
         assert cache[Hashes({"sha256": ["ab", "cd"]})] == 42
 
-
-class TestEncoding:
-    """Tests for pip._internal.utils.encoding"""
-
-    def test_auto_decode_utf_16_le(self) -> None:
-        data = (
-            b"\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00"
-            b"=\x001\x00.\x004\x00.\x002\x00"
-        )
-        assert data.startswith(codecs.BOM_UTF16_LE)
-        assert auto_decode(data) == "Django==1.4.2"
-
-    def test_auto_decode_utf_16_be(self) -> None:
-        data = (
-            b"\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00="
-            b"\x00=\x001\x00.\x004\x00.\x002"
-        )
-        assert data.startswith(codecs.BOM_UTF16_BE)
-        assert auto_decode(data) == "Django==1.4.2"
-
-    def test_auto_decode_no_bom(self) -> None:
-        assert auto_decode(b"foobar") == "foobar"
-
-    def test_auto_decode_pep263_headers(self) -> None:
-        latin1_req = "# coding=latin1\n# Pas trop de café"
-        assert auto_decode(latin1_req.encode("latin1")) == latin1_req
-
-    def test_auto_decode_no_preferred_encoding(self) -> None:
-        om, em = Mock(), Mock()
-        om.return_value = "ascii"
-        em.return_value = None
-        data = "data"
-        with patch("sys.getdefaultencoding", om):
-            with patch("locale.getpreferredencoding", em):
-                ret = auto_decode(data.encode(sys.getdefaultencoding()))
-        assert ret == data
-
-    @pytest.mark.parametrize("encoding", [encoding for bom, encoding in BOMS])
-    def test_all_encodings_are_valid(self, encoding: str) -> None:
-        # we really only care that there is no LookupError
-        assert "".encode(encoding).decode(encoding) == ""
+    def test_has_one_of(self) -> None:
+        hashes = Hashes({"sha256": ["abcd", "efgh"], "sha384": ["ijkl"]})
+        assert hashes.has_one_of({"sha256": "abcd"})
+        assert hashes.has_one_of({"sha256": "efgh"})
+        assert not hashes.has_one_of({"sha256": "xyzt"})
+        empty_hashes = Hashes()
+        assert not empty_hashes.has_one_of({"sha256": "xyzt"})
 
 
 def raises(error: Type[Exception]) -> NoReturn:
@@ -542,7 +516,7 @@ def test_normalize_version_info(
 
 class TestGetProg:
     @pytest.mark.parametrize(
-        ("argv", "executable", "expected"),
+        "argv, executable, expected",
         [
             ("/usr/bin/pip", "", "pip"),
             ("-c", "/usr/bin/python", "/usr/bin/python -m pip"),
@@ -754,6 +728,30 @@ def test_redact_auth_from_url(auth_url: str, expected_url: str) -> None:
     assert url == expected_url
 
 
+@pytest.mark.parametrize(
+    "req, expected",
+    [
+        ("pkga", "pkga"),
+        (
+            "resolvelib@ "
+            " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1",
+            "resolvelib@"
+            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1",
+        ),
+        (
+            "resolvelib@"
+            " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1"
+            " ; python_version>='3.6'",
+            "resolvelib@"
+            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1"
+            ' ; python_version >= "3.6"',
+        ),
+    ],
+)
+def test_redact_auth_from_requirement(req: str, expected: str) -> None:
+    assert redact_auth_from_requirement(Requirement(req)) == expected
+
+
 class TestHiddenText:
     def test_basic(self) -> None:
         """
@@ -819,7 +817,7 @@ def test_hide_url() -> None:
     assert hidden_url.secret == "https://user:password@example.com"
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_deprecation_check_version() -> Iterator[None]:
     # We do this, so that the deprecation tests are easier to write.
     import pip._internal.utils.deprecation as d
@@ -1020,7 +1018,7 @@ def test_format_size(size: int, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("rows", "table", "sizes"),
+    "rows, table, sizes",
     [
         ([], [], []),
         (

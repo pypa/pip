@@ -1,14 +1,20 @@
 import os
 import pathlib
 import re
+import textwrap
+
+import pytest
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
-from pip._internal.operations.install.legacy import (
-    write_installed_files_from_setuptools_record,
-)
 from pip._internal.utils.unpacking import untar_file
-from tests.lib import PipTestEnvironment, TestData, create_test_package_with_setup
+
+from tests.lib import (
+    PipTestEnvironment,
+    TestData,
+    create_test_package_with_setup,
+    pyversion,
+)
 
 
 def test_basic_show(script: PipTestEnvironment) -> None:
@@ -17,7 +23,7 @@ def test_basic_show(script: PipTestEnvironment) -> None:
     """
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
-    assert len(lines) == 10
+    assert len(lines) == 11
     assert "Name: pip" in lines
     assert f"Version: {__version__}" in lines
     assert any(line.startswith("Location: ") for line in lines)
@@ -33,7 +39,7 @@ def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -
     script.pip("install", "-e", editable)
     result = script.pip("show", "-f", "SetupPyUTF8")
     lines = result.stdout.splitlines()
-    assert len(lines) == 12
+    assert len(lines) == 13
     assert "Name: SetupPyUTF8" in lines
     assert "Version: 0.0.0" in lines
     assert any(line.startswith("Location: ") for line in lines)
@@ -67,7 +73,7 @@ def test_show_with_files_from_legacy(
     # 'setup.py install' plus installed-files.txt, which we manually generate.
     source_dir = tmp_path.joinpath("unpacked-sdist")
     setuptools_record = tmp_path.joinpath("installed-record.txt")
-    untar_file(data.packages.joinpath("simple-1.0.tar.gz"), str(source_dir))
+    untar_file(os.fspath(data.packages.joinpath("simple-1.0.tar.gz")), str(source_dir))
     script.run(
         "python",
         "setup.py",
@@ -77,10 +83,19 @@ def test_show_with_files_from_legacy(
         str(setuptools_record),
         cwd=source_dir,
     )
-    write_installed_files_from_setuptools_record(
-        setuptools_record.read_text().splitlines(),
-        root=None,
-        req_description="simple==1.0",
+    # Emulate the installed-files.txt generation which previous pip version did
+    # after running setup.py install (write_installed_files_from_setuptools_record).
+    egg_info_dir = script.site_packages_path / f"simple-1.0-py{pyversion}.egg-info"
+    egg_info_dir.joinpath("installed-files.txt").write_text(
+        textwrap.dedent(
+            """\
+                ../simple/__init__.py
+                PKG-INFO
+                SOURCES.txt
+                dependency_links.txt
+                top_level.txt
+            """
+        )
     )
 
     result = script.pip("show", "--files", "simple")
@@ -128,7 +143,7 @@ def test_report_mixed_not_found(script: PipTestEnvironment) -> None:
     result = script.pip("show", "Abcd3", "A-B-C", "pip", allow_stderr_warning=True)
     assert "WARNING: Package(s) not found: A-B-C, Abcd3" in result.stderr
     lines = result.stdout.splitlines()
-    assert len(lines) == 10
+    assert len(lines) == 11
     assert "Name: pip" in lines
 
 
@@ -202,6 +217,21 @@ def test_all_fields(script: PipTestEnvironment) -> None:
     """
     Test that all the fields are present
     """
+    # future-compat: once pip adopts PEP 639 in pyproject.toml and
+    # its build backend produces metadata 2.4 or greater,
+    # it will display "License-Expression" rather than License
+    verbose = script.pip("show", "--verbose", "pip").stdout
+    match = re.search(r"Metadata-Version:\s(\d+\.\d+)", verbose)
+    if match is not None:
+        metadata_version = match.group(1)
+        metadata_version_tuple = tuple(map(int, metadata_version.split(".")))
+        if metadata_version_tuple >= (2, 4) and "License-Expression" in verbose:
+            license_str = "License-Expression"
+        else:
+            license_str = "License"
+    else:
+        license_str = "License"
+
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
     expected = {
@@ -211,8 +241,9 @@ def test_all_fields(script: PipTestEnvironment) -> None:
         "Home-page",
         "Author",
         "Author-email",
-        "License",
+        f"{license_str}",
         "Location",
+        "Editable project location",
         "Requires",
         "Required-by",
     }
@@ -226,7 +257,7 @@ def test_pip_show_is_short(script: PipTestEnvironment) -> None:
     """
     result = script.pip("show", "pip")
     lines = result.stdout.splitlines()
-    assert len(lines) <= 10
+    assert len(lines) <= 11
 
 
 def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:
@@ -264,7 +295,10 @@ def test_show_required_by_packages_basic(
     lines = result.stdout.splitlines()
 
     assert "Name: simple" in lines
-    assert "Required-by: requires-simple" in lines
+    assert (
+        "Required-by: requires_simple" in lines
+        or "Required-by: requires-simple" in lines
+    )
 
 
 def test_show_required_by_packages_capitalized(
@@ -281,7 +315,10 @@ def test_show_required_by_packages_capitalized(
     lines = result.stdout.splitlines()
 
     assert "Name: simple" in lines
-    assert "Required-by: Requires-Capitalized" in lines
+    assert (
+        "Required-by: Requires_Capitalized" in lines
+        or "Required-by: Requires-Capitalized" in lines
+    )
 
 
 def test_show_required_by_packages_requiring_capitalized(
@@ -301,8 +338,13 @@ def test_show_required_by_packages_requiring_capitalized(
     lines = result.stdout.splitlines()
     print(lines)
 
-    assert "Name: Requires-Capitalized" in lines
-    assert "Required-by: requires-requires-capitalized" in lines
+    assert (
+        "Name: Requires_Capitalized" in lines or "Name: Requires-Capitalized" in lines
+    )
+    assert (
+        "Required-by: requires_requires_capitalized" in lines
+        or "Required-by: requires-requires-capitalized" in lines
+    )
 
 
 def test_show_skip_work_dir_pkg(script: PipTestEnvironment) -> None:
@@ -337,3 +379,76 @@ def test_show_include_work_dir_pkg(script: PipTestEnvironment) -> None:
     result = script.pip("show", "simple", cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert "Name: simple" in lines
+
+
+def test_show_deduplicate_requirements(script: PipTestEnvironment) -> None:
+    """
+    Test that show should deduplicate requirements
+    for a package
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script,
+        name="simple",
+        version="1.0",
+        install_requires=[
+            "pip >= 19.0.1",
+            'pip >= 19.3.1; python_version < "3.8"',
+            'pip >= 23.0.1; python_version < "3.9"',
+        ],
+    )
+    script.run("python", "setup.py", "egg_info", expect_stderr=True, cwd=pkg_path)
+
+    script.environ.update({"PYTHONPATH": pkg_path})
+
+    result = script.pip("show", "simple", cwd=pkg_path)
+    lines = result.stdout.splitlines()
+    assert "Requires: pip" in lines
+
+
+@pytest.mark.parametrize(
+    "project_url",
+    ["Home-page", "home-page", "Homepage", "homepage", "home_PAGE", "home page"],
+)
+def test_show_populate_homepage_from_project_urls(
+    script: PipTestEnvironment, project_url: str
+) -> None:
+    pkg_path = create_test_package_with_setup(
+        script,
+        name="simple",
+        version="1.0",
+        project_urls={project_url: "https://example.com"},
+    )
+    script.run("python", "setup.py", "egg_info", expect_stderr=True, cwd=pkg_path)
+    script.environ.update({"PYTHONPATH": pkg_path})
+
+    result = script.pip("show", "simple", cwd=pkg_path)
+    lines = result.stdout.splitlines()
+    assert "Home-page: https://example.com" in lines
+
+
+def test_show_license_expression(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Show License-Expression if present in metadata >= 2.4.
+    """
+    wheel_file = data.packages.joinpath("license.dist-0.1-py2.py3-none-any.whl")
+    script.pip("install", "--no-index", wheel_file)
+    result = script.pip("show", "license.dist")
+    lines = result.stdout.splitlines()
+    assert "License-Expression: MIT AND MIT-0" in lines
+    assert "License: The legacy license declaration" not in lines
+
+
+def test_show_license_for_metadata_24(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Show License if License-Expression is not there for metadata >= 2.4.
+    """
+    wheel_file = data.packages.joinpath("license.dist-0.2-py2.py3-none-any.whl")
+    script.pip("install", "--no-index", wheel_file)
+    result = script.pip("show", "license.dist")
+    lines = result.stdout.splitlines()
+    assert "License-Expression: " not in lines
+    assert "License: The legacy license declaration" in lines

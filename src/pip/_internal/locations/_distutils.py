@@ -3,6 +3,17 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+# If pip's going to use distutils, it should not be using the copy that setuptools
+# might have injected into the environment. This is done by removing the injected
+# shim, if it's injected.
+#
+# See https://github.com/pypa/pip/issues/8761 for the original discussion and
+# rationale for why this is done within pip.
+try:
+    __import__("_distutils_hack").remove_shim()
+except (ImportError, AttributeError):
+    pass
+
 import logging
 import os
 import sys
@@ -10,7 +21,7 @@ from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
 from distutils.sysconfig import get_python_lib
-from typing import Dict, List, Optional, Tuple, Union, cast
+from typing import Dict, List, Optional, Union
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -24,10 +35,10 @@ logger = logging.getLogger(__name__)
 def distutils_scheme(
     dist_name: str,
     user: bool = False,
-    home: str = None,
-    root: str = None,
+    home: Optional[str] = None,
+    root: Optional[str] = None,
     isolated: bool = False,
-    prefix: str = None,
+    prefix: Optional[str] = None,
     *,
     ignore_config_files: bool = False,
 ) -> Dict[str, str]:
@@ -45,8 +56,7 @@ def distutils_scheme(
         try:
             d.parse_config_files()
         except UnicodeDecodeError:
-            # Typeshed does not include find_config_files() for some reason.
-            paths = d.find_config_files()  # type: ignore
+            paths = d.find_config_files()
             logger.warning(
                 "Ignore distutils configs in %s due to encoding errors.",
                 ", ".join(os.path.basename(p) for p in paths),
@@ -54,7 +64,7 @@ def distutils_scheme(
     obj: Optional[DistutilsCommand] = None
     obj = d.get_command_obj("install", create=True)
     assert obj is not None
-    i = cast(distutils_install_command, obj)
+    i: distutils_install_command = obj
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
@@ -68,7 +78,7 @@ def distutils_scheme(
     i.root = root or i.root
     i.finalize_options()
 
-    scheme = {}
+    scheme: Dict[str, str] = {}
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, "install_" + key)
 
@@ -78,7 +88,7 @@ def distutils_scheme(
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
     if "install_lib" in d.get_option_dict("install"):
-        scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
+        scheme.update({"purelib": i.install_lib, "platlib": i.install_lib})
 
     if running_under_virtualenv():
         if home:
@@ -160,10 +170,3 @@ def get_purelib() -> str:
 
 def get_platlib() -> str:
     return get_python_lib(plat_specific=True)
-
-
-def get_prefixed_libs(prefix: str) -> Tuple[str, str]:
-    return (
-        get_python_lib(plat_specific=False, prefix=prefix),
-        get_python_lib(plat_specific=True, prefix=prefix),
-    )

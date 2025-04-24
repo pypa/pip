@@ -1,5 +1,4 @@
-"""Generate and work with PEP 425 Compatibility Tags.
-"""
+"""Generate and work with PEP 425 Compatibility Tags."""
 
 import re
 from typing import List, Optional, Tuple
@@ -7,15 +6,17 @@ from typing import List, Optional, Tuple
 from pip._vendor.packaging.tags import (
     PythonVersion,
     Tag,
+    android_platforms,
     compatible_tags,
     cpython_tags,
     generic_tags,
     interpreter_name,
     interpreter_version,
+    ios_platforms,
     mac_platforms,
 )
 
-_osx_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
+_apple_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 
 
 def version_info_to_nodot(version_info: Tuple[int, ...]) -> str:
@@ -24,7 +25,7 @@ def version_info_to_nodot(version_info: Tuple[int, ...]) -> str:
 
 
 def _mac_platforms(arch: str) -> List[str]:
-    match = _osx_arch_pat.match(arch)
+    match = _apple_arch_pat.match(arch)
     if match:
         name, major, minor, actual_arch = match.groups()
         mac_version = (int(major), int(minor))
@@ -41,6 +42,36 @@ def _mac_platforms(arch: str) -> List[str]:
         # arch pattern didn't match (?!)
         arches = [arch]
     return arches
+
+
+def _ios_platforms(arch: str) -> List[str]:
+    match = _apple_arch_pat.match(arch)
+    if match:
+        name, major, minor, actual_multiarch = match.groups()
+        ios_version = (int(major), int(minor))
+        arches = [
+            # Since we have always only checked that the platform starts
+            # with "ios", for backwards-compatibility we extract the
+            # actual prefix provided by the user in case they provided
+            # something like "ioscustom_". It may be good to remove
+            # this as undocumented or deprecate it in the future.
+            "{}_{}".format(name, arch[len("ios_") :])
+            for arch in ios_platforms(ios_version, actual_multiarch)
+        ]
+    else:
+        # arch pattern didn't match (?!)
+        arches = [arch]
+    return arches
+
+
+def _android_platforms(arch: str) -> List[str]:
+    match = re.fullmatch(r"android_(\d+)_(.+)", arch)
+    if match:
+        api_level, abi = match.groups()
+        return list(android_platforms(int(api_level), abi))
+    else:
+        # arch pattern didn't match (?!)
+        return [arch]
 
 
 def _custom_manylinux_platforms(arch: str) -> List[str]:
@@ -68,6 +99,10 @@ def _get_custom_platforms(arch: str) -> List[str]:
     arch_prefix, arch_sep, arch_suffix = arch.partition("_")
     if arch.startswith("macosx"):
         arches = _mac_platforms(arch)
+    elif arch.startswith("ios"):
+        arches = _ios_platforms(arch)
+    elif arch_prefix == "android":
+        arches = _android_platforms(arch)
     elif arch_prefix in ["manylinux2014", "manylinux2010"]:
         arches = _custom_manylinux_platforms(arch)
     else:

@@ -1,24 +1,24 @@
 import json
 import logging
+from email.parser import Parser
 from optparse import Values
 from typing import TYPE_CHECKING, Generator, List, Optional, Sequence, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.req_command import IndexGroupCommand
+from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
-from pip._internal.index.collector import LinkCollector
-from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import tabulate, write_output
 
 if TYPE_CHECKING:
-    from pip._internal.metadata.base import DistributionVersion
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.network.session import PipSession
 
     class _DistWithLatestInfo(BaseDistribution):
         """Give the distribution object a couple of extra fields.
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
         makes the rest of the code much cleaner.
         """
 
-        latest_version: DistributionVersion
+        latest_version: Version
         latest_filetype: str
 
     _ProcessedDists = Sequence[_DistWithLatestInfo]
@@ -103,7 +103,10 @@ class ListCommand(IndexGroupCommand):
             dest="list_format",
             default="columns",
             choices=("columns", "freeze", "json"),
-            help="Select the output format among: columns (default), freeze, or json",
+            help=(
+                "Select the output format among: columns (default), freeze, or json. "
+                "The 'freeze' format cannot be used with the --outdated option."
+            ),
         )
 
         self.cmd_opts.add_option(
@@ -123,7 +126,7 @@ class ListCommand(IndexGroupCommand):
             "--include-editable",
             action="store_true",
             dest="include_editable",
-            help="Include editable package from output.",
+            help="Include editable package in output.",
             default=True,
         )
         self.cmd_opts.add_option(cmdoptions.list_exclude())
@@ -132,12 +135,20 @@ class ListCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
+    def handle_pip_version_check(self, options: Values) -> None:
+        if options.outdated or options.uptodate:
+            super().handle_pip_version_check(options)
+
     def _build_package_finder(
-        self, options: Values, session: PipSession
-    ) -> PackageFinder:
+        self, options: Values, session: "PipSession"
+    ) -> "PackageFinder":
         """
         Create a package finder appropriate to this list command.
         """
+        # Lazy import the heavy index modules as most list invocations won't need 'em.
+        from pip._internal.index.collector import LinkCollector
+        from pip._internal.index.package_finder import PackageFinder
+
         link_collector = LinkCollector.create(session, options=options)
 
         # Pass allow_yanked=False to ignore yanked versions.
@@ -149,12 +160,16 @@ class ListCommand(IndexGroupCommand):
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
-            use_deprecated_html5lib="html5lib" in options.deprecated_features_enabled,
         )
 
     def run(self, options: Values, args: List[str]) -> int:
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
+
+        if options.outdated and options.list_format == "freeze":
+            raise CommandError(
+                "List format 'freeze' cannot be used with the --outdated option."
+            )
 
         cmdoptions.check_list_path_option(options)
 
@@ -162,7 +177,7 @@ class ListCommand(IndexGroupCommand):
         if options.excludes:
             skip.update(canonicalize_name(n) for n in options.excludes)
 
-        packages: "_ProcessedDists" = [
+        packages: _ProcessedDists = [
             cast("_DistWithLatestInfo", d)
             for d in get_environment(options.path).iter_installed_distributions(
                 local_only=options.local,
@@ -290,7 +305,7 @@ class ListCommand(IndexGroupCommand):
 
         # Create and add a separator.
         if len(data) > 0:
-            pkg_strings.insert(1, " ".join(map(lambda x: "-" * x, sizes)))
+            pkg_strings.insert(1, " ".join("-" * x for x in sizes))
 
         for val in pkg_strings:
             write_output(val)
@@ -309,24 +324,39 @@ def format_for_columns(
     if running_outdated:
         header.extend(["Latest", "Type"])
 
-    has_editables = any(x.editable for x in pkgs)
-    if has_editables:
-        header.append("Editable project location")
+    def wheel_build_tag(dist: BaseDistribution) -> Optional[str]:
+        try:
+            wheel_file = dist.read_text("WHEEL")
+        except FileNotFoundError:
+            return None
+        return Parser().parsestr(wheel_file).get("Build")
+
+    build_tags = [wheel_build_tag(p) for p in pkgs]
+    has_build_tags = any(build_tags)
+    if has_build_tags:
+        header.append("Build")
 
     if options.verbose >= 1:
         header.append("Location")
     if options.verbose >= 1:
         header.append("Installer")
 
+    has_editables = any(x.editable for x in pkgs)
+    if has_editables:
+        header.append("Editable project location")
+
     data = []
-    for proj in pkgs:
+    for i, proj in enumerate(pkgs):
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
-        row = [proj.raw_name, str(proj.version)]
+        row = [proj.raw_name, proj.raw_version]
 
         if running_outdated:
             row.append(str(proj.latest_version))
             row.append(proj.latest_filetype)
+
+        if has_build_tags:
+            row.append(build_tags[i] or "")
 
         if has_editables:
             row.append(proj.editable_project_location or "")

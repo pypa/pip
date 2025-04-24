@@ -16,10 +16,18 @@ pip
 
 pip_install
 pip_uninstall
+pip_inspect
 pip_list
 pip_show
 pip_freeze
 pip_check
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Resolving dependencies
+
+pip_lock
 ```
 
 ```{toctree}
@@ -36,6 +44,7 @@ pip_hash
 :caption: Package Index information
 
 pip_search
+pip_index
 ```
 
 ```{toctree}

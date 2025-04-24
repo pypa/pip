@@ -1,26 +1,23 @@
-"""Build Environment used for isolation during sdist building
-"""
+"""Build Environment used for isolation during sdist building"""
 
-import contextlib
 import logging
 import os
 import pathlib
+import site
 import sys
 import textwrap
-import zipfile
 from collections import OrderedDict
-from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Generator, Iterable, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type, Union
 
-from pip._vendor.certifi import where
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
-from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
+from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
+from pip._internal.utils.logging import VERBOSE
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -30,41 +27,53 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _dedup(a: str, b: str) -> Union[Tuple[str], Tuple[str, str]]:
+    return (a, b) if a != b else (a,)
+
+
 class _Prefix:
     def __init__(self, path: str) -> None:
         self.path = path
         self.setup = False
-        self.bin_dir = get_paths(
-            "nt" if os.name == "nt" else "posix_prefix",
-            vars={"base": path, "platbase": path},
-        )["scripts"]
-        self.lib_dirs = get_prefixed_libs(path)
+        scheme = get_scheme("", prefix=path)
+        self.bin_dir = scheme.scripts
+        self.lib_dirs = _dedup(scheme.purelib, scheme.platlib)
 
 
-@contextlib.contextmanager
-def _create_standalone_pip() -> Generator[str, None, None]:
-    """Create a "standalone pip" zip file.
+def get_runnable_pip() -> str:
+    """Get a file to pass to a Python executable, to run the currently-running pip.
 
-    The zip file's content is identical to the currently-running pip.
-    It will be used to install requirements into the build environment.
+    This is used to run a pip subprocess, for installing requirements into the build
+    environment.
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    # Return the current instance if `source` is not a directory. We can't build
-    # a zip from this, and it likely means the instance is already standalone.
     if not source.is_dir():
-        yield str(source)
-        return
+        # This would happen if someone is using pip from inside a zip file. In that
+        # case, we can use that directly.
+        return str(source)
 
-    with TempDirectory(kind="standalone-pip") as tmp_dir:
-        pip_zip = os.path.join(tmp_dir.path, "__env_pip__.zip")
-        kwargs = {}
-        if sys.version_info >= (3, 8):
-            kwargs["strict_timestamps"] = False
-        with zipfile.ZipFile(pip_zip, "w", **kwargs) as zf:
-            for child in source.rglob("*"):
-                zf.write(child, child.relative_to(source.parent).as_posix())
-        yield os.path.join(pip_zip, "pip")
+    return os.fsdecode(source / "__pip-runner__.py")
+
+
+def _get_system_sitepackages() -> Set[str]:
+    """Get system site packages
+
+    Usually from site.getsitepackages,
+    but fallback on `get_purelib()/get_platlib()` if unavailable
+    (e.g. in a virtualenv created by virtualenv<20)
+
+    Returns normalized set of strings.
+    """
+    if hasattr(site, "getsitepackages"):
+        system_sites = site.getsitepackages()
+    else:
+        # virtualenv < 20 overwrites site.py without getsitepackages
+        # fallback on get_purelib/get_platlib.
+        # this is known to miss things, but shouldn't in the cases
+        # where getsitepackages() has been removed (inside a virtualenv)
+        system_sites = [get_purelib(), get_platlib()]
+    return {os.path.normcase(path) for path in system_sites}
 
 
 class BuildEnvironment:
@@ -87,9 +96,8 @@ class BuildEnvironment:
         # Customize site to:
         # - ensure .pth files are honored
         # - prevent access to system site packages
-        system_sites = {
-            os.path.normcase(site) for site in (get_purelib(), get_platlib())
-        }
+        system_sites = _get_system_sitepackages()
+
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)
@@ -174,7 +182,7 @@ class BuildEnvironment:
                 else get_default_environment()
             )
             for req_str in reqs:
-                req = Requirement(req_str)
+                req = get_requirement(req_str)
                 # We're explicitly evaluating with an empty extra value, since build
                 # environments are not provided any mechanism to select specific extras.
                 if req.marker is not None and not req.marker.evaluate({"extra": ""}):
@@ -205,15 +213,13 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        with contextlib.ExitStack() as ctx:
-            pip_runnable = ctx.enter_context(_create_standalone_pip())
-            self._install_requirements(
-                pip_runnable,
-                finder,
-                requirements,
-                prefix,
-                kind=kind,
-            )
+        self._install_requirements(
+            get_runnable_pip(),
+            finder,
+            requirements,
+            prefix,
+            kind=kind,
+        )
 
     @staticmethod
     def _install_requirements(
@@ -233,8 +239,19 @@ class BuildEnvironment:
             "--prefix",
             prefix.path,
             "--no-warn-script-location",
+            "--disable-pip-version-check",
+            # As the build environment is ephemeral, it's wasteful to
+            # pre-compile everything, especially as not every Python
+            # module will be used/compiled in most cases.
+            "--no-compile",
+            # The prefix specified two lines above, thus
+            # target from config file or env var should be ignored
+            "--target",
+            "",
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
+            args.append("-vv")
+        elif logger.getEffectiveLevel() <= VERBOSE:
             args.append("-v")
         for format_control in ("no_binary", "only_binary"):
             formats = getattr(finder.format_control, format_control)
@@ -255,21 +272,25 @@ class BuildEnvironment:
         for link in finder.find_links:
             args.extend(["--find-links", link])
 
+        if finder.proxy:
+            args.extend(["--proxy", finder.proxy])
         for host in finder.trusted_hosts:
             args.extend(["--trusted-host", host])
+        if finder.custom_cert:
+            args.extend(["--cert", finder.custom_cert])
+        if finder.client_cert:
+            args.extend(["--client-cert", finder.client_cert])
         if finder.allow_all_prereleases:
             args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
         args.append("--")
         args.extend(requirements)
-        extra_environ = {"_PIP_STANDALONE_CERT": where()}
         with open_spinner(f"Installing {kind}") as spinner:
             call_subprocess(
                 args,
                 command_desc=f"pip subprocess to install {kind}",
                 spinner=spinner,
-                extra_environ=extra_environ,
             )
 
 

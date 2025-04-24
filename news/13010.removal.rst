@@ -1,0 +1,1 @@
+On python 3.14+, the ``pkg_resources`` metadata backend cannot be used anymore.

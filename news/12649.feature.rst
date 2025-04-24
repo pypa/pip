@@ -1,0 +1,1 @@
+Suggest checking "pip config debug" in case of an InvalidProxyURL error.

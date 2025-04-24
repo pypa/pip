@@ -1,5 +1,4 @@
-"""Provides helper classes for testing option handling in pip
-"""
+"""Provides helper classes for testing option handling in pip"""
 
 from optparse import Values
 from typing import List, Tuple
@@ -22,12 +21,12 @@ class FakeCommand(Command):
 
 
 class AddFakeCommandMixin:
-    def setup(self) -> None:
+    def setup_method(self) -> None:
         commands_dict["fake"] = CommandInfo(
             "tests.lib.options_helpers",
             "FakeCommand",
             "fake summary",
         )
 
-    def teardown(self) -> None:
+    def teardown_method(self) -> None:
         commands_dict.pop("fake")

@@ -1,6 +1,76 @@
+[project]
+dynamic = ["version"]
+
+name = "pip"
+description = "The PyPA recommended tool for installing Python packages."
+readme = "README.rst"
+license = {text = "MIT"}
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Software Development :: Build Tools",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+authors = [
+  {name = "The pip developers", email = "distutils-sig@python.org"},
+]
+
+# NOTE: requires-python is duplicated in __pip-runner__.py.
+# When changing this value, please change the other copy as well.
+requires-python = ">=3.9"
+
+[project.scripts]
+pip = "pip._internal.cli.main:main"
+pip3 = "pip._internal.cli.main:main"
+
+[project.urls]
+Homepage = "https://pip.pypa.io/"
+Documentation = "https://pip.pypa.io"
+Source = "https://github.com/pypa/pip"
+Changelog = "https://pip.pypa.io/en/stable/news/"
+
 [build-system]
-requires = ["setuptools", "wheel"]
+# The lower bound is for <https://github.com/pypa/setuptools/issues/3865>.
+requires = ["setuptools>=67.6.1"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
+
+[tool.setuptools.dynamic]
+version = {attr = "pip.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["contrib", "docs", "tests*", "tasks"]
+
+[tool.setuptools.package-data]
+"pip" = ["py.typed"]
+"pip._vendor" = ["vendor.txt"]
+"pip._vendor.certifi" = ["*.pem"]
+"pip._vendor.distlib" = [
+    "t32.exe",
+    "t64.exe",
+    "t64-arm.exe",
+    "w32.exe",
+    "w64.exe",
+    "w64-arm.exe",
+]
+
+######################################################################################
+# towncrier
+#
 
 [tool.towncrier]
 # For finding the __version__
@@ -17,14 +87,18 @@ template = "tools/news/template.rst"
 
 # Grouping of entries, within our changelog
 type = [
-  { name = "Process",                   directory = "process", showcontent = true },
   { name = "Deprecations and Removals", directory = "removal", showcontent = true },
   { name = "Features",                  directory = "feature", showcontent = true },
   { name = "Bug Fixes",                 directory = "bugfix",  showcontent = true },
   { name = "Vendored Libraries",        directory = "vendor",  showcontent = true },
   { name = "Improved Documentation",    directory = "doc",     showcontent = true },
+  { name = "Process",                   directory = "process", showcontent = true },
   { name = "Trivial Changes",           directory = "trivial", showcontent = false },
 ]
+
+######################################################################################
+# vendoring
+#
 
 [tool.vendoring]
 destination = "src/pip/_vendor/"
@@ -46,26 +120,196 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
+  # optional accelerator extension libraries
+  "*mypyc*.so",
+  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
   "pkg_resources/_vendor/",
+  "_distutils_hack",
+  "distutils-precedence.pth",
   "pkg_resources/extern/",
-  # trim vendored pygments styles and lexers
+  # trim vendored pygments styles, lexers, formatters, and CLI
   "pygments/styles/[!_]*.py",
   '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
+  '^pygments/formatters/(?!__init__|_mapping).*\.py$',
+  '^pygments/cmdline\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
 ]
 
 [tool.vendoring.typing-stubs]
-six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
 distro = []
 
 [tool.vendoring.license.directories]
 setuptools = "pkg_resources"
 
 [tool.vendoring.license.fallback-urls]
-CacheControl = "https://raw.githubusercontent.com/ionrock/cachecontrol/v0.12.6/LICENSE.txt"
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
-webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
+
+######################################################################################
+# ruff
+#
+
+[tool.ruff]
+# Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
+target-version = "py38"  # Pin Ruff to Python 3.8
+src = ["src"]
+line-length = 88
+extend-exclude = [
+    "_vendor",
+    "./build",
+    ".scratch",
+    "data",
+]
+
+[tool.ruff.lint]
+ignore = [
+    "B020",
+    "B904", # Ruff enables opinionated warnings by default
+    "B905", # Ruff enables opinionated warnings by default
+    "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
+]
+select = [
+    "ASYNC",
+    "B",
+    "C4",
+    "C90",
+    "E",
+    "F",
+    "G",
+    "I",
+    "ISC",
+    "PERF",
+    "PLE",
+    "PLR0",
+    "W",
+    "RUF100",
+    "UP",
+    "FA102",  # future-required-type-annotation
+]
+
+[tool.ruff.lint.isort]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "vendored",
+  "first-party",
+  "tests",
+  "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"vendored" = ["pip._vendor"]
+"tests" = ["tests"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 33  # default is 10
+
+[tool.ruff.lint.per-file-ignores]
+"noxfile.py" = ["G"]
+"src/pip/_internal/*" = ["PERF203"]
+"tests/*" = ["B011"]
+"tests/unit/test_finder.py" = ["C414"]
+"src/pip/__pip-runner__.py" = ["UP"] # Must be compatible with Python 2.7
+
+[tool.ruff.lint.pylint]
+max-args = 15  # default is 5
+max-branches = 28  # default is 12
+max-returns = 13  # default is 6
+max-statements = 134  # default is 50
+
+######################################################################################
+# mypy
+#
+
+[tool.mypy]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+strict = true
+no_implicit_reexport = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+warn_return_any = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pip._internal.utils._jaraco_text"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.*"
+ignore_errors = true
+
+# These vendored libraries use runtime magic to populate things and don't sit
+# well with static typing out of the box. Eventually we should provide correct
+# typing information for their public interface and remove these configs.
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.pkg_resources"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "pip._vendor.requests.*"
+follow_imports = "skip"
+
+######################################################################################
+# pytest
+#
+
+[tool.pytest.ini_options]
+addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes"
+xfail_strict = true
+markers = [
+    "network: tests that need network",
+    "incompatible_with_sysconfig",
+    "incompatible_with_venv",
+    "no_auto_tempdir_manager",
+    "unit: unit tests",
+    "integration: integration tests",
+    "bzr: VCS: Bazaar",
+    "svn: VCS: Subversion",
+    "mercurial: VCS: Mercurial",
+    "git: VCS: git",
+    "search: tests for 'pip search'",
+]
+
+######################################################################################
+# coverage
+#
+
+[tool.coverage.run]
+branch = true
+# Do not gather coverage for vendored libraries.
+omit = "*/_vendor/*"
+# Centralized absolute file prefix for coverage files.
+data_file = "${COVERAGE_OUTPUT_DIR}/.coverage"
+# By default, each covered process will try to truncate and then write to
+# `data_file`, but with `parallel`, they will write to separate files suffixed
+# with hostname, pid, and a timestamp.
+parallel = true
+# If not set, then at the termination of each worker (when using pytest-xdist),
+# the following is traced: "Coverage.py warning: Module pip was previously
+# imported, but not measured (module-not-measured)"
+disable_warnings = "module-not-measured"
+
+[tool.coverage.paths]
+# We intentionally use "source0" here because pytest-cov unconditionally sets
+# "source" after loading the config.
+source0 = [
+    # The primary source code path which other paths will be combined into.
+    "src/pip/",
+    # Unit test source directory e.g.
+    # `.tox/coverage-py3/lib/pythonX.Y/site-packages/pip/...`
+    "*/site-packages/pip/",
+    # Functional test virtual environment directories, which look like
+    # `tmpdir/pip0/pip/src/pip/...`
+    "*/pip/src/pip/",
+]
+
+[tool.coverage.report]
+exclude_also = [
+    # This excludes typing-specific code, which will be validated by mypy anyway.
+    "if TYPE_CHECKING",
+]

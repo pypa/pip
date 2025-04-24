@@ -67,3 +67,16 @@ class RequirementSet:
     @property
     def all_requirements(self) -> List[InstallRequirement]:
         return self.unnamed_requirements + list(self.requirements.values())
+
+    @property
+    def requirements_to_install(self) -> List[InstallRequirement]:
+        """Return the list of requirements that need to be installed.
+
+        TODO remove this property together with the legacy resolver, since the new
+             resolver only returns requirements that need to be installed.
+        """
+        return [
+            install_req
+            for install_req in self.all_requirements
+            if not install_req.constraint and not install_req.satisfied_by
+        ]

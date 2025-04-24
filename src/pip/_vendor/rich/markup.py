@@ -46,7 +46,8 @@ _EscapeSubMethod = Callable[[_ReSubCallable, str], str]  # Sub method of a compi
 
 
 def escape(
-    markup: str, _escape: _EscapeSubMethod = re.compile(r"(\\*)(\[[a-z#\/@].*?\])").sub
+    markup: str,
+    _escape: _EscapeSubMethod = re.compile(r"(\\*)(\[[a-z#/@][^[]*?])").sub,
 ) -> str:
     """Escapes text so that it won't be interpreted as markup.
 
@@ -63,6 +64,9 @@ def escape(
         return f"{backslashes}{backslashes}\\{text}"
 
     markup = _escape(escape_backslashes, markup)
+    if markup.endswith("\\") and not markup.endswith("\\\\"):
+        return markup + "\\"
+
     return markup
 
 
@@ -109,7 +113,10 @@ def render(
 
     Args:
         markup (str): A string containing console markup.
+        style: (Union[str, Style]): The style to use.
         emoji (bool, optional): Also render emoji code. Defaults to True.
+        emoji_variant (str, optional): Optional emoji variant, either "text" or "emoji". Defaults to None.
+
 
     Raises:
         MarkupError: If there is a syntax error in the markup.
@@ -225,7 +232,6 @@ def render(
 
 
 if __name__ == "__main__":  # pragma: no cover
-
     MARKUP = [
         "[red]Hello World[/red]",
         "[magenta]Hello [b]World[/b]",

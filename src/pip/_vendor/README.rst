@@ -80,12 +80,7 @@ instead opt to patch the software they distribute to debundle it and make it
 rely on the global versions of the software that they already have packaged
 (which may have its own patches applied to it). We (the pip team) would prefer
 it if pip was *not* debundled in this manner due to the above reasons and
-instead we would prefer it if pip would be left intact as it is now. The one
-exception to this, is it is acceptable to remove the
-``pip/_vendor/requests/cacert.pem`` file provided you ensure that the
-``ssl.get_default_verify_paths().cafile`` API returns the correct CA bundle for
-your system. This will ensure that pip will use your system provided CA bundle
-instead of the copy bundled with pip.
+instead we would prefer it if pip would be left intact as it is now.
 
 In the longer term, if someone has a *portable* solution to the above problems,
 other than the bundling method we currently use, that doesn't add additional
@@ -104,9 +99,6 @@ Modifications
   rather than ``appdirs``.
 * ``packaging`` has been modified to import its dependencies from
   ``pip._vendor``.
-* ``html5lib`` has been modified to import six from ``pip._vendor``, to prefer
-  importing from ``collections.abc`` instead of ``collections`` and does not
-  import ``xml.etree.cElementTree`` on Python 3.
 * ``CacheControl`` has been modified to import its dependencies from
   ``pip._vendor``.
 * ``requests`` has been modified to import its other dependencies from
@@ -121,6 +113,40 @@ Vendoring is automated via the `vendoring <https://pypi.org/project/vendoring/>`
 ``pip/_vendor/vendor.txt`` and the different patches in
 ``tools/vendoring/patches``.
 Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
+Tool configuration is done via ``pyproject.toml``.
+
+To update the vendored library versions, we have a session defined in ``nox``.
+The command to upgrade everything is::
+
+    nox -s vendoring -- --upgrade-all --skip urllib3 --skip setuptools
+
+At the time of writing (April 2025) we do not upgrade ``urllib3`` because the
+next version is a major upgrade and will be handled as an independent PR. We also
+do not upgrade ``setuptools``, because we only rely on ``pkg_resources``, and
+tracking every ``setuptools`` change is unnecessary for our needs.
+
+
+Managing Local Patches
+======================
+
+The ``vendoring`` tool automatically applies our local patches, but updating,
+the patches sometimes no longer apply cleanly. In that case, the update will
+fail. To resolve this, take the following steps:
+
+1. Revert any incomplete changes in the revendoring branch, to ensure you have
+   a clean starting point.
+2. Run the revendoring of the library with a problem again: ``nox -s vendoring
+   -- --upgrade <library_name>``.
+3. This will fail again, but you will have the original source in your working
+   directory. Review the existing patch against the source, and modify the patch
+   to reflect the new version of the source. If you ``git add`` the changes the
+   vendoring made, you can modify the source to reflect the patch file and then
+   generate a new patch with ``git diff``.
+4. Now, revert everything *except* the patch file changes. Leave the modified
+   patch file unstaged but saved in the working tree.
+5. Re-run the vendoring. This time, it should pick up the changed patch file
+   and apply it cleanly. The patch file changes will be committed along with the
+   revendoring, so the new commit should be ready to test and publish as a PR.
 
 
 Debundling

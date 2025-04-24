@@ -1,5 +1,4 @@
-"""Logic that powers autocompletion installed by ``pip completion``.
-"""
+"""Logic that powers autocompletion installed by ``pip completion``."""
 
 import optparse
 import os
@@ -16,6 +15,10 @@ def autocomplete() -> None:
     """Entry Point for completion of main and subcommand options."""
     # Don't complete if user hasn't sourced bash_completion file.
     if "PIP_AUTO_COMPLETE" not in os.environ:
+        return
+    # Don't complete if autocompletion environment variables
+    # are not present
+    if not os.environ.get("COMP_WORDS") or not os.environ.get("COMP_CWORD"):
         return
     cwords = os.environ["COMP_WORDS"].split()[1:]
     cword = int(os.environ["COMP_CWORD"])
@@ -71,8 +74,9 @@ def autocomplete() -> None:
 
         for opt in subcommand.parser.option_list_all:
             if opt.help != optparse.SUPPRESS_HELP:
-                for opt_str in opt._long_opts + opt._short_opts:
-                    options.append((opt_str, opt.nargs))
+                options += [
+                    (opt_str, opt.nargs) for opt_str in opt._long_opts + opt._short_opts
+                ]
 
         # filter out previously specified options from available options
         prev_opts = [x.split("=")[0] for x in cwords[1 : cword - 1]]

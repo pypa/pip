@@ -1,9 +1,11 @@
 import email.message
 import logging
+import os
 from typing import List, Optional, Type, TypeVar, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName
 
@@ -20,6 +22,7 @@ from pip._internal.resolution.legacy.resolver import (
     Resolver,
     _check_dist_requires_python,
 )
+
 from tests.lib import TestData, make_test_finder
 from tests.lib.index import make_mock_candidate
 
@@ -110,7 +113,7 @@ class TestAddRequirement:
         requirement_set = RequirementSet(check_supported_wheels=True)
 
         install_req = install_req_from_line(
-            data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl"),
+            os.fspath(data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")),
         )
         assert install_req.link is not None
         assert install_req.link.is_wheel
@@ -251,7 +254,7 @@ class TestCheckDistRequiresPython:
             def metadata(self) -> email.message.Message:
                 raise FileNotFoundError(metadata_name)
 
-        dist = make_fake_dist(klass=NotWorkingFakeDist)
+        dist = make_fake_dist(klass=NotWorkingFakeDist)  # type: ignore
 
         with pytest.raises(NoneMetadataError) as exc:
             _check_dist_requires_python(
@@ -260,8 +263,8 @@ class TestCheckDistRequiresPython:
                 ignore_requires_python=False,
             )
         assert str(exc.value) == (
-            "None {} metadata found for distribution: "
-            "<distribution 'my-project'>".format(metadata_name)
+            f"None {metadata_name} metadata found for distribution: "
+            "<distribution 'my-project'>"
         )
 
 

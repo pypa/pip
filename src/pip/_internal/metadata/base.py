@@ -1,5 +1,6 @@
 import csv
 import email.message
+import functools
 import json
 import logging
 import pathlib
@@ -7,21 +8,24 @@ import re
 import zipfile
 from typing import (
     IO,
-    TYPE_CHECKING,
+    Any,
     Collection,
     Container,
+    Dict,
     Iterable,
     Iterator,
     List,
+    NamedTuple,
     Optional,
+    Protocol,
     Tuple,
     Union,
 )
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
-from pip._vendor.packaging.utils import NormalizedName
-from pip._vendor.packaging.version import LegacyVersion, Version
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import NoneMetadataError
 from pip._internal.locations import site_packages, user_site
@@ -35,12 +39,7 @@ from pip._internal.utils.egg_link import egg_link_path_from_sys_path
 from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
 
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
-
-DistributionVersion = Union[LegacyVersion, Version]
+from ._json import msg_to_json
 
 InfoPath = Union[str, pathlib.PurePath]
 
@@ -91,12 +90,36 @@ def _convert_installed_files_path(
     return str(pathlib.Path(*info, *entry))
 
 
+class RequiresEntry(NamedTuple):
+    requirement: str
+    extra: str
+    marker: str
+
+
 class BaseDistribution(Protocol):
     @classmethod
     def from_directory(cls, directory: str) -> "BaseDistribution":
         """Load the distribution from a metadata directory.
 
         :param directory: Path to a metadata directory, e.g. ``.dist-info``.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def from_metadata_file_contents(
+        cls,
+        metadata_contents: bytes,
+        filename: str,
+        project_name: str,
+    ) -> "BaseDistribution":
+        """Load the distribution from the contents of a METADATA file.
+
+        This is used to implement PEP 658 by generating a "shallow" dist object that can
+        be used for resolution without downloading or building the actual dist yet.
+
+        :param metadata_contents: The contents of a METADATA file.
+        :param filename: File name for the dist with this metadata.
+        :param project_name: Name of the project this dist represents.
         """
         raise NotImplementedError()
 
@@ -115,10 +138,10 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     def __repr__(self) -> str:
-        return f"{self.raw_name} {self.version} ({self.location})"
+        return f"{self.raw_name} {self.raw_version} ({self.location})"
 
     def __str__(self) -> str:
-        return f"{self.raw_name} {self.version}"
+        return f"{self.raw_name} {self.raw_version}"
 
     @property
     def location(self) -> Optional[str]:
@@ -208,7 +231,9 @@ class BaseDistribution(Protocol):
         location = self.location
         if not location:
             return False
-        return location.endswith(".egg")
+        # XXX if the distribution is a zipped egg, location has a trailing /
+        # so we resort to pathlib.Path to check the suffix in a reliable way.
+        return pathlib.Path(location).suffix == ".egg"
 
     @property
     def installed_with_setuptools_egg_info(self) -> bool:
@@ -249,7 +274,11 @@ class BaseDistribution(Protocol):
         raise NotImplementedError()
 
     @property
-    def version(self) -> DistributionVersion:
+    def version(self) -> Version:
+        raise NotImplementedError()
+
+    @property
+    def raw_version(self) -> str:
         raise NotImplementedError()
 
     @property
@@ -297,6 +326,10 @@ class BaseDistribution(Protocol):
             if cleaned_line:
                 return cleaned_line
         return ""
+
+    @property
+    def requested(self) -> bool:
+        return self.is_file("REQUESTED")
 
     @property
     def editable(self) -> bool:
@@ -348,7 +381,10 @@ class BaseDistribution(Protocol):
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
         raise NotImplementedError()
 
-    @property
+    def _metadata_impl(self) -> email.message.Message:
+        raise NotImplementedError()
+
+    @functools.cached_property
     def metadata(self) -> email.message.Message:
         """Metadata of distribution parsed from e.g. METADATA or PKG-INFO.
 
@@ -357,7 +393,20 @@ class BaseDistribution(Protocol):
         :raises NoneMetadataError: If the metadata file is available, but does
             not contain valid metadata.
         """
-        raise NotImplementedError()
+        metadata = self._metadata_impl()
+        self._add_egg_info_requires(metadata)
+        return metadata
+
+    @property
+    def metadata_dict(self) -> Dict[str, Any]:
+        """PEP 566 compliant JSON-serializable representation of METADATA or PKG-INFO.
+
+        This should return an empty dict if the metadata file is unavailable.
+
+        :raises NoneMetadataError: If the metadata file is available, but does
+            not contain valid metadata.
+        """
+        return msg_to_json(self.metadata)
 
     @property
     def metadata_version(self) -> Optional[str]:
@@ -398,11 +447,19 @@ class BaseDistribution(Protocol):
         """
         raise NotImplementedError()
 
-    def iter_provided_extras(self) -> Iterable[str]:
+    def iter_raw_dependencies(self) -> Iterable[str]:
+        """Raw Requires-Dist metadata."""
+        return self.metadata.get_all("Requires-Dist", [])
+
+    def iter_provided_extras(self) -> Iterable[NormalizedName]:
         """Extras provided by this distribution.
 
         For modern .dist-info distributions, this is the collection of
         "Provides-Extra:" entries in distribution metadata.
+
+        The return value of this function is expected to be normalised names,
+        per PEP 685, with the returned value being handled appropriately by
+        `iter_dependencies`.
         """
         raise NotImplementedError()
 
@@ -436,7 +493,7 @@ class BaseDistribution(Protocol):
         )
 
     def iter_declared_entries(self) -> Optional[Iterator[str]]:
-        """Iterate through file entires declared in this distribution.
+        """Iterate through file entries declared in this distribution.
 
         For modern .dist-info distributions, this is the files listed in the
         ``RECORD`` metadata file. For legacy setuptools distributions, this
@@ -450,6 +507,78 @@ class BaseDistribution(Protocol):
             self._iter_declared_entries_from_record()
             or self._iter_declared_entries_from_legacy()
         )
+
+    def _iter_requires_txt_entries(self) -> Iterator[RequiresEntry]:
+        """Parse a ``requires.txt`` in an egg-info directory.
+
+        This is an INI-ish format where an egg-info stores dependencies. A
+        section name describes extra other environment markers, while each entry
+        is an arbitrary string (not a key-value pair) representing a dependency
+        as a requirement string (no markers).
+
+        There is a construct in ``importlib.metadata`` called ``Sectioned`` that
+        does mostly the same, but the format is currently considered private.
+        """
+        try:
+            content = self.read_text("requires.txt")
+        except FileNotFoundError:
+            return
+        extra = marker = ""  # Section-less entries don't have markers.
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):  # Comment; ignored.
+                continue
+            if line.startswith("[") and line.endswith("]"):  # A section header.
+                extra, _, marker = line.strip("[]").partition(":")
+                continue
+            yield RequiresEntry(requirement=line, extra=extra, marker=marker)
+
+    def _iter_egg_info_extras(self) -> Iterable[str]:
+        """Get extras from the egg-info directory."""
+        known_extras = {""}
+        for entry in self._iter_requires_txt_entries():
+            extra = canonicalize_name(entry.extra)
+            if extra in known_extras:
+                continue
+            known_extras.add(extra)
+            yield extra
+
+    def _iter_egg_info_dependencies(self) -> Iterable[str]:
+        """Get distribution dependencies from the egg-info directory.
+
+        To ease parsing, this converts a legacy dependency entry into a PEP 508
+        requirement string. Like ``_iter_requires_txt_entries()``, there is code
+        in ``importlib.metadata`` that does mostly the same, but not do exactly
+        what we need.
+
+        Namely, ``importlib.metadata`` does not normalize the extra name before
+        putting it into the requirement string, which causes marker comparison
+        to fail because the dist-info format do normalize. This is consistent in
+        all currently available PEP 517 backends, although not standardized.
+        """
+        for entry in self._iter_requires_txt_entries():
+            extra = canonicalize_name(entry.extra)
+            if extra and entry.marker:
+                marker = f'({entry.marker}) and extra == "{extra}"'
+            elif extra:
+                marker = f'extra == "{extra}"'
+            elif entry.marker:
+                marker = entry.marker
+            else:
+                marker = ""
+            if marker:
+                yield f"{entry.requirement} ; {marker}"
+            else:
+                yield entry.requirement
+
+    def _add_egg_info_requires(self, metadata: email.message.Message) -> None:
+        """Add egg-info requires.txt information to the metadata."""
+        if not metadata.get_all("Requires-Dist"):
+            for dep in self._iter_egg_info_dependencies():
+                metadata["Requires-Dist"] = dep
+        if not metadata.get_all("Provides-Extra"):
+            for extra in self._iter_egg_info_extras():
+                metadata["Provides-Extra"] = extra
 
 
 class BaseEnvironment:

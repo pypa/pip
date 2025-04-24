@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
@@ -5,14 +7,13 @@ import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
+
 from tests.lib import (
     PipTestEnvironment,
     TestData,
     create_basic_wheel_for_package,
     make_test_finder,
-    path_to_url,
 )
-from tests.lib.path import Path
 
 
 def make_project(
@@ -38,13 +39,14 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     """Check we can call a requirement's backend successfully"""
     project_dir = make_project(tmpdir, backend="dummy_backend")
     req = InstallRequirement(None, None)
-    req.source_dir = project_dir  # make req believe it has been unpacked
+    req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
     env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
-    assert not conflicting and not missing
+    assert not conflicting
+    assert not missing
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
         assert req.pep517_backend is not None
@@ -66,7 +68,7 @@ def test_backend_path(tmpdir: Path, data: TestData) -> None:
     project_dir = make_project(tmpdir, backend="dummy_backend", backend_path=["."])
     (project_dir / "dummy_backend.py").write_text(dummy_backend_code)
     req = InstallRequirement(None, None)
-    req.source_dir = project_dir  # make req believe it has been unpacked
+    req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
 
     env = BuildEnvironment()
@@ -85,7 +87,7 @@ def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
         "from dummy_backend import build_wheel"
     )
     req = InstallRequirement(None, None)
-    req.source_dir = project_dir  # make req believe it has been unpacked
+    req.source_dir = os.fspath(project_dir)  # make req believe it has been unpacked
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
@@ -159,11 +161,12 @@ def test_conflicting_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} conflict with the backend "
+        f"Some build dependencies for {project_dir.as_uri()} conflict with the backend "
         "dependencies: simplewheel==1.0 is incompatible with "
-        "simplewheel==2.0.".format(url=path_to_url(project_dir))
+        "simplewheel==2.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_no_check_build_deps(
@@ -205,10 +208,11 @@ def test_validate_missing_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} are missing: "
-        "'simplewheel==1.0', 'test_backend'.".format(url=path_to_url(project_dir))
+        f"Some build dependencies for {project_dir.as_uri()} are missing: "
+        "'simplewheel==1.0', 'test_backend'."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_validate_conflicting_pep517_backend_requirements(
@@ -231,11 +235,12 @@ def test_validate_conflicting_pep517_backend_requirements(
         expect_error=True,
     )
     msg = (
-        "Some build dependencies for {url} conflict with the backend "
+        f"Some build dependencies for {project_dir.as_uri()} conflict with the backend "
         "dependencies: simplewheel==2.0 is incompatible with "
-        "simplewheel==1.0.".format(url=path_to_url(project_dir))
+        "simplewheel==1.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_pep517_backend_requirements_satisfied_by_prerelease(
@@ -247,7 +252,7 @@ def test_pep517_backend_requirements_satisfied_by_prerelease(
     script.pip("install", "test_backend", "--no-index", "-f", data.backends)
 
     project_dir = make_project(
-        script.temp_path,
+        script.scratch_path,
         requires=["test_backend", "myreq"],
         backend="test_backend",
     )

@@ -5,8 +5,8 @@ import pytest
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.exceptions import CommandError
-from tests.conftest import InMemoryPip
-from tests.lib import PipTestEnvironment
+
+from tests.lib import InMemoryPip, PipTestEnvironment
 
 
 def test_run_method_should_return_success_when_finds_command_name() -> None:
@@ -102,8 +102,8 @@ def test_help_commands_equally_functional(in_memory_pip: InMemoryPip) -> None:
     results = list(map(in_memory_pip.pip, ("help", "--help")))
     results.append(in_memory_pip.pip())
 
-    out = map(lambda x: x.stdout, results)
-    ret = map(lambda x: x.returncode, results)
+    out = (x.stdout for x in results)
+    ret = (x.returncode for x in results)
 
     msg = '"pip --help" != "pip help" != "pip"'
     assert len(set(out)) == 1, "output of: " + msg

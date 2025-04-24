@@ -1,0 +1,1 @@
+Gracefully handle Windows registry access errors while guessing the MIME type of a file.

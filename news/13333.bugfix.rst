@@ -1,0 +1,2 @@
+Fix regression that suppressed errors indicating which packages were ignored
+due to incompatible ``requires-python`` metadata.

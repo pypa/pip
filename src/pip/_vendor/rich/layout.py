@@ -20,8 +20,8 @@ from .console import Console, ConsoleOptions, RenderableType, RenderResult
 from .highlighter import ReprHighlighter
 from .panel import Panel
 from .pretty import Pretty
-from .repr import rich_repr, Result
 from .region import Region
+from .repr import Result, rich_repr
 from .segment import Segment
 from .style import StyleType
 
@@ -162,7 +162,6 @@ class Layout:
         minimum_size: int = 1,
         ratio: int = 1,
         visible: bool = True,
-        height: Optional[int] = None,
     ) -> None:
         self._renderable = renderable or _Placeholder(self)
         self.size = size
@@ -170,7 +169,6 @@ class Layout:
         self.ratio = ratio
         self.name = name
         self.visible = visible
-        self.height = height
         self.splitter: Splitter = self.splitters["column"]()
         self._children: List[Layout] = []
         self._render_map: RenderMap = {}
@@ -229,7 +227,6 @@ class Layout:
         from pip._vendor.rich.tree import Tree
 
         def summary(layout: "Layout") -> Table:
-
             icon = layout.splitter.get_tree_icon()
 
             table = Table.grid(padding=(0, 1, 0, 0))
@@ -405,7 +402,7 @@ class Layout:
             self._render_map = render_map
             layout_lines: List[List[Segment]] = [[] for _ in range(height)]
             _islice = islice
-            for (region, lines) in render_map.values():
+            for region, lines in render_map.values():
                 _x, y, _layout_width, layout_height = region
                 for row, line in zip(
                     _islice(layout_lines, y, y + layout_height), lines

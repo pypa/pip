@@ -1,21 +1,6 @@
-# coding: utf-8
-from collections import namedtuple
 import datetime
-import sys
 import struct
-
-
-PY2 = sys.version_info[0] == 2
-
-if PY2:
-    int_types = (int, long)
-    _utc = None
-else:
-    int_types = int
-    try:
-        _utc = datetime.timezone.utc
-    except AttributeError:
-        _utc = datetime.timezone(datetime.timedelta(0))
+from collections import namedtuple
 
 
 class ExtType(namedtuple("ExtType", "code data")):
@@ -28,14 +13,15 @@ class ExtType(namedtuple("ExtType", "code data")):
             raise TypeError("data must be bytes")
         if not 0 <= code <= 127:
             raise ValueError("code must be 0~127")
-        return super(ExtType, cls).__new__(cls, code, data)
+        return super().__new__(cls, code, data)
 
 
-class Timestamp(object):
+class Timestamp:
     """Timestamp represents the Timestamp extension type in msgpack.
 
-    When built with Cython, msgpack uses C methods to pack and unpack `Timestamp`. When using pure-Python
-    msgpack, :func:`to_bytes` and :func:`from_bytes` are used to pack and unpack `Timestamp`.
+    When built with Cython, msgpack uses C methods to pack and unpack `Timestamp`.
+    When using pure-Python msgpack, :func:`to_bytes` and :func:`from_bytes` are used to pack and
+    unpack `Timestamp`.
 
     This class is immutable: Do not override seconds and nanoseconds.
     """
@@ -53,31 +39,25 @@ class Timestamp(object):
             Number of nanoseconds to add to `seconds` to get fractional time.
             Maximum is 999_999_999.  Default is 0.
 
-        Note: Negative times (before the UNIX epoch) are represented as negative seconds + positive ns.
+        Note: Negative times (before the UNIX epoch) are represented as neg. seconds + pos. ns.
         """
-        if not isinstance(seconds, int_types):
-            raise TypeError("seconds must be an interger")
-        if not isinstance(nanoseconds, int_types):
+        if not isinstance(seconds, int):
+            raise TypeError("seconds must be an integer")
+        if not isinstance(nanoseconds, int):
             raise TypeError("nanoseconds must be an integer")
-        if not (0 <= nanoseconds < 10 ** 9):
-            raise ValueError(
-                "nanoseconds must be a non-negative integer less than 999999999."
-            )
+        if not (0 <= nanoseconds < 10**9):
+            raise ValueError("nanoseconds must be a non-negative integer less than 999999999.")
         self.seconds = seconds
         self.nanoseconds = nanoseconds
 
     def __repr__(self):
         """String representation of Timestamp."""
-        return "Timestamp(seconds={0}, nanoseconds={1})".format(
-            self.seconds, self.nanoseconds
-        )
+        return f"Timestamp(seconds={self.seconds}, nanoseconds={self.nanoseconds})"
 
     def __eq__(self, other):
         """Check for equality with another Timestamp object"""
         if type(other) is self.__class__:
-            return (
-                self.seconds == other.seconds and self.nanoseconds == other.nanoseconds
-            )
+            return self.seconds == other.seconds and self.nanoseconds == other.nanoseconds
         return False
 
     def __ne__(self, other):
@@ -140,10 +120,10 @@ class Timestamp(object):
         """Create a Timestamp from posix timestamp in seconds.
 
         :param unix_float: Posix timestamp in seconds.
-        :type unix_float: int or float.
+        :type unix_float: int or float
         """
         seconds = int(unix_sec // 1)
-        nanoseconds = int((unix_sec % 1) * 10 ** 9)
+        nanoseconds = int((unix_sec % 1) * 10**9)
         return Timestamp(seconds, nanoseconds)
 
     def to_unix(self):
@@ -161,7 +141,7 @@ class Timestamp(object):
         :param int unix_ns: Posix timestamp in nanoseconds.
         :rtype: Timestamp
         """
-        return Timestamp(*divmod(unix_ns, 10 ** 9))
+        return Timestamp(*divmod(unix_ns, 10**9))
 
     def to_unix_nano(self):
         """Get the timestamp as a unixtime in nanoseconds.
@@ -169,25 +149,22 @@ class Timestamp(object):
         :returns: posix timestamp in nanoseconds
         :rtype: int
         """
-        return self.seconds * 10 ** 9 + self.nanoseconds
+        return self.seconds * 10**9 + self.nanoseconds
 
     def to_datetime(self):
         """Get the timestamp as a UTC datetime.
 
-        Python 2 is not supported.
-
-        :rtype: datetime.
+        :rtype: `datetime.datetime`
         """
-        return datetime.datetime.fromtimestamp(0, _utc) + datetime.timedelta(
-            seconds=self.to_unix()
+        utc = datetime.timezone.utc
+        return datetime.datetime.fromtimestamp(0, utc) + datetime.timedelta(
+            seconds=self.seconds, microseconds=self.nanoseconds // 1000
         )
 
     @staticmethod
     def from_datetime(dt):
         """Create a Timestamp from datetime with tzinfo.
 
-        Python 2 is not supported.
-
         :rtype: Timestamp
         """
-        return Timestamp.from_unix(dt.timestamp())
+        return Timestamp(seconds=int(dt.timestamp()), nanoseconds=dt.microsecond * 1000)

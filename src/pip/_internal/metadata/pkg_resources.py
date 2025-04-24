@@ -3,11 +3,20 @@ import email.parser
 import logging
 import os
 import zipfile
-from typing import Collection, Iterable, Iterator, List, Mapping, NamedTuple, Optional
+from typing import (
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+)
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import InvalidWheel, NoneMetadataError, UnsupportedWheel
@@ -19,12 +28,15 @@ from .base import (
     BaseDistribution,
     BaseEntryPoint,
     BaseEnvironment,
-    DistributionVersion,
     InfoPath,
     Wheel,
 )
 
+__all__ = ["NAME", "Distribution", "Environment"]
+
 logger = logging.getLogger(__name__)
+
+NAME = "pkg_resources"
 
 
 class EntryPoint(NamedTuple):
@@ -33,7 +45,7 @@ class EntryPoint(NamedTuple):
     group: str
 
 
-class WheelMetadata:
+class InMemoryMetadata:
     """IMetadataProvider that reads metadata files from a dictionary.
 
     This also maps metadata decoding exceptions to our internal exception type.
@@ -71,6 +83,18 @@ class WheelMetadata:
 class Distribution(BaseDistribution):
     def __init__(self, dist: pkg_resources.Distribution) -> None:
         self._dist = dist
+        # This is populated lazily, to avoid loading metadata for all possible
+        # distributions eagerly.
+        self.__extra_mapping: Optional[Mapping[NormalizedName, str]] = None
+
+    @property
+    def _extra_mapping(self) -> Mapping[NormalizedName, str]:
+        if self.__extra_mapping is None:
+            self.__extra_mapping = {
+                canonicalize_name(extra): extra for extra in self._dist.extras
+            }
+
+        return self.__extra_mapping
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
@@ -93,11 +117,28 @@ class Distribution(BaseDistribution):
         return cls(dist)
 
     @classmethod
+    def from_metadata_file_contents(
+        cls,
+        metadata_contents: bytes,
+        filename: str,
+        project_name: str,
+    ) -> BaseDistribution:
+        metadata_dict = {
+            "METADATA": metadata_contents,
+        }
+        dist = pkg_resources.DistInfoDistribution(
+            location=filename,
+            metadata=InMemoryMetadata(metadata_dict, filename),
+            project_name=project_name,
+        )
+        return cls(dist)
+
+    @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
         try:
             with wheel.as_zipfile() as zf:
                 info_dir, _ = parse_wheel(zf, name)
-                metadata_text = {
+                metadata_dict = {
                     path.split("/", 1)[-1]: read_wheel_metadata_file(zf, path)
                     for path in zf.namelist()
                     if path.startswith(f"{info_dir}/")
@@ -108,7 +149,7 @@ class Distribution(BaseDistribution):
             raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
         dist = pkg_resources.DistInfoDistribution(
             location=wheel.location,
-            metadata=WheelMetadata(metadata_text, wheel.location),
+            metadata=InMemoryMetadata(metadata_dict, wheel.location),
             project_name=name,
         )
         return cls(dist)
@@ -147,8 +188,12 @@ class Distribution(BaseDistribution):
         return canonicalize_name(self._dist.project_name)
 
     @property
-    def version(self) -> DistributionVersion:
+    def version(self) -> Version:
         return parse_version(self._dist.version)
+
+    @property
+    def raw_version(self) -> str:
+        return self._dist.version
 
     def is_file(self, path: InfoPath) -> bool:
         return self._dist.has_metadata(str(path))
@@ -171,8 +216,7 @@ class Distribution(BaseDistribution):
                 name, _, value = str(entry_point).partition("=")
                 yield EntryPoint(name=name.strip(), value=value.strip(), group=group)
 
-    @property
-    def metadata(self) -> email.message.Message:
+    def _metadata_impl(self) -> email.message.Message:
         """
         :raises NoneMetadataError: if the distribution reports `has_metadata()`
             True but `get_metadata()` returns None.
@@ -195,12 +239,15 @@ class Distribution(BaseDistribution):
         return feed_parser.close()
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        if extras:  # pkg_resources raises on invalid extras, so we sanitize.
-            extras = frozenset(extras).intersection(self._dist.extras)
+        if extras:
+            relevant_extras = set(self._extra_mapping) & set(
+                map(canonicalize_name, extras)
+            )
+            extras = [self._extra_mapping[extra] for extra in relevant_extras]
         return self._dist.requires(extras)
 
-    def iter_provided_extras(self) -> Iterable[str]:
-        return self._dist.extras
+    def iter_provided_extras(self) -> Iterable[NormalizedName]:
+        return self._extra_mapping.keys()
 
 
 class Environment(BaseEnvironment):

@@ -17,16 +17,17 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
     #   setuptools doesn't think the script is `-c`. This avoids the following warning:
     #     manifest_maker: standard file '-c' not found".
     # - It generates a shim setup.py, for handling setup.cfg-only projects.
-    import os, sys, tokenize
+    import os, sys, tokenize, traceback
 
     try:
         import setuptools
-    except ImportError as error:
+    except ImportError:
         print(
-            "ERROR: Can not execute `setup.py` since setuptools is not available in "
-            "the build environment.",
+            "ERROR: Can not execute `setup.py` since setuptools failed to import in "
+            "the build environment with exception:",
             file=sys.stderr,
         )
+        traceback.print_exc()
         sys.exit(1)
 
     __file__ = %r
@@ -48,7 +49,7 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
 
 def make_setuptools_shim_args(
     setup_py_path: str,
-    global_options: Sequence[str] = None,
+    global_options: Optional[Sequence[str]] = None,
     no_user_config: bool = False,
     unbuffered_output: bool = False,
 ) -> List[str]:
@@ -103,8 +104,8 @@ def make_setuptools_clean_args(
 
 def make_setuptools_develop_args(
     setup_py_path: str,
+    *,
     global_options: Sequence[str],
-    install_options: Sequence[str],
     no_user_config: bool,
     prefix: Optional[str],
     home: Optional[str],
@@ -119,8 +120,6 @@ def make_setuptools_develop_args(
     )
 
     args += ["develop", "--no-deps"]
-
-    args += install_options
 
     if prefix:
         args += ["--prefix", prefix]
@@ -144,52 +143,5 @@ def make_setuptools_egg_info_args(
 
     if egg_info_dir:
         args += ["--egg-base", egg_info_dir]
-
-    return args
-
-
-def make_setuptools_install_args(
-    setup_py_path: str,
-    global_options: Sequence[str],
-    install_options: Sequence[str],
-    record_filename: str,
-    root: Optional[str],
-    prefix: Optional[str],
-    header_dir: Optional[str],
-    home: Optional[str],
-    use_user_site: bool,
-    no_user_config: bool,
-    pycompile: bool,
-) -> List[str]:
-    assert not (use_user_site and prefix)
-    assert not (use_user_site and root)
-
-    args = make_setuptools_shim_args(
-        setup_py_path,
-        global_options=global_options,
-        no_user_config=no_user_config,
-        unbuffered_output=True,
-    )
-    args += ["install", "--record", record_filename]
-    args += ["--single-version-externally-managed"]
-
-    if root is not None:
-        args += ["--root", root]
-    if prefix is not None:
-        args += ["--prefix", prefix]
-    if home is not None:
-        args += ["--home", home]
-    if use_user_site:
-        args += ["--user", "--prefix="]
-
-    if pycompile:
-        args += ["--compile"]
-    else:
-        args += ["--no-compile"]
-
-    if header_dir:
-        args += ["--install-headers", header_dir]
-
-    args += install_options
 
     return args

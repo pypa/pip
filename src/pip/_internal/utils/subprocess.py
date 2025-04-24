@@ -2,16 +2,7 @@ import logging
 import os
 import shlex
 import subprocess
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Union,
-)
+from typing import Any, Callable, Iterable, List, Literal, Mapping, Optional, Union
 
 from pip._vendor.rich.markup import escape
 
@@ -19,12 +10,6 @@ from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.logging import VERBOSE, subprocess_logger
 from pip._internal.utils.misc import HiddenText
-
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    #
-    # TODO: Remove `if TYPE_CHECKING` when dropping support for Python 3.7.
-    from typing import Literal
 
 CommandArgs = List[Union[str, HiddenText]]
 
@@ -209,7 +194,7 @@ def call_subprocess(
                 output_lines=all_output if not showing_subprocess else None,
             )
             if log_failed_cmd:
-                subprocess_logger.error("[present-rich] %s", error)
+                subprocess_logger.error("%s", error, extra={"rich": True})
                 subprocess_logger.verbose(
                     "[bold magenta]full command[/]: [blue]%s[/]",
                     escape(format_command_args(cmd)),
@@ -239,8 +224,8 @@ def call_subprocess(
 def runner_with_spinner_message(message: str) -> Callable[..., None]:
     """Provide a subprocess_runner that shows a spinner message.
 
-    Intended for use with for pep517's Pep517HookCaller. Thus, the runner has
-    an API that matches what's expected by Pep517HookCaller.subprocess_runner.
+    Intended for use with for BuildBackendHookCaller. Thus, the runner has
+    an API that matches what's expected by BuildBackendHookCaller.subprocess_runner.
     """
 
     def runner(

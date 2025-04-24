@@ -2,6 +2,15 @@
 User Guide
 ==========
 
+.. Hello there!
+
+   If you're thinking of adding content to this page... please take a moment
+   to consider if this content can live on its own, within a topic guide or a
+   reference page.
+
+   There is active effort being put toward *reducing* the amount of content on
+   this specific page (https://github.com/pypa/pip/issues/9475) and moving it
+   into more focused single-page documents that cover that specific topic.
 
 Running pip
 ===========
@@ -59,19 +68,18 @@ For more information and examples, see the :ref:`pip install` reference.
 
 .. _PyPI: https://pypi.org/
 
-
-Basic Authentication Credentials
-================================
-
-This is now covered in :doc:`topics/authentication`.
-
-netrc Support
--------------
+.. _`0-basic-authentication-credentials`:
+.. rubric:: Basic Authentication Credentials
 
 This is now covered in :doc:`topics/authentication`.
 
-Keyring Support
----------------
+.. _`0-netrc-support`:
+.. rubric:: netrc Support
+
+This is now covered in :doc:`topics/authentication`.
+
+.. _`0-keyring-support`:
+.. rubric:: Keyring Support
 
 This is now covered in :doc:`topics/authentication`.
 
@@ -118,6 +126,10 @@ Details on the format of the files are here: :ref:`requirements-file-format`.
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
+
+Requirements files can also be served via a URL, e.g.
+http://example.com/requirements.txt besides as local files, so that they can
+be stored and served in a centralized place.
 
 In practice, there are 4 common uses of Requirements files:
 
@@ -240,6 +252,102 @@ undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
 
+Same as requirements files, constraints files can also be served via a URL,
+e.g. http://example.com/constraints.txt, so that your organization can store and
+serve them in a centralized place.
+
+
+.. _`Dependency Groups`:
+
+
+Dependency Groups
+=================
+
+"Dependency Groups" are lists of items to be installed stored in a
+``pyproject.toml`` file.
+
+A dependency group is logically just a list of requirements, similar to the
+contents of :ref:`Requirements Files`. Unlike requirements files, dependency
+groups cannot contain non-package arguments for :ref:`pip install`.
+
+Groups can be declared like so:
+
+.. code-block:: toml
+
+    # pyproject.toml
+    [dependency-groups]
+    groupA = [
+        "pkg1",
+        "pkg2",
+    ]
+
+and installed with :ref:`pip install` like so:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group groupA
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group groupA
+
+Full details on the contents of ``[dependency-groups]`` and more examples are
+available in :ref:`the specification documentation <pypug:dependency-groups>`.
+
+.. note::
+
+    Dependency Groups are defined by a standard, and therefore do not support
+    ``pip``-specific syntax for requirements, only :ref:`standard dependency
+    specifiers <pypug:dependency-specifiers>`.
+
+``pip`` does not search projects or directories to discover ``pyproject.toml``
+files. The ``--group`` option is used to pass the path to the file,
+and if the path is omitted, as in the example above, it defaults to
+``pyproject.toml`` in the current directory. Using explicit paths,
+:ref:`pip install` can use a file from another directory. For example:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group './project/subproject/pyproject.toml:groupA'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group './project/subproject/pyproject.toml:groupA'
+
+
+This also makes it possible to install groups from multiple different projects
+at once. For example, with a directory structure like so::
+
+    + project/
+      + sub1/
+        - pyproject.toml
+      + sub2/
+        - pyproject.toml
+
+it is possible to install, from the ``project/`` directory, groups from the
+subprojects thusly:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group './sub1/pyproject.toml:groupA' --group './sub2/pyproject.toml:groupB'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group './sub1/pyproject.toml:groupA' --group './sub2/pyproject.toml:groupB'
+
+
 .. _`Installing from Wheels`:
 
 
@@ -248,7 +356,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
+:ref:`specification <pypug:binary-distribution-format>`.
 
 pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -290,7 +398,8 @@ name:
 .. note::
 
     In the future, the ``path[extras]`` syntax may become deprecated. It is
-    recommended to use PEP 508 syntax wherever possible.
+    recommended to use :ref:`standard <pypug:dependency-specifiers>`
+    syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
@@ -562,33 +671,25 @@ packages.
 
 For more information and examples, see the :ref:`pip search` reference.
 
-.. _`Configuration`:
-
-
-Configuration
-=============
+.. _`0-configuration`:
+.. rubric:: Configuration
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-file:
-
-Config file
------------
+.. _`0-config-file`:
+.. rubric:: Config file
 
 This is now covered in :doc:`topics/configuration`.
 
-Environment Variables
----------------------
+.. _`0-environment-variables`:
+.. rubric:: Environment Variables
 
 This is now covered in :doc:`topics/configuration`.
 
-.. _config-precedence:
-
-Config Precedence
------------------
+.. _`0-config-precedence`:
+.. rubric:: Config Precedence
 
 This is now covered in :doc:`topics/configuration`.
-
 
 Command Completion
 ==================
@@ -732,7 +833,7 @@ User Installs
 =============
 
 With Python 2.6 came the `"user scheme" for installation
-<https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
+<https://docs.python.org/3/library/sysconfig.html#sysconfig-user-scheme>`_,
 which means that all Python distributions support an alternative install
 location that is specific to a user.  The default location for each OS is
 explained in the python documentation for the `site.USER_BASE
@@ -891,18 +992,14 @@ is the latest version:
       [...]
       Successfully installed SomePackage
 
-.. _`Repeatability`:
-
-
-Ensuring Repeatability
-======================
+.. _`0-repeatability`:
+.. _`0-ensuring-repeatability`:
+.. rubric:: Ensuring Repeatability
 
 This is now covered in :doc:`../topics/repeatable-installs`.
 
-.. _`Fixing conflicting dependencies`:
-
-Fixing conflicting dependencies
-===============================
+.. _`0-fixing-conflicting-dependencies`:
+.. rubric:: Fixing conflicting dependencies
 
 This is now covered in :doc:`../topics/dependency-resolution`.
 
@@ -915,7 +1012,7 @@ As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must
 not use pip's internal APIs in this way. There are a number of reasons for this:
 
-#. The pip code assumes that is in sole control of the global state of the
+#. The pip code assumes that it is in sole control of the global state of the
    program.
    pip manages things like the logging system configuration, or the values of
    the standard IO streams, without considering the possibility that user code
@@ -961,6 +1058,12 @@ If you want to process the output further, use one of the other APIs in the modu
 We are using `freeze`_ here which outputs installed packages in requirements format.::
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
+
+To programmatically monitor download progress use the ``--progress-bar=raw`` option.
+This will print lines to stdout in the format ``Progress CURRENT of TOTAL``, where
+``CURRENT`` and ``TOTAL`` are integers and the unit is bytes.
+If the real total is unknown then ``TOTAL`` is set to ``0``. Be aware that the
+specific formatting of pip's outputs are *not* guaranteed to be the same in future versions.
 
 If you don't want to use pip's command line functionality, but are rather
 trying to implement code that works with Python packages, their metadata, or
@@ -1240,6 +1343,13 @@ Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
 Policy`.
 
+.. attention::
+
+    The legacy resolver is deprecated and unsupported. New features, such
+    as :doc:`reference/installation-report`, will not work with the
+    legacy resolver and this resolver will be removed in a future
+    release.
+
 Context and followup
 --------------------
 
@@ -1261,3 +1371,8 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher
+
+.. _`0-using-system-trust-stores-for-verifying-https`:
+.. rubric:: Using system trust stores for verifying HTTPS
+
+This is now covered in :doc:`topics/https-certificates`.

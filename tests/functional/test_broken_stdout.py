@@ -1,8 +1,7 @@
 import os
 import subprocess
+from pathlib import Path
 from typing import List, Tuple
-
-from tests.lib.path import Path
 
 _BROKEN_STDOUT_RETURN_CODE = 120
 

@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
 import pytest
+
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.requirements import Requirement
 

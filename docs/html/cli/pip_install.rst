@@ -11,7 +11,7 @@ Usage
 
 .. tab:: Unix/macOS
 
-   .. pip-command-usage:: install "python -m pip"
+   .. pip-command-usage:: install 'python -m pip'
 
 .. tab:: Windows
 
@@ -45,11 +45,11 @@ When looking at the items to be installed, pip checks what type of item
 each is, in the following order:
 
 1. Project or archive URL.
-2. Local directory (which must contain a ``setup.py``, or pip will report
-   an error).
+2. Local directory (which must contain a ``pyproject.toml`` or ``setup.py``,
+   otherwise pip will report an error).
 3. Local file (a sdist or wheel format archive, following the naming
    conventions for those formats).
-4. A requirement, as specified in :pep:`440`.
+4. A :ref:`version specifier <pypug:version-specifiers>`.
 
 Each item identified is added to the set of requirements to be satisfied by
 the install.
@@ -79,13 +79,26 @@ for an exception regarding pre-release versions). Where more than one source of
 the chosen version is available, it is assumed that any source is acceptable
 (as otherwise the versions would differ).
 
+Obtaining information about what was installed
+----------------------------------------------
+
+The install command has a ``--report`` option that will generate a JSON report of what
+pip has installed. In combination with the ``--dry-run`` and ``--ignore-installed`` it
+can be used to *resolve* a set of requirements without actually installing them.
+
+The report can be written to a file, or to standard output (using ``--report -`` in
+combination with ``--quiet``).
+
+The format of the JSON report is described in :doc:`../reference/installation-report`.
+
 Installation Order
 ------------------
 
 .. note::
 
    This section is only about installation order of runtime dependencies, and
-   does not apply to build dependencies (those are specified using PEP 518).
+   does not apply to build dependencies (those are specified using the
+   :ref:`[build-system] table <pypug:pyproject-build-system-table>`).
 
 As of v6.1.0, pip installs dependencies before their dependents, i.e. in
 "topological order."  This is the only commitment pip currently makes related
@@ -148,19 +161,18 @@ profile:
 3. For whatever reason, they don't or won't declare their build dependencies using
    ``setup_requires``.
 
-
-Requirements File Format
-------------------------
+.. _`0-requirements-file-format`:
+.. rubric:: Requirements File Format
 
 This section has been moved to :doc:`../reference/requirements-file-format`.
 
-Requirement Specifiers
-----------------------
+.. _`0-requirement-specifiers`:
+.. rubric:: Requirement Specifiers
 
 This section has been moved to :doc:`../reference/requirement-specifiers`.
 
-Per-requirement Overrides
--------------------------
+.. _`0-per-requirement-overrides`:
+.. rubric:: Per-requirement Overrides
 
 This is now covered in :doc:`../reference/requirements-file-format`.
 
@@ -170,8 +182,9 @@ Pre-release Versions
 --------------------
 
 Starting with v1.4, pip will only install stable versions as specified by
-`pre-releases`_ by default. If a version cannot be parsed as a compliant :pep:`440`
-version then it is assumed to be a pre-release.
+`pre-releases`_ by default. If a version cannot be parsed as a
+:ref:`compliant <pypug:version-specifiers>` version then it is assumed to be
+a pre-release.
 
 If a Requirement specifier includes a pre-release or development version
 (e.g. ``>=0.0.dev0``) then pip will allow pre-release and development versions
@@ -183,11 +196,8 @@ that enables installation of pre-releases and development releases.
 
 .. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
 
-
-.. _`VCS Support`:
-
-VCS Support
------------
+.. _`0-vcs-support`:
+.. rubric:: VCS Support
 
 This is now covered in :doc:`../topics/vcs-support`.
 
@@ -202,66 +212,52 @@ and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 pip offers a number of package index options for modifying how packages are
 found.
 
-pip looks for packages in a number of places: on PyPI (if not disabled via
-``--no-index``), in the local filesystem, and in any additional repositories
-specified via ``--find-links`` or ``--index-url``. There is no ordering in
-the locations that are searched. Rather they are all checked, and the "best"
-match for the requirements (in terms of version number - see :pep:`440` for
-details) is selected.
+pip looks for packages in a number of places: on PyPI (or the index given as
+``--index-url``, if not disabled via ``--no-index``), in the local filesystem,
+and in any additional repositories specified via ``--find-links`` or
+``--extra-index-url``. There is no priority in the locations that are searched.
+Rather they are all checked, and the "best" match for the requirements (in
+terms of version number - see the
+:ref:`specification <pypug:version-specifiers>` for details) is selected.
 
 See the :ref:`pip install Examples<pip install Examples>`.
 
+.. _`0-ssl certificate verification`:
+.. rubric:: SSL Certificate Verification
 
-.. _`SSL Certificate Verification`:
+This is now covered in :doc:`../topics/https-certificates`.
 
-SSL Certificate Verification
-----------------------------
-
-Starting with v1.3, pip provides SSL certificate verification over HTTP, to
-prevent man-in-the-middle attacks against PyPI downloads. This does not use
-the system certificate store but instead uses a bundled CA certificate
-store. The default bundled CA certificate store certificate store may be
-overridden by using ``--cert`` option or by using ``PIP_CERT``,
-``REQUESTS_CA_BUNDLE``, or ``CURL_CA_BUNDLE`` environment variables.
-
-
-.. _`Caching`:
-
-Caching
--------
+.. _`0-caching`:
+.. rubric:: Caching
 
 This is now covered in :doc:`../topics/caching`.
 
-.. _`Wheel cache`:
-
-Wheel Cache
-^^^^^^^^^^^
+.. _`0-wheel-cache`:
+.. rubric:: Wheel Cache
 
 This is now covered in :doc:`../topics/caching`.
 
-Hash checking mode
-------------------
+.. _`0-hash-checking-mode`:
+.. rubric:: Hash checking mode
 
 This is now covered in :doc:`../topics/secure-installs`.
 
-Local Project Installs
-----------------------
+.. _`0-local-project-installs`:
+.. rubric:: Local Project Installs
 
 This is now covered in :doc:`../topics/local-project-installs`.
 
-Editable installs
------------------
+.. _`0-editable-installs`:
+.. rubric:: Editable installs
 
 This is now covered in :doc:`../topics/local-project-installs`.
 
-Build System Interface
-----------------------
+.. _`0-build-system-interface`:
+.. rubric:: Build System Interface
 
 This is now covered in :doc:`../reference/build-system/index`.
 
-
 .. _`pip install Options`:
-
 
 Options
 =======
@@ -284,7 +280,7 @@ Examples
       .. code-block:: shell
 
          python -m pip install SomePackage            # latest version
-         python -m pip install SomePackage==1.0.4     # specific version
+         python -m pip install 'SomePackage==1.0.4'   # specific version
          python -m pip install 'SomePackage>=1.0.4'   # minimum version
 
    .. tab:: Windows
@@ -292,8 +288,8 @@ Examples
       .. code-block:: shell
 
          py -m pip install SomePackage            # latest version
-         py -m pip install SomePackage==1.0.4     # specific version
-         py -m pip install 'SomePackage>=1.0.4'   # minimum version
+         py -m pip install "SomePackage==1.0.4"   # specific version
+         py -m pip install "SomePackage>=1.0.4"   # minimum version
 
 
 #. Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
@@ -356,13 +352,13 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
+         python -m pip install 'SomeProject@git+https://git.repo/some_pkg.git@1.3.1'
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
+         py -m pip install "SomeProject@git+https://git.repo/some_pkg.git@1.3.1"
 
 
 #. Install a project from VCS in "editable" mode. See the sections on :doc:`../topics/vcs-support` and :ref:`Editable Installs <editable-installs>`.
@@ -371,43 +367,44 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
-         python -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-         python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
-         python -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-         python -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
+         python -m pip install -e 'git+https://git.repo/some_pkg.git#egg=SomePackage'          # from git
+         python -m pip install -e 'hg+https://hg.repo/some_pkg.git#egg=SomePackage'            # from mercurial
+         python -m pip install -e 'svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage'         # from svn
+         python -m pip install -e 'git+https://git.repo/some_pkg.git@feature#egg=SomePackage'  # from 'feature' branch
+         python -m pip install -e 'git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path' # install a python package from a repo subdirectory
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
-         py -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-         py -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
-         py -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
+         py -m pip install -e "git+https://git.repo/some_pkg.git#egg=SomePackage"          # from git
+         py -m pip install -e "hg+https://hg.repo/some_pkg.git#egg=SomePackage"            # from mercurial
+         py -m pip install -e "svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage"         # from svn
+         py -m pip install -e "git+https://git.repo/some_pkg.git@feature#egg=SomePackage"  # from 'feature' branch
          py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
-#. Install a package with `extras`_.
+#. Install a package with extras, i.e., optional dependencies
+   (:ref:`specification <pypug:dependency-specifiers>`).
 
    .. tab:: Unix/macOS
 
       .. code-block:: shell
 
-         python -m pip install SomePackage[PDF]
-         python -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path"
-         python -m pip install .[PDF]  # project in current directory
-         python -m pip install SomePackage[PDF]==3.0
-         python -m pip install SomePackage[PDF,EPUB]  # multiple extras
+         python -m pip install 'SomePackage[PDF]'
+         python -m pip install 'SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path'
+         python -m pip install '.[PDF]'  # project in current directory
+         python -m pip install 'SomePackage[PDF]==3.0'
+         python -m pip install 'SomePackage[PDF,EPUB]'  # multiple extras
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install SomePackage[PDF]
+         py -m pip install "SomePackage[PDF]"
          py -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path"
-         py -m pip install .[PDF]  # project in current directory
-         py -m pip install SomePackage[PDF]==3.0
-         py -m pip install SomePackage[PDF,EPUB]  # multiple extras
+         py -m pip install ".[PDF]"  # project in current directory
+         py -m pip install "SomePackage[PDF]==3.0"
+         py -m pip install "SomePackage[PDF,EPUB]"  # multiple extras
 
 #. Install a particular source archive file.
 
@@ -415,33 +412,34 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install ./downloads/SomePackage-1.0.4.tar.gz
-         python -m pip install http://my.package.repo/SomePackage-1.0.4.zip
+         python -m pip install './downloads/SomePackage-1.0.4.tar.gz'
+         python -m pip install 'http://my.package.repo/SomePackage-1.0.4.zip'
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install ./downloads/SomePackage-1.0.4.tar.gz
-         py -m pip install http://my.package.repo/SomePackage-1.0.4.zip
+         py -m pip install "./downloads/SomePackage-1.0.4.tar.gz"
+         py -m pip install "http://my.package.repo/SomePackage-1.0.4.zip"
 
-#. Install a particular source archive file following :pep:`440` direct references.
+#. Install a particular source archive file following direct references
+   (:ref:`specification <pypug:dependency-specifiers>`).
 
    .. tab:: Unix/macOS
 
       .. code-block:: shell
 
-         python -m pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
-         python -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
-         python -m pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
+         python -m pip install 'SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl'
+         python -m pip install 'SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl'
+         python -m pip install 'SomeProject@http://my.package.repo/1.2.3.tar.gz'
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
+         py -m pip install "SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
          py -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
-         py -m pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
+         py -m pip install "SomeProject@http://my.package.repo/1.2.3.tar.gz"
 
 #. Install from alternative package repositories.
 
@@ -546,5 +544,4 @@ Examples
 
          py -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
-.. _extras: https://www.python.org/dev/peps/pep-0508/#extras
 .. _PyPI: https://pypi.org/

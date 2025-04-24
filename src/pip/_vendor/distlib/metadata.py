@@ -5,7 +5,7 @@
 #
 """Implementation of the Metadata for Python packages PEPs.
 
-Supports all metadata formats (1.0, 1.1, 1.2, 1.3/2.1 and withdrawn 2.0).
+Supports all metadata formats (1.0, 1.1, 1.2, 1.3/2.1 and 2.2).
 """
 from __future__ import unicode_literals
 
@@ -14,7 +14,6 @@ from email import message_from_file
 import json
 import logging
 import re
-
 
 from . import DistlibException, __version__
 from .compat import StringIO, string_types, text_type
@@ -40,6 +39,7 @@ class MetadataUnrecognizedVersionError(DistlibException):
 class MetadataInvalidError(DistlibException):
     """A metadata value is invalid"""
 
+
 # public API of this module
 __all__ = ['Metadata', 'PKG_INFO_ENCODING', 'PKG_INFO_PREFERRED_VERSION']
 
@@ -52,53 +52,42 @@ PKG_INFO_PREFERRED_VERSION = '1.1'
 
 _LINE_PREFIX_1_2 = re.compile('\n       \\|')
 _LINE_PREFIX_PRE_1_2 = re.compile('\n        ')
-_241_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
-               'Summary', 'Description',
-               'Keywords', 'Home-page', 'Author', 'Author-email',
-               'License')
+_241_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform', 'Summary', 'Description', 'Keywords', 'Home-page',
+               'Author', 'Author-email', 'License')
 
-_314_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
-               'Supported-Platform', 'Summary', 'Description',
-               'Keywords', 'Home-page', 'Author', 'Author-email',
-               'License', 'Classifier', 'Download-URL', 'Obsoletes',
+_314_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform', 'Supported-Platform', 'Summary', 'Description',
+               'Keywords', 'Home-page', 'Author', 'Author-email', 'License', 'Classifier', 'Download-URL', 'Obsoletes',
                'Provides', 'Requires')
 
-_314_MARKERS = ('Obsoletes', 'Provides', 'Requires', 'Classifier',
-                'Download-URL')
+_314_MARKERS = ('Obsoletes', 'Provides', 'Requires', 'Classifier', 'Download-URL')
 
-_345_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
-               'Supported-Platform', 'Summary', 'Description',
-               'Keywords', 'Home-page', 'Author', 'Author-email',
-               'Maintainer', 'Maintainer-email', 'License',
-               'Classifier', 'Download-URL', 'Obsoletes-Dist',
-               'Project-URL', 'Provides-Dist', 'Requires-Dist',
+_345_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform', 'Supported-Platform', 'Summary', 'Description',
+               'Keywords', 'Home-page', 'Author', 'Author-email', 'Maintainer', 'Maintainer-email', 'License',
+               'Classifier', 'Download-URL', 'Obsoletes-Dist', 'Project-URL', 'Provides-Dist', 'Requires-Dist',
                'Requires-Python', 'Requires-External')
 
-_345_MARKERS = ('Provides-Dist', 'Requires-Dist', 'Requires-Python',
-                'Obsoletes-Dist', 'Requires-External', 'Maintainer',
-                'Maintainer-email', 'Project-URL')
+_345_MARKERS = ('Provides-Dist', 'Requires-Dist', 'Requires-Python', 'Obsoletes-Dist', 'Requires-External',
+                'Maintainer', 'Maintainer-email', 'Project-URL')
 
-_426_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
-               'Supported-Platform', 'Summary', 'Description',
-               'Keywords', 'Home-page', 'Author', 'Author-email',
-               'Maintainer', 'Maintainer-email', 'License',
-               'Classifier', 'Download-URL', 'Obsoletes-Dist',
-               'Project-URL', 'Provides-Dist', 'Requires-Dist',
-               'Requires-Python', 'Requires-External', 'Private-Version',
-               'Obsoleted-By', 'Setup-Requires-Dist', 'Extension',
-               'Provides-Extra')
+_426_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform', 'Supported-Platform', 'Summary', 'Description',
+               'Keywords', 'Home-page', 'Author', 'Author-email', 'Maintainer', 'Maintainer-email', 'License',
+               'Classifier', 'Download-URL', 'Obsoletes-Dist', 'Project-URL', 'Provides-Dist', 'Requires-Dist',
+               'Requires-Python', 'Requires-External', 'Private-Version', 'Obsoleted-By', 'Setup-Requires-Dist',
+               'Extension', 'Provides-Extra')
 
-_426_MARKERS = ('Private-Version', 'Provides-Extra', 'Obsoleted-By',
-                'Setup-Requires-Dist', 'Extension')
+_426_MARKERS = ('Private-Version', 'Provides-Extra', 'Obsoleted-By', 'Setup-Requires-Dist', 'Extension')
 
 # See issue #106: Sometimes 'Requires' and 'Provides' occur wrongly in
 # the metadata. Include them in the tuple literal below to allow them
 # (for now).
 # Ditto for Obsoletes - see issue #140.
-_566_FIELDS = _426_FIELDS + ('Description-Content-Type',
-                             'Requires', 'Provides', 'Obsoletes')
+_566_FIELDS = _426_FIELDS + ('Description-Content-Type', 'Requires', 'Provides', 'Obsoletes')
 
-_566_MARKERS = ('Description-Content-Type',)
+_566_MARKERS = ('Description-Content-Type', )
+
+_643_MARKERS = ('Dynamic', 'License-File')
+
+_643_FIELDS = _566_FIELDS + _643_MARKERS
 
 _ALL_FIELDS = set()
 _ALL_FIELDS.update(_241_FIELDS)
@@ -106,6 +95,7 @@ _ALL_FIELDS.update(_314_FIELDS)
 _ALL_FIELDS.update(_345_FIELDS)
 _ALL_FIELDS.update(_426_FIELDS)
 _ALL_FIELDS.update(_566_FIELDS)
+_ALL_FIELDS.update(_643_FIELDS)
 
 EXTRA_RE = re.compile(r'''extra\s*==\s*("([^"]+)"|'([^']+)')''')
 
@@ -121,25 +111,21 @@ def _version2fieldlist(version):
         # avoid adding field names if already there
         return _345_FIELDS + tuple(f for f in _566_FIELDS if f not in _345_FIELDS)
     elif version == '2.0':
-        return _426_FIELDS
+        raise ValueError('Metadata 2.0 is withdrawn and not supported')
+        # return _426_FIELDS
+    elif version == '2.2':
+        return _643_FIELDS
     raise MetadataUnrecognizedVersionError(version)
 
 
 def _best_version(fields):
     """Detect the best version depending on the fields used."""
+
     def _has_marker(keys, markers):
-        for marker in markers:
-            if marker in keys:
-                return True
-        return False
+        return any(marker in keys for marker in markers)
 
-    keys = []
-    for key, value in fields.items():
-        if value in ([], 'UNKNOWN', None):
-            continue
-        keys.append(key)
-
-    possible_versions = ['1.0', '1.1', '1.2', '1.3', '2.0', '2.1']
+    keys = [key for key, value in fields.items() if value not in ([], 'UNKNOWN', None)]
+    possible_versions = ['1.0', '1.1', '1.2', '1.3', '2.1', '2.2']  # 2.0 removed
 
     # first let's try to see if a field is not part of one of the version
     for key in keys:
@@ -159,13 +145,16 @@ def _best_version(fields):
             if key != 'Description':  # In 2.1, description allowed after headers
                 possible_versions.remove('2.1')
                 logger.debug('Removed 2.1 due to %s', key)
-        if key not in _426_FIELDS and '2.0' in possible_versions:
-            possible_versions.remove('2.0')
-            logger.debug('Removed 2.0 due to %s', key)
+        if key not in _643_FIELDS and '2.2' in possible_versions:
+            possible_versions.remove('2.2')
+            logger.debug('Removed 2.2 due to %s', key)
+        # if key not in _426_FIELDS and '2.0' in possible_versions:
+        # possible_versions.remove('2.0')
+        # logger.debug('Removed 2.0 due to %s', key)
 
     # possible_version contains qualified versions
     if len(possible_versions) == 1:
-        return possible_versions[0]   # found !
+        return possible_versions[0]  # found !
     elif len(possible_versions) == 0:
         logger.debug('Out of options - unknown metadata set: %s', fields)
         raise MetadataConflictError('Unknown metadata set')
@@ -174,16 +163,18 @@ def _best_version(fields):
     is_1_1 = '1.1' in possible_versions and _has_marker(keys, _314_MARKERS)
     is_1_2 = '1.2' in possible_versions and _has_marker(keys, _345_MARKERS)
     is_2_1 = '2.1' in possible_versions and _has_marker(keys, _566_MARKERS)
-    is_2_0 = '2.0' in possible_versions and _has_marker(keys, _426_MARKERS)
-    if int(is_1_1) + int(is_1_2) + int(is_2_1) + int(is_2_0) > 1:
-        raise MetadataConflictError('You used incompatible 1.1/1.2/2.0/2.1 fields')
+    # is_2_0 = '2.0' in possible_versions and _has_marker(keys, _426_MARKERS)
+    is_2_2 = '2.2' in possible_versions and _has_marker(keys, _643_MARKERS)
+    if int(is_1_1) + int(is_1_2) + int(is_2_1) + int(is_2_2) > 1:
+        raise MetadataConflictError('You used incompatible 1.1/1.2/2.1/2.2 fields')
 
-    # we have the choice, 1.0, or 1.2, or 2.0
+    # we have the choice, 1.0, or 1.2, 2.1 or 2.2
     #   - 1.0 has a broken Summary field but works with all tools
     #   - 1.1 is to avoid
     #   - 1.2 fixes Summary but has little adoption
-    #   - 2.0 adds more features and is very new
-    if not is_1_1 and not is_1_2 and not is_2_1 and not is_2_0:
+    #   - 2.1 adds more features
+    #   - 2.2 is the latest
+    if not is_1_1 and not is_1_2 and not is_2_1 and not is_2_2:
         # we couldn't find any specific marker
         if PKG_INFO_PREFERRED_VERSION in possible_versions:
             return PKG_INFO_PREFERRED_VERSION
@@ -193,27 +184,26 @@ def _best_version(fields):
         return '1.2'
     if is_2_1:
         return '2.1'
+    # if is_2_2:
+    # return '2.2'
 
-    return '2.0'
+    return '2.2'
+
 
 # This follows the rules about transforming keys as described in
 # https://www.python.org/dev/peps/pep-0566/#id17
-_ATTR2FIELD = {
-    name.lower().replace("-", "_"): name for name in _ALL_FIELDS
-}
+_ATTR2FIELD = {name.lower().replace("-", "_"): name for name in _ALL_FIELDS}
 _FIELD2ATTR = {field: attr for attr, field in _ATTR2FIELD.items()}
 
 _PREDICATE_FIELDS = ('Requires-Dist', 'Obsoletes-Dist', 'Provides-Dist')
-_VERSIONS_FIELDS = ('Requires-Python',)
-_VERSION_FIELDS = ('Version',)
-_LISTFIELDS = ('Platform', 'Classifier', 'Obsoletes',
-               'Requires', 'Provides', 'Obsoletes-Dist',
-               'Provides-Dist', 'Requires-Dist', 'Requires-External',
-               'Project-URL', 'Supported-Platform', 'Setup-Requires-Dist',
-               'Provides-Extra', 'Extension')
-_LISTTUPLEFIELDS = ('Project-URL',)
+_VERSIONS_FIELDS = ('Requires-Python', )
+_VERSION_FIELDS = ('Version', )
+_LISTFIELDS = ('Platform', 'Classifier', 'Obsoletes', 'Requires', 'Provides', 'Obsoletes-Dist', 'Provides-Dist',
+               'Requires-Dist', 'Requires-External', 'Project-URL', 'Supported-Platform', 'Setup-Requires-Dist',
+               'Provides-Extra', 'Extension', 'License-File')
+_LISTTUPLEFIELDS = ('Project-URL', )
 
-_ELEMENTSFIELD = ('Keywords',)
+_ELEMENTSFIELD = ('Keywords', )
 
 _UNICODEFIELDS = ('Author', 'Maintainer', 'Summary', 'Description')
 
@@ -245,10 +235,10 @@ class LegacyMetadata(object):
     - *mapping* is a dict-like object
     - *scheme* is a version scheme name
     """
+
     # TODO document the mapping API and UNKNOWN default key
 
-    def __init__(self, path=None, fileobj=None, mapping=None,
-                 scheme='default'):
+    def __init__(self, path=None, fileobj=None, mapping=None, scheme='default'):
         if [path, fileobj, mapping].count(None) < 2:
             raise TypeError('path, fileobj and mapping are exclusive')
         self._fields = {}
@@ -283,8 +273,7 @@ class LegacyMetadata(object):
             raise KeyError(name)
 
     def __contains__(self, name):
-        return (name in self._fields or
-                self._convert_name(name) in self._fields)
+        return (name in self._fields or self._convert_name(name) in self._fields)
 
     def _convert_name(self, name):
         if name in _ALL_FIELDS:
@@ -312,12 +301,12 @@ class LegacyMetadata(object):
     # Public API
     #
 
-#    dependencies = property(_get_dependencies, _set_dependencies)
-
     def get_fullname(self, filesafe=False):
-        """Return the distribution name with version.
+        """
+        Return the distribution name with version.
 
-        If filesafe is true, return a filename-escaped form."""
+        If filesafe is true, return a filename-escaped form.
+        """
         return _get_name_and_version(self['Name'], self['Version'], filesafe)
 
     def is_field(self, name):
@@ -408,6 +397,7 @@ class LegacyMetadata(object):
         Keys that don't match a metadata field or that have an empty value are
         dropped.
         """
+
         def _set(key, value):
             if key in _ATTR2FIELD and value:
                 self.set(self._convert_name(key), value)
@@ -430,14 +420,12 @@ class LegacyMetadata(object):
         """Control then set a metadata field."""
         name = self._convert_name(name)
 
-        if ((name in _ELEMENTSFIELD or name == 'Platform') and
-            not isinstance(value, (list, tuple))):
+        if ((name in _ELEMENTSFIELD or name == 'Platform') and not isinstance(value, (list, tuple))):
             if isinstance(value, string_types):
                 value = [v.strip() for v in value.split(',')]
             else:
                 value = []
-        elif (name in _LISTFIELDS and
-              not isinstance(value, (list, tuple))):
+        elif (name in _LISTFIELDS and not isinstance(value, (list, tuple))):
             if isinstance(value, string_types):
                 value = [value]
             else:
@@ -451,18 +439,14 @@ class LegacyMetadata(object):
                 for v in value:
                     # check that the values are valid
                     if not scheme.is_valid_matcher(v.split(';')[0]):
-                        logger.warning(
-                            "'%s': '%s' is not valid (field '%s')",
-                            project_name, v, name)
+                        logger.warning("'%s': '%s' is not valid (field '%s')", project_name, v, name)
             # FIXME this rejects UNKNOWN, is that right?
             elif name in _VERSIONS_FIELDS and value is not None:
                 if not scheme.is_valid_constraint_list(value):
-                    logger.warning("'%s': '%s' is not a valid version (field '%s')",
-                                   project_name, value, name)
+                    logger.warning("'%s': '%s' is not a valid version (field '%s')", project_name, value, name)
             elif name in _VERSION_FIELDS and value is not None:
                 if not scheme.is_valid_version(value):
-                    logger.warning("'%s': '%s' is not a valid version (field '%s')",
-                                   project_name, value, name)
+                    logger.warning("'%s': '%s' is not a valid version (field '%s')", project_name, value, name)
 
         if name in _UNICODEFIELDS:
             if name == 'Description':
@@ -532,10 +516,8 @@ class LegacyMetadata(object):
             return True
 
         for fields, controller in ((_PREDICATE_FIELDS, are_valid_constraints),
-                                   (_VERSIONS_FIELDS,
-                                    scheme.is_valid_constraint_list),
-                                   (_VERSION_FIELDS,
-                                    scheme.is_valid_version)):
+                                   (_VERSIONS_FIELDS, scheme.is_valid_constraint_list), (_VERSION_FIELDS,
+                                                                                         scheme.is_valid_version)):
             for field in fields:
                 value = self.get(field, None)
                 if value is not None and not controller(value):
@@ -591,8 +573,7 @@ class LegacyMetadata(object):
         return [(key, self[key]) for key in self.keys()]
 
     def __repr__(self):
-        return '<%s %s %s>' % (self.__class__.__name__, self.name,
-                               self.version)
+        return '<%s %s %s>' % (self.__class__.__name__, self.name, self.version)
 
 
 METADATA_FILENAME = 'pydist.json'
@@ -602,7 +583,7 @@ LEGACY_METADATA_FILENAME = 'METADATA'
 
 class Metadata(object):
     """
-    The metadata of a release. This implementation uses 2.0 (JSON)
+    The metadata of a release. This implementation uses 2.1
     metadata where possible. If not possible, it wraps a LegacyMetadata
     instance which handles the key-value metadata format.
     """
@@ -610,6 +591,8 @@ class Metadata(object):
     METADATA_VERSION_MATCHER = re.compile(r'^\d+(\.\d+)*$')
 
     NAME_MATCHER = re.compile('^[0-9A-Z]([0-9A-Z_.-]*[0-9A-Z])?$', re.I)
+
+    FIELDNAME_MATCHER = re.compile('^[A-Z]([0-9A-Z-]*[0-9A-Z])?$', re.I)
 
     VERSION_MATCHER = PEP440_VERSION_RE
 
@@ -622,7 +605,7 @@ class Metadata(object):
     MANDATORY_KEYS = {
         'name': (),
         'version': (),
-        'summary': ('legacy',),
+        'summary': ('legacy', ),
     }
 
     INDEX_KEYS = ('name version license summary description author '
@@ -635,21 +618,21 @@ class Metadata(object):
 
     SYNTAX_VALIDATORS = {
         'metadata_version': (METADATA_VERSION_MATCHER, ()),
-        'name': (NAME_MATCHER, ('legacy',)),
-        'version': (VERSION_MATCHER, ('legacy',)),
-        'summary': (SUMMARY_MATCHER, ('legacy',)),
+        'name': (NAME_MATCHER, ('legacy', )),
+        'version': (VERSION_MATCHER, ('legacy', )),
+        'summary': (SUMMARY_MATCHER, ('legacy', )),
+        'dynamic': (FIELDNAME_MATCHER, ('legacy', )),
     }
 
     __slots__ = ('_legacy', '_data', 'scheme')
 
-    def __init__(self, path=None, fileobj=None, mapping=None,
-                 scheme='default'):
+    def __init__(self, path=None, fileobj=None, mapping=None, scheme='default'):
         if [path, fileobj, mapping].count(None) < 2:
             raise TypeError('path, fileobj and mapping are exclusive')
         self._legacy = None
         self._data = None
         self.scheme = scheme
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if mapping is not None:
             try:
                 self._validate_mapping(mapping, scheme)
@@ -683,8 +666,7 @@ class Metadata(object):
                     # The ValueError comes from the json.load - if that
                     # succeeds and we get a validation error, we want
                     # that to propagate
-                    self._legacy = LegacyMetadata(fileobj=StringIO(data),
-                                                  scheme=scheme)
+                    self._legacy = LegacyMetadata(fileobj=StringIO(data), scheme=scheme)
                     self.validate()
 
     common_keys = set(('name', 'version', 'license', 'keywords', 'summary'))
@@ -722,8 +704,7 @@ class Metadata(object):
                     result = self._legacy.get(lk)
             else:
                 value = None if maker is None else maker()
-                if key not in ('commands', 'exports', 'modules', 'namespaces',
-                               'classifiers'):
+                if key not in ('commands', 'exports', 'modules', 'namespaces', 'classifiers'):
                     result = self._data.get(key, value)
                 else:
                     # special cases for PEP 459
@@ -760,8 +741,7 @@ class Metadata(object):
                 m = pattern.match(value)
                 if not m:
                     raise MetadataInvalidError("'%s' is an invalid value for "
-                                               "the '%s' property" % (value,
-                                                                    key))
+                                               "the '%s' property" % (value, key))
 
     def __setattr__(self, key, value):
         self._validate_value(key, value)
@@ -773,8 +753,7 @@ class Metadata(object):
                 if lk is None:
                     raise NotImplementedError
                 self._legacy[lk] = value
-            elif key not in ('commands', 'exports', 'modules', 'namespaces',
-                             'classifiers'):
+            elif key not in ('commands', 'exports', 'modules', 'namespaces', 'classifiers'):
                 self._data[key] = value
             else:
                 # special cases for PEP 459
@@ -862,8 +841,7 @@ class Metadata(object):
                     # A recursive call, but it should terminate since 'test'
                     # has been removed from the extras
                     reqts = self._data.get('%s_requires' % key, [])
-                    result.extend(self.get_requirements(reqts, extras=extras,
-                                                        env=env))
+                    result.extend(self.get_requirements(reqts, extras=extras, env=env))
         return result
 
     @property
@@ -904,8 +882,7 @@ class Metadata(object):
         if self._legacy:
             missing, warnings = self._legacy.check(True)
             if missing or warnings:
-                logger.warning('Metadata: missing: %s, warnings: %s',
-                               missing, warnings)
+                logger.warning('Metadata: missing: %s, warnings: %s', missing, warnings)
         else:
             self._validate_mapping(self._data, self.scheme)
 
@@ -922,9 +899,8 @@ class Metadata(object):
             'metadata_version': self.METADATA_VERSION,
             'generator': self.GENERATOR,
         }
-        lmd = self._legacy.todict(True)     # skip missing ones
-        for k in ('name', 'version', 'license', 'summary', 'description',
-                  'classifier'):
+        lmd = self._legacy.todict(True)  # skip missing ones
+        for k in ('name', 'version', 'license', 'summary', 'description', 'classifier'):
             if k in lmd:
                 if k == 'classifier':
                     nk = 'classifiers'
@@ -935,14 +911,13 @@ class Metadata(object):
         if kw == ['']:
             kw = []
         result['keywords'] = kw
-        keys = (('requires_dist', 'run_requires'),
-                ('setup_requires_dist', 'build_requires'))
+        keys = (('requires_dist', 'run_requires'), ('setup_requires_dist', 'build_requires'))
         for ok, nk in keys:
             if ok in lmd and lmd[ok]:
                 result[nk] = [{'requires': lmd[ok]}]
         result['provides'] = self.provides
-        author = {}
-        maintainer = {}
+        # author = {}
+        # maintainer = {}
         return result
 
     LEGACY_MAPPING = {
@@ -959,6 +934,7 @@ class Metadata(object):
     }
 
     def _to_legacy(self):
+
         def process_entries(entries):
             reqts = set()
             for e in entries:
@@ -1027,12 +1003,10 @@ class Metadata(object):
             else:
                 d = self._data
             if fileobj:
-                json.dump(d, fileobj, ensure_ascii=True, indent=2,
-                          sort_keys=True)
+                json.dump(d, fileobj, ensure_ascii=True, indent=2, sort_keys=True)
             else:
                 with codecs.open(path, 'w', 'utf-8') as f:
-                    json.dump(d, f, ensure_ascii=True, indent=2,
-                              sort_keys=True)
+                    json.dump(d, f, ensure_ascii=True, indent=2, sort_keys=True)
 
     def add_requirements(self, requirements):
         if self._legacy:
@@ -1045,7 +1019,7 @@ class Metadata(object):
                     always = entry
                     break
             if always is None:
-                always = { 'requires': requirements }
+                always = {'requires': requirements}
                 run_requires.insert(0, always)
             else:
                 rset = set(always['requires']) | set(requirements)
@@ -1054,5 +1028,4 @@ class Metadata(object):
     def __repr__(self):
         name = self.name or '(no name)'
         version = self.version or 'no version'
-        return '<%s %s %s (%s)>' % (self.__class__.__name__,
-                                    self.metadata_version, name, version)
+        return '<%s %s %s (%s)>' % (self.__class__.__name__, self.metadata_version, name, version)

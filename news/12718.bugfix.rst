@@ -1,0 +1,1 @@
+Disable Git and SSH prompts when ``--no-input`` is passed.

@@ -1,8 +1,8 @@
 diff --git a/src/pip/_vendor/urllib3/response.py b/src/pip/_vendor/urllib3/response.py
-index fdb50ddb2..db259d6ce 100644
+index 01f08eee8..4969b70e3 100644
 --- a/src/pip/_vendor/urllib3/response.py
 +++ b/src/pip/_vendor/urllib3/response.py
-@@ -7,13 +7,7 @@
+@@ -8,13 +8,7 @@
  from socket import error as SocketError
  from socket import timeout as SocketTimeout
  
@@ -15,8 +15,8 @@ index fdb50ddb2..db259d6ce 100644
 -    brotli = None
 +brotli = None
  
+ from . import util
  from ._collections import HTTPHeaderDict
- from .connection import BaseSSLError, HTTPException
 diff --git a/src/pip/_vendor/urllib3/util/request.py b/src/pip/_vendor/urllib3/util/request.py
 index b574b081e..330766ef4 100644
 --- a/src/pip/_vendor/urllib3/util/request.py

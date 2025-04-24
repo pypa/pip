@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Set, Tuple, cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib.resolvers import Result
 from pip._vendor.resolvelib.structs import DirectedGraph
@@ -16,7 +17,7 @@ from pip._internal.resolution.resolvelib.resolver import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
     resolver = Resolver(
         preparer=preparer,
@@ -29,17 +30,16 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
         ignore_requires_python=False,
         force_reinstall=False,
         upgrade_strategy="to-satisfy-only",
-        suppress_build_failures=False,
     )
     return resolver
 
 
 def _make_graph(
-    edges: List[Tuple[Optional[str], Optional[str]]]
+    edges: List[Tuple[Optional[str], Optional[str]]],
 ) -> "DirectedGraph[Optional[str]]":
     """Build graph from edge declarations."""
 
-    graph: "DirectedGraph[Optional[str]]" = DirectedGraph()
+    graph: DirectedGraph[Optional[str]] = DirectedGraph()
     for parent, child in edges:
         parent = cast(str, canonicalize_name(parent)) if parent else None
         child = cast(str, canonicalize_name(child)) if child else None

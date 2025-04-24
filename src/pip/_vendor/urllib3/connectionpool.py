@@ -9,6 +9,7 @@ import warnings
 from socket import error as SocketError
 from socket import timeout as SocketTimeout
 
+from ._collections import HTTPHeaderDict
 from .connection import (
     BaseSSLError,
     BrokenPipeError,
@@ -49,6 +50,13 @@ from .util.timeout import Timeout
 from .util.url import Url, _encode_target
 from .util.url import _normalize_host as normalize_host
 from .util.url import get_host, parse_url
+
+try:  # Platform-specific: Python 3
+    import weakref
+
+    weakref_finalize = weakref.finalize
+except AttributeError:  # Platform-specific: Python 2
+    from .packages.backports.weakref_finalize import weakref_finalize
 
 xrange = six.moves.xrange
 
@@ -220,6 +228,16 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             self.conn_kw["proxy"] = self.proxy
             self.conn_kw["proxy_config"] = self.proxy_config
 
+        # Do not pass 'self' as callback to 'finalize'.
+        # Then the 'finalize' would keep an endless living (leak) to self.
+        # By just passing a reference to the pool allows the garbage collector
+        # to free self if nobody else has a reference to it.
+        pool = self.pool
+
+        # Close all the HTTPConnections in the pool before the
+        # HTTPConnectionPool object is garbage collected.
+        weakref_finalize(self, _close_pool_connections, pool)
+
     def _new_conn(self):
         """
         Return a fresh :class:`HTTPConnection`.
@@ -379,7 +397,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
 
         timeout_obj = self._get_timeout(timeout)
         timeout_obj.start_connect()
-        conn.timeout = timeout_obj.connect_timeout
+        conn.timeout = Timeout.resolve_default_timeout(timeout_obj.connect_timeout)
 
         # Trigger any extra validation we need to do.
         try:
@@ -405,12 +423,13 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             pass
         except IOError as e:
             # Python 2 and macOS/Linux
-            # EPIPE and ESHUTDOWN are BrokenPipeError on Python 2, and EPROTOTYPE is needed on macOS
+            # EPIPE and ESHUTDOWN are BrokenPipeError on Python 2, and EPROTOTYPE/ECONNRESET are needed on macOS
             # https://erickt.github.io/blog/2014/11/19/adventures-in-debugging-a-potential-osx-kernel-bug/
             if e.errno not in {
                 errno.EPIPE,
                 errno.ESHUTDOWN,
                 errno.EPROTOTYPE,
+                errno.ECONNRESET,
             }:
                 raise
 
@@ -489,14 +508,8 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         # Disable access to the pool
         old_pool, self.pool = self.pool, None
 
-        try:
-            while True:
-                conn = old_pool.get(block=False)
-                if conn:
-                    conn.close()
-
-        except queue.Empty:
-            pass  # Done.
+        # Close all the HTTPConnections in the pool.
+        _close_pool_connections(old_pool)
 
     def is_same_host(self, url):
         """
@@ -756,7 +769,9 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                 # so we try to cover our bases here!
                 message = " ".join(re.split("[^a-z]", str(ssl_error).lower()))
                 return (
-                    "wrong version number" in message or "unknown protocol" in message
+                    "wrong version number" in message
+                    or "unknown protocol" in message
+                    or "record layer failure" in message
                 )
 
             # Try to detect a common user error with proxies which is to
@@ -767,6 +782,8 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                 isinstance(e, BaseSSLError)
                 and self.proxy
                 and _is_ssl_error_message_from_http_proxy(e)
+                and conn.proxy
+                and conn.proxy.scheme == "https"
             ):
                 e = ProxyError(
                     "Your proxy appears to only use HTTP and not HTTPS, "
@@ -830,7 +847,11 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         redirect_location = redirect and response.get_redirect_location()
         if redirect_location:
             if response.status == 303:
+                # Change the method according to RFC 9110, Section 15.4.4.
                 method = "GET"
+                # And lose the body not to transfer anything sensitive.
+                body = None
+                headers = HTTPHeaderDict(headers)._prepare_for_method_change()
 
             try:
                 retries = retries.increment(method, url, response=response, _pool=self)
@@ -860,7 +881,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             )
 
         # Check if we should retry the HTTP response.
-        has_retry_after = bool(response.getheader("Retry-After"))
+        has_retry_after = bool(response.headers.get("Retry-After"))
         if retries.is_retry(method, response.status, has_retry_after):
             try:
                 retries = retries.increment(method, url, response=response, _pool=self)
@@ -1106,3 +1127,14 @@ def _normalize_host(host, scheme):
     if host.startswith("[") and host.endswith("]"):
         host = host[1:-1]
     return host
+
+
+def _close_pool_connections(pool):
+    """Drains a queue of connections and closes each one."""
+    try:
+        while True:
+            conn = pool.get(block=False)
+            if conn:
+                conn.close()
+    except queue.Empty:
+        pass  # Done.

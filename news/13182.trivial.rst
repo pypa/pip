@@ -1,0 +1,1 @@
+Enabling linting rule FA102.

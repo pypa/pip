@@ -1,5 +1,5 @@
-"""Helper for building wheels as would be in test cases.
-"""
+"""Helper for building wheels as would be in test cases."""
+
 import csv
 import itertools
 from base64 import urlsafe_b64encode
@@ -10,6 +10,7 @@ from enum import Enum
 from functools import partial
 from hashlib import sha256
 from io import BytesIO, StringIO
+from pathlib import Path
 from typing import (
     AnyStr,
     Dict,
@@ -26,7 +27,6 @@ from zipfile import ZipFile
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
-from tests.lib.path import Path
 
 # As would be used in metadata
 HeaderValue = Union[str, List[str]]
@@ -102,13 +102,13 @@ def make_metadata_file(
     if body is not _default:
         message.set_payload(body)
 
-    return File(path, message_from_dict(metadata).as_bytes())
+    return File(path, message.as_bytes())
 
 
 def make_wheel_metadata_file(
     name: str,
     version: str,
-    value: Defaulted[Optional[AnyStr]],
+    value: Defaulted[Union[bytes, str, None]],
     tags: Sequence[Tuple[str, str, str]],
     updates: Defaulted[Dict[str, HeaderValue]],
 ) -> Optional[File]:
@@ -190,7 +190,7 @@ def urlsafe_b64encode_nopad(data: bytes) -> str:
 
 
 def digest(contents: bytes) -> str:
-    return "sha256={}".format(urlsafe_b64encode_nopad(sha256(contents).digest()))
+    return f"sha256={urlsafe_b64encode_nopad(sha256(contents).digest())}"
 
 
 def record_file_maker_wrapper(

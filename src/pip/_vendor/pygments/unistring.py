@@ -7,7 +7,7 @@
 
     Inspired by chartypes_create.py from the MoinMoin project.
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2025 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
@@ -104,7 +104,7 @@ def _handle_runs(char_list):  # pragma: no cover
         if a == b:
             yield a
         else:
-            yield '%s-%s' % (a, b)
+            yield f'{a}-{b}'
 
 
 if __name__ == '__main__':  # pragma: no cover
@@ -112,7 +112,7 @@ if __name__ == '__main__':  # pragma: no cover
 
     categories = {'xid_start': [], 'xid_continue': []}
 
-    with open(__file__) as fp:
+    with open(__file__, encoding='utf-8') as fp:
         content = fp.read()
 
     header = content[:content.find('Cc =')]
@@ -122,7 +122,7 @@ if __name__ == '__main__':  # pragma: no cover
         c = chr(code)
         cat = unicodedata.category(c)
         if ord(c) == 0xdc00:
-            # Hack to avoid combining this combining with the preceeding high
+            # Hack to avoid combining this combining with the preceding high
             # surrogate, 0xdbff, when doing a repr.
             c = '\\' + c
         elif ord(c) in (0x2d, 0x5b, 0x5c, 0x5d, 0x5e):
@@ -136,18 +136,18 @@ if __name__ == '__main__':  # pragma: no cover
         if ('a' + c).isidentifier():
             categories['xid_continue'].append(c)
 
-    with open(__file__, 'w') as fp:
+    with open(__file__, 'w', encoding='utf-8') as fp:
         fp.write(header)
 
         for cat in sorted(categories):
             val = ''.join(_handle_runs(categories[cat]))
-            fp.write('%s = %a\n\n' % (cat, val))
+            fp.write(f'{cat} = {val!a}\n\n')
 
         cats = sorted(categories)
         cats.remove('xid_start')
         cats.remove('xid_continue')
-        fp.write('cats = %r\n\n' % cats)
+        fp.write(f'cats = {cats!r}\n\n')
 
-        fp.write('# Generated from unidata %s\n\n' % (unicodedata.unidata_version,))
+        fp.write(f'# Generated from unidata {unicodedata.unidata_version}\n\n')
 
         fp.write(footer)

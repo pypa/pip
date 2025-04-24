@@ -1,3 +1,5 @@
+(configuration)=
+
 # Configuration
 
 pip allows a user to change its behaviour via 3 mechanisms:
@@ -9,10 +11,16 @@ pip allows a user to change its behaviour via 3 mechanisms:
 This page explains how the configuration files and environment variables work,
 and how they are related to pip's various command line options.
 
+```{seealso}
+{doc}`../cli/pip_config` command, which helps manage pip's configuration.
+```
+
+(config-file)=
+
 ## Configuration Files
 
-Configuration files can change the default values for command line option.
-They are written using a standard INI style configuration files.
+Configuration files can change the default values for command line options.
+The files are written using standard INI format.
 
 pip has 3 "levels" of configuration files:
 
@@ -20,11 +28,15 @@ pip has 3 "levels" of configuration files:
 - `user`: per-user configuration file.
 - `site`: per-environment configuration file; i.e. per-virtualenv.
 
+Additionally, environment variables can be specified which will override any of the above.
+
 ### Location
 
 pip's configuration files are located in fairly standard locations. This
 location is different on different operating systems, and has some additional
-complexity for backwards compatibility reasons.
+complexity for backwards compatibility reasons. Note that if user config files
+exist in both the legacy and current locations, values in the current file
+will override values in the legacy file.
 
 ```{tab} Unix
 
@@ -80,19 +92,22 @@ Site
 ### `PIP_CONFIG_FILE`
 
 Additionally, the environment variable `PIP_CONFIG_FILE` can be used to specify
-a configuration file that's loaded first, and whose values are overridden by
-the values set in the aforementioned files. Setting this to {any}`os.devnull`
-disables the loading of _all_ configuration files.
+a configuration file that's loaded last, and whose values override the values
+set in the aforementioned files. Setting this to {any}`os.devnull`
+disables the loading of _all_ configuration files. Note that if a file exists
+at the location that this is set to, the user config file will not be loaded.
+
+(config-precedence)=
 
 ### Loading order
 
 When multiple configuration files are found, pip combines them in the following
 order:
 
-- `PIP_CONFIG_FILE`, if given.
 - Global
 - User
 - Site
+- `PIP_CONFIG_FILE`, if given.
 
 Each file read overrides any values read from previous files, so if the
 global timeout is specified in both the global file and the per-user file
@@ -103,7 +118,7 @@ then the latter value will be used.
 The names of the settings are derived from the long command line option.
 
 As an example, if you want to use a different package index (`--index-url`) and
-set the HTTP timeout (`--default-timeout`) to 60 seconds, your config file would
+set the HTTP timeout (`--timeout`) to 60 seconds, your config file would
 look like this:
 
 ```ini
@@ -190,7 +205,7 @@ pip's command line options can be set with environment variables using the
 format `PIP_<UPPER_LONG_NAME>` . Dashes (`-`) have to be replaced with
 underscores (`_`).
 
-- `PIP_DEFAULT_TIMEOUT=60` is the same as `--default-timeout=60`
+- `PIP_TIMEOUT=60` is the same as `--timeout=60`
 - ```
   PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
   ```
@@ -213,9 +228,9 @@ Use `no`, `false` or `0` instead.
 
 ## Precedence / Override order
 
-Command line options have override environment variables, which override the
+Command line options override environment variables, which override the
 values in a configuration file. Within the configuration file, values in
-command-specific sections over values in the global section.
+command-specific sections override values in the global section.
 
 Examples:
 

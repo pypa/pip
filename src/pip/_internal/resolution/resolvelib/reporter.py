@@ -1,6 +1,6 @@
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, DefaultDict
+from typing import Any, DefaultDict, Optional
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
@@ -9,18 +9,18 @@ from .base import Candidate, Requirement
 logger = getLogger(__name__)
 
 
-class PipReporter(BaseReporter):
+class PipReporter(BaseReporter[Requirement, Candidate, str]):
     def __init__(self) -> None:
-        self.backtracks_by_package: DefaultDict[str, int] = defaultdict(int)
+        self.reject_count_by_package: DefaultDict[str, int] = defaultdict(int)
 
-        self._messages_at_backtrack = {
+        self._messages_at_reject_count = {
             1: (
                 "pip is looking at multiple versions of {package_name} to "
                 "determine which version is compatible with other "
                 "requirements. This could take a while."
             ),
             8: (
-                "pip is looking at multiple versions of {package_name} to "
+                "pip is still looking at multiple versions of {package_name} to "
                 "determine which version is compatible with other "
                 "requirements. This could take a while."
             ),
@@ -32,18 +32,30 @@ class PipReporter(BaseReporter):
             ),
         }
 
-    def backtracking(self, candidate: Candidate) -> None:
-        self.backtracks_by_package[candidate.name] += 1
+    def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:
+        self.reject_count_by_package[candidate.name] += 1
 
-        count = self.backtracks_by_package[candidate.name]
-        if count not in self._messages_at_backtrack:
+        count = self.reject_count_by_package[candidate.name]
+        if count not in self._messages_at_reject_count:
             return
 
-        message = self._messages_at_backtrack[count]
+        message = self._messages_at_reject_count[count]
         logger.info("INFO: %s", message.format(package_name=candidate.name))
 
+        msg = "Will try a different candidate, due to conflict:"
+        for req_info in criterion.information:
+            req, parent = req_info.requirement, req_info.parent
+            # Inspired by Factory.get_installation_error
+            msg += "\n    "
+            if parent:
+                msg += f"{parent.name} {parent.version} depends on "
+            else:
+                msg += "The user requested "
+            msg += req.format_for_error()
+        logger.debug(msg)
 
-class PipDebuggingReporter(BaseReporter):
+
+class PipDebuggingReporter(BaseReporter[Requirement, Candidate, str]):
     """A reporter that does an info log for every event it sees."""
 
     def starting(self) -> None:
@@ -54,15 +66,18 @@ class PipDebuggingReporter(BaseReporter):
 
     def ending_round(self, index: int, state: Any) -> None:
         logger.info("Reporter.ending_round(%r, state)", index)
+        logger.debug("Reporter.ending_round(%r, %r)", index, state)
 
     def ending(self, state: Any) -> None:
         logger.info("Reporter.ending(%r)", state)
 
-    def adding_requirement(self, requirement: Requirement, parent: Candidate) -> None:
+    def adding_requirement(
+        self, requirement: Requirement, parent: Optional[Candidate]
+    ) -> None:
         logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
 
-    def backtracking(self, candidate: Candidate) -> None:
-        logger.info("Reporter.backtracking(%r)", candidate)
+    def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:
+        logger.info("Reporter.rejecting_candidate(%r, %r)", criterion, candidate)
 
     def pinning(self, candidate: Candidate) -> None:
         logger.info("Reporter.pinning(%r)", candidate)

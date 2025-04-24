@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 from typing import Iterator, List, Optional, Tuple
 from unittest.mock import Mock
 
@@ -15,23 +16,20 @@ from pip._internal.req.req_uninstall import (
     compress_for_rename,
     uninstallation_paths,
 )
+
 from tests.lib import create_file
-from tests.lib.path import Path
 
 
 # Pretend all files are local, so UninstallPathSet accepts files in the tmpdir,
 # outside the virtualenv
-def mock_is_local(path: str) -> bool:
+def mock_permitted(ups: UninstallPathSet, path: str) -> bool:
     return True
 
 
 def test_uninstallation_paths() -> None:
     class dist:
         def iter_declared_entries(self) -> Optional[Iterator[str]]:
-            yield "file.py"
-            yield "file.pyc"
-            yield "file.so"
-            yield "nopyc.py"
+            return iter(["file.py", "file.pyc", "file.so", "nopyc.py"])
 
         location = ""
 
@@ -59,10 +57,9 @@ def test_uninstallation_paths() -> None:
 
 def test_compressed_listing(tmpdir: Path) -> None:
     def in_tmpdir(paths: List[str]) -> List[str]:
-        li = []
-        for path in paths:
-            li.append(str(os.path.join(tmpdir, path.replace("/", os.path.sep))))
-        return li
+        return [
+            str(os.path.join(tmpdir, path.replace("/", os.path.sep))) for path in paths
+        ]
 
     sample = in_tmpdir(
         [
@@ -129,7 +126,11 @@ def test_compressed_listing(tmpdir: Path) -> None:
 
 class TestUninstallPathSet:
     def test_add(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         # Fix case for windows tests
         file_extant = os.path.normcase(os.path.join(tmpdir, "foo"))
         file_nonexistent = os.path.normcase(os.path.join(tmpdir, "nonexistent"))
@@ -144,10 +145,14 @@ class TestUninstallPathSet:
         ups.add(file_nonexistent)
         assert ups._paths == {file_extant}
 
-    def test_add_pth(self, tmpdir: str, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+    def test_add_pth(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         # Fix case for windows tests
-        tmpdir = os.path.normcase(tmpdir)
+        tmpdir = os.path.normcase(tmp_path)
         on_windows = sys.platform == "win32"
         pth_file = os.path.join(tmpdir, "foo.pth")
         relative = "../../example"
@@ -175,7 +180,11 @@ class TestUninstallPathSet:
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_add_symlink(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         f = os.path.join(tmpdir, "foo")
         with open(f, "w"):
             pass
@@ -187,7 +196,11 @@ class TestUninstallPathSet:
         assert ups._paths == {foo_link}
 
     def test_compact_shorter_path(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
         monkeypatch.setattr("os.path.exists", lambda p: True)
         # This deals with nt/posix path differences
         short_path = os.path.normcase(
@@ -202,7 +215,11 @@ class TestUninstallPathSet:
     def test_detect_symlink_dirs(
         self, monkeypatch: pytest.MonkeyPatch, tmpdir: Path
     ) -> None:
-        monkeypatch.setattr(pip._internal.req.req_uninstall, "is_local", mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
 
         # construct 2 paths:
         #  tmpdir/dir/file
@@ -352,8 +369,8 @@ class TestStashedUninstallPathSet:
 
         pathset = StashedUninstallPathSet()
         stashed_paths = []
-        stashed_paths.append(pathset.stash(dirlink))
-        stashed_paths.append(pathset.stash(filelink))
+        stashed_paths.append(pathset.stash(os.fspath(dirlink)))
+        stashed_paths.append(pathset.stash(os.fspath(filelink)))
         for stashed_path in stashed_paths:
             assert os.path.lexists(stashed_path)
         assert not os.path.exists(dirlink)
@@ -364,8 +381,10 @@ class TestStashedUninstallPathSet:
         # stash removed, links removed
         for stashed_path in stashed_paths:
             assert not os.path.lexists(stashed_path)
-        assert not os.path.lexists(dirlink) and not os.path.isdir(dirlink)
-        assert not os.path.lexists(filelink) and not os.path.isfile(filelink)
+        assert not os.path.lexists(dirlink)
+        assert not os.path.isdir(dirlink)
+        assert not os.path.lexists(filelink)
+        assert not os.path.isfile(filelink)
 
         # link targets untouched
         assert os.path.isdir(adir)
@@ -384,8 +403,8 @@ class TestStashedUninstallPathSet:
 
         pathset = StashedUninstallPathSet()
         stashed_paths = []
-        stashed_paths.append(pathset.stash(dirlink))
-        stashed_paths.append(pathset.stash(filelink))
+        stashed_paths.append(pathset.stash(os.fspath(dirlink)))
+        stashed_paths.append(pathset.stash(os.fspath(filelink)))
         for stashed_path in stashed_paths:
             assert os.path.lexists(stashed_path)
         assert not os.path.lexists(dirlink)
@@ -396,8 +415,10 @@ class TestStashedUninstallPathSet:
         # stash removed, links restored
         for stashed_path in stashed_paths:
             assert not os.path.lexists(stashed_path)
-        assert os.path.lexists(dirlink) and os.path.isdir(dirlink)
-        assert os.path.lexists(filelink) and os.path.isfile(filelink)
+        assert os.path.lexists(dirlink)
+        assert os.path.isdir(dirlink)
+        assert os.path.lexists(filelink)
+        assert os.path.isfile(filelink)
 
         # link targets untouched
         assert os.path.isdir(adir)

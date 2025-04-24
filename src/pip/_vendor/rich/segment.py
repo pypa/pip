@@ -18,6 +18,7 @@ from typing import (
 
 from .cells import (
     _is_single_cell_widths,
+    cached_cell_len,
     cell_len,
     get_character_cell_size,
     set_cell_size,
@@ -49,10 +50,13 @@ class ControlType(IntEnum):
     CURSOR_MOVE_TO_COLUMN = 13
     CURSOR_MOVE_TO = 14
     ERASE_IN_LINE = 15
+    SET_WINDOW_TITLE = 16
 
 
 ControlCode = Union[
-    Tuple[ControlType], Tuple[ControlType, int], Tuple[ControlType, int, int]
+    Tuple[ControlType],
+    Tuple[ControlType, Union[int, str]],
+    Tuple[ControlType, int, int],
 ]
 
 
@@ -105,10 +109,20 @@ class Segment(NamedTuple):
     @classmethod
     @lru_cache(1024 * 16)
     def _split_cells(cls, segment: "Segment", cut: int) -> Tuple["Segment", "Segment"]:
+        """Split a segment in to two at a given cell position.
 
+        Note that splitting a double-width character, may result in that character turning
+        into two spaces.
+
+        Args:
+            segment (Segment): A segment to split.
+            cut (int): A cell position to cut on.
+
+        Returns:
+            A tuple of two segments.
+        """
         text, style, control = segment
         _Segment = Segment
-
         cell_length = segment.cell_length
         if cut >= cell_length:
             return segment, _Segment("", style, control)
@@ -117,30 +131,29 @@ class Segment(NamedTuple):
 
         pos = int((cut / cell_length) * len(text))
 
-        before = text[:pos]
-        cell_pos = cell_len(before)
-        if cell_pos == cut:
-            return (
-                _Segment(before, style, control),
-                _Segment(text[pos:], style, control),
-            )
-        while pos < len(text):
-            char = text[pos]
-            pos += 1
-            cell_pos += cell_size(char)
+        while True:
             before = text[:pos]
-            if cell_pos == cut:
+            cell_pos = cell_len(before)
+            out_by = cell_pos - cut
+            if not out_by:
                 return (
                     _Segment(before, style, control),
                     _Segment(text[pos:], style, control),
                 )
-            if cell_pos > cut:
+            if out_by == -1 and cell_size(text[pos]) == 2:
                 return (
-                    _Segment(before[: pos - 1] + " ", style, control),
+                    _Segment(text[:pos] + " ", style, control),
+                    _Segment(" " + text[pos + 1 :], style, control),
+                )
+            if out_by == +1 and cell_size(text[pos - 1]) == 2:
+                return (
+                    _Segment(text[: pos - 1] + " ", style, control),
                     _Segment(" " + text[pos:], style, control),
                 )
-
-        raise AssertionError("Will never reach here")
+            if cell_pos < cut:
+                pos += 1
+            else:
+                pos -= 1
 
     def split_cells(self, cut: int) -> Tuple["Segment", "Segment"]:
         """Split segment in to two segments at the specified column.
@@ -148,10 +161,14 @@ class Segment(NamedTuple):
         If the cut point falls in the middle of a 2-cell wide character then it is replaced
         by two spaces, to preserve the display width of the parent segment.
 
+        Args:
+            cut (int): Offset within the segment to cut.
+
         Returns:
             Tuple[Segment, Segment]: Two segments.
         """
         text, style, control = self
+        assert cut >= 0
 
         if _is_single_cell_widths(text):
             # Fast path with all 1 cell characters
@@ -287,11 +304,11 @@ class Segment(NamedTuple):
 
         for segment in segments:
             if "\n" in segment.text and not segment.control:
-                text, style, _ = segment
+                text, segment_style, _ = segment
                 while text:
                     _text, new_line, text = text.partition("\n")
                     if _text:
-                        append(cls(_text, style))
+                        append(cls(_text, segment_style))
                     if new_line:
                         cropped_line = adjust_line_length(
                             line, length, style=style, pad=pad
@@ -299,7 +316,7 @@ class Segment(NamedTuple):
                         if include_new_lines:
                             cropped_line.append(new_line_segment)
                         yield cropped_line
-                        del line[:]
+                        line.clear()
             else:
                 append(segment)
         if line:
@@ -361,7 +378,7 @@ class Segment(NamedTuple):
             int: The length of the line.
         """
         _cell_len = cell_len
-        return sum(_cell_len(segment.text) for segment in line)
+        return sum(_cell_len(text) for text, style, control in line if not control)
 
     @classmethod
     def get_shape(cls, lines: List[List["Segment"]]) -> Tuple[int, int]:
@@ -599,44 +616,56 @@ class Segment(NamedTuple):
         iter_cuts = iter(cuts)
 
         while True:
-            try:
-                cut = next(iter_cuts)
-            except StopIteration:
-                return []
+            cut = next(iter_cuts, -1)
+            if cut == -1:
+                return
             if cut != 0:
                 break
             yield []
         pos = 0
 
+        segments_clear = split_segments.clear
+        segments_copy = split_segments.copy
+
+        _cell_len = cached_cell_len
         for segment in segments:
-            while segment.text:
-                end_pos = pos + segment.cell_length
+            text, _style, control = segment
+            while text:
+                end_pos = pos if control else pos + _cell_len(text)
                 if end_pos < cut:
                     add_segment(segment)
                     pos = end_pos
                     break
 
-                try:
-                    if end_pos == cut:
-                        add_segment(segment)
-                        yield split_segments[:]
-                        del split_segments[:]
-                        pos = end_pos
-                        break
-                    else:
-                        before, segment = segment.split_cells(cut - pos)
-                        add_segment(before)
-                        yield split_segments[:]
-                        del split_segments[:]
-                        pos = cut
-                finally:
-                    try:
-                        cut = next(iter_cuts)
-                    except StopIteration:
+                if end_pos == cut:
+                    add_segment(segment)
+                    yield segments_copy()
+                    segments_clear()
+                    pos = end_pos
+
+                    cut = next(iter_cuts, -1)
+                    if cut == -1:
                         if split_segments:
-                            yield split_segments[:]
+                            yield segments_copy()
                         return
-        yield split_segments[:]
+
+                    break
+
+                else:
+                    before, segment = segment.split_cells(cut - pos)
+                    text, _style, control = segment
+                    add_segment(before)
+                    yield segments_copy()
+                    segments_clear()
+                    pos = cut
+
+                cut = next(iter_cuts, -1)
+                if cut == -1:
+                    if split_segments:
+                        yield segments_copy()
+                    return
+
+        yield segments_copy()
 
 
 class Segments:
@@ -711,7 +740,7 @@ console.print(text)"""
     console.print(Syntax(code, "python", line_numbers=True))
     console.print()
     console.print(
-        "When you call [b]print()[/b], Rich [i]renders[/i] the object in to the the following:\n"
+        "When you call [b]print()[/b], Rich [i]renders[/i] the object in to the following:\n"
     )
     fragments = list(console.render(text))
     console.print(fragments)

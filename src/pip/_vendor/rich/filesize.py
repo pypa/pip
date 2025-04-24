@@ -1,8 +1,7 @@
-# coding: utf-8
 """Functions for reporting filesizes. Borrowed from https://github.com/PyFilesystem/pyfilesystem2
 
 The functions declared in this module should cover the different
-usecases needed to generate a string representation of a file size
+use cases needed to generate a string representation of a file size
 using several different units. Since there are many standards regarding
 file size units, three different functions have been implemented.
 
@@ -27,7 +26,7 @@ def _to_str(
     if size == 1:
         return "1 byte"
     elif size < base:
-        return "{:,} bytes".format(size)
+        return f"{size:,} bytes"
 
     for i, suffix in enumerate(suffixes, 2):  # noqa: B007
         unit = base**i

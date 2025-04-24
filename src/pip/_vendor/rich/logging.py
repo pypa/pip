@@ -3,10 +3,12 @@ from datetime import datetime
 from logging import Handler, LogRecord
 from pathlib import Path
 from types import ModuleType
-from typing import ClassVar, List, Optional, Iterable, Type, Union
+from typing import ClassVar, Iterable, List, Optional, Type, Union
+
+from pip._vendor.rich._null_file import NullFile
 
 from . import get_console
-from ._log_render import LogRender, FormatTimeCallable
+from ._log_render import FormatTimeCallable, LogRender
 from .console import Console, ConsoleRenderable
 from .highlighter import Highlighter, ReprHighlighter
 from .text import Text
@@ -34,11 +36,13 @@ class RichHandler(Handler):
         markup (bool, optional): Enable console markup in log messages. Defaults to False.
         rich_tracebacks (bool, optional): Enable rich tracebacks with syntax highlighting and formatting. Defaults to False.
         tracebacks_width (Optional[int], optional): Number of characters used to render tracebacks, or None for full width. Defaults to None.
+        tracebacks_code_width (int, optional): Number of code characters used to render tracebacks, or None for full width. Defaults to 88.
         tracebacks_extra_lines (int, optional): Additional lines of code to render tracebacks, or None for full width. Defaults to None.
         tracebacks_theme (str, optional): Override pygments theme used in traceback.
         tracebacks_word_wrap (bool, optional): Enable word wrapping of long tracebacks lines. Defaults to True.
         tracebacks_show_locals (bool, optional): Enable display of locals in tracebacks. Defaults to False.
         tracebacks_suppress (Sequence[Union[str, ModuleType]]): Optional sequence of modules or paths to exclude from traceback.
+        tracebacks_max_frames (int, optional): Optional maximum number of frames returned by traceback.
         locals_max_length (int, optional): Maximum length of containers before abbreviating, or None for no abbreviation.
             Defaults to 10.
         locals_max_string (int, optional): Maximum length of string before truncating, or None to disable. Defaults to 80.
@@ -72,11 +76,13 @@ class RichHandler(Handler):
         markup: bool = False,
         rich_tracebacks: bool = False,
         tracebacks_width: Optional[int] = None,
+        tracebacks_code_width: int = 88,
         tracebacks_extra_lines: int = 3,
         tracebacks_theme: Optional[str] = None,
         tracebacks_word_wrap: bool = True,
         tracebacks_show_locals: bool = False,
         tracebacks_suppress: Iterable[Union[str, ModuleType]] = (),
+        tracebacks_max_frames: int = 100,
         locals_max_length: int = 10,
         locals_max_string: int = 80,
         log_time_format: Union[str, FormatTimeCallable] = "[%x %X]",
@@ -102,6 +108,8 @@ class RichHandler(Handler):
         self.tracebacks_word_wrap = tracebacks_word_wrap
         self.tracebacks_show_locals = tracebacks_show_locals
         self.tracebacks_suppress = tracebacks_suppress
+        self.tracebacks_max_frames = tracebacks_max_frames
+        self.tracebacks_code_width = tracebacks_code_width
         self.locals_max_length = locals_max_length
         self.locals_max_string = locals_max_string
         self.keywords = keywords
@@ -138,6 +146,7 @@ class RichHandler(Handler):
                 exc_value,
                 exc_traceback,
                 width=self.tracebacks_width,
+                code_width=self.tracebacks_code_width,
                 extra_lines=self.tracebacks_extra_lines,
                 theme=self.tracebacks_theme,
                 word_wrap=self.tracebacks_word_wrap,
@@ -145,6 +154,7 @@ class RichHandler(Handler):
                 locals_max_length=self.locals_max_length,
                 locals_max_string=self.locals_max_string,
                 suppress=self.tracebacks_suppress,
+                max_frames=self.tracebacks_max_frames,
             )
             message = record.getMessage()
             if self.formatter:
@@ -158,16 +168,23 @@ class RichHandler(Handler):
         log_renderable = self.render(
             record=record, traceback=traceback, message_renderable=message_renderable
         )
-        try:
-            self.console.print(log_renderable)
-        except Exception:
+        if isinstance(self.console.file, NullFile):
+            # Handles pythonw, where stdout/stderr are null, and we return NullFile
+            # instance from Console.file. In this case, we still want to make a log record
+            # even though we won't be writing anything to a file.
             self.handleError(record)
+        else:
+            try:
+                self.console.print(log_renderable)
+            except Exception:
+                self.handleError(record)
 
     def render_message(self, record: LogRecord, message: str) -> "ConsoleRenderable":
         """Render message text in to Text.
 
-        record (LogRecord): logging Record.
-        message (str): String containing log message.
+        Args:
+            record (LogRecord): logging Record.
+            message (str): String containing log message.
 
         Returns:
             ConsoleRenderable: Renderable to display log message.

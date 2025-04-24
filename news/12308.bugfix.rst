@@ -1,0 +1,4 @@
+When using the ``importlib.metadata`` backend (the default on Python 3.11+),
+``pip list`` does not show installed egg distributions more than once anymore.
+Additionally, egg distributions whose parent directory was in ``sys.path`` but
+the egg themselves were not in ``sys.path`` are not detected anymore.

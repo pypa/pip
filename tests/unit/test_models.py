@@ -1,5 +1,4 @@
-"""Tests for various classes in pip._internal.models
-"""
+"""Tests for various classes in pip._internal.models"""
 
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -49,11 +48,3 @@ class TestInstallationCandidate:
         assert obj.name == "A"
         assert obj.version == parse_version("1.0.0")
         assert obj.link.url == "https://somewhere.com/path/A-1.0.0.tar.gz"
-
-    # NOTE: This isn't checking the ordering logic; only the data provided to
-    #       it is correct.
-    def test_sets_the_right_key(self) -> None:
-        obj = candidate.InstallationCandidate(
-            "A", "1.0.0", Link("https://somewhere.com/path/A-1.0.0.tar.gz")
-        )
-        assert obj._compare_key == (obj.name, obj.version, obj.link)

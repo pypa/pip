@@ -1,46 +1,45 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
-import contextlib
 import errno
 import getpass
 import hashlib
-import io
 import logging
 import os
 import posixpath
 import shutil
 import stat
 import sys
+import sysconfig
 import urllib.parse
-from io import StringIO
+from dataclasses import dataclass
+from functools import partial
 from itertools import filterfalse, tee, zip_longest
-from types import TracebackType
+from pathlib import Path
+from types import FunctionType, TracebackType
 from typing import (
     Any,
     BinaryIO,
     Callable,
-    ContextManager,
-    Dict,
     Generator,
     Iterable,
     Iterator,
     List,
+    Mapping,
     Optional,
-    TextIO,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
+    Union,
     cast,
 )
 
-from pip._vendor.pep517 import Pep517HookCaller
-from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
+from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip import __version__
-from pip._internal.exceptions import CommandError
+from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.retry import retry
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 __all__ = [
@@ -54,12 +53,11 @@ __all__ = [
     "normalize_path",
     "renames",
     "get_prog",
-    "captured_stdout",
     "ensure_dir",
     "remove_auth_from_url",
-    "ConfiguredPep517HookCaller",
+    "check_externally_managed",
+    "ConfiguredBuildBackendHookCaller",
 ]
-
 
 logger = logging.getLogger(__name__)
 
@@ -67,17 +65,17 @@ T = TypeVar("T")
 ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
 VersionInfo = Tuple[int, int, int]
 NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
+OnExc = Callable[[FunctionType, Path, BaseException], Any]
+OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
+
+FILE_CHUNK_SIZE = 1024 * 1024
 
 
 def get_pip_version() -> str:
     pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
     pip_pkg_dir = os.path.abspath(pip_pkg_dir)
 
-    return "pip {} from {} (python {})".format(
-        __version__,
-        pip_pkg_dir,
-        get_major_minor_version(),
-    )
+    return f"pip {__version__} from {pip_pkg_dir} (python {get_major_minor_version()})"
 
 
 def normalize_version_info(py_version_info: Tuple[int, ...]) -> Tuple[int, int, int]:
@@ -122,30 +120,69 @@ def get_prog() -> str:
 
 
 # Retry every half second for up to 3 seconds
-# Tenacity raises RetryError by default, explicitly raise the original exception
-@retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
-def rmtree(dir: str, ignore_errors: bool = False) -> None:
-    shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=rmtree_errorhandler)
+@retry(stop_after_delay=3, wait=0.5)
+def rmtree(
+    dir: str, ignore_errors: bool = False, onexc: Optional[OnExc] = None
+) -> None:
+    if ignore_errors:
+        onexc = _onerror_ignore
+    if onexc is None:
+        onexc = _onerror_reraise
+    handler: OnErr = partial(rmtree_errorhandler, onexc=onexc)
+    if sys.version_info >= (3, 12):
+        # See https://docs.python.org/3.12/whatsnew/3.12.html#shutil.
+        shutil.rmtree(dir, onexc=handler)  # type: ignore
+    else:
+        shutil.rmtree(dir, onerror=handler)  # type: ignore
 
 
-def rmtree_errorhandler(func: Callable[..., Any], path: str, exc_info: ExcInfo) -> None:
-    """On Windows, the files in .svn are read-only, so when rmtree() tries to
-    remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
+def _onerror_ignore(*_args: Any) -> None:
+    pass
+
+
+def _onerror_reraise(*_args: Any) -> None:
+    raise  # noqa: PLE0704 - Bare exception used to reraise existing exception
+
+
+def rmtree_errorhandler(
+    func: FunctionType,
+    path: Path,
+    exc_info: Union[ExcInfo, BaseException],
+    *,
+    onexc: OnExc = _onerror_reraise,
+) -> None:
+    """
+    `rmtree` error handler to 'force' a file remove (i.e. like `rm -f`).
+
+    * If a file is readonly then it's write flag is set and operation is
+      retried.
+
+    * `onerror` is the original callback from `rmtree(... onerror=onerror)`
+      that is chained at the end if the "rm -f" still fails.
+    """
     try:
-        has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
+        st_mode = os.stat(path).st_mode
     except OSError:
         # it's equivalent to os.path.exists
         return
 
-    if has_attr_readonly:
+    if not st_mode & stat.S_IWRITE:
         # convert to read/write
-        os.chmod(path, stat.S_IWRITE)
-        # use the original function to repeat the operation
-        func(path)
-        return
-    else:
-        raise
+        try:
+            os.chmod(path, st_mode | stat.S_IWRITE)
+        except OSError:
+            pass
+        else:
+            # use the original function to repeat the operation
+            try:
+                func(path)
+                return
+            except OSError:
+                pass
+
+    if not isinstance(exc_info, BaseException):
+        _, exc_info, _ = exc_info
+    onexc(func, path, exc_info)
 
 
 def display_path(path: str) -> str:
@@ -228,13 +265,13 @@ def strtobool(val: str) -> int:
 
 def format_size(bytes: float) -> str:
     if bytes > 1000 * 1000:
-        return "{:.1f} MB".format(bytes / 1000.0 / 1000)
+        return f"{bytes / 1000.0 / 1000:.1f} MB"
     elif bytes > 10 * 1000:
-        return "{} kB".format(int(bytes / 1000))
+        return f"{int(bytes / 1000)} kB"
     elif bytes > 1000:
-        return "{:.1f} kB".format(bytes / 1000.0)
+        return f"{bytes / 1000.0:.1f} kB"
     else:
-        return "{} bytes".format(int(bytes))
+        return f"{int(bytes)} bytes"
 
 
 def tabulate(rows: Iterable[Iterable[Any]]) -> Tuple[List[str], List[int]]:
@@ -269,7 +306,7 @@ def is_installable_dir(path: str) -> bool:
 
 
 def read_chunks(
-    file: BinaryIO, size: int = io.DEFAULT_BUFFER_SIZE
+    file: BinaryIO, size: int = FILE_CHUNK_SIZE
 ) -> Generator[bytes, None, None]:
     """Yield pieces of data from a file-like object until EOF."""
     while True:
@@ -336,55 +373,6 @@ def write_output(msg: Any, *args: Any) -> None:
     logger.info(msg, *args)
 
 
-class StreamWrapper(StringIO):
-    orig_stream: TextIO = None
-
-    @classmethod
-    def from_stream(cls, orig_stream: TextIO) -> "StreamWrapper":
-        cls.orig_stream = orig_stream
-        return cls()
-
-    # compileall.compile_dir() needs stdout.encoding to print to stdout
-    # https://github.com/python/mypy/issues/4125
-    @property
-    def encoding(self):  # type: ignore
-        return self.orig_stream.encoding
-
-
-@contextlib.contextmanager
-def captured_output(stream_name: str) -> Generator[StreamWrapper, None, None]:
-    """Return a context manager used by captured_stdout/stdin/stderr
-    that temporarily replaces the sys stream *stream_name* with a StringIO.
-
-    Taken from Lib/support/__init__.py in the CPython repo.
-    """
-    orig_stdout = getattr(sys, stream_name)
-    setattr(sys, stream_name, StreamWrapper.from_stream(orig_stdout))
-    try:
-        yield getattr(sys, stream_name)
-    finally:
-        setattr(sys, stream_name, orig_stdout)
-
-
-def captured_stdout() -> ContextManager[StreamWrapper]:
-    """Capture the output of sys.stdout:
-
-       with captured_stdout() as stdout:
-           print('hello')
-       self.assertEqual(stdout.getvalue(), 'hello\n')
-
-    Taken from Lib/support/__init__.py in the CPython repo.
-    """
-    return captured_output("stdout")
-
-
-def captured_stderr() -> ContextManager[StreamWrapper]:
-    """
-    See captured_stdout().
-    """
-    return captured_output("stderr")
-
-
 # Simulates an enum
 def enum(*sequential: Any, **named: Any) -> Type[Any]:
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -415,7 +403,7 @@ def build_url_from_netloc(netloc: str, scheme: str = "https") -> str:
     return f"{scheme}://{netloc}"
 
 
-def parse_netloc(netloc: str) -> Tuple[str, Optional[int]]:
+def parse_netloc(netloc: str) -> Tuple[Optional[str], Optional[int]]:
     """
     Return the host-port pair from a netloc.
     """
@@ -470,9 +458,7 @@ def redact_netloc(netloc: str) -> str:
     else:
         user = urllib.parse.quote(user)
         password = ":****"
-    return "{user}{password}@{netloc}".format(
-        user=user, password=password, netloc=netloc
-    )
+    return f"{user}{password}@{netloc}"
 
 
 def _transform_url(
@@ -503,7 +489,9 @@ def _redact_netloc(netloc: str) -> Tuple[str]:
     return (redact_netloc(netloc),)
 
 
-def split_auth_netloc_from_url(url: str) -> Tuple[str, str, Tuple[str, str]]:
+def split_auth_netloc_from_url(
+    url: str,
+) -> Tuple[str, str, Tuple[Optional[str], Optional[str]]]:
     """
     Parse a url into separate netloc, auth, and url with no auth.
 
@@ -525,20 +513,27 @@ def redact_auth_from_url(url: str) -> str:
     return _transform_url(url, _redact_netloc)[0]
 
 
+def redact_auth_from_requirement(req: Requirement) -> str:
+    """Replace the password in a given requirement url with ****."""
+    if not req.url:
+        return str(req)
+    return str(req).replace(req.url, redact_auth_from_url(req.url))
+
+
+@dataclass(frozen=True)
 class HiddenText:
-    def __init__(self, secret: str, redacted: str) -> None:
-        self.secret = secret
-        self.redacted = redacted
+    secret: str
+    redacted: str
 
     def __repr__(self) -> str:
-        return "<HiddenText {!r}>".format(str(self))
+        return f"<HiddenText {str(self)!r}>"
 
     def __str__(self) -> str:
         return self.redacted
 
     # This is useful for testing.
     def __eq__(self, other: Any) -> bool:
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return False
 
         # The string being used for redaction doesn't also have to match,
@@ -581,6 +576,21 @@ def protect_pip_from_modification_on_windows(modifying_pip: bool) -> None:
         )
 
 
+def check_externally_managed() -> None:
+    """Check whether the current environment is externally managed.
+
+    If the ``EXTERNALLY-MANAGED`` config file is found, the current environment
+    is considered externally managed, and an ExternallyManagedEnvironment is
+    raised.
+    """
+    if running_under_virtualenv():
+        return
+    marker = os.path.join(sysconfig.get_path("stdlib"), "EXTERNALLY-MANAGED")
+    if not os.path.isfile(marker):
+        return
+    raise ExternallyManagedEnvironment.from_config(marker)
+
+
 def is_console_interactive() -> bool:
     """Is this console interactive?"""
     return sys.stdin is not None and sys.stdin.isatty()
@@ -598,18 +608,6 @@ def hash_file(path: str, blocksize: int = 1 << 20) -> Tuple[Any, int]:
     return h, length
 
 
-def is_wheel_installed() -> bool:
-    """
-    Return whether the wheel package is installed.
-    """
-    try:
-        import wheel  # noqa: F401
-    except ImportError:
-        return False
-
-    return True
-
-
 def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
     """
     Return paired elements.
@@ -622,8 +620,7 @@ def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
 
 
 def partition(
-    pred: Callable[[T], bool],
-    iterable: Iterable[T],
+    pred: Callable[[T], bool], iterable: Iterable[T]
 ) -> Tuple[Iterable[T], Iterable[T]]:
     """
     Use a predicate to partition entries into false entries and true entries,
@@ -635,7 +632,7 @@ def partition(
     return filterfalse(pred, t1), filter(pred, t2)
 
 
-class ConfiguredPep517HookCaller(Pep517HookCaller):
+class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def __init__(
         self,
         config_holder: Any,
@@ -653,7 +650,7 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
     def build_wheel(
         self,
         wheel_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Mapping[str, Any]] = None,
         metadata_directory: Optional[str] = None,
     ) -> str:
         cs = self.config_holder.config_settings
@@ -662,7 +659,9 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
         )
 
     def build_sdist(
-        self, sdist_directory: str, config_settings: Optional[Dict[str, str]] = None
+        self,
+        sdist_directory: str,
+        config_settings: Optional[Mapping[str, Any]] = None,
     ) -> str:
         cs = self.config_holder.config_settings
         return super().build_sdist(sdist_directory, config_settings=cs)
@@ -670,7 +669,7 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
     def build_editable(
         self,
         wheel_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Mapping[str, Any]] = None,
         metadata_directory: Optional[str] = None,
     ) -> str:
         cs = self.config_holder.config_settings
@@ -679,27 +678,27 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
         )
 
     def get_requires_for_build_wheel(
-        self, config_settings: Optional[Dict[str, str]] = None
-    ) -> List[str]:
+        self, config_settings: Optional[Mapping[str, Any]] = None
+    ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_wheel(config_settings=cs)
 
     def get_requires_for_build_sdist(
-        self, config_settings: Optional[Dict[str, str]] = None
-    ) -> List[str]:
+        self, config_settings: Optional[Mapping[str, Any]] = None
+    ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_sdist(config_settings=cs)
 
     def get_requires_for_build_editable(
-        self, config_settings: Optional[Dict[str, str]] = None
-    ) -> List[str]:
+        self, config_settings: Optional[Mapping[str, Any]] = None
+    ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_editable(config_settings=cs)
 
     def prepare_metadata_for_build_wheel(
         self,
         metadata_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Mapping[str, Any]] = None,
         _allow_fallback: bool = True,
     ) -> str:
         cs = self.config_holder.config_settings
@@ -712,12 +711,45 @@ class ConfiguredPep517HookCaller(Pep517HookCaller):
     def prepare_metadata_for_build_editable(
         self,
         metadata_directory: str,
-        config_settings: Optional[Dict[str, str]] = None,
+        config_settings: Optional[Mapping[str, Any]] = None,
         _allow_fallback: bool = True,
-    ) -> str:
+    ) -> Optional[str]:
         cs = self.config_holder.config_settings
         return super().prepare_metadata_for_build_editable(
             metadata_directory=metadata_directory,
             config_settings=cs,
             _allow_fallback=_allow_fallback,
         )
+
+
+def warn_if_run_as_root() -> None:
+    """Output a warning for sudo users on Unix.
+
+    In a virtual environment, sudo pip still writes to virtualenv.
+    On Windows, users may run pip as Administrator without issues.
+    This warning only applies to Unix root users outside of virtualenv.
+    """
+    if running_under_virtualenv():
+        return
+    if not hasattr(os, "getuid"):
+        return
+    # On Windows, there are no "system managed" Python packages. Installing as
+    # Administrator via pip is the correct way of updating system environments.
+    #
+    # We choose sys.platform over utils.compat.WINDOWS here to enable Mypy platform
+    # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
+    if sys.platform == "win32" or sys.platform == "cygwin":
+        return
+
+    if os.getuid() != 0:
+        return
+
+    logger.warning(
+        "Running pip as the 'root' user can result in broken permissions and "
+        "conflicting behaviour with the system package manager, possibly "
+        "rendering your system unusable. "
+        "It is recommended to use a virtual environment instead: "
+        "https://pip.pypa.io/warnings/venv. "
+        "Use the --root-user-action option if you know what you are doing and "
+        "want to suppress this warning."
+    )

@@ -43,9 +43,16 @@ match the constraint of the current interpreter (but not your target one), it
 is recommended to specify all of these options if you are specifying one of
 them. Generic dependencies (e.g. universal wheels, or dependencies with no
 platform, abi, or implementation constraints) will still match an over-
-constrained download requirement.
+constrained download requirement. If some of your dependencies are not
+available as binaries, you can build them manually for your target platform
+and let pip download know where to find them using ``--find-links``.
 
+.. note::
 
+   To determine the appropriate values for ``--python-version`` and ``--platform``, you can query the target system using the following commands:
+
+   - For the Python version, use :func:`sysconfig.get_python_version() <sysconfig.get_python_version>`.
+   - For the platform, use :func:`packaging.tags.platform_tags() <packaging.tags.platform_tags>`.
 
 Options
 =======
@@ -79,7 +86,7 @@ Examples
 
 #. Download a package and all of its dependencies with OSX specific interpreter constraints.
    This forces OSX 10.10 or lower compatibility. Since OSX deps are forward compatible,
-   this will also match ``macosx-10_9_x86_64``, ``macosx-10_8_x86_64``, ``macosx-10_8_intel``,
+   this will also match ``macosx_10_9_x86_64``, ``macosx_10_8_x86_64``, ``macosx_10_8_intel``,
    etc.
    It will also match deps with platform ``any``. Also force the interpreter version to ``27``
    (or more generic, i.e. ``2``) and implementation to ``cp`` (or more generic, i.e. ``py``).
@@ -90,7 +97,7 @@ Examples
 
          python -m pip download \
             --only-binary=:all: \
-            --platform macosx-10_10_x86_64 \
+            --platform macosx_10_10_x86_64 \
             --python-version 27 \
             --implementation cp \
             SomePackage
@@ -101,7 +108,7 @@ Examples
 
          py -m pip download ^
             --only-binary=:all: ^
-            --platform macosx-10_10_x86_64 ^
+            --platform macosx_10_10_x86_64 ^
             --python-version 27 ^
             --implementation cp ^
             SomePackage

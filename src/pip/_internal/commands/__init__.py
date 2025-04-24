@@ -23,6 +23,11 @@ commands_dict: Dict[str, CommandInfo] = {
         "InstallCommand",
         "Install packages.",
     ),
+    "lock": CommandInfo(
+        "pip._internal.commands.lock",
+        "LockCommand",
+        "Generate a lock file.",
+    ),
     "download": CommandInfo(
         "pip._internal.commands.download",
         "DownloadCommand",
@@ -37,6 +42,11 @@ commands_dict: Dict[str, CommandInfo] = {
         "pip._internal.commands.freeze",
         "FreezeCommand",
         "Output installed packages in requirements format.",
+    ),
+    "inspect": CommandInfo(
+        "pip._internal.commands.inspect",
+        "InspectCommand",
+        "Inspect the python environment.",
     ),
     "list": CommandInfo(
         "pip._internal.commands.list",

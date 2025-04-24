@@ -4,7 +4,8 @@ import pathlib
 import re
 import urllib.parse
 import urllib.request
-from typing import List, Optional, Tuple
+from dataclasses import replace
+from typing import Any, List, Optional, Tuple
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path, hide_url
@@ -76,6 +77,15 @@ class Git(VersionControl):
     def get_base_rev_args(rev: str) -> List[str]:
         return [rev]
 
+    @classmethod
+    def run_command(cls, *args: Any, **kwargs: Any) -> str:
+        if os.environ.get("PIP_NO_INPUT"):
+            extra_environ = kwargs.get("extra_environ", {})
+            extra_environ["GIT_TERMINAL_PROMPT"] = "0"
+            extra_environ["GIT_SSH_COMMAND"] = "ssh -oBatchMode=yes"
+            kwargs["extra_environ"] = extra_environ
+        return super().run_command(*args, **kwargs)
+
     def is_immutable_rev_checkout(self, url: str, dest: str) -> bool:
         _, rev_options = self.get_url_rev_options(hide_url(url))
         if not rev_options.rev:
@@ -101,7 +111,7 @@ class Git(VersionControl):
         if not match:
             logger.warning("Can't parse git version: %s", version)
             return ()
-        return tuple(int(c) for c in match.groups())
+        return (int(match.group(1)), int(match.group(2)))
 
     @classmethod
     def get_current_branch(cls, location: str) -> Optional[str]:
@@ -217,7 +227,7 @@ class Git(VersionControl):
 
         if sha is not None:
             rev_options = rev_options.make_new(sha)
-            rev_options.branch_name = rev if is_branch else None
+            rev_options = replace(rev_options, branch_name=(rev if is_branch else None))
 
             return rev_options
 

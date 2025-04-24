@@ -1,5 +1,7 @@
 """Test the test support."""
+
 import filecmp
+import pathlib
 import re
 import sys
 from contextlib import contextmanager
@@ -32,7 +34,7 @@ def test_tmp_dir_exists_in_env(script: PipTestEnvironment) -> None:
     # need these tests to ensure the assert_no_temp feature of scripttest is
     # working
     script.assert_no_temp()  # this fails if env.tmp_path doesn't exist
-    assert script.environ["TMPDIR"] == script.temp_path
+    assert pathlib.Path(script.environ["TMPDIR"]) == script.temp_path
     assert isdir(script.temp_path)
 
 
@@ -40,6 +42,10 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
     """
     Check we are running proper version of pip in run_pip.
     """
+
+    if script.zipapp:
+        pytest.skip("Test relies on the pip under test being in the filesystem")
+
     # output is like:
     # pip PIPVERSION from PIPDIRECTORY (python PYVERSION)
     result = script.pip("--version")
@@ -102,18 +108,18 @@ class TestPipTestEnvironment:
         """
         command = (
             "import logging; logging.basicConfig(level='INFO'); "
-            "logging.getLogger().info('sub: {}', 'foo')"
-        ).format(sub_string)
+            f"logging.getLogger().info('sub: {sub_string}', 'foo')"
+        )
         args = [sys.executable, "-c", command]
         script.run(*args, **kwargs)
 
     @pytest.mark.parametrize(
         "prefix",
-        (
+        [
             "DEBUG",
             "INFO",
             "FOO",
-        ),
+        ],
     )
     def test_run__allowed_stderr(self, script: PipTestEnvironment, prefix: str) -> None:
         """
@@ -144,11 +150,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix",
-        (
-            "DEPRECATION",
+        [
             "WARNING",
             "ERROR",
-        ),
+        ],
     )
     def test_run__allow_stderr_error(
         self, script: PipTestEnvironment, prefix: str
@@ -161,11 +166,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix, expected_start",
-        (
-            ("DEPRECATION", "stderr has an unexpected warning"),
+        [
             ("WARNING", "stderr has an unexpected warning"),
             ("ERROR", "stderr has an unexpected error"),
-        ),
+        ],
     )
     def test_run__unexpected_stderr(
         self, script: PipTestEnvironment, prefix: str, expected_start: str
@@ -223,10 +227,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "arg_name",
-        (
+        [
             "expect_error",
             "allow_stderr_error",
-        ),
+        ],
     )
     def test_run__allow_stderr_warning_false_error(
         self, script: PipTestEnvironment, arg_name: str

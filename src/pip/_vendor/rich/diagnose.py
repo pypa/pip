@@ -15,14 +15,17 @@ def report() -> None:  # pragma: no cover
     inspect(features)
 
     env_names = (
-        "TERM",
-        "COLORTERM",
         "CLICOLOR",
+        "COLORTERM",
+        "COLUMNS",
+        "JPY_PARENT_PID",
+        "JUPYTER_COLUMNS",
+        "JUPYTER_LINES",
+        "LINES",
         "NO_COLOR",
         "TERM_PROGRAM",
-        "COLUMNS",
-        "LINES",
-        "JPY_PARENT_PID",
+        "TERM",
+        "TTY_COMPATIBLE",
         "VSCODE_VERBOSE_LOGGING",
     )
     env = {name: os.getenv(name) for name in env_names}

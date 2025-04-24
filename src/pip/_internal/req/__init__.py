@@ -1,7 +1,9 @@
 import collections
 import logging
+from dataclasses import dataclass
 from typing import Generator, List, Optional, Sequence, Tuple
 
+from pip._internal.cli.progress_bars import get_install_progress_renderer
 from pip._internal.utils.logging import indent_log
 
 from .req_file import parse_requirements
@@ -18,12 +20,9 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
 class InstallationResult:
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def __repr__(self) -> str:
-        return f"InstallationResult(name={self.name!r})"
+    name: str
 
 
 def _validate_requirements(
@@ -36,7 +35,6 @@ def _validate_requirements(
 
 def install_given_reqs(
     requirements: List[InstallRequirement],
-    install_options: List[str],
     global_options: Sequence[str],
     root: Optional[str],
     home: Optional[str],
@@ -44,6 +42,7 @@ def install_given_reqs(
     warn_script_location: bool,
     use_user_site: bool,
     pycompile: bool,
+    progress_bar: str,
 ) -> List[InstallationResult]:
     """
     Install everything in the given list.
@@ -60,8 +59,19 @@ def install_given_reqs(
 
     installed = []
 
+    show_progress = logger.isEnabledFor(logging.INFO) and len(to_install) > 1
+
+    items = iter(to_install.values())
+    if show_progress:
+        renderer = get_install_progress_renderer(
+            bar_type=progress_bar, total=len(to_install)
+        )
+        items = renderer(items)
+
     with indent_log():
-        for req_name, requirement in to_install.items():
+        for requirement in items:
+            req_name = requirement.name
+            assert req_name is not None
             if requirement.should_reinstall:
                 logger.info("Attempting uninstall: %s", req_name)
                 with indent_log():
@@ -71,7 +81,6 @@ def install_given_reqs(
 
             try:
                 requirement.install(
-                    install_options,
                     global_options,
                     root=root,
                     home=home,

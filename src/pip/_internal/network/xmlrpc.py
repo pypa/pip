@@ -1,5 +1,4 @@
-"""xmlrpclib.Transport implementation
-"""
+"""xmlrpclib.Transport implementation"""
 
 import logging
 import urllib.parse
@@ -12,6 +11,8 @@ from pip._internal.network.utils import raise_for_status
 
 if TYPE_CHECKING:
     from xmlrpc.client import _HostType, _Marshallable
+
+    from _typeshed import SizedBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
         self,
         host: "_HostType",
         handler: str,
-        request_body: bytes,
+        request_body: "SizedBuffer",
         verbose: bool = False,
     ) -> Tuple["_Marshallable", ...]:
         assert isinstance(host, str)

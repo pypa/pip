@@ -2,9 +2,7 @@
     pygments.plugin
     ~~~~~~~~~~~~~~~
 
-    Pygments setuptools plugin interface. The methods defined
-    here also work if setuptools isn't installed but they just
-    return nothing.
+    Pygments plugin interface.
 
     lexer plugins::
 
@@ -31,9 +29,11 @@
         yourfilter = yourfilter:YourFilter
 
 
-    :copyright: Copyright 2006-2021 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2025 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
+from importlib.metadata import entry_points
+
 LEXER_ENTRY_POINT = 'pygments.lexers'
 FORMATTER_ENTRY_POINT = 'pygments.formatters'
 STYLE_ENTRY_POINT = 'pygments.styles'
@@ -41,12 +41,15 @@ FILTER_ENTRY_POINT = 'pygments.filters'
 
 
 def iter_entry_points(group_name):
-    try:
-        from pip._vendor import pkg_resources
-    except (ImportError, OSError):
-        return []
-
-    return pkg_resources.iter_entry_points(group_name)
+    groups = entry_points()
+    if hasattr(groups, 'select'):
+        # New interface in Python 3.10 and newer versions of the
+        # importlib_metadata backport.
+        return groups.select(group=group_name)
+    else:
+        # Older interface, deprecated in Python 3.10 and recent
+        # importlib_metadata, but we need it in Python 3.8 and 3.9.
+        return groups.get(group_name, [])
 
 
 def find_plugin_lexers():

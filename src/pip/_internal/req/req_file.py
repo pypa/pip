@@ -2,11 +2,16 @@
 Requirements file parsing
 """
 
+import codecs
+import locale
+import logging
 import optparse
 import os
 import re
 import shlex
+import sys
 import urllib.parse
+from dataclasses import dataclass
 from optparse import Values
 from typing import (
     TYPE_CHECKING,
@@ -16,6 +21,7 @@ from typing import (
     Generator,
     Iterable,
     List,
+    NoReturn,
     Optional,
     Tuple,
 )
@@ -23,17 +29,10 @@ from typing import (
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
-from pip._internal.network.session import PipSession
-from pip._internal.network.utils import raise_for_status
-from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.urls import get_url_scheme
 
 if TYPE_CHECKING:
-    # NoReturn introduced in 3.6.2; imported only for type checking to maintain
-    # pip compatibility with older patch versions of Python 3.6
-    from typing import NoReturn
-
     from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.network.session import PipSession
 
 __all__ = ["parse_requirements"]
 
@@ -69,63 +68,87 @@ SUPPORTED_OPTIONS: List[Callable[..., optparse.Option]] = [
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ: List[Callable[..., optparse.Option]] = [
-    cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
+    cmdoptions.config_settings,
 ]
+
+SUPPORTED_OPTIONS_EDITABLE_REQ: List[Callable[..., optparse.Option]] = [
+    cmdoptions.config_settings,
+]
+
 
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
+SUPPORTED_OPTIONS_EDITABLE_REQ_DEST = [
+    str(o().dest) for o in SUPPORTED_OPTIONS_EDITABLE_REQ
+]
+
+# order of BOMS is important: codecs.BOM_UTF16_LE is a prefix of codecs.BOM_UTF32_LE
+# so data.startswith(BOM_UTF16_LE) would be true for UTF32_LE data
+BOMS: List[Tuple[bytes, str]] = [
+    (codecs.BOM_UTF8, "utf-8"),
+    (codecs.BOM_UTF32, "utf-32"),
+    (codecs.BOM_UTF32_BE, "utf-32-be"),
+    (codecs.BOM_UTF32_LE, "utf-32-le"),
+    (codecs.BOM_UTF16, "utf-16"),
+    (codecs.BOM_UTF16_BE, "utf-16-be"),
+    (codecs.BOM_UTF16_LE, "utf-16-le"),
+]
+
+PEP263_ENCODING_RE = re.compile(rb"coding[:=]\s*([-\w.]+)")
+DEFAULT_ENCODING = "utf-8"
+
+logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
 class ParsedRequirement:
-    def __init__(
-        self,
-        requirement: str,
-        is_editable: bool,
-        comes_from: str,
-        constraint: bool,
-        options: Optional[Dict[str, Any]] = None,
-        line_source: Optional[str] = None,
-    ) -> None:
-        self.requirement = requirement
-        self.is_editable = is_editable
-        self.comes_from = comes_from
-        self.options = options
-        self.constraint = constraint
-        self.line_source = line_source
+    # TODO: replace this with slots=True when dropping Python 3.9 support.
+    __slots__ = (
+        "requirement",
+        "is_editable",
+        "comes_from",
+        "constraint",
+        "options",
+        "line_source",
+    )
+
+    requirement: str
+    is_editable: bool
+    comes_from: str
+    constraint: bool
+    options: Optional[Dict[str, Any]]
+    line_source: Optional[str]
 
 
+@dataclass(frozen=True)
 class ParsedLine:
-    def __init__(
-        self,
-        filename: str,
-        lineno: int,
-        args: str,
-        opts: Values,
-        constraint: bool,
-    ) -> None:
-        self.filename = filename
-        self.lineno = lineno
-        self.opts = opts
-        self.constraint = constraint
+    __slots__ = ("filename", "lineno", "args", "opts", "constraint")
 
-        if args:
-            self.is_requirement = True
-            self.is_editable = False
-            self.requirement = args
-        elif opts.editables:
-            self.is_requirement = True
-            self.is_editable = True
+    filename: str
+    lineno: int
+    args: str
+    opts: Values
+    constraint: bool
+
+    @property
+    def is_editable(self) -> bool:
+        return bool(self.opts.editables)
+
+    @property
+    def requirement(self) -> Optional[str]:
+        if self.args:
+            return self.args
+        elif self.is_editable:
             # We don't support multiple -e on one line
-            self.requirement = opts.editables[0]
-        else:
-            self.is_requirement = False
+            return self.opts.editables[0]
+        return None
 
 
 def parse_requirements(
     filename: str,
-    session: PipSession,
+    session: "PipSession",
     finder: Optional["PackageFinder"] = None,
     options: Optional[optparse.Values] = None,
     constraint: bool = False,
@@ -166,7 +189,6 @@ def handle_requirement_line(
     line: ParsedLine,
     options: Optional[optparse.Values] = None,
 ) -> ParsedRequirement:
-
     # preserve for the nested code path
     line_comes_from = "{} {} (line {})".format(
         "-c" if line.constraint else "-r",
@@ -174,37 +196,27 @@ def handle_requirement_line(
         line.lineno,
     )
 
-    assert line.is_requirement
+    assert line.requirement is not None
 
+    # get the options that apply to requirements
     if line.is_editable:
-        # For editable requirements, we don't support per-requirement
-        # options, so just return the parsed requirement.
-        return ParsedRequirement(
-            requirement=line.requirement,
-            is_editable=line.is_editable,
-            comes_from=line_comes_from,
-            constraint=line.constraint,
-        )
+        supported_dest = SUPPORTED_OPTIONS_EDITABLE_REQ_DEST
     else:
-        if options:
-            # Disable wheels if the user has specified build options
-            cmdoptions.check_install_build_global(options, line.opts)
+        supported_dest = SUPPORTED_OPTIONS_REQ_DEST
+    req_options = {}
+    for dest in supported_dest:
+        if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
+            req_options[dest] = line.opts.__dict__[dest]
 
-        # get the options that apply to requirements
-        req_options = {}
-        for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
-                req_options[dest] = line.opts.__dict__[dest]
-
-        line_source = f"line {line.lineno} of {line.filename}"
-        return ParsedRequirement(
-            requirement=line.requirement,
-            is_editable=line.is_editable,
-            comes_from=line_comes_from,
-            constraint=line.constraint,
-            options=req_options,
-            line_source=line_source,
-        )
+    line_source = f"line {line.lineno} of {line.filename}"
+    return ParsedRequirement(
+        requirement=line.requirement,
+        is_editable=line.is_editable,
+        comes_from=line_comes_from,
+        constraint=line.constraint,
+        options=req_options,
+        line_source=line_source,
+    )
 
 
 def handle_option_line(
@@ -213,8 +225,14 @@ def handle_option_line(
     lineno: int,
     finder: Optional["PackageFinder"] = None,
     options: Optional[optparse.Values] = None,
-    session: Optional[PipSession] = None,
+    session: Optional["PipSession"] = None,
 ) -> None:
+    if opts.hashes:
+        logger.warning(
+            "%s line %s has --hash but no requirement, and will be ignored.",
+            filename,
+            lineno,
+        )
 
     if options:
         # percolate options upward
@@ -229,11 +247,13 @@ def handle_option_line(
     if finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
-        if opts.index_url:
-            index_urls = [opts.index_url]
+        no_index = finder.search_scope.no_index
         if opts.no_index is True:
+            no_index = True
             index_urls = []
-        if opts.extra_index_urls:
+        if opts.index_url and not no_index:
+            index_urls = [opts.index_url]
+        if opts.extra_index_urls and not no_index:
             index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
@@ -253,6 +273,7 @@ def handle_option_line(
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
+            no_index=no_index,
         )
         finder.search_scope = search_scope
 
@@ -272,7 +293,7 @@ def handle_line(
     line: ParsedLine,
     options: Optional[optparse.Values] = None,
     finder: Optional["PackageFinder"] = None,
-    session: Optional[PipSession] = None,
+    session: Optional["PipSession"] = None,
 ) -> Optional[ParsedRequirement]:
     """Handle a single parsed requirements line; This can result in
     creating/yielding requirements, or updating the finder.
@@ -297,7 +318,7 @@ def handle_line(
     affect the finder.
     """
 
-    if line.is_requirement:
+    if line.requirement is not None:
         parsed_req = handle_requirement_line(line, options)
         return parsed_req
     else:
@@ -315,7 +336,7 @@ def handle_line(
 class RequirementsFileParser:
     def __init__(
         self,
-        session: PipSession,
+        session: "PipSession",
         line_parser: LineParser,
     ) -> None:
         self._session = session
@@ -325,13 +346,18 @@ class RequirementsFileParser:
         self, filename: str, constraint: bool
     ) -> Generator[ParsedLine, None, None]:
         """Parse a given file, yielding parsed lines."""
-        yield from self._parse_and_recurse(filename, constraint)
+        yield from self._parse_and_recurse(
+            filename, constraint, [{os.path.abspath(filename): None}]
+        )
 
     def _parse_and_recurse(
-        self, filename: str, constraint: bool
+        self,
+        filename: str,
+        constraint: bool,
+        parsed_files_stack: List[Dict[str, Optional[str]]],
     ) -> Generator[ParsedLine, None, None]:
         for line in self._parse_file(filename, constraint):
-            if not line.is_requirement and (
+            if line.requirement is None and (
                 line.opts.requirements or line.opts.constraints
             ):
                 # parse a nested requirements file
@@ -349,12 +375,30 @@ class RequirementsFileParser:
                 # original file and nested file are paths
                 elif not SCHEME_RE.search(req_path):
                     # do a join so relative paths work
-                    req_path = os.path.join(
-                        os.path.dirname(filename),
-                        req_path,
+                    # and then abspath so that we can identify recursive references
+                    req_path = os.path.abspath(
+                        os.path.join(
+                            os.path.dirname(filename),
+                            req_path,
+                        )
                     )
-
-                yield from self._parse_and_recurse(req_path, nested_constraint)
+                parsed_files = parsed_files_stack[0]
+                if req_path in parsed_files:
+                    initial_file = parsed_files[req_path]
+                    tail = (
+                        f" and again in {initial_file}"
+                        if initial_file is not None
+                        else ""
+                    )
+                    raise RequirementsFileParseError(
+                        f"{req_path} recursively references itself in {filename}{tail}"
+                    )
+                # Keeping a track where was each file first included in
+                new_parsed_files = parsed_files.copy()
+                new_parsed_files[req_path] = filename
+                yield from self._parse_and_recurse(
+                    req_path, nested_constraint, [new_parsed_files, *parsed_files_stack]
+                )
             else:
                 yield line
 
@@ -394,7 +438,12 @@ def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
 
         args_str, options_str = break_args_options(line)
 
-        opts, _ = parser.parse_args(shlex.split(options_str), defaults)
+        try:
+            options = shlex.split(options_str)
+        except ValueError as e:
+            raise OptionParsingError(f"Could not split options: {options_str}") from e
+
+        opts, _ = parser.parse_args(options, defaults)
 
         return args_str, opts
 
@@ -515,7 +564,7 @@ def expand_env_variables(lines_enum: ReqFileLines) -> ReqFileLines:
         yield line_number, line
 
 
-def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
+def get_file_content(url: str, session: "PipSession") -> Tuple[str, str]:
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
@@ -523,10 +572,12 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
     :param url:         File path or url.
     :param session:     PipSession instance.
     """
-    scheme = get_url_scheme(url)
-
+    scheme = urllib.parse.urlsplit(url).scheme
     # Pip has special support for file:// URLs (LocalFSAdapter).
     if scheme in ["http", "https", "file"]:
+        # Delay importing heavy network modules until absolutely necessary.
+        from pip._internal.network.utils import raise_for_status
+
         resp = session.get(url)
         raise_for_status(resp)
         return resp.url, resp.text
@@ -534,7 +585,39 @@ def get_file_content(url: str, session: PipSession) -> Tuple[str, str]:
     # Assume this is a bare path.
     try:
         with open(url, "rb") as f:
-            content = auto_decode(f.read())
+            raw_content = f.read()
     except OSError as exc:
         raise InstallationError(f"Could not open requirements file: {exc}")
+
+    content = _decode_req_file(raw_content, url)
+
     return url, content
+
+
+def _decode_req_file(data: bytes, url: str) -> str:
+    for bom, encoding in BOMS:
+        if data.startswith(bom):
+            return data[len(bom) :].decode(encoding)
+
+    for line in data.split(b"\n")[:2]:
+        if line[0:1] == b"#":
+            result = PEP263_ENCODING_RE.search(line)
+            if result is not None:
+                encoding = result.groups()[0].decode("ascii")
+                return data.decode(encoding)
+
+    try:
+        return data.decode(DEFAULT_ENCODING)
+    except UnicodeDecodeError:
+        locale_encoding = locale.getpreferredencoding(False) or sys.getdefaultencoding()
+        logging.warning(
+            "unable to decode data from %s with default encoding %s, "
+            "falling back to encoding from locale: %s. "
+            "If this is intentional you should specify the encoding with a "
+            "PEP-263 style comment, e.g. '# -*- coding: %s -*-'",
+            url,
+            DEFAULT_ENCODING,
+            locale_encoding,
+            locale_encoding,
+        )
+        return data.decode(locale_encoding)
