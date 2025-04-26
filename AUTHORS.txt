@@ -7,6 +7,7 @@ abs51295
 AceGentile
 Adam Chainz
 Adam Tse
+Adam Turner
 Adam Wentz
 admin
 Adolfo Ochagavía
@@ -30,6 +31,7 @@ Alex Hedges
 Alex Loosley
 Alex Morega
 Alex Stachowiak
+Alexander Regueiro
 Alexander Shtyrov
 Alexandre Conrad
 Alexey Popravka
@@ -106,6 +108,7 @@ Bogdan Opanchuk
 BorisZZZ
 Brad Erickson
 Bradley Ayers
+Bradley Reynolds
 Branch Vincent
 Brandon L. Reiss
 Brandt Bucher
@@ -221,6 +224,7 @@ Denise Yu
 dependabot[bot]
 derwolfe
 Desetude
+developer
 Devesh Kumar Singh
 devsagul
 Diego Caraballo
@@ -284,6 +288,7 @@ Florian Rathgeber
 Francesco
 Francesco Montesano
 Fredrik Orderud
+Fredrik Roubert
 Frost Ming
 Gabriel Curio
 Gabriel de Perthuis
@@ -291,6 +296,7 @@ Garry Polley
 gavin
 gdanielson
 Geoffrey Sneddon
+George Margaritis
 George Song
 Georgi Valkov
 Georgy Pchelkin
@@ -342,11 +348,13 @@ Inada Naoki
 Ionel Cristian Mărieș
 Ionel Maries Cristian
 Itamar Turner-Trauring
+iTrooz
 Ivan Pozdeev
 J. Nick Koston
 Jacob Kim
 Jacob Walls
 Jaime Sanz
+Jake Lishman
 jakirkham
 Jakub Kuczys
 Jakub Stasiak
@@ -383,8 +391,10 @@ Jim Garrison
 Jinzhe Zeng
 Jiun Bae
 Jivan Amara
+Joa
 Joe Bylund
 Joe Michelini
+Johannes Altmanninger
 John Paton
 John Sirois
 John T. Wodder II
@@ -438,6 +448,7 @@ Klaas van Schelven
 KOLANICH
 konstin
 kpinc
+Krishan Bhasin
 Krishna Oza
 Kumar McMillan
 Kuntal Majumder
@@ -467,6 +478,7 @@ luojiebin
 luz.paz
 László Kiss Kollár
 M00nL1ght
+Malcolm Smith
 Marc Abramowitz
 Marc Tamlyn
 Marcus Smith
@@ -507,6 +519,7 @@ Maxim Kurnikov
 Maxime Rouyrre
 mayeut
 mbaluna
+Md Sujauddin Sekh
 mdebi
 memoselyk
 meowmeowcat
@@ -558,10 +571,12 @@ Noah
 Noah Gorny
 Nowell Strite
 NtaleGrey
+nucccc
 nvdv
 OBITORASU
 Ofek Lev
 ofrinevo
+Oleg Burnaev
 Oliver Freund
 Oliver Jeeves
 Oliver Mannion
