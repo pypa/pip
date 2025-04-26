@@ -1,4 +1,0 @@
-A warning is emitted when the deprecated ``pkg_resources`` library is used to
-inspect and discover installed packages. This warning should only be visible to
-users who set an undocumented environment variable to disable the default
-``importlib.metadata`` backend.

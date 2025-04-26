@@ -1,1 +1,0 @@
-Fix fish shell completion when commandline contains multiple commands.
