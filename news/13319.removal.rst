@@ -1,3 +1,0 @@
-Deprecate the legacy ``setup.py bdist_wheel`` mechanism. To silence the warning,
-and future-proof their setup, users should enable ``--use-pep517`` or add a
-``pyproject.toml`` file to the projects they control.

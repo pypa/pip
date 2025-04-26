@@ -1,3 +1,0 @@
-Add support to enable resuming incomplete downloads.
-
-Control the number of retry attempts using the ``--resume-retries`` flag.

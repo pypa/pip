@@ -1,3 +1,0 @@
-Fix a regression that causes dependencies to be checked *before* ``Requires-Python``
-project metadata is checked, leading to wasted cycles when the Python version is
-unsupported.

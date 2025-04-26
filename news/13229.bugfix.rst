@@ -1,4 +1,0 @@
-Parse wheel filenames according to `binary distribution format specification
-<https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-format>`_.
-When a filename doesn't match the spec a deprecation warning is emitted and the
-filename is parsed using the old method.

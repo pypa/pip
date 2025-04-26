@@ -1,3 +1,0 @@
-Added support for building only the man pages with minimal dependencies using
-the sphinx-build ``--tag man`` option. This enables distributors to generate man
-pages without requiring HTML documentation dependencies.
