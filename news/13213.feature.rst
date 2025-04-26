@@ -1,0 +1,1 @@
+Add a new, *experimental*, ``pip lock`` command, implementing :pep:`751`.
