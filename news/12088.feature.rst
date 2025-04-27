@@ -1,0 +1,1 @@
+New pip install option ``--executable=/path`` to set #! path in scripts.

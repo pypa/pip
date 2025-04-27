@@ -150,6 +150,14 @@ class InstallCommand(RequirementCommand):
                 "environment."
             ),
         )
+        self.cmd_opts.add_option(
+            "--executable",
+            dest="executable_path",
+            default=None,
+            help=(
+                "Path to executable for #! lines in scripts."
+            ),
+        )
 
         self.cmd_opts.add_option(cmdoptions.src())
 
@@ -462,6 +470,7 @@ class InstallCommand(RequirementCommand):
                 root=options.root_path,
                 home=target_temp_dir_path,
                 prefix=options.prefix_path,
+                executable=options.executable_path,
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
