@@ -19,6 +19,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
+    PROVENANCE_URL_METADATA_NAME,
     ArchiveInfo,
     DirectUrl,
 )
@@ -332,6 +333,17 @@ class TestInstallUnpackedWheel:
                 "gui_scripts": ["sample2 = sample:main"],
             },
         ).save_to_dir(tmpdir)
+        self.download_info = DirectUrl(
+            url="https://localhost:8080/sample/sample-1.2.0-py3-none-any.whl",
+            info=ArchiveInfo(
+                hash="sha256=257ded4ea1fafa475f099e544b2d7560f674d42917e096d462e"
+                "8a46a64f51245",
+                hashes={
+                    "sha256": "257ded4ea1fafa475f099e544b2d7560f674d42917e096d46"
+                    "2e8a46a64f51245",
+                },
+            ),
+        )
         self.req = Requirement("sample")
         self.src = os.path.join(tmpdir, "src")
         self.dest = os.path.join(tmpdir, "dest")
@@ -372,6 +384,8 @@ class TestInstallUnpackedWheel:
             self.name,
             self.wheelpath,
             scheme=self.scheme,
+            download_info=self.download_info,
+            is_direct=False,
             req_description=str(self.req),
         )
         self.assert_installed(0o644)
@@ -390,6 +404,8 @@ class TestInstallUnpackedWheel:
                 self.name,
                 self.wheelpath,
                 scheme=self.scheme,
+                download_info=self.download_info,
+                is_direct=False,
                 req_description=str(self.req),
             )
             self.assert_installed(expected_permission)
@@ -402,6 +418,8 @@ class TestInstallUnpackedWheel:
             self.name,
             self.wheelpath,
             scheme=self.scheme,
+            download_info=self.download_info,
+            is_direct=False,
             req_description=str(self.req),
             requested=True,
         )
@@ -417,7 +435,7 @@ class TestInstallUnpackedWheel:
         because wheelpath is typically the result of a local build.
         """
         self.prep(data, tmpdir)
-        direct_url = DirectUrl(
+        download_info = DirectUrl(
             url="file:///home/user/archive.tgz",
             info=ArchiveInfo(),
         )
@@ -425,18 +443,93 @@ class TestInstallUnpackedWheel:
             self.name,
             self.wheelpath,
             scheme=self.scheme,
+            download_info=download_info,
+            is_direct=True,
             req_description=str(self.req),
-            direct_url=direct_url,
         )
         direct_url_path = os.path.join(self.dest_dist_info, DIRECT_URL_METADATA_NAME)
         self.assert_permission(direct_url_path, 0o644)
         with open(direct_url_path, "rb") as f1:
-            expected_direct_url_json = direct_url.to_json()
+            expected_direct_url_json = download_info.to_json()
             direct_url_json = f1.read().decode("utf-8")
             assert direct_url_json == expected_direct_url_json
-        # check that the direc_url file is part of RECORDS
+        # check that the direct_url file is part of RECORDS
         with open(os.path.join(self.dest_dist_info, "RECORD")) as f2:
             assert DIRECT_URL_METADATA_NAME in f2.read()
+
+    def test_std_install_with_provenance_url(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        """Test that install_wheel creates provenance_url.json metadata."""
+        self.prep(data, tmpdir)
+        download_info = DirectUrl(
+            url="https://pypi.org/simple/sample/sample-1.2.0-py3-none-any.whl",
+            info=ArchiveInfo(
+                hash="sha256=257ded4ea1fafa475f099e544b2d7560f674d42"
+                "917e096d462e8a46a64f51245",
+                hashes={
+                    "sha256": "257ded4ea1fafa475f099e544b2d7560f674d"
+                    "42917e096d462e8a46a64f51245",
+                },
+            ),
+        )
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            download_info=download_info,
+            is_direct=False,
+            req_description=str(self.req),
+        )
+        provenance_url_path = os.path.join(
+            self.dest_dist_info, PROVENANCE_URL_METADATA_NAME
+        )
+        self.assert_permission(provenance_url_path, 0o644)
+        with open(provenance_url_path, "rb") as f1:
+            expected_provenance_url_json = download_info.to_json(
+                keep_legacy_hash_key=False
+            )
+            provenance_url_json = f1.read().decode("utf-8")
+            assert provenance_url_json == expected_provenance_url_json
+        # check that the provenance_url.json file is part of RECORDS
+        with open(os.path.join(self.dest_dist_info, "RECORD")) as f2:
+            assert PROVENANCE_URL_METADATA_NAME in f2.read()
+
+    @pytest.mark.parametrize(
+        "hashes",
+        [
+            pytest.param(None, id="None"),
+            pytest.param({}, id="empty"),
+        ],
+    )
+    def test_std_install_with_provenance_url_no_hashes(
+        self, data: TestData, tmpdir: Path, hashes: Optional[Dict[str, str]]
+    ) -> None:
+        """Test that install_wheel does not create provenance_url.json
+        when hashes are missing.
+        """
+        self.prep(data, tmpdir)
+        download_info = DirectUrl(
+            url="https://pypi.org/simple/sample/sample-1.2.0-py3-none-any.whl",
+            info=ArchiveInfo(
+                hash=None,
+                hashes=hashes,
+            ),
+        )
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            download_info=download_info,
+            is_direct=False,
+            req_description=str(self.req),
+        )
+        provenance_url_path = os.path.join(
+            self.dest_dist_info, PROVENANCE_URL_METADATA_NAME
+        )
+        assert not os.path.exists(provenance_url_path)
+        with open(os.path.join(self.dest_dist_info, "RECORD")) as f2:
+            assert PROVENANCE_URL_METADATA_NAME not in f2.read()
 
     def test_install_prefix(self, data: TestData, tmpdir: Path) -> None:
         prefix = os.path.join(os.path.sep, "some", "path")
@@ -453,6 +546,8 @@ class TestInstallUnpackedWheel:
             self.name,
             self.wheelpath,
             scheme=scheme,
+            download_info=self.download_info,
+            is_direct=False,
             req_description=str(self.req),
         )
 
@@ -470,6 +565,8 @@ class TestInstallUnpackedWheel:
             self.name,
             self.wheelpath,
             scheme=self.scheme,
+            download_info=self.download_info,
+            is_direct=False,
             req_description=str(self.req),
         )
         self.assert_installed(0o644)
@@ -488,6 +585,8 @@ class TestInstallUnpackedWheel:
                 "simple",
                 str(wheel_path),
                 scheme=self.scheme,
+                download_info=self.download_info,
+                is_direct=False,
                 req_description="simple",
             )
 
@@ -510,6 +609,8 @@ class TestInstallUnpackedWheel:
                 "simple",
                 str(wheel_path),
                 scheme=self.scheme,
+                download_info=self.download_info,
+                is_direct=False,
                 req_description="simple",
             )
 
