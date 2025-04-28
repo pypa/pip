@@ -20,7 +20,10 @@ from typing import (
     cast,
 )
 
-from typing import Self
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from pip._vendor.typing_extensions import Self  # pragma: no cover
 
 from . import _manylinux, _musllinux
 
