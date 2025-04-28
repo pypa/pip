@@ -412,7 +412,7 @@ class InstallCommand(RequirementCommand):
                         "Would install %s",
                         " ".join(
                             "-".join(item[:2])
-                            + (f"-~{item[2]}" if len(item) > 2 else "")
+                            + (f"-{item[2]}" if len(item) > 2 else "")
                             for item in would_install_items
                         ),
                     )
