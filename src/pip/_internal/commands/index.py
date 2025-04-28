@@ -116,7 +116,7 @@ class IndexCommand(IndexGroupCommand):
             )
 
             versions: Iterable[Version] = (
-                candidate.version for candidate in finder.find_all_candidates(query)
+                candidate.version for candidate, _ in finder.find_all_candidates(query)
             )
 
             if not options.pre:

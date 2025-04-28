@@ -676,7 +676,7 @@ class Factory:
         else:
             req_disp = f"{req} (from {parent.name})"
 
-        cands = self._finder.find_all_candidates(req.project_name)
+        cands, _ = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
 
         versions_set: Set[Version] = set()

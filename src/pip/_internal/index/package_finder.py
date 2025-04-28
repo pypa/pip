@@ -205,7 +205,8 @@ class LinkEvaluator:
 
                 variant_hash = wheel.variant_hash
                 supported_tags = self._target_python.get_unsorted_tags(
-                    variants_json=self.variants_json)
+                    variants_json=self.variants_json
+                )
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -383,7 +384,7 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
-        variants_json: Optional[VariantJson] = None
+        variants_json: Optional[VariantJson] = None,
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -794,7 +795,6 @@ class PackageFinder:
         Convert links that are candidates to InstallationCandidate objects.
         """
         candidates = []
-        variants_json = None
         for link in self._sort_links(links):
             if link.filename == "variants.json":
                 link_evaluator.variants_json = self.get_variants_json(link)
@@ -885,7 +885,7 @@ class PackageFinder:
         project_name: str,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
-        variants_json: Optional[VariantJson] = None
+        variants_json: Optional[VariantJson] = None,
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
         candidate_prefs = self._candidate_prefs

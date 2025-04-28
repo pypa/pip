@@ -319,12 +319,12 @@ def test_finder_priority_file_over_page(data: TestData) -> None:
         find_links=[data.find_links],
         index_urls=["http://pypi.org/simple/"],
     )
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions, _ = finder.find_all_candidates(req.name)
     # 1 file InstallationCandidate followed by all https ones
     assert all_versions[0].link.scheme == "file"
-    assert all(
-        version.link.scheme == "https" for version in all_versions[1:]
-    ), all_versions
+    assert all(version.link.scheme == "https" for version in all_versions[1:]), (
+        all_versions
+    )
 
     found = finder.find_requirement(req, False)
     assert found is not None
@@ -337,7 +337,7 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     links = ["http://foo/bar.py#egg=bar-1.0", "http://foo/bar-1.0.tar.gz"]
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions, _ = finder.find_all_candidates(req.name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
 
@@ -349,7 +349,7 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     links.reverse()
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions, _ = finder.find_all_candidates(req.name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
     found = finder.find_requirement(req, False)
@@ -400,7 +400,7 @@ def test_finder_only_installs_data_require(data: TestData) -> None:
 
     # using a local index (that has pre & dev releases)
     finder = make_test_finder(index_urls=[data.index_url("datarequire")])
-    links = finder.find_all_candidates("fakepackage")
+    links, _ = finder.find_all_candidates("fakepackage")
     assert {str(v.version) for v in links} == {"1.0.0", "3.3.0", "9.9.9"}
 
 
@@ -548,18 +548,18 @@ def test_process_project_url(data: TestData) -> None:
 def test_find_all_candidates_nothing() -> None:
     """Find nothing without anything"""
     finder = make_test_finder()
-    assert not finder.find_all_candidates("pip")
+    assert not finder.find_all_candidates("pip")[0]
 
 
 def test_find_all_candidates_find_links(data: TestData) -> None:
     finder = make_test_finder(find_links=[data.find_links])
-    versions = finder.find_all_candidates("simple")
+    versions, _ = finder.find_all_candidates("simple")
     assert [str(v.version) for v in versions] == ["3.0", "2.0", "1.0"]
 
 
 def test_find_all_candidates_index(data: TestData) -> None:
     finder = make_test_finder(index_urls=[data.index_url("simple")])
-    versions = finder.find_all_candidates("simple")
+    versions, _ = finder.find_all_candidates("simple")
     assert [str(v.version) for v in versions] == ["1.0"]
 
 
@@ -568,6 +568,6 @@ def test_find_all_candidates_find_links_and_index(data: TestData) -> None:
         find_links=[data.find_links],
         index_urls=[data.index_url("simple")],
     )
-    versions = finder.find_all_candidates("simple")
+    versions, _ = finder.find_all_candidates("simple")
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ["3.0", "2.0", "1.0", "1.0"]

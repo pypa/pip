@@ -243,7 +243,7 @@ class ListCommand(IndexGroupCommand):
             def latest_info(
                 dist: "_DistWithLatestInfo",
             ) -> Optional["_DistWithLatestInfo"]:
-                all_candidates = finder.find_all_candidates(dist.canonical_name)
+                all_candidates, _ = finder.find_all_candidates(dist.canonical_name)
                 if not options.pre:
                     # Remove prereleases
                     all_candidates = [

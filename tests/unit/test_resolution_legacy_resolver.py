@@ -63,7 +63,7 @@ def make_test_resolver(
     mock_candidates: List[InstallationCandidate],
 ) -> Resolver:
     def _find_candidates(project_name: str) -> List[InstallationCandidate]:
-        return mock_candidates
+        return mock_candidates, {}
 
     finder = make_test_finder()
     monkeypatch.setattr(finder, "find_all_candidates", _find_candidates)
