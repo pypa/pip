@@ -105,11 +105,7 @@ def load_pyproject_toml(
     # https://discuss.python.org/t/pip-without-setuptools-could-the-experience-be-improved/11810/9
     # https://github.com/pypa/pip/issues/8559
     elif use_pep517 is None:
-        use_pep517 = (
-            has_pyproject
-            or not importlib.util.find_spec("setuptools")
-            or not importlib.util.find_spec("wheel")
-        )
+        use_pep517 = has_pyproject or not importlib.util.find_spec("setuptools")
 
     # At this point, we know whether we're going to use PEP 517.
     assert use_pep517 is not None

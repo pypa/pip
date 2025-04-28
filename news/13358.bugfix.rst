@@ -1,0 +1,1 @@
+Automatically use the legacy (non-PEP517) mode even without the ``wheel`` package.
