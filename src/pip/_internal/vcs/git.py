@@ -371,7 +371,7 @@ class Git(VersionControl):
         )
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
-        self.update_submodules(dest)
+        self.update_submodules(dest, verbosity=verbosity)
 
     @classmethod
     def get_remote_url(cls, location: str) -> str:

@@ -518,7 +518,7 @@ class VersionControl:
                         self.repo_name,
                         rev_display,
                     )
-                    self.update(dest, url, rev_options)
+                    self.update(dest, url, rev_options, verbosity=verbosity)
                 else:
                     logger.info("Skipping because already up-to-date.")
                 return
