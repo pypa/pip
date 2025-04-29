@@ -343,16 +343,32 @@ class Git(VersionControl):
 
         self.update_submodules(dest)
 
-    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def update(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
+        extra_flags = []
+
+        if verbosity <= 0:
+            extra_flags.append("-q")
+
         # First fetch changes from the default remote
         if self.get_git_version() >= (1, 9):
             # fetch tags in addition to everything else
-            self.run_command(["fetch", "-q", "--tags"], cwd=dest)
+            self.run_command(["fetch", "--tags", *extra_flags], cwd=dest)
         else:
-            self.run_command(["fetch", "-q"], cwd=dest)
+            self.run_command(["fetch", *extra_flags], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         rev_options = self.resolve_revision(dest, url, rev_options)
-        cmd_args = make_command("reset", "--hard", "-q", rev_options.to_args())
+        cmd_args = make_command(
+            "reset",
+            "--hard",
+            *extra_flags,
+            rev_options.to_args(),
+        )
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
         self.update_submodules(dest)

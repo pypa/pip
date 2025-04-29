@@ -310,7 +310,13 @@ class Subversion(VersionControl):
         )
         self.run_command(cmd_args)
 
-    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def update(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         cmd_args = make_command(
             "update",
             self.get_remote_call_options(),

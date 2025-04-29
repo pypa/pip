@@ -460,7 +460,13 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def update(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         """
         Update an already-existing repo to the given ``rev_options``.
 
