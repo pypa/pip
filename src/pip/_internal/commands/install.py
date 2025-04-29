@@ -493,14 +493,20 @@ class InstallCommand(RequirementCommand):
             summary = []
             installed_versions = {}
             for distribution in env.iter_all_distributions():
-                installed_versions[distribution.canonical_name] = distribution.version
+                installed_versions[distribution.canonical_name] = (
+                    distribution.version,
+                    distribution.metadata["variant-hash"],
+                )
             for package in installed:
                 display_name = package.name
-                version = installed_versions.get(canonicalize_name(display_name), None)
+                version, variant_hash = installed_versions.get(
+                    canonicalize_name(display_name), (None, None)
+                )
+                text = f"{display_name}"
                 if version:
-                    text = f"{display_name}-{version}"
-                else:
-                    text = display_name
+                    text = f"{text}-{version}"
+                if variant_hash:
+                    text = f"{text}-{variant_hash}"
                 summary.append(text)
 
             if conflicts is not None:

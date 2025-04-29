@@ -227,13 +227,10 @@ def get_supported(
 
         # Current implementation is choice 1)
         # Flip the order of `for loops` to switch to choice 2)
-
         supported = [
             Tag.create_varianttag_from_tag(tag, variant_hash=variant_hash)
             for variant_hash in variants_by_priority
             for tag in supported
         ] + supported
-
-        logger.info(f"Total Number of Tags Generated: {len(supported):,}")  # noqa: G004
 
     return supported
