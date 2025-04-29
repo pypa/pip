@@ -579,7 +579,7 @@ class VersionControl:
                 url,
                 rev_display,
             )
-            self.switch(dest, url, rev_options)
+            self.switch(dest, url, rev_options, verbosity=verbosity)
 
     def unpack(self, location: str, url: HiddenText, verbosity: int) -> None:
         """

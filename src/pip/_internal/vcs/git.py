@@ -353,7 +353,7 @@ class Git(VersionControl):
         cmd_args = make_command("checkout", *extra_flags, rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
-        self.update_submodules(dest)
+        self.update_submodules(dest, verbosity=verbosity)
 
     def update(
         self,
