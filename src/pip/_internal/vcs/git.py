@@ -333,12 +333,24 @@ class Git(VersionControl):
         #: repo may contain submodules
         self.update_submodules(dest, verbosity=verbosity)
 
-    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def switch(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         self.run_command(
             make_command("config", "remote.origin.url", url),
             cwd=dest,
         )
-        cmd_args = make_command("checkout", "-q", rev_options.to_args())
+
+        extra_flags = []
+
+        if verbosity <= 0:
+            extra_flags.append("-q")
+
+        cmd_args = make_command("checkout", *extra_flags, rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
         self.update_submodules(dest)

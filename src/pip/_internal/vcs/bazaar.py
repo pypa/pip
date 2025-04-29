@@ -55,7 +55,13 @@ class Bazaar(VersionControl):
         )
         self.run_command(cmd_args)
 
-    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def switch(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         self.run_command(make_command("switch", url), cwd=dest)
 
     def update(

@@ -451,7 +451,13 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def switch(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         """
         Switch the repo at ``dest`` to point to ``URL``.
 

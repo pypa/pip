@@ -58,9 +58,20 @@ class Mercurial(VersionControl):
             cwd=dest,
         )
 
-    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def switch(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
+        extra_flags = []
         repo_config = os.path.join(dest, self.dirname, "hgrc")
         config = configparser.RawConfigParser()
+
+        if verbosity <= 0:
+            extra_flags.append("-q")
+
         try:
             config.read(repo_config)
             config.set("paths", "default", url.secret)
@@ -69,7 +80,7 @@ class Mercurial(VersionControl):
         except (OSError, configparser.NoSectionError) as exc:
             logger.warning("Could not switch Mercurial repository to %s: %s", url, exc)
         else:
-            cmd_args = make_command("update", "-q", rev_options.to_args())
+            cmd_args = make_command("update", *extra_flags, rev_options.to_args())
             self.run_command(cmd_args, cwd=dest)
 
     def update(
