@@ -496,11 +496,16 @@ class Git(VersionControl):
         return url, rev, user_pass
 
     @classmethod
-    def update_submodules(cls, location: str) -> None:
+    def update_submodules(cls, location: str, verbosity: int = 0) -> None:
+        argv = ["submodule", "update", "--init", "--recursive"]
+
+        if verbosity <= 0:
+            argv.append("-q")
+
         if not os.path.exists(os.path.join(location, ".gitmodules")):
             return
         cls.run_command(
-            ["submodule", "update", "--init", "--recursive", "-q"],
+            argv,
             cwd=location,
         )
 
