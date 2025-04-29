@@ -331,7 +331,7 @@ class Git(VersionControl):
         logger.info("Resolved %s to commit %s", url, rev_options.rev)
 
         #: repo may contain submodules
-        self.update_submodules(dest)
+        self.update_submodules(dest, verbosity=verbosity)
 
     def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
         self.run_command(
