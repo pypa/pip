@@ -1,5 +1,8 @@
 import pytest
 
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.version import Version
+
 from pip._internal.models.pylock import (
     Pylock,
     PylockRequiredKeyError,
@@ -81,3 +84,26 @@ def test_pylock_packages_without_dist() -> None:
         str(exc_info.value)
         == "Exactly one of vcs, directory, archive, sdist, wheels must be set"
     )
+
+
+def test_pylock_basic_package() -> None:
+    data = {
+        "lock-version": "1.0",
+        "created-by": "pip",
+        "packages": [
+            {
+                "name": "example",
+                "version": "1.0",
+                "marker": 'os_name == "posix"',
+                "directory": {
+                    "path": ".",
+                    "editable": False,
+                },
+            }
+        ],
+    }
+    pylock = Pylock.from_dict(data)
+    package = pylock.packages[0]
+    assert package.version == Version("1.0")
+    assert package.marker == Marker('os_name == "posix"')
+    assert pylock.to_dict() == data

@@ -17,6 +17,7 @@ from typing import (
 )
 
 from pip._vendor import tomli_w
+from pip._vendor.packaging.markers import InvalidMarker, Marker
 from pip._vendor.packaging.version import InvalidVersion, Version
 from pip._vendor.typing_extensions import Self
 
@@ -48,7 +49,7 @@ def _toml_key(key: str) -> str:
 
 
 def _toml_value(value: T) -> Union[str, T]:
-    if isinstance(value, Version):
+    if isinstance(value, (Version, Marker)):
         return str(value)
     return value
 
@@ -96,6 +97,16 @@ def _get_required_version(d: Dict[str, Any], key: str) -> Version:
     if value is None:
         raise PylockRequiredKeyError(key)
     return value
+
+
+def _get_marker(d: Dict[str, Any], key: str) -> Optional[Marker]:
+    value = _get(d, str, key)
+    if value is None:
+        return None
+    try:
+        return Marker(value)
+    except InvalidMarker:
+        raise PylockValidationError(f"invalid marker {value!r}")
 
 
 def _get_object(
@@ -274,7 +285,7 @@ class PackageWheel:
 class Package:
     name: str
     version: Optional[Version] = None
-    # (not supported) marker: Optional[str]
+    marker: Optional[Marker] = None
     # (not supported) requires_python: Optional[str]
     # (not supported) dependencies
     vcs: Optional[PackageVcs] = None
@@ -296,6 +307,7 @@ class Package:
         package = cls(
             name=_get_required(d, str, "name"),
             version=_get_version(d, "version"),
+            marker=_get_marker(d, "marker"),
             vcs=_get_object(d, PackageVcs, "vcs"),
             directory=_get_object(d, PackageDirectory, "directory"),
             archive=_get_object(d, PackageArchive, "archive"),
@@ -381,6 +393,7 @@ class Package:
         return cls(
             name=dist.canonical_name,
             version=package_version,
+            marker=None,
             vcs=package_vcs,
             directory=package_directory,
             archive=package_archive,
