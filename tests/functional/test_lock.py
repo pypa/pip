@@ -1,15 +1,10 @@
-import sys
 import textwrap
 from pathlib import Path
 
+from pip._internal.utils.compat import tomllib
 from pip._internal.utils.urls import path_to_url
 
 from ..lib import PipTestEnvironment, TestData
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    from pip._vendor import tomli as tomllib
 
 
 def test_lock_wheel_from_findlinks(

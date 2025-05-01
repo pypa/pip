@@ -1,13 +1,7 @@
 import importlib.util
 import os
-import sys
 from collections import namedtuple
 from typing import Any, List, Optional
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    from pip._vendor import tomli as tomllib
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 
@@ -16,6 +10,7 @@ from pip._internal.exceptions import (
     InvalidPyProjectBuildRequires,
     MissingPyProjectBuildRequires,
 )
+from pip._internal.utils.compat import tomllib
 from pip._internal.utils.packaging import get_requirement
 
 
