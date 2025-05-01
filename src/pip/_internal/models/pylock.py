@@ -254,7 +254,7 @@ class PackageDirectory:
 class PackageArchive:
     url: Optional[str]
     path: Optional[str]
-    # (not supported) size: Optional[int]
+    size: Optional[int]
     # (not supported) upload_time: Optional[datetime]
     hashes: Dict[str, str]
     subdirectory: Optional[str]
@@ -267,6 +267,7 @@ class PackageArchive:
         return cls(
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
+            size=_get(d, int, "size"),
             hashes=_get_required(d, dict, "hashes"),
             subdirectory=_get(d, str, "subdirectory"),
         )
@@ -278,7 +279,7 @@ class PackageSdist:
     # (not supported) upload_time: Optional[datetime]
     url: Optional[str]
     path: Optional[str]
-    # (not supported) size: Optional[int]
+    size: Optional[int]
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
@@ -290,6 +291,7 @@ class PackageSdist:
             name=_get_required(d, str, "name"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
+            size=_get(d, int, "size"),
             hashes=_get_required(d, dict, "hashes"),
         )
 
@@ -300,7 +302,7 @@ class PackageWheel:
     # (not supported) upload_time: Optional[datetime]
     url: Optional[str]
     path: Optional[str]
-    # (not supported) size: Optional[int]
+    size: Optional[int]
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
@@ -312,6 +314,7 @@ class PackageWheel:
             name=_get_required(d, str, "name"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
+            size=_get(d, int, "size"),
             hashes=_get_required(d, dict, "hashes"),
         )
         return wheel
@@ -396,6 +399,7 @@ class Package:
                 package_archive = PackageArchive(
                     url=download_info.url,
                     path=None,
+                    size=None,
                     hashes=download_info.info.hashes,
                     subdirectory=download_info.subdirectory,
                 )
@@ -414,6 +418,7 @@ class Package:
                             name=link.filename,
                             url=download_info.url,
                             path=None,
+                            size=None,
                             hashes=download_info.info.hashes,
                         )
                     ]
@@ -422,6 +427,7 @@ class Package:
                         name=link.filename,
                         url=download_info.url,
                         path=None,
+                        size=None,
                         hashes=download_info.info.hashes,
                     )
             else:
