@@ -1,6 +1,7 @@
 import pytest
 
 from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import Version
 
 from pip._internal.models.pylock import (
@@ -90,11 +91,13 @@ def test_pylock_basic_package() -> None:
     data = {
         "lock-version": "1.0",
         "created-by": "pip",
+        "requires-python": ">=3.10",
         "packages": [
             {
                 "name": "example",
                 "version": "1.0",
                 "marker": 'os_name == "posix"',
+                "requires-python": "!=3.10.1,>=3.10",
                 "directory": {
                     "path": ".",
                     "editable": False,
@@ -106,4 +109,5 @@ def test_pylock_basic_package() -> None:
     package = pylock.packages[0]
     assert package.version == Version("1.0")
     assert package.marker == Marker('os_name == "posix"')
+    assert package.requires_python == SpecifierSet(">=3.10, !=3.10.1")
     assert pylock.to_dict() == data

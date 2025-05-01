@@ -18,6 +18,7 @@ from typing import (
 
 from pip._vendor import tomli_w
 from pip._vendor.packaging.markers import InvalidMarker, Marker
+from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.version import InvalidVersion, Version
 from pip._vendor.typing_extensions import Self
 
@@ -49,7 +50,7 @@ def _toml_key(key: str) -> str:
 
 
 def _toml_value(value: T) -> Union[str, T]:
-    if isinstance(value, (Version, Marker)):
+    if isinstance(value, (Version, Marker, SpecifierSet)):
         return str(value)
     return value
 
@@ -107,6 +108,16 @@ def _get_marker(d: Dict[str, Any], key: str) -> Optional[Marker]:
         return Marker(value)
     except InvalidMarker:
         raise PylockValidationError(f"invalid marker {value!r}")
+
+
+def _get_specifier_set(d: Dict[str, Any], key: str) -> Optional[SpecifierSet]:
+    value = _get(d, str, key)
+    if value is None:
+        return None
+    try:
+        return SpecifierSet(value)
+    except InvalidSpecifier:
+        raise PylockValidationError(f"invalid version specifier {value!r}")
 
 
 def _get_object(
@@ -286,7 +297,7 @@ class Package:
     name: str
     version: Optional[Version] = None
     marker: Optional[Marker] = None
-    # (not supported) requires_python: Optional[str]
+    requires_python: Optional[SpecifierSet] = None
     # (not supported) dependencies
     vcs: Optional[PackageVcs] = None
     directory: Optional[PackageDirectory] = None
@@ -307,6 +318,7 @@ class Package:
         package = cls(
             name=_get_required(d, str, "name"),
             version=_get_version(d, "version"),
+            requires_python=_get_specifier_set(d, "requires-python"),
             marker=_get_marker(d, "marker"),
             vcs=_get_object(d, PackageVcs, "vcs"),
             directory=_get_object(d, PackageDirectory, "directory"),
@@ -394,6 +406,7 @@ class Package:
             name=dist.canonical_name,
             version=package_version,
             marker=None,
+            requires_python=None,
             vcs=package_vcs,
             directory=package_directory,
             archive=package_archive,
@@ -406,7 +419,7 @@ class Package:
 class Pylock:
     lock_version: Version = Version("1.0")
     # (not supported) environments: Optional[List[str]]
-    # (not supported) requires_python: Optional[str]
+    requires_python: Optional[SpecifierSet] = None
     # (not supported) extras: List[str] = []
     # (not supported) dependency_groups: List[str] = []
     created_by: str = "pip"
@@ -434,6 +447,7 @@ class Pylock:
         return cls(
             lock_version=_get_required_version(d, "lock-version"),
             created_by=_get_required(d, str, "created-by"),
+            requires_python=_get_specifier_set(d, "requires-python"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
         )
 
