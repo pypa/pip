@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import sys
 import textwrap
 from collections.abc import Sequence
-from typing import Optional
 
 # Shim to wrap setup.py invocation with setuptools
 # Note that __file__ is handled via two {!r} *and* %r, to ensure that paths on
@@ -50,7 +51,7 @@ _SETUPTOOLS_SHIM = textwrap.dedent(
 
 def make_setuptools_shim_args(
     setup_py_path: str,
-    global_options: Optional[Sequence[str]] = None,
+    global_options: Sequence[str] | None = None,
     no_user_config: bool = False,
     unbuffered_output: bool = False,
 ) -> list[str]:
@@ -108,8 +109,8 @@ def make_setuptools_develop_args(
     *,
     global_options: Sequence[str],
     no_user_config: bool,
-    prefix: Optional[str],
-    home: Optional[str],
+    prefix: str | None,
+    home: str | None,
     use_user_site: bool,
 ) -> list[str]:
     assert not (use_user_site and prefix)
@@ -135,7 +136,7 @@ def make_setuptools_develop_args(
 
 def make_setuptools_egg_info_args(
     setup_py_path: str,
-    egg_info_dir: Optional[str],
+    egg_info_dir: str | None,
     no_user_config: bool,
 ) -> list[str]:
     args = make_setuptools_shim_args(setup_py_path, no_user_config=no_user_config)

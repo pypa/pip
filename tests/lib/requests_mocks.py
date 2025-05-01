@@ -1,8 +1,10 @@
 """Helper classes as mocks for requests objects."""
 
+from __future__ import annotations
+
 from collections.abc import Iterator
 from io import BytesIO
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 _Hook = Callable[["MockResponse"], None]
 
@@ -11,12 +13,10 @@ class FakeStream:
     def __init__(self, contents: bytes) -> None:
         self._io = BytesIO(contents)
 
-    def read(self, size: int, decode_content: Optional[bool] = None) -> bytes:
+    def read(self, size: int, decode_content: bool | None = None) -> bytes:
         return self._io.read(size)
 
-    def stream(
-        self, size: int, decode_content: Optional[bool] = None
-    ) -> Iterator[bytes]:
+    def stream(self, size: int, decode_content: bool | None = None) -> Iterator[bytes]:
         yield self._io.read(size)
 
     def release_conn(self) -> None:
@@ -24,8 +24,8 @@ class FakeStream:
 
 
 class MockResponse:
-    request: "MockRequest"
-    connection: "MockConnection"
+    request: MockRequest
+    connection: MockConnection
     url: str
 
     def __init__(self, contents: bytes) -> None:
@@ -39,10 +39,10 @@ class MockResponse:
 
 
 class MockConnection:
-    def _send(self, req: "MockRequest", **kwargs: Any) -> MockResponse:
+    def _send(self, req: MockRequest, **kwargs: Any) -> MockResponse:
         raise NotImplementedError("_send must be overridden for tests")
 
-    def send(self, req: "MockRequest", **kwargs: Any) -> MockResponse:
+    def send(self, req: MockRequest, **kwargs: Any) -> MockResponse:
         resp = self._send(req, **kwargs)
         for cb in req.hooks.get("response", []):
             cb(resp)

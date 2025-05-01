@@ -2,6 +2,8 @@
 network request configuration and behavior.
 """
 
+from __future__ import annotations
+
 import email.utils
 import functools
 import io
@@ -209,10 +211,10 @@ class LocalFSAdapter(BaseAdapter):
         self,
         request: PreparedRequest,
         stream: bool = False,
-        timeout: Optional[Union[float, tuple[float, float]]] = None,
-        verify: Union[bool, str] = True,
-        cert: Optional[Union[str, tuple[str, str]]] = None,
-        proxies: Optional[Mapping[str, str]] = None,
+        timeout: float | tuple[float, float] | None = None,
+        verify: bool | str = True,
+        cert: str | tuple[str, str] | None = None,
+        proxies: Mapping[str, str] | None = None,
     ) -> Response:
         pathname = url_to_path(request.url)
 
@@ -259,7 +261,7 @@ class _SSLContextAdapterMixin:
     def __init__(
         self,
         *,
-        ssl_context: Optional["SSLContext"] = None,
+        ssl_context: SSLContext | None = None,
         **kwargs: Any,
     ) -> None:
         self._ssl_context = ssl_context
@@ -271,7 +273,7 @@ class _SSLContextAdapterMixin:
         maxsize: int,
         block: bool = DEFAULT_POOLBLOCK,
         **pool_kwargs: Any,
-    ) -> "PoolManager":
+    ) -> PoolManager:
         if self._ssl_context is not None:
             pool_kwargs.setdefault("ssl_context", self._ssl_context)
         return super().init_poolmanager(  # type: ignore[misc]
@@ -295,8 +297,8 @@ class InsecureHTTPAdapter(HTTPAdapter):
         self,
         conn: ConnectionPool,
         url: str,
-        verify: Union[bool, str],
-        cert: Optional[Union[str, tuple[str, str]]],
+        verify: bool | str,
+        cert: str | tuple[str, str] | None,
     ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
@@ -306,23 +308,23 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
         self,
         conn: ConnectionPool,
         url: str,
-        verify: Union[bool, str],
-        cert: Optional[Union[str, tuple[str, str]]],
+        verify: bool | str,
+        cert: str | tuple[str, str] | None,
     ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class PipSession(requests.Session):
-    timeout: Optional[int] = None
+    timeout: int | None = None
 
     def __init__(
         self,
         *args: Any,
         retries: int = 0,
-        cache: Optional[str] = None,
+        cache: str | None = None,
         trusted_hosts: Sequence[str] = (),
-        index_urls: Optional[list[str]] = None,
-        ssl_context: Optional["SSLContext"] = None,
+        index_urls: list[str] | None = None,
+        ssl_context: SSLContext | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -333,7 +335,7 @@ class PipSession(requests.Session):
 
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
-        self.pip_trusted_origins: list[tuple[str, Optional[int]]] = []
+        self.pip_trusted_origins: list[tuple[str, int | None]] = []
         self.pip_proxy = None
 
         # Attach our User Agent to the request
@@ -404,7 +406,7 @@ class PipSession(requests.Session):
         self.auth.index_urls = new_index_urls
 
     def add_trusted_host(
-        self, host: str, source: Optional[str] = None, suppress_logging: bool = False
+        self, host: str, source: str | None = None, suppress_logging: bool = False
     ) -> None:
         """
         :param host: It is okay to provide a host that has previously been

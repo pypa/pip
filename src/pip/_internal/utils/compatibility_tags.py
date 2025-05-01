@@ -1,7 +1,8 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 
+from __future__ import annotations
+
 import re
-from typing import Optional
 
 from pip._vendor.packaging.tags import (
     PythonVersion,
@@ -110,7 +111,7 @@ def _get_custom_platforms(arch: str) -> list[str]:
     return arches
 
 
-def _expand_allowed_platforms(platforms: Optional[list[str]]) -> Optional[list[str]]:
+def _expand_allowed_platforms(platforms: list[str] | None) -> list[str] | None:
     if not platforms:
         return None
 
@@ -135,7 +136,7 @@ def _get_python_version(version: str) -> PythonVersion:
 
 
 def _get_custom_interpreter(
-    implementation: Optional[str] = None, version: Optional[str] = None
+    implementation: str | None = None, version: str | None = None
 ) -> str:
     if implementation is None:
         implementation = interpreter_name()
@@ -145,10 +146,10 @@ def _get_custom_interpreter(
 
 
 def get_supported(
-    version: Optional[str] = None,
-    platforms: Optional[list[str]] = None,
-    impl: Optional[str] = None,
-    abis: Optional[list[str]] = None,
+    version: str | None = None,
+    platforms: list[str] | None = None,
+    impl: str | None = None,
+    abis: list[str] | None = None,
 ) -> list[Tag]:
     """Return a list of supported tags for each version specified in
     `versions`.
@@ -164,7 +165,7 @@ def get_supported(
     """
     supported: list[Tag] = []
 
-    python_version: Optional[PythonVersion] = None
+    python_version: PythonVersion | None = None
     if version is not None:
         python_version = _get_python_version(version)
 

@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import json
 import tarfile
 from pathlib import Path
-from typing import Optional
 from zipfile import ZipFile
 
 from pip._internal.utils.urls import path_to_url
@@ -92,7 +93,7 @@ main = Backend()
 
 
 def make_project(
-    path: Path, name: str = "foo", dependencies: Optional[list[str]] = None
+    path: Path, name: str = "foo", dependencies: list[str] | None = None
 ) -> tuple[str, str, Path]:
     version = "1.0"
     project_dir = path / name

@@ -2,9 +2,10 @@
 name that have meaning.
 """
 
+from __future__ import annotations
+
 import re
 from collections.abc import Iterable
-from typing import Optional
 
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import BuildTag, parse_wheel_filename
@@ -32,7 +33,7 @@ class Wheel:
         # To make mypy happy specify type hints that can come from either
         # parse_wheel_filename or the legacy_wheel_file_re match.
         self.name: str
-        self._build_tag: Optional[BuildTag] = None
+        self._build_tag: BuildTag | None = None
 
         try:
             wheel_info = parse_wheel_filename(filename)

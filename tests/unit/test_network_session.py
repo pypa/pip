@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -256,7 +258,7 @@ class TestPipSession:
         assert "is not a trusted or secure host" in actual_message
 
     @pytest.mark.network
-    def test_proxy(self, proxy: Optional[str]) -> None:
+    def test_proxy(self, proxy: str | None) -> None:
         session = PipSession(trusted_hosts=[])
 
         if not proxy:

@@ -1,5 +1,7 @@
 """Base Command class, and related routines"""
 
+from __future__ import annotations
+
 import logging
 import logging.config
 import optparse
@@ -7,7 +9,6 @@ import os
 import sys
 import traceback
 from optparse import Values
-from typing import Optional
 
 from pip._vendor.rich import reconfigure
 from pip._vendor.rich import traceback as rich_traceback
@@ -60,7 +61,7 @@ class Command(CommandContextMixIn):
             isolated=isolated,
         )
 
-        self.tempdir_registry: Optional[TempDirRegistry] = None
+        self.tempdir_registry: TempDirRegistry | None = None
 
         # Commands should add options to this option group
         optgroup_name = f"{self.name.capitalize()} Options"

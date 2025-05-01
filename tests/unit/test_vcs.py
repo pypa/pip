@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 import pathlib
-from typing import Any, Optional
+from typing import Any
 from unittest import TestCase, mock
 
 import pytest
@@ -303,7 +305,7 @@ def test_git_resolve_revision_not_found_warning(
 )
 @mock.patch("pip._internal.vcs.git.Git.get_revision")
 def test_git_is_commit_id_equal(
-    mock_get_revision: mock.Mock, rev_name: Optional[str], result: bool
+    mock_get_revision: mock.Mock, rev_name: str | None, result: bool
 ) -> None:
     """
     Test Git.is_commit_id_equal().
@@ -353,7 +355,7 @@ def test_git__get_netloc_and_auth(
     ],
 )
 def test_subversion__get_netloc_and_auth(
-    args: tuple[str, str], expected: tuple[str, tuple[Optional[str], Optional[str]]]
+    args: tuple[str, str], expected: tuple[str, tuple[str | None, str | None]]
 ) -> None:
     """
     Test Subversion.get_netloc_and_auth().
@@ -529,7 +531,7 @@ def test_bazaar__get_url_rev_and_auth(url: str, expected: str) -> None:
     ],
 )
 def test_subversion__get_url_rev_and_auth(
-    url: str, expected: tuple[str, None, tuple[Optional[str], Optional[str]]]
+    url: str, expected: tuple[str, None, tuple[str | None, str | None]]
 ) -> None:
     """
     Test Subversion.get_url_rev_and_auth().
@@ -549,7 +551,7 @@ def test_subversion__get_url_rev_and_auth(
     ],
 )
 def test_git__make_rev_args(
-    username: Optional[str], password: Optional[HiddenText], expected: CommandArgs
+    username: str | None, password: HiddenText | None, expected: CommandArgs
 ) -> None:
     """
     Test VersionControl.make_rev_args().
@@ -571,7 +573,7 @@ def test_git__make_rev_args(
     ],
 )
 def test_subversion__make_rev_args(
-    username: Optional[str], password: Optional[HiddenText], expected: CommandArgs
+    username: str | None, password: HiddenText | None, expected: CommandArgs
 ) -> None:
     """
     Test Subversion.make_rev_args().

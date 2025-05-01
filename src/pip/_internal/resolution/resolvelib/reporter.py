@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, Optional
+from typing import Any
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
@@ -72,7 +74,7 @@ class PipDebuggingReporter(BaseReporter[Requirement, Candidate, str]):
         logger.info("Reporter.ending(%r)", state)
 
     def adding_requirement(
-        self, requirement: Requirement, parent: Optional[Candidate]
+        self, requirement: Requirement, parent: Candidate | None
     ) -> None:
         logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
 

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import collections
 import logging
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
-from typing import Optional
 
 from pip._internal.cli.progress_bars import get_install_progress_renderer
 from pip._internal.utils.logging import indent_log
@@ -37,9 +38,9 @@ def _validate_requirements(
 def install_given_reqs(
     requirements: list[InstallRequirement],
     global_options: Sequence[str],
-    root: Optional[str],
-    home: Optional[str],
-    prefix: Optional[str],
+    root: str | None,
+    home: str | None,
+    prefix: str | None,
     warn_script_location: bool,
     use_user_site: bool,
     pycompile: bool,

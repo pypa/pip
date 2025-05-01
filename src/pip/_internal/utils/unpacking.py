@@ -1,5 +1,7 @@
 """Utilities related archives."""
 
+from __future__ import annotations
+
 import logging
 import os
 import shutil
@@ -8,7 +10,6 @@ import sys
 import tarfile
 import zipfile
 from collections.abc import Iterable
-from typing import Optional
 from zipfile import ZipInfo
 
 from pip._internal.exceptions import InstallationError
@@ -308,7 +309,7 @@ def _untar_without_filter(
 def unpack_file(
     filename: str,
     location: str,
-    content_type: Optional[str] = None,
+    content_type: str | None = None,
 ) -> None:
     filename = os.path.realpath(filename)
     if (

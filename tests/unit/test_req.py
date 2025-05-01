@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import email.message
 import os
@@ -7,7 +9,7 @@ import tempfile
 from collections.abc import Iterator
 from functools import partial
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -85,7 +87,7 @@ class TestRequirementSet:
         self,
         finder: PackageFinder,
         require_hashes: bool = False,
-        wheel_cache: Optional[WheelCache] = None,
+        wheel_cache: WheelCache | None = None,
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,

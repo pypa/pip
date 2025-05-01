@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import pathlib
@@ -13,7 +15,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO, StringIO
 from textwrap import dedent
-from typing import Any, AnyStr, Callable, Literal, Optional, Protocol, Union, cast
+from typing import Any, AnyStr, Callable, Literal, Protocol, Union, cast
 from urllib.parse import urlparse, urlunparse
 from urllib.request import pathname2url
 from zipfile import ZipFile
@@ -53,7 +55,7 @@ def assert_paths_equal(actual: str, expected: str) -> None:
     assert os.path.normpath(actual) == os.path.normpath(expected)
 
 
-def create_file(path: str, contents: Optional[str] = None) -> None:
+def create_file(path: str, contents: str | None = None) -> None:
     """Create a file on the path, with the given contents"""
     from pip._internal.utils.misc import ensure_dir
 
@@ -66,8 +68,8 @@ def create_file(path: str, contents: Optional[str] = None) -> None:
 
 
 def make_test_search_scope(
-    find_links: Optional[list[str]] = None,
-    index_urls: Optional[list[str]] = None,
+    find_links: list[str] | None = None,
+    index_urls: list[str] | None = None,
 ) -> SearchScope:
     if find_links is None:
         find_links = []
@@ -82,9 +84,9 @@ def make_test_search_scope(
 
 
 def make_test_link_collector(
-    find_links: Optional[list[str]] = None,
-    index_urls: Optional[list[str]] = None,
-    session: Optional[PipSession] = None,
+    find_links: list[str] | None = None,
+    index_urls: list[str] | None = None,
+    session: PipSession | None = None,
 ) -> LinkCollector:
     """
     Create a LinkCollector object for testing purposes.
@@ -101,11 +103,11 @@ def make_test_link_collector(
 
 
 def make_test_finder(
-    find_links: Optional[list[str]] = None,
-    index_urls: Optional[list[str]] = None,
+    find_links: list[str] | None = None,
+    index_urls: list[str] | None = None,
     allow_all_prereleases: bool = False,
-    session: Optional[PipSession] = None,
-    target_python: Optional[TargetPython] = None,
+    session: PipSession | None = None,
+    target_python: TargetPython | None = None,
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -144,13 +146,13 @@ class TestData:
     def __init__(
         self,
         root: pathlib.Path,
-        source: Optional[pathlib.Path] = None,
+        source: pathlib.Path | None = None,
     ) -> None:
         self.source = source or DATA_DIR
         self.root = root.resolve()
 
     @classmethod
-    def copy(cls, root: pathlib.Path) -> "TestData":
+    def copy(cls, root: pathlib.Path) -> TestData:
         obj = cls(root)
         obj.reset()
         return obj
@@ -291,7 +293,7 @@ class TestPipResult:
     def files_deleted(self) -> FoundFiles:
         return FoundFiles(self._impl.files_deleted)
 
-    def _get_egg_link_path_created(self, egg_link_paths: list[str]) -> Optional[str]:
+    def _get_egg_link_path_created(self, egg_link_paths: list[str]) -> str | None:
         for egg_link_path in egg_link_paths:
             if egg_link_path in self.files_created:
                 return egg_link_path
@@ -301,11 +303,11 @@ class TestPipResult:
         self,
         pkg_name: str,
         editable: bool = True,
-        with_files: Optional[list[str]] = None,
-        without_files: Optional[list[str]] = None,
+        with_files: list[str] | None = None,
+        without_files: list[str] | None = None,
         without_egg_link: bool = False,
         use_user_site: bool = False,
-        sub_dir: Optional[str] = None,
+        sub_dir: str | None = None,
     ) -> None:
         with_files = with_files or []
         without_files = without_files or []
@@ -401,20 +403,20 @@ class TestPipResult:
                     f"Package directory {pkg_dir!r} has unexpected content {f}"
                 )
 
-    def did_create(self, path: StrPath, message: Optional[str] = None) -> None:
+    def did_create(self, path: StrPath, message: str | None = None) -> None:
         assert path in self.files_created, _one_or_both(message, self)
 
-    def did_not_create(self, p: StrPath, message: Optional[str] = None) -> None:
+    def did_not_create(self, p: StrPath, message: str | None = None) -> None:
         assert p not in self.files_created, _one_or_both(message, self)
 
-    def did_update(self, path: StrPath, message: Optional[str] = None) -> None:
+    def did_update(self, path: StrPath, message: str | None = None) -> None:
         assert path in self.files_updated, _one_or_both(message, self)
 
-    def did_not_update(self, p: StrPath, message: Optional[str] = None) -> None:
+    def did_not_update(self, p: StrPath, message: str | None = None) -> None:
         assert p not in self.files_updated, _one_or_both(message, self)
 
 
-def _one_or_both(a: Optional[str], b: Any) -> str:
+def _one_or_both(a: str | None, b: Any) -> str:
     """Returns f"{a}\n{b}" if a is truthy, else returns str(b)."""
     if not a:
         return str(b)
@@ -511,7 +513,7 @@ class PipTestEnvironment(TestFileEnvironment):
         *args: Any,
         virtualenv: VirtualEnvironment,
         pip_expect_warning: bool = False,
-        zipapp: Optional[str] = None,
+        zipapp: str | None = None,
         **kwargs: Any,
     ) -> None:
         # Store paths related to the virtual environment
@@ -616,9 +618,9 @@ class PipTestEnvironment(TestFileEnvironment):
     def run(
         self,
         *args: str,
-        cwd: Optional[StrPath] = None,
-        allow_stderr_error: Optional[bool] = None,
-        allow_stderr_warning: Optional[bool] = None,
+        cwd: StrPath | None = None,
+        allow_stderr_error: bool | None = None,
+        allow_stderr_warning: bool | None = None,
         allow_error: bool = False,
         **kw: Any,
     ) -> TestPipResult:
@@ -807,8 +809,8 @@ def diff_states(
 
 
 def assert_all_changes(
-    start_state: Union[_FilesState, TestPipResult],
-    end_state: Union[_FilesState, TestPipResult],
+    start_state: _FilesState | TestPipResult,
+    end_state: _FilesState | TestPipResult,
     expected_changes: list[StrPath],
 ) -> dict[str, _FilesState]:
     """
@@ -847,8 +849,8 @@ def assert_all_changes(
 
 def _create_main_file(
     dir_path: pathlib.Path,
-    name: Optional[str] = None,
-    output: Optional[str] = None,
+    name: str | None = None,
+    output: str | None = None,
 ) -> None:
     """
     Create a module with a main() function that prints the given output.
@@ -870,7 +872,7 @@ def _create_main_file(
 def _git_commit(
     env_or_script: PipTestEnvironment,
     repo_dir: StrPath,
-    message: Optional[str] = None,
+    message: str | None = None,
     allow_empty: bool = False,
     stage_modified: bool = False,
 ) -> None:
@@ -1163,10 +1165,10 @@ def create_basic_wheel_for_package(
     script: PipTestEnvironment,
     name: str,
     version: str,
-    depends: Optional[list[str]] = None,
-    extras: Optional[dict[str, list[str]]] = None,
-    requires_python: Optional[str] = None,
-    extra_files: Optional[dict[str, Union[bytes, str]]] = None,
+    depends: list[str] | None = None,
+    extras: dict[str, list[str]] | None = None,
+    requires_python: str | None = None,
+    extra_files: dict[str, bytes | str] | None = None,
 ) -> pathlib.Path:
     if depends is None:
         depends = []
@@ -1223,11 +1225,11 @@ def create_basic_sdist_for_package(
     script: PipTestEnvironment,
     name: str,
     version: str,
-    extra_files: Optional[dict[str, str]] = None,
+    extra_files: dict[str, str] | None = None,
     *,
     fails_egg_info: bool = False,
     fails_bdist_wheel: bool = False,
-    depends: Optional[list[str]] = None,
+    depends: list[str] | None = None,
     setup_py_prelude: str = "",
 ) -> pathlib.Path:
     files = {
@@ -1337,7 +1339,7 @@ class InMemoryPipResult:
 
 
 class InMemoryPip:
-    def pip(self, *args: Union[str, pathlib.Path]) -> InMemoryPipResult:
+    def pip(self, *args: str | pathlib.Path) -> InMemoryPipResult:
         orig_stdout = sys.stdout
         stdout = StringIO()
         sys.stdout = stdout
@@ -1359,8 +1361,8 @@ class ScriptFactory(Protocol):
     def __call__(
         self,
         tmpdir: pathlib.Path,
-        virtualenv: Optional[VirtualEnvironment] = None,
-        environ: Optional[dict[AnyStr, AnyStr]] = None,
+        virtualenv: VirtualEnvironment | None = None,
+        environ: dict[AnyStr, AnyStr] | None = None,
     ) -> PipTestEnvironment: ...
 
 

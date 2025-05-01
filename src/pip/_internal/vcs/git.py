@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os.path
 import pathlib
@@ -5,7 +7,7 @@ import re
 import urllib.parse
 import urllib.request
 from dataclasses import replace
-from typing import Any, Optional
+from typing import Any
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path, hide_url
@@ -114,7 +116,7 @@ class Git(VersionControl):
         return (int(match.group(1)), int(match.group(2)))
 
     @classmethod
-    def get_current_branch(cls, location: str) -> Optional[str]:
+    def get_current_branch(cls, location: str) -> str | None:
         """
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
@@ -139,7 +141,7 @@ class Git(VersionControl):
         return None
 
     @classmethod
-    def get_revision_sha(cls, dest: str, rev: str) -> tuple[Optional[str], bool]:
+    def get_revision_sha(cls, dest: str, rev: str) -> tuple[str | None, bool]:
         """
         Return (sha_or_none, is_branch), where sha_or_none is a commit hash
         if the revision names a remote branch or tag, otherwise None.
@@ -254,7 +256,7 @@ class Git(VersionControl):
         return rev_options
 
     @classmethod
-    def is_commit_id_equal(cls, dest: str, name: Optional[str]) -> bool:
+    def is_commit_id_equal(cls, dest: str, name: str | None) -> bool:
         """
         Return whether the current commit hash equals the given name.
 
@@ -433,7 +435,7 @@ class Git(VersionControl):
             return True
 
     @classmethod
-    def get_revision(cls, location: str, rev: Optional[str] = None) -> str:
+    def get_revision(cls, location: str, rev: str | None = None) -> str:
         if rev is None:
             rev = "HEAD"
         current_rev = cls.run_command(
@@ -445,7 +447,7 @@ class Git(VersionControl):
         return current_rev.strip()
 
     @classmethod
-    def get_subdirectory(cls, location: str) -> Optional[str]:
+    def get_subdirectory(cls, location: str) -> str | None:
         """
         Return the path to Python project root, relative to the repo root.
         Return None if the project root is in the repo root.
@@ -463,7 +465,7 @@ class Git(VersionControl):
         return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url: str) -> tuple[str, Optional[str], AuthInfo]:
+    def get_url_rev_and_auth(cls, url: str) -> tuple[str, str | None, AuthInfo]:
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't
@@ -503,7 +505,7 @@ class Git(VersionControl):
         )
 
     @classmethod
-    def get_repository_root(cls, location: str) -> Optional[str]:
+    def get_repository_root(cls, location: str) -> str | None:
         loc = super().get_repository_root(location)
         if loc:
             return loc

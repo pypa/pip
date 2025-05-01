@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import logging
@@ -6,7 +8,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     NamedTuple,
-    Optional,
     Protocol,
     TypeVar,
     cast,
@@ -91,12 +92,12 @@ class Factory:
         finder: PackageFinder,
         preparer: RequirementPreparer,
         make_install_req: InstallRequirementProvider,
-        wheel_cache: Optional[WheelCache],
+        wheel_cache: WheelCache | None,
         use_user_site: bool,
         force_reinstall: bool,
         ignore_installed: bool,
         ignore_requires_python: bool,
-        py_version_info: Optional[tuple[int, ...]] = None,
+        py_version_info: tuple[int, ...] | None = None,
     ) -> None:
         self._finder = finder
         self.preparer = preparer
@@ -143,7 +144,7 @@ class Factory:
         base: BaseCandidate,
         extras: frozenset[str],
         *,
-        comes_from: Optional[InstallRequirement] = None,
+        comes_from: InstallRequirement | None = None,
     ) -> ExtrasCandidate:
         cache_key = (id(base), frozenset(canonicalize_name(e) for e in extras))
         try:
@@ -173,10 +174,10 @@ class Factory:
         link: Link,
         extras: frozenset[str],
         template: InstallRequirement,
-        name: Optional[NormalizedName],
-        version: Optional[Version],
-    ) -> Optional[Candidate]:
-        base: Optional[BaseCandidate] = self._make_base_candidate_from_link(
+        name: NormalizedName | None,
+        version: Version | None,
+    ) -> Candidate | None:
+        base: BaseCandidate | None = self._make_base_candidate_from_link(
             link, template, name, version
         )
         if not extras or base is None:
@@ -187,9 +188,9 @@ class Factory:
         self,
         link: Link,
         template: InstallRequirement,
-        name: Optional[NormalizedName],
-        version: Optional[Version],
-    ) -> Optional[BaseCandidate]:
+        name: NormalizedName | None,
+        version: Version | None,
+    ) -> BaseCandidate | None:
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
 
@@ -266,7 +267,7 @@ class Factory:
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
 
-        def _get_installed_candidate() -> Optional[Candidate]:
+        def _get_installed_candidate() -> Candidate | None:
             """Get the candidate for the currently-installed version."""
             # If --force-reinstall is set, we want the version from the index
             # instead, so we "pretend" there is nothing installed.
@@ -565,7 +566,7 @@ class Factory:
     def make_requirements_from_spec(
         self,
         specifier: str,
-        comes_from: Optional[InstallRequirement],
+        comes_from: InstallRequirement | None,
         requested_extras: Iterable[str] = (),
     ) -> Iterator[Requirement]:
         """
@@ -583,7 +584,7 @@ class Factory:
     def make_requires_python_requirement(
         self,
         specifier: SpecifierSet,
-    ) -> Optional[Requirement]:
+    ) -> Requirement | None:
         if self._ignore_requires_python:
             return None
         # Don't bother creating a dependency for an empty Requires-Python.
@@ -591,9 +592,7 @@ class Factory:
             return None
         return RequiresPythonRequirement(specifier, self._python_candidate)
 
-    def get_wheel_cache_entry(
-        self, link: Link, name: Optional[str]
-    ) -> Optional[CacheEntry]:
+    def get_wheel_cache_entry(self, link: Link, name: str | None) -> CacheEntry | None:
         """Look up the link in the wheel cache.
 
         If ``preparer.require_hashes`` is True, don't use the wheel cache,
@@ -610,7 +609,7 @@ class Factory:
             supported_tags=self._supported_tags_cache,
         )
 
-    def get_dist_to_uninstall(self, candidate: Candidate) -> Optional[BaseDistribution]:
+    def get_dist_to_uninstall(self, candidate: Candidate) -> BaseDistribution | None:
         # TODO: Are there more cases this needs to return True? Editable?
         dist = self._installed_dists.get(candidate.project_name)
         if dist is None:  # Not installed, no uninstallation required.
@@ -639,7 +638,7 @@ class Factory:
         return None
 
     def _report_requires_python_error(
-        self, causes: Sequence["ConflictCause"]
+        self, causes: Sequence[ConflictCause]
     ) -> UnsupportedPythonVersion:
         assert causes, "Requires-Python error reported with no cause"
 
@@ -661,7 +660,7 @@ class Factory:
         return UnsupportedPythonVersion(message)
 
     def _report_single_requirement_conflict(
-        self, req: Requirement, parent: Optional[Candidate]
+        self, req: Requirement, parent: Candidate | None
     ) -> DistributionNotFound:
         if parent is None:
             req_disp = str(req)
@@ -714,7 +713,7 @@ class Factory:
 
     def get_installation_error(
         self,
-        e: "ResolutionImpossible[Requirement, Candidate]",
+        e: ResolutionImpossible[Requirement, Candidate],
         constraints: dict[str, Constraint],
     ) -> InstallationError:
         assert e.causes, "Installation error reported with no cause"

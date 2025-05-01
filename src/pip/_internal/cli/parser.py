@@ -1,5 +1,7 @@
 """Base option parser setup"""
 
+from __future__ import annotations
+
 import logging
 import optparse
 import shutil
@@ -7,7 +9,7 @@ import sys
 import textwrap
 from collections.abc import Generator
 from contextlib import suppress
-from typing import Any, NoReturn, Optional
+from typing import Any, NoReturn
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
@@ -68,7 +70,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         msg = "\nUsage: {}\n".format(self.indent_lines(textwrap.dedent(usage), "  "))
         return msg
 
-    def format_description(self, description: Optional[str]) -> str:
+    def format_description(self, description: str | None) -> str:
         # leave full control over description to us
         if description:
             if hasattr(self.parser, "main"):
@@ -86,7 +88,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         else:
             return ""
 
-    def format_epilog(self, epilog: Optional[str]) -> str:
+    def format_epilog(self, epilog: str | None) -> str:
         # leave full control over epilog to us
         if epilog:
             return epilog

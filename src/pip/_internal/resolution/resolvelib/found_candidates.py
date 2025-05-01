@@ -8,6 +8,8 @@ absolutely need, and not "download the world" when we only need one version of
 something.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Iterator, Sequence
 from typing import Any, Callable, Optional
@@ -120,7 +122,7 @@ class FoundCandidates(Sequence[Candidate]):
     def __init__(
         self,
         get_infos: Callable[[], Iterator[IndexCandidateInfo]],
-        installed: Optional[Candidate],
+        installed: Candidate | None,
         prefers_installed: bool,
         incompatible_ids: set[int],
     ):
@@ -128,7 +130,7 @@ class FoundCandidates(Sequence[Candidate]):
         self._installed = installed
         self._prefers_installed = prefers_installed
         self._incompatible_ids = incompatible_ids
-        self._bool: Optional[bool] = None
+        self._bool: bool | None = None
 
     def __getitem__(self, index: Any) -> Any:
         # Implemented to satisfy the ABC check. This is not needed by the

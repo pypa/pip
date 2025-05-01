@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional
 
 import pytest
 
@@ -505,7 +506,7 @@ class TestCandidateEvaluator:
             (64 * "b", 0),
         ],
     )
-    def test_sort_key__hash(self, hex_digest: Optional[str], expected: int) -> None:
+    def test_sort_key__hash(self, hex_digest: str | None, expected: int) -> None:
         """
         Test the effect of the link's hash on _sort_key()'s return value.
         """
@@ -530,7 +531,7 @@ class TestCandidateEvaluator:
         ],
     )
     def test_sort_key__is_yanked(
-        self, yanked_reason: Optional[str], expected: int
+        self, yanked_reason: str | None, expected: int
     ) -> None:
         """
         Test the effect of is_yanked on _sort_key()'s return value.
@@ -899,7 +900,7 @@ def test_find_name_version_sep_failure(fragment: str, canonical_name: str) -> No
     ],
 )
 def test_extract_version_from_fragment(
-    fragment: str, canonical_name: str, expected: Optional[str]
+    fragment: str, canonical_name: str, expected: str | None
 ) -> None:
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected

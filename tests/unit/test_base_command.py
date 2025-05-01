@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import logging
 import os
 import time
 from collections.abc import Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Callable, NoReturn, Optional
+from typing import Callable, NoReturn
 from unittest.mock import Mock, patch
 
 import pytest
@@ -30,7 +32,7 @@ class FakeCommand(Command):
     _name = "fake"
 
     def __init__(
-        self, run_func: Optional[Callable[[], int]] = None, error: bool = False
+        self, run_func: Callable[[], int] | None = None, error: bool = False
     ) -> None:
         if error:
 

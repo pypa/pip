@@ -3,6 +3,8 @@ util tests
 
 """
 
+from __future__ import annotations
+
 import os
 import shutil
 import stat
@@ -11,7 +13,7 @@ import time
 from collections.abc import Iterator
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, NoReturn, Optional
+from typing import Any, Callable, NoReturn
 from unittest.mock import Mock
 
 import pytest
@@ -548,9 +550,7 @@ class TestGetProg:
         (("2001:db6::1", 5000), "[2001:db6::1]:5000"),
     ],
 )
-def test_build_netloc(
-    host_port: tuple[str, Optional[int]], expected_netloc: str
-) -> None:
+def test_build_netloc(host_port: tuple[str, int | None], expected_netloc: str) -> None:
     assert build_netloc(*host_port) == expected_netloc
 
 
@@ -578,7 +578,7 @@ def test_build_netloc(
 def test_build_url_from_netloc_and_parse_netloc(
     netloc: str,
     expected_url: str,
-    expected_host_port: tuple[str, Optional[int]],
+    expected_host_port: tuple[str, int | None],
 ) -> None:
     assert build_url_from_netloc(netloc) == expected_url
     assert parse_netloc(netloc) == expected_host_port
@@ -604,7 +604,7 @@ def test_build_url_from_netloc_and_parse_netloc(
     ],
 )
 def test_split_auth_from_netloc(
-    netloc: str, expected: tuple[str, tuple[Optional[str], Optional[str]]]
+    netloc: str, expected: tuple[str, tuple[str | None, str | None]]
 ) -> None:
     actual = split_auth_from_netloc(netloc)
     assert actual == expected
@@ -651,7 +651,7 @@ def test_split_auth_from_netloc(
     ],
 )
 def test_split_auth_netloc_from_url(
-    url: str, expected: tuple[str, str, tuple[Optional[str], Optional[str]]]
+    url: str, expected: tuple[str, str, tuple[str | None, str | None]]
 ) -> None:
     actual = split_auth_netloc_from_url(url)
     assert actual == expected
@@ -835,10 +835,10 @@ def patch_deprecation_check_version() -> Iterator[None]:
 @pytest.mark.parametrize("issue", [None, 988])
 @pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
 def test_deprecated_message_contains_information(
-    gone_in: Optional[str],
-    replacement: Optional[str],
-    issue: Optional[int],
-    feature_flag: Optional[str],
+    gone_in: str | None,
+    replacement: str | None,
+    issue: int | None,
+    feature_flag: str | None,
 ) -> None:
     with pytest.warns(PipDeprecationWarning) as record:
         deprecated(
@@ -865,7 +865,7 @@ def test_deprecated_message_contains_information(
 @pytest.mark.parametrize("issue", [None, 988])
 @pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
 def test_deprecated_raises_error_if_too_old(
-    replacement: Optional[str], issue: Optional[int], feature_flag: Optional[str]
+    replacement: str | None, issue: int | None, feature_flag: str | None
 ) -> None:
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
@@ -953,7 +953,7 @@ def test_make_setuptools_shim_args() -> None:
 
 @pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])
 def test_make_setuptools_shim_args__global_options(
-    global_options: Optional[list[str]],
+    global_options: list[str] | None,
 ) -> None:
     args = make_setuptools_shim_args(
         "/dir/path/setup.py",

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import sys
-from typing import Optional
 
 from pip._vendor.packaging.tags import Tag
 
@@ -26,10 +27,10 @@ class TargetPython:
 
     def __init__(
         self,
-        platforms: Optional[list[str]] = None,
-        py_version_info: Optional[tuple[int, ...]] = None,
-        abis: Optional[list[str]] = None,
-        implementation: Optional[str] = None,
+        platforms: list[str] | None = None,
+        py_version_info: tuple[int, ...] | None = None,
+        abis: list[str] | None = None,
+        implementation: str | None = None,
     ) -> None:
         """
         :param platforms: A list of strings or None. If None, searches for
@@ -62,8 +63,8 @@ class TargetPython:
         self.py_version_info = py_version_info
 
         # This is used to cache the return value of get_(un)sorted_tags.
-        self._valid_tags: Optional[list[Tag]] = None
-        self._valid_tags_set: Optional[set[Tag]] = None
+        self._valid_tags: list[Tag] | None = None
+        self._valid_tags_set: set[Tag] | None = None
 
     def format_given(self) -> str:
         """

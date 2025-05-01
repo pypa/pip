@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 import os.path
-from typing import Optional
 
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.utils.deprecation import deprecated
@@ -36,7 +37,7 @@ def get_legacy_build_wheel_path(
     name: str,
     command_args: list[str],
     command_output: str,
-) -> Optional[str]:
+) -> str | None:
     """Return the path to the wheel in the temporary build directory."""
     # Sort for determinism.
     names = sorted(names)
@@ -64,7 +65,7 @@ def build_wheel_legacy(
     global_options: list[str],
     build_options: list[str],
     tempd: str,
-) -> Optional[str]:
+) -> str | None:
     """Build one unpacked package using the "legacy" build process.
 
     Returns path to wheel if successfully built. Otherwise, returns None.

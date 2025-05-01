@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import os
 import subprocess
 from optparse import Values
-from typing import Any, Optional
+from typing import Any
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -138,7 +140,7 @@ class ConfigurationCommand(Command):
 
         return SUCCESS
 
-    def _determine_file(self, options: Values, need_value: bool) -> Optional[Kind]:
+    def _determine_file(self, options: Values, need_value: bool) -> Kind | None:
         file_options = [
             key
             for key, value in (

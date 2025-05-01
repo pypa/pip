@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import errno
 import itertools
 import logging
@@ -10,9 +12,7 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Optional,
     TypeVar,
-    Union,
 )
 
 from pip._internal.utils.misc import enum, rmtree
@@ -31,7 +31,7 @@ tempdir_kinds = enum(
 )
 
 
-_tempdir_manager: Optional[ExitStack] = None
+_tempdir_manager: ExitStack | None = None
 
 
 @contextmanager
@@ -64,7 +64,7 @@ class TempDirectoryTypeRegistry:
         return self._should_delete.get(kind, True)
 
 
-_tempdir_registry: Optional[TempDirectoryTypeRegistry] = None
+_tempdir_registry: TempDirectoryTypeRegistry | None = None
 
 
 @contextmanager
@@ -111,8 +111,8 @@ class TempDirectory:
 
     def __init__(
         self,
-        path: Optional[str] = None,
-        delete: Union[bool, None, _Default] = _default,
+        path: str | None = None,
+        delete: bool | None | _Default = _default,
         kind: str = "temp",
         globally_managed: bool = False,
         ignore_cleanup_errors: bool = True,
@@ -243,7 +243,7 @@ class AdjacentTempDirectory(TempDirectory):
     # with leading '-' and invalid metadata
     LEADING_CHARS = "-~.=%0123456789"
 
-    def __init__(self, original: str, delete: Optional[bool] = None) -> None:
+    def __init__(self, original: str, delete: bool | None = None) -> None:
         self.original = original.rstrip("/\\")
         super().__init__(delete=delete)
 

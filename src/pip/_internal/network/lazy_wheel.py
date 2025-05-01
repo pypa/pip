@@ -1,12 +1,14 @@
 """Lazy ZIP over HTTP"""
 
+from __future__ import annotations
+
 __all__ = ["HTTPRangeRequestUnsupported", "dist_from_wheel_url"]
 
 from bisect import bisect_left, bisect_right
 from collections.abc import Generator
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, Optional
+from typing import Any
 from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -118,7 +120,7 @@ class LazyZipOverHTTP:
         """Return the current position."""
         return self._file.tell()
 
-    def truncate(self, size: Optional[int] = None) -> int:
+    def truncate(self, size: int | None = None) -> int:
         """Resize the stream to the given size in bytes.
 
         If size is unspecified resize to the current position.
@@ -132,7 +134,7 @@ class LazyZipOverHTTP:
         """Return False."""
         return False
 
-    def __enter__(self) -> "LazyZipOverHTTP":
+    def __enter__(self) -> LazyZipOverHTTP:
         self._file.__enter__()
         return self
 

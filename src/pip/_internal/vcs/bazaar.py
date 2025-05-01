@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional
 
 from pip._internal.utils.misc import HiddenText, display_path
 from pip._internal.utils.subprocess import make_command
@@ -71,7 +72,7 @@ class Bazaar(VersionControl):
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url: str) -> tuple[str, Optional[str], AuthInfo]:
+    def get_url_rev_and_auth(cls, url: str) -> tuple[str, str | None, AuthInfo]:
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// re-add it
         url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith("ssh://"):
@@ -104,7 +105,7 @@ class Bazaar(VersionControl):
         return revision.splitlines()[-1]
 
     @classmethod
-    def is_commit_id_equal(cls, dest: str, name: Optional[str]) -> bool:
+    def is_commit_id_equal(cls, dest: str, name: str | None) -> bool:
         """Always assume the versions don't match"""
         return False
 

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import string
 from collections.abc import Generator, Iterable, Iterator
 from optparse import Values
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.utils import canonicalize_name
@@ -63,7 +65,7 @@ class _PackageInfo(NamedTuple):
     name: str
     version: str
     location: str
-    editable_project_location: Optional[str]
+    editable_project_location: str | None
     requires: list[str]
     required_by: list[str]
     installer: str
@@ -77,7 +79,7 @@ class _PackageInfo(NamedTuple):
     license: str
     license_expression: str
     entry_points: list[str]
-    files: Optional[list[str]]
+    files: list[str] | None
 
 
 def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None]:
@@ -133,7 +135,7 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
 
         files_iter = dist.iter_declared_entries()
         if files_iter is None:
-            files: Optional[list[str]] = None
+            files: list[str] | None = None
         else:
             files = sorted(files_iter)
 

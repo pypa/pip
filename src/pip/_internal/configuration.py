@@ -11,12 +11,14 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+from __future__ import annotations
+
 import configparser
 import locale
 import os
 import sys
 from collections.abc import Iterable
-from typing import Any, NewType, Optional
+from typing import Any, NewType
 
 from pip._internal.exceptions import (
     ConfigurationError,
@@ -99,7 +101,7 @@ class Configuration:
     and the data stored is also nice.
     """
 
-    def __init__(self, isolated: bool, load_only: Optional[Kind] = None) -> None:
+    def __init__(self, isolated: bool, load_only: Kind | None = None) -> None:
         super().__init__()
 
         if load_only is not None and load_only not in VALID_LOAD_ONLY:
@@ -126,7 +128,7 @@ class Configuration:
         if not self.isolated:
             self._load_environment_vars()
 
-    def get_file_to_edit(self) -> Optional[str]:
+    def get_file_to_edit(self) -> str | None:
         """Returns the file with highest priority in configuration"""
         assert self.load_only is not None, "Need to be specified a file to be editing"
 

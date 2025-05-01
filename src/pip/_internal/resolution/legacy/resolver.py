@@ -10,6 +10,8 @@ for sub-dependencies
     a. "first found, wins" (where the order is breadth first)
 """
 
+from __future__ import annotations
+
 import logging
 import sys
 from collections import defaultdict
@@ -118,7 +120,7 @@ class Resolver(BaseResolver):
         self,
         preparer: RequirementPreparer,
         finder: PackageFinder,
-        wheel_cache: Optional[WheelCache],
+        wheel_cache: WheelCache | None,
         make_install_req: InstallRequirementProvider,
         use_user_site: bool,
         ignore_dependencies: bool,
@@ -126,7 +128,7 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
-        py_version_info: Optional[tuple[int, ...]] = None,
+        py_version_info: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
@@ -193,9 +195,9 @@ class Resolver(BaseResolver):
         self,
         requirement_set: RequirementSet,
         install_req: InstallRequirement,
-        parent_req_name: Optional[str] = None,
-        extras_requested: Optional[Iterable[str]] = None,
-    ) -> tuple[list[InstallRequirement], Optional[InstallRequirement]]:
+        parent_req_name: str | None = None,
+        extras_requested: Iterable[str] | None = None,
+    ) -> tuple[list[InstallRequirement], InstallRequirement | None]:
         """Add install_req as a requirement to install.
 
         :param parent_req_name: The name of the requirement that needed this
@@ -243,8 +245,8 @@ class Resolver(BaseResolver):
             return [install_req], None
 
         try:
-            existing_req: Optional[InstallRequirement] = (
-                requirement_set.get_requirement(install_req.name)
+            existing_req: InstallRequirement | None = requirement_set.get_requirement(
+                install_req.name
             )
         except KeyError:
             existing_req = None
@@ -324,9 +326,7 @@ class Resolver(BaseResolver):
             req.should_reinstall = True
         req.satisfied_by = None
 
-    def _check_skip_installed(
-        self, req_to_install: InstallRequirement
-    ) -> Optional[str]:
+    def _check_skip_installed(self, req_to_install: InstallRequirement) -> str | None:
         """Check if req_to_install should be skipped.
 
         This will check if the req is installed, and whether we should upgrade
@@ -378,7 +378,7 @@ class Resolver(BaseResolver):
         self._set_req_to_reinstall(req_to_install)
         return None
 
-    def _find_requirement_link(self, req: InstallRequirement) -> Optional[Link]:
+    def _find_requirement_link(self, req: InstallRequirement) -> Link | None:
         upgrade = self._is_upgrade_allowed(req)
         best_candidate = self.finder.find_requirement(req, upgrade)
         if not best_candidate:

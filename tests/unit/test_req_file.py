@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import codecs
 import collections
 import logging
@@ -7,7 +9,7 @@ import textwrap
 from collections.abc import Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Any, Optional, Protocol, Union
+from typing import Any, Protocol
 from unittest import mock
 
 import pytest
@@ -55,10 +57,10 @@ def options(session: PipSession) -> mock.Mock:
 
 
 def parse_reqfile(
-    filename: Union[Path, str],
+    filename: Path | str,
     session: PipSession,
-    finder: Optional[PackageFinder] = None,
-    options: Optional[Values] = None,
+    finder: PackageFinder | None = None,
+    options: Values | None = None,
     constraint: bool = False,
     isolated: bool = False,
 ) -> Iterator[InstallRequirement]:
@@ -198,9 +200,9 @@ class LineProcessor(Protocol):
         line: str,
         filename: str,
         line_number: int,
-        finder: Optional[PackageFinder] = None,
-        options: Optional[Values] = None,
-        session: Optional[PipSession] = None,
+        finder: PackageFinder | None = None,
+        options: Values | None = None,
+        session: PipSession | None = None,
         constraint: bool = False,
     ) -> list[InstallRequirement]: ...
 
@@ -211,9 +213,9 @@ def line_processor(monkeypatch: pytest.MonkeyPatch, tmpdir: Path) -> LineProcess
         line: str,
         filename: str,
         line_number: int,
-        finder: Optional[PackageFinder] = None,
-        options: Optional[Values] = None,
-        session: Optional[PipSession] = None,
+        finder: PackageFinder | None = None,
+        options: Values | None = None,
+        session: PipSession | None = None,
         constraint: bool = False,
     ) -> list[InstallRequirement]:
         if session is None:

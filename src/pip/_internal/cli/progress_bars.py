@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import functools
 import sys
 from collections.abc import Generator, Iterable, Iterator
-from typing import Callable, Optional, TypeVar
+from typing import Callable, TypeVar
 
 from pip._vendor.rich.progress import (
     BarColumn,
@@ -29,8 +31,8 @@ def _rich_download_progress_bar(
     iterable: Iterable[bytes],
     *,
     bar_type: str,
-    size: Optional[int],
-    initial_progress: Optional[int] = None,
+    size: int | None,
+    initial_progress: int | None = None,
 ) -> Generator[bytes, None, None]:
     assert bar_type == "on", "This should only be used in the default mode."
 
@@ -89,8 +91,8 @@ def _rich_install_progress_bar(
 def _raw_progress_bar(
     iterable: Iterable[bytes],
     *,
-    size: Optional[int],
-    initial_progress: Optional[int] = None,
+    size: int | None,
+    initial_progress: int | None = None,
 ) -> Generator[bytes, None, None]:
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write(f"Progress {current} of {total}\n")
@@ -110,7 +112,7 @@ def _raw_progress_bar(
 
 
 def get_download_progress_renderer(
-    *, bar_type: str, size: Optional[int] = None, initial_progress: Optional[int] = None
+    *, bar_type: str, size: int | None = None, initial_progress: int | None = None
 ) -> ProgressRenderer[bytes]:
     """Get an object that can be used to render the download progress.
 

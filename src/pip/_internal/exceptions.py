@@ -5,6 +5,8 @@ operate. This is expected to be importable from any/all files within the
 subpackage and, thus, should not depend on them.
 """
 
+from __future__ import annotations
+
 import configparser
 import contextlib
 import locale
@@ -14,7 +16,7 @@ import re
 import sys
 from collections.abc import Iterator
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.version import InvalidVersion
@@ -42,7 +44,7 @@ def _is_kebab_case(s: str) -> bool:
 
 
 def _prefix_with_indent(
-    s: Union[Text, str],
+    s: Text | str,
     console: Console,
     *,
     prefix: str,
@@ -78,13 +80,13 @@ class DiagnosticPipError(PipError):
     def __init__(
         self,
         *,
-        kind: 'Literal["error", "warning"]' = "error",
-        reference: Optional[str] = None,
-        message: Union[str, Text],
-        context: Optional[Union[str, Text]],
-        hint_stmt: Optional[Union[str, Text]],
-        note_stmt: Optional[Union[str, Text]] = None,
-        link: Optional[str] = None,
+        kind: Literal["error", "warning"] = "error",
+        reference: str | None = None,
+        message: str | Text,
+        context: str | Text | None,
+        hint_stmt: str | Text | None,
+        note_stmt: str | Text | None = None,
+        link: str | None = None,
     ) -> None:
         # Ensure a proper reference is provided.
         if reference is None:
@@ -233,7 +235,7 @@ class NoneMetadataError(PipError):
 
     def __init__(
         self,
-        dist: "BaseDistribution",
+        dist: BaseDistribution,
         metadata_name: str,
     ) -> None:
         """
@@ -294,8 +296,8 @@ class NetworkConnectionError(PipError):
     def __init__(
         self,
         error_msg: str,
-        response: Optional["Response"] = None,
-        request: Optional["Request"] = None,
+        response: Response | None = None,
+        request: Request | None = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
@@ -344,7 +346,7 @@ class MetadataInconsistent(InstallationError):
     """
 
     def __init__(
-        self, ireq: "InstallRequirement", field: str, f_val: str, m_val: str
+        self, ireq: InstallRequirement, field: str, f_val: str, m_val: str
     ) -> None:
         self.ireq = ireq
         self.field = field
@@ -361,7 +363,7 @@ class MetadataInconsistent(InstallationError):
 class MetadataInvalid(InstallationError):
     """Metadata is invalid."""
 
-    def __init__(self, ireq: "InstallRequirement", error: str) -> None:
+    def __init__(self, ireq: InstallRequirement, error: str) -> None:
         self.ireq = ireq
         self.error = error
 
@@ -379,7 +381,7 @@ class InstallationSubprocessError(DiagnosticPipError, InstallationError):
         *,
         command_description: str,
         exit_code: int,
-        output_lines: Optional[list[str]],
+        output_lines: list[str] | None,
     ) -> None:
         if output_lines is None:
             output_prompt = Text("See above for output.")
@@ -435,7 +437,7 @@ class HashErrors(InstallationError):
     def __init__(self) -> None:
         self.errors: list[HashError] = []
 
-    def append(self, error: "HashError") -> None:
+    def append(self, error: HashError) -> None:
         self.errors.append(error)
 
     def __str__(self) -> str:
@@ -469,7 +471,7 @@ class HashError(InstallationError):
 
     """
 
-    req: Optional["InstallRequirement"] = None
+    req: InstallRequirement | None = None
     head = ""
     order: int = -1
 
@@ -591,7 +593,7 @@ class HashMismatch(HashError):
         "someone may have tampered with them."
     )
 
-    def __init__(self, allowed: dict[str, list[str]], gots: dict[str, "_Hash"]) -> None:
+    def __init__(self, allowed: dict[str, list[str]], gots: dict[str, _Hash]) -> None:
         """
         :param allowed: A dict of algorithm names pointing to lists of allowed
             hex digests
@@ -616,7 +618,7 @@ class HashMismatch(HashError):
 
         """
 
-        def hash_then_or(hash_name: str) -> "chain[str]":
+        def hash_then_or(hash_name: str) -> chain[str]:
             # For now, all the decent hashes have 6-char names, so we can get
             # away with hard-coding space literals.
             return chain([hash_name], repeat("    or"))
@@ -642,8 +644,8 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
     def __init__(
         self,
         reason: str = "could not be loaded",
-        fname: Optional[str] = None,
-        error: Optional[configparser.Error] = None,
+        fname: str | None = None,
+        error: configparser.Error | None = None,
     ) -> None:
         super().__init__(error)
         self.reason = reason
@@ -678,7 +680,7 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
 
     reference = "externally-managed-environment"
 
-    def __init__(self, error: Optional[str]) -> None:
+    def __init__(self, error: str | None) -> None:
         if error is None:
             context = Text(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
         else:
@@ -705,7 +707,7 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
         try:
             category = locale.LC_MESSAGES
         except AttributeError:
-            lang: Optional[str] = None
+            lang: str | None = None
         else:
             lang, _ = locale.getlocale(category)
         if lang is not None:
@@ -720,8 +722,8 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
     @classmethod
     def from_config(
         cls,
-        config: Union[pathlib.Path, str],
-    ) -> "ExternallyManagedEnvironment":
+        config: pathlib.Path | str,
+    ) -> ExternallyManagedEnvironment:
         parser = configparser.ConfigParser(interpolation=None)
         try:
             parser.read(config, encoding="utf-8")
@@ -742,7 +744,7 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
 class UninstallMissingRecord(DiagnosticPipError):
     reference = "uninstall-no-record-file"
 
-    def __init__(self, *, distribution: "BaseDistribution") -> None:
+    def __init__(self, *, distribution: BaseDistribution) -> None:
         installer = distribution.installer
         if not installer or installer == "pip":
             dep = f"{distribution.raw_name}=={distribution.version}"
@@ -769,7 +771,7 @@ class UninstallMissingRecord(DiagnosticPipError):
 class LegacyDistutilsInstall(DiagnosticPipError):
     reference = "uninstall-distutils-installed-package"
 
-    def __init__(self, *, distribution: "BaseDistribution") -> None:
+    def __init__(self, *, distribution: BaseDistribution) -> None:
         super().__init__(
             message=Text(f"Cannot uninstall {distribution}"),
             context=(
@@ -787,8 +789,8 @@ class InvalidInstalledPackage(DiagnosticPipError):
     def __init__(
         self,
         *,
-        dist: "BaseDistribution",
-        invalid_exc: Union[InvalidRequirement, InvalidVersion],
+        dist: BaseDistribution,
+        invalid_exc: InvalidRequirement | InvalidVersion,
     ) -> None:
         installed_location = dist.installed_location
 
@@ -818,7 +820,7 @@ class IncompleteDownloadError(DiagnosticPipError):
     reference = "incomplete-download"
 
     def __init__(
-        self, link: "Link", received: int, expected: int, *, retries: int
+        self, link: Link, received: int, expected: int, *, retries: int
     ) -> None:
         # Dodge circular import.
         from pip._internal.utils.misc import format_size

@@ -1,5 +1,7 @@
 """Support for installing and building the "wheel" binary package format."""
 
+from __future__ import annotations
+
 import collections
 import compileall
 import contextlib
@@ -21,7 +23,6 @@ from typing import (
     BinaryIO,
     Callable,
     NewType,
-    Optional,
     Protocol,
     Union,
     cast,
@@ -53,7 +54,7 @@ from pip._internal.utils.wheel import parse_wheel
 
 
 class File(Protocol):
-    src_record_path: "RecordPath"
+    src_record_path: RecordPath
     dest_path: str
     changed: bool
 
@@ -116,7 +117,7 @@ def get_entrypoints(dist: BaseDistribution) -> tuple[dict[str, str], dict[str, s
     return console_scripts, gui_scripts
 
 
-def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
+def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> str | None:
     """Determine if any scripts are not on PATH and format a warning.
     Returns a warning message if one or more scripts are not on PATH,
     otherwise None.
@@ -374,7 +375,7 @@ class ZipBackedFile:
 
 
 class ScriptFile:
-    def __init__(self, file: "File") -> None:
+    def __init__(self, file: File) -> None:
         self._file = file
         self.src_record_path = self._file.src_record_path
         self.dest_path = self._file.dest_path
@@ -403,7 +404,7 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 
 class PipScriptMaker(ScriptMaker):
     def make(
-        self, specification: str, options: Optional[dict[str, Any]] = None
+        self, specification: str, options: dict[str, Any] | None = None
     ) -> list[str]:
         _raise_for_invalid_entrypoint(specification)
         return super().make(specification, options)
@@ -416,7 +417,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     scheme: Scheme,
     pycompile: bool = True,
     warn_script_location: bool = True,
-    direct_url: Optional[DirectUrl] = None,
+    direct_url: DirectUrl | None = None,
     requested: bool = False,
 ) -> None:
     """Install a wheel.
@@ -473,8 +474,8 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
     def root_scheme_file_maker(
         zip_file: ZipFile, dest: str
-    ) -> Callable[[RecordPath], "File"]:
-        def make_root_scheme_file(record_path: RecordPath) -> "File":
+    ) -> Callable[[RecordPath], File]:
+        def make_root_scheme_file(record_path: RecordPath) -> File:
             normed_path = os.path.normpath(record_path)
             dest_path = os.path.join(dest, normed_path)
             assert_no_path_traversal(dest, dest_path)
@@ -484,10 +485,10 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
     def data_scheme_file_maker(
         zip_file: ZipFile, scheme: Scheme
-    ) -> Callable[[RecordPath], "File"]:
+    ) -> Callable[[RecordPath], File]:
         scheme_paths = {key: getattr(scheme, key) for key in SCHEME_KEYS}
 
-        def make_data_scheme_file(record_path: RecordPath) -> "File":
+        def make_data_scheme_file(record_path: RecordPath) -> File:
             normed_path = os.path.normpath(record_path)
             try:
                 _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
@@ -545,7 +546,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     )
     console, gui = get_entrypoints(distribution)
 
-    def is_entrypoint_wrapper(file: "File") -> bool:
+    def is_entrypoint_wrapper(file: File) -> bool:
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
         path = file.dest_path
@@ -714,7 +715,7 @@ def install_wheel(
     req_description: str,
     pycompile: bool = True,
     warn_script_location: bool = True,
-    direct_url: Optional[DirectUrl] = None,
+    direct_url: DirectUrl | None = None,
     requested: bool = False,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:

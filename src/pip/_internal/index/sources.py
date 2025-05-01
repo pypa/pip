@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import logging
 import mimetypes
 import os
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Callable, Optional
+from typing import Callable
 
 from pip._vendor.packaging.utils import (
     InvalidSdistFilename,
@@ -28,7 +30,7 @@ PageValidator = Callable[[Link], bool]
 
 class LinkSource:
     @property
-    def link(self) -> Optional[Link]:
+    def link(self) -> Link | None:
         """Returns the underlying link, if there's one."""
         raise NotImplementedError()
 
@@ -120,7 +122,7 @@ class _FlatDirectorySource(LinkSource):
             self._paths_to_urls[path] = self._path_to_urls
 
     @property
-    def link(self) -> Optional[Link]:
+    def link(self) -> Link | None:
         return None
 
     def page_candidates(self) -> FoundCandidates:
@@ -151,7 +153,7 @@ class _LocalFileSource(LinkSource):
         self._link = link
 
     @property
-    def link(self) -> Optional[Link]:
+    def link(self) -> Link | None:
         return self._link
 
     def page_candidates(self) -> FoundCandidates:
@@ -185,7 +187,7 @@ class _RemoteFileSource(LinkSource):
         self._link = link
 
     @property
-    def link(self) -> Optional[Link]:
+    def link(self) -> Link | None:
         return self._link
 
     def page_candidates(self) -> FoundCandidates:
@@ -213,7 +215,7 @@ class _IndexDirectorySource(LinkSource):
         self._link = link
 
     @property
-    def link(self) -> Optional[Link]:
+    def link(self) -> Link | None:
         return self._link
 
     def page_candidates(self) -> FoundCandidates:
@@ -231,9 +233,9 @@ def build_source(
     expand_dir: bool,
     cache_link_parsing: bool,
     project_name: str,
-) -> tuple[Optional[str], Optional[LinkSource]]:
-    path: Optional[str] = None
-    url: Optional[str] = None
+) -> tuple[str | None, LinkSource | None]:
+    path: str | None = None
+    url: str | None = None
     if os.path.exists(location):  # Is a local path.
         url = path_to_url(location)
         path = location

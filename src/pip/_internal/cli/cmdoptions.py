@@ -9,6 +9,7 @@ pass on state. To be consistent, all options will follow this design.
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+from __future__ import annotations
 
 import importlib.util
 import logging
@@ -18,7 +19,7 @@ import textwrap
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -555,7 +556,7 @@ platforms: Callable[..., Option] = partial(
 
 
 # This was made a separate function for unit-testing purposes.
-def _convert_python_version(value: str) -> tuple[tuple[int, ...], Optional[str]]:
+def _convert_python_version(value: str) -> tuple[tuple[int, ...], str | None]:
     """
     Convert a version string like "3", "37", or "3.7.3" into a tuple of ints.
 

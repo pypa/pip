@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import functools
 import os
 import sys
 import sysconfig
 from collections.abc import Generator, Iterable
 from importlib.util import cache_from_source
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
 from pip._internal.locations import get_bin_prefix, get_bin_user
@@ -422,7 +424,7 @@ class UninstallPathSet:
         self._moved_paths.commit()
 
     @classmethod
-    def from_dist(cls, dist: BaseDistribution) -> "UninstallPathSet":
+    def from_dist(cls, dist: BaseDistribution) -> UninstallPathSet:
         dist_location = dist.location
         info_location = dist.info_location
         if dist_location is None:
@@ -583,7 +585,7 @@ class UninstallPthEntries:
     def __init__(self, pth_file: str) -> None:
         self.file = pth_file
         self.entries: set[str] = set()
-        self._saved_lines: Optional[list[bytes]] = None
+        self._saved_lines: list[bytes] | None = None
 
     def add(self, entry: str) -> None:
         entry = os.path.normcase(entry)

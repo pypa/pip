@@ -1,12 +1,13 @@
 """Helpers for filesystem-dependent tests."""
 
+from __future__ import annotations
+
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Union
 
 
 def get_filelist(base: str) -> set[str]:
@@ -22,7 +23,7 @@ def get_filelist(base: str) -> set[str]:
 
 
 @contextmanager
-def chmod(path: Union[str, Path], mode: int) -> Iterator[None]:
+def chmod(path: str | Path, mode: int) -> Iterator[None]:
     """Contextmanager to temporarily update a path's mode."""
     old_mode = os.stat(path).st_mode
     try:

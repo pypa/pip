@@ -1,12 +1,13 @@
 """pip sphinx extensions"""
 
+from __future__ import annotations
+
 import optparse
 import pathlib
 import re
 import sys
 from collections.abc import Iterable, Iterator
 from textwrap import dedent
-from typing import Optional, Union
 
 from docutils import nodes, statemachine
 from docutils.parsers import rst
@@ -34,9 +35,7 @@ def convert_cli_opt_names_to_envvars(original_cli_opt_names: list[str]) -> list[
 class PipNewsInclude(rst.Directive):
     required_arguments = 1
 
-    def _is_version_section_title_underline(
-        self, prev: Optional[str], curr: str
-    ) -> bool:
+    def _is_version_section_title_underline(self, prev: str | None, curr: str) -> bool:
         """Find a ==== line that marks the version section title."""
         if prev is None:
             return False
@@ -121,7 +120,7 @@ class PipCommandDescription(rst.Directive):
 
 class PipOptions(rst.Directive):
     def _format_option(
-        self, option: optparse.Option, cmd_name: Optional[str] = None
+        self, option: optparse.Option, cmd_name: str | None = None
     ) -> list[str]:
         bookmark_line = (
             f".. _`{cmd_name}_{option._long_opts[0]}`:"
@@ -158,7 +157,7 @@ class PipOptions(rst.Directive):
         ]
 
     def _format_options(
-        self, options: Iterable[optparse.Option], cmd_name: Optional[str] = None
+        self, options: Iterable[optparse.Option], cmd_name: str | None = None
     ) -> None:
         for option in options:
             if option.help == optparse.SUPPRESS_HELP:
@@ -311,7 +310,7 @@ class PipCLIDirective(rst.Directive):
         return [node]
 
 
-def setup(app: Sphinx) -> dict[str, Union[bool, str]]:
+def setup(app: Sphinx) -> dict[str, bool | str]:
     app.add_directive("pip-command-usage", PipCommandUsage)
     app.add_directive("pip-command-description", PipCommandDescription)
     app.add_directive("pip-command-options", PipCommandOptions)

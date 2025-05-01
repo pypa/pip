@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import functools
 import logging
 import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any, Optional
+from typing import Any
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -196,9 +198,9 @@ def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool
 def _log_context(
     *,
     user: bool = False,
-    home: Optional[str] = None,
-    root: Optional[str] = None,
-    prefix: Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
+    prefix: str | None = None,
 ) -> None:
     parts = [
         "Additional context:",
@@ -214,10 +216,10 @@ def _log_context(
 def get_scheme(
     dist_name: str,
     user: bool = False,
-    home: Optional[str] = None,
-    root: Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
 ) -> Scheme:
     new = _sysconfig.get_scheme(
         dist_name,

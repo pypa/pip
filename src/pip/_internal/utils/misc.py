@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import errno
 import getpass
 import hashlib
@@ -23,7 +25,6 @@ from typing import (
     Optional,
     TextIO,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -116,9 +117,7 @@ def get_prog() -> str:
 
 # Retry every half second for up to 3 seconds
 @retry(stop_after_delay=3, wait=0.5)
-def rmtree(
-    dir: str, ignore_errors: bool = False, onexc: Optional[OnExc] = None
-) -> None:
+def rmtree(dir: str, ignore_errors: bool = False, onexc: OnExc | None = None) -> None:
     if ignore_errors:
         onexc = _onerror_ignore
     if onexc is None:
@@ -142,7 +141,7 @@ def _onerror_reraise(*_args: Any) -> None:
 def rmtree_errorhandler(
     func: FunctionType,
     path: Path,
-    exc_info: Union[ExcInfo, BaseException],
+    exc_info: ExcInfo | BaseException,
     *,
     onexc: OnExc = _onerror_reraise,
 ) -> None:
@@ -372,7 +371,7 @@ class StreamWrapper(StringIO):
     orig_stream: TextIO
 
     @classmethod
-    def from_stream(cls, orig_stream: TextIO) -> "StreamWrapper":
+    def from_stream(cls, orig_stream: TextIO) -> StreamWrapper:
         ret = cls()
         ret.orig_stream = orig_stream
         return ret
@@ -392,7 +391,7 @@ def enum(*sequential: Any, **named: Any) -> type[Any]:
     return type("Enum", (), enums)
 
 
-def build_netloc(host: str, port: Optional[int]) -> str:
+def build_netloc(host: str, port: int | None) -> str:
     """
     Build a netloc from a host-port pair
     """
@@ -414,7 +413,7 @@ def build_url_from_netloc(netloc: str, scheme: str = "https") -> str:
     return f"{scheme}://{netloc}"
 
 
-def parse_netloc(netloc: str) -> tuple[Optional[str], Optional[int]]:
+def parse_netloc(netloc: str) -> tuple[str | None, int | None]:
     """
     Return the host-port pair from a netloc.
     """
@@ -436,7 +435,7 @@ def split_auth_from_netloc(netloc: str) -> NetlocTuple:
     # behaves if more than one @ is present (which can be checked using
     # the password attribute of urlsplit()'s return value).
     auth, netloc = netloc.rsplit("@", 1)
-    pw: Optional[str] = None
+    pw: str | None = None
     if ":" in auth:
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
@@ -502,7 +501,7 @@ def _redact_netloc(netloc: str) -> tuple[str]:
 
 def split_auth_netloc_from_url(
     url: str,
-) -> tuple[str, str, tuple[Optional[str], Optional[str]]]:
+) -> tuple[str, str, tuple[str | None, str | None]]:
     """
     Parse a url into separate netloc, auth, and url with no auth.
 
@@ -649,9 +648,9 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         config_holder: Any,
         source_dir: str,
         build_backend: str,
-        backend_path: Optional[str] = None,
-        runner: Optional[Callable[..., None]] = None,
-        python_executable: Optional[str] = None,
+        backend_path: str | None = None,
+        runner: Callable[..., None] | None = None,
+        python_executable: str | None = None,
     ):
         super().__init__(
             source_dir, build_backend, backend_path, runner, python_executable
@@ -661,8 +660,8 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def build_wheel(
         self,
         wheel_directory: str,
-        config_settings: Optional[Mapping[str, Any]] = None,
-        metadata_directory: Optional[str] = None,
+        config_settings: Mapping[str, Any] | None = None,
+        metadata_directory: str | None = None,
     ) -> str:
         cs = self.config_holder.config_settings
         return super().build_wheel(
@@ -672,7 +671,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def build_sdist(
         self,
         sdist_directory: str,
-        config_settings: Optional[Mapping[str, Any]] = None,
+        config_settings: Mapping[str, Any] | None = None,
     ) -> str:
         cs = self.config_holder.config_settings
         return super().build_sdist(sdist_directory, config_settings=cs)
@@ -680,8 +679,8 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def build_editable(
         self,
         wheel_directory: str,
-        config_settings: Optional[Mapping[str, Any]] = None,
-        metadata_directory: Optional[str] = None,
+        config_settings: Mapping[str, Any] | None = None,
+        metadata_directory: str | None = None,
     ) -> str:
         cs = self.config_holder.config_settings
         return super().build_editable(
@@ -689,19 +688,19 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         )
 
     def get_requires_for_build_wheel(
-        self, config_settings: Optional[Mapping[str, Any]] = None
+        self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_wheel(config_settings=cs)
 
     def get_requires_for_build_sdist(
-        self, config_settings: Optional[Mapping[str, Any]] = None
+        self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_sdist(config_settings=cs)
 
     def get_requires_for_build_editable(
-        self, config_settings: Optional[Mapping[str, Any]] = None
+        self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_editable(config_settings=cs)
@@ -709,7 +708,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def prepare_metadata_for_build_wheel(
         self,
         metadata_directory: str,
-        config_settings: Optional[Mapping[str, Any]] = None,
+        config_settings: Mapping[str, Any] | None = None,
         _allow_fallback: bool = True,
     ) -> str:
         cs = self.config_holder.config_settings
@@ -722,9 +721,9 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def prepare_metadata_for_build_editable(
         self,
         metadata_directory: str,
-        config_settings: Optional[Mapping[str, Any]] = None,
+        config_settings: Mapping[str, Any] | None = None,
         _allow_fallback: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         cs = self.config_holder.config_settings
         return super().prepare_metadata_for_build_editable(
             metadata_directory=metadata_directory,

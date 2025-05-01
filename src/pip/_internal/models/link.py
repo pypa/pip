@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import logging
@@ -11,8 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     NamedTuple,
-    Optional,
-    Union,
 )
 
 from pip._internal.utils.deprecation import deprecated
@@ -67,7 +67,7 @@ class LinkHash:
 
     @classmethod
     @functools.cache
-    def find_hash_url_fragment(cls, url: str) -> Optional["LinkHash"]:
+    def find_hash_url_fragment(cls, url: str) -> LinkHash | None:
         """Search a string for a checksum algorithm name and encoded output value."""
         match = cls._hash_url_fragment_re.search(url)
         if match is None:
@@ -82,7 +82,7 @@ class LinkHash:
         """Return a Hashes instance which checks only for the current hash."""
         return Hashes({self.name: [self.value]})
 
-    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
+    def is_hash_allowed(self, hashes: Hashes | None) -> bool:
         """
         Return True if the current hash is allowed by `hashes`.
         """
@@ -95,14 +95,14 @@ class LinkHash:
 class MetadataFile:
     """Information about a core metadata file associated with a distribution."""
 
-    hashes: Optional[dict[str, str]]
+    hashes: dict[str, str] | None
 
     def __post_init__(self) -> None:
         if self.hashes is not None:
             assert all(name in _SUPPORTED_HASHES for name in self.hashes)
 
 
-def supported_hashes(hashes: Optional[dict[str, str]]) -> Optional[dict[str, str]]:
+def supported_hashes(hashes: dict[str, str] | None) -> dict[str, str] | None:
     # Remove any unsupported hash types from the mapping. If this leaves no
     # supported hashes, return None
     if hashes is None:
@@ -206,12 +206,12 @@ class Link:
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[str, "IndexContent"]] = None,
-        requires_python: Optional[str] = None,
-        yanked_reason: Optional[str] = None,
-        metadata_file_data: Optional[MetadataFile] = None,
+        comes_from: str | IndexContent | None = None,
+        requires_python: str | None = None,
+        yanked_reason: str | None = None,
+        metadata_file_data: MetadataFile | None = None,
         cache_link_parsing: bool = True,
-        hashes: Optional[Mapping[str, str]] = None,
+        hashes: Mapping[str, str] | None = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
@@ -273,7 +273,7 @@ class Link:
         cls,
         file_data: dict[str, Any],
         page_url: str,
-    ) -> Optional["Link"]:
+    ) -> Link | None:
         """
         Convert an pypi json document from a simple repository page into a Link.
         """
@@ -322,10 +322,10 @@ class Link:
     @classmethod
     def from_element(
         cls,
-        anchor_attribs: dict[str, Optional[str]],
+        anchor_attribs: dict[str, str | None],
         page_url: str,
         base_url: str,
-    ) -> Optional["Link"]:
+    ) -> Link | None:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
         """
@@ -457,7 +457,7 @@ class Link:
         r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", re.IGNORECASE
     )
 
-    def _egg_fragment(self) -> Optional[str]:
+    def _egg_fragment(self) -> str | None:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
@@ -478,13 +478,13 @@ class Link:
     _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
     @property
-    def subdirectory_fragment(self) -> Optional[str]:
+    def subdirectory_fragment(self) -> str | None:
         match = self._subdirectory_fragment_re.search(self._url)
         if not match:
             return None
         return match.group(1)
 
-    def metadata_link(self) -> Optional["Link"]:
+    def metadata_link(self) -> Link | None:
         """Return a link to the associated core metadata file (if any)."""
         if self.metadata_file_data is None:
             return None
@@ -497,11 +497,11 @@ class Link:
         return Hashes({k: [v] for k, v in self._hashes.items()})
 
     @property
-    def hash(self) -> Optional[str]:
+    def hash(self) -> str | None:
         return next(iter(self._hashes.values()), None)
 
     @property
-    def hash_name(self) -> Optional[str]:
+    def hash_name(self) -> str | None:
         return next(iter(self._hashes), None)
 
     @property
@@ -533,7 +533,7 @@ class Link:
     def has_hash(self) -> bool:
         return bool(self._hashes)
 
-    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
+    def is_hash_allowed(self, hashes: Hashes | None) -> bool:
         """
         Return True if the link has a hash and it is allowed by `hashes`.
         """

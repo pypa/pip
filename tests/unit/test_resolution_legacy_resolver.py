@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import email.message
 import logging
 import os
-from typing import Optional, TypeVar, cast
+from typing import TypeVar, cast
 from unittest import mock
 
 import pytest
@@ -47,7 +49,7 @@ class FakeDist(BaseDistribution):
 
 
 def make_fake_dist(
-    *, klass: type[BaseDistribution] = FakeDist, requires_python: Optional[str] = None
+    *, klass: type[BaseDistribution] = FakeDist, requires_python: str | None = None
 ) -> BaseDistribution:
     metadata = email.message.Message()
     metadata["Name"] = "my-project"

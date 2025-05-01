@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
-from typing import Optional
 
 import pytest
 
@@ -79,7 +80,7 @@ def test_call_subprocess_stdout_only(
 class FakeSpinner(SpinnerInterface):
     def __init__(self) -> None:
         self.spin_count = 0
-        self.final_status: Optional[str] = None
+        self.final_status: str | None = None
 
     def spin(self) -> None:
         self.spin_count += 1
@@ -99,9 +100,9 @@ class TestCallSubprocess:
         caplog: pytest.LogCaptureFixture,
         log_level: int,
         spinner: FakeSpinner,
-        result: Optional[str],
-        expected: tuple[Optional[list[str]], list[tuple[str, int, str]]],
-        expected_spinner: tuple[int, Optional[str]],
+        result: str | None,
+        expected: tuple[list[str] | None, list[tuple[str, int, str]]],
+        expected_spinner: tuple[int, str | None],
     ) -> None:
         """
         Check the result of calling call_subprocess().
@@ -152,7 +153,7 @@ class TestCallSubprocess:
         self,
         caplog: pytest.LogCaptureFixture,
         log_level: int,
-        command: Optional[str] = None,
+        command: str | None = None,
     ) -> tuple[list[str], FakeSpinner]:
         if command is None:
             command = 'print("Hello"); print("world")'
@@ -337,10 +338,10 @@ class TestCallSubprocess:
         self,
         exit_status: int,
         show_stdout: bool,
-        extra_ok_returncodes: Optional[tuple[int, ...]],
+        extra_ok_returncodes: tuple[int, ...] | None,
         log_level: int,
         caplog: pytest.LogCaptureFixture,
-        expected: tuple[Optional[type[Exception]], Optional[str], int],
+        expected: tuple[type[Exception] | None, str | None, int],
     ) -> None:
         """
         Test that the spinner finishes correctly.
@@ -351,7 +352,7 @@ class TestCallSubprocess:
 
         command = f'print("Hello"); print("world"); exit({exit_status})'
         args, spinner = self.prepare_call(caplog, log_level, command=command)
-        exc_type: Optional[type[Exception]]
+        exc_type: type[Exception] | None
         try:
             call_subprocess(
                 args,

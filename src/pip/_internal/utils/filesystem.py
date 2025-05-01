@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import fnmatch
 import os
 import os.path
@@ -6,7 +8,7 @@ import sys
 from collections.abc import Generator
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, Union, cast
+from typing import Any, BinaryIO, cast
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
@@ -126,7 +128,7 @@ def find_files(path: str, pattern: str) -> list[str]:
     return result
 
 
-def file_size(path: str) -> Union[int, float]:
+def file_size(path: str) -> int | float:
     # If it's a symlink, return 0.
     if os.path.islink(path):
         return 0
@@ -137,7 +139,7 @@ def format_file_size(path: str) -> str:
     return format_size(file_size(path))
 
 
-def directory_size(path: str) -> Union[int, float]:
+def directory_size(path: str) -> int | float:
     size = 0.0
     for root, _dirs, files in os.walk(path):
         for filename in files:

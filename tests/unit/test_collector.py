@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import json
 import logging
@@ -6,7 +8,6 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -445,7 +446,7 @@ def test_ensure_quoted_url(url: str, clean_url: str) -> None:
 
 
 def _test_parse_links_data_attribute(
-    anchor_html: str, attr: str, expected: Optional[str]
+    anchor_html: str, attr: str, expected: str | None
 ) -> Link:
     html = (
         "<!DOCTYPE html>"
@@ -487,9 +488,7 @@ def _test_parse_links_data_attribute(
         ),
     ],
 )
-def test_parse_links__requires_python(
-    anchor_html: str, expected: Optional[str]
-) -> None:
+def test_parse_links__requires_python(anchor_html: str, expected: str | None) -> None:
     _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
 
 
@@ -633,7 +632,7 @@ def test_parse_links_json() -> None:
         ),
     ],
 )
-def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -> None:
+def test_parse_links__yanked_reason(anchor_html: str, expected: str | None) -> None:
     _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
 
 
@@ -684,7 +683,7 @@ _pkg1_requirement = Requirement("pkg1==1.0")
 )
 def test_parse_links__metadata_file_data(
     anchor_html: str,
-    expected: Optional[str],
+    expected: str | None,
     hashes: dict[str, str],
 ) -> None:
     link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
@@ -1196,7 +1195,7 @@ def test_link_collector_create_find_links_expansion(
         ("https://pypi.org/pip-18.0.tar.gz#sha500=aa113592bbe", None),
     ],
 )
-def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
+def test_link_hash_parsing(url: str, result: LinkHash | None) -> None:
     assert LinkHash.find_hash_url_fragment(url) == result
 
 
@@ -1214,9 +1213,9 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
     ],
 )
 def test_metadata_file_info_parsing_html(
-    metadata_attrib: str, expected: Optional[MetadataFile]
+    metadata_attrib: str, expected: MetadataFile | None
 ) -> None:
-    attribs: dict[str, Optional[str]] = {
+    attribs: dict[str, str | None] = {
         "href": "something",
         "data-dist-info-metadata": metadata_attrib,
     }

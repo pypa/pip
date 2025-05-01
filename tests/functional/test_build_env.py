@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
 import sys
 from textwrap import dedent
-from typing import Optional
 
 import pytest
 
@@ -22,7 +23,7 @@ def indent(text: str, prefix: str) -> str:
 def run_with_build_env(
     script: PipTestEnvironment,
     setup_script_contents: str,
-    test_script_contents: Optional[str] = None,
+    test_script_contents: str | None = None,
 ) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
     scratch_path = str(script.scratch_path)

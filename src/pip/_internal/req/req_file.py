@@ -2,6 +2,8 @@
 Requirements file parsing
 """
 
+from __future__ import annotations
+
 import codecs
 import locale
 import logging
@@ -19,7 +21,6 @@ from typing import (
     Any,
     Callable,
     NoReturn,
-    Optional,
 )
 
 from pip._internal.cli import cmdoptions
@@ -114,8 +115,8 @@ class ParsedRequirement:
     is_editable: bool
     comes_from: str
     constraint: bool
-    options: Optional[dict[str, Any]]
-    line_source: Optional[str]
+    options: dict[str, Any] | None
+    line_source: str | None
 
 
 @dataclass(frozen=True)
@@ -133,7 +134,7 @@ class ParsedLine:
         return bool(self.opts.editables)
 
     @property
-    def requirement(self) -> Optional[str]:
+    def requirement(self) -> str | None:
         if self.args:
             return self.args
         elif self.is_editable:
@@ -144,9 +145,9 @@ class ParsedLine:
 
 def parse_requirements(
     filename: str,
-    session: "PipSession",
-    finder: Optional["PackageFinder"] = None,
-    options: Optional[optparse.Values] = None,
+    session: PipSession,
+    finder: PackageFinder | None = None,
+    options: optparse.Values | None = None,
     constraint: bool = False,
 ) -> Generator[ParsedRequirement, None, None]:
     """Parse a requirements file and yield ParsedRequirement instances.
@@ -183,7 +184,7 @@ def preprocess(content: str) -> ReqFileLines:
 
 def handle_requirement_line(
     line: ParsedLine,
-    options: Optional[optparse.Values] = None,
+    options: optparse.Values | None = None,
 ) -> ParsedRequirement:
     # preserve for the nested code path
     line_comes_from = "{} {} (line {})".format(
@@ -219,9 +220,9 @@ def handle_option_line(
     opts: Values,
     filename: str,
     lineno: int,
-    finder: Optional["PackageFinder"] = None,
-    options: Optional[optparse.Values] = None,
-    session: Optional["PipSession"] = None,
+    finder: PackageFinder | None = None,
+    options: optparse.Values | None = None,
+    session: PipSession | None = None,
 ) -> None:
     if opts.hashes:
         logger.warning(
@@ -287,10 +288,10 @@ def handle_option_line(
 
 def handle_line(
     line: ParsedLine,
-    options: Optional[optparse.Values] = None,
-    finder: Optional["PackageFinder"] = None,
-    session: Optional["PipSession"] = None,
-) -> Optional[ParsedRequirement]:
+    options: optparse.Values | None = None,
+    finder: PackageFinder | None = None,
+    session: PipSession | None = None,
+) -> ParsedRequirement | None:
     """Handle a single parsed requirements line; This can result in
     creating/yielding requirements, or updating the finder.
 
@@ -332,7 +333,7 @@ def handle_line(
 class RequirementsFileParser:
     def __init__(
         self,
-        session: "PipSession",
+        session: PipSession,
         line_parser: LineParser,
     ) -> None:
         self._session = session
@@ -350,7 +351,7 @@ class RequirementsFileParser:
         self,
         filename: str,
         constraint: bool,
-        parsed_files_stack: list[dict[str, Optional[str]]],
+        parsed_files_stack: list[dict[str, str | None]],
     ) -> Generator[ParsedLine, None, None]:
         for line in self._parse_file(filename, constraint):
             if line.requirement is None and (
@@ -422,7 +423,7 @@ class RequirementsFileParser:
             )
 
 
-def get_line_parser(finder: Optional["PackageFinder"]) -> LineParser:
+def get_line_parser(finder: PackageFinder | None) -> LineParser:
     def parse_line(line: str) -> tuple[str, Values]:
         # Build new parser for each line since it accumulates appendable
         # options.
@@ -481,7 +482,7 @@ def build_parser() -> optparse.OptionParser:
 
     # By default optparse sys.exits on parsing errors. We want to wrap
     # that in our own exception.
-    def parser_exit(self: Any, msg: str) -> "NoReturn":
+    def parser_exit(self: Any, msg: str) -> NoReturn:
         raise OptionParsingError(msg)
 
     # NOTE: mypy disallows assigning to a method
@@ -560,7 +561,7 @@ def expand_env_variables(lines_enum: ReqFileLines) -> ReqFileLines:
         yield line_number, line
 
 
-def get_file_content(url: str, session: "PipSession") -> tuple[str, str]:
+def get_file_content(url: str, session: PipSession) -> tuple[str, str]:
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.

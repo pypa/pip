@@ -9,6 +9,8 @@
 #
 # See https://github.com/pypa/pip/issues/8761 for the original discussion and
 # rationale for why this is done within pip.
+from __future__ import annotations
+
 try:
     __import__("_distutils_hack").remove_shim()
 except (ImportError, AttributeError):
@@ -21,7 +23,6 @@ from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
 from distutils.sysconfig import get_python_lib
-from typing import Optional, Union
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -35,10 +36,10 @@ logger = logging.getLogger(__name__)
 def distutils_scheme(
     dist_name: str,
     user: bool = False,
-    home: Optional[str] = None,
-    root: Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
     *,
     ignore_config_files: bool = False,
 ) -> dict[str, str]:
@@ -47,7 +48,7 @@ def distutils_scheme(
     """
     from distutils.dist import Distribution
 
-    dist_args: dict[str, Union[str, list[str]]] = {"name": dist_name}
+    dist_args: dict[str, str | list[str]] = {"name": dist_name}
     if isolated:
         dist_args["script_args"] = ["--no-user-cfg"]
 
@@ -61,7 +62,7 @@ def distutils_scheme(
                 "Ignore distutils configs in %s due to encoding errors.",
                 ", ".join(os.path.basename(p) for p in paths),
             )
-    obj: Optional[DistutilsCommand] = None
+    obj: DistutilsCommand | None = None
     obj = d.get_command_obj("install", create=True)
     assert obj is not None
     i: distutils_install_command = obj
@@ -115,10 +116,10 @@ def distutils_scheme(
 def get_scheme(
     dist_name: str,
     user: bool = False,
-    home: Optional[str] = None,
-    root: Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
 ) -> Scheme:
     """
     Get the "scheme" corresponding to the input parameters. The distutils

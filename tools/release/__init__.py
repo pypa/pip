@@ -3,6 +3,8 @@
 These are written according to the order they are called in.
 """
 
+from __future__ import annotations
+
 import contextlib
 import os
 import pathlib
@@ -10,12 +12,11 @@ import subprocess
 import tempfile
 import unicodedata
 from collections.abc import Iterator
-from typing import Optional
 
 from nox.sessions import Session
 
 
-def get_version_from_arguments(session: Session) -> Optional[str]:
+def get_version_from_arguments(session: Session) -> str | None:
     """Checks the arguments passed to `nox -s release`.
 
     If there is only 1 argument that looks like a pip version, returns that.

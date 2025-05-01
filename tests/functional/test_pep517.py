@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 import tomli_w
@@ -18,9 +20,9 @@ from tests.lib import (
 
 def make_project(
     tmpdir: Path,
-    requires: Optional[list[str]] = None,
-    backend: Optional[str] = None,
-    backend_path: Optional[list[str]] = None,
+    requires: list[str] | None = None,
+    backend: str | None = None,
+    backend_path: list[str] | None = None,
 ) -> Path:
     requires = requires or []
     project_dir = tmpdir / "project"

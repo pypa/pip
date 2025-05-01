@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import os
 import sys
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Optional
 from unittest.mock import Mock
 
 import pytest
@@ -29,7 +30,7 @@ def mock_permitted(ups: UninstallPathSet, path: str) -> bool:
 
 def test_uninstallation_paths() -> None:
     class dist:
-        def iter_declared_entries(self) -> Optional[Iterator[str]]:
+        def iter_declared_entries(self) -> Iterator[str] | None:
             return iter(["file.py", "file.pyc", "file.so", "nopyc.py"])
 
         location = ""

@@ -1,11 +1,13 @@
 """Cache Management"""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
@@ -89,7 +91,7 @@ class Cache:
     def get(
         self,
         link: Link,
-        package_name: Optional[str],
+        package_name: str | None,
         supported_tags: list[Tag],
     ) -> Link:
         """Returns a link to a cached item if it exists, otherwise returns the
@@ -127,7 +129,7 @@ class SimpleWheelCache(Cache):
     def get(
         self,
         link: Link,
-        package_name: Optional[str],
+        package_name: str | None,
         supported_tags: list[Tag],
     ) -> Link:
         candidates = []
@@ -188,7 +190,7 @@ class CacheEntry:
     ):
         self.link = link
         self.persistent = persistent
-        self.origin: Optional[DirectUrl] = None
+        self.origin: DirectUrl | None = None
         origin_direct_url_path = Path(self.link.file_path).parent / ORIGIN_JSON_NAME
         if origin_direct_url_path.exists():
             try:
@@ -225,7 +227,7 @@ class WheelCache(Cache):
     def get(
         self,
         link: Link,
-        package_name: Optional[str],
+        package_name: str | None,
         supported_tags: list[Tag],
     ) -> Link:
         cache_entry = self.get_cache_entry(link, package_name, supported_tags)
@@ -236,9 +238,9 @@ class WheelCache(Cache):
     def get_cache_entry(
         self,
         link: Link,
-        package_name: Optional[str],
+        package_name: str | None,
         supported_tags: list[Tag],
-    ) -> Optional[CacheEntry]:
+    ) -> CacheEntry | None:
         """Returns a CacheEntry with a link to a cached item if it exists or
         None. The cache entry indicates if the item was found in the persistent
         or ephemeral cache.

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import io
 import os
@@ -10,7 +12,6 @@ import textwrap
 from collections.abc import Iterable
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -2486,7 +2487,7 @@ def install_find_links(
     args: Iterable[str],
     *,
     dry_run: bool,
-    target_dir: Optional[Path],
+    target_dir: Path | None,
 ) -> TestPipResult:
     return script.pip(
         "install",

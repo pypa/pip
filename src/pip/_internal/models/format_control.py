@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -12,8 +12,8 @@ class FormatControl:
 
     def __init__(
         self,
-        no_binary: Optional[set[str]] = None,
-        only_binary: Optional[set[str]] = None,
+        no_binary: set[str] | None = None,
+        only_binary: set[str] | None = None,
     ) -> None:
         if no_binary is None:
             no_binary = set()

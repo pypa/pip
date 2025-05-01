@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 import pytest
 
@@ -35,10 +37,10 @@ def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
 def test_new_resolver_target_checks_compatibility_failure(
     script: PipTestEnvironment,
     make_fake_wheel: MakeFakeWheel,
-    implementation: Optional[str],
-    python_version: Optional[str],
-    abi: Optional[str],
-    platform: Optional[str],
+    implementation: str | None,
+    python_version: str | None,
+    abi: str | None,
+    platform: str | None,
 ) -> None:
     fake_wheel_tag = "fakepy1-fakeabi-fakeplat"
     args = [

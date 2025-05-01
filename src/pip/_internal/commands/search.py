@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import shutil
 import sys
@@ -5,7 +7,7 @@ import textwrap
 import xmlrpc.client
 from collections import OrderedDict
 from optparse import Values
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -83,7 +85,7 @@ class SearchCommand(Command, SessionCommandMixin):
         return hits
 
 
-def transform_hits(hits: list[dict[str, str]]) -> list["TransformedHit"]:
+def transform_hits(hits: list[dict[str, str]]) -> list[TransformedHit]:
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
@@ -111,7 +113,7 @@ def transform_hits(hits: list[dict[str, str]]) -> list["TransformedHit"]:
     return list(packages.values())
 
 
-def print_dist_installation_info(latest: str, dist: Optional[BaseDistribution]) -> None:
+def print_dist_installation_info(latest: str, dist: BaseDistribution | None) -> None:
     if dist is not None:
         with indent_log():
             if dist.version == latest:
@@ -128,15 +130,15 @@ def print_dist_installation_info(latest: str, dist: Optional[BaseDistribution]) 
                     write_output("LATEST:    %s", latest)
 
 
-def get_installed_distribution(name: str) -> Optional[BaseDistribution]:
+def get_installed_distribution(name: str) -> BaseDistribution | None:
     env = get_default_environment()
     return env.get_distribution(name)
 
 
 def print_results(
-    hits: list["TransformedHit"],
-    name_column_width: Optional[int] = None,
-    terminal_width: Optional[int] = None,
+    hits: list[TransformedHit],
+    name_column_width: int | None = None,
+    terminal_width: int | None = None,
 ) -> None:
     if not hits:
         return

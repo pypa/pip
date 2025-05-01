@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
-from typing import Protocol, Union
+from typing import Protocol
 
 import pytest
 
@@ -129,7 +131,7 @@ class DoAutocomplete(Protocol):
         self,
         words: str,
         cword: str,
-        cwd: Union[Path, str, None] = None,
+        cwd: Path | str | None = None,
         include_env: bool = True,
         expect_error: bool = True,
     ) -> tuple[TestPipResult, PipTestEnvironment]: ...
@@ -145,7 +147,7 @@ def autocomplete(
     def do_autocomplete(
         words: str,
         cword: str,
-        cwd: Union[Path, str, None] = None,
+        cwd: Path | str | None = None,
         include_env: bool = True,
         expect_error: bool = True,
     ) -> tuple[TestPipResult, PipTestEnvironment]:

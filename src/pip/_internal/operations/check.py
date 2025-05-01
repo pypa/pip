@@ -1,5 +1,7 @@
 """Validation of dependencies of packages"""
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Generator, Iterable
 from contextlib import suppress
@@ -8,7 +10,6 @@ from functools import reduce
 from typing import (
     Callable,
     NamedTuple,
-    Optional,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -58,7 +59,7 @@ def create_package_set_from_installed() -> tuple[PackageSet, bool]:
 
 
 def check_package_set(
-    package_set: PackageSet, should_ignore: Optional[Callable[[str], bool]] = None
+    package_set: PackageSet, should_ignore: Callable[[str], bool] | None = None
 ) -> CheckResult:
     """Check if a package set is consistent
 

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import importlib.util
 import os
 from collections import namedtuple
-from typing import Any, Optional
+from typing import Any
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 
@@ -28,8 +30,8 @@ BuildSystemDetails = namedtuple(
 
 
 def load_pyproject_toml(
-    use_pep517: Optional[bool], pyproject_toml: str, setup_py: str, req_name: str
-) -> Optional[BuildSystemDetails]:
+    use_pep517: bool | None, pyproject_toml: str, setup_py: str, req_name: str
+) -> BuildSystemDetails | None:
     """Load the pyproject.toml file.
 
     Parameters:

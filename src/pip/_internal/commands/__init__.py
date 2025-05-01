@@ -2,9 +2,11 @@
 Package containing all pip commands
 """
 
+from __future__ import annotations
+
 import importlib
 from collections import namedtuple
-from typing import Any, Optional
+from typing import Any
 
 from pip._internal.cli.base_command import Command
 
@@ -123,7 +125,7 @@ def create_command(name: str, **kwargs: Any) -> Command:
     return command
 
 
-def get_similar_commands(name: str) -> Optional[str]:
+def get_similar_commands(name: str) -> str | None:
     """Command name auto-correct."""
     from difflib import get_close_matches
 

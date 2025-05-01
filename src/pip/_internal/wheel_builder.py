@@ -1,11 +1,12 @@
 """Orchestrator for building wheels from InstallRequirements."""
 
+from __future__ import annotations
+
 import logging
 import os.path
 import re
 import shutil
 from collections.abc import Iterable
-from typing import Optional
 
 from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
 from pip._vendor.packaging.version import InvalidVersion, Version
@@ -68,7 +69,7 @@ def should_build_for_install_command(
 
 def _should_cache(
     req: InstallRequirement,
-) -> Optional[bool]:
+) -> bool | None:
     """
     Return whether a built InstallRequirement can be stored in the persistent
     wheel cache, assuming the wheel cache is available, and _should_build()
@@ -150,7 +151,7 @@ def _build_one(
     build_options: list[str],
     global_options: list[str],
     editable: bool,
-) -> Optional[str]:
+) -> str | None:
     """Build one wheel.
 
     :return: The filename of the built wheel, or None if the build failed.
@@ -187,7 +188,7 @@ def _build_one_inside_env(
     build_options: list[str],
     global_options: list[str],
     editable: bool,
-) -> Optional[str]:
+) -> str | None:
     with TempDirectory(kind="wheel") as temp_dir:
         assert req.name
         if req.use_pep517:

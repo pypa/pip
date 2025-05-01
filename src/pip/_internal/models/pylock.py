@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import dataclasses
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pip._vendor import tomli_w
 from pip._vendor.typing_extensions import Self
@@ -27,35 +29,35 @@ def _toml_dict_factory(data: list[tuple[str, Any]]) -> dict[str, Any]:
 @dataclass
 class PackageVcs:
     type: str
-    url: Optional[str]
+    url: str | None
     # (not supported) path: Optional[str]
-    requested_revision: Optional[str]
+    requested_revision: str | None
     commit_id: str
-    subdirectory: Optional[str]
+    subdirectory: str | None
 
 
 @dataclass
 class PackageDirectory:
     path: str
-    editable: Optional[bool]
-    subdirectory: Optional[str]
+    editable: bool | None
+    subdirectory: str | None
 
 
 @dataclass
 class PackageArchive:
-    url: Optional[str]
+    url: str | None
     # (not supported) path: Optional[str]
     # (not supported) size: Optional[int]
     # (not supported) upload_time: Optional[datetime]
     hashes: dict[str, str]
-    subdirectory: Optional[str]
+    subdirectory: str | None
 
 
 @dataclass
 class PackageSdist:
     name: str
     # (not supported) upload_time: Optional[datetime]
-    url: Optional[str]
+    url: str | None
     # (not supported) path: Optional[str]
     # (not supported) size: Optional[int]
     hashes: dict[str, str]
@@ -65,7 +67,7 @@ class PackageSdist:
 class PackageWheel:
     name: str
     # (not supported) upload_time: Optional[datetime]
-    url: Optional[str]
+    url: str | None
     # (not supported) path: Optional[str]
     # (not supported) size: Optional[int]
     hashes: dict[str, str]
@@ -74,16 +76,16 @@ class PackageWheel:
 @dataclass
 class Package:
     name: str
-    version: Optional[str] = None
+    version: str | None = None
     # (not supported) marker: Optional[str]
     # (not supported) requires_python: Optional[str]
     # (not supported) dependencies
-    vcs: Optional[PackageVcs] = None
-    directory: Optional[PackageDirectory] = None
-    archive: Optional[PackageArchive] = None
+    vcs: PackageVcs | None = None
+    directory: PackageDirectory | None = None
+    archive: PackageArchive | None = None
     # (not supported) index: Optional[str]
-    sdist: Optional[PackageSdist] = None
-    wheels: Optional[list[PackageWheel]] = None
+    sdist: PackageSdist | None = None
+    wheels: list[PackageWheel] | None = None
     # (not supported) attestation_identities: Optional[List[Dict[str, Any]]]
     # (not supported) tool: Optional[Dict[str, Any]]
 

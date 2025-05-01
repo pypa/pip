@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import os
 import sys
-from typing import Literal, Optional, Protocol, cast
+from typing import Literal, Protocol, cast
 
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import strtobool
@@ -81,7 +83,7 @@ def _emit_pkg_resources_deprecation_if_needed() -> None:
 
 
 class Backend(Protocol):
-    NAME: 'Literal["importlib", "pkg_resources"]'
+    NAME: Literal["importlib", "pkg_resources"]
     Distribution: type[BaseDistribution]
     Environment: type[BaseEnvironment]
 
@@ -110,7 +112,7 @@ def get_default_environment() -> BaseEnvironment:
     return select_backend().Environment.default()
 
 
-def get_environment(paths: Optional[list[str]]) -> BaseEnvironment:
+def get_environment(paths: list[str] | None) -> BaseEnvironment:
     """Get a representation of the environment specified by ``paths``.
 
     This returns an Environment instance from the chosen backend based on the

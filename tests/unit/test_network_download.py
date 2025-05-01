@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -81,7 +82,7 @@ def test_prepare_download__log(
     url: str,
     headers: dict[str, str],
     from_cache: bool,
-    range_start: Optional[int],
+    range_start: int | None,
     expected: str,
 ) -> None:
     caplog.set_level(logging.INFO)
@@ -157,8 +158,8 @@ def test_sanitize_content_filename__platform_dependent(
     ],
 )
 def test_http_get_download(
-    range_start: Optional[int],
-    if_range: Optional[str],
+    range_start: int | None,
+    if_range: str | None,
     expected_headers: dict[str, str],
 ) -> None:
     session = PipSession()
@@ -322,9 +323,9 @@ def test_downloader(
     resume_retries: int,
     mock_responses: list[tuple[dict[str, str], int, bytes]],
     # list of (range_start, if_range)
-    expected_resume_args: list[tuple[Optional[int], Optional[int]]],
+    expected_resume_args: list[tuple[int | None, int | None]],
     # expected_bytes is None means the download should fail
-    expected_bytes: Optional[bytes],
+    expected_bytes: bytes | None,
     tmpdir: Path,
 ) -> None:
     session = PipSession()

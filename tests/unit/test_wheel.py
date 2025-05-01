@@ -1,5 +1,7 @@
 """Tests for wheel binary packages and .dist-info."""
 
+from __future__ import annotations
+
 import csv
 import logging
 import os
@@ -8,7 +10,7 @@ import sys
 import textwrap
 from email import message_from_string
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -40,7 +42,7 @@ from tests.lib.wheel import make_wheel
 
 def call_get_legacy_build_wheel_path(
     caplog: pytest.LogCaptureFixture, names: list[str]
-) -> Optional[str]:
+) -> str | None:
     wheel_path = get_legacy_build_wheel_path(
         names=names,
         temp_dir="/tmp/abcd",
@@ -524,7 +526,7 @@ class TestMessageAboutScriptsNotOnPATH:
         "which may not be expanded by all applications."
     )
 
-    def _template(self, paths: list[str], scripts: list[str]) -> Optional[str]:
+    def _template(self, paths: list[str], scripts: list[str]) -> str | None:
         with patch.dict("os.environ", {"PATH": os.pathsep.join(paths)}):
             return wheel.message_about_scripts_not_on_PATH(scripts)
 

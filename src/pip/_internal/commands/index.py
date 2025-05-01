@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
 from collections.abc import Iterable
 from optparse import Values
-from typing import Any, Optional
+from typing import Any
 
 from pip._vendor.packaging.version import Version
 
@@ -79,8 +81,8 @@ class IndexCommand(IndexGroupCommand):
         self,
         options: Values,
         session: PipSession,
-        target_python: Optional[TargetPython] = None,
-        ignore_requires_python: Optional[bool] = None,
+        target_python: TargetPython | None = None,
+        ignore_requires_python: bool | None = None,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to the index command.

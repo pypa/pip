@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import locale
 import logging
 import os
 import sys
 from optparse import Values
 from types import ModuleType
-from typing import Any, Optional
+from typing import Any
 
 import pip._vendor
 from pip._vendor.certifi import where
@@ -46,7 +48,7 @@ def create_vendor_txt_map() -> dict[str, str]:
     return dict(line.split("==", 1) for line in lines)
 
 
-def get_module_from_module_name(module_name: str) -> Optional[ModuleType]:
+def get_module_from_module_name(module_name: str) -> ModuleType | None:
     # Module name can be uppercase in vendor.txt for some reason...
     module_name = module_name.lower().replace("-", "_")
     # PATCH: setuptools is actually only pkg_resources.
@@ -64,7 +66,7 @@ def get_module_from_module_name(module_name: str) -> Optional[ModuleType]:
         raise
 
 
-def get_vendor_version_from_module(module_name: str) -> Optional[str]:
+def get_vendor_version_from_module(module_name: str) -> str | None:
     module = get_module_from_module_name(module_name)
     version = getattr(module, "__version__", None)
 

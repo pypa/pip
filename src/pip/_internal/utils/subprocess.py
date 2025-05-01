@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import logging
 import os
 import shlex
 import subprocess
 from collections.abc import Iterable, Mapping
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Any, Callable, Literal, Union
 
 from pip._vendor.rich.markup import escape
 
@@ -15,7 +17,7 @@ from pip._internal.utils.misc import HiddenText
 CommandArgs = list[Union[str, HiddenText]]
 
 
-def make_command(*args: Union[str, HiddenText, CommandArgs]) -> CommandArgs:
+def make_command(*args: str | HiddenText | CommandArgs) -> CommandArgs:
     """
     Create a CommandArgs object.
     """
@@ -32,7 +34,7 @@ def make_command(*args: Union[str, HiddenText, CommandArgs]) -> CommandArgs:
     return command_args
 
 
-def format_command_args(args: Union[list[str], CommandArgs]) -> str:
+def format_command_args(args: list[str] | CommandArgs) -> str:
     """
     Format command arguments for display.
     """
@@ -47,7 +49,7 @@ def format_command_args(args: Union[list[str], CommandArgs]) -> str:
     )
 
 
-def reveal_command_args(args: Union[list[str], CommandArgs]) -> list[str]:
+def reveal_command_args(args: list[str] | CommandArgs) -> list[str]:
     """
     Return the arguments in their raw, unredacted form.
     """
@@ -55,16 +57,16 @@ def reveal_command_args(args: Union[list[str], CommandArgs]) -> list[str]:
 
 
 def call_subprocess(
-    cmd: Union[list[str], CommandArgs],
+    cmd: list[str] | CommandArgs,
     show_stdout: bool = False,
-    cwd: Optional[str] = None,
-    on_returncode: 'Literal["raise", "warn", "ignore"]' = "raise",
-    extra_ok_returncodes: Optional[Iterable[int]] = None,
-    extra_environ: Optional[Mapping[str, Any]] = None,
-    unset_environ: Optional[Iterable[str]] = None,
-    spinner: Optional[SpinnerInterface] = None,
-    log_failed_cmd: Optional[bool] = True,
-    stdout_only: Optional[bool] = False,
+    cwd: str | None = None,
+    on_returncode: Literal["raise", "warn", "ignore"] = "raise",
+    extra_ok_returncodes: Iterable[int] | None = None,
+    extra_environ: Mapping[str, Any] | None = None,
+    unset_environ: Iterable[str] | None = None,
+    spinner: SpinnerInterface | None = None,
+    log_failed_cmd: bool | None = True,
+    stdout_only: bool | None = False,
     *,
     command_desc: str,
 ) -> str:
@@ -231,8 +233,8 @@ def runner_with_spinner_message(message: str) -> Callable[..., None]:
 
     def runner(
         cmd: list[str],
-        cwd: Optional[str] = None,
-        extra_environ: Optional[Mapping[str, Any]] = None,
+        cwd: str | None = None,
+        extra_environ: Mapping[str, Any] | None = None,
     ) -> None:
         with open_spinner(message) as spinner:
             call_subprocess(

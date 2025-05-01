@@ -1,5 +1,7 @@
 """Routines related to PyPI, indexes"""
 
+from __future__ import annotations
+
 import enum
 import functools
 import itertools
@@ -129,7 +131,7 @@ class LinkEvaluator:
         formats: frozenset[str],
         target_python: TargetPython,
         allow_yanked: bool,
-        ignore_requires_python: Optional[bool] = None,
+        ignore_requires_python: bool | None = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -256,7 +258,7 @@ class LinkEvaluator:
 
 def filter_unallowed_hashes(
     candidates: list[InstallationCandidate],
-    hashes: Optional[Hashes],
+    hashes: Hashes | None,
     project_name: str,
 ) -> list[InstallationCandidate]:
     """
@@ -354,7 +356,7 @@ class BestCandidateResult:
 
     all_candidates: list[InstallationCandidate]
     applicable_candidates: list[InstallationCandidate]
-    best_candidate: Optional[InstallationCandidate]
+    best_candidate: InstallationCandidate | None
 
     def __post_init__(self) -> None:
         assert set(self.applicable_candidates) <= set(self.all_candidates)
@@ -375,12 +377,12 @@ class CandidateEvaluator:
     def create(
         cls,
         project_name: str,
-        target_python: Optional[TargetPython] = None,
+        target_python: TargetPython | None = None,
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
-        specifier: Optional[specifiers.BaseSpecifier] = None,
-        hashes: Optional[Hashes] = None,
-    ) -> "CandidateEvaluator":
+        specifier: specifiers.BaseSpecifier | None = None,
+        hashes: Hashes | None = None,
+    ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object.
 
         :param target_python: The target Python interpreter to use when
@@ -414,7 +416,7 @@ class CandidateEvaluator:
         specifier: specifiers.BaseSpecifier,
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
-        hashes: Optional[Hashes] = None,
+        hashes: Hashes | None = None,
     ) -> None:
         """
         :param supported_tags: The PEP 425 tags supported by the target
@@ -536,7 +538,7 @@ class CandidateEvaluator:
     def sort_best_candidate(
         self,
         candidates: list[InstallationCandidate],
-    ) -> Optional[InstallationCandidate]:
+    ) -> InstallationCandidate | None:
         """
         Return the best candidate per the instance's sort order, or None if
         no candidate is acceptable.
@@ -576,9 +578,9 @@ class PackageFinder:
         link_collector: LinkCollector,
         target_python: TargetPython,
         allow_yanked: bool,
-        format_control: Optional[FormatControl] = None,
-        candidate_prefs: Optional[CandidatePreferences] = None,
-        ignore_requires_python: Optional[bool] = None,
+        format_control: FormatControl | None = None,
+        candidate_prefs: CandidatePreferences | None = None,
+        ignore_requires_python: bool | None = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -609,7 +611,7 @@ class PackageFinder:
         # Cache of the result of finding candidates
         self._all_candidates: dict[str, list[InstallationCandidate]] = {}
         self._best_candidates: dict[
-            tuple[str, Optional[specifiers.BaseSpecifier], Optional[Hashes]],
+            tuple[str, specifiers.BaseSpecifier | None, Hashes | None],
             BestCandidateResult,
         ] = {}
 
@@ -622,8 +624,8 @@ class PackageFinder:
         cls,
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
-        target_python: Optional[TargetPython] = None,
-    ) -> "PackageFinder":
+        target_python: TargetPython | None = None,
+    ) -> PackageFinder:
         """Create a PackageFinder.
 
         :param selection_prefs: The candidate selection preferences, as a
@@ -670,7 +672,7 @@ class PackageFinder:
         return self.search_scope.index_urls
 
     @property
-    def proxy(self) -> Optional[str]:
+    def proxy(self) -> str | None:
         return self._link_collector.session.pip_proxy
 
     @property
@@ -679,7 +681,7 @@ class PackageFinder:
             yield build_netloc(*host_port)
 
     @property
-    def custom_cert(self) -> Optional[str]:
+    def custom_cert(self) -> str | None:
         # session.verify is either a boolean (use default bundle/no SSL
         # verification) or a string path to a custom CA bundle to use. We only
         # care about the latter.
@@ -687,7 +689,7 @@ class PackageFinder:
         return verify if isinstance(verify, str) else None
 
     @property
-    def client_cert(self) -> Optional[str]:
+    def client_cert(self) -> str | None:
         cert = self._link_collector.session.cert
         assert not isinstance(cert, tuple), "pip only supports PEM client certs"
         return cert
@@ -753,7 +755,7 @@ class PackageFinder:
 
     def get_install_candidate(
         self, link_evaluator: LinkEvaluator, link: Link
-    ) -> Optional[InstallationCandidate]:
+    ) -> InstallationCandidate | None:
         """
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
@@ -867,8 +869,8 @@ class PackageFinder:
     def make_candidate_evaluator(
         self,
         project_name: str,
-        specifier: Optional[specifiers.BaseSpecifier] = None,
-        hashes: Optional[Hashes] = None,
+        specifier: specifiers.BaseSpecifier | None = None,
+        hashes: Hashes | None = None,
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
         candidate_prefs = self._candidate_prefs
@@ -884,8 +886,8 @@ class PackageFinder:
     def find_best_candidate(
         self,
         project_name: str,
-        specifier: Optional[specifiers.BaseSpecifier] = None,
-        hashes: Optional[Hashes] = None,
+        specifier: specifiers.BaseSpecifier | None = None,
+        hashes: Hashes | None = None,
     ) -> BestCandidateResult:
         """Find matches for the given project and specifier.
 
@@ -912,7 +914,7 @@ class PackageFinder:
 
     def find_requirement(
         self, req: InstallRequirement, upgrade: bool
-    ) -> Optional[InstallationCandidate]:
+    ) -> InstallationCandidate | None:
         """Try to find a Link matching req
 
         Expects req, an InstallRequirement and upgrade, a boolean
@@ -930,7 +932,7 @@ class PackageFinder:
         )
         best_candidate = best_candidate_result.best_candidate
 
-        installed_version: Optional[_BaseVersion] = None
+        installed_version: _BaseVersion | None = None
         if req.satisfied_by is not None:
             installed_version = req.satisfied_by.version
 
@@ -960,8 +962,8 @@ class PackageFinder:
             raise DistributionNotFound(f"No matching distribution found for {req}")
 
         def _should_install_candidate(
-            candidate: Optional[InstallationCandidate],
-        ) -> "TypeGuard[InstallationCandidate]":
+            candidate: InstallationCandidate | None,
+        ) -> TypeGuard[InstallationCandidate]:
             if installed_version is None:
                 return True
             if best_candidate is None:
@@ -1027,7 +1029,7 @@ def _find_name_version_sep(fragment: str, canonical_name: str) -> int:
     raise ValueError(f"{fragment} does not match {canonical_name}")
 
 
-def _extract_version_from_fragment(fragment: str, canonical_name: str) -> Optional[str]:
+def _extract_version_from_fragment(fragment: str, canonical_name: str) -> str | None:
     """Parse the version string from a <package>+<version> filename
     "fragment" (stem) or egg fragment.
 

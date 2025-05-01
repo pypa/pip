@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import pathlib
 import shutil
@@ -5,13 +7,12 @@ import subprocess
 import sys
 from collections.abc import Iterable
 from glob import glob
-from typing import Union
 
 VIRTUAL_ENV = os.environ["VIRTUAL_ENV"]
 TOX_PIP_DIR = os.path.join(VIRTUAL_ENV, "pip")
 
 
-def pip(args: Iterable[Union[str, pathlib.Path]]) -> None:
+def pip(args: Iterable[str | pathlib.Path]) -> None:
     # First things first, get a recent (stable) version of pip.
     if not os.path.exists(TOX_PIP_DIR):
         subprocess.check_call(

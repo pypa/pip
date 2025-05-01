@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import compileall
 import contextlib
 import fnmatch
@@ -15,7 +17,7 @@ from enum import Enum
 from hashlib import sha256
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, AnyStr, Callable, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, AnyStr, Callable, ClassVar
 from unittest.mock import patch
 from zipfile import ZipFile
 
@@ -541,12 +543,12 @@ def virtualenv(
 def script_factory(
     virtualenv_factory: Callable[[Path], VirtualEnvironment],
     deprecated_python: bool,
-    zipapp: Optional[str],
+    zipapp: str | None,
 ) -> ScriptFactory:
     def factory(
         tmpdir: Path,
-        virtualenv: Optional[VirtualEnvironment] = None,
-        environ: Optional[dict[AnyStr, AnyStr]] = None,
+        virtualenv: VirtualEnvironment | None = None,
+        environ: dict[AnyStr, AnyStr] | None = None,
     ) -> PipTestEnvironment:
         kwargs = {}
         if environ:
@@ -608,7 +610,7 @@ def make_zipapp_from_pip(zipapp_name: Path) -> None:
 @pytest.fixture(scope="session")
 def zipapp(
     request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
-) -> Optional[str]:
+) -> str | None:
     """
     If the user requested for pip to be run from a zipapp, build that zipapp
     and return its location. If the user didn't request a zipapp, return None.
@@ -736,7 +738,7 @@ class FakePackage:
     # This will override any dependencies specified in the actual dist's METADATA.
     requires_dist: tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
-    metadata_name: Optional[str] = None
+    metadata_name: str | None = None
 
     def metadata_filename(self) -> str:
         """This is specified by PEP 658."""
@@ -973,7 +975,7 @@ def html_index_with_onetime_server(
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
-        def finish_request(self: "Self", request: Any, client_address: Any) -> None:
+        def finish_request(self: Self, request: Any, client_address: Any) -> None:
             self.RequestHandlerClass(
                 request,
                 client_address,
