@@ -92,6 +92,7 @@ def test_pylock_basic_package() -> None:
         "lock-version": "1.0",
         "created-by": "pip",
         "requires-python": ">=3.10",
+        "environments": ['os_name == "posix"'],
         "packages": [
             {
                 "name": "example",
@@ -106,6 +107,7 @@ def test_pylock_basic_package() -> None:
         ],
     }
     pylock = Pylock.from_dict(data)
+    assert pylock.environments == [Marker('os_name == "posix"')]
     package = pylock.packages[0]
     assert package.version == Version("1.0")
     assert package.marker == Marker('os_name == "posix"')

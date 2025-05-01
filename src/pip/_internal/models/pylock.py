@@ -49,15 +49,19 @@ def _toml_key(key: str) -> str:
     return key.replace("_", "-")
 
 
-def _toml_value(value: T) -> Union[str, T]:
+def _toml_value(key: str, value: T) -> Union[str, List[str], T]:
     if isinstance(value, (Version, Marker, SpecifierSet)):
         return str(value)
+    if isinstance(value, list) and key == "environments":
+        return [str(v) for v in value]
     return value
 
 
 def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
     return {
-        _toml_key(key): _toml_value(value) for key, value in data if value is not None
+        _toml_key(key): _toml_value(key, value)
+        for key, value in data
+        if value is not None
     }
 
 
@@ -108,6 +112,27 @@ def _get_marker(d: Dict[str, Any], key: str) -> Optional[Marker]:
         return Marker(value)
     except InvalidMarker:
         raise PylockValidationError(f"invalid marker {value!r}")
+
+
+def _get_list_of_markers(d: Dict[str, Any], key: str) -> Optional[List[Marker]]:
+    """Get list value from dictionary and verify expected items type."""
+    if key not in d:
+        return None
+    value = d[key]
+    if not isinstance(value, list):
+        raise PylockValidationError(f"{key!r} is not a list")
+    result = []
+    for i, item in enumerate(value):
+        if not isinstance(item, str):
+            raise PylockValidationError(f"Item {i} in list {key!r} is not a string")
+        try:
+            result.append(Marker(item))
+        except InvalidMarker:
+            raise PylockValidationError(
+                f"Item {i} in list {key!r} "
+                f"is not a valid environment marker: {item!r}"
+            )
+    return result
 
 
 def _get_specifier_set(d: Dict[str, Any], key: str) -> Optional[SpecifierSet]:
@@ -418,7 +443,7 @@ class Package:
 @dataclass
 class Pylock:
     lock_version: Version = Version("1.0")
-    # (not supported) environments: Optional[List[str]]
+    environments: Optional[List[Marker]] = None
     requires_python: Optional[SpecifierSet] = None
     # (not supported) extras: List[str] = []
     # (not supported) dependency_groups: List[str] = []
@@ -446,6 +471,7 @@ class Pylock:
     def from_dict(cls, d: Dict[str, Any]) -> Self:
         return cls(
             lock_version=_get_required_version(d, "lock-version"),
+            environments=_get_list_of_markers(d, "environments"),
             created_by=_get_required(d, str, "created-by"),
             requires_python=_get_specifier_set(d, "requires-python"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
