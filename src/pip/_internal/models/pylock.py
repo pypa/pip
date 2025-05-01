@@ -1,19 +1,29 @@
-from __future__ import annotations
-
 import dataclasses
+import logging
 import re
-from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Iterable, List, Optional, Protocol, Tuple, Type, TypeVar
 
 from pip._vendor import tomli_w
+from pip._vendor.packaging.version import InvalidVersion, Version
 from pip._vendor.typing_extensions import Self
 
 from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.urls import url_to_path
+
+T = TypeVar("T")
+
+
+class PylockDataClass(Protocol):
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        pass
+
+
+PylockDataClassT = TypeVar("PylockDataClassT", bound=PylockDataClass)
 
 PYLOCK_FILE_NAME_RE = re.compile(r"^pylock\.([^.]+)\.toml$")
 
@@ -22,72 +32,237 @@ def is_valid_pylock_file_name(path: Path) -> bool:
     return path.name == "pylock.toml" or bool(re.match(PYLOCK_FILE_NAME_RE, path.name))
 
 
-def _toml_dict_factory(data: list[tuple[str, Any]]) -> dict[str, Any]:
+def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
     return {key.replace("_", "-"): value for key, value in data if value is not None}
+
+
+def _get(
+    d: Dict[str, Any], expected_type: Type[T], key: str, default: Optional[T] = None
+) -> Optional[T]:
+    """Get value from dictionary and verify expected type."""
+    if key not in d:
+        return default
+    value = d[key]
+    if not isinstance(value, expected_type):
+        raise PylockValidationError(
+            f"{value!r} has unexpected type for {key} (expected {expected_type})"
+        )
+    return value
+
+
+def _get_required(d: Dict[str, Any], expected_type: Type[T], key: str) -> T:
+    """Get required value from dictionary and verify expected type."""
+    value = _get(d, expected_type, key)
+    if value is None:
+        raise PylockRequiredKeyError(key)
+    return value
+
+
+def _get_object(
+    d: Dict[str, Any], expected_type: Type[PylockDataClassT], key: str
+) -> Optional[PylockDataClassT]:
+    """Get dictionary value from dictionary and convert to dataclass."""
+    if key not in d:
+        return None
+    value = d[key]
+    if not isinstance(value, dict):
+        raise PylockValidationError(f"{key!r} is not a dictionary")
+    return expected_type.from_dict(value)
+
+
+def _get_list_of_objects(
+    d: Dict[str, Any], expected_type: Type[PylockDataClassT], key: str
+) -> Optional[List[PylockDataClassT]]:
+    """Get list value from dictionary and convert items to dataclass."""
+    if key not in d:
+        return None
+    value = d[key]
+    if not isinstance(value, list):
+        raise PylockValidationError(f"{key!r} is not a list")
+    result = []
+    for i, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise PylockValidationError(
+                f"Item {i} in table {key!r} is not a dictionary"
+            )
+        result.append(expected_type.from_dict(item))
+    return result
+
+
+def _get_required_list_of_objects(
+    d: Dict[str, Any], expected_type: Type[PylockDataClassT], key: str
+) -> List[PylockDataClassT]:
+    """Get required list value from dictionary and convert items to dataclass."""
+    result = _get_list_of_objects(d, expected_type, key)
+    if result is None:
+        raise PylockRequiredKeyError(key)
+    return result
+
+
+def _validate_exactly_one_of(o: object, attrs: List[str]) -> None:
+    """Validate that exactly one of the attributes is truthy."""
+    count = 0
+    for attr in attrs:
+        if getattr(o, attr):
+            count += 1
+    if count != 1:
+        raise PylockValidationError(f"Exactly one of {', '.join(attrs)} must be set")
+
+
+class PylockValidationError(Exception):
+    pass
+
+
+class PylockRequiredKeyError(PylockValidationError):
+    def __init__(self, key: str) -> None:
+        super().__init__(f"Missing required key {key!r}")
+        self.key = key
+
+
+class PylockUnsupportedVersionError(PylockValidationError):
+    pass
 
 
 @dataclass
 class PackageVcs:
     type: str
-    url: str | None
-    # (not supported) path: Optional[str]
-    requested_revision: str | None
+    url: Optional[str]
+    path: Optional[str]
+    requested_revision: Optional[str]
     commit_id: str
-    subdirectory: str | None
+    subdirectory: Optional[str]
+
+    def __post_init__(self) -> None:
+        # TODO validate supported vcs type
+        _validate_exactly_one_of(self, ["url", "path"])
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        return cls(
+            type=_get_required(d, str, "type"),
+            url=_get(d, str, "url"),
+            path=_get(d, str, "path"),
+            requested_revision=_get(d, str, "requested-revision"),
+            commit_id=_get_required(d, str, "commit-id"),
+            subdirectory=_get(d, str, "subdirectory"),
+        )
 
 
 @dataclass
 class PackageDirectory:
     path: str
-    editable: bool | None
-    subdirectory: str | None
+    editable: Optional[bool]
+    subdirectory: Optional[str]
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        return cls(
+            path=_get_required(d, str, "path"),
+            editable=_get(d, bool, "editable"),
+            subdirectory=_get(d, str, "subdirectory"),
+        )
 
 
 @dataclass
 class PackageArchive:
-    url: str | None
-    # (not supported) path: Optional[str]
+    url: Optional[str]
+    path: Optional[str]
     # (not supported) size: Optional[int]
     # (not supported) upload_time: Optional[datetime]
-    hashes: dict[str, str]
-    subdirectory: str | None
+    hashes: Dict[str, str]
+    subdirectory: Optional[str]
+
+    def __post_init__(self) -> None:
+        _validate_exactly_one_of(self, ["url", "path"])
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        return cls(
+            url=_get(d, str, "url"),
+            path=_get(d, str, "path"),
+            hashes=_get_required(d, dict, "hashes"),
+            subdirectory=_get(d, str, "subdirectory"),
+        )
 
 
 @dataclass
 class PackageSdist:
     name: str
     # (not supported) upload_time: Optional[datetime]
-    url: str | None
-    # (not supported) path: Optional[str]
+    url: Optional[str]
+    path: Optional[str]
     # (not supported) size: Optional[int]
-    hashes: dict[str, str]
+    hashes: Dict[str, str]
+
+    def __post_init__(self) -> None:
+        _validate_exactly_one_of(self, ["url", "path"])
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        return cls(
+            name=_get_required(d, str, "name"),
+            url=_get(d, str, "url"),
+            path=_get(d, str, "path"),
+            hashes=_get_required(d, dict, "hashes"),
+        )
 
 
 @dataclass
 class PackageWheel:
     name: str
     # (not supported) upload_time: Optional[datetime]
-    url: str | None
-    # (not supported) path: Optional[str]
+    url: Optional[str]
+    path: Optional[str]
     # (not supported) size: Optional[int]
-    hashes: dict[str, str]
+    hashes: Dict[str, str]
+
+    def __post_init__(self) -> None:
+        _validate_exactly_one_of(self, ["url", "path"])
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        wheel = cls(
+            name=_get_required(d, str, "name"),
+            url=_get(d, str, "url"),
+            path=_get(d, str, "path"),
+            hashes=_get_required(d, dict, "hashes"),
+        )
+        return wheel
 
 
 @dataclass
 class Package:
     name: str
-    version: str | None = None
+    version: Optional[str] = None
     # (not supported) marker: Optional[str]
     # (not supported) requires_python: Optional[str]
     # (not supported) dependencies
-    vcs: PackageVcs | None = None
-    directory: PackageDirectory | None = None
-    archive: PackageArchive | None = None
+    vcs: Optional[PackageVcs] = None
+    directory: Optional[PackageDirectory] = None
+    archive: Optional[PackageArchive] = None
     # (not supported) index: Optional[str]
-    sdist: PackageSdist | None = None
-    wheels: list[PackageWheel] | None = None
+    sdist: Optional[PackageSdist] = None
+    wheels: Optional[List[PackageWheel]] = None
     # (not supported) attestation_identities: Optional[List[Dict[str, Any]]]
     # (not supported) tool: Optional[Dict[str, Any]]
+
+    def __post_init__(self) -> None:
+        _validate_exactly_one_of(
+            self, ["vcs", "directory", "archive", "sdist", "wheels"]
+        )
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        package = cls(
+            name=_get_required(d, str, "name"),
+            version=_get(d, str, "version"),
+            vcs=_get_object(d, PackageVcs, "vcs"),
+            directory=_get_object(d, PackageDirectory, "directory"),
+            archive=_get_object(d, PackageArchive, "archive"),
+            sdist=_get_object(d, PackageSdist, "sdist"),
+            wheels=_get_list_of_objects(d, PackageWheel, "wheels"),
+        )
+        return package
 
     @classmethod
     def from_install_requirement(cls, ireq: InstallRequirement, base_dir: Path) -> Self:
@@ -95,18 +270,24 @@ class Package:
         dist = ireq.get_dist()
         download_info = ireq.download_info
         assert download_info
-        package = cls(name=dist.canonical_name)
+        package_version = None
+        package_vcs = None
+        package_directory = None
+        package_archive = None
+        package_sdist = None
+        package_wheels = None
         if ireq.is_direct:
             if isinstance(download_info.info, VcsInfo):
-                package.vcs = PackageVcs(
+                package_vcs = PackageVcs(
                     type=download_info.info.vcs,
                     url=download_info.url,
+                    path=None,
                     requested_revision=download_info.info.requested_revision,
                     commit_id=download_info.info.commit_id,
                     subdirectory=download_info.subdirectory,
                 )
             elif isinstance(download_info.info, DirInfo):
-                package.directory = PackageDirectory(
+                package_directory = PackageDirectory(
                     path=(
                         Path(url_to_path(download_info.url))
                         .resolve()
@@ -123,8 +304,9 @@ class Package:
             elif isinstance(download_info.info, ArchiveInfo):
                 if not download_info.info.hashes:
                     raise NotImplementedError()
-                package.archive = PackageArchive(
+                package_archive = PackageArchive(
                     url=download_info.url,
+                    path=None,
                     hashes=download_info.info.hashes,
                     subdirectory=download_info.subdirectory,
                 )
@@ -132,29 +314,39 @@ class Package:
                 # should never happen
                 raise NotImplementedError()
         else:
-            package.version = str(dist.version)
+            package_version = str(dist.version)
             if isinstance(download_info.info, ArchiveInfo):
                 if not download_info.info.hashes:
                     raise NotImplementedError()
                 link = Link(download_info.url)
                 if link.is_wheel:
-                    package.wheels = [
+                    package_wheels = [
                         PackageWheel(
                             name=link.filename,
                             url=download_info.url,
+                            path=None,
                             hashes=download_info.info.hashes,
                         )
                     ]
                 else:
-                    package.sdist = PackageSdist(
+                    package_sdist = PackageSdist(
                         name=link.filename,
                         url=download_info.url,
+                        path=None,
                         hashes=download_info.info.hashes,
                     )
             else:
                 # should never happen
                 raise NotImplementedError()
-        return package
+        return cls(
+            name=dist.canonical_name,
+            version=package_version,
+            vcs=package_vcs,
+            directory=package_directory,
+            archive=package_archive,
+            sdist=package_sdist,
+            wheels=package_wheels,
+        )
 
 
 @dataclass
@@ -165,11 +357,41 @@ class Pylock:
     # (not supported) extras: List[str] = []
     # (not supported) dependency_groups: List[str] = []
     created_by: str = "pip"
-    packages: list[Package] = dataclasses.field(default_factory=list)
+    packages: List[Package] = dataclasses.field(default_factory=list)
     # (not supported) tool: Optional[Dict[str, Any]]
 
+    def _validate_version(self) -> None:
+        if not self.lock_version:
+            raise PylockRequiredKeyError("lock-version")
+        try:
+            lock_version = Version(self.lock_version)
+        except InvalidVersion:
+            raise PylockUnsupportedVersionError(
+                f"invalid pylock version {self.lock_version!r}"
+            )
+        if lock_version < Version("1") or lock_version >= Version("2"):
+            raise PylockUnsupportedVersionError(
+                f"pylock version {lock_version} is not supported"
+            )
+        if lock_version > Version("1.0"):
+            logging.warning("pylock minor version %s is not supported", lock_version)
+
+    def __post_init__(self) -> None:
+        self._validate_version()
+
     def as_toml(self) -> str:
-        return tomli_w.dumps(dataclasses.asdict(self, dict_factory=_toml_dict_factory))
+        return tomli_w.dumps(self.to_dict())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return dataclasses.asdict(self, dict_factory=_toml_dict_factory)
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Self:
+        return cls(
+            lock_version=_get_required(d, str, "lock-version"),
+            created_by=_get_required(d, str, "created-by"),
+            packages=_get_required_list_of_objects(d, Package, "packages"),
+        )
 
     @classmethod
     def from_install_requirements(

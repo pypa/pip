@@ -1,10 +1,18 @@
 import textwrap
 from pathlib import Path
+from typing import Any, Dict
 
+from pip._internal.models.pylock import Pylock
 from pip._internal.utils.compat import tomllib
 from pip._internal.utils.urls import path_to_url
 
 from ..lib import PipTestEnvironment, TestData
+
+
+def _test_validation_and_roundtrip(pylock_dict: Dict[str, Any]) -> None:
+    """Test that Pylock can be serialized and deserialized correctly."""
+    pylock = Pylock.from_dict(pylock_dict)
+    assert pylock.to_dict() == pylock_dict
 
 
 def test_lock_wheel_from_findlinks(
@@ -49,6 +57,7 @@ def test_lock_wheel_from_findlinks(
             },
         ],
     }
+    _test_validation_and_roundtrip(pylock)
 
 
 def test_lock_sdist_from_findlinks(
@@ -85,6 +94,7 @@ def test_lock_sdist_from_findlinks(
             "version": "2.0",
         },
     ]
+    _test_validation_and_roundtrip(pylock)
 
 
 def test_lock_local_directory(
@@ -120,6 +130,7 @@ def test_lock_local_directory(
             "directory": {"path": "."},
         },
     ]
+    _test_validation_and_roundtrip(pylock)
 
 
 def test_lock_local_editable_with_dep(
@@ -179,6 +190,7 @@ def test_lock_local_editable_with_dep(
             ],
         },
     ]
+    _test_validation_and_roundtrip(pylock)
 
 
 def test_lock_vcs(script: PipTestEnvironment, shared_data: TestData) -> None:
@@ -203,6 +215,7 @@ def test_lock_vcs(script: PipTestEnvironment, shared_data: TestData) -> None:
             },
         },
     ]
+    _test_validation_and_roundtrip(pylock)
 
 
 def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None:
@@ -230,3 +243,4 @@ def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None
             },
         },
     ]
+    _test_validation_and_roundtrip(pylock)
