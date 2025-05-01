@@ -412,7 +412,7 @@ class Package:
                 package_archive = PackageArchive(
                     url=download_info.url,
                     path=None,
-                    size=None,
+                    size=None,  # not supported
                     hashes=download_info.info.hashes,
                     subdirectory=download_info.subdirectory,
                 )
@@ -431,7 +431,7 @@ class Package:
                             name=link.filename,
                             url=download_info.url,
                             path=None,
-                            size=None,
+                            size=None,  # not supported
                             hashes=download_info.info.hashes,
                         )
                     ]
@@ -440,7 +440,7 @@ class Package:
                         name=link.filename,
                         url=download_info.url,
                         path=None,
-                        size=None,
+                        size=None,  # not supported
                         hashes=download_info.info.hashes,
                     )
             else:
@@ -449,8 +449,8 @@ class Package:
         return cls(
             name=dist.canonical_name,
             version=package_version,
-            marker=None,
-            requires_python=None,
+            marker=None,  # not supported
+            requires_python=None,  # not supported
             vcs=package_vcs,
             directory=package_directory,
             archive=package_archive,
@@ -461,13 +461,13 @@ class Package:
 
 @dataclass
 class Pylock:
-    lock_version: Version = Version("1.0")
-    environments: Optional[List[Marker]] = None
-    requires_python: Optional[SpecifierSet] = None
+    lock_version: Version
+    environments: Optional[List[Marker]]
+    requires_python: Optional[SpecifierSet]
     # (not supported) extras: List[str] = []
     # (not supported) dependency_groups: List[str] = []
-    created_by: str = "pip"
-    packages: List[Package] = dataclasses.field(default_factory=list)
+    created_by: str
+    packages: List[Package]
     # (not supported) tool: Optional[Dict[str, Any]]
 
     def __post_init__(self) -> None:
@@ -501,11 +501,15 @@ class Pylock:
         cls, install_requirements: Iterable[InstallRequirement], base_dir: Path
     ) -> Self:
         return cls(
+            lock_version=Version("1.0"),
+            environments=None,  # not supported
+            requires_python=None,  # not supported
+            created_by="pip",
             packages=sorted(
                 (
                     Package.from_install_requirement(ireq, base_dir)
                     for ireq in install_requirements
                 ),
                 key=lambda p: p.name,
-            )
+            ),
         )
