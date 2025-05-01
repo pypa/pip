@@ -129,8 +129,7 @@ def _get_list_of_markers(d: Dict[str, Any], key: str) -> Optional[List[Marker]]:
             result.append(Marker(item))
         except InvalidMarker:
             raise PylockValidationError(
-                f"Item {i} in list {key!r} "
-                f"is not a valid environment marker: {item!r}"
+                f"Item {i} in list {key!r} is not a valid environment marker: {item!r}"
             )
     return result
 
@@ -186,14 +185,14 @@ def _get_required_list_of_objects(
     return result
 
 
-def _validate_exactly_one_of(o: object, attrs: List[str]) -> None:
-    """Validate that exactly one of the attributes is truthy."""
-    count = 0
-    for attr in attrs:
-        if getattr(o, attr):
-            count += 1
-    if count != 1:
-        raise PylockValidationError(f"Exactly one of {', '.join(attrs)} must be set")
+def _exactly_one(iterable: Iterable[object]) -> bool:
+    found = False
+    for item in iterable:
+        if item:
+            if found:
+                return False
+            found = True
+    return found
 
 
 class PylockValidationError(Exception):
@@ -221,7 +220,8 @@ class PackageVcs:
 
     def __post_init__(self) -> None:
         # TODO validate supported vcs type
-        _validate_exactly_one_of(self, ["url", "path"])
+        if not self.path and not self.url:
+            raise PylockValidationError("No path nor url set for vcs package")
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:
@@ -260,7 +260,8 @@ class PackageArchive:
     subdirectory: Optional[str]
 
     def __post_init__(self) -> None:
-        _validate_exactly_one_of(self, ["url", "path"])
+        if not self.path and not self.url:
+            raise PylockValidationError("No path nor url set for archive package")
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:
@@ -283,7 +284,8 @@ class PackageSdist:
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
-        _validate_exactly_one_of(self, ["url", "path"])
+        if not self.path and not self.url:
+            raise PylockValidationError("No path nor url set for sdist package")
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:
@@ -306,7 +308,8 @@ class PackageWheel:
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
-        _validate_exactly_one_of(self, ["url", "path"])
+        if not self.path and not self.url:
+            raise PylockValidationError("No path nor url set for wheel package")
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:
@@ -337,9 +340,19 @@ class Package:
     # (not supported) tool: Optional[Dict[str, Any]]
 
     def __post_init__(self) -> None:
-        _validate_exactly_one_of(
-            self, ["vcs", "directory", "archive", "sdist", "wheels"]
-        )
+        if self.sdist or self.wheels:
+            if any([self.vcs, self.directory, self.archive]):
+                raise PylockValidationError(
+                    "None of vcs, directory, archive "
+                    "must be set if sdist or wheels are set"
+                )
+        else:
+            # no sdist nor wheels
+            if not _exactly_one([self.vcs, self.directory, self.archive]):
+                raise PylockValidationError(
+                    "Exactly one of vcs, directory, archive must be set "
+                    "if sdist and wheels are not set"
+                )
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:

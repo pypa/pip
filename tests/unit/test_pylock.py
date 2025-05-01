@@ -9,7 +9,17 @@ from pip._internal.models.pylock import (
     PylockRequiredKeyError,
     PylockUnsupportedVersionError,
     PylockValidationError,
+    _exactly_one,
 )
+
+
+def test_exactly_one() -> None:
+    assert not _exactly_one([])
+    assert not _exactly_one([False])
+    assert not _exactly_one([False, False])
+    assert not _exactly_one([True, True])
+    assert _exactly_one([True])
+    assert _exactly_one([True, False])
 
 
 @pytest.mark.parametrize("version", ["1.0", "1.1"])
@@ -81,9 +91,9 @@ def test_pylock_packages_without_dist() -> None:
     }
     with pytest.raises(PylockValidationError) as exc_info:
         Pylock.from_dict(data)
-    assert (
-        str(exc_info.value)
-        == "Exactly one of vcs, directory, archive, sdist, wheels must be set"
+    assert str(exc_info.value) == (
+        "Exactly one of vcs, directory, archive must be set "
+        "if sdist and wheels are not set"
     )
 
 
