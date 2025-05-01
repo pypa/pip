@@ -8,7 +8,7 @@ import sys
 import textwrap
 from email import message_from_string
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Optional, cast
 from unittest.mock import patch
 
 import pytest
@@ -39,7 +39,7 @@ from tests.lib.wheel import make_wheel
 
 
 def call_get_legacy_build_wheel_path(
-    caplog: pytest.LogCaptureFixture, names: List[str]
+    caplog: pytest.LogCaptureFixture, names: list[str]
 ) -> Optional[str]:
     wheel_path = get_legacy_build_wheel_path(
         names=names,
@@ -172,19 +172,19 @@ def test_get_entrypoints_no_entrypoints(tmp_path: pathlib.Path) -> None:
     ],
 )
 def test_normalized_outrows(
-    outrows: List[Tuple[RecordPath, str, str]], expected: List[Tuple[str, str, str]]
+    outrows: list[tuple[RecordPath, str, str]], expected: list[tuple[str, str, str]]
 ) -> None:
     actual = wheel._normalized_outrows(outrows)
     assert actual == expected
 
 
-def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> List[InstalledCSVRow]:
+def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> list[InstalledCSVRow]:
     path = tmpdir.joinpath("temp.txt")
     path.write_text(text)
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
-    installed = cast(Dict[RecordPath, RecordPath], {"a": "z"})
+    installed = cast(dict[RecordPath, RecordPath], {"a": "z"})
     lib_dir = "/lib/dir"
 
     with open(path, **wheel.csv_io_kwargs("r")) as f:
@@ -524,7 +524,7 @@ class TestMessageAboutScriptsNotOnPATH:
         "which may not be expanded by all applications."
     )
 
-    def _template(self, paths: List[str], scripts: List[str]) -> Optional[str]:
+    def _template(self, paths: list[str], scripts: list[str]) -> Optional[str]:
         with patch.dict("os.environ", {"PATH": os.pathsep.join(paths)}):
             return wheel.message_about_scripts_not_on_PATH(scripts)
 

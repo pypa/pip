@@ -1,7 +1,6 @@
 import sys
 import textwrap
 from optparse import Values
-from typing import List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
@@ -119,7 +118,7 @@ class CompletionCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ["--" + shell for shell in sorted(shells)]

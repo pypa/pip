@@ -1,7 +1,8 @@
 """Legacy editable installation process, i.e. `setup.py develop`."""
 
 import logging
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.utils.logging import indent_log

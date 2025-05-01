@@ -16,16 +16,11 @@ import subprocess
 import sys
 import urllib.parse
 import warnings
+from collections.abc import Generator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Generator,
-    List,
-    Mapping,
     Optional,
-    Sequence,
-    Tuple,
     Union,
 )
 
@@ -58,14 +53,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SecureOrigin = Tuple[str, str, Optional[Union[int, str]]]
+SecureOrigin = tuple[str, str, Optional[Union[int, str]]]
 
 
 # Ignore warning raised when using --trusted-host.
 warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
-SECURE_ORIGINS: List[SecureOrigin] = [
+SECURE_ORIGINS: list[SecureOrigin] = [
     # protocol, hostname, port
     # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
     ("https", "*", "*"),
@@ -112,7 +107,7 @@ def user_agent() -> str:
     """
     Return a string representing the user agent.
     """
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "installer": {"name": "pip", "version": __version__},
         "python": platform.python_version(),
         "implementation": {
@@ -140,7 +135,7 @@ def user_agent() -> str:
         from pip._vendor import distro
 
         linux_distribution = distro.name(), distro.version(), distro.codename()
-        distro_infos: Dict[str, Any] = dict(
+        distro_infos: dict[str, Any] = dict(
             filter(
                 lambda x: x[1],
                 zip(["name", "version", "id"], linux_distribution),
@@ -214,9 +209,9 @@ class LocalFSAdapter(BaseAdapter):
         self,
         request: PreparedRequest,
         stream: bool = False,
-        timeout: Optional[Union[float, Tuple[float, float]]] = None,
+        timeout: Optional[Union[float, tuple[float, float]]] = None,
         verify: Union[bool, str] = True,
-        cert: Optional[Union[str, Tuple[str, str]]] = None,
+        cert: Optional[Union[str, tuple[str, str]]] = None,
         proxies: Optional[Mapping[str, str]] = None,
     ) -> Response:
         pathname = url_to_path(request.url)
@@ -301,7 +296,7 @@ class InsecureHTTPAdapter(HTTPAdapter):
         conn: ConnectionPool,
         url: str,
         verify: Union[bool, str],
-        cert: Optional[Union[str, Tuple[str, str]]],
+        cert: Optional[Union[str, tuple[str, str]]],
     ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
@@ -312,7 +307,7 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
         conn: ConnectionPool,
         url: str,
         verify: Union[bool, str],
-        cert: Optional[Union[str, Tuple[str, str]]],
+        cert: Optional[Union[str, tuple[str, str]]],
     ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
@@ -326,7 +321,7 @@ class PipSession(requests.Session):
         retries: int = 0,
         cache: Optional[str] = None,
         trusted_hosts: Sequence[str] = (),
-        index_urls: Optional[List[str]] = None,
+        index_urls: Optional[list[str]] = None,
         ssl_context: Optional["SSLContext"] = None,
         **kwargs: Any,
     ) -> None:
@@ -338,7 +333,7 @@ class PipSession(requests.Session):
 
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
-        self.pip_trusted_origins: List[Tuple[str, Optional[int]]] = []
+        self.pip_trusted_origins: list[tuple[str, Optional[int]]] = []
         self.pip_proxy = None
 
         # Attach our User Agent to the request
@@ -401,7 +396,7 @@ class PipSession(requests.Session):
         for host in trusted_hosts:
             self.add_trusted_host(host, suppress_logging=True)
 
-    def update_index_urls(self, new_index_urls: List[str]) -> None:
+    def update_index_urls(self, new_index_urls: list[str]) -> None:
         """
         :param new_index_urls: New index urls to update the authentication
             handler with.

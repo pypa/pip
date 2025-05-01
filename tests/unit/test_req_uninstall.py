@@ -1,7 +1,8 @@
 import os
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, List, Optional, Tuple
+from typing import Optional
 from unittest.mock import Mock
 
 import pytest
@@ -56,7 +57,7 @@ def test_uninstallation_paths() -> None:
 
 
 def test_compressed_listing(tmpdir: Path) -> None:
-    def in_tmpdir(paths: List[str]) -> List[str]:
+    def in_tmpdir(paths: list[str]) -> list[str]:
         return [
             str(os.path.join(tmpdir, path.replace("/", os.path.sep))) for path in paths
         ]
@@ -239,7 +240,7 @@ class TestUninstallPathSet:
 
 
 class TestStashedUninstallPathSet:
-    WALK_RESULT: List[Tuple[str, List[str], List[str]]] = [
+    WALK_RESULT: list[tuple[str, list[str], list[str]]] = [
         ("A", ["B", "C"], ["a.py"]),
         ("A/B", ["D"], ["b.py"]),
         ("A/B/D", [], ["c.py"]),
@@ -251,7 +252,7 @@ class TestStashedUninstallPathSet:
     ]
 
     @classmethod
-    def mock_walk(cls, root: str) -> Iterator[Tuple[str, List[str], List[str]]]:
+    def mock_walk(cls, root: str) -> Iterator[tuple[str, list[str], list[str]]]:
         for dirname, subdirs, files in cls.WALK_RESULT:
             dirname = os.path.sep.join(dirname.split("/"))
             if dirname.startswith(root):
@@ -286,8 +287,8 @@ class TestStashedUninstallPathSet:
 
     @classmethod
     def make_stash(
-        cls, tmpdir: Path, paths: List[str]
-    ) -> Tuple[StashedUninstallPathSet, List[Tuple[str, str]]]:
+        cls, tmpdir: Path, paths: list[str]
+    ) -> tuple[StashedUninstallPathSet, list[tuple[str, str]]]:
         for dirname, subdirs, files in cls.WALK_RESULT:
             root = os.path.join(tmpdir, *dirname.split("/"))
             if not os.path.exists(root):

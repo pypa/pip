@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -25,7 +25,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
     """
     _real_session = PipSession()
 
-    def _fake_session_get(*args: Any, **kwargs: Any) -> Dict[str, str]:
+    def _fake_session_get(*args: Any, **kwargs: Any) -> dict[str, str]:
         resp = _real_session.get(*args, **kwargs)
         del resp.headers["Content-Type"]
         return resp

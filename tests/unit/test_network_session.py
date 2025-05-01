@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Optional
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -231,7 +231,7 @@ class TestPipSession:
         self,
         caplog: pytest.LogCaptureFixture,
         location: str,
-        trusted: List[str],
+        trusted: list[str],
         expected: bool,
     ) -> None:
         class MockLogger:

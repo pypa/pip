@@ -4,9 +4,10 @@ import logging
 import os
 import re
 import textwrap
+from collections.abc import Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Any, Iterator, List, Optional, Protocol, Tuple, Union
+from typing import Any, Optional, Protocol, Union
 from unittest import mock
 
 import pytest
@@ -201,7 +202,7 @@ class LineProcessor(Protocol):
         options: Optional[Values] = None,
         session: Optional[PipSession] = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]: ...
+    ) -> list[InstallRequirement]: ...
 
 
 @pytest.fixture
@@ -214,7 +215,7 @@ def line_processor(monkeypatch: pytest.MonkeyPatch, tmpdir: Path) -> LineProcess
         options: Optional[Values] = None,
         session: Optional[PipSession] = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         if session is None:
             session = PipSession()
 
@@ -587,7 +588,7 @@ class TestProcessLine:
 
         def get_file_content(
             filename: str, *args: Any, **kwargs: Any
-        ) -> Tuple[None, str]:
+        ) -> tuple[None, str]:
             if filename == req_file:
                 return None, "-r reqs.txt"
             elif filename == "http://me.com/me/reqs.txt":
@@ -656,7 +657,7 @@ class TestProcessLine:
 
         def get_file_content(
             filename: str, *args: Any, **kwargs: Any
-        ) -> Tuple[None, str]:
+        ) -> tuple[None, str]:
             if filename == str(req_file):
                 return None, f"-r {nested_req_file}"
             elif filename == nested_req_file:

@@ -5,18 +5,12 @@ import os
 import shutil
 import sys
 import urllib.parse
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import (
     Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
     Optional,
-    Tuple,
-    Type,
     Union,
 )
 
@@ -44,7 +38,7 @@ __all__ = ["vcs"]
 
 logger = logging.getLogger(__name__)
 
-AuthInfo = Tuple[Optional[str], Optional[str]]
+AuthInfo = tuple[Optional[str], Optional[str]]
 
 
 def is_url(name: str) -> bool:
@@ -126,7 +120,7 @@ class RevOptions:
         extra_args: a list of extra options.
     """
 
-    vc_class: Type["VersionControl"]
+    vc_class: type["VersionControl"]
     rev: Optional[str] = None
     extra_args: CommandArgs = field(default_factory=list)
     branch_name: Optional[str] = None
@@ -170,7 +164,7 @@ class RevOptions:
 
 
 class VcsSupport:
-    _registry: Dict[str, "VersionControl"] = {}
+    _registry: dict[str, "VersionControl"] = {}
     schemes = ["ssh", "git", "hg", "bzr", "sftp", "svn"]
 
     def __init__(self) -> None:
@@ -183,21 +177,21 @@ class VcsSupport:
         return self._registry.__iter__()
 
     @property
-    def backends(self) -> List["VersionControl"]:
+    def backends(self) -> list["VersionControl"]:
         return list(self._registry.values())
 
     @property
-    def dirnames(self) -> List[str]:
+    def dirnames(self) -> list[str]:
         return [backend.dirname for backend in self.backends]
 
     @property
-    def all_schemes(self) -> List[str]:
-        schemes: List[str] = []
+    def all_schemes(self) -> list[str]:
+        schemes: list[str] = []
         for backend in self.backends:
             schemes.extend(backend.schemes)
         return schemes
 
-    def register(self, cls: Type["VersionControl"]) -> None:
+    def register(self, cls: type["VersionControl"]) -> None:
         if not hasattr(cls, "name"):
             logger.warning("Cannot register VCS %s", cls.__name__)
             return
@@ -257,9 +251,9 @@ class VersionControl:
     dirname = ""
     repo_name = ""
     # List of supported schemes for this Version Control
-    schemes: Tuple[str, ...] = ()
+    schemes: tuple[str, ...] = ()
     # Iterable of environment variable names to pass to call_subprocess().
-    unset_environ: Tuple[str, ...] = ()
+    unset_environ: tuple[str, ...] = ()
     default_arg_rev: Optional[str] = None
 
     @classmethod
@@ -310,7 +304,7 @@ class VersionControl:
         return req
 
     @staticmethod
-    def get_base_rev_args(rev: str) -> List[str]:
+    def get_base_rev_args(rev: str) -> list[str]:
         """
         Return the base revision arguments for a vcs command.
 
@@ -357,7 +351,7 @@ class VersionControl:
     @classmethod
     def get_netloc_and_auth(
         cls, netloc: str, scheme: str
-    ) -> Tuple[str, Tuple[Optional[str], Optional[str]]]:
+    ) -> tuple[str, tuple[Optional[str], Optional[str]]]:
         """
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.
@@ -376,7 +370,7 @@ class VersionControl:
         return netloc, (None, None)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
+    def get_url_rev_and_auth(cls, url: str) -> tuple[str, Optional[str], AuthInfo]:
         """
         Parse the repository URL to use, and return the URL, revision,
         and auth info to use.
@@ -414,7 +408,7 @@ class VersionControl:
         """
         return []
 
-    def get_url_rev_options(self, url: HiddenText) -> Tuple[HiddenText, RevOptions]:
+    def get_url_rev_options(self, url: HiddenText) -> tuple[HiddenText, RevOptions]:
         """
         Return the URL and RevOptions object to use in obtain(),
         as a tuple (url, rev_options).
@@ -608,7 +602,7 @@ class VersionControl:
     @classmethod
     def run_command(
         cls,
-        cmd: Union[List[str], CommandArgs],
+        cmd: Union[list[str], CommandArgs],
         show_stdout: bool = True,
         cwd: Optional[str] = None,
         on_returncode: 'Literal["raise", "warn", "ignore"]' = "raise",

@@ -4,8 +4,9 @@ import email.message
 import logging
 import mimetypes
 import os
+from collections.abc import Iterable
 from http import HTTPStatus
-from typing import BinaryIO, Iterable, Optional, Tuple
+from typing import BinaryIO, Optional
 
 from pip._vendor.requests.models import Response
 from pip._vendor.urllib3.exceptions import ReadTimeoutError
@@ -169,7 +170,7 @@ class Downloader:
         self._progress_bar = progress_bar
         self._resume_retries = resume_retries
 
-    def __call__(self, link: Link, location: str) -> Tuple[str, str]:
+    def __call__(self, link: Link, location: str) -> tuple[str, str]:
         """Download the file given by link into location."""
         resp = _http_get_download(self._session, link)
         # NOTE: The original download size needs to be passed down everywhere
@@ -285,7 +286,7 @@ class Downloader:
         self,
         resp: Response,
         content_file: BinaryIO,
-    ) -> Tuple[int, Optional[int], Optional[str]]:
+    ) -> tuple[int, Optional[int], Optional[str]]:
         """Reset the download state to restart downloading from the beginning."""
         content_file.seek(0)
         content_file.truncate()
@@ -307,7 +308,7 @@ class BatchDownloader:
 
     def __call__(
         self, links: Iterable[Link], location: str
-    ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
+    ) -> Iterable[tuple[Link, tuple[str, str]]]:
         """Download the files given by links into location."""
         for link in links:
             filepath, content_type = self._downloader(link, location)

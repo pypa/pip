@@ -4,8 +4,9 @@ import optparse
 import pathlib
 import re
 import sys
+from collections.abc import Iterable, Iterator
 from textwrap import dedent
-from typing import Dict, Iterable, Iterator, List, Optional, Union
+from typing import Optional, Union
 
 from docutils import nodes, statemachine
 from docutils.parsers import rst
@@ -24,7 +25,7 @@ def convert_cli_option_to_envvar(opt_name: str) -> str:
     return f"PIP_{normalized_opt_name}"
 
 
-def convert_cli_opt_names_to_envvars(original_cli_opt_names: List[str]) -> List[str]:
+def convert_cli_opt_names_to_envvars(original_cli_opt_names: list[str]) -> list[str]:
     return [
         convert_cli_option_to_envvar(opt_name) for opt_name in original_cli_opt_names
     ]
@@ -69,7 +70,7 @@ class PipNewsInclude(rst.Directive):
         if prev is not None:
             yield prev
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         source = self.state_machine.input_lines.source(
             self.lineno - self.state_machine.input_offset - 1,
         )
@@ -90,7 +91,7 @@ class PipCommandUsage(rst.Directive):
     required_arguments = 1
     optional_arguments = 3
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         cmd = create_command(self.arguments[0])
         cmd_prefix = "python -m pip"
         if len(self.arguments) > 1:
@@ -105,7 +106,7 @@ class PipCommandUsage(rst.Directive):
 class PipCommandDescription(rst.Directive):
     required_arguments = 1
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
         desc = ViewList()
@@ -121,7 +122,7 @@ class PipCommandDescription(rst.Directive):
 class PipOptions(rst.Directive):
     def _format_option(
         self, option: optparse.Option, cmd_name: Optional[str] = None
-    ) -> List[str]:
+    ) -> list[str]:
         bookmark_line = (
             f".. _`{cmd_name}_{option._long_opts[0]}`:"
             if cmd_name
@@ -165,7 +166,7 @@ class PipOptions(rst.Directive):
             for line in self._format_option(option, cmd_name):
                 self.view_list.append(line, "")
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
         self.view_list = ViewList()
@@ -242,7 +243,7 @@ class PipCLIDirective(rst.Directive):
     has_content = True
     optional_arguments = 1
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
 
@@ -310,7 +311,7 @@ class PipCLIDirective(rst.Directive):
         return [node]
 
 
-def setup(app: Sphinx) -> Dict[str, Union[bool, str]]:
+def setup(app: Sphinx) -> dict[str, Union[bool, str]]:
     app.add_directive("pip-command-usage", PipCommandUsage)
     app.add_directive("pip-command-description", PipCommandDescription)
     app.add_directive("pip-command-options", PipCommandOptions)

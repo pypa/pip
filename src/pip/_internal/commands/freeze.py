@@ -1,6 +1,6 @@
 import sys
 from optparse import Values
-from typing import AbstractSet, List
+from typing import AbstractSet
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
@@ -85,7 +85,7 @@ class FreezeCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         skip = set(stdlib_pkgs)
         if not options.freeze_all:
             skip.update(_dev_pkgs())

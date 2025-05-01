@@ -1,5 +1,6 @@
+from collections.abc import Generator
 from contextlib import ExitStack, contextmanager
-from typing import ContextManager, Generator, TypeVar
+from typing import ContextManager, TypeVar
 
 _T = TypeVar("_T", covariant=True)
 

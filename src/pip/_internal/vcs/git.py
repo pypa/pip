@@ -5,7 +5,7 @@ import re
 import urllib.parse
 import urllib.request
 from dataclasses import replace
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path, hide_url
@@ -74,7 +74,7 @@ class Git(VersionControl):
     default_arg_rev = "HEAD"
 
     @staticmethod
-    def get_base_rev_args(rev: str) -> List[str]:
+    def get_base_rev_args(rev: str) -> list[str]:
         return [rev]
 
     @classmethod
@@ -100,7 +100,7 @@ class Git(VersionControl):
         is_tag_or_branch = bool(self.get_revision_sha(dest, rev_options.rev)[0])
         return not is_tag_or_branch
 
-    def get_git_version(self) -> Tuple[int, ...]:
+    def get_git_version(self) -> tuple[int, ...]:
         version = self.run_command(
             ["version"],
             command_desc="git version",
@@ -139,7 +139,7 @@ class Git(VersionControl):
         return None
 
     @classmethod
-    def get_revision_sha(cls, dest: str, rev: str) -> Tuple[Optional[str], bool]:
+    def get_revision_sha(cls, dest: str, rev: str) -> tuple[Optional[str], bool]:
         """
         Return (sha_or_none, is_branch), where sha_or_none is a commit hash
         if the revision names a remote branch or tag, otherwise None.
@@ -274,7 +274,7 @@ class Git(VersionControl):
         rev_display = rev_options.to_display()
         logger.info("Cloning %s%s to %s", url, rev_display, display_path(dest))
         if verbosity <= 0:
-            flags: Tuple[str, ...] = ("--quiet",)
+            flags: tuple[str, ...] = ("--quiet",)
         elif verbosity == 1:
             flags = ()
         else:
@@ -463,7 +463,7 @@ class Git(VersionControl):
         return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
+    def get_url_rev_and_auth(cls, url: str) -> tuple[str, Optional[str], AuthInfo]:
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't

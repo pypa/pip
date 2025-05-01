@@ -5,7 +5,7 @@ import textwrap
 import xmlrpc.client
 from collections import OrderedDict
 from optparse import Values
-from typing import Dict, List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -24,7 +24,7 @@ from pip._internal.utils.misc import write_output
 class TransformedHit(TypedDict):
     name: str
     summary: str
-    versions: List[str]
+    versions: list[str]
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class SearchCommand(Command, SessionCommandMixin):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         if not args:
             raise CommandError("Missing required argument (search query).")
         query = args
@@ -65,7 +65,7 @@ class SearchCommand(Command, SessionCommandMixin):
             return SUCCESS
         return NO_MATCHES_FOUND
 
-    def search(self, query: List[str], options: Values) -> List[Dict[str, str]]:
+    def search(self, query: list[str], options: Values) -> list[dict[str, str]]:
         index_url = options.index
 
         session = self.get_default_session(options)
@@ -83,13 +83,13 @@ class SearchCommand(Command, SessionCommandMixin):
         return hits
 
 
-def transform_hits(hits: List[Dict[str, str]]) -> List["TransformedHit"]:
+def transform_hits(hits: list[dict[str, str]]) -> list["TransformedHit"]:
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
     list from pypi into one we can use.
     """
-    packages: Dict[str, TransformedHit] = OrderedDict()
+    packages: dict[str, TransformedHit] = OrderedDict()
     for hit in hits:
         name = hit["name"]
         summary = hit["summary"]
@@ -134,7 +134,7 @@ def get_installed_distribution(name: str) -> Optional[BaseDistribution]:
 
 
 def print_results(
-    hits: List["TransformedHit"],
+    hits: list["TransformedHit"],
     name_column_width: Optional[int] = None,
     terminal_width: Optional[int] = None,
 ) -> None:
@@ -172,5 +172,5 @@ def print_results(
             pass
 
 
-def highest_version(versions: List[str]) -> str:
+def highest_version(versions: list[str]) -> str:
     return max(versions, key=parse_version)

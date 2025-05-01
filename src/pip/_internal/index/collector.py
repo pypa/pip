@@ -11,20 +11,15 @@ import logging
 import os
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable, MutableMapping, Sequence
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
     Callable,
-    Dict,
-    Iterable,
-    List,
-    MutableMapping,
     NamedTuple,
     Optional,
     Protocol,
-    Sequence,
-    Tuple,
     Union,
 )
 
@@ -207,12 +202,12 @@ def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
     `page` has `page.cache_link_parsing == False`.
     """
 
-    @functools.lru_cache(maxsize=None)
-    def wrapper(cacheable_page: CacheablePageContent) -> List[Link]:
+    @functools.cache
+    def wrapper(cacheable_page: CacheablePageContent) -> list[Link]:
         return list(fn(cacheable_page.page))
 
     @functools.wraps(fn)
-    def wrapper_wrapper(page: "IndexContent") -> List[Link]:
+    def wrapper_wrapper(page: "IndexContent") -> list[Link]:
         if page.cache_link_parsing:
             return wrapper(CacheablePageContent(page))
         return list(fn(page))
@@ -281,9 +276,9 @@ class HTMLLinkParser(HTMLParser):
 
         self.url: str = url
         self.base_url: Optional[str] = None
-        self.anchors: List[Dict[str, Optional[str]]] = []
+        self.anchors: list[dict[str, Optional[str]]] = []
 
-    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
         if tag == "base" and self.base_url is None:
             href = self.get_href(attrs)
             if href is not None:
@@ -291,7 +286,7 @@ class HTMLLinkParser(HTMLParser):
         elif tag == "a":
             self.anchors.append(dict(attrs))
 
-    def get_href(self, attrs: List[Tuple[str, Optional[str]]]) -> Optional[str]:
+    def get_href(self, attrs: list[tuple[str, Optional[str]]]) -> Optional[str]:
         for name, value in attrs:
             if name == "href":
                 return value
@@ -438,7 +433,7 @@ class LinkCollector:
         return link_collector
 
     @property
-    def find_links(self) -> List[str]:
+    def find_links(self) -> list[str]:
         return self.search_scope.find_links
 
     def fetch_response(self, location: Link) -> Optional[IndexContent]:

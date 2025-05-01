@@ -1,5 +1,6 @@
 import math
-from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Optional
 
 import pytest
 
@@ -153,9 +154,9 @@ def build_explicit_req_info(
 )
 def test_get_preference(
     identifier: str,
-    information: Dict[str, Iterable["PreferenceInformation"]],
+    information: dict[str, Iterable["PreferenceInformation"]],
     backtrack_causes: Sequence["PreferenceInformation"],
-    user_requested: Dict[str, int],
+    user_requested: dict[str, int],
     expected: "Preference",
     factory: Factory,
 ) -> None:
@@ -216,9 +217,9 @@ def test_get_preference(
     ],
 )
 def test_narrow_requirement_selection(
-    identifiers: List[str],
+    identifiers: list[str],
     backtrack_causes: Sequence["PreferenceInformation"],
-    expected: List[str],
+    expected: list[str],
     factory: Factory,
 ) -> None:
     """Test that narrow_requirement_selection correctly prioritizes identifiers:

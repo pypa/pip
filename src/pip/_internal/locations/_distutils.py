@@ -21,7 +21,7 @@ from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
 from distutils.sysconfig import get_python_lib
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -41,13 +41,13 @@ def distutils_scheme(
     prefix: Optional[str] = None,
     *,
     ignore_config_files: bool = False,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Return a distutils install scheme
     """
     from distutils.dist import Distribution
 
-    dist_args: Dict[str, Union[str, List[str]]] = {"name": dist_name}
+    dist_args: dict[str, Union[str, list[str]]] = {"name": dist_name}
     if isolated:
         dist_args["script_args"] = ["--no-user-cfg"]
 
@@ -78,7 +78,7 @@ def distutils_scheme(
     i.root = root or i.root
     i.finalize_options()
 
-    scheme: Dict[str, str] = {}
+    scheme: dict[str, str] = {}
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, "install_" + key)
 

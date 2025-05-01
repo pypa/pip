@@ -17,7 +17,7 @@ CommandInfo = namedtuple("CommandInfo", "module_path, class_name, summary")
 # Even though the module path starts with the same "pip._internal.commands"
 # prefix, the full path makes testing easier (specifically when modifying
 # `commands_dict` in test setup / teardown).
-commands_dict: Dict[str, CommandInfo] = {
+commands_dict: dict[str, CommandInfo] = {
     "install": CommandInfo(
         "pip._internal.commands.install",
         "InstallCommand",

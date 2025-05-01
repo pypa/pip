@@ -8,6 +8,7 @@ import subprocess
 import sys
 import textwrap
 from base64 import urlsafe_b64encode
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO, StringIO
@@ -17,11 +18,8 @@ from typing import (
     AnyStr,
     Callable,
     Dict,
-    Iterable,
-    Iterator,
     List,
     Literal,
-    Mapping,
     Optional,
     Protocol,
     Tuple,
@@ -60,7 +58,7 @@ pyversion = get_major_minor_version()
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
 _Test = Callable[..., None]
-_FilesState = Dict[str, Union[FoundDir, FoundFile]]
+_FilesState = dict[str, Union[FoundDir, FoundFile]]
 
 
 def assert_paths_equal(actual: str, expected: str) -> None:
@@ -80,8 +78,8 @@ def create_file(path: str, contents: Optional[str] = None) -> None:
 
 
 def make_test_search_scope(
-    find_links: Optional[List[str]] = None,
-    index_urls: Optional[List[str]] = None,
+    find_links: Optional[list[str]] = None,
+    index_urls: Optional[list[str]] = None,
 ) -> SearchScope:
     if find_links is None:
         find_links = []
@@ -96,8 +94,8 @@ def make_test_search_scope(
 
 
 def make_test_link_collector(
-    find_links: Optional[List[str]] = None,
-    index_urls: Optional[List[str]] = None,
+    find_links: Optional[list[str]] = None,
+    index_urls: Optional[list[str]] = None,
     session: Optional[PipSession] = None,
 ) -> LinkCollector:
     """
@@ -115,8 +113,8 @@ def make_test_link_collector(
 
 
 def make_test_finder(
-    find_links: Optional[List[str]] = None,
-    index_urls: Optional[List[str]] = None,
+    find_links: Optional[list[str]] = None,
+    index_urls: Optional[list[str]] = None,
     allow_all_prereleases: bool = False,
     session: Optional[PipSession] = None,
     target_python: Optional[TargetPython] = None,
@@ -305,7 +303,7 @@ class TestPipResult:
     def files_deleted(self) -> FoundFiles:
         return FoundFiles(self._impl.files_deleted)
 
-    def _get_egg_link_path_created(self, egg_link_paths: List[str]) -> Optional[str]:
+    def _get_egg_link_path_created(self, egg_link_paths: list[str]) -> Optional[str]:
         for egg_link_path in egg_link_paths:
             if egg_link_path in self.files_created:
                 return egg_link_path
@@ -315,8 +313,8 @@ class TestPipResult:
         self,
         pkg_name: str,
         editable: bool = True,
-        with_files: Optional[List[str]] = None,
-        without_files: Optional[List[str]] = None,
+        with_files: Optional[list[str]] = None,
+        without_files: Optional[list[str]] = None,
         without_egg_link: bool = False,
         use_user_site: bool = False,
         sub_dir: Optional[str] = None,
@@ -617,7 +615,7 @@ class PipTestEnvironment(TestFileEnvironment):
             result = super()._ignore_file(fn)
         return result
 
-    def _find_traverse(self, path: str, result: Dict[str, FoundDir]) -> None:
+    def _find_traverse(self, path: str, result: dict[str, FoundDir]) -> None:
         # Ignore symlinked directories to avoid duplicates in `run()`
         # results because of venv `lib64 -> lib/` symlink on Linux.
         full = os.path.join(self.base_path, path)
@@ -777,7 +775,7 @@ class PipTestEnvironment(TestFileEnvironment):
 # multiple commands.  Maybe should be rolled into ScriptTest?
 def diff_states(
     start: _FilesState, end: _FilesState, ignore: Iterable[StrPath] = ()
-) -> Dict[str, _FilesState]:
+) -> dict[str, _FilesState]:
     """
     Differences two "filesystem states" as represented by dictionaries
     of FoundFile and FoundDir objects.
@@ -823,8 +821,8 @@ def diff_states(
 def assert_all_changes(
     start_state: Union[_FilesState, TestPipResult],
     end_state: Union[_FilesState, TestPipResult],
-    expected_changes: List[StrPath],
-) -> Dict[str, _FilesState]:
+    expected_changes: list[StrPath],
+) -> dict[str, _FilesState]:
     """
     Fails if anything changed that isn't listed in the
     expected_changes.
@@ -1177,10 +1175,10 @@ def create_basic_wheel_for_package(
     script: PipTestEnvironment,
     name: str,
     version: str,
-    depends: Optional[List[str]] = None,
-    extras: Optional[Dict[str, List[str]]] = None,
+    depends: Optional[list[str]] = None,
+    extras: Optional[dict[str, list[str]]] = None,
     requires_python: Optional[str] = None,
-    extra_files: Optional[Dict[str, Union[bytes, str]]] = None,
+    extra_files: Optional[dict[str, Union[bytes, str]]] = None,
 ) -> pathlib.Path:
     if depends is None:
         depends = []
@@ -1211,7 +1209,7 @@ def create_basic_wheel_for_package(
         for package in packages
     ]
 
-    metadata_updates: Dict[str, Any] = {
+    metadata_updates: dict[str, Any] = {
         "Provides-Extra": list(extras),
         "Requires-Dist": requires_dist,
     }
@@ -1237,11 +1235,11 @@ def create_basic_sdist_for_package(
     script: PipTestEnvironment,
     name: str,
     version: str,
-    extra_files: Optional[Dict[str, str]] = None,
+    extra_files: Optional[dict[str, str]] = None,
     *,
     fails_egg_info: bool = False,
     fails_bdist_wheel: bool = False,
-    depends: Optional[List[str]] = None,
+    depends: Optional[list[str]] = None,
     setup_py_prelude: str = "",
 ) -> pathlib.Path:
     files = {
@@ -1301,7 +1299,7 @@ def create_basic_sdist_for_package(
     return retval
 
 
-def need_executable(name: str, check_cmd: Tuple[str, ...]) -> Callable[[_Test], _Test]:
+def need_executable(name: str, check_cmd: tuple[str, ...]) -> Callable[[_Test], _Test]:
     def wrapper(fn: _Test) -> _Test:
         try:
             subprocess.check_output(check_cmd)
@@ -1374,7 +1372,7 @@ class ScriptFactory(Protocol):
         self,
         tmpdir: pathlib.Path,
         virtualenv: Optional[VirtualEnvironment] = None,
-        environ: Optional[Dict[AnyStr, AnyStr]] = None,
+        environ: Optional[dict[AnyStr, AnyStr]] = None,
     ) -> PipTestEnvironment: ...
 
 

@@ -1,7 +1,8 @@
 """Helper classes as mocks for requests objects."""
 
+from collections.abc import Iterator
 from io import BytesIO
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any, Callable, Optional
 
 _Hook = Callable[["MockResponse"], None]
 
@@ -33,7 +34,7 @@ class MockResponse:
         self.reason = "OK"
         self.status_code = 200
         self.headers = {"Content-Length": str(len(contents))}
-        self.history: List[MockResponse] = []
+        self.history: list[MockResponse] = []
         self.from_cache = False
 
 
@@ -51,8 +52,8 @@ class MockConnection:
 class MockRequest:
     def __init__(self, url: str) -> None:
         self.url = url
-        self.headers: Dict[str, str] = {}
-        self.hooks: Dict[str, List[_Hook]] = {}
+        self.headers: dict[str, str] = {}
+        self.hooks: dict[str, list[_Hook]] = {}
 
     def register_hook(self, event_name: str, callback: _Hook) -> None:
         self.hooks.setdefault(event_name, []).append(callback)

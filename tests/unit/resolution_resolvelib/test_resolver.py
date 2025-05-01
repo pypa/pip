@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set, Tuple, cast
+from typing import Optional, cast
 from unittest import mock
 
 import pytest
@@ -35,7 +35,7 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
 
 
 def _make_graph(
-    edges: List[Tuple[Optional[str], Optional[str]]],
+    edges: list[tuple[Optional[str], Optional[str]]],
 ) -> "DirectedGraph[Optional[str]]":
     """Build graph from edge declarations."""
 
@@ -84,8 +84,8 @@ def _make_graph(
 )
 def test_new_resolver_get_installation_order(
     resolver: Resolver,
-    edges: List[Tuple[Optional[str], Optional[str]]],
-    ordered_reqs: List[str],
+    edges: list[tuple[Optional[str], Optional[str]]],
+    ordered_reqs: list[str],
 ) -> None:
     graph = _make_graph(edges)
 
@@ -290,9 +290,9 @@ def test_new_resolver_get_installation_order(
 )
 def test_new_resolver_topological_weights(
     name: str,
-    edges: List[Tuple[Optional[str], Optional[str]]],
-    requirement_keys: Set[str],
-    expected_weights: Dict[Optional[str], int],
+    edges: list[tuple[Optional[str], Optional[str]]],
+    requirement_keys: set[str],
+    expected_weights: dict[Optional[str], int],
 ) -> None:
     graph = _make_graph(edges)
 

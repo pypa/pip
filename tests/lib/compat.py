@@ -2,7 +2,8 @@
 
 import contextlib
 import signal
-from typing import Callable, ContextManager, Iterator
+from collections.abc import Iterator
+from typing import Callable, ContextManager
 
 # Applies on Windows.
 if not hasattr(signal, "pthread_sigmask"):

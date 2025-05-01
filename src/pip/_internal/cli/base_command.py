@@ -7,7 +7,7 @@ import os
 import sys
 import traceback
 from optparse import Values
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pip._vendor.rich import reconfigure
 from pip._vendor.rich import traceback as rich_traceback
@@ -87,10 +87,10 @@ class Command(CommandContextMixIn):
         # are present.
         assert not hasattr(options, "no_index")
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         raise NotImplementedError
 
-    def _run_wrapper(self, level_number: int, options: Values, args: List[str]) -> int:
+    def _run_wrapper(self, level_number: int, options: Values, args: list[str]) -> int:
         def _inner_run() -> int:
             try:
                 return self.run(options, args)
@@ -147,18 +147,18 @@ class Command(CommandContextMixIn):
 
             return UNKNOWN_ERROR
 
-    def parse_args(self, args: List[str]) -> Tuple[Values, List[str]]:
+    def parse_args(self, args: list[str]) -> tuple[Values, list[str]]:
         # factored out for testability
         return self.parser.parse_args(args)
 
-    def main(self, args: List[str]) -> int:
+    def main(self, args: list[str]) -> int:
         try:
             with self.main_context():
                 return self._main(args)
         finally:
             logging.shutdown()
 
-    def _main(self, args: List[str]) -> int:
+    def _main(self, args: list[str]) -> int:
         # We must initialize this before the tempdir manager, otherwise the
         # configuration would not be accessible by the time we clean up the
         # tempdir manager.

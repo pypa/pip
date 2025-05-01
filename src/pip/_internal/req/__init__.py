@@ -1,7 +1,8 @@
 import collections
 import logging
+from collections.abc import Generator, Sequence
 from dataclasses import dataclass
-from typing import Generator, List, Optional, Sequence, Tuple
+from typing import List, Optional, Tuple
 
 from pip._internal.cli.progress_bars import get_install_progress_renderer
 from pip._internal.utils.logging import indent_log
@@ -26,15 +27,15 @@ class InstallationResult:
 
 
 def _validate_requirements(
-    requirements: List[InstallRequirement],
-) -> Generator[Tuple[str, InstallRequirement], None, None]:
+    requirements: list[InstallRequirement],
+) -> Generator[tuple[str, InstallRequirement], None, None]:
     for req in requirements:
         assert req.name, f"invalid to-be-installed requirement: {req}"
         yield req.name, req
 
 
 def install_given_reqs(
-    requirements: List[InstallRequirement],
+    requirements: list[InstallRequirement],
     global_options: Sequence[str],
     root: Optional[str],
     home: Optional[str],
@@ -43,7 +44,7 @@ def install_given_reqs(
     use_user_site: bool,
     pycompile: bool,
     progress_bar: str,
-) -> List[InstallationResult]:
+) -> list[InstallationResult]:
     """
     Install everything in the given list.
 

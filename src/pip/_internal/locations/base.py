@@ -76,6 +76,6 @@ except AttributeError:
     user_site = site.USER_SITE
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def is_osx_framework() -> bool:
     return bool(sysconfig.get_config_var("PYTHONFRAMEWORK"))

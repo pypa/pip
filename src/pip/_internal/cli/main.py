@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import warnings
-from typing import List, Optional
+from typing import Optional
 
 from pip._internal.cli.autocompletion import autocomplete
 from pip._internal.cli.main_parser import parse_command
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # main, this should not be an issue in practice.
 
 
-def main(args: Optional[List[str]] = None) -> int:
+def main(args: Optional[list[str]] = None) -> int:
     if args is None:
         args = sys.argv[1:]
 

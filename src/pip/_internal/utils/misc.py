@@ -9,6 +9,7 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
+from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial
 from io import StringIO
@@ -19,16 +20,8 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
     Optional,
-    Sequence,
     TextIO,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -64,9 +57,9 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
-VersionInfo = Tuple[int, int, int]
-NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
+ExcInfo = tuple[type[BaseException], BaseException, TracebackType]
+VersionInfo = tuple[int, int, int]
+NetlocTuple = tuple[str, tuple[Optional[str], Optional[str]]]
 OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 
@@ -80,7 +73,7 @@ def get_pip_version() -> str:
     return f"pip {__version__} from {pip_pkg_dir} (python {get_major_minor_version()})"
 
 
-def normalize_version_info(py_version_info: Tuple[int, ...]) -> Tuple[int, int, int]:
+def normalize_version_info(py_version_info: tuple[int, ...]) -> tuple[int, int, int]:
     """
     Convert a tuple of ints representing a Python version to one of length
     three.
@@ -276,7 +269,7 @@ def format_size(bytes: float) -> str:
         return f"{int(bytes)} bytes"
 
 
-def tabulate(rows: Iterable[Iterable[Any]]) -> Tuple[List[str], List[int]]:
+def tabulate(rows: Iterable[Iterable[Any]]) -> tuple[list[str], list[int]]:
     """Return a list of formatted rows and a list of column sizes.
 
     For example::
@@ -331,7 +324,7 @@ def normalize_path(path: str, resolve_symlinks: bool = True) -> str:
     return os.path.normcase(path)
 
 
-def splitext(path: str) -> Tuple[str, str]:
+def splitext(path: str) -> tuple[str, str]:
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
     if base.lower().endswith(".tar"):
@@ -392,7 +385,7 @@ class StreamWrapper(StringIO):
 
 
 # Simulates an enum
-def enum(*sequential: Any, **named: Any) -> Type[Any]:
+def enum(*sequential: Any, **named: Any) -> type[Any]:
     enums = dict(zip(sequential, range(len(sequential))), **named)
     reverse = {value: key for key, value in enums.items()}
     enums["reverse_mapping"] = reverse
@@ -421,7 +414,7 @@ def build_url_from_netloc(netloc: str, scheme: str = "https") -> str:
     return f"{scheme}://{netloc}"
 
 
-def parse_netloc(netloc: str) -> Tuple[Optional[str], Optional[int]]:
+def parse_netloc(netloc: str) -> tuple[Optional[str], Optional[int]]:
     """
     Return the host-port pair from a netloc.
     """
@@ -480,8 +473,8 @@ def redact_netloc(netloc: str) -> str:
 
 
 def _transform_url(
-    url: str, transform_netloc: Callable[[str], Tuple[Any, ...]]
-) -> Tuple[str, NetlocTuple]:
+    url: str, transform_netloc: Callable[[str], tuple[Any, ...]]
+) -> tuple[str, NetlocTuple]:
     """Transform and replace netloc in a url.
 
     transform_netloc is a function taking the netloc and returning a
@@ -503,13 +496,13 @@ def _get_netloc(netloc: str) -> NetlocTuple:
     return split_auth_from_netloc(netloc)
 
 
-def _redact_netloc(netloc: str) -> Tuple[str]:
+def _redact_netloc(netloc: str) -> tuple[str]:
     return (redact_netloc(netloc),)
 
 
 def split_auth_netloc_from_url(
     url: str,
-) -> Tuple[str, str, Tuple[Optional[str], Optional[str]]]:
+) -> tuple[str, str, tuple[Optional[str], Optional[str]]]:
     """
     Parse a url into separate netloc, auth, and url with no auth.
 
@@ -614,7 +607,7 @@ def is_console_interactive() -> bool:
     return sys.stdin is not None and sys.stdin.isatty()
 
 
-def hash_file(path: str, blocksize: int = 1 << 20) -> Tuple[Any, int]:
+def hash_file(path: str, blocksize: int = 1 << 20) -> tuple[Any, int]:
     """Return (hash, length) for path using hashlib.sha256()"""
 
     h = hashlib.sha256()
@@ -626,7 +619,7 @@ def hash_file(path: str, blocksize: int = 1 << 20) -> Tuple[Any, int]:
     return h, length
 
 
-def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
+def pairwise(iterable: Iterable[Any]) -> Iterator[tuple[Any, Any]]:
     """
     Return paired elements.
 
@@ -639,7 +632,7 @@ def pairwise(iterable: Iterable[Any]) -> Iterator[Tuple[Any, Any]]:
 
 def partition(
     pred: Callable[[T], bool], iterable: Iterable[T]
-) -> Tuple[Iterable[T], Iterable[T]]:
+) -> tuple[Iterable[T], Iterable[T]]:
     """
     Use a predicate to partition entries into false entries and true entries,
     like

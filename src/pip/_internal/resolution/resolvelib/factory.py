@@ -1,21 +1,13 @@
 import contextlib
 import functools
 import logging
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Dict,
-    FrozenSet,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
     NamedTuple,
     Optional,
     Protocol,
-    Sequence,
-    Set,
-    Tuple,
     TypeVar,
     cast,
 )
@@ -84,13 +76,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 C = TypeVar("C")
-Cache = Dict[Link, C]
+Cache = dict[Link, C]
 
 
 class CollectedRootRequirements(NamedTuple):
-    requirements: List[Requirement]
-    constraints: Dict[str, Constraint]
-    user_requested: Dict[str, int]
+    requirements: list[Requirement]
+    constraints: dict[str, Constraint]
+    user_requested: dict[str, int]
 
 
 class Factory:
@@ -104,7 +96,7 @@ class Factory:
         force_reinstall: bool,
         ignore_installed: bool,
         ignore_requires_python: bool,
-        py_version_info: Optional[Tuple[int, ...]] = None,
+        py_version_info: Optional[tuple[int, ...]] = None,
     ) -> None:
         self._finder = finder
         self.preparer = preparer
@@ -118,9 +110,9 @@ class Factory:
         self._build_failures: Cache[InstallationError] = {}
         self._link_candidate_cache: Cache[LinkCandidate] = {}
         self._editable_candidate_cache: Cache[EditableCandidate] = {}
-        self._installed_candidate_cache: Dict[str, AlreadyInstalledCandidate] = {}
-        self._extras_candidate_cache: Dict[
-            Tuple[int, FrozenSet[NormalizedName]], ExtrasCandidate
+        self._installed_candidate_cache: dict[str, AlreadyInstalledCandidate] = {}
+        self._extras_candidate_cache: dict[
+            tuple[int, frozenset[NormalizedName]], ExtrasCandidate
         ] = {}
         self._supported_tags_cache = get_supported()
 
@@ -149,7 +141,7 @@ class Factory:
     def _make_extras_candidate(
         self,
         base: BaseCandidate,
-        extras: FrozenSet[str],
+        extras: frozenset[str],
         *,
         comes_from: Optional[InstallRequirement] = None,
     ) -> ExtrasCandidate:
@@ -164,7 +156,7 @@ class Factory:
     def _make_candidate_from_dist(
         self,
         dist: BaseDistribution,
-        extras: FrozenSet[str],
+        extras: frozenset[str],
         template: InstallRequirement,
     ) -> Candidate:
         try:
@@ -179,7 +171,7 @@ class Factory:
     def _make_candidate_from_link(
         self,
         link: Link,
-        extras: FrozenSet[str],
+        extras: frozenset[str],
         template: InstallRequirement,
         name: Optional[NormalizedName],
         version: Optional[Version],
@@ -254,7 +246,7 @@ class Factory:
         specifier: SpecifierSet,
         hashes: Hashes,
         prefers_installed: bool,
-        incompatible_ids: Set[int],
+        incompatible_ids: set[int],
     ) -> Iterable[Candidate]:
         if not ireqs:
             return ()
@@ -267,7 +259,7 @@ class Factory:
         assert template.req, "Candidates found on index must be PEP 508"
         name = canonicalize_name(template.req.name)
 
-        extras: FrozenSet[str] = frozenset()
+        extras: frozenset[str] = frozenset()
         for ireq in ireqs:
             assert ireq.req, "Candidates found on index must be PEP 508"
             specifier &= ireq.req.specifier
@@ -353,7 +345,7 @@ class Factory:
     def _iter_explicit_candidates_from_base(
         self,
         base_requirements: Iterable[Requirement],
-        extras: FrozenSet[str],
+        extras: frozenset[str],
     ) -> Iterator[Candidate]:
         """Produce explicit candidates from the base given an extra-ed package.
 
@@ -404,8 +396,8 @@ class Factory:
         is_satisfied_by: Callable[[Requirement, Candidate], bool],
     ) -> Iterable[Candidate]:
         # Collect basic lookup information from the requirements.
-        explicit_candidates: Set[Candidate] = set()
-        ireqs: List[InstallRequirement] = []
+        explicit_candidates: set[Candidate] = set()
+        ireqs: list[InstallRequirement] = []
         for req in requirements[identifier]:
             cand, ireq = req.get_candidate_lookup()
             if cand is not None:
@@ -524,7 +516,7 @@ class Factory:
                     )
 
     def collect_root_requirements(
-        self, root_ireqs: List[InstallRequirement]
+        self, root_ireqs: list[InstallRequirement]
     ) -> CollectedRootRequirements:
         collected = CollectedRootRequirements([], {}, {})
         for i, ireq in enumerate(root_ireqs):
@@ -679,8 +671,8 @@ class Factory:
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
 
-        versions_set: Set[Version] = set()
-        yanked_versions_set: Set[Version] = set()
+        versions_set: set[Version] = set()
+        yanked_versions_set: set[Version] = set()
         for c in cands:
             is_yanked = c.link.is_yanked if c.link else False
             if is_yanked:
@@ -723,7 +715,7 @@ class Factory:
     def get_installation_error(
         self,
         e: "ResolutionImpossible[Requirement, Candidate]",
-        constraints: Dict[str, Constraint],
+        constraints: dict[str, Constraint],
     ) -> InstallationError:
         assert e.causes, "Installation error reported with no cause"
 
@@ -756,7 +748,7 @@ class Factory:
         # satisfied at once.
 
         # A couple of formatting helpers
-        def text_join(parts: List[str]) -> str:
+        def text_join(parts: list[str]) -> str:
             if len(parts) == 1:
                 return parts[0]
 

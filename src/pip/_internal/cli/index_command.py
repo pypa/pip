@@ -11,7 +11,7 @@ import os
 import sys
 from functools import lru_cache
 from optparse import Values
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from pip._vendor import certifi
 
@@ -59,7 +59,7 @@ class SessionCommandMixin(CommandContextMixIn):
         self._session: Optional[PipSession] = None
 
     @classmethod
-    def _get_index_urls(cls, options: Values) -> Optional[List[str]]:
+    def _get_index_urls(cls, options: Values) -> Optional[list[str]]:
         """Return a list of index urls from user-provided options."""
         index_urls = []
         if not getattr(options, "no_index", False):

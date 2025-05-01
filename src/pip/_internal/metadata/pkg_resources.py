@@ -3,12 +3,8 @@ import email.parser
 import logging
 import os
 import zipfile
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from typing import (
-    Collection,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
     NamedTuple,
     Optional,
 )
@@ -73,7 +69,7 @@ class InMemoryMetadata:
     def metadata_isdir(self, name: str) -> bool:
         return False
 
-    def metadata_listdir(self, name: str) -> List[str]:
+    def metadata_listdir(self, name: str) -> list[str]:
         return []
 
     def run_script(self, script_name: str, namespace: str) -> None:
@@ -259,7 +255,7 @@ class Environment(BaseEnvironment):
         return cls(pkg_resources.working_set)
 
     @classmethod
-    def from_paths(cls, paths: Optional[List[str]]) -> BaseEnvironment:
+    def from_paths(cls, paths: Optional[list[str]]) -> BaseEnvironment:
         return cls(pkg_resources.WorkingSet(paths))
 
     def _iter_distributions(self) -> Iterator[BaseDistribution]:

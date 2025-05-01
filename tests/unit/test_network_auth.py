@@ -2,7 +2,8 @@ import functools
 import os
 import subprocess
 import sys
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Any, Optional
 
 import pytest
 
@@ -163,7 +164,7 @@ class KeyringModuleV1:
     """
 
     def __init__(self) -> None:
-        self.saved_passwords: List[Tuple[str, str, str]] = []
+        self.saved_passwords: list[tuple[str, str, str]] = []
 
     def get_password(self, system: str, username: str) -> Optional[str]:
         if system == "example.com" and username:
@@ -191,7 +192,7 @@ class KeyringModuleV1:
 def test_keyring_get_password(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
-    expect: Tuple[Optional[str], Optional[str]],
+    expect: tuple[Optional[str], Optional[str]],
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)
@@ -275,7 +276,7 @@ def test_keyring_get_password_username_in_index(
 def test_keyring_set_password(
     monkeypatch: pytest.MonkeyPatch,
     response_status: int,
-    creds: Tuple[str, str, bool],
+    creds: tuple[str, str, bool],
     expect_save: bool,
 ) -> None:
     keyring = KeyringModuleV1()
@@ -353,7 +354,7 @@ class KeyringModuleV2:
     ],
 )
 def test_keyring_get_credential(
-    monkeypatch: pytest.MonkeyPatch, url: str, expect: Tuple[str, str]
+    monkeypatch: pytest.MonkeyPatch, url: str, expect: tuple[str, str]
 ) -> None:
     monkeypatch.setitem(sys.modules, "keyring", KeyringModuleV2())
     auth = MultiDomainBasicAuth(
@@ -401,9 +402,9 @@ class KeyringSubprocessResult(KeyringModuleV1):
 
     def __call__(
         self,
-        cmd: List[str],
+        cmd: list[str],
         *,
-        env: Dict[str, str],
+        env: dict[str, str],
         stdin: Optional[Any] = None,
         stdout: Optional[Any] = None,
         input: Optional[bytes] = None,
@@ -456,7 +457,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
 def test_keyring_cli_get_password(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
-    expect: Tuple[Optional[str], Optional[str]],
+    expect: tuple[Optional[str], Optional[str]],
 ) -> None:
     monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
     monkeypatch.setattr(
@@ -490,7 +491,7 @@ def test_keyring_cli_get_password(
 def test_keyring_cli_set_password(
     monkeypatch: pytest.MonkeyPatch,
     response_status: int,
-    creds: Tuple[str, str, bool],
+    creds: tuple[str, str, bool],
     expect_save: bool,
 ) -> None:
     monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")

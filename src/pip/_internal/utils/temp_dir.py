@@ -4,14 +4,12 @@ import logging
 import os.path
 import tempfile
 import traceback
+from collections.abc import Generator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Dict,
-    Generator,
-    List,
     Optional,
     TypeVar,
     Union,
@@ -51,7 +49,7 @@ class TempDirectoryTypeRegistry:
     """Manages temp directory behavior"""
 
     def __init__(self) -> None:
-        self._should_delete: Dict[str, bool] = {}
+        self._should_delete: dict[str, bool] = {}
 
     def set_delete(self, kind: str, value: bool) -> None:
         """Indicate whether a TempDirectory of the given kind should be
@@ -184,7 +182,7 @@ class TempDirectory:
         if not os.path.exists(self._path):
             return
 
-        errors: List[BaseException] = []
+        errors: list[BaseException] = []
 
         def onerror(
             func: Callable[..., Any],

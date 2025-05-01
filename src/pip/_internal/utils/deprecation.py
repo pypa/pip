@@ -4,7 +4,7 @@ A module that implements tooling to enable easy warnings about deprecations.
 
 import logging
 import warnings
-from typing import Any, Optional, TextIO, Type, Union
+from typing import Any, Optional, TextIO, Union
 
 from pip._vendor.packaging.version import parse
 
@@ -23,7 +23,7 @@ _original_showwarning: Any = None
 # Warnings <-> Logging Integration
 def _showwarning(
     message: Union[Warning, str],
-    category: Type[Warning],
+    category: type[Warning],
     filename: str,
     lineno: int,
     file: Optional[TextIO] = None,

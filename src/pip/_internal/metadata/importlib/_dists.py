@@ -2,15 +2,10 @@ import email.message
 import importlib.metadata
 import pathlib
 import zipfile
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from os import PathLike
 from typing import (
-    Collection,
-    Dict,
-    Iterable,
-    Iterator,
-    Mapping,
     Optional,
-    Sequence,
     Union,
     cast,
 )
@@ -215,7 +210,7 @@ class Distribution(BaseDistribution):
         ]
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        contexts: Sequence[Dict[str, str]] = [{"extra": e} for e in extras]
+        contexts: Sequence[dict[str, str]] = [{"extra": e} for e in extras]
         for req_string in self.metadata.get_all("Requires-Dist", []):
             # strip() because email.message.Message.get_all() may return a leading \n
             # in case a long header was wrapped.

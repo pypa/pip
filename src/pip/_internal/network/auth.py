@@ -12,10 +12,10 @@ import sysconfig
 import typing
 import urllib.parse
 from abc import ABC, abstractmethod
-from functools import lru_cache
+from functools import cache
 from os.path import commonprefix
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, NamedTuple, Optional
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import Request, Response
@@ -159,7 +159,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         return None
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
     logger.verbose("Keyring provider requested: %s", provider)
 
@@ -225,13 +225,13 @@ class MultiDomainBasicAuth(AuthBase):
     def __init__(
         self,
         prompting: bool = True,
-        index_urls: Optional[List[str]] = None,
+        index_urls: Optional[list[str]] = None,
         keyring_provider: str = "auto",
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
         self.keyring_provider = keyring_provider  # type: ignore[assignment]
-        self.passwords: Dict[str, AuthInfo] = {}
+        self.passwords: dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
         # this value is set to the credentials they entered. After the
@@ -391,7 +391,7 @@ class MultiDomainBasicAuth(AuthBase):
 
     def _get_url_and_credentials(
         self, original_url: str
-    ) -> Tuple[str, Optional[str], Optional[str]]:
+    ) -> tuple[str, Optional[str], Optional[str]]:
         """Return the credentials to use for the provided URL.
 
         If allowed, netrc and keyring may be used to obtain the
@@ -456,7 +456,7 @@ class MultiDomainBasicAuth(AuthBase):
     # Factored out to allow for easy patching in tests
     def _prompt_for_password(
         self, netloc: str
-    ) -> Tuple[Optional[str], Optional[str], bool]:
+    ) -> tuple[Optional[str], Optional[str], bool]:
         username = ask_input(f"User for {netloc}: ") if self.prompting else None
         if not username:
             return None, None, False

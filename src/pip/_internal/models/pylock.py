@@ -1,8 +1,9 @@
 import dataclasses
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Optional
 
 from pip._vendor import tomli_w
 from pip._vendor.typing_extensions import Self
@@ -19,7 +20,7 @@ def is_valid_pylock_file_name(path: Path) -> bool:
     return path.name == "pylock.toml" or bool(re.match(PYLOCK_FILE_NAME_RE, path.name))
 
 
-def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
+def _toml_dict_factory(data: list[tuple[str, Any]]) -> dict[str, Any]:
     return {key.replace("_", "-"): value for key, value in data if value is not None}
 
 
@@ -46,7 +47,7 @@ class PackageArchive:
     # (not supported) path: Optional[str]
     # (not supported) size: Optional[int]
     # (not supported) upload_time: Optional[datetime]
-    hashes: Dict[str, str]
+    hashes: dict[str, str]
     subdirectory: Optional[str]
 
 
@@ -57,7 +58,7 @@ class PackageSdist:
     url: Optional[str]
     # (not supported) path: Optional[str]
     # (not supported) size: Optional[int]
-    hashes: Dict[str, str]
+    hashes: dict[str, str]
 
 
 @dataclass
@@ -67,7 +68,7 @@ class PackageWheel:
     url: Optional[str]
     # (not supported) path: Optional[str]
     # (not supported) size: Optional[int]
-    hashes: Dict[str, str]
+    hashes: dict[str, str]
 
 
 @dataclass
@@ -82,7 +83,7 @@ class Package:
     archive: Optional[PackageArchive] = None
     # (not supported) index: Optional[str]
     sdist: Optional[PackageSdist] = None
-    wheels: Optional[List[PackageWheel]] = None
+    wheels: Optional[list[PackageWheel]] = None
     # (not supported) attestation_identities: Optional[List[Dict[str, Any]]]
     # (not supported) tool: Optional[Dict[str, Any]]
 
@@ -162,7 +163,7 @@ class Pylock:
     # (not supported) extras: List[str] = []
     # (not supported) dependency_groups: List[str] = []
     created_by: str = "pip"
-    packages: List[Package] = dataclasses.field(default_factory=list)
+    packages: list[Package] = dataclasses.field(default_factory=list)
     # (not supported) tool: Optional[Dict[str, Any]]
 
     def as_toml(self) -> str:

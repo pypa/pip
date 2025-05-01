@@ -5,10 +5,11 @@ import logging.handlers
 import os
 import sys
 import threading
+from collections.abc import Generator
 from dataclasses import dataclass
 from io import TextIOWrapper
 from logging import Filter
-from typing import Any, ClassVar, Generator, List, Optional, Type
+from typing import Any, ClassVar, Optional
 
 from pip._vendor.rich.console import (
     Console,
@@ -40,7 +41,7 @@ class BrokenStdoutLoggingError(Exception):
     """
 
 
-def _is_broken_pipe_error(exc_class: Type[BaseException], exc: BaseException) -> bool:
+def _is_broken_pipe_error(exc_class: type[BaseException], exc: BaseException) -> bool:
     if exc_class is BrokenPipeError:
         return True
 
@@ -156,7 +157,7 @@ def get_console(*, stderr: bool = False) -> Console:
 
 
 class RichPipStreamHandler(RichHandler):
-    KEYWORDS: ClassVar[Optional[List[str]]] = []
+    KEYWORDS: ClassVar[Optional[list[str]]] = []
 
     def __init__(self, console: Console) -> None:
         super().__init__(

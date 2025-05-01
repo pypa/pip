@@ -1,7 +1,7 @@
 import os
 import shutil
 from glob import glob
-from typing import Callable, List, Tuple
+from typing import Callable
 
 import pytest
 
@@ -29,7 +29,7 @@ def wheel_cache_dir(cache_dir: str) -> str:
 
 
 @pytest.fixture
-def http_cache_files(http_cache_dir: str) -> List[str]:
+def http_cache_files(http_cache_dir: str) -> list[str]:
     destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
 
     if not os.path.exists(destination):
@@ -40,7 +40,7 @@ def http_cache_files(http_cache_dir: str) -> List[str]:
 
 
 @pytest.fixture
-def wheel_cache_files(wheel_cache_dir: str) -> List[str]:
+def wheel_cache_files(wheel_cache_dir: str) -> list[str]:
     destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
 
     if not os.path.exists(destination):
@@ -51,7 +51,7 @@ def wheel_cache_files(wheel_cache_dir: str) -> List[str]:
 
 
 @pytest.fixture
-def populate_http_cache(http_cache_dir: str) -> List[Tuple[str, str]]:
+def populate_http_cache(http_cache_dir: str) -> list[tuple[str, str]]:
     destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
 
@@ -69,7 +69,7 @@ def populate_http_cache(http_cache_dir: str) -> List[Tuple[str, str]]:
 
 
 @pytest.fixture
-def populate_wheel_cache(wheel_cache_dir: str) -> List[Tuple[str, str]]:
+def populate_wheel_cache(wheel_cache_dir: str) -> list[tuple[str, str]]:
     destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
 
@@ -197,7 +197,7 @@ def test_cache_info(
     script: PipTestEnvironment,
     http_cache_dir: str,
     wheel_cache_dir: str,
-    wheel_cache_files: List[str],
+    wheel_cache_files: list[str],
 ) -> None:
     result = script.pip("cache", "info")
 
@@ -383,8 +383,8 @@ def test_cache_purge(
 @pytest.mark.usefixtures("populate_http_cache", "populate_wheel_cache")
 def test_cache_purge_too_many_args(
     script: PipTestEnvironment,
-    http_cache_files: List[str],
-    wheel_cache_files: List[str],
+    http_cache_files: list[str],
+    wheel_cache_files: list[str],
 ) -> None:
     """Running `pip cache purge aaa` should raise an error and remove no
     cached http files or wheels."""

@@ -4,7 +4,8 @@ import os
 import pathlib
 import sys
 import zipfile
-from typing import Iterator, List, Optional, Sequence, Set, Tuple
+from collections.abc import Iterator, Sequence
+from typing import Optional
 
 from pip._vendor.packaging.utils import (
     InvalidWheelFilename,
@@ -47,10 +48,10 @@ class _DistributionFinder:
     installations as well. It's useful feature, after all.
     """
 
-    FoundResult = Tuple[importlib.metadata.Distribution, Optional[BasePath]]
+    FoundResult = tuple[importlib.metadata.Distribution, Optional[BasePath]]
 
     def __init__(self) -> None:
-        self._found_names: Set[NormalizedName] = set()
+        self._found_names: set[NormalizedName] = set()
 
     def _find_impl(self, location: str) -> Iterator[FoundResult]:
         """Find distributions in a location."""
@@ -119,7 +120,7 @@ class Environment(BaseEnvironment):
         return cls(sys.path)
 
     @classmethod
-    def from_paths(cls, paths: Optional[List[str]]) -> BaseEnvironment:
+    def from_paths(cls, paths: Optional[list[str]]) -> BaseEnvironment:
         if paths is None:
             return cls(sys.path)
         return cls(paths)

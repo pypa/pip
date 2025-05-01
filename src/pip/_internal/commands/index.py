@@ -1,7 +1,8 @@
 import json
 import logging
+from collections.abc import Iterable
 from optparse import Values
-from typing import Any, Iterable, List, Optional
+from typing import Any, Optional
 
 from pip._vendor.packaging.version import Version
 
@@ -50,7 +51,7 @@ class IndexCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         handlers = {
             "versions": self.get_available_package_versions,
         }
@@ -99,7 +100,7 @@ class IndexCommand(IndexGroupCommand):
             target_python=target_python,
         )
 
-    def get_available_package_versions(self, options: Values, args: List[Any]) -> None:
+    def get_available_package_versions(self, options: Values, args: list[Any]) -> None:
         if len(args) != 1:
             raise CommandError("You need to specify exactly one argument")
 

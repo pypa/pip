@@ -1,6 +1,7 @@
 import functools
 import sys
-from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, TypeVar
+from collections.abc import Generator, Iterable, Iterator
+from typing import Callable, Optional, TypeVar
 
 from pip._vendor.rich.progress import (
     BarColumn,
@@ -35,7 +36,7 @@ def _rich_download_progress_bar(
 
     if not size:
         total = float("inf")
-        columns: Tuple[ProgressColumn, ...] = (
+        columns: tuple[ProgressColumn, ...] = (
             TextColumn("[progress.description]{task.description}"),
             SpinnerColumn("line", speed=1.5),
             FileSizeColumn(),

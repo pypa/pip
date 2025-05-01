@@ -1,7 +1,6 @@
 import sys
 from optparse import Values
 from pathlib import Path
-from typing import List
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -90,7 +89,7 @@ class LockCommand(RequirementCommand):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         logger.verbose("Using %s", get_pip_version())
 
         logger.warning(

@@ -1,7 +1,7 @@
 import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
-from typing import List, Optional, Tuple, Type
+from typing import Optional
 
 import pytest
 
@@ -49,7 +49,7 @@ def test_call_subprocess_stdout_only(
     capfd: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
     stdout_only: bool,
-    expected: Tuple[str, ...],
+    expected: tuple[str, ...],
 ) -> None:
     log = []
     monkeypatch.setattr(
@@ -100,8 +100,8 @@ class TestCallSubprocess:
         log_level: int,
         spinner: FakeSpinner,
         result: Optional[str],
-        expected: Tuple[Optional[List[str]], List[Tuple[str, int, str]]],
-        expected_spinner: Tuple[int, Optional[str]],
+        expected: tuple[Optional[list[str]], list[tuple[str, int, str]]],
+        expected_spinner: tuple[int, Optional[str]],
     ) -> None:
         """
         Check the result of calling call_subprocess().
@@ -153,7 +153,7 @@ class TestCallSubprocess:
         caplog: pytest.LogCaptureFixture,
         log_level: int,
         command: Optional[str] = None,
-    ) -> Tuple[List[str], FakeSpinner]:
+    ) -> tuple[list[str], FakeSpinner]:
         if command is None:
             command = 'print("Hello"); print("world")'
 
@@ -211,7 +211,7 @@ class TestCallSubprocess:
             spinner=spinner,
         )
 
-        expected: Tuple[List[str], List[Tuple[str, int, str]]] = (
+        expected: tuple[list[str], list[tuple[str, int, str]]] = (
             ["Hello", "world"],
             [],
         )
@@ -337,10 +337,10 @@ class TestCallSubprocess:
         self,
         exit_status: int,
         show_stdout: bool,
-        extra_ok_returncodes: Optional[Tuple[int, ...]],
+        extra_ok_returncodes: Optional[tuple[int, ...]],
         log_level: int,
         caplog: pytest.LogCaptureFixture,
-        expected: Tuple[Optional[Type[Exception]], Optional[str], int],
+        expected: tuple[Optional[type[Exception]], Optional[str], int],
     ) -> None:
         """
         Test that the spinner finishes correctly.
@@ -351,7 +351,7 @@ class TestCallSubprocess:
 
         command = f'print("Hello"); print("world"); exit({exit_status})'
         args, spinner = self.prepare_call(caplog, log_level, command=command)
-        exc_type: Optional[Type[Exception]]
+        exc_type: Optional[type[Exception]]
         try:
             call_subprocess(
                 args,

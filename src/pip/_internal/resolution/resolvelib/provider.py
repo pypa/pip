@@ -1,14 +1,9 @@
 import math
-from functools import lru_cache
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from functools import cache
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    Iterable,
-    Iterator,
-    Mapping,
     Optional,
-    Sequence,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -94,10 +89,10 @@ class PipProvider(_ProviderBase):
     def __init__(
         self,
         factory: Factory,
-        constraints: Dict[str, Constraint],
+        constraints: dict[str, Constraint],
         ignore_dependencies: bool,
         upgrade_strategy: str,
-        user_requested: Dict[str, int],
+        user_requested: dict[str, int],
     ) -> None:
         self._factory = factory
         self._constraints = constraints
@@ -192,7 +187,7 @@ class PipProvider(_ProviderBase):
 
         if not has_information:
             direct = False
-            ireqs: Tuple[Optional[InstallRequirement], ...] = ()
+            ireqs: tuple[Optional[InstallRequirement], ...] = ()
         else:
             # Go through the information and for each requirement,
             # check if it's explicit (e.g., a direct link) and get the
@@ -271,7 +266,7 @@ class PipProvider(_ProviderBase):
         )
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 

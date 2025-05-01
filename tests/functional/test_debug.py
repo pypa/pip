@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 import pytest
 
@@ -61,7 +60,7 @@ def test_debug__library_versions(script: PipTestEnvironment) -> None:
         ["--verbose"],
     ],
 )
-def test_debug__tags(script: PipTestEnvironment, args: List[str]) -> None:
+def test_debug__tags(script: PipTestEnvironment, args: list[str]) -> None:
     """
     Check the compatible tag output.
     """
@@ -86,7 +85,7 @@ def test_debug__tags(script: PipTestEnvironment, args: List[str]) -> None:
     ],
 )
 def test_debug__target_options(
-    script: PipTestEnvironment, args: List[str], expected: str
+    script: PipTestEnvironment, args: list[str], expected: str
 ) -> None:
     """
     Check passing target-related options.
