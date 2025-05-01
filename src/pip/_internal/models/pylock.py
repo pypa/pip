@@ -3,7 +3,18 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Protocol, Tuple, Type, TypeVar
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pip._vendor import tomli_w
 from pip._vendor.packaging.version import InvalidVersion, Version
@@ -32,8 +43,20 @@ def is_valid_pylock_file_name(path: Path) -> bool:
     return path.name == "pylock.toml" or bool(re.match(PYLOCK_FILE_NAME_RE, path.name))
 
 
+def _toml_key(key: str) -> str:
+    return key.replace("_", "-")
+
+
+def _toml_value(value: T) -> Union[str, T]:
+    if isinstance(value, Version):
+        return str(value)
+    return value
+
+
 def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
-    return {key.replace("_", "-"): value for key, value in data if value is not None}
+    return {
+        _toml_key(key): _toml_value(value) for key, value in data if value is not None
+    }
 
 
 def _get(
@@ -53,6 +76,23 @@ def _get(
 def _get_required(d: Dict[str, Any], expected_type: Type[T], key: str) -> T:
     """Get required value from dictionary and verify expected type."""
     value = _get(d, expected_type, key)
+    if value is None:
+        raise PylockRequiredKeyError(key)
+    return value
+
+
+def _get_version(d: Dict[str, Any], key: str) -> Optional[Version]:
+    value = _get(d, str, key)
+    if value is None:
+        return None
+    try:
+        return Version(value)
+    except InvalidVersion:
+        raise PylockUnsupportedVersionError(f"invalid version {value!r}")
+
+
+def _get_required_version(d: Dict[str, Any], key: str) -> Version:
+    value = _get_version(d, key)
     if value is None:
         raise PylockRequiredKeyError(key)
     return value
@@ -233,7 +273,7 @@ class PackageWheel:
 @dataclass
 class Package:
     name: str
-    version: Optional[str] = None
+    version: Optional[Version] = None
     # (not supported) marker: Optional[str]
     # (not supported) requires_python: Optional[str]
     # (not supported) dependencies
@@ -255,7 +295,7 @@ class Package:
     def from_dict(cls, d: Dict[str, Any]) -> Self:
         package = cls(
             name=_get_required(d, str, "name"),
-            version=_get(d, str, "version"),
+            version=_get_version(d, "version"),
             vcs=_get_object(d, PackageVcs, "vcs"),
             directory=_get_object(d, PackageDirectory, "directory"),
             archive=_get_object(d, PackageArchive, "archive"),
@@ -314,7 +354,7 @@ class Package:
                 # should never happen
                 raise NotImplementedError()
         else:
-            package_version = str(dist.version)
+            package_version = dist.version
             if isinstance(download_info.info, ArchiveInfo):
                 if not download_info.info.hashes:
                     raise NotImplementedError()
@@ -351,7 +391,7 @@ class Package:
 
 @dataclass
 class Pylock:
-    lock_version: str = "1.0"
+    lock_version: Version = Version("1.0")
     # (not supported) environments: Optional[List[str]]
     # (not supported) requires_python: Optional[str]
     # (not supported) extras: List[str] = []
@@ -360,24 +400,15 @@ class Pylock:
     packages: List[Package] = dataclasses.field(default_factory=list)
     # (not supported) tool: Optional[Dict[str, Any]]
 
-    def _validate_version(self) -> None:
-        if not self.lock_version:
-            raise PylockRequiredKeyError("lock-version")
-        try:
-            lock_version = Version(self.lock_version)
-        except InvalidVersion:
-            raise PylockUnsupportedVersionError(
-                f"invalid pylock version {self.lock_version!r}"
-            )
-        if lock_version < Version("1") or lock_version >= Version("2"):
-            raise PylockUnsupportedVersionError(
-                f"pylock version {lock_version} is not supported"
-            )
-        if lock_version > Version("1.0"):
-            logging.warning("pylock minor version %s is not supported", lock_version)
-
     def __post_init__(self) -> None:
-        self._validate_version()
+        if self.lock_version < Version("1") or self.lock_version >= Version("2"):
+            raise PylockUnsupportedVersionError(
+                f"pylock version {self.lock_version} is not supported"
+            )
+        if self.lock_version > Version("1.0"):
+            logging.warning(
+                "pylock minor version %s is not supported", self.lock_version
+            )
 
     def as_toml(self) -> str:
         return tomli_w.dumps(self.to_dict())
@@ -388,7 +419,7 @@ class Pylock:
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:
         return cls(
-            lock_version=_get_required(d, str, "lock-version"),
+            lock_version=_get_required_version(d, "lock-version"),
             created_by=_get_required(d, str, "created-by"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
         )

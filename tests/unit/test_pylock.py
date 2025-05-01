@@ -34,8 +34,9 @@ def test_pylock_invalid_version() -> None:
         "created-by": "pip",
         "packages": [],
     }
-    with pytest.raises(PylockUnsupportedVersionError):
+    with pytest.raises(PylockUnsupportedVersionError) as exc_info:
         Pylock.from_dict(data)
+    assert str(exc_info.value) == "Error in 'lock-version': Invalid version: '2.x'"
 
 
 def test_pylock_missing_version() -> None:
