@@ -2,7 +2,7 @@ import contextlib
 import functools
 import os
 import sys
-from typing import List, Literal, Optional, Protocol, Type, cast
+from typing import Literal, Optional, Protocol, cast
 
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import strtobool

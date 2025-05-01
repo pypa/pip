@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from pip._internal.utils import _log
 

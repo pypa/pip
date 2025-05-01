@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS

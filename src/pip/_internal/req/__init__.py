@@ -2,7 +2,7 @@ import collections
 import logging
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pip._internal.cli.progress_bars import get_install_progress_renderer
 from pip._internal.utils.logging import indent_log

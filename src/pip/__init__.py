@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 __version__ = "25.2.dev0"
 

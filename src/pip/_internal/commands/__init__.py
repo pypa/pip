@@ -4,7 +4,7 @@ Package containing all pip commands
 
 import importlib
 from collections import namedtuple
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from pip._internal.cli.base_command import Command
 

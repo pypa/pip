@@ -9,20 +9,13 @@ import subprocess
 import sys
 import threading
 from collections.abc import Iterable, Iterator
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AnyStr,
-    Callable,
-    ClassVar,
-    ContextManager,
-    Optional,
-)
+from typing import TYPE_CHECKING, Any, AnyStr, Callable, ClassVar, Optional
 from unittest.mock import patch
 from zipfile import ZipFile
 
@@ -332,7 +325,7 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
     temporary directories in the application.
     """
     if "no_auto_tempdir_manager" in request.keywords:
-        ctx: Callable[[], ContextManager[None]] = contextlib.nullcontext
+        ctx: Callable[[], AbstractContextManager[None]] = contextlib.nullcontext
     else:
         ctx = global_tempdir_manager
 

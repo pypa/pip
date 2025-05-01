@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import unicodedata
 from collections.abc import Iterator
-from typing import List, Optional, Set
+from typing import Optional
 
 from nox.sessions import Session
 

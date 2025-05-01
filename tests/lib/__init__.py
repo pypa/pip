@@ -13,19 +13,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO, StringIO
 from textwrap import dedent
-from typing import (
-    Any,
-    AnyStr,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Protocol,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, AnyStr, Callable, Literal, Optional, Protocol, Union, cast
 from urllib.parse import urlparse, urlunparse
 from urllib.request import pathname2url
 from zipfile import ZipFile

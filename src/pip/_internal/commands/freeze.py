@@ -1,6 +1,5 @@
 import sys
 from optparse import Values
-from typing import AbstractSet
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
@@ -13,7 +12,7 @@ def _should_suppress_build_backends() -> bool:
     return sys.version_info < (3, 12)
 
 
-def _dev_pkgs() -> AbstractSet[str]:
+def _dev_pkgs() -> set[str]:
     pkgs = {"pip"}
 
     if _should_suppress_build_backends():
