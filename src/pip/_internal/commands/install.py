@@ -420,7 +420,7 @@ class InstallCommand(RequirementCommand):
 
             reqs_to_build = [
                 r
-                for r in requirement_set.requirements.values()
+                for r in requirement_set.requirements_to_install
                 if should_build_for_install_command(r)
             ]
 
