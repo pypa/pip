@@ -12,7 +12,7 @@ def _normalize_name(name: str) -> str:
 
 
 def _normalize_group_names(
-    dependency_groups: Mapping[str, str | Mapping[str, str]]
+    dependency_groups: Mapping[str, str | Mapping[str, str]],
 ) -> Mapping[str, str | Mapping[str, str]]:
     original_names: dict[str, list[str]] = {}
     normalized_groups = {}
@@ -171,17 +171,16 @@ class DependencyGroupResolver:
             if isinstance(item, Requirement):
                 resolved_group.append(item)
             elif isinstance(item, DependencyGroupInclude):
-                if item.include_group in self._include_graph_ancestors.get(group, ()):
+                include_group = _normalize_name(item.include_group)
+                if include_group in self._include_graph_ancestors.get(group, ()):
                     raise CyclicDependencyError(
                         requested_group, group, item.include_group
                     )
-                self._include_graph_ancestors[item.include_group] = (
+                self._include_graph_ancestors[include_group] = (
                     *self._include_graph_ancestors.get(group, ()),
                     group,
                 )
-                resolved_group.extend(
-                    self._resolve(item.include_group, requested_group)
-                )
+                resolved_group.extend(self._resolve(include_group, requested_group))
             else:  # unreachable
                 raise NotImplementedError(
                     f"Invalid dependency group item after parse: {item}"
@@ -206,8 +205,5 @@ def resolve(
     :raises LookupError: if group name is absent
     :raises packaging.requirements.InvalidRequirement: if a specifier is not valid
     """
-    return tuple(
-        str(r)
-        for group in groups
-        for r in DependencyGroupResolver(dependency_groups).resolve(group)
-    )
+    resolver = DependencyGroupResolver(dependency_groups)
+    return tuple(str(r) for group in groups for r in resolver.resolve(group))
