@@ -1,9 +1,11 @@
 import dataclasses
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     Iterable,
@@ -20,12 +22,17 @@ from pip._vendor import tomli_w
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import Version
-from pip._vendor.typing_extensions import Self
 
 from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.urls import url_to_path
+
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from pip._vendor.typing_extensions import Self
 
 T = TypeVar("T")
 T2 = TypeVar("T2")
@@ -33,7 +40,7 @@ T2 = TypeVar("T2")
 
 class FromDictProtocol(Protocol):
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         pass
 
 
@@ -218,7 +225,7 @@ class PackageVcs:
             raise PylockValidationError("No path nor url set for vcs package")
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         return cls(
             type=_get_required(d, str, "type"),
             url=_get(d, str, "url"),
@@ -236,7 +243,7 @@ class PackageDirectory:
     subdirectory: Optional[str]
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         return cls(
             path=_get_required(d, str, "path"),
             editable=_get(d, bool, "editable"),
@@ -258,7 +265,7 @@ class PackageArchive:
             raise PylockValidationError("No path nor url set for archive package")
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         return cls(
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
@@ -282,7 +289,7 @@ class PackageSdist:
             raise PylockValidationError("No path nor url set for sdist package")
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         return cls(
             name=_get_required(d, str, "name"),
             url=_get(d, str, "url"),
@@ -306,7 +313,7 @@ class PackageWheel:
             raise PylockValidationError("No path nor url set for wheel package")
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         wheel = cls(
             name=_get_required(d, str, "name"),
             url=_get(d, str, "url"),
@@ -349,7 +356,7 @@ class Package:
                 )
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         package = cls(
             name=_get_required(d, str, "name"),
             version=_get_as(d, str, Version, "version"),
@@ -364,7 +371,9 @@ class Package:
         return package
 
     @classmethod
-    def from_install_requirement(cls, ireq: InstallRequirement, base_dir: Path) -> Self:
+    def from_install_requirement(
+        cls, ireq: InstallRequirement, base_dir: Path
+    ) -> "Self":
         base_dir = base_dir.resolve()
         dist = ireq.get_dist()
         download_info = ireq.download_info
@@ -481,7 +490,7 @@ class Pylock:
         return dataclasses.asdict(self, dict_factory=_toml_dict_factory)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Self:
+    def from_dict(cls, d: Dict[str, Any]) -> "Self":
         return cls(
             lock_version=_get_required_as(d, str, Version, "lock-version"),
             environments=_get_list_as(d, str, Marker, "environments"),
@@ -493,7 +502,7 @@ class Pylock:
     @classmethod
     def from_install_requirements(
         cls, install_requirements: Iterable[InstallRequirement], base_dir: Path
-    ) -> Self:
+    ) -> "Self":
         return cls(
             lock_version=Version("1.0"),
             environments=None,  # not supported
