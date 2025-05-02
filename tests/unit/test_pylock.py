@@ -48,7 +48,7 @@ def test_pylock_invalid_version() -> None:
         "created-by": "pip",
         "packages": [],
     }
-    with pytest.raises(PylockUnsupportedVersionError) as exc_info:
+    with pytest.raises(PylockValidationError) as exc_info:
         Pylock.from_dict(data)
     assert str(exc_info.value) == "Error in 'lock-version': Invalid version: '2.x'"
 
@@ -92,6 +92,7 @@ def test_pylock_packages_without_dist() -> None:
     with pytest.raises(PylockValidationError) as exc_info:
         Pylock.from_dict(data)
     assert str(exc_info.value) == (
+        "Error parsing item 0 of 'packages': "
         "Exactly one of vcs, directory, archive must be set "
         "if sdist and wheels are not set"
     )

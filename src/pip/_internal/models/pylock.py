@@ -17,9 +17,9 @@ from typing import (
 )
 
 from pip._vendor import tomli_w
-from pip._vendor.packaging.markers import InvalidMarker, Marker
-from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
-from pip._vendor.packaging.version import InvalidVersion, Version
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.version import Version
 from pip._vendor.typing_extensions import Self
 
 from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
@@ -28,15 +28,16 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.urls import url_to_path
 
 T = TypeVar("T")
+T2 = TypeVar("T2")
 
 
-class PylockDataClass(Protocol):
+class FromDictProtocol(Protocol):
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:
         pass
 
 
-PylockDataClassT = TypeVar("PylockDataClassT", bound=PylockDataClass)
+FromDictProtocolT = TypeVar("FromDictProtocolT", bound=FromDictProtocol)
 
 PYLOCK_FILE_NAME_RE = re.compile(r"^pylock\.([^.]+)\.toml$")
 
@@ -67,12 +68,12 @@ def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
 
 def _get(d: Dict[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
     """Get value from dictionary and verify expected type."""
-    if key not in d:
+    value = d.get(key)
+    if value is None:
         return None
-    value = d[key]
     if not isinstance(value, expected_type):
         raise PylockValidationError(
-            f"{value!r} has unexpected type for {key} (expected {expected_type})"
+            f"{key} has unexpected type {type(value)} (expected {expected_type})"
         )
     return value
 
@@ -85,99 +86,94 @@ def _get_required(d: Dict[str, Any], expected_type: Type[T], key: str) -> T:
     return value
 
 
-def _get_version(d: Dict[str, Any], key: str) -> Optional[Version]:
-    value = _get(d, str, key)
+def _get_as(
+    d: Dict[str, Any], expected_type: Type[T], target_type: Type[T2], key: str
+) -> Optional[T2]:
+    """Get value from dictionary, verify expected type, convert to target type.
+
+    This assumes the target_type constructor accepts the value.
+    """
+    value = _get(d, expected_type, key)
     if value is None:
         return None
     try:
-        return Version(value)
-    except InvalidVersion:
-        raise PylockUnsupportedVersionError(f"invalid version {value!r}")
+        return target_type(value)  # type: ignore[call-arg]
+    except Exception as e:
+        raise PylockValidationError(f"Error parsing value of {key!r}: {e}") from e
 
 
-def _get_required_version(d: Dict[str, Any], key: str) -> Version:
-    value = _get_version(d, key)
+def _get_required_as(
+    d: Dict[str, Any], expected_type: Type[T], target_type: Type[T2], key: str
+) -> T2:
+    """Get required value from dictionary, verify expected type,
+    convert to target type."""
+    value = _get_as(d, expected_type, target_type, key)
     if value is None:
         raise PylockRequiredKeyError(key)
     return value
 
 
-def _get_marker(d: Dict[str, Any], key: str) -> Optional[Marker]:
-    value = _get(d, str, key)
+def _get_list_as(
+    d: Dict[str, Any], expected_type: Type[T], target_type: Type[T2], key: str
+) -> Optional[List[T2]]:
+    """Get list value from dictionary and verify expected items type."""
+    value = _get(d, list, key)
     if value is None:
         return None
-    try:
-        return Marker(value)
-    except InvalidMarker:
-        raise PylockValidationError(f"invalid marker {value!r}")
-
-
-def _get_list_of_markers(d: Dict[str, Any], key: str) -> Optional[List[Marker]]:
-    """Get list value from dictionary and verify expected items type."""
-    if key not in d:
-        return None
-    value = d[key]
-    if not isinstance(value, list):
-        raise PylockValidationError(f"{key!r} is not a list")
     result = []
     for i, item in enumerate(value):
-        if not isinstance(item, str):
-            raise PylockValidationError(f"Item {i} in list {key!r} is not a string")
-        try:
-            result.append(Marker(item))
-        except InvalidMarker:
+        if not isinstance(item, expected_type):
             raise PylockValidationError(
-                f"Item {i} in list {key!r} is not a valid environment marker: {item!r}"
+                f"Item {i} of {key} has unpexpected type {type(item)} "
+                f"(expected {expected_type})"
             )
+        try:
+            result.append(target_type(item))  # type: ignore[call-arg]
+        except Exception as e:
+            raise PylockValidationError(
+                f"Error parsing item {i} of {key!r}: {e}"
+            ) from e
     return result
 
 
-def _get_specifier_set(d: Dict[str, Any], key: str) -> Optional[SpecifierSet]:
-    value = _get(d, str, key)
+def _get_object(
+    d: Dict[str, Any], target_type: Type[FromDictProtocolT], key: str
+) -> Optional[FromDictProtocolT]:
+    """Get dictionary value from dictionary and convert to dataclass."""
+    value = _get(d, dict, key)
     if value is None:
         return None
     try:
-        return SpecifierSet(value)
-    except InvalidSpecifier:
-        raise PylockValidationError(f"invalid version specifier {value!r}")
-
-
-def _get_object(
-    d: Dict[str, Any], expected_type: Type[PylockDataClassT], key: str
-) -> Optional[PylockDataClassT]:
-    """Get dictionary value from dictionary and convert to dataclass."""
-    if key not in d:
-        return None
-    value = d[key]
-    if not isinstance(value, dict):
-        raise PylockValidationError(f"{key!r} is not a dictionary")
-    return expected_type.from_dict(value)
+        return target_type.from_dict(value)
+    except Exception as e:
+        raise PylockValidationError(f"Error parsing value of {key!r}: {e}") from e
 
 
 def _get_list_of_objects(
-    d: Dict[str, Any], expected_type: Type[PylockDataClassT], key: str
-) -> Optional[List[PylockDataClassT]]:
+    d: Dict[str, Any], target_type: Type[FromDictProtocolT], key: str
+) -> Optional[List[FromDictProtocolT]]:
     """Get list value from dictionary and convert items to dataclass."""
-    if key not in d:
+    value = _get(d, list, key)
+    if value is None:
         return None
-    value = d[key]
-    if not isinstance(value, list):
-        raise PylockValidationError(f"{key!r} is not a list")
     result = []
     for i, item in enumerate(value):
         if not isinstance(item, dict):
+            raise PylockValidationError(f"Item {i} of {key!r} is not a table")
+        try:
+            result.append(target_type.from_dict(item))
+        except Exception as e:
             raise PylockValidationError(
-                f"Item {i} in table {key!r} is not a dictionary"
-            )
-        result.append(expected_type.from_dict(item))
+                f"Error parsing item {i} of {key!r}: {e}"
+            ) from e
     return result
 
 
 def _get_required_list_of_objects(
-    d: Dict[str, Any], expected_type: Type[PylockDataClassT], key: str
-) -> List[PylockDataClassT]:
+    d: Dict[str, Any], target_type: Type[FromDictProtocolT], key: str
+) -> List[FromDictProtocolT]:
     """Get required list value from dictionary and convert items to dataclass."""
-    result = _get_list_of_objects(d, expected_type, key)
+    result = _get_list_of_objects(d, target_type, key)
     if result is None:
         raise PylockRequiredKeyError(key)
     return result
@@ -356,9 +352,9 @@ class Package:
     def from_dict(cls, d: Dict[str, Any]) -> Self:
         package = cls(
             name=_get_required(d, str, "name"),
-            version=_get_version(d, "version"),
-            requires_python=_get_specifier_set(d, "requires-python"),
-            marker=_get_marker(d, "marker"),
+            version=_get_as(d, str, Version, "version"),
+            requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
+            marker=_get_as(d, str, Marker, "marker"),
             vcs=_get_object(d, PackageVcs, "vcs"),
             directory=_get_object(d, PackageDirectory, "directory"),
             archive=_get_object(d, PackageArchive, "archive"),
@@ -487,10 +483,10 @@ class Pylock:
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> Self:
         return cls(
-            lock_version=_get_required_version(d, "lock-version"),
-            environments=_get_list_of_markers(d, "environments"),
+            lock_version=_get_required_as(d, str, Version, "lock-version"),
+            environments=_get_list_as(d, str, Marker, "environments"),
             created_by=_get_required(d, str, "created-by"),
-            requires_python=_get_specifier_set(d, "requires-python"),
+            requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
         )
 
