@@ -1,1 +1,1 @@
-- Upgrade dependency-groups to 1.3.1
+Upgrade dependency-groups to 1.3.1
