@@ -65,12 +65,10 @@ def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _get(
-    d: Dict[str, Any], expected_type: Type[T], key: str, default: Optional[T] = None
-) -> Optional[T]:
+def _get(d: Dict[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
     """Get value from dictionary and verify expected type."""
     if key not in d:
-        return default
+        return None
     value = d[key]
     if not isinstance(value, expected_type):
         raise PylockValidationError(
