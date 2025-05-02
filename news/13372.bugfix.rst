@@ -1,2 +1,0 @@
-Names in dependency group includes are now normalized before lookup, which
-fixes incorrect ``Dependency group '...' not found`` errors.

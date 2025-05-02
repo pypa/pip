@@ -1,2 +1,0 @@
-Fix crash on Python 3.9.6 and lower when pip failed to compile a Python module
-during installation.

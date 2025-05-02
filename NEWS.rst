@@ -9,6 +9,25 @@
 
 .. towncrier release notes start
 
+25.1.1 (2025-05-02)
+===================
+
+Bug Fixes
+---------
+
+- Fix ``req.source_dir`` AssertionError when using the legacy resolver. (`#13353 <https://github.com/pypa/pip/issues/13353>`_)
+- Fix crash on Python 3.9.6 and lower when pip failed to compile a Python module
+  during installation. (`#13364 <https://github.com/pypa/pip/issues/13364>`_)
+- Names in dependency group includes are now normalized before lookup, which
+  fixes incorrect ``Dependency group '...' not found`` errors. (`#13372 <https://github.com/pypa/pip/issues/13372>`_)
+
+Vendored Libraries
+------------------
+
+- Fix issues with using tomllib from the stdlib if available, rather than tomli
+- Upgrade dependency-groups to 1.3.1
+
+
 25.1 (2025-04-26)
 =================
 

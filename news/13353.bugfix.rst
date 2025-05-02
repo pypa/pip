@@ -1,1 +1,0 @@
-Fix ``req.source_dir`` AssertionError when using the legacy resolver.
