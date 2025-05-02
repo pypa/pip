@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from pip._vendor.packaging.markers import Marker
@@ -10,7 +12,21 @@ from pip._internal.models.pylock import (
     PylockUnsupportedVersionError,
     PylockValidationError,
     _exactly_one,
+    is_valid_pylock_file_name,
 )
+
+
+@pytest.mark.parametrize(
+    "file_name,valid",
+    [
+        ("pylock.toml", True),
+        ("pylock.spam.toml", True),
+        ("pylock.json", False),
+        ("pylock..toml", False),
+    ],
+)
+def test_pylock_file_name(file_name: str, valid: bool) -> None:
+    assert is_valid_pylock_file_name(Path(file_name)) is valid
 
 
 def test_exactly_one() -> None:

@@ -43,7 +43,7 @@ PYLOCK_FILE_NAME_RE = re.compile(r"^pylock\.([^.]+)\.toml$")
 
 
 def is_valid_pylock_file_name(path: Path) -> bool:
-    return path.name == "pylock.toml" or bool(re.match(PYLOCK_FILE_NAME_RE, path.name))
+    return path.name == "pylock.toml" or bool(PYLOCK_FILE_NAME_RE.match(path.name))
 
 
 def _toml_key(key: str) -> str:
