@@ -1,6 +1,11 @@
+import sys
 from typing import Any, Dict, Iterable, Iterator, List, Tuple
 
-from pip._vendor import tomli
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    from pip._vendor import tomli as tomllib
+
 from pip._vendor.dependency_groups import DependencyGroupResolver
 
 from pip._internal.exceptions import InstallationError
@@ -65,10 +70,10 @@ def _load_pyproject(path: str) -> Dict[str, Any]:
     """
     try:
         with open(path, "rb") as fp:
-            return tomli.load(fp)
+            return tomllib.load(fp)
     except FileNotFoundError:
         raise InstallationError(f"{path} not found. Cannot resolve '--group' option.")
-    except tomli.TOMLDecodeError as e:
+    except tomllib.TOMLDecodeError as e:
         raise InstallationError(f"Error parsing {path}: {e}") from e
     except OSError as e:
         raise InstallationError(f"Error reading {path}: {e}") from e
