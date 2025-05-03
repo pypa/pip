@@ -61,8 +61,6 @@ def _pylock_package_from_install_requirement(
             package_archive = PackageArchive(
                 url=download_info.url,
                 path=None,
-                size=None,  # not supported
-                upload_time=None,  # not supported
                 hashes=download_info.info.hashes,
                 subdirectory=download_info.subdirectory,
             )
@@ -79,20 +77,14 @@ def _pylock_package_from_install_requirement(
                 package_wheels = [
                     PackageWheel(
                         name=link.filename,
-                        upload_time=None,  # not supported
                         url=download_info.url,
-                        path=None,
-                        size=None,  # not supported
                         hashes=download_info.info.hashes,
                     )
                 ]
             else:
                 package_sdist = PackageSdist(
                     name=link.filename,
-                    upload_time=None,  # not supported
                     url=download_info.url,
-                    path=None,
-                    size=None,  # not supported
                     hashes=download_info.info.hashes,
                 )
         else:
@@ -101,17 +93,11 @@ def _pylock_package_from_install_requirement(
     return Package(
         name=dist.canonical_name,
         version=package_version,
-        marker=None,  # not supported
-        requires_python=None,  # not supported
-        dependencies=None,  # not supported
         vcs=package_vcs,
         directory=package_directory,
         archive=package_archive,
-        index=None,  # not supported
         sdist=package_sdist,
         wheels=package_wheels,
-        attestation_identities=None,  # not supported
-        tool=None,
     )
 
 
@@ -120,11 +106,6 @@ def pylock_from_install_requirements(
 ) -> Pylock:
     return Pylock(
         lock_version=Version("1.0"),
-        environments=None,  # not supported
-        requires_python=None,  # not supported
-        extras=[],  # not supported
-        dependency_groups=[],  # not supported
-        default_groups=[],  # not supported
         created_by="pip",
         packages=sorted(
             (
@@ -133,7 +114,6 @@ def pylock_from_install_requirements(
             ),
             key=lambda p: p.name,
         ),
-        tool=None,
     )
 
 

@@ -256,14 +256,14 @@ class PylockUnsupportedVersionError(PylockValidationError):
     pass
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PackageVcs:
     type: str
-    url: Optional[str]
-    path: Optional[str]
-    requested_revision: Optional[str]
+    url: Optional[str] = None
+    path: Optional[str] = None
+    requested_revision: Optional[str] = None
     commit_id: str
-    subdirectory: Optional[str]
+    subdirectory: Optional[str] = None
 
     def __post_init__(self) -> None:
         _validate_path_url(self.path, self.url)
@@ -280,11 +280,11 @@ class PackageVcs:
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PackageDirectory:
     path: str
-    editable: Optional[bool]
-    subdirectory: Optional[str]
+    editable: Optional[bool] = None
+    subdirectory: Optional[str] = None
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "Self":
@@ -295,14 +295,14 @@ class PackageDirectory:
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PackageArchive:
-    url: Optional[str]
-    path: Optional[str]
-    size: Optional[int]
-    upload_time: Optional[datetime]
+    url: Optional[str] = None
+    path: Optional[str] = None
+    size: Optional[int] = None
+    upload_time: Optional[datetime] = None
     hashes: Dict[str, str]
-    subdirectory: Optional[str]
+    subdirectory: Optional[str] = None
 
     def __post_init__(self) -> None:
         _validate_path_url(self.path, self.url)
@@ -320,13 +320,13 @@ class PackageArchive:
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PackageSdist:
     name: str
-    upload_time: Optional[datetime]
-    url: Optional[str]
-    path: Optional[str]
-    size: Optional[int]
+    upload_time: Optional[datetime] = None
+    url: Optional[str] = None
+    path: Optional[str] = None
+    size: Optional[int] = None
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
@@ -345,13 +345,13 @@ class PackageSdist:
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PackageWheel:
     name: str
-    upload_time: Optional[datetime]
-    url: Optional[str]
-    path: Optional[str]
-    size: Optional[int]
+    upload_time: Optional[datetime] = None
+    url: Optional[str] = None
+    path: Optional[str] = None
+    size: Optional[int] = None
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
@@ -371,21 +371,21 @@ class PackageWheel:
         return wheel
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Package:
     name: str
-    version: Optional[Version]
-    marker: Optional[Marker]
-    requires_python: Optional[SpecifierSet]
-    dependencies: Optional[List[Dict[str, Any]]]
-    vcs: Optional[PackageVcs]
-    directory: Optional[PackageDirectory]
-    archive: Optional[PackageArchive]
-    index: Optional[str]
-    sdist: Optional[PackageSdist]
-    wheels: Optional[List[PackageWheel]]
-    attestation_identities: Optional[List[Dict[str, Any]]]
-    tool: Optional[Dict[str, Any]]
+    version: Optional[Version] = None
+    marker: Optional[Marker] = None
+    requires_python: Optional[SpecifierSet] = None
+    dependencies: Optional[List[Dict[str, Any]]] = None
+    vcs: Optional[PackageVcs] = None
+    directory: Optional[PackageDirectory] = None
+    archive: Optional[PackageArchive] = None
+    index: Optional[str] = None
+    sdist: Optional[PackageSdist] = None
+    wheels: Optional[List[PackageWheel]] = None
+    attestation_identities: Optional[List[Dict[str, Any]]] = None
+    tool: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         if self.sdist or self.wheels:
@@ -422,17 +422,17 @@ class Package:
         return package
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Pylock:
     lock_version: Version
-    environments: Optional[List[Marker]]
-    requires_python: Optional[SpecifierSet]
-    extras: List[str]
-    dependency_groups: List[str]
-    default_groups: List[str]
+    environments: Optional[List[Marker]] = None
+    requires_python: Optional[SpecifierSet] = None
+    extras: List[str] = dataclasses.field(default_factory=list)
+    dependency_groups: List[str] = dataclasses.field(default_factory=list)
+    default_groups: List[str] = dataclasses.field(default_factory=list)
     created_by: str
     packages: List[Package]
-    tool: Optional[Dict[str, Any]]
+    tool: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         if self.lock_version < Version("1") or self.lock_version >= Version("2"):
