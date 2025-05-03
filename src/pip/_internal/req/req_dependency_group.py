@@ -1,14 +1,9 @@
-import sys
 from typing import Any, Dict, Iterable, Iterator, List, Tuple
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    from pip._vendor import tomli as tomllib
 
 from pip._vendor.dependency_groups import DependencyGroupResolver
 
 from pip._internal.exceptions import InstallationError
+from pip._internal.utils.compat import tomllib
 
 
 def parse_dependency_groups(groups: List[Tuple[str, str]]) -> List[str]:
