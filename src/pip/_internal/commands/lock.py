@@ -9,7 +9,7 @@ from pip._internal.cli.req_command import (
     with_cleanup,
 )
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.models.pylock import Pylock, is_valid_pylock_file_name
+from pip._internal.models.pylock import is_valid_pylock_file_name
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import (
     check_legacy_setup_py_options,
@@ -18,6 +18,7 @@ from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     get_pip_version,
 )
+from pip._internal.utils.pylock import pylock_from_install_requirements
 from pip._internal.utils.temp_dir import TempDirectory
 
 logger = getLogger(__name__)
@@ -159,7 +160,7 @@ class LockCommand(RequirementCommand):
                     output_file_path,
                 )
             base_dir = output_file_path.parent
-        pylock_toml = Pylock.from_install_requirements(
+        pylock_toml = pylock_from_install_requirements(
             requirement_set.requirements.values(), base_dir=base_dir
         ).as_toml()
         if options.output_file == "-":
