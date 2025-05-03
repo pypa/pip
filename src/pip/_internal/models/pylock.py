@@ -94,6 +94,22 @@ def _get_required(d: Dict[str, Any], expected_type: Type[T], key: str) -> T:
     return value
 
 
+def _get_list(
+    d: Dict[str, Any], expected_item_type: Type[T], key: str
+) -> Optional[List[T]]:
+    """Get list value from dictionary and verify expected items type."""
+    value = _get(d, list, key)
+    if value is None:
+        return None
+    for i, item in enumerate(value):
+        if not isinstance(item, expected_item_type):
+            raise PylockValidationError(
+                f"Item {i} of {key!r} has unexpected type {type(item).__name__} "
+                f"(expected {expected_item_type.__name__})"
+            )
+    return value
+
+
 def _get_as(
     d: Dict[str, Any],
     expected_type: Type[T],
@@ -129,23 +145,18 @@ def _get_required_as(
 
 def _get_list_as(
     d: Dict[str, Any],
-    expected_type: Type[T],
-    target_type: Type[SingleArgConstructorT],
+    expected_item_type: Type[T],
+    target_item_type: Type[SingleArgConstructorT],
     key: str,
 ) -> Optional[List[SingleArgConstructorT]]:
     """Get list value from dictionary and verify expected items type."""
-    value = _get(d, list, key)
+    value = _get_list(d, expected_item_type, key)
     if value is None:
         return None
     result = []
     for i, item in enumerate(value):
-        if not isinstance(item, expected_type):
-            raise PylockValidationError(
-                f"Item {i} of {key!r} has unexpected type {type(item).__name__} "
-                f"(expected {expected_type.__name__})"
-            )
         try:
-            result.append(target_type(item))
+            result.append(target_item_type(item))
         except Exception as e:
             raise PylockValidationError(f"Error in item {i} of {key!r}: {e}") from e
     return result
@@ -165,7 +176,7 @@ def _get_object(
 
 
 def _get_list_of_objects(
-    d: Dict[str, Any], target_type: Type[FromDictProtocolT], key: str
+    d: Dict[str, Any], target_item_type: Type[FromDictProtocolT], key: str
 ) -> Optional[List[FromDictProtocolT]]:
     """Get list value from dictionary and convert items to dataclass."""
     value = _get(d, list, key)
@@ -176,7 +187,7 @@ def _get_list_of_objects(
         if not isinstance(item, dict):
             raise PylockValidationError(f"Item {i} of {key!r} is not a table")
         try:
-            result.append(target_type.from_dict(item))
+            result.append(target_item_type.from_dict(item))
         except Exception as e:
             raise PylockValidationError(f"Error in item {i} of {key!r}: {e}") from e
     return result
