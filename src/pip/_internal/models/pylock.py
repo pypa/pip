@@ -350,7 +350,7 @@ class Package:
     version: Optional[Version]
     marker: Optional[Marker]
     requires_python: Optional[SpecifierSet]
-    # (not supported) dependencies
+    dependencies: Optional[List[Dict[str, Any]]]
     vcs: Optional[PackageVcs]
     directory: Optional[PackageDirectory]
     archive: Optional[PackageArchive]
@@ -381,6 +381,7 @@ class Package:
             name=_get_required(d, str, "name"),
             version=_get_as(d, str, Version, "version"),
             requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
+            dependencies=_get_list(d, dict, "dependencies"),
             marker=_get_as(d, str, Marker, "marker"),
             vcs=_get_object(d, PackageVcs, "vcs"),
             directory=_get_object(d, PackageDirectory, "directory"),

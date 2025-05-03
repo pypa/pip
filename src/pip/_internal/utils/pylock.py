@@ -102,6 +102,7 @@ def _pylock_package_from_install_requirement(
         version=package_version,
         marker=None,  # not supported
         requires_python=None,  # not supported
+        dependencies=None,  # not supported
         vcs=package_vcs,
         directory=package_directory,
         archive=package_archive,
