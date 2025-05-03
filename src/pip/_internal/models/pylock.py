@@ -1,4 +1,5 @@
 import dataclasses
+import hashlib
 import logging
 import re
 import sys
@@ -213,6 +214,17 @@ def _exactly_one(iterable: Iterable[object]) -> bool:
     return found
 
 
+def _validate_hashes(hashes: Dict[str, Any]) -> None:
+    if not hashes:
+        raise PylockValidationError("At least one hash must be provided")
+    if not any(algo in hashlib.algorithms_guaranteed for algo in hashes):
+        raise PylockValidationError(
+            "At least one hash algorithm must be in hashlib.algorithms_guaranteed"
+        )
+    if not all(isinstance(hash, str) for hash in hashes.values()):
+        raise PylockValidationError("Hash values must be strings")
+
+
 class PylockValidationError(Exception):
     pass
 
@@ -236,7 +248,6 @@ class PackageVcs:
     subdirectory: Optional[str]
 
     def __post_init__(self) -> None:
-        # TODO validate supported vcs type
         if not self.path and not self.url:
             raise PylockValidationError("No path nor url set for vcs package")
 
@@ -279,6 +290,7 @@ class PackageArchive:
     def __post_init__(self) -> None:
         if not self.path and not self.url:
             raise PylockValidationError("No path nor url set for archive package")
+        _validate_hashes(self.hashes)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "Self":
@@ -304,6 +316,7 @@ class PackageSdist:
     def __post_init__(self) -> None:
         if not self.path and not self.url:
             raise PylockValidationError("No path nor url set for sdist package")
+        _validate_hashes(self.hashes)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "Self":
@@ -329,6 +342,7 @@ class PackageWheel:
     def __post_init__(self) -> None:
         if not self.path and not self.url:
             raise PylockValidationError("No path nor url set for wheel package")
+        _validate_hashes(self.hashes)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "Self":

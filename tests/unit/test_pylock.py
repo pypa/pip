@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
 
@@ -8,6 +9,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import Version
 
 from pip._internal.models.pylock import (
+    PackageWheel,
     Pylock,
     PylockRequiredKeyError,
     PylockUnsupportedVersionError,
@@ -253,3 +255,38 @@ def test_pylock_tool() -> None:
     assert pylock.tool == {"pip": {"version": "25.2"}}
     package = pylock.packages[0]
     assert package.tool == {"pip": {"foo": "bar"}}
+
+
+@pytest.mark.parametrize(
+    "hashes,expected_error",
+    [
+        (
+            {
+                "sha2": "f" * 40,
+            },
+            "At least one hash algorithm must be in hashlib.algorithms_guaranteed",
+        ),
+        (
+            {
+                "sha256": "f" * 40,
+                "md5": 1,
+            },
+            "Hash values must be strings",
+        ),
+        (
+            {},
+            "At least one hash must be provided",
+        ),
+    ],
+)
+def test_hash_validation(hashes: Dict[str, Any], expected_error: str) -> None:
+    with pytest.raises(PylockValidationError) as exc_info:
+        PackageWheel(
+            name="example-1.0-py3-none-any.whl",
+            upload_time=None,
+            url="https://example.com/example-1.0-py3-none-any.whl",
+            path=None,
+            size=None,
+            hashes=hashes,
+        )
+    assert str(exc_info.value) == expected_error
