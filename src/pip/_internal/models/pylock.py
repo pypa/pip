@@ -35,16 +35,21 @@ if TYPE_CHECKING:
         from pip._vendor.typing_extensions import Self
 
 T = TypeVar("T")
-T2 = TypeVar("T2")
 
 
 class FromDictProtocol(Protocol):
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
-        pass
+    def from_dict(cls, d: Dict[str, Any]) -> "Self": ...
 
 
 FromDictProtocolT = TypeVar("FromDictProtocolT", bound=FromDictProtocol)
+
+
+class SingleArgConstructor(Protocol):
+    def __init__(self, value: Any) -> None: ...
+
+
+SingleArgConstructorT = TypeVar("SingleArgConstructorT", bound=SingleArgConstructor)
 
 PYLOCK_FILE_NAME_RE = re.compile(r"^pylock\.([^.]+)\.toml$")
 
@@ -94,8 +99,11 @@ def _get_required(d: Dict[str, Any], expected_type: Type[T], key: str) -> T:
 
 
 def _get_as(
-    d: Dict[str, Any], expected_type: Type[T], target_type: Type[T2], key: str
-) -> Optional[T2]:
+    d: Dict[str, Any],
+    expected_type: Type[T],
+    target_type: Type[SingleArgConstructorT],
+    key: str,
+) -> Optional[SingleArgConstructorT]:
     """Get value from dictionary, verify expected type, convert to target type.
 
     This assumes the target_type constructor accepts the value.
@@ -104,14 +112,17 @@ def _get_as(
     if value is None:
         return None
     try:
-        return target_type(value)  # type: ignore[call-arg]
+        return target_type(value)
     except Exception as e:
         raise PylockValidationError(f"Error parsing value of {key!r}: {e}") from e
 
 
 def _get_required_as(
-    d: Dict[str, Any], expected_type: Type[T], target_type: Type[T2], key: str
-) -> T2:
+    d: Dict[str, Any],
+    expected_type: Type[T],
+    target_type: Type[SingleArgConstructorT],
+    key: str,
+) -> SingleArgConstructorT:
     """Get required value from dictionary, verify expected type,
     convert to target type."""
     value = _get_as(d, expected_type, target_type, key)
@@ -121,8 +132,11 @@ def _get_required_as(
 
 
 def _get_list_as(
-    d: Dict[str, Any], expected_type: Type[T], target_type: Type[T2], key: str
-) -> Optional[List[T2]]:
+    d: Dict[str, Any],
+    expected_type: Type[T],
+    target_type: Type[SingleArgConstructorT],
+    key: str,
+) -> Optional[List[SingleArgConstructorT]]:
     """Get list value from dictionary and verify expected items type."""
     value = _get(d, list, key)
     if value is None:
@@ -135,7 +149,7 @@ def _get_list_as(
                 f"(expected {expected_type})"
             )
         try:
-            result.append(target_type(item))  # type: ignore[call-arg]
+            result.append(target_type(item))
         except Exception as e:
             raise PylockValidationError(
                 f"Error parsing item {i} of {key!r}: {e}"
