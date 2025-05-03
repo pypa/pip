@@ -114,6 +114,9 @@ def pylock_from_install_requirements(
         lock_version=Version("1.0"),
         environments=None,  # not supported
         requires_python=None,  # not supported
+        extras=[],  # not supported
+        dependency_groups=[],  # not supported
+        default_groups=[],  # not supported
         created_by="pip",
         packages=sorted(
             (

@@ -213,3 +213,18 @@ def test_pylock_invalid_environments() -> None:
         '    invalid_marker == "..."\n'
         "    ^"
     )
+
+
+def test_pylock_extras_and_groups() -> None:
+    data = {
+        "lock-version": "1.0",
+        "created-by": "pip",
+        "extras": ["feat1", "feat2"],
+        "dependency-groups": ["dev", "docs"],
+        "default-groups": ["dev"],
+        "packages": [],
+    }
+    pylock = Pylock.from_dict(data)
+    assert pylock.extras == ["feat1", "feat2"]
+    assert pylock.dependency_groups == ["dev", "docs"]
+    assert pylock.default_groups == ["dev"]

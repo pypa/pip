@@ -69,7 +69,7 @@ def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
     return {
         _toml_key(key): _toml_value(key, value)
         for key, value in data
-        if value is not None
+        if value is not None and value != []
     }
 
 
@@ -392,8 +392,9 @@ class Pylock:
     lock_version: Version
     environments: Optional[List[Marker]]
     requires_python: Optional[SpecifierSet]
-    # (not supported) extras: List[str] = []
-    # (not supported) dependency_groups: List[str] = []
+    extras: List[str]
+    dependency_groups: List[str]
+    default_groups: List[str]
     created_by: str
     packages: List[Package]
     # (not supported) tool: Optional[Dict[str, Any]]
@@ -419,6 +420,9 @@ class Pylock:
         return cls(
             lock_version=_get_required_as(d, str, Version, "lock-version"),
             environments=_get_list_as(d, str, Marker, "environments"),
+            extras=_get_list(d, str, "extras") or [],
+            dependency_groups=_get_list(d, str, "dependency-groups") or [],
+            default_groups=_get_list(d, str, "default-groups") or [],
             created_by=_get_required(d, str, "created-by"),
             requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
