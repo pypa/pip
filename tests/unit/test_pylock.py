@@ -9,6 +9,8 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import Version
 
 from pip._internal.models.pylock import (
+    Package,
+    PackageDirectory,
     PackageWheel,
     Pylock,
     PylockRequiredKeyError,
@@ -290,3 +292,21 @@ def test_hash_validation(hashes: Dict[str, Any], expected_error: str) -> None:
             hashes=hashes,
         )
     assert str(exc_info.value) == expected_error
+
+
+def test_is_direct() -> None:
+    direct_package = Package(
+        name="example",
+        directory=PackageDirectory(path="."),
+    )
+    assert direct_package.is_direct
+    wheel_package = Package(
+        name="example",
+        wheels=[
+            PackageWheel(
+                url="https://example.com/example-1.0-py3-none-any.whl",
+                hashes={"sha256": "f" * 40},
+            )
+        ],
+    )
+    assert not wheel_package.is_direct

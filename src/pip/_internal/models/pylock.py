@@ -532,6 +532,10 @@ class Package:
         )
         return package
 
+    @property
+    def is_direct(self) -> bool:
+        return not (self.sdist or self.wheels)
+
 
 @dataclass(frozen=True)
 class Pylock:
