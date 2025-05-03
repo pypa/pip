@@ -6,9 +6,11 @@ from pip._internal.models.pylock import Pylock
 from pip._internal.utils.compat import tomllib
 from pip._internal.utils.pylock import pylock_to_toml
 
-# This is the PEP 751 example, with a minor modification to the 'environments'
-# field to use double quotes instead of single quotes, since that is what
-# 'packaging' does when serializing markers.
+# This is the PEP 751 example, with the following differences:
+# - a minor modification to the 'environments' field to use double quotes
+#   instead of single quotes, since that is what 'packaging' does when
+#   serializing markers;
+# - added an index field, which was not demonstrated in the PEP 751 example.
 
 PEP751_EXAMPLE = dedent(
     """\
@@ -37,6 +39,7 @@ PEP751_EXAMPLE = dedent(
     dependencies = [
         {name = 'attrs'},
     ]
+    index = 'https://pypi.org/simple'
     wheels = [
     {name = 'cattrs-24.1.2-py3-none-any.whl', upload-time = 2024-09-22T14:58:34.812643+00:00, url = 'https://files.pythonhosted.org/packages/c8/d5/867e75361fc45f6de75fe277dd085627a9db5ebb511a87f27dc1396b5351/cattrs-24.1.2-py3-none-any.whl', size = 66446, hashes = {sha256 = '67c7495b760168d931a10233f979b28dc04daf853b30752246f4f8471c6d68d0'}},
     ]

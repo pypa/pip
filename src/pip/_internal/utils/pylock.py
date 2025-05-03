@@ -107,6 +107,7 @@ def _pylock_package_from_install_requirement(
         vcs=package_vcs,
         directory=package_directory,
         archive=package_archive,
+        index=None,  # not supported
         sdist=package_sdist,
         wheels=package_wheels,
         attestation_identities=None,  # not supported

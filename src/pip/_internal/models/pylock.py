@@ -353,7 +353,7 @@ class Package:
     vcs: Optional[PackageVcs]
     directory: Optional[PackageDirectory]
     archive: Optional[PackageArchive]
-    # (not supported) index: Optional[str]
+    index: Optional[str]
     sdist: Optional[PackageSdist]
     wheels: Optional[List[PackageWheel]]
     attestation_identities: Optional[List[Dict[str, Any]]]
@@ -385,6 +385,7 @@ class Package:
             vcs=_get_object(d, PackageVcs, "vcs"),
             directory=_get_object(d, PackageDirectory, "directory"),
             archive=_get_object(d, PackageArchive, "archive"),
+            index=_get(d, str, "index"),
             sdist=_get_object(d, PackageSdist, "sdist"),
             wheels=_get_list_of_objects(d, PackageWheel, "wheels"),
             attestation_identities=_get_list(d, dict, "attestation-identities"),
