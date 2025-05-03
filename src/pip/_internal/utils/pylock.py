@@ -104,6 +104,7 @@ def _pylock_package_from_install_requirement(
         archive=package_archive,
         sdist=package_sdist,
         wheels=package_wheels,
+        tool=None,
     )
 
 
@@ -125,4 +126,5 @@ def pylock_from_install_requirements(
             ),
             key=lambda p: p.name,
         ),
+        tool=None,
     )

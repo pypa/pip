@@ -228,3 +228,26 @@ def test_pylock_extras_and_groups() -> None:
     assert pylock.extras == ["feat1", "feat2"]
     assert pylock.dependency_groups == ["dev", "docs"]
     assert pylock.default_groups == ["dev"]
+
+
+def test_pylock_tool() -> None:
+    data = {
+        "lock-version": "1.0",
+        "created-by": "pip",
+        "packages": [
+            {
+                "name": "example",
+                "sdist": {
+                    "name": "example-1.0.tar.gz",
+                    "path": "./example-1.0.tar.gz",
+                    "hashes": {"sha256": "f" * 40},
+                },
+                "tool": {"pip": {"foo": "bar"}},
+            }
+        ],
+        "tool": {"pip": {"version": "25.2"}},
+    }
+    pylock = Pylock.from_dict(data)
+    assert pylock.tool == {"pip": {"version": "25.2"}}
+    package = pylock.packages[0]
+    assert package.tool == {"pip": {"foo": "bar"}}

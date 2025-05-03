@@ -343,18 +343,18 @@ class PackageWheel:
 @dataclass
 class Package:
     name: str
-    version: Optional[Version] = None
-    marker: Optional[Marker] = None
-    requires_python: Optional[SpecifierSet] = None
+    version: Optional[Version]
+    marker: Optional[Marker]
+    requires_python: Optional[SpecifierSet]
     # (not supported) dependencies
-    vcs: Optional[PackageVcs] = None
-    directory: Optional[PackageDirectory] = None
-    archive: Optional[PackageArchive] = None
+    vcs: Optional[PackageVcs]
+    directory: Optional[PackageDirectory]
+    archive: Optional[PackageArchive]
     # (not supported) index: Optional[str]
-    sdist: Optional[PackageSdist] = None
-    wheels: Optional[List[PackageWheel]] = None
+    sdist: Optional[PackageSdist]
+    wheels: Optional[List[PackageWheel]]
     # (not supported) attestation_identities: Optional[List[Dict[str, Any]]]
-    # (not supported) tool: Optional[Dict[str, Any]]
+    tool: Optional[Dict[str, Any]]
 
     def __post_init__(self) -> None:
         if self.sdist or self.wheels:
@@ -383,6 +383,7 @@ class Package:
             archive=_get_object(d, PackageArchive, "archive"),
             sdist=_get_object(d, PackageSdist, "sdist"),
             wheels=_get_list_of_objects(d, PackageWheel, "wheels"),
+            tool=_get(d, dict, "tool"),
         )
         return package
 
@@ -397,7 +398,7 @@ class Pylock:
     default_groups: List[str]
     created_by: str
     packages: List[Package]
-    # (not supported) tool: Optional[Dict[str, Any]]
+    tool: Optional[Dict[str, Any]]
 
     def __post_init__(self) -> None:
         if self.lock_version < Version("1") or self.lock_version >= Version("2"):
@@ -426,4 +427,5 @@ class Pylock:
             created_by=_get_required(d, str, "created-by"),
             requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
+            tool=_get(d, dict, "tool"),
         )
