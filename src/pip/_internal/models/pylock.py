@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -272,7 +273,7 @@ class PackageArchive:
     url: Optional[str]
     path: Optional[str]
     size: Optional[int]
-    # (not supported) upload_time: Optional[datetime]
+    upload_time: Optional[datetime]
     hashes: Dict[str, str]
     subdirectory: Optional[str]
 
@@ -286,6 +287,7 @@ class PackageArchive:
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
             size=_get(d, int, "size"),
+            upload_time=_get(d, datetime, "upload-time"),
             hashes=_get_required(d, dict, "hashes"),
             subdirectory=_get(d, str, "subdirectory"),
         )
@@ -294,7 +296,7 @@ class PackageArchive:
 @dataclass
 class PackageSdist:
     name: str
-    # (not supported) upload_time: Optional[datetime]
+    upload_time: Optional[datetime]
     url: Optional[str]
     path: Optional[str]
     size: Optional[int]
@@ -308,6 +310,7 @@ class PackageSdist:
     def from_dict(cls, d: Dict[str, Any]) -> "Self":
         return cls(
             name=_get_required(d, str, "name"),
+            upload_time=_get(d, datetime, "upload-time"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
             size=_get(d, int, "size"),
@@ -318,7 +321,7 @@ class PackageSdist:
 @dataclass
 class PackageWheel:
     name: str
-    # (not supported) upload_time: Optional[datetime]
+    upload_time: Optional[datetime]
     url: Optional[str]
     path: Optional[str]
     size: Optional[int]
@@ -332,6 +335,7 @@ class PackageWheel:
     def from_dict(cls, d: Dict[str, Any]) -> "Self":
         wheel = cls(
             name=_get_required(d, str, "name"),
+            upload_time=_get(d, datetime, "upload-time"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
             size=_get(d, int, "size"),

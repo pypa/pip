@@ -61,6 +61,7 @@ def _pylock_package_from_install_requirement(
                 url=download_info.url,
                 path=None,
                 size=None,  # not supported
+                upload_time=None,  # not supported
                 hashes=download_info.info.hashes,
                 subdirectory=download_info.subdirectory,
             )
@@ -77,6 +78,7 @@ def _pylock_package_from_install_requirement(
                 package_wheels = [
                     PackageWheel(
                         name=link.filename,
+                        upload_time=None,  # not supported
                         url=download_info.url,
                         path=None,
                         size=None,  # not supported
@@ -86,6 +88,7 @@ def _pylock_package_from_install_requirement(
             else:
                 package_sdist = PackageSdist(
                     name=link.filename,
+                    upload_time=None,  # not supported
                     url=download_info.url,
                     path=None,
                     size=None,  # not supported

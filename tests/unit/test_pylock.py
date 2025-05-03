@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -240,6 +241,7 @@ def test_pylock_tool() -> None:
                 "sdist": {
                     "name": "example-1.0.tar.gz",
                     "path": "./example-1.0.tar.gz",
+                    "upload-time": datetime(2023, 10, 1, 0, 0),
                     "hashes": {"sha256": "f" * 40},
                 },
                 "tool": {"pip": {"foo": "bar"}},
