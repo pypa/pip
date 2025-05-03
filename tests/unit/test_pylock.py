@@ -108,7 +108,7 @@ def test_pylock_packages_without_dist() -> None:
     with pytest.raises(PylockValidationError) as exc_info:
         Pylock.from_dict(data)
     assert str(exc_info.value) == (
-        "Error parsing item 0 of 'packages': "
+        "Error in item 0 of 'packages': "
         "Exactly one of vcs, directory, archive must be set "
         "if sdist and wheels are not set"
     )
@@ -140,3 +140,76 @@ def test_pylock_basic_package() -> None:
     assert package.marker == Marker('os_name == "posix"')
     assert package.requires_python == SpecifierSet(">=3.10, !=3.10.1")
     assert pylock.to_dict() == data
+
+
+def test_pylock_invalid_archive() -> None:
+    data = {
+        "lock-version": "1.0",
+        "created-by": "pip",
+        "requires-python": ">=3.10",
+        "environments": ['os_name == "posix"'],
+        "packages": [
+            {
+                "name": "example",
+                "archive": {
+                    # "path": "example.tar.gz",
+                    "hashes": {"sha256": "f" * 40},
+                },
+            }
+        ],
+    }
+    with pytest.raises(PylockValidationError) as exc_info:
+        Pylock.from_dict(data)
+    assert str(exc_info.value) == (
+        "Error in item 0 of 'packages': "
+        "Error in 'archive': "
+        "No path nor url set for archive package"
+    )
+
+
+def test_pylock_invalid_wheel() -> None:
+    data = {
+        "lock-version": "1.0",
+        "created-by": "pip",
+        "requires-python": ">=3.10",
+        "environments": ['os_name == "posix"'],
+        "packages": [
+            {
+                "name": "example",
+                "wheels": [
+                    {
+                        "name": "example-1.0-py3-none-any.whl",
+                        "path": "./example-1.0-py3-none-any.whl",
+                        # "hashes": {"sha256": "f" * 40},
+                    }
+                ],
+            }
+        ],
+    }
+    with pytest.raises(PylockValidationError) as exc_info:
+        Pylock.from_dict(data)
+    assert str(exc_info.value) == (
+        "Error in item 0 of 'packages': "
+        "Error in item 0 of 'wheels': "
+        "Missing required key 'hashes'"
+    )
+
+
+def test_pylock_invalid_environments() -> None:
+    data = {
+        "lock-version": "1.0",
+        "created-by": "pip",
+        "environments": [
+            'os_name == "posix"',
+            'invalid_marker == "..."',
+        ],
+        "packages": [],
+    }
+    with pytest.raises(PylockValidationError) as exc_info:
+        Pylock.from_dict(data)
+    assert str(exc_info.value) == (
+        "Error in item 1 of 'environments': "
+        "Expected a marker variable or quoted string\n"
+        '    invalid_marker == "..."\n'
+        "    ^"
+    )

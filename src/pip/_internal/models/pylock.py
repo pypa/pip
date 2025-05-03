@@ -85,7 +85,8 @@ def _get(d: Dict[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
         return None
     if not isinstance(value, expected_type):
         raise PylockValidationError(
-            f"{key} has unexpected type {type(value)} (expected {expected_type})"
+            f"{key!r} has unexpected type {type(value).__name__} "
+            f"(expected {expected_type.__name__})"
         )
     return value
 
@@ -114,7 +115,7 @@ def _get_as(
     try:
         return target_type(value)
     except Exception as e:
-        raise PylockValidationError(f"Error parsing value of {key!r}: {e}") from e
+        raise PylockValidationError(f"Error in {key!r}: {e}") from e
 
 
 def _get_required_as(
@@ -145,15 +146,13 @@ def _get_list_as(
     for i, item in enumerate(value):
         if not isinstance(item, expected_type):
             raise PylockValidationError(
-                f"Item {i} of {key} has unpexpected type {type(item)} "
-                f"(expected {expected_type})"
+                f"Item {i} of {key!r} has unexpected type {type(item).__name__} "
+                f"(expected {expected_type.__name__})"
             )
         try:
             result.append(target_type(item))
         except Exception as e:
-            raise PylockValidationError(
-                f"Error parsing item {i} of {key!r}: {e}"
-            ) from e
+            raise PylockValidationError(f"Error in item {i} of {key!r}: {e}") from e
     return result
 
 
@@ -167,7 +166,7 @@ def _get_object(
     try:
         return target_type.from_dict(value)
     except Exception as e:
-        raise PylockValidationError(f"Error parsing value of {key!r}: {e}") from e
+        raise PylockValidationError(f"Error in {key!r}: {e}") from e
 
 
 def _get_list_of_objects(
@@ -184,9 +183,7 @@ def _get_list_of_objects(
         try:
             result.append(target_type.from_dict(item))
         except Exception as e:
-            raise PylockValidationError(
-                f"Error parsing item {i} of {key!r}: {e}"
-            ) from e
+            raise PylockValidationError(f"Error in item {i} of {key!r}: {e}") from e
     return result
 
 
