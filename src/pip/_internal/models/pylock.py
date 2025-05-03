@@ -357,7 +357,7 @@ class Package:
     # (not supported) index: Optional[str]
     sdist: Optional[PackageSdist]
     wheels: Optional[List[PackageWheel]]
-    # (not supported) attestation_identities: Optional[List[Dict[str, Any]]]
+    attestation_identities: Optional[List[Dict[str, Any]]]
     tool: Optional[Dict[str, Any]]
 
     def __post_init__(self) -> None:
@@ -388,6 +388,7 @@ class Package:
             archive=_get_object(d, PackageArchive, "archive"),
             sdist=_get_object(d, PackageSdist, "sdist"),
             wheels=_get_list_of_objects(d, PackageWheel, "wheels"),
+            attestation_identities=_get_list(d, dict, "attestation-identities"),
             tool=_get(d, dict, "tool"),
         )
         return package
