@@ -76,7 +76,7 @@ def test_pylock_missing_version() -> None:
     }
     with pytest.raises(PylockRequiredKeyError) as exc_info:
         Pylock.from_dict(data)
-    assert exc_info.value.key == "lock-version"
+    assert str(exc_info.value) == "Missing required key 'lock-version'"
 
 
 def test_pylock_missing_created_by() -> None:
@@ -86,7 +86,7 @@ def test_pylock_missing_created_by() -> None:
     }
     with pytest.raises(PylockRequiredKeyError) as exc_info:
         Pylock.from_dict(data)
-    assert exc_info.value.key == "created-by"
+    assert str(exc_info.value) == "Missing required key 'created-by'"
 
 
 def test_pylock_missing_packages() -> None:
@@ -96,7 +96,7 @@ def test_pylock_missing_packages() -> None:
     }
     with pytest.raises(PylockRequiredKeyError) as exc_info:
         Pylock.from_dict(data)
-    assert exc_info.value.key == "packages"
+    assert str(exc_info.value) == "Missing required key 'packages'"
 
 
 def test_pylock_packages_without_dist() -> None:

@@ -209,7 +209,6 @@ class PylockValidationError(Exception):
 class PylockRequiredKeyError(PylockValidationError):
     def __init__(self, key: str) -> None:
         super().__init__(f"Missing required key {key!r}")
-        self.key = key
 
 
 class PylockUnsupportedVersionError(PylockValidationError):
