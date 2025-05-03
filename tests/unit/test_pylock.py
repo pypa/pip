@@ -166,7 +166,7 @@ def test_pylock_invalid_archive() -> None:
     assert str(exc_info.value) == (
         "Error in item 0 of 'packages': "
         "Error in 'archive': "
-        "No path nor url set for archive package"
+        "path or url must be provided"
     )
 
 

@@ -214,6 +214,11 @@ def _exactly_one(iterable: Iterable[object]) -> bool:
     return found
 
 
+def _validate_path_url(path: Optional[str], url: Optional[str]) -> None:
+    if not path and not url:
+        raise PylockValidationError("path or url must be provided")
+
+
 def _validate_hashes(hashes: Dict[str, Any]) -> None:
     if not hashes:
         raise PylockValidationError("At least one hash must be provided")
@@ -248,8 +253,7 @@ class PackageVcs:
     subdirectory: Optional[str]
 
     def __post_init__(self) -> None:
-        if not self.path and not self.url:
-            raise PylockValidationError("No path nor url set for vcs package")
+        _validate_path_url(self.path, self.url)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "Self":
@@ -288,8 +292,7 @@ class PackageArchive:
     subdirectory: Optional[str]
 
     def __post_init__(self) -> None:
-        if not self.path and not self.url:
-            raise PylockValidationError("No path nor url set for archive package")
+        _validate_path_url(self.path, self.url)
         _validate_hashes(self.hashes)
 
     @classmethod
@@ -314,8 +317,7 @@ class PackageSdist:
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
-        if not self.path and not self.url:
-            raise PylockValidationError("No path nor url set for sdist package")
+        _validate_path_url(self.path, self.url)
         _validate_hashes(self.hashes)
 
     @classmethod
@@ -340,8 +342,7 @@ class PackageWheel:
     hashes: Dict[str, str]
 
     def __post_init__(self) -> None:
-        if not self.path and not self.url:
-            raise PylockValidationError("No path nor url set for wheel package")
+        _validate_path_url(self.path, self.url)
         _validate_hashes(self.hashes)
 
     @classmethod
