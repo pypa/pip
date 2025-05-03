@@ -30,6 +30,19 @@ if TYPE_CHECKING:
     else:
         from pip._vendor.typing_extensions import Self
 
+__all__ = [
+    "Package",
+    "PackageVcs",
+    "PackageDirectory",
+    "PackageArchive",
+    "PackageSdist",
+    "PackageWheel",
+    "Pylock",
+    "PylockValidationError",
+    "PylockUnsupportedVersionError",
+    "is_valid_pylock_file_name",
+]
+
 T = TypeVar("T")
 
 
