@@ -40,7 +40,7 @@ __all__ = [
     "Pylock",
     "PylockValidationError",
     "PylockUnsupportedVersionError",
-    "is_valid_pylock_file_name",
+    "is_valid_pylock_path",
 ]
 
 T = TypeVar("T")
@@ -63,7 +63,7 @@ SingleArgConstructorT = TypeVar("SingleArgConstructorT", bound=SingleArgConstruc
 PYLOCK_FILE_NAME_RE = re.compile(r"^pylock\.([^.]+)\.toml$")
 
 
-def is_valid_pylock_file_name(path: Path) -> bool:
+def is_valid_pylock_path(path: Path) -> bool:
     return path.name == "pylock.toml" or bool(PYLOCK_FILE_NAME_RE.match(path.name))
 
 

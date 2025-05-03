@@ -9,7 +9,7 @@ from pip._internal.cli.req_command import (
     with_cleanup,
 )
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.models.pylock import is_valid_pylock_file_name
+from pip._internal.models.pylock import is_valid_pylock_path
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import (
     check_legacy_setup_py_options,
@@ -154,7 +154,7 @@ class LockCommand(RequirementCommand):
             base_dir = Path.cwd()
         else:
             output_file_path = Path(options.output_file)
-            if not is_valid_pylock_file_name(output_file_path):
+            if not is_valid_pylock_path(output_file_path):
                 logger.warning(
                     "%s is not a valid lock file name.",
                     output_file_path,

@@ -15,7 +15,7 @@ from pip._internal.models.pylock import (
     PylockUnsupportedVersionError,
     PylockValidationError,
     _exactly_one,
-    is_valid_pylock_file_name,
+    is_valid_pylock_path,
 )
 
 
@@ -29,7 +29,7 @@ from pip._internal.models.pylock import (
     ],
 )
 def test_pylock_file_name(file_name: str, valid: bool) -> None:
-    assert is_valid_pylock_file_name(Path(file_name)) is valid
+    assert is_valid_pylock_path(Path(file_name)) is valid
 
 
 def test_exactly_one() -> None:
