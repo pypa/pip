@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Iterable
 
+from pip._vendor import tomli_w
 from pip._vendor.packaging.version import Version
 
 from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
@@ -133,3 +134,7 @@ def pylock_from_install_requirements(
         ),
         tool=None,
     )
+
+
+def pylock_to_toml(pylock: Pylock) -> str:
+    return tomli_w.dumps(pylock.to_dict())

@@ -18,7 +18,7 @@ from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     get_pip_version,
 )
-from pip._internal.utils.pylock import pylock_from_install_requirements
+from pip._internal.utils.pylock import pylock_from_install_requirements, pylock_to_toml
 from pip._internal.utils.temp_dir import TempDirectory
 
 logger = getLogger(__name__)
@@ -160,9 +160,10 @@ class LockCommand(RequirementCommand):
                     output_file_path,
                 )
             base_dir = output_file_path.parent
-        pylock_toml = pylock_from_install_requirements(
+        pylock = pylock_from_install_requirements(
             requirement_set.requirements.values(), base_dir=base_dir
-        ).as_toml()
+        )
+        pylock_toml = pylock_to_toml(pylock)
         if options.output_file == "-":
             sys.stdout.write(pylock_toml)
         else:

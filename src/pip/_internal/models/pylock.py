@@ -19,7 +19,6 @@ from typing import (
     Union,
 )
 
-from pip._vendor import tomli_w
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import Version
@@ -415,9 +414,6 @@ class Pylock:
             logging.warning(
                 "pylock minor version %s is not supported", self.lock_version
             )
-
-    def as_toml(self) -> str:
-        return tomli_w.dumps(self.to_dict())
 
     def to_dict(self) -> Dict[str, Any]:
         return dataclasses.asdict(self, dict_factory=_toml_dict_factory)
