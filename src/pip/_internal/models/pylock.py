@@ -256,16 +256,33 @@ class PylockUnsupportedVersionError(PylockValidationError):
     pass
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True)
 class PackageVcs:
     type: str
-    url: Optional[str] = None
-    path: Optional[str] = None
-    requested_revision: Optional[str] = None
+    url: Optional[str]  # = None
+    path: Optional[str]  # = None
+    requested_revision: Optional[str]  # = None
     commit_id: str
     subdirectory: Optional[str] = None
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        type: str,
+        commit_id: str,
+        url: Optional[str] = None,
+        path: Optional[str] = None,
+        requested_revision: Optional[str] = None,
+        subdirectory: Optional[str] = None,
+    ) -> None:
+        # In Python 3.10+ make dataclass kw_only=True and remove __init__
+        object.__setattr__(self, "type", type)
+        object.__setattr__(self, "url", url)
+        object.__setattr__(self, "path", path)
+        object.__setattr__(self, "requested_revision", requested_revision)
+        object.__setattr__(self, "commit_id", commit_id)
+        object.__setattr__(self, "subdirectory", subdirectory)
+        # __post_init__ in Python 3.10+
         _validate_path_url(self.path, self.url)
 
     @classmethod
@@ -280,11 +297,23 @@ class PackageVcs:
         )
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True)
 class PackageDirectory:
     path: str
     editable: Optional[bool] = None
     subdirectory: Optional[str] = None
+
+    def __init__(
+        self,
+        *,
+        path: str,
+        editable: Optional[bool] = None,
+        subdirectory: Optional[str] = None,
+    ) -> None:
+        # In Python 3.10+ make dataclass kw_only=True and remove __init__
+        object.__setattr__(self, "path", path)
+        object.__setattr__(self, "editable", editable)
+        object.__setattr__(self, "subdirectory", subdirectory)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "Self":
@@ -295,16 +324,33 @@ class PackageDirectory:
         )
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True)
 class PackageArchive:
-    url: Optional[str] = None
-    path: Optional[str] = None
-    size: Optional[int] = None
-    upload_time: Optional[datetime] = None
+    url: Optional[str]  # = None
+    path: Optional[str]  # = None
+    size: Optional[int]  # = None
+    upload_time: Optional[datetime]  # = None
     hashes: Dict[str, str]
     subdirectory: Optional[str] = None
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        hashes: Dict[str, str],
+        url: Optional[str] = None,
+        path: Optional[str] = None,
+        size: Optional[int] = None,
+        upload_time: Optional[datetime] = None,
+        subdirectory: Optional[str] = None,
+    ) -> None:
+        # In Python 3.10+ make dataclass kw_only=True and remove __init__
+        object.__setattr__(self, "url", url)
+        object.__setattr__(self, "path", path)
+        object.__setattr__(self, "size", size)
+        object.__setattr__(self, "upload_time", upload_time)
+        object.__setattr__(self, "hashes", hashes)
+        object.__setattr__(self, "subdirectory", subdirectory)
+        # __post_init__ in Python 3.10+
         _validate_path_url(self.path, self.url)
         _validate_hashes(self.hashes)
 
@@ -320,16 +366,33 @@ class PackageArchive:
         )
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True)
 class PackageSdist:
     name: str
-    upload_time: Optional[datetime] = None
-    url: Optional[str] = None
-    path: Optional[str] = None
-    size: Optional[int] = None
+    upload_time: Optional[datetime]  # = None
+    url: Optional[str]  # = None
+    path: Optional[str]  # = None
+    size: Optional[int]  # = None
     hashes: Dict[str, str]
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        name: str,
+        hashes: Dict[str, str],
+        upload_time: Optional[datetime] = None,
+        url: Optional[str] = None,
+        path: Optional[str] = None,
+        size: Optional[int] = None,
+    ) -> None:
+        # In Python 3.10+ make dataclass kw_only=True and remove __init__
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "upload_time", upload_time)
+        object.__setattr__(self, "url", url)
+        object.__setattr__(self, "path", path)
+        object.__setattr__(self, "size", size)
+        object.__setattr__(self, "hashes", hashes)
+        # __post_init__ in Python 3.10+
         _validate_path_url(self.path, self.url)
         _validate_hashes(self.hashes)
 
@@ -345,16 +408,33 @@ class PackageSdist:
         )
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True)
 class PackageWheel:
     name: str
-    upload_time: Optional[datetime] = None
-    url: Optional[str] = None
-    path: Optional[str] = None
-    size: Optional[int] = None
+    upload_time: Optional[datetime]  # = None
+    url: Optional[str]  # = None
+    path: Optional[str]  # = None
+    size: Optional[int]  # = None
     hashes: Dict[str, str]
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        name: str,
+        hashes: Dict[str, str],
+        upload_time: Optional[datetime] = None,
+        url: Optional[str] = None,
+        path: Optional[str] = None,
+        size: Optional[int] = None,
+    ) -> None:
+        # In Python 3.10+ make dataclass kw_only=True and remove __init__
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "upload_time", upload_time)
+        object.__setattr__(self, "url", url)
+        object.__setattr__(self, "path", path)
+        object.__setattr__(self, "size", size)
+        object.__setattr__(self, "hashes", hashes)
+        # __post_init__ in Python 3.10+
         _validate_path_url(self.path, self.url)
         _validate_hashes(self.hashes)
 
@@ -371,7 +451,7 @@ class PackageWheel:
         return wheel
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True)
 class Package:
     name: str
     version: Optional[Version] = None
@@ -387,7 +467,38 @@ class Package:
     attestation_identities: Optional[List[Dict[str, Any]]] = None
     tool: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        name: str,
+        version: Optional[Version] = None,
+        marker: Optional[Marker] = None,
+        requires_python: Optional[SpecifierSet] = None,
+        dependencies: Optional[List[Dict[str, Any]]] = None,
+        vcs: Optional[PackageVcs] = None,
+        directory: Optional[PackageDirectory] = None,
+        archive: Optional[PackageArchive] = None,
+        index: Optional[str] = None,
+        sdist: Optional[PackageSdist] = None,
+        wheels: Optional[List[PackageWheel]] = None,
+        attestation_identities: Optional[List[Dict[str, Any]]] = None,
+        tool: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        # In Python 3.10+ make dataclass kw_only=True and remove __init__
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "version", version)
+        object.__setattr__(self, "marker", marker)
+        object.__setattr__(self, "requires_python", requires_python)
+        object.__setattr__(self, "dependencies", dependencies)
+        object.__setattr__(self, "vcs", vcs)
+        object.__setattr__(self, "directory", directory)
+        object.__setattr__(self, "archive", archive)
+        object.__setattr__(self, "index", index)
+        object.__setattr__(self, "sdist", sdist)
+        object.__setattr__(self, "wheels", wheels)
+        object.__setattr__(self, "attestation_identities", attestation_identities)
+        object.__setattr__(self, "tool", tool)
+        # __post_init__ in Python 3.10+
         if self.sdist or self.wheels:
             if any([self.vcs, self.directory, self.archive]):
                 raise PylockValidationError(
@@ -422,19 +533,42 @@ class Package:
         return package
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True)
 class Pylock:
     lock_version: Version
-    environments: Optional[List[Marker]] = None
-    requires_python: Optional[SpecifierSet] = None
-    extras: List[str] = dataclasses.field(default_factory=list)
-    dependency_groups: List[str] = dataclasses.field(default_factory=list)
-    default_groups: List[str] = dataclasses.field(default_factory=list)
+    environments: Optional[List[Marker]]  # = None
+    requires_python: Optional[SpecifierSet]  # = None
+    extras: List[str]  # = dataclasses.field(default_factory=list)
+    dependency_groups: List[str]  # = dataclasses.field(default_factory=list)
+    default_groups: List[str]  # = dataclasses.field(default_factory=list)
     created_by: str
     packages: List[Package]
     tool: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        lock_version: Version,
+        created_by: str,
+        packages: List[Package],
+        environments: Optional[List[Marker]] = None,
+        requires_python: Optional[SpecifierSet] = None,
+        extras: Optional[List[str]] = None,
+        dependency_groups: Optional[List[str]] = None,
+        default_groups: Optional[List[str]] = None,
+        tool: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        # In Python 3.10+ make dataclass kw_only=True and remove __init__
+        object.__setattr__(self, "lock_version", lock_version)
+        object.__setattr__(self, "environments", environments)
+        object.__setattr__(self, "requires_python", requires_python)
+        object.__setattr__(self, "extras", extras or [])
+        object.__setattr__(self, "dependency_groups", dependency_groups or [])
+        object.__setattr__(self, "default_groups", default_groups or [])
+        object.__setattr__(self, "created_by", created_by)
+        object.__setattr__(self, "packages", packages)
+        object.__setattr__(self, "tool", tool)
+        # __post_init__ in Python 3.10+
         if self.lock_version < Version("1") or self.lock_version >= Version("2"):
             raise PylockUnsupportedVersionError(
                 f"pylock version {self.lock_version} is not supported"
