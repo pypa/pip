@@ -264,12 +264,6 @@ def test_pylock_tool() -> None:
     [
         (
             {
-                "sha2": "f" * 40,
-            },
-            "At least one hash algorithm must be in hashlib.algorithms_guaranteed",
-        ),
-        (
-            {
                 "sha256": "f" * 40,
                 "md5": 1,
             },

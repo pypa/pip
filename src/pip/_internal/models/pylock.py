@@ -1,5 +1,4 @@
 import dataclasses
-import hashlib
 import logging
 import re
 import sys
@@ -235,10 +234,6 @@ def _validate_path_url(path: Optional[str], url: Optional[str]) -> None:
 def _validate_hashes(hashes: Mapping[str, Any]) -> None:
     if not hashes:
         raise PylockValidationError("At least one hash must be provided")
-    if not any(algo in hashlib.algorithms_guaranteed for algo in hashes):
-        raise PylockValidationError(
-            "At least one hash algorithm must be in hashlib.algorithms_guaranteed"
-        )
     if not all(isinstance(hash, str) for hash in hashes.values()):
         raise PylockValidationError("Hash values must be strings")
 
