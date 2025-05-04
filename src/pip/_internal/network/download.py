@@ -172,6 +172,14 @@ class Downloader:
         self._progress_bar = progress_bar
         self._resume_retries = resume_retries
 
+    def batch(
+        self, links: Iterable[Link], location: str
+    ) -> Iterable[tuple[Link, tuple[str, str]]]:
+        """Download the files given by links into location."""
+        for link in links:
+            filepath, content_type = self(link, location)
+            yield link, (filepath, content_type)
+
     def __call__(self, link: Link, location: str) -> tuple[str, str]:
         """Download the file given by link into location."""
         resp = _http_get_download(self._session, link)
@@ -297,21 +305,3 @@ class Downloader:
         etag_or_last_modified = _get_http_response_etag_or_last_modified(resp)
 
         return bytes_received, total_length, etag_or_last_modified
-
-
-class BatchDownloader:
-    def __init__(
-        self,
-        session: PipSession,
-        progress_bar: str,
-        resume_retries: int,
-    ) -> None:
-        self._downloader = Downloader(session, progress_bar, resume_retries)
-
-    def __call__(
-        self, links: Iterable[Link], location: str
-    ) -> Iterable[tuple[Link, tuple[str, str]]]:
-        """Download the files given by links into location."""
-        for link in links:
-            filepath, content_type = self._downloader(link, location)
-            yield link, (filepath, content_type)

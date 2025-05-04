@@ -29,7 +29,7 @@ from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.direct_url import ArchiveInfo
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.network.download import BatchDownloader, Downloader
+from pip._internal.network.download import Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -245,7 +245,6 @@ class RequirementPreparer:
         self.build_tracker = build_tracker
         self._session = session
         self._download = Downloader(session, progress_bar, resume_retries)
-        self._batch_download = BatchDownloader(session, progress_bar, resume_retries)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -468,10 +467,7 @@ class RequirementPreparer:
             assert req.link
             links_to_fully_download[req.link] = req
 
-        batch_download = self._batch_download(
-            links_to_fully_download.keys(),
-            temp_dir,
-        )
+        batch_download = self._download.batch(links_to_fully_download.keys(), temp_dir)
         for link, (filepath, _) in batch_download:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
