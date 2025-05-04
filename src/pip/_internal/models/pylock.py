@@ -83,7 +83,7 @@ def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
     return {
         _toml_key(key): _toml_value(key, value)
         for key, value in data
-        if value is not None and value != []
+        if value is not None
     }
 
 
@@ -544,9 +544,9 @@ class Pylock:
     lock_version: Version
     environments: Optional[Sequence[Marker]]  # = None
     requires_python: Optional[SpecifierSet]  # = None
-    extras: Sequence[str]  # = dataclasses.field(default_factory=list)
-    dependency_groups: Sequence[str]  # = dataclasses.field(default_factory=list)
-    default_groups: Sequence[str]  # = dataclasses.field(default_factory=list)
+    extras: Optional[Sequence[str]]  # = None
+    dependency_groups: Optional[Sequence[str]]  # = None
+    default_groups: Optional[Sequence[str]]  # = None
     created_by: str
     packages: Sequence[Package]
     tool: Optional[Mapping[str, Any]] = None
@@ -568,9 +568,9 @@ class Pylock:
         object.__setattr__(self, "lock_version", lock_version)
         object.__setattr__(self, "environments", environments)
         object.__setattr__(self, "requires_python", requires_python)
-        object.__setattr__(self, "extras", extras or [])
-        object.__setattr__(self, "dependency_groups", dependency_groups or [])
-        object.__setattr__(self, "default_groups", default_groups or [])
+        object.__setattr__(self, "extras", extras)
+        object.__setattr__(self, "dependency_groups", dependency_groups)
+        object.__setattr__(self, "default_groups", default_groups)
         object.__setattr__(self, "created_by", created_by)
         object.__setattr__(self, "packages", packages)
         object.__setattr__(self, "tool", tool)
@@ -592,9 +592,9 @@ class Pylock:
         return cls(
             lock_version=_get_required_as(d, str, Version, "lock-version"),
             environments=_get_list_as(d, str, Marker, "environments"),
-            extras=_get_list(d, str, "extras") or [],
-            dependency_groups=_get_list(d, str, "dependency-groups") or [],
-            default_groups=_get_list(d, str, "default-groups") or [],
+            extras=_get_list(d, str, "extras"),
+            dependency_groups=_get_list(d, str, "dependency-groups"),
+            default_groups=_get_list(d, str, "default-groups"),
             created_by=_get_required(d, str, "created-by"),
             requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
