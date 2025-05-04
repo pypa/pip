@@ -3,6 +3,7 @@ import hashlib
 import logging
 import re
 import sys
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -10,14 +11,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
-    Iterable,
     List,
     Optional,
     Protocol,
     Tuple,
     Type,
     TypeVar,
-    Union,
 )
 
 from pip._vendor.packaging.markers import Marker
@@ -48,7 +47,7 @@ T = TypeVar("T")
 
 class FromDictProtocol(Protocol):
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self": ...
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self": ...
 
 
 FromDictProtocolT = TypeVar("FromDictProtocolT", bound=FromDictProtocol)
@@ -71,10 +70,10 @@ def _toml_key(key: str) -> str:
     return key.replace("_", "-")
 
 
-def _toml_value(key: str, value: T) -> Union[str, List[str], T]:
+def _toml_value(key: str, value: Any) -> Any:
     if isinstance(value, (Version, Marker, SpecifierSet)):
         return str(value)
-    if isinstance(value, list) and key == "environments":
+    if isinstance(value, Sequence) and key == "environments":
         return [str(v) for v in value]
     return value
 
@@ -87,7 +86,7 @@ def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _get(d: Dict[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
+def _get(d: Mapping[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
     """Get value from dictionary and verify expected type."""
     value = d.get(key)
     if value is None:
@@ -100,7 +99,7 @@ def _get(d: Dict[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
     return value
 
 
-def _get_required(d: Dict[str, Any], expected_type: Type[T], key: str) -> T:
+def _get_required(d: Mapping[str, Any], expected_type: Type[T], key: str) -> T:
     """Get required value from dictionary and verify expected type."""
     value = _get(d, expected_type, key)
     if value is None:
@@ -109,10 +108,10 @@ def _get_required(d: Dict[str, Any], expected_type: Type[T], key: str) -> T:
 
 
 def _get_list(
-    d: Dict[str, Any], expected_item_type: Type[T], key: str
-) -> Optional[List[T]]:
+    d: Mapping[str, Any], expected_item_type: Type[T], key: str
+) -> Optional[Sequence[T]]:
     """Get list value from dictionary and verify expected items type."""
-    value = _get(d, list, key)
+    value = _get(d, Sequence, key)  # type: ignore[type-abstract]
     if value is None:
         return None
     for i, item in enumerate(value):
@@ -125,7 +124,7 @@ def _get_list(
 
 
 def _get_as(
-    d: Dict[str, Any],
+    d: Mapping[str, Any],
     expected_type: Type[T],
     target_type: Type[SingleArgConstructorT],
     key: str,
@@ -144,7 +143,7 @@ def _get_as(
 
 
 def _get_required_as(
-    d: Dict[str, Any],
+    d: Mapping[str, Any],
     expected_type: Type[T],
     target_type: Type[SingleArgConstructorT],
     key: str,
@@ -158,11 +157,11 @@ def _get_required_as(
 
 
 def _get_list_as(
-    d: Dict[str, Any],
+    d: Mapping[str, Any],
     expected_item_type: Type[T],
     target_item_type: Type[SingleArgConstructorT],
     key: str,
-) -> Optional[List[SingleArgConstructorT]]:
+) -> Optional[Sequence[SingleArgConstructorT]]:
     """Get list value from dictionary and verify expected items type."""
     value = _get_list(d, expected_item_type, key)
     if value is None:
@@ -177,10 +176,10 @@ def _get_list_as(
 
 
 def _get_object(
-    d: Dict[str, Any], target_type: Type[FromDictProtocolT], key: str
+    d: Mapping[str, Any], target_type: Type[FromDictProtocolT], key: str
 ) -> Optional[FromDictProtocolT]:
     """Get dictionary value from dictionary and convert to dataclass."""
-    value = _get(d, dict, key)
+    value = _get(d, Mapping, key)  # type: ignore[type-abstract]
     if value is None:
         return None
     try:
@@ -190,15 +189,15 @@ def _get_object(
 
 
 def _get_list_of_objects(
-    d: Dict[str, Any], target_item_type: Type[FromDictProtocolT], key: str
-) -> Optional[List[FromDictProtocolT]]:
+    d: Mapping[str, Any], target_item_type: Type[FromDictProtocolT], key: str
+) -> Optional[Sequence[FromDictProtocolT]]:
     """Get list value from dictionary and convert items to dataclass."""
-    value = _get(d, list, key)
+    value = _get(d, Sequence, key)  # type: ignore[type-abstract]
     if value is None:
         return None
     result = []
     for i, item in enumerate(value):
-        if not isinstance(item, dict):
+        if not isinstance(item, Mapping):
             raise PylockValidationError(f"Item {i} of {key!r} is not a table")
         try:
             result.append(target_item_type.from_dict(item))
@@ -208,8 +207,8 @@ def _get_list_of_objects(
 
 
 def _get_required_list_of_objects(
-    d: Dict[str, Any], target_type: Type[FromDictProtocolT], key: str
-) -> List[FromDictProtocolT]:
+    d: Mapping[str, Any], target_type: Type[FromDictProtocolT], key: str
+) -> Sequence[FromDictProtocolT]:
     """Get required list value from dictionary and convert items to dataclass."""
     result = _get_list_of_objects(d, target_type, key)
     if result is None:
@@ -232,7 +231,7 @@ def _validate_path_url(path: Optional[str], url: Optional[str]) -> None:
         raise PylockValidationError("path or url must be provided")
 
 
-def _validate_hashes(hashes: Dict[str, Any]) -> None:
+def _validate_hashes(hashes: Mapping[str, Any]) -> None:
     if not hashes:
         raise PylockValidationError("At least one hash must be provided")
     if not any(algo in hashlib.algorithms_guaranteed for algo in hashes):
@@ -286,7 +285,7 @@ class PackageVcs:
         _validate_path_url(self.path, self.url)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         return cls(
             type=_get_required(d, str, "type"),
             url=_get(d, str, "url"),
@@ -316,7 +315,7 @@ class PackageDirectory:
         object.__setattr__(self, "subdirectory", subdirectory)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         return cls(
             path=_get_required(d, str, "path"),
             editable=_get(d, bool, "editable"),
@@ -330,13 +329,13 @@ class PackageArchive:
     path: Optional[str]  # = None
     size: Optional[int]  # = None
     upload_time: Optional[datetime]  # = None
-    hashes: Dict[str, str]
+    hashes: Mapping[str, str]
     subdirectory: Optional[str] = None
 
     def __init__(
         self,
         *,
-        hashes: Dict[str, str],
+        hashes: Mapping[str, str],
         url: Optional[str] = None,
         path: Optional[str] = None,
         size: Optional[int] = None,
@@ -355,13 +354,13 @@ class PackageArchive:
         _validate_hashes(self.hashes)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         return cls(
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
             size=_get(d, int, "size"),
             upload_time=_get(d, datetime, "upload-time"),
-            hashes=_get_required(d, dict, "hashes"),
+            hashes=_get_required(d, Mapping, "hashes"),  # type: ignore[type-abstract]
             subdirectory=_get(d, str, "subdirectory"),
         )
 
@@ -373,13 +372,13 @@ class PackageSdist:
     url: Optional[str]  # = None
     path: Optional[str]  # = None
     size: Optional[int]  # = None
-    hashes: Dict[str, str]
+    hashes: Mapping[str, str]
 
     def __init__(
         self,
         *,
         name: str,
-        hashes: Dict[str, str],
+        hashes: Mapping[str, str],
         upload_time: Optional[datetime] = None,
         url: Optional[str] = None,
         path: Optional[str] = None,
@@ -397,14 +396,14 @@ class PackageSdist:
         _validate_hashes(self.hashes)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         return cls(
             name=_get_required(d, str, "name"),
             upload_time=_get(d, datetime, "upload-time"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
             size=_get(d, int, "size"),
-            hashes=_get_required(d, dict, "hashes"),
+            hashes=_get_required(d, Mapping, "hashes"),  # type: ignore[type-abstract]
         )
 
 
@@ -415,13 +414,13 @@ class PackageWheel:
     url: Optional[str]  # = None
     path: Optional[str]  # = None
     size: Optional[int]  # = None
-    hashes: Dict[str, str]
+    hashes: Mapping[str, str]
 
     def __init__(
         self,
         *,
         name: str,
-        hashes: Dict[str, str],
+        hashes: Mapping[str, str],
         upload_time: Optional[datetime] = None,
         url: Optional[str] = None,
         path: Optional[str] = None,
@@ -439,14 +438,14 @@ class PackageWheel:
         _validate_hashes(self.hashes)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         wheel = cls(
             name=_get_required(d, str, "name"),
             upload_time=_get(d, datetime, "upload-time"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
             size=_get(d, int, "size"),
-            hashes=_get_required(d, dict, "hashes"),
+            hashes=_get_required(d, Mapping, "hashes"),  # type: ignore[type-abstract]
         )
         return wheel
 
@@ -457,15 +456,15 @@ class Package:
     version: Optional[Version] = None
     marker: Optional[Marker] = None
     requires_python: Optional[SpecifierSet] = None
-    dependencies: Optional[List[Dict[str, Any]]] = None
+    dependencies: Optional[Sequence[Mapping[str, Any]]] = None
     vcs: Optional[PackageVcs] = None
     directory: Optional[PackageDirectory] = None
     archive: Optional[PackageArchive] = None
     index: Optional[str] = None
     sdist: Optional[PackageSdist] = None
-    wheels: Optional[List[PackageWheel]] = None
-    attestation_identities: Optional[List[Dict[str, Any]]] = None
-    tool: Optional[Dict[str, Any]] = None
+    wheels: Optional[Sequence[PackageWheel]] = None
+    attestation_identities: Optional[Sequence[Mapping[str, Any]]] = None
+    tool: Optional[Mapping[str, Any]] = None
 
     def __init__(
         self,
@@ -474,15 +473,15 @@ class Package:
         version: Optional[Version] = None,
         marker: Optional[Marker] = None,
         requires_python: Optional[SpecifierSet] = None,
-        dependencies: Optional[List[Dict[str, Any]]] = None,
+        dependencies: Optional[Sequence[Mapping[str, Any]]] = None,
         vcs: Optional[PackageVcs] = None,
         directory: Optional[PackageDirectory] = None,
         archive: Optional[PackageArchive] = None,
         index: Optional[str] = None,
         sdist: Optional[PackageSdist] = None,
-        wheels: Optional[List[PackageWheel]] = None,
-        attestation_identities: Optional[List[Dict[str, Any]]] = None,
-        tool: Optional[Dict[str, Any]] = None,
+        wheels: Optional[Sequence[PackageWheel]] = None,
+        attestation_identities: Optional[Sequence[Mapping[str, Any]]] = None,
+        tool: Optional[Mapping[str, Any]] = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "name", name)
@@ -514,12 +513,12 @@ class Package:
                 )
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         package = cls(
             name=_get_required(d, str, "name"),
             version=_get_as(d, str, Version, "version"),
             requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
-            dependencies=_get_list(d, dict, "dependencies"),
+            dependencies=_get_list(d, Mapping, "dependencies"),  # type: ignore[type-abstract]
             marker=_get_as(d, str, Marker, "marker"),
             vcs=_get_object(d, PackageVcs, "vcs"),
             directory=_get_object(d, PackageDirectory, "directory"),
@@ -527,8 +526,8 @@ class Package:
             index=_get(d, str, "index"),
             sdist=_get_object(d, PackageSdist, "sdist"),
             wheels=_get_list_of_objects(d, PackageWheel, "wheels"),
-            attestation_identities=_get_list(d, dict, "attestation-identities"),
-            tool=_get(d, dict, "tool"),
+            attestation_identities=_get_list(d, Mapping, "attestation-identities"),  # type: ignore[type-abstract]
+            tool=_get(d, Mapping, "tool"),  # type: ignore[type-abstract]
         )
         return package
 
@@ -540,27 +539,27 @@ class Package:
 @dataclass(frozen=True)
 class Pylock:
     lock_version: Version
-    environments: Optional[List[Marker]]  # = None
+    environments: Optional[Sequence[Marker]]  # = None
     requires_python: Optional[SpecifierSet]  # = None
-    extras: List[str]  # = dataclasses.field(default_factory=list)
-    dependency_groups: List[str]  # = dataclasses.field(default_factory=list)
-    default_groups: List[str]  # = dataclasses.field(default_factory=list)
+    extras: Sequence[str]  # = dataclasses.field(default_factory=list)
+    dependency_groups: Sequence[str]  # = dataclasses.field(default_factory=list)
+    default_groups: Sequence[str]  # = dataclasses.field(default_factory=list)
     created_by: str
-    packages: List[Package]
-    tool: Optional[Dict[str, Any]] = None
+    packages: Sequence[Package]
+    tool: Optional[Mapping[str, Any]] = None
 
     def __init__(
         self,
         *,
         lock_version: Version,
         created_by: str,
-        packages: List[Package],
-        environments: Optional[List[Marker]] = None,
+        packages: Sequence[Package],
+        environments: Optional[Sequence[Marker]] = None,
         requires_python: Optional[SpecifierSet] = None,
-        extras: Optional[List[str]] = None,
-        dependency_groups: Optional[List[str]] = None,
-        default_groups: Optional[List[str]] = None,
-        tool: Optional[Dict[str, Any]] = None,
+        extras: Optional[Sequence[str]] = None,
+        dependency_groups: Optional[Sequence[str]] = None,
+        default_groups: Optional[Sequence[str]] = None,
+        tool: Optional[Mapping[str, Any]] = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "lock_version", lock_version)
@@ -582,11 +581,11 @@ class Pylock:
                 "pylock minor version %s is not supported", self.lock_version
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> Mapping[str, Any]:
         return dataclasses.asdict(self, dict_factory=_toml_dict_factory)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         return cls(
             lock_version=_get_required_as(d, str, Version, "lock-version"),
             environments=_get_list_as(d, str, Marker, "environments"),
@@ -596,5 +595,5 @@ class Pylock:
             created_by=_get_required(d, str, "created-by"),
             requires_python=_get_as(d, str, SpecifierSet, "requires-python"),
             packages=_get_required_list_of_objects(d, Package, "packages"),
-            tool=_get(d, dict, "tool"),
+            tool=_get(d, Mapping, "tool"),  # type: ignore[type-abstract]
         )
