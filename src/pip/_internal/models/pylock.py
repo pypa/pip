@@ -21,6 +21,7 @@ from typing import (
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.utils import NormalizedName, is_normalized_name
 from pip._vendor.packaging.version import Version
 
 if TYPE_CHECKING:
@@ -452,7 +453,7 @@ class PackageWheel:
 
 @dataclass(frozen=True)
 class Package:
-    name: str
+    name: NormalizedName
     version: Optional[Version] = None
     marker: Optional[Marker] = None
     requires_python: Optional[SpecifierSet] = None
@@ -498,6 +499,8 @@ class Package:
         object.__setattr__(self, "attestation_identities", attestation_identities)
         object.__setattr__(self, "tool", tool)
         # __post_init__ in Python 3.10+
+        if not is_normalized_name(self.name):
+            raise PylockValidationError(f"Package name {self.name!r} is not normalized")
         if self.sdist or self.wheels:
             if any([self.vcs, self.directory, self.archive]):
                 raise PylockValidationError(

@@ -294,6 +294,12 @@ def test_hash_validation(hashes: Dict[str, Any], expected_error: str) -> None:
     assert str(exc_info.value) == expected_error
 
 
+def test_package_name_validation() -> None:
+    with pytest.raises(PylockValidationError) as exc_info:
+        Package(name="Example")
+    assert str(exc_info.value) == "Package name 'Example' is not normalized"
+
+
 def test_is_direct() -> None:
     direct_package = Package(
         name="example",
