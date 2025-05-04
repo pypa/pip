@@ -367,7 +367,7 @@ class PackageArchive:
 
 @dataclass(frozen=True)
 class PackageSdist:
-    name: str
+    name: Optional[str]  # = None
     upload_time: Optional[datetime]  # = None
     url: Optional[str]  # = None
     path: Optional[str]  # = None
@@ -377,8 +377,8 @@ class PackageSdist:
     def __init__(
         self,
         *,
-        name: str,
         hashes: Mapping[str, str],
+        name: Optional[str] = None,
         upload_time: Optional[datetime] = None,
         url: Optional[str] = None,
         path: Optional[str] = None,
@@ -398,7 +398,7 @@ class PackageSdist:
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         return cls(
-            name=_get_required(d, str, "name"),
+            name=_get(d, str, "name"),
             upload_time=_get(d, datetime, "upload-time"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
@@ -409,7 +409,7 @@ class PackageSdist:
 
 @dataclass(frozen=True)
 class PackageWheel:
-    name: str
+    name: Optional[str]
     upload_time: Optional[datetime]  # = None
     url: Optional[str]  # = None
     path: Optional[str]  # = None
@@ -419,8 +419,8 @@ class PackageWheel:
     def __init__(
         self,
         *,
-        name: str,
         hashes: Mapping[str, str],
+        name: Optional[str] = None,
         upload_time: Optional[datetime] = None,
         url: Optional[str] = None,
         path: Optional[str] = None,
@@ -440,7 +440,7 @@ class PackageWheel:
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> "Self":
         wheel = cls(
-            name=_get_required(d, str, "name"),
+            name=_get(d, str, "name"),
             upload_time=_get(d, datetime, "upload-time"),
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
