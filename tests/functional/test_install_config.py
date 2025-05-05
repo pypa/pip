@@ -417,6 +417,7 @@ def flags(
     return flags
 
 
+@pytest.mark.network
 def test_prompt_for_keyring_if_needed(
     data: TestData,
     cert_factory: CertFactory,
