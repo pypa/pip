@@ -8,7 +8,7 @@ import mimetypes
 import os
 from collections.abc import Iterable
 from http import HTTPStatus
-from typing import BinaryIO
+from typing import BinaryIO, Mapping
 
 from pip._vendor.requests.models import Response
 from pip._vendor.urllib3.exceptions import ReadTimeoutError
@@ -134,33 +134,9 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
     return filename
 
 
-def _http_get_download(
-    session: PipSession,
-    link: Link,
-    range_start: int | None = 0,
-    if_range: str | None = None,
-) -> Response:
-    target_url = link.url.split("#", 1)[0]
-    headers = HEADERS.copy()
-    # request a partial download
-    if range_start:
-        headers["Range"] = f"bytes={range_start}-"
-    # make sure the file hasn't changed
-    if if_range:
-        headers["If-Range"] = if_range
-    try:
-        resp = session.get(target_url, headers=headers, stream=True)
-        raise_for_status(resp)
-    except NetworkConnectionError as e:
-        assert e.response is not None
-        logger.critical("HTTP error %s while getting %s", e.response.status_code, link)
-        raise
-    return resp
-
-
 @dataclass
 class _FileDownload:
-    """Stores the state of a single file download."""
+    """Stores the state of a single link download."""
 
     link: Link
     output_file: BinaryIO
@@ -175,7 +151,7 @@ class _FileDownload:
         self.bytes_received += len(data)
         self.output_file.write(data)
 
-    def reset_download(self) -> None:
+    def reset_file(self) -> None:
         """Delete any saved data and reset progress to zero."""
         self.output_file.seek(0)
         self.output_file.truncate()
@@ -206,7 +182,7 @@ class Downloader:
 
     def __call__(self, link: Link, location: str) -> tuple[str, str]:
         """Download the file given by link into location."""
-        resp = _http_get_download(self._session, link)
+        resp = self._http_get(link)
         download_size = _get_http_response_size(resp)
 
         filepath = os.path.join(location, _get_http_response_filename(resp, link))
@@ -228,12 +204,6 @@ class Downloader:
             download.size,
             range_start=download.bytes_received,
         )
-        self._write_chunks_to_file(download, chunks)
-
-    def _write_chunks_to_file(
-        self, download: _FileDownload, chunks: Iterable[bytes]
-    ) -> None:
-        """Write the chunks to the file and return the number of bytes received."""
         try:
             for chunk in chunks:
                 download.write_chunk(chunk)
@@ -246,7 +216,6 @@ class Downloader:
 
     def _attempt_resume(self, download: _FileDownload, resp: Response) -> None:
         """Attempt to resume the download if connection was dropped."""
-        etag_or_last_modified = _get_http_response_etag_or_last_modified(resp)
 
         while download.reattempts < self._resume_retries and download.is_incomplete():
             assert download.size is not None
@@ -259,22 +228,14 @@ class Downloader:
             )
 
             try:
-                # Try to resume the download using a HTTP range request.
-                resume_resp = _http_get_download(
-                    self._session,
-                    download.link,
-                    range_start=download.bytes_received,
-                    if_range=etag_or_last_modified,
-                )
-
+                resume_resp = self._http_get_resume(download, should_match=resp)
                 # Fallback: if the server responded with 200 (i.e., the file has
                 # since been modified or range requests are unsupported) or any
                 # other unexpected status, restart the download from the beginning.
                 must_restart = resume_resp.status_code != HTTPStatus.PARTIAL_CONTENT
                 if must_restart:
-                    download.size, etag_or_last_modified = self._reset_download_state(
-                        download, resume_resp
-                    )
+                    download.reset_file()
+                    download.size = _get_http_response_size(resume_resp)
 
                 self._process_response(download, resume_resp)
             except (ConnectionError, ReadTimeoutError, OSError):
@@ -285,12 +246,27 @@ class Downloader:
             os.remove(download.output_file.name)
             raise IncompleteDownloadError(download)
 
-    def _reset_download_state(
-        self, download: _FileDownload, resp: Response
-    ) -> tuple[int | None, str | None]:
-        """Reset the download state to restart downloading from the beginning."""
-        download.reset_download()
-        total_length = _get_http_response_size(resp)
-        etag_or_last_modified = _get_http_response_etag_or_last_modified(resp)
+    def _http_get_resume(
+        self, download: _FileDownload, should_match: Response
+    ) -> Response:
+        """Issue a HTTP range request to resume the download."""
+        headers = HEADERS.copy()
+        headers["Range"] = f"bytes={download.bytes_received}-"
+        # If possible, use a conditional range request to avoid corrupted
+        # downloads caused by the remote file changing in-between.
+        if identifier := _get_http_response_etag_or_last_modified(should_match):
+            headers["If-Range"] = identifier
+        return self._http_get(download.link, headers)
 
-        return total_length, etag_or_last_modified
+    def _http_get(self, link: Link, headers: Mapping[str, str] = HEADERS) -> Response:
+        target_url = link.url_without_fragment
+        try:
+            resp = self._session.get(target_url, headers=headers, stream=True)
+            raise_for_status(resp)
+        except NetworkConnectionError as e:
+            assert e.response is not None
+            logger.critical(
+                "HTTP error %s while getting %s", e.response.status_code, link
+            )
+            raise
+        return resp

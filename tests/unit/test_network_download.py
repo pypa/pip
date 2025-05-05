@@ -12,7 +12,6 @@ from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
     _get_http_response_size,
-    _http_get_download,
     _prepare_download,
     parse_content_disposition,
     sanitize_content_filename,
@@ -147,29 +146,6 @@ def test_sanitize_content_filename__platform_dependent(
     else:
         expected = non_win_expected
     assert sanitize_content_filename(filename) == expected
-
-
-@pytest.mark.parametrize(
-    "range_start, if_range, expected_headers",
-    [
-        (None, None, HEADERS),
-        (1234, None, {**HEADERS, "Range": "bytes=1234-"}),
-        (1234, '"etag"', {**HEADERS, "Range": "bytes=1234-", "If-Range": '"etag"'}),
-    ],
-)
-def test_http_get_download(
-    range_start: int | None,
-    if_range: str | None,
-    expected_headers: dict[str, str],
-) -> None:
-    session = PipSession()
-    session.get = MagicMock()
-    link = Link("http://example.com/foo.tgz")
-    with patch("pip._internal.network.download.raise_for_status"):
-        _http_get_download(session, link, range_start, if_range)
-    session.get.assert_called_once_with(
-        "http://example.com/foo.tgz", headers=expected_headers, stream=True
-    )
 
 
 @pytest.mark.parametrize(
@@ -323,7 +299,7 @@ def test_downloader(
     resume_retries: int,
     mock_responses: list[tuple[dict[str, str], int, bytes]],
     # list of (range_start, if_range)
-    expected_resume_args: list[tuple[int | None, int | None]],
+    expected_resume_args: list[tuple[int | None, str | None]],
     # expected_bytes is None means the download should fail
     expected_bytes: bytes | None,
     tmpdir: Path,
@@ -338,9 +314,9 @@ def test_downloader(
         resp.headers = headers
         resp.status_code = status_code
         responses.append(resp)
-    _http_get_download = MagicMock(side_effect=responses)
+    _http_get_mock = MagicMock(side_effect=responses)
 
-    with patch("pip._internal.network.download._http_get_download", _http_get_download):
+    with patch.object(Downloader, "_http_get", _http_get_mock):
         if expected_bytes is None:
             remove = MagicMock(return_value=None)
             with patch("os.remove", remove):
@@ -354,9 +330,12 @@ def test_downloader(
                 downloaded_bytes = downloaded_file.read()
                 assert downloaded_bytes == expected_bytes
 
-    calls = [call(session, link)]  # the initial request
+    calls = [call(link)]  # the initial GET request
     for range_start, if_range in expected_resume_args:
-        calls.append(call(session, link, range_start=range_start, if_range=if_range))
+        headers = {**HEADERS, "Range": f"bytes={range_start}-"}
+        if if_range:
+            headers["If-Range"] = if_range
+        calls.append(call(link, headers))
 
-    # Make sure that the download makes additional requests for resumption
-    _http_get_download.assert_has_calls(calls)
+    # Make sure that the downloader makes additional requests for resumption
+    _http_get_mock.assert_has_calls(calls)
