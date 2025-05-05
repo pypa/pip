@@ -12,7 +12,7 @@ from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
     _get_http_response_size,
-    _prepare_download,
+    _log_download,
     parse_content_disposition,
     sanitize_content_filename,
 )
@@ -76,7 +76,7 @@ from tests.lib.requests_mocks import MockResponse
         ),
     ],
 )
-def test_prepare_download__log(
+def test_log_download(
     caplog: pytest.LogCaptureFixture,
     url: str,
     headers: dict[str, str],
@@ -92,7 +92,7 @@ def test_prepare_download__log(
         resp.from_cache = from_cache
     link = Link(url)
     total_length = _get_http_response_size(resp)
-    _prepare_download(
+    _log_download(
         resp,
         link,
         progress_bar="on",
