@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, DefaultDict, Optional
+from typing import Any
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
@@ -11,7 +13,7 @@ logger = getLogger(__name__)
 
 class PipReporter(BaseReporter[Requirement, Candidate, str]):
     def __init__(self) -> None:
-        self.reject_count_by_package: DefaultDict[str, int] = defaultdict(int)
+        self.reject_count_by_package: defaultdict[str, int] = defaultdict(int)
 
         self._messages_at_reject_count = {
             1: (
@@ -72,7 +74,7 @@ class PipDebuggingReporter(BaseReporter[Requirement, Candidate, str]):
         logger.info("Reporter.ending(%r)", state)
 
     def adding_requirement(
-        self, requirement: Requirement, parent: Optional[Candidate]
+        self, requirement: Requirement, parent: Candidate | None
     ) -> None:
         logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
 

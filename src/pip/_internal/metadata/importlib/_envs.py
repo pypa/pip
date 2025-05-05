@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import importlib.metadata
 import logging
 import os
 import pathlib
 import sys
 import zipfile
-from typing import Iterator, List, Optional, Sequence, Set, Tuple
+from collections.abc import Iterator, Sequence
+from typing import Optional
 
 from pip._vendor.packaging.utils import (
     InvalidWheelFilename,
@@ -47,10 +50,10 @@ class _DistributionFinder:
     installations as well. It's useful feature, after all.
     """
 
-    FoundResult = Tuple[importlib.metadata.Distribution, Optional[BasePath]]
+    FoundResult = tuple[importlib.metadata.Distribution, Optional[BasePath]]
 
     def __init__(self) -> None:
-        self._found_names: Set[NormalizedName] = set()
+        self._found_names: set[NormalizedName] = set()
 
     def _find_impl(self, location: str) -> Iterator[FoundResult]:
         """Find distributions in a location."""
@@ -80,7 +83,7 @@ class _DistributionFinder:
         """
         for dist, info_location in self._find_impl(location):
             if info_location is None:
-                installed_location: Optional[BasePath] = None
+                installed_location: BasePath | None = None
             else:
                 installed_location = info_location.parent
             yield Distribution(dist, info_location, installed_location)
@@ -119,7 +122,7 @@ class Environment(BaseEnvironment):
         return cls(sys.path)
 
     @classmethod
-    def from_paths(cls, paths: Optional[List[str]]) -> BaseEnvironment:
+    def from_paths(cls, paths: list[str] | None) -> BaseEnvironment:
         if paths is None:
             return cls(sys.path)
         return cls(paths)
@@ -130,7 +133,7 @@ class Environment(BaseEnvironment):
             yield from finder.find(location)
             yield from finder.find_legacy_editables(location)
 
-    def get_distribution(self, name: str) -> Optional[BaseDistribution]:
+    def get_distribution(self, name: str) -> BaseDistribution | None:
         canonical_name = canonicalize_name(name)
         matches = (
             distribution

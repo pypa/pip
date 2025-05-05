@@ -1,6 +1,6 @@
 import email.message
 import itertools
-from typing import List, cast
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -34,7 +34,7 @@ def patch_distribution_lookups(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(Distribution, "in_usersite", property(_dist_in_usersite))
 
 
-class _MockWorkingSet(List[mock.Mock]):
+class _MockWorkingSet(list[mock.Mock]):
     def require(self, name: str) -> None:
         pass
 

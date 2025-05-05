@@ -11,11 +11,14 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+from __future__ import annotations
+
 import configparser
 import locale
 import os
 import sys
-from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
+from collections.abc import Iterable
+from typing import Any, NewType
 
 from pip._internal.exceptions import (
     ConfigurationError,
@@ -55,7 +58,7 @@ def _normalize_name(name: str) -> str:
     return name
 
 
-def _disassemble_key(name: str) -> List[str]:
+def _disassemble_key(name: str) -> list[str]:
     if "." not in name:
         error_message = (
             "Key does not contain dot separated section and key. "
@@ -65,7 +68,7 @@ def _disassemble_key(name: str) -> List[str]:
     return name.split(".", 1)
 
 
-def get_configuration_files() -> Dict[Kind, List[str]]:
+def get_configuration_files() -> dict[Kind, list[str]]:
     global_config_files = [
         os.path.join(path, CONFIG_BASENAME) for path in appdirs.site_config_dirs("pip")
     ]
@@ -98,7 +101,7 @@ class Configuration:
     and the data stored is also nice.
     """
 
-    def __init__(self, isolated: bool, load_only: Optional[Kind] = None) -> None:
+    def __init__(self, isolated: bool, load_only: Kind | None = None) -> None:
         super().__init__()
 
         if load_only is not None and load_only not in VALID_LOAD_ONLY:
@@ -111,13 +114,13 @@ class Configuration:
         self.load_only = load_only
 
         # Because we keep track of where we got the data from
-        self._parsers: Dict[Kind, List[Tuple[str, RawConfigParser]]] = {
+        self._parsers: dict[Kind, list[tuple[str, RawConfigParser]]] = {
             variant: [] for variant in OVERRIDE_ORDER
         }
-        self._config: Dict[Kind, Dict[str, Any]] = {
+        self._config: dict[Kind, dict[str, Any]] = {
             variant: {} for variant in OVERRIDE_ORDER
         }
-        self._modified_parsers: List[Tuple[str, RawConfigParser]] = []
+        self._modified_parsers: list[tuple[str, RawConfigParser]] = []
 
     def load(self) -> None:
         """Loads configuration from configuration files and environment"""
@@ -125,7 +128,7 @@ class Configuration:
         if not self.isolated:
             self._load_environment_vars()
 
-    def get_file_to_edit(self) -> Optional[str]:
+    def get_file_to_edit(self) -> str | None:
         """Returns the file with highest priority in configuration"""
         assert self.load_only is not None, "Need to be specified a file to be editing"
 
@@ -134,7 +137,7 @@ class Configuration:
         except IndexError:
             return None
 
-    def items(self) -> Iterable[Tuple[str, Any]]:
+    def items(self) -> Iterable[tuple[str, Any]]:
         """Returns key-value pairs like dict.items() representing the loaded
         configuration
         """
@@ -230,7 +233,7 @@ class Configuration:
         logger.debug("Will be working with %s variant only", self.load_only)
 
     @property
-    def _dictionary(self) -> Dict[str, Any]:
+    def _dictionary(self) -> dict[str, Any]:
         """A dictionary representing the loaded configuration."""
         # NOTE: Dictionaries are not populated if not loaded. So, conditionals
         #       are not needed here.
@@ -302,8 +305,8 @@ class Configuration:
         )
 
     def _normalized_keys(
-        self, section: str, items: Iterable[Tuple[str, Any]]
-    ) -> Dict[str, Any]:
+        self, section: str, items: Iterable[tuple[str, Any]]
+    ) -> dict[str, Any]:
         """Normalizes items to construct a dictionary with normalized keys.
 
         This routine is where the names become keys and are made the same
@@ -315,7 +318,7 @@ class Configuration:
             normalized[key] = val
         return normalized
 
-    def get_environ_vars(self) -> Iterable[Tuple[str, str]]:
+    def get_environ_vars(self) -> Iterable[tuple[str, str]]:
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
             if key.startswith("PIP_"):
@@ -324,7 +327,7 @@ class Configuration:
                     yield name, val
 
     # XXX: This is patched in the tests.
-    def iter_config_files(self) -> Iterable[Tuple[Kind, List[str]]]:
+    def iter_config_files(self) -> Iterable[tuple[Kind, list[str]]]:
         """Yields variant and configuration files associated with it.
 
         This should be treated like items of a dictionary. The order
@@ -356,11 +359,11 @@ class Configuration:
         else:
             yield kinds.ENV, []
 
-    def get_values_in_config(self, variant: Kind) -> Dict[str, Any]:
+    def get_values_in_config(self, variant: Kind) -> dict[str, Any]:
         """Get values present in a config file"""
         return self._config[variant]
 
-    def _get_parser_to_modify(self) -> Tuple[str, RawConfigParser]:
+    def _get_parser_to_modify(self) -> tuple[str, RawConfigParser]:
         # Determine which parser to modify
         assert self.load_only
         parsers = self._parsers[self.load_only]

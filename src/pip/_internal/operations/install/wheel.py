@@ -1,5 +1,7 @@
 """Support for installing and building the "wheel" binary package format."""
 
+from __future__ import annotations
+
 import collections
 import compileall
 import contextlib
@@ -12,6 +14,7 @@ import shutil
 import sys
 import warnings
 from base64 import urlsafe_b64encode
+from collections.abc import Generator, Iterable, Iterator, Sequence
 from email.message import Message
 from itertools import chain, filterfalse, starmap
 from typing import (
@@ -19,17 +22,8 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
     NewType,
-    Optional,
     Protocol,
-    Sequence,
-    Set,
-    Tuple,
     Union,
     cast,
 )
@@ -60,7 +54,7 @@ from pip._internal.utils.wheel import parse_wheel
 
 
 class File(Protocol):
-    src_record_path: "RecordPath"
+    src_record_path: RecordPath
     dest_path: str
     changed: bool
 
@@ -71,17 +65,17 @@ class File(Protocol):
 logger = logging.getLogger(__name__)
 
 RecordPath = NewType("RecordPath", str)
-InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
+InstalledCSVRow = tuple[RecordPath, str, Union[int, str]]
 
 
-def rehash(path: str, blocksize: int = 1 << 20) -> Tuple[str, str]:
+def rehash(path: str, blocksize: int = 1 << 20) -> tuple[str, str]:
     """Return (encoded_digest, length) for path using hashlib.sha256()"""
     h, length = hash_file(path, blocksize)
     digest = "sha256=" + urlsafe_b64encode(h.digest()).decode("latin1").rstrip("=")
     return (digest, str(length))
 
 
-def csv_io_kwargs(mode: str) -> Dict[str, Any]:
+def csv_io_kwargs(mode: str) -> dict[str, Any]:
     """Return keyword arguments to properly open a CSV file
     in the given mode.
     """
@@ -112,7 +106,7 @@ def wheel_root_is_purelib(metadata: Message) -> bool:
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
-def get_entrypoints(dist: BaseDistribution) -> Tuple[Dict[str, str], Dict[str, str]]:
+def get_entrypoints(dist: BaseDistribution) -> tuple[dict[str, str], dict[str, str]]:
     console_scripts = {}
     gui_scripts = {}
     for entry_point in dist.iter_entry_points():
@@ -123,7 +117,7 @@ def get_entrypoints(dist: BaseDistribution) -> Tuple[Dict[str, str], Dict[str, s
     return console_scripts, gui_scripts
 
 
-def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
+def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> str | None:
     """Determine if any scripts are not on PATH and format a warning.
     Returns a warning message if one or more scripts are not on PATH,
     otherwise None.
@@ -132,7 +126,7 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
         return None
 
     # Group scripts by the path they were installed in
-    grouped_by_dir: Dict[str, Set[str]] = collections.defaultdict(set)
+    grouped_by_dir: dict[str, set[str]] = collections.defaultdict(set)
     for destfile in scripts:
         parent_dir = os.path.dirname(destfile)
         script_name = os.path.basename(destfile)
@@ -148,7 +142,7 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
     not_warn_dirs.append(
         os.path.normcase(os.path.normpath(os.path.dirname(sys.executable)))
     )
-    warn_for: Dict[str, Set[str]] = {
+    warn_for: dict[str, set[str]] = {
         parent_dir: scripts
         for parent_dir, scripts in grouped_by_dir.items()
         if os.path.normcase(os.path.normpath(parent_dir)) not in not_warn_dirs
@@ -159,7 +153,7 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
     # Format a message
     msg_lines = []
     for parent_dir, dir_scripts in warn_for.items():
-        sorted_scripts: List[str] = sorted(dir_scripts)
+        sorted_scripts: list[str] = sorted(dir_scripts)
         if len(sorted_scripts) == 1:
             start_text = f"script {sorted_scripts[0]} is"
         else:
@@ -197,7 +191,7 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> Optional[str]:
 
 def _normalized_outrows(
     outrows: Iterable[InstalledCSVRow],
-) -> List[Tuple[str, str, str]]:
+) -> list[tuple[str, str, str]]:
     """Normalize the given rows of a RECORD file.
 
     Items in each row are converted into str. Rows are then sorted to make
@@ -236,17 +230,17 @@ def _fs_to_record_path(path: str, lib_dir: str) -> RecordPath:
 
 
 def get_csv_rows_for_installed(
-    old_csv_rows: List[List[str]],
-    installed: Dict[RecordPath, RecordPath],
-    changed: Set[RecordPath],
-    generated: List[str],
+    old_csv_rows: list[list[str]],
+    installed: dict[RecordPath, RecordPath],
+    changed: set[RecordPath],
+    generated: list[str],
     lib_dir: str,
-) -> List[InstalledCSVRow]:
+) -> list[InstalledCSVRow]:
     """
     :param installed: A map from archive RECORD path to installation RECORD
         path.
     """
-    installed_rows: List[InstalledCSVRow] = []
+    installed_rows: list[InstalledCSVRow] = []
     for row in old_csv_rows:
         if len(row) > 3:
             logger.warning("RECORD line has more than three elements: %s", row)
@@ -267,7 +261,7 @@ def get_csv_rows_for_installed(
     ]
 
 
-def get_console_script_specs(console: Dict[str, str]) -> List[str]:
+def get_console_script_specs(console: dict[str, str]) -> list[str]:
     """
     Given the mapping from entrypoint name to callable, return the relevant
     console script specs.
@@ -381,7 +375,7 @@ class ZipBackedFile:
 
 
 class ScriptFile:
-    def __init__(self, file: "File") -> None:
+    def __init__(self, file: File) -> None:
         self._file = file
         self.src_record_path = self._file.src_record_path
         self.dest_path = self._file.dest_path
@@ -410,8 +404,8 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 
 class PipScriptMaker(ScriptMaker):
     def make(
-        self, specification: str, options: Optional[Dict[str, Any]] = None
-    ) -> List[str]:
+        self, specification: str, options: dict[str, Any] | None = None
+    ) -> list[str]:
         _raise_for_invalid_entrypoint(specification)
         return super().make(specification, options)
 
@@ -423,7 +417,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     scheme: Scheme,
     pycompile: bool = True,
     warn_script_location: bool = True,
-    direct_url: Optional[DirectUrl] = None,
+    direct_url: DirectUrl | None = None,
     requested: bool = False,
 ) -> None:
     """Install a wheel.
@@ -452,9 +446,9 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
     #   generated = files newly generated during the install (script wrappers)
-    installed: Dict[RecordPath, RecordPath] = {}
-    changed: Set[RecordPath] = set()
-    generated: List[str] = []
+    installed: dict[RecordPath, RecordPath] = {}
+    changed: set[RecordPath] = set()
+    generated: list[str] = []
 
     def record_installed(
         srcfile: RecordPath, destfile: str, modified: bool = False
@@ -480,8 +474,8 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
     def root_scheme_file_maker(
         zip_file: ZipFile, dest: str
-    ) -> Callable[[RecordPath], "File"]:
-        def make_root_scheme_file(record_path: RecordPath) -> "File":
+    ) -> Callable[[RecordPath], File]:
+        def make_root_scheme_file(record_path: RecordPath) -> File:
             normed_path = os.path.normpath(record_path)
             dest_path = os.path.join(dest, normed_path)
             assert_no_path_traversal(dest, dest_path)
@@ -491,10 +485,10 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
     def data_scheme_file_maker(
         zip_file: ZipFile, scheme: Scheme
-    ) -> Callable[[RecordPath], "File"]:
+    ) -> Callable[[RecordPath], File]:
         scheme_paths = {key: getattr(scheme, key) for key in SCHEME_KEYS}
 
-        def make_data_scheme_file(record_path: RecordPath) -> "File":
+        def make_data_scheme_file(record_path: RecordPath) -> File:
             normed_path = os.path.normpath(record_path)
             try:
                 _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
@@ -526,7 +520,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     def is_data_scheme_path(path: RecordPath) -> bool:
         return path.split("/", 1)[0].endswith(".data")
 
-    paths = cast(List[RecordPath], wheel_zip.namelist())
+    paths = cast(list[RecordPath], wheel_zip.namelist())
     file_paths = filterfalse(is_dir_path, paths)
     root_scheme_paths, data_scheme_paths = partition(is_data_scheme_path, file_paths)
 
@@ -552,7 +546,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     )
     console, gui = get_entrypoints(distribution)
 
-    def is_entrypoint_wrapper(file: "File") -> bool:
+    def is_entrypoint_wrapper(file: File) -> bool:
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
         path = file.dest_path
@@ -721,7 +715,7 @@ def install_wheel(
     req_description: str,
     pycompile: bool = True,
     warn_script_location: bool = True,
-    direct_url: Optional[DirectUrl] = None,
+    direct_url: DirectUrl | None = None,
     requested: bool = False,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import math
-from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -29,9 +32,7 @@ class FakeCandidate(Candidate):
     def __init__(self, *args: object, **kwargs: object) -> None: ...
 
 
-def build_req_info(
-    name: str, parent: Optional[Candidate] = None
-) -> "PreferenceInformation":
+def build_req_info(name: str, parent: Candidate | None = None) -> PreferenceInformation:
     install_requirement = install_req_from_req_string(name)
 
     requirement_information: PreferenceInformation = RequirementInformation(
@@ -43,8 +44,8 @@ def build_req_info(
 
 
 def build_explicit_req_info(
-    url: str, parent: Optional[Candidate] = None
-) -> "PreferenceInformation":
+    url: str, parent: Candidate | None = None
+) -> PreferenceInformation:
     """Build a direct requirement using a minimal FakeCandidate."""
     direct_requirement = ExplicitRequirement(FakeCandidate(url))
     return RequirementInformation(requirement=direct_requirement, parent=parent)
@@ -153,10 +154,10 @@ def build_explicit_req_info(
 )
 def test_get_preference(
     identifier: str,
-    information: Dict[str, Iterable["PreferenceInformation"]],
-    backtrack_causes: Sequence["PreferenceInformation"],
-    user_requested: Dict[str, int],
-    expected: "Preference",
+    information: dict[str, Iterable[PreferenceInformation]],
+    backtrack_causes: Sequence[PreferenceInformation],
+    user_requested: dict[str, int],
+    expected: Preference,
     factory: Factory,
 ) -> None:
     provider = PipProvider(
@@ -216,9 +217,9 @@ def test_get_preference(
     ],
 )
 def test_narrow_requirement_selection(
-    identifiers: List[str],
-    backtrack_causes: Sequence["PreferenceInformation"],
-    expected: List[str],
+    identifiers: list[str],
+    backtrack_causes: Sequence[PreferenceInformation],
+    expected: list[str],
     factory: Factory,
 ) -> None:
     """Test that narrow_requirement_selection correctly prioritizes identifiers:

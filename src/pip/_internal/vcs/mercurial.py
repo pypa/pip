@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import configparser
 import logging
 import os
-from typing import List, Optional, Tuple
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path
@@ -30,7 +31,7 @@ class Mercurial(VersionControl):
     )
 
     @staticmethod
-    def get_base_rev_args(rev: str) -> List[str]:
+    def get_base_rev_args(rev: str) -> list[str]:
         return [f"--rev={rev}"]
 
     def fetch_new(
@@ -44,7 +45,7 @@ class Mercurial(VersionControl):
             display_path(dest),
         )
         if verbosity <= 0:
-            flags: Tuple[str, ...] = ("--quiet",)
+            flags: tuple[str, ...] = ("--quiet",)
         elif verbosity == 1:
             flags = ()
         elif verbosity == 2:
@@ -116,12 +117,12 @@ class Mercurial(VersionControl):
         return current_rev_hash
 
     @classmethod
-    def is_commit_id_equal(cls, dest: str, name: Optional[str]) -> bool:
+    def is_commit_id_equal(cls, dest: str, name: str | None) -> bool:
         """Always assume the versions don't match"""
         return False
 
     @classmethod
-    def get_subdirectory(cls, location: str) -> Optional[str]:
+    def get_subdirectory(cls, location: str) -> str | None:
         """
         Return the path to Python project root, relative to the repo root.
         Return None if the project root is in the repo root.
@@ -135,7 +136,7 @@ class Mercurial(VersionControl):
         return find_path_to_project_root_from_repo_root(location, repo_root)
 
     @classmethod
-    def get_repository_root(cls, location: str) -> Optional[str]:
+    def get_repository_root(cls, location: str) -> str | None:
         loc = super().get_repository_root(location)
         if loc:
             return loc

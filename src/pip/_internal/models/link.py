@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import logging
@@ -5,17 +7,12 @@ import os
 import posixpath
 import re
 import urllib.parse
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
-    Mapping,
     NamedTuple,
-    Optional,
-    Tuple,
-    Union,
 )
 
 from pip._internal.utils.deprecation import deprecated
@@ -69,8 +66,8 @@ class LinkHash:
         assert self.name in _SUPPORTED_HASHES
 
     @classmethod
-    @functools.lru_cache(maxsize=None)
-    def find_hash_url_fragment(cls, url: str) -> Optional["LinkHash"]:
+    @functools.cache
+    def find_hash_url_fragment(cls, url: str) -> LinkHash | None:
         """Search a string for a checksum algorithm name and encoded output value."""
         match = cls._hash_url_fragment_re.search(url)
         if match is None:
@@ -78,14 +75,14 @@ class LinkHash:
         name, value = match.groups()
         return cls(name=name, value=value)
 
-    def as_dict(self) -> Dict[str, str]:
+    def as_dict(self) -> dict[str, str]:
         return {self.name: self.value}
 
     def as_hashes(self) -> Hashes:
         """Return a Hashes instance which checks only for the current hash."""
         return Hashes({self.name: [self.value]})
 
-    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
+    def is_hash_allowed(self, hashes: Hashes | None) -> bool:
         """
         Return True if the current hash is allowed by `hashes`.
         """
@@ -98,14 +95,14 @@ class LinkHash:
 class MetadataFile:
     """Information about a core metadata file associated with a distribution."""
 
-    hashes: Optional[Dict[str, str]]
+    hashes: dict[str, str] | None
 
     def __post_init__(self) -> None:
         if self.hashes is not None:
             assert all(name in _SUPPORTED_HASHES for name in self.hashes)
 
 
-def supported_hashes(hashes: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+def supported_hashes(hashes: dict[str, str] | None) -> dict[str, str] | None:
     # Remove any unsupported hash types from the mapping. If this leaves no
     # supported hashes, return None
     if hashes is None:
@@ -209,12 +206,12 @@ class Link:
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[str, "IndexContent"]] = None,
-        requires_python: Optional[str] = None,
-        yanked_reason: Optional[str] = None,
-        metadata_file_data: Optional[MetadataFile] = None,
+        comes_from: str | IndexContent | None = None,
+        requires_python: str | None = None,
+        yanked_reason: str | None = None,
+        metadata_file_data: MetadataFile | None = None,
         cache_link_parsing: bool = True,
-        hashes: Optional[Mapping[str, str]] = None,
+        hashes: Mapping[str, str] | None = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
@@ -274,9 +271,9 @@ class Link:
     @classmethod
     def from_json(
         cls,
-        file_data: Dict[str, Any],
+        file_data: dict[str, Any],
         page_url: str,
-    ) -> Optional["Link"]:
+    ) -> Link | None:
         """
         Convert an pypi json document from a simple repository page into a Link.
         """
@@ -325,10 +322,10 @@ class Link:
     @classmethod
     def from_element(
         cls,
-        anchor_attribs: Dict[str, Optional[str]],
+        anchor_attribs: dict[str, str | None],
         page_url: str,
         base_url: str,
-    ) -> Optional["Link"]:
+    ) -> Link | None:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
         """
@@ -441,7 +438,7 @@ class Link:
     def path(self) -> str:
         return self._path
 
-    def splitext(self) -> Tuple[str, str]:
+    def splitext(self) -> tuple[str, str]:
         return splitext(posixpath.basename(self.path.rstrip("/")))
 
     @property
@@ -460,7 +457,7 @@ class Link:
         r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", re.IGNORECASE
     )
 
-    def _egg_fragment(self) -> Optional[str]:
+    def _egg_fragment(self) -> str | None:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
@@ -481,13 +478,13 @@ class Link:
     _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
     @property
-    def subdirectory_fragment(self) -> Optional[str]:
+    def subdirectory_fragment(self) -> str | None:
         match = self._subdirectory_fragment_re.search(self._url)
         if not match:
             return None
         return match.group(1)
 
-    def metadata_link(self) -> Optional["Link"]:
+    def metadata_link(self) -> Link | None:
         """Return a link to the associated core metadata file (if any)."""
         if self.metadata_file_data is None:
             return None
@@ -500,11 +497,11 @@ class Link:
         return Hashes({k: [v] for k, v in self._hashes.items()})
 
     @property
-    def hash(self) -> Optional[str]:
+    def hash(self) -> str | None:
         return next(iter(self._hashes.values()), None)
 
     @property
-    def hash_name(self) -> Optional[str]:
+    def hash_name(self) -> str | None:
         return next(iter(self._hashes), None)
 
     @property
@@ -536,7 +533,7 @@ class Link:
     def has_hash(self) -> bool:
         return bool(self._hashes)
 
-    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
+    def is_hash_allowed(self, hashes: Hashes | None) -> bool:
         """
         Return True if the link has a hash and it is allowed by `hashes`.
         """
@@ -572,9 +569,9 @@ class _CleanResult(NamedTuple):
     """
 
     parsed: urllib.parse.SplitResult
-    query: Dict[str, List[str]]
+    query: dict[str, list[str]]
     subdirectory: str
-    hashes: Dict[str, str]
+    hashes: dict[str, str]
 
 
 def _clean_link(link: Link) -> _CleanResult:
@@ -603,6 +600,6 @@ def _clean_link(link: Link) -> _CleanResult:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def links_equivalent(link1: Link, link2: Link) -> bool:
     return _clean_link(link1) == _clean_link(link2)

@@ -1,6 +1,6 @@
 import ssl
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import proxy
 import pytest
@@ -17,7 +17,7 @@ from tests.lib.server import (
 
 
 class AccessLogPlugin(HttpProxyBasePlugin):
-    def on_access_log(self, context: Dict[str, Any]) -> None:
+    def on_access_log(self, context: dict[str, Any]) -> None:
         print(context)
 
 

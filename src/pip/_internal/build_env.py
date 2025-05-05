@@ -1,5 +1,7 @@
 """Build Environment used for isolation during sdist building"""
 
+from __future__ import annotations
+
 import logging
 import os
 import pathlib
@@ -7,8 +9,9 @@ import site
 import sys
 import textwrap
 from collections import OrderedDict
+from collections.abc import Iterable
 from types import TracebackType
-from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type, Union
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.version import Version
 
@@ -27,7 +30,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _dedup(a: str, b: str) -> Union[Tuple[str], Tuple[str, str]]:
+def _dedup(a: str, b: str) -> tuple[str] | tuple[str, str]:
     return (a, b) if a != b else (a,)
 
 
@@ -56,7 +59,7 @@ def get_runnable_pip() -> str:
     return os.fsdecode(source / "__pip-runner__.py")
 
 
-def _get_system_sitepackages() -> Set[str]:
+def _get_system_sitepackages() -> set[str]:
     """Get system site packages
 
     Usually from site.getsitepackages,
@@ -87,8 +90,8 @@ class BuildEnvironment:
             for name in ("normal", "overlay")
         )
 
-        self._bin_dirs: List[str] = []
-        self._lib_dirs: List[str] = []
+        self._bin_dirs: list[str] = []
+        self._lib_dirs: list[str] = []
         for prefix in reversed(list(self._prefixes.values())):
             self._bin_dirs.append(prefix.bin_dir)
             self._lib_dirs.extend(prefix.lib_dirs)
@@ -156,9 +159,9 @@ class BuildEnvironment:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         for varname, old_value in self._save_env.items():
             if old_value is None:
@@ -168,7 +171,7 @@ class BuildEnvironment:
 
     def check_requirements(
         self, reqs: Iterable[str]
-    ) -> Tuple[Set[Tuple[str, str]], Set[str]]:
+    ) -> tuple[set[tuple[str, str]], set[str]]:
         """Return 2 sets:
         - conflicting requirements: set of (installed, wanted) reqs tuples
         - missing requirements: set of reqs
@@ -202,7 +205,7 @@ class BuildEnvironment:
 
     def install_requirements(
         self,
-        finder: "PackageFinder",
+        finder: PackageFinder,
         requirements: Iterable[str],
         prefix_as_string: str,
         *,
@@ -224,13 +227,13 @@ class BuildEnvironment:
     @staticmethod
     def _install_requirements(
         pip_runnable: str,
-        finder: "PackageFinder",
+        finder: PackageFinder,
         requirements: Iterable[str],
         prefix: _Prefix,
         *,
         kind: str,
     ) -> None:
-        args: List[str] = [
+        args: list[str] = [
             sys.executable,
             pip_runnable,
             "install",
@@ -305,9 +308,9 @@ class NoOpBuildEnvironment(BuildEnvironment):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         pass
 
@@ -316,7 +319,7 @@ class NoOpBuildEnvironment(BuildEnvironment):
 
     def install_requirements(
         self,
-        finder: "PackageFinder",
+        finder: PackageFinder,
         requirements: Iterable[str],
         prefix_as_string: str,
         *,

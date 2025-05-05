@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import itertools
 import os
 import shutil
 import sys
-from typing import List, Optional
 
 from pip._internal.cli.main import main
 from pip._internal.utils.compat import WINDOWS
@@ -20,7 +21,7 @@ if WINDOWS:
     ]
 
 
-def _wrapper(args: Optional[List[str]] = None) -> int:
+def _wrapper(args: list[str] | None = None) -> int:
     """Central wrapper for all old entrypoints.
 
     Historically pip has had several entrypoints defined. Because of issues

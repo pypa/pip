@@ -1,9 +1,12 @@
 """Helper for building wheels as would be in test cases."""
 
+from __future__ import annotations
+
 import csv
 import itertools
 from base64 import urlsafe_b64encode
 from collections import namedtuple
+from collections.abc import Iterable, Sequence
 from copy import deepcopy
 from email.message import Message
 from enum import Enum
@@ -13,12 +16,6 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from typing import (
     AnyStr,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -29,7 +26,7 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 
 # As would be used in metadata
-HeaderValue = Union[str, List[str]]
+HeaderValue = Union[str, list[str]]
 
 
 File = namedtuple("File", ["name", "contents"])
@@ -48,13 +45,13 @@ T = TypeVar("T")
 Defaulted = Union[Default, T]
 
 
-def ensure_binary(value: Union[bytes, str]) -> bytes:
+def ensure_binary(value: bytes | str) -> bytes:
     if isinstance(value, bytes):
         return value
     return value.encode()
 
 
-def message_from_dict(headers: Dict[str, HeaderValue]) -> Message:
+def message_from_dict(headers: dict[str, HeaderValue]) -> Message:
     """Plain key-value pairs are set in the returned message.
 
     List values are converted into repeated headers in the result.
@@ -76,10 +73,10 @@ def dist_info_path(name: str, version: str, path: str) -> str:
 def make_metadata_file(
     name: str,
     version: str,
-    value: Defaulted[Optional[AnyStr]],
-    updates: Defaulted[Dict[str, HeaderValue]],
+    value: Defaulted[AnyStr | None],
+    updates: Defaulted[dict[str, HeaderValue]],
     body: Defaulted[AnyStr],
-) -> Optional[File]:
+) -> File | None:
     if value is None:
         return None
 
@@ -108,10 +105,10 @@ def make_metadata_file(
 def make_wheel_metadata_file(
     name: str,
     version: str,
-    value: Defaulted[Union[bytes, str, None]],
-    tags: Sequence[Tuple[str, str, str]],
-    updates: Defaulted[Dict[str, HeaderValue]],
-) -> Optional[File]:
+    value: Defaulted[bytes | str | None],
+    tags: Sequence[tuple[str, str, str]],
+    updates: Defaulted[dict[str, HeaderValue]],
+) -> File | None:
     if value is None:
         return None
 
@@ -138,9 +135,9 @@ def make_wheel_metadata_file(
 def make_entry_points_file(
     name: str,
     version: str,
-    entry_points: Defaulted[Dict[str, List[str]]],
-    console_scripts: Defaulted[List[str]],
-) -> Optional[File]:
+    entry_points: Defaulted[dict[str, list[str]]],
+    console_scripts: Defaulted[list[str]],
+) -> File | None:
     if entry_points is _default and console_scripts is _default:
         return None
 
@@ -163,13 +160,13 @@ def make_entry_points_file(
     )
 
 
-def make_files(files: Dict[str, Union[bytes, str]]) -> List[File]:
+def make_files(files: dict[str, bytes | str]) -> list[File]:
     return [File(name, ensure_binary(contents)) for name, contents in files.items()]
 
 
 def make_metadata_files(
-    name: str, version: str, files: Dict[str, AnyStr]
-) -> List[File]:
+    name: str, version: str, files: dict[str, AnyStr]
+) -> list[File]:
     get_path = partial(dist_info_path, name, version)
     return [
         File(get_path(name), ensure_binary(contents))
@@ -177,7 +174,7 @@ def make_metadata_files(
     ]
 
 
-def make_data_files(name: str, version: str, files: Dict[str, AnyStr]) -> List[File]:
+def make_data_files(name: str, version: str, files: dict[str, AnyStr]) -> list[File]:
     data_dir = f"{name}-{version}.data"
     return [
         File(f"{data_dir}/{name}", ensure_binary(contents))
@@ -197,9 +194,9 @@ def record_file_maker_wrapper(
     name: str,
     version: str,
     files: Iterable[File],
-    record: Defaulted[Optional[AnyStr]],
+    record: Defaulted[AnyStr | None],
 ) -> Iterable[File]:
-    records: List[Record] = []
+    records: list[Record] = []
     for file in files:
         records.append(
             Record(file.name, digest(file.contents), str(len(file.contents)))
@@ -252,7 +249,7 @@ class WheelBuilder:
         self._name = name
         self._files = files
 
-    def save_to_dir(self, path: Union[Path, str]) -> str:
+    def save_to_dir(self, path: Path | str) -> str:
         """Generate wheel file with correct name and save into the provided
         directory.
 
@@ -262,7 +259,7 @@ class WheelBuilder:
         p.write_bytes(self.as_bytes())
         return str(p)
 
-    def save_to(self, path: Union[Path, str]) -> str:
+    def save_to(self, path: Path | str) -> str:
         """Generate wheel file, saving to the provided path. Any parent
         directories must already exist.
 
@@ -290,17 +287,17 @@ class WheelBuilder:
 def make_wheel(
     name: str,
     version: str,
-    wheel_metadata: Defaulted[Optional[AnyStr]] = _default,
-    wheel_metadata_updates: Defaulted[Dict[str, HeaderValue]] = _default,
-    metadata: Defaulted[Optional[AnyStr]] = _default,
+    wheel_metadata: Defaulted[AnyStr | None] = _default,
+    wheel_metadata_updates: Defaulted[dict[str, HeaderValue]] = _default,
+    metadata: Defaulted[AnyStr | None] = _default,
     metadata_body: Defaulted[AnyStr] = _default,
-    metadata_updates: Defaulted[Dict[str, HeaderValue]] = _default,
-    extra_files: Defaulted[Dict[str, Union[bytes, str]]] = _default,
-    extra_metadata_files: Defaulted[Dict[str, AnyStr]] = _default,
-    extra_data_files: Defaulted[Dict[str, AnyStr]] = _default,
-    console_scripts: Defaulted[List[str]] = _default,
-    entry_points: Defaulted[Dict[str, List[str]]] = _default,
-    record: Defaulted[Optional[AnyStr]] = _default,
+    metadata_updates: Defaulted[dict[str, HeaderValue]] = _default,
+    extra_files: Defaulted[dict[str, bytes | str]] = _default,
+    extra_metadata_files: Defaulted[dict[str, AnyStr]] = _default,
+    extra_data_files: Defaulted[dict[str, AnyStr]] = _default,
+    console_scripts: Defaulted[list[str]] = _default,
+    entry_points: Defaulted[dict[str, list[str]]] = _default,
+    record: Defaulted[AnyStr | None] = _default,
 ) -> WheelBuilder:
     """
     Helper function for generating test wheels which are compliant by default.

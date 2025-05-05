@@ -4,9 +4,10 @@ import filecmp
 import pathlib
 import re
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from os.path import isdir, join
-from typing import Any, Dict, Iterator, Type
+from typing import Any
 
 import pytest
 
@@ -15,7 +16,7 @@ from tests.lib import SRC_DIR, PipTestEnvironment
 
 @contextmanager
 def assert_error_startswith(
-    exc_type: Type[Exception], expected_start: str
+    exc_type: type[Exception], expected_start: str
 ) -> Iterator[None]:
     """
     Assert that an exception is raised starting with a certain message.
@@ -238,7 +239,7 @@ class TestPipTestEnvironment:
         """
         Test passing allow_stderr_warning=False when it is not allowed.
         """
-        kwargs: Dict[str, Any] = {"allow_stderr_warning": False, arg_name: True}
+        kwargs: dict[str, Any] = {"allow_stderr_warning": False, arg_name: True}
         expected_start = (
             "cannot pass allow_stderr_warning=False with allow_stderr_error=True"
         )

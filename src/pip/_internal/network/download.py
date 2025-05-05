@@ -1,11 +1,14 @@
 """Download files with progress indicators."""
 
+from __future__ import annotations
+
 import email.message
 import logging
 import mimetypes
 import os
+from collections.abc import Iterable
 from http import HTTPStatus
-from typing import BinaryIO, Iterable, Optional, Tuple
+from typing import BinaryIO
 
 from pip._vendor.requests.models import Response
 from pip._vendor.urllib3.exceptions import ReadTimeoutError
@@ -22,14 +25,14 @@ from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
 logger = logging.getLogger(__name__)
 
 
-def _get_http_response_size(resp: Response) -> Optional[int]:
+def _get_http_response_size(resp: Response) -> int | None:
     try:
         return int(resp.headers["content-length"])
     except (ValueError, KeyError, TypeError):
         return None
 
 
-def _get_http_response_etag_or_last_modified(resp: Response) -> Optional[str]:
+def _get_http_response_etag_or_last_modified(resp: Response) -> str | None:
     """
     Return either the ETag or Last-Modified header (or None if neither exists).
     The return value can be used in an If-Range header.
@@ -41,8 +44,8 @@ def _prepare_download(
     resp: Response,
     link: Link,
     progress_bar: str,
-    total_length: Optional[int],
-    range_start: Optional[int] = 0,
+    total_length: int | None,
+    range_start: int | None = 0,
 ) -> Iterable[bytes]:
     if link.netloc == PyPI.file_storage_domain:
         url = link.show_url
@@ -119,7 +122,7 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
     content_disposition = resp.headers.get("content-disposition")
     if content_disposition:
         filename = parse_content_disposition(content_disposition, filename)
-    ext: Optional[str] = splitext(filename)[1]
+    ext: str | None = splitext(filename)[1]
     if not ext:
         ext = mimetypes.guess_extension(resp.headers.get("content-type", ""))
         if ext:
@@ -134,8 +137,8 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
 def _http_get_download(
     session: PipSession,
     link: Link,
-    range_start: Optional[int] = 0,
-    if_range: Optional[str] = None,
+    range_start: int | None = 0,
+    if_range: str | None = None,
 ) -> Response:
     target_url = link.url.split("#", 1)[0]
     headers = HEADERS.copy()
@@ -169,7 +172,7 @@ class Downloader:
         self._progress_bar = progress_bar
         self._resume_retries = resume_retries
 
-    def __call__(self, link: Link, location: str) -> Tuple[str, str]:
+    def __call__(self, link: Link, location: str) -> tuple[str, str]:
         """Download the file given by link into location."""
         resp = _http_get_download(self._session, link)
         # NOTE: The original download size needs to be passed down everywhere
@@ -199,7 +202,7 @@ class Downloader:
         link: Link,
         content_file: BinaryIO,
         bytes_received: int,
-        total_length: Optional[int],
+        total_length: int | None,
     ) -> int:
         """Process the response and write the chunks to the file."""
         chunks = _prepare_download(
@@ -233,7 +236,7 @@ class Downloader:
         resp: Response,
         link: Link,
         content_file: BinaryIO,
-        total_length: Optional[int],
+        total_length: int | None,
         bytes_received: int,
     ) -> None:
         """Attempt to resume the download if connection was dropped."""
@@ -285,7 +288,7 @@ class Downloader:
         self,
         resp: Response,
         content_file: BinaryIO,
-    ) -> Tuple[int, Optional[int], Optional[str]]:
+    ) -> tuple[int, int | None, str | None]:
         """Reset the download state to restart downloading from the beginning."""
         content_file.seek(0)
         content_file.truncate()
@@ -307,7 +310,7 @@ class BatchDownloader:
 
     def __call__(
         self, links: Iterable[Link], location: str
-    ) -> Iterable[Tuple[Link, Tuple[str, str]]]:
+    ) -> Iterable[tuple[Link, tuple[str, str]]]:
         """Download the files given by links into location."""
         for link in links:
             filepath, content_type = self._downloader(link, location)

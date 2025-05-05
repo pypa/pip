@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 import os.path
-from typing import List, Optional
 
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.utils.deprecation import deprecated
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_command_result(
-    command_args: List[str],
+    command_args: list[str],
     command_output: str,
 ) -> str:
     """Format command information for logging."""
@@ -31,12 +32,12 @@ def format_command_result(
 
 
 def get_legacy_build_wheel_path(
-    names: List[str],
+    names: list[str],
     temp_dir: str,
     name: str,
-    command_args: List[str],
+    command_args: list[str],
     command_output: str,
-) -> Optional[str]:
+) -> str | None:
     """Return the path to the wheel in the temporary build directory."""
     # Sort for determinism.
     names = sorted(names)
@@ -61,10 +62,10 @@ def build_wheel_legacy(
     name: str,
     setup_py_path: str,
     source_dir: str,
-    global_options: List[str],
-    build_options: List[str],
+    global_options: list[str],
+    build_options: list[str],
     tempd: str,
-) -> Optional[str]:
+) -> str | None:
     """Build one unpacked package using the "legacy" build process.
 
     Returns path to wheel if successfully built. Otherwise, returns None.

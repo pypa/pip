@@ -1,9 +1,12 @@
 """HTTP cache implementation."""
 
+from __future__ import annotations
+
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import BinaryIO, Generator, Optional, Union
+from typing import BinaryIO
 
 from pip._vendor.cachecontrol.cache import SeparateBodyBaseCache
 from pip._vendor.cachecontrol.caches import SeparateBodyFileCache
@@ -59,7 +62,7 @@ class SafeFileCache(SeparateBodyBaseCache):
         parts = list(hashed[:5]) + [hashed]
         return os.path.join(self.directory, *parts)
 
-    def get(self, key: str) -> Optional[bytes]:
+    def get(self, key: str) -> bytes | None:
         # The cache entry is only valid if both metadata and body exist.
         metadata_path = self._get_cache_path(key)
         body_path = metadata_path + ".body"
@@ -91,7 +94,7 @@ class SafeFileCache(SeparateBodyBaseCache):
             replace(f.name, path)
 
     def set(
-        self, key: str, value: bytes, expires: Union[int, datetime, None] = None
+        self, key: str, value: bytes, expires: int | datetime | None = None
     ) -> None:
         path = self._get_cache_path(key)
         self._write(path, value)
@@ -103,7 +106,7 @@ class SafeFileCache(SeparateBodyBaseCache):
         with suppressed_cache_errors():
             os.remove(path + ".body")
 
-    def get_body(self, key: str) -> Optional[BinaryIO]:
+    def get_body(self, key: str) -> BinaryIO | None:
         # The cache entry is only valid if both metadata and body exist.
         metadata_path = self._get_cache_path(key)
         body_path = metadata_path + ".body"

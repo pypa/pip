@@ -1,16 +1,11 @@
+from __future__ import annotations
+
 import math
-from functools import lru_cache
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from functools import cache
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    Iterable,
-    Iterator,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
     TypeVar,
-    Union,
 )
 
 from pip._vendor.resolvelib.providers import AbstractProvider
@@ -59,7 +54,7 @@ def _get_with_identifier(
     mapping: Mapping[str, V],
     identifier: str,
     default: D,
-) -> Union[D, V]:
+) -> D | V:
     """Get item from a package name lookup mapping with a resolver identifier.
 
     This extra logic is needed when the target mapping is keyed by package
@@ -94,10 +89,10 @@ class PipProvider(_ProviderBase):
     def __init__(
         self,
         factory: Factory,
-        constraints: Dict[str, Constraint],
+        constraints: dict[str, Constraint],
         ignore_dependencies: bool,
         upgrade_strategy: str,
-        user_requested: Dict[str, int],
+        user_requested: dict[str, int],
     ) -> None:
         self._factory = factory
         self._constraints = constraints
@@ -105,7 +100,7 @@ class PipProvider(_ProviderBase):
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
 
-    def identify(self, requirement_or_candidate: Union[Requirement, Candidate]) -> str:
+    def identify(self, requirement_or_candidate: Requirement | Candidate) -> str:
         return requirement_or_candidate.name
 
     def narrow_requirement_selection(
@@ -113,8 +108,8 @@ class PipProvider(_ProviderBase):
         identifiers: Iterable[str],
         resolutions: Mapping[str, Candidate],
         candidates: Mapping[str, Iterator[Candidate]],
-        information: Mapping[str, Iterator["PreferenceInformation"]],
-        backtrack_causes: Sequence["PreferenceInformation"],
+        information: Mapping[str, Iterator[PreferenceInformation]],
+        backtrack_causes: Sequence[PreferenceInformation],
     ) -> Iterable[str]:
         """Produce a subset of identifiers that should be considered before others.
 
@@ -156,9 +151,9 @@ class PipProvider(_ProviderBase):
         identifier: str,
         resolutions: Mapping[str, Candidate],
         candidates: Mapping[str, Iterator[Candidate]],
-        information: Mapping[str, Iterable["PreferenceInformation"]],
-        backtrack_causes: Sequence["PreferenceInformation"],
-    ) -> "Preference":
+        information: Mapping[str, Iterable[PreferenceInformation]],
+        backtrack_causes: Sequence[PreferenceInformation],
+    ) -> Preference:
         """Produce a sort key for given requirement based on preference.
 
         The lower the return value is, the more preferred this group of
@@ -192,7 +187,7 @@ class PipProvider(_ProviderBase):
 
         if not has_information:
             direct = False
-            ireqs: Tuple[Optional[InstallRequirement], ...] = ()
+            ireqs: tuple[InstallRequirement | None, ...] = ()
         else:
             # Go through the information and for each requirement,
             # check if it's explicit (e.g., a direct link) and get the
@@ -271,7 +266,7 @@ class PipProvider(_ProviderBase):
         )
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 
