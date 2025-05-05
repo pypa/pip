@@ -275,6 +275,15 @@ proxy: Callable[..., Option] = partial(
     help="Specify a proxy in the form scheme://[user:passwd@]proxy.server:port.",
 )
 
+no_proxy: Callable[..., Option] = partial(
+    Option,
+    "--no-proxy-env",
+    dest="no_proxy",
+    action="store_true",
+    default=False,
+    help="Ignore all configured proxy settings, including environmental variables.",
+)
+
 retries: Callable[..., Option] = partial(
     Option,
     "--retries",
@@ -1105,6 +1114,7 @@ general_group: Dict[str, Any] = {
         no_input,
         keyring_provider,
         proxy,
+        no_proxy,
         retries,
         timeout,
         exists_action,

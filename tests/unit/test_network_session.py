@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -282,3 +282,39 @@ class TestPipSession:
             f"Invalid proxy {proxy} or session.proxies: "
             f"{session.proxies} is not correctly passed to session.request."
         )
+
+    @pytest.mark.network
+    def test_no_proxy(self) -> None:
+        def _set_no_proxy(session: PipSession) -> PipSession:
+            """Mimic logic for command line `no_proxy` option"""
+            session.trust_env = False
+            session.proxies = {
+                "http": None,
+                "https": None,
+            }
+            return session
+
+        session = PipSession(trusted_hosts=[])
+
+        connection_error_http: Union[requests.exceptions.RequestException, None] = None
+        # setup with known bad (hopefully) http proxy, and then test connection
+        # expecting a failure if the proxy is used
+        with requests.utils.set_environ("http_proxy", "http://127.0.0.1:88888"):
+            try:
+                session = _set_no_proxy(session)
+                session.request("GET", "https://pypi.org", timeout=1)
+            except requests.exceptions.ConnectionError as e:
+                connection_error_http = e
+
+        connection_error_https: Union[requests.exceptions.RequestException, None] = None
+        # setup with known bad (hopefully) https proxy, and then test connection
+        # expecting a failure if the proxy is used
+        with requests.utils.set_environ("https_proxy", "http://127.0.0.1:65534"):
+            try:
+                session = _set_no_proxy(session)
+                session.request("GET", "https://pypi.org", timeout=1)
+            except requests.exceptions.ConnectionError as e:
+                connection_error_https = e
+
+        assert connection_error_http is None, "Unexpected use of http proxy"
+        assert connection_error_https is None, "Unexpected use of https proxy"
