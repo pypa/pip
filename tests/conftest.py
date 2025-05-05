@@ -450,11 +450,6 @@ def setuptools_install(
 
 
 @pytest.fixture(scope="session")
-def wheel_install(tmpdir_factory: pytest.TempPathFactory, common_wheels: Path) -> Path:
-    return _common_wheel_editable_install(tmpdir_factory, common_wheels, "wheel")
-
-
-@pytest.fixture(scope="session")
 def coverage_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
 ) -> Path:
@@ -476,7 +471,6 @@ def virtualenv_template(
     pip_src: Path,
     pip_editable_parts: Tuple[Path, ...],
     setuptools_install: Path,
-    wheel_install: Path,
     coverage_install: Path,
 ) -> VirtualEnvironment:
     venv_type: VirtualEnvironmentType
@@ -491,7 +485,6 @@ def virtualenv_template(
 
     # Install setuptools, wheel and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
-    install_pth_link(venv, "wheel", wheel_install)
 
     pth, dist_info = pip_editable_parts
 
