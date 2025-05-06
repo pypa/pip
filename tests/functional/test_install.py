@@ -1919,6 +1919,7 @@ def test_double_install(script: PipTestEnvironment) -> None:
     assert msg not in result.stderr
 
 
+@pytest.mark.network
 def test_double_install_fail(
     script: PipTestEnvironment, resolver_variant: ResolverVariant
 ) -> None:
@@ -2679,6 +2680,7 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.parametrize("common_prefix", ["", "linktest-1.0/"])
+@pytest.mark.network
 def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
     """
     Test installing an sdist with hard and symbolic links.

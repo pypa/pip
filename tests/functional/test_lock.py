@@ -1,6 +1,8 @@
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from pip._internal.utils.compat import tomllib
 from pip._internal.utils.urls import path_to_url
 
@@ -181,6 +183,7 @@ def test_lock_local_editable_with_dep(
     ]
 
 
+@pytest.mark.network
 def test_lock_vcs(script: PipTestEnvironment, shared_data: TestData) -> None:
     result = script.pip(
         "lock",
@@ -205,6 +208,7 @@ def test_lock_vcs(script: PipTestEnvironment, shared_data: TestData) -> None:
     ]
 
 
+@pytest.mark.network
 def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None:
     result = script.pip(
         "lock",
