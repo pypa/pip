@@ -2677,6 +2677,7 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
     )
 
 
+@pytest.mark.network
 @pytest.mark.parametrize("common_prefix", ["", "linktest-1.0/"])
 def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
     """
