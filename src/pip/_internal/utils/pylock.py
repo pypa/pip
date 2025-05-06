@@ -1,5 +1,5 @@
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from pip._vendor import tomli_w
 from pip._vendor.packaging.version import Version

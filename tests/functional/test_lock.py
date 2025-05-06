@@ -1,6 +1,6 @@
 import textwrap
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from pip._internal.models.pylock import Pylock
 from pip._internal.utils.compat import tomllib
@@ -9,7 +9,7 @@ from pip._internal.utils.urls import path_to_url
 from ..lib import PipTestEnvironment, TestData
 
 
-def _test_validation_and_roundtrip(pylock_dict: Dict[str, Any]) -> None:
+def _test_validation_and_roundtrip(pylock_dict: dict[str, Any]) -> None:
     """Test that Pylock can be serialized and deserialized correctly."""
     pylock = Pylock.from_dict(pylock_dict)
     assert pylock.to_dict() == pylock_dict

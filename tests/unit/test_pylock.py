@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -275,7 +275,7 @@ def test_pylock_tool() -> None:
         ),
     ],
 )
-def test_hash_validation(hashes: Dict[str, Any], expected_error: str) -> None:
+def test_hash_validation(hashes: dict[str, Any], expected_error: str) -> None:
     with pytest.raises(PylockValidationError) as exc_info:
         PackageWheel(
             name="example-1.0-py3-none-any.whl",

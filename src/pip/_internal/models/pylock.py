@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import logging
 import re
@@ -9,12 +11,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
-    Optional,
     Protocol,
-    Tuple,
-    Type,
     TypeVar,
 )
 
@@ -47,7 +44,7 @@ T = TypeVar("T")
 
 class FromDictProtocol(Protocol):
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self": ...
+    def from_dict(cls, d: Mapping[str, Any]) -> Self: ...
 
 
 FromDictProtocolT = TypeVar("FromDictProtocolT", bound=FromDictProtocol)
@@ -78,7 +75,7 @@ def _toml_value(key: str, value: Any) -> Any:
     return value
 
 
-def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
+def _toml_dict_factory(data: list[tuple[str, Any]]) -> dict[str, Any]:
     return {
         _toml_key(key): _toml_value(key, value)
         for key, value in data
@@ -86,7 +83,7 @@ def _toml_dict_factory(data: List[Tuple[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _get(d: Mapping[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
+def _get(d: Mapping[str, Any], expected_type: type[T], key: str) -> T | None:
     """Get value from dictionary and verify expected type."""
     value = d.get(key)
     if value is None:
@@ -99,7 +96,7 @@ def _get(d: Mapping[str, Any], expected_type: Type[T], key: str) -> Optional[T]:
     return value
 
 
-def _get_required(d: Mapping[str, Any], expected_type: Type[T], key: str) -> T:
+def _get_required(d: Mapping[str, Any], expected_type: type[T], key: str) -> T:
     """Get required value from dictionary and verify expected type."""
     value = _get(d, expected_type, key)
     if value is None:
@@ -108,8 +105,8 @@ def _get_required(d: Mapping[str, Any], expected_type: Type[T], key: str) -> T:
 
 
 def _get_list(
-    d: Mapping[str, Any], expected_item_type: Type[T], key: str
-) -> Optional[Sequence[T]]:
+    d: Mapping[str, Any], expected_item_type: type[T], key: str
+) -> Sequence[T] | None:
     """Get list value from dictionary and verify expected items type."""
     value = _get(d, Sequence, key)  # type: ignore[type-abstract]
     if value is None:
@@ -125,10 +122,10 @@ def _get_list(
 
 def _get_as(
     d: Mapping[str, Any],
-    expected_type: Type[T],
-    target_type: Type[SingleArgConstructorT],
+    expected_type: type[T],
+    target_type: type[SingleArgConstructorT],
     key: str,
-) -> Optional[SingleArgConstructorT]:
+) -> SingleArgConstructorT | None:
     """Get value from dictionary, verify expected type, convert to target type.
 
     This assumes the target_type constructor accepts the value.
@@ -144,8 +141,8 @@ def _get_as(
 
 def _get_required_as(
     d: Mapping[str, Any],
-    expected_type: Type[T],
-    target_type: Type[SingleArgConstructorT],
+    expected_type: type[T],
+    target_type: type[SingleArgConstructorT],
     key: str,
 ) -> SingleArgConstructorT:
     """Get required value from dictionary, verify expected type,
@@ -158,10 +155,10 @@ def _get_required_as(
 
 def _get_list_as(
     d: Mapping[str, Any],
-    expected_item_type: Type[T],
-    target_item_type: Type[SingleArgConstructorT],
+    expected_item_type: type[T],
+    target_item_type: type[SingleArgConstructorT],
     key: str,
-) -> Optional[Sequence[SingleArgConstructorT]]:
+) -> Sequence[SingleArgConstructorT] | None:
     """Get list value from dictionary and verify expected items type."""
     value = _get_list(d, expected_item_type, key)
     if value is None:
@@ -176,8 +173,8 @@ def _get_list_as(
 
 
 def _get_object(
-    d: Mapping[str, Any], target_type: Type[FromDictProtocolT], key: str
-) -> Optional[FromDictProtocolT]:
+    d: Mapping[str, Any], target_type: type[FromDictProtocolT], key: str
+) -> FromDictProtocolT | None:
     """Get dictionary value from dictionary and convert to dataclass."""
     value = _get(d, Mapping, key)  # type: ignore[type-abstract]
     if value is None:
@@ -189,8 +186,8 @@ def _get_object(
 
 
 def _get_list_of_objects(
-    d: Mapping[str, Any], target_item_type: Type[FromDictProtocolT], key: str
-) -> Optional[Sequence[FromDictProtocolT]]:
+    d: Mapping[str, Any], target_item_type: type[FromDictProtocolT], key: str
+) -> Sequence[FromDictProtocolT] | None:
     """Get list value from dictionary and convert items to dataclass."""
     value = _get(d, Sequence, key)  # type: ignore[type-abstract]
     if value is None:
@@ -207,7 +204,7 @@ def _get_list_of_objects(
 
 
 def _get_required_list_of_objects(
-    d: Mapping[str, Any], target_type: Type[FromDictProtocolT], key: str
+    d: Mapping[str, Any], target_type: type[FromDictProtocolT], key: str
 ) -> Sequence[FromDictProtocolT]:
     """Get required list value from dictionary and convert items to dataclass."""
     result = _get_list_of_objects(d, target_type, key)
@@ -226,7 +223,7 @@ def _exactly_one(iterable: Iterable[object]) -> bool:
     return found
 
 
-def _validate_path_url(path: Optional[str], url: Optional[str]) -> None:
+def _validate_path_url(path: str | None, url: str | None) -> None:
     if not path and not url:
         raise PylockValidationError("path or url must be provided")
 
@@ -254,21 +251,21 @@ class PylockUnsupportedVersionError(PylockValidationError):
 @dataclass(frozen=True)
 class PackageVcs:
     type: str
-    url: Optional[str]  # = None
-    path: Optional[str]  # = None
-    requested_revision: Optional[str]  # = None
+    url: str | None  # = None
+    path: str | None  # = None
+    requested_revision: str | None  # = None
     commit_id: str
-    subdirectory: Optional[str] = None
+    subdirectory: str | None = None
 
     def __init__(
         self,
         *,
         type: str,
         commit_id: str,
-        url: Optional[str] = None,
-        path: Optional[str] = None,
-        requested_revision: Optional[str] = None,
-        subdirectory: Optional[str] = None,
+        url: str | None = None,
+        path: str | None = None,
+        requested_revision: str | None = None,
+        subdirectory: str | None = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "type", type)
@@ -281,7 +278,7 @@ class PackageVcs:
         _validate_path_url(self.path, self.url)
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
         return cls(
             type=_get_required(d, str, "type"),
             url=_get(d, str, "url"),
@@ -295,15 +292,15 @@ class PackageVcs:
 @dataclass(frozen=True)
 class PackageDirectory:
     path: str
-    editable: Optional[bool] = None
-    subdirectory: Optional[str] = None
+    editable: bool | None = None
+    subdirectory: str | None = None
 
     def __init__(
         self,
         *,
         path: str,
-        editable: Optional[bool] = None,
-        subdirectory: Optional[str] = None,
+        editable: bool | None = None,
+        subdirectory: str | None = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "path", path)
@@ -311,7 +308,7 @@ class PackageDirectory:
         object.__setattr__(self, "subdirectory", subdirectory)
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
         return cls(
             path=_get_required(d, str, "path"),
             editable=_get(d, bool, "editable"),
@@ -321,22 +318,22 @@ class PackageDirectory:
 
 @dataclass(frozen=True)
 class PackageArchive:
-    url: Optional[str]  # = None
-    path: Optional[str]  # = None
-    size: Optional[int]  # = None
-    upload_time: Optional[datetime]  # = None
+    url: str | None  # = None
+    path: str | None  # = None
+    size: int | None  # = None
+    upload_time: datetime | None  # = None
     hashes: Mapping[str, str]
-    subdirectory: Optional[str] = None
+    subdirectory: str | None = None
 
     def __init__(
         self,
         *,
         hashes: Mapping[str, str],
-        url: Optional[str] = None,
-        path: Optional[str] = None,
-        size: Optional[int] = None,
-        upload_time: Optional[datetime] = None,
-        subdirectory: Optional[str] = None,
+        url: str | None = None,
+        path: str | None = None,
+        size: int | None = None,
+        upload_time: datetime | None = None,
+        subdirectory: str | None = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "url", url)
@@ -350,7 +347,7 @@ class PackageArchive:
         _validate_hashes(self.hashes)
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
         return cls(
             url=_get(d, str, "url"),
             path=_get(d, str, "path"),
@@ -363,22 +360,22 @@ class PackageArchive:
 
 @dataclass(frozen=True)
 class PackageSdist:
-    name: Optional[str]  # = None
-    upload_time: Optional[datetime]  # = None
-    url: Optional[str]  # = None
-    path: Optional[str]  # = None
-    size: Optional[int]  # = None
+    name: str | None  # = None
+    upload_time: datetime | None  # = None
+    url: str | None  # = None
+    path: str | None  # = None
+    size: int | None  # = None
     hashes: Mapping[str, str]
 
     def __init__(
         self,
         *,
         hashes: Mapping[str, str],
-        name: Optional[str] = None,
-        upload_time: Optional[datetime] = None,
-        url: Optional[str] = None,
-        path: Optional[str] = None,
-        size: Optional[int] = None,
+        name: str | None = None,
+        upload_time: datetime | None = None,
+        url: str | None = None,
+        path: str | None = None,
+        size: int | None = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "name", name)
@@ -392,7 +389,7 @@ class PackageSdist:
         _validate_hashes(self.hashes)
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
         return cls(
             name=_get(d, str, "name"),
             upload_time=_get(d, datetime, "upload-time"),
@@ -405,22 +402,22 @@ class PackageSdist:
 
 @dataclass(frozen=True)
 class PackageWheel:
-    name: Optional[str]
-    upload_time: Optional[datetime]  # = None
-    url: Optional[str]  # = None
-    path: Optional[str]  # = None
-    size: Optional[int]  # = None
+    name: str | None
+    upload_time: datetime | None  # = None
+    url: str | None  # = None
+    path: str | None  # = None
+    size: int | None  # = None
     hashes: Mapping[str, str]
 
     def __init__(
         self,
         *,
         hashes: Mapping[str, str],
-        name: Optional[str] = None,
-        upload_time: Optional[datetime] = None,
-        url: Optional[str] = None,
-        path: Optional[str] = None,
-        size: Optional[int] = None,
+        name: str | None = None,
+        upload_time: datetime | None = None,
+        url: str | None = None,
+        path: str | None = None,
+        size: int | None = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "name", name)
@@ -434,7 +431,7 @@ class PackageWheel:
         _validate_hashes(self.hashes)
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
         wheel = cls(
             name=_get(d, str, "name"),
             upload_time=_get(d, datetime, "upload-time"),
@@ -449,35 +446,35 @@ class PackageWheel:
 @dataclass(frozen=True)
 class Package:
     name: NormalizedName
-    version: Optional[Version] = None
-    marker: Optional[Marker] = None
-    requires_python: Optional[SpecifierSet] = None
-    dependencies: Optional[Sequence[Mapping[str, Any]]] = None
-    vcs: Optional[PackageVcs] = None
-    directory: Optional[PackageDirectory] = None
-    archive: Optional[PackageArchive] = None
-    index: Optional[str] = None
-    sdist: Optional[PackageSdist] = None
-    wheels: Optional[Sequence[PackageWheel]] = None
-    attestation_identities: Optional[Sequence[Mapping[str, Any]]] = None
-    tool: Optional[Mapping[str, Any]] = None
+    version: Version | None = None
+    marker: Marker | None = None
+    requires_python: SpecifierSet | None = None
+    dependencies: Sequence[Mapping[str, Any]] | None = None
+    vcs: PackageVcs | None = None
+    directory: PackageDirectory | None = None
+    archive: PackageArchive | None = None
+    index: str | None = None
+    sdist: PackageSdist | None = None
+    wheels: Sequence[PackageWheel] | None = None
+    attestation_identities: Sequence[Mapping[str, Any]] | None = None
+    tool: Mapping[str, Any] | None = None
 
     def __init__(
         self,
         *,
         name: str,
-        version: Optional[Version] = None,
-        marker: Optional[Marker] = None,
-        requires_python: Optional[SpecifierSet] = None,
-        dependencies: Optional[Sequence[Mapping[str, Any]]] = None,
-        vcs: Optional[PackageVcs] = None,
-        directory: Optional[PackageDirectory] = None,
-        archive: Optional[PackageArchive] = None,
-        index: Optional[str] = None,
-        sdist: Optional[PackageSdist] = None,
-        wheels: Optional[Sequence[PackageWheel]] = None,
-        attestation_identities: Optional[Sequence[Mapping[str, Any]]] = None,
-        tool: Optional[Mapping[str, Any]] = None,
+        version: Version | None = None,
+        marker: Marker | None = None,
+        requires_python: SpecifierSet | None = None,
+        dependencies: Sequence[Mapping[str, Any]] | None = None,
+        vcs: PackageVcs | None = None,
+        directory: PackageDirectory | None = None,
+        archive: PackageArchive | None = None,
+        index: str | None = None,
+        sdist: PackageSdist | None = None,
+        wheels: Sequence[PackageWheel] | None = None,
+        attestation_identities: Sequence[Mapping[str, Any]] | None = None,
+        tool: Mapping[str, Any] | None = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "name", name)
@@ -511,7 +508,7 @@ class Package:
                 )
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
         package = cls(
             name=_get_required(d, str, "name"),
             version=_get_as(d, str, Version, "version"),
@@ -537,14 +534,14 @@ class Package:
 @dataclass(frozen=True)
 class Pylock:
     lock_version: Version
-    environments: Optional[Sequence[Marker]]  # = None
-    requires_python: Optional[SpecifierSet]  # = None
-    extras: Optional[Sequence[str]]  # = None
-    dependency_groups: Optional[Sequence[str]]  # = None
-    default_groups: Optional[Sequence[str]]  # = None
+    environments: Sequence[Marker] | None  # = None
+    requires_python: SpecifierSet | None  # = None
+    extras: Sequence[str] | None  # = None
+    dependency_groups: Sequence[str] | None  # = None
+    default_groups: Sequence[str] | None  # = None
     created_by: str
     packages: Sequence[Package]
-    tool: Optional[Mapping[str, Any]] = None
+    tool: Mapping[str, Any] | None = None
 
     def __init__(
         self,
@@ -552,12 +549,12 @@ class Pylock:
         lock_version: Version,
         created_by: str,
         packages: Sequence[Package],
-        environments: Optional[Sequence[Marker]] = None,
-        requires_python: Optional[SpecifierSet] = None,
-        extras: Optional[Sequence[str]] = None,
-        dependency_groups: Optional[Sequence[str]] = None,
-        default_groups: Optional[Sequence[str]] = None,
-        tool: Optional[Mapping[str, Any]] = None,
+        environments: Sequence[Marker] | None = None,
+        requires_python: SpecifierSet | None = None,
+        extras: Sequence[str] | None = None,
+        dependency_groups: Sequence[str] | None = None,
+        default_groups: Sequence[str] | None = None,
+        tool: Mapping[str, Any] | None = None,
     ) -> None:
         # In Python 3.10+ make dataclass kw_only=True and remove __init__
         object.__setattr__(self, "lock_version", lock_version)
@@ -583,7 +580,7 @@ class Pylock:
         return dataclasses.asdict(self, dict_factory=_toml_dict_factory)
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> "Self":
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
         return cls(
             lock_version=_get_required_as(d, str, Version, "lock-version"),
             environments=_get_list_as(d, str, Marker, "environments"),
