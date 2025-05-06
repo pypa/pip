@@ -6,9 +6,10 @@ import email.message
 import logging
 import mimetypes
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from http import HTTPStatus
-from typing import BinaryIO, Mapping
+from typing import BinaryIO
 
 from pip._vendor.requests.models import Response
 from pip._vendor.urllib3.exceptions import ReadTimeoutError
@@ -140,7 +141,7 @@ class _FileDownload:
 
     link: Link
     output_file: BinaryIO
-    size: Optional[int]
+    size: int | None
     bytes_received: int = 0
     reattempts: int = 0
 
