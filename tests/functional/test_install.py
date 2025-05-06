@@ -1917,6 +1917,7 @@ def test_double_install(script: PipTestEnvironment) -> None:
     assert msg not in result.stderr
 
 
+@pytest.mark.network
 def test_double_install_fail(
     script: PipTestEnvironment, resolver_variant: ResolverVariant
 ) -> None:
