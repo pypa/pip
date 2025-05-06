@@ -216,7 +216,7 @@ class Downloader:
             logger.warning("Connection timed out while downloading.")
 
     def _attempt_resumes_or_redownloads(
-        self, download: _FileDownload, resp: Response
+        self, download: _FileDownload, first_resp: Response
     ) -> None:
         """Attempt to resume/restart the download if connection was dropped."""
 
@@ -231,7 +231,7 @@ class Downloader:
             )
 
             try:
-                resume_resp = self._http_get_resume(download, should_match=resp)
+                resume_resp = self._http_get_resume(download, should_match=first_resp)
                 # Fallback: if the server responded with 200 (i.e., the file has
                 # since been modified or range requests are unsupported) or any
                 # other unexpected status, restart the download from the beginning.
@@ -239,6 +239,7 @@ class Downloader:
                 if must_restart:
                     download.reset_file()
                     download.size = _get_http_response_size(resume_resp)
+                    first_resp = resume_resp
 
                 self._process_response(download, resume_resp)
             except (ConnectionError, ReadTimeoutError, OSError):

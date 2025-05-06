@@ -229,9 +229,9 @@ def test_parse_content_disposition(
             [(24, None), (36, None)],
             b"new-0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
         ),
-        # The downloader should fail after n resume_retries attempts.
+        # The downloader should fail after N resume_retries attempts.
         # This prevents the downloader from getting stuck if the connection
-        # is unstable and the server doesn't not support range requests.
+        # is unstable and the server does NOT support range requests.
         (
             1,
             [
@@ -241,7 +241,7 @@ def test_parse_content_disposition(
             [(24, None)],
             None,
         ),
-        # The downloader should use If-Range header to make the range
+        # The downloader should use the If-Range header to make the range
         # request conditional if it is possible to check for modifications
         # (e.g. if we know the creation time of the initial response).
         (
@@ -257,15 +257,26 @@ def test_parse_content_disposition(
                 ),
                 (
                     {
+                        "content-length": "42",
+                        "last-modified": "Wed, 21 Oct 2015 07:30:00 GMT",
+                    },
+                    200,
+                    b"new-0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
+                ),
+                (
+                    {
                         "content-length": "12",
                         "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT",
                     },
-                    206,
+                    200,
                     b"f2561d5dfd89",
                 ),
             ],
-            [(24, "Wed, 21 Oct 2015 07:28:00 GMT")],
-            b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
+            [
+                (24, "Wed, 21 Oct 2015 07:28:00 GMT"),
+                (40, "Wed, 21 Oct 2015 07:30:00 GMT"),
+            ],
+            b"f2561d5dfd89",
         ),
         # ETag is preferred over Last-Modified for the If-Range condition.
         (
@@ -286,12 +297,12 @@ def test_parse_content_disposition(
                         "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT",
                         "etag": '"33a64df551425fcc55e4d42a148795d9f25f89d4"',
                     },
-                    206,
+                    200,
                     b"f2561d5dfd89",
                 ),
             ],
             [(24, '"33a64df551425fcc55e4d42a148795d9f25f89d4"')],
-            b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
+            b"f2561d5dfd89",
         ),
     ],
 )
