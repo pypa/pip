@@ -908,6 +908,19 @@ class TestGitArgs(TestCase):
         update_submodules_mock.assert_called_with(self.dest, verbosity=0)
 
 
+class TestMercurialArgs(TestCase):
+    def setUp(self) -> None:
+        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
+        self.addCleanup(patcher.stop)
+        self.call_subprocess_mock = patcher.start()
+
+        # Test Data.
+        self.url = "hg+http://username:password@hg.example.com/"
+        self.svn = Mercurial()
+        self.rev_options = RevOptions(Mercurial)
+        self.dest = "/tmp/test"
+
+
 class TestSubversionArgs(TestCase):
     def setUp(self) -> None:
         patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
