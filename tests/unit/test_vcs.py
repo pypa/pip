@@ -818,6 +818,25 @@ class TestBazaarArgs(TestCase):
             ]
         )
 
+    def test_update(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "bzr",
+                "update",
+            ]
+        )
+
+    def test_update_quiet(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+        self.assert_call_args(
+            [
+                "bzr",
+                "update",
+                "-q",
+            ]
+        )
+
 
 class TestGitArgs(TestCase):
     def setUp(self) -> None:
