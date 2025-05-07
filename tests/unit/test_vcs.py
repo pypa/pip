@@ -1109,6 +1109,34 @@ class TestMercurialArgs(TestCase):
             "--debug",
         ]
 
+    def test_update(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "pull",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+        ]
+
+    def test_update_quiet(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "pull",
+            "-q",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "-q",
+        ]
+
 
 class TestSubversionArgs(TestCase):
     def setUp(self) -> None:
