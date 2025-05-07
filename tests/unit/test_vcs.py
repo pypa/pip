@@ -780,6 +780,44 @@ class TestBazaarArgs(TestCase):
     def assert_call_args(self, args: CommandArgs) -> None:
         assert self.call_subprocess_mock.call_args[0][0] == args
 
+    def test_fetch_new(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "bzr",
+                "checkout",
+                "--lightweight",
+                hide_url("bzr+http://username:password@bzr.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_fetch_new_quiet(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+        self.assert_call_args(
+            [
+                "bzr",
+                "checkout",
+                "--lightweight",
+                "--quiet",
+                hide_url("bzr+http://username:password@bzr.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
+    def test_fetch_new_very_verbose(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=2)
+        self.assert_call_args(
+            [
+                "bzr",
+                "checkout",
+                "--lightweight",
+                "-vv",
+                hide_url("bzr+http://username:password@bzr.example.com/"),
+                "/tmp/test",
+            ]
+        )
+
 
 class TestSubversionArgs(TestCase):
     def setUp(self) -> None:
