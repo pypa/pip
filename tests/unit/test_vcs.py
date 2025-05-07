@@ -920,6 +920,78 @@ class TestMercurialArgs(TestCase):
         self.rev_options = RevOptions(Mercurial)
         self.dest = "/tmp/test"
 
+    def test_fetch_new(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            "/tmp/test",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+        ]
+
+    def test_fetch_new_quiet(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            "--quiet",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            "/tmp/test",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "--quiet",
+        ]
+
+    def test_fetch_new_very_verbose(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=2)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            "--verbose",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            "/tmp/test",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "--verbose",
+        ]
+
+    def test_fetch_new_debug(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=3)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            "--verbose",
+            "--debug",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            "/tmp/test",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "--verbose",
+            "--debug",
+        ]
+
 
 class TestSubversionArgs(TestCase):
     def setUp(self) -> None:
