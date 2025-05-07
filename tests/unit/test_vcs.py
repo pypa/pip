@@ -819,6 +819,19 @@ class TestBazaarArgs(TestCase):
         )
 
 
+class TestGitArgs(TestCase):
+    def setUp(self) -> None:
+        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
+        self.addCleanup(patcher.stop)
+        self.call_subprocess_mock = patcher.start()
+
+        # Test Data.
+        self.url = "git+http://username:password@git.example.com/"
+        self.svn = Git()
+        self.rev_options = RevOptions(Git)
+        self.dest = "/tmp/test"
+
+
 class TestSubversionArgs(TestCase):
     def setUp(self) -> None:
         patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
