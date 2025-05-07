@@ -926,6 +926,35 @@ class TestGitArgs(TestCase):
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=0)
 
+    def test_switch(self) -> None:
+        with mock.patch.object(self.svn, "update_submodules") as update_submodules_mock:
+            self.svn.switch(
+                self.dest, hide_url(self.url), self.rev_options, verbosity=1
+            )
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "git",
+            "checkout",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_switch_quiet(self) -> None:
+        with mock.patch.object(self.svn, "update_submodules") as update_submodules_mock:
+            self.svn.switch(
+                self.dest, hide_url(self.url), self.rev_options, verbosity=0
+            )
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "git",
+            "checkout",
+            "-q",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
     def test_update(self) -> None:
         with mock.patch.object(self.svn, "get_git_version", return_value=(1, 9)):
             with mock.patch.object(
