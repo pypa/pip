@@ -831,6 +831,82 @@ class TestGitArgs(TestCase):
         self.rev_options = RevOptions(Git)
         self.dest = "/tmp/test"
 
+    def test_fetch_new(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            "--filter=blob:none",
+            hide_url("git+http://username:password@git.example.com/"),
+            "/tmp/test",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_fetch_new_legacy(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 0)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            hide_url("git+http://username:password@git.example.com/"),
+            "/tmp/test",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_fetch_new_legacy_quiet(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 0)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=0
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            "--quiet",
+            hide_url("git+http://username:password@git.example.com/"),
+            "/tmp/test",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
+    def test_fetch_new_quiet(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=0
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            "--filter=blob:none",
+            "--quiet",
+            hide_url("git+http://username:password@git.example.com/"),
+            "/tmp/test",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
 
 class TestSubversionArgs(TestCase):
     def setUp(self) -> None:
