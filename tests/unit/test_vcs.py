@@ -763,6 +763,24 @@ def test_subversion__get_remote_call_options(
     assert svn.get_remote_call_options() == expected_options
 
 
+class TestBazaarArgs(TestCase):
+    def setUp(self) -> None:
+        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
+        self.addCleanup(patcher.stop)
+        self.call_subprocess_mock = patcher.start()
+
+        # Test Data.
+        self.url = "bzr+http://username:password@bzr.example.com/"
+        # use_interactive is set to False to test that remote call options are
+        # properly added.
+        self.svn = Bazaar()
+        self.rev_options = RevOptions(Bazaar)
+        self.dest = "/tmp/test"
+
+    def assert_call_args(self, args: CommandArgs) -> None:
+        assert self.call_subprocess_mock.call_args[0][0] == args
+
+
 class TestSubversionArgs(TestCase):
     def setUp(self) -> None:
         patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
