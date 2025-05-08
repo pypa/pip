@@ -5,6 +5,7 @@ import functools
 import itertools
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
@@ -36,7 +37,11 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
-from pip._internal.utils.variant import VariantJson
+from pip._internal.utils.variant import (
+    VariantJson,
+    get_cached_variant_hashes_by_priority,
+    get_variants_json_filename,
+)
 
 if TYPE_CHECKING:
     from pip._vendor.typing_extensions import TypeGuard
@@ -105,6 +110,7 @@ class LinkType(enum.Enum):
     format_invalid = enum.auto()
     platform_mismatch = enum.auto()
     requires_python_mismatch = enum.auto()
+    variant_unsupported = enum.auto()
 
 
 class LinkEvaluator:
@@ -154,7 +160,7 @@ class LinkEvaluator:
         self._target_python = target_python
 
         self.project_name = project_name
-        self.variants_json = None
+        self.variants_json = {}
 
     def evaluate_link(self, link: Link) -> Tuple[LinkType, str, Optional[str]]:
         """
@@ -204,9 +210,7 @@ class LinkEvaluator:
                     return (LinkType.different_project, reason, None)
 
                 variant_hash = wheel.variant_hash
-                supported_tags = self._target_python.get_unsorted_tags(
-                    variants_json=self.variants_json
-                )
+                supported_tags = self._target_python.get_unsorted_tags()
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -216,6 +220,20 @@ class LinkEvaluator:
                         f"(run pip debug --verbose to show compatible tags)"
                     )
                     return (LinkType.platform_mismatch, reason, None)
+
+                supported_variants = set(
+                    get_cached_variant_hashes_by_priority(
+                        self.variants_json.get(
+                            get_variants_json_filename(wheel)
+                        )
+                    )
+                )
+                if wheel.variant_hash not in supported_variants:
+                    reason = (
+                        f"variant {wheel.variant_hash} is not compatible with "
+                        f"the system"
+                    )
+                    return (LinkType.variant_unsupported, reason, None)
 
                 version = wheel.version
 
@@ -384,7 +402,7 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
-        variants_json: Optional[VariantJson] = None,
+        variants_json: dict[VariantJson] = {},
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -401,9 +419,7 @@ class CandidateEvaluator:
         if specifier is None:
             specifier = specifiers.SpecifierSet()
 
-        supported_tags = target_python.get_sorted_tags(
-            variants_json=variants_json,
-        )
+        supported_tags = target_python.get_sorted_tags()
 
         return cls(
             project_name=project_name,
@@ -412,6 +428,7 @@ class CandidateEvaluator:
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
             hashes=hashes,
+            variants_json=variants_json,
         )
 
     def __init__(
@@ -422,6 +439,7 @@ class CandidateEvaluator:
         prefer_binary: bool = False,
         allow_all_prereleases: bool = False,
         hashes: Optional[Hashes] = None,
+        variants_json: dict[VariantJson] = [],
     ) -> None:
         """
         :param supported_tags: The PEP 425 tags supported by the target
@@ -433,6 +451,7 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
+        self._variants_json = variants_json
         # Since the index of the tag in the _supported_tags list is used
         # as a priority, precompute a map from tag to index/priority to be
         # used in wheel.find_most_preferred_tag.
@@ -513,12 +532,20 @@ class CandidateEvaluator:
         if link.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(link.filename)
+
+            supported_variants = get_cached_variant_hashes_by_priority(
+                self._variants_json.get(
+                    get_variants_json_filename(wheel)
+                )
+            )
+
             try:
                 pri = -(
                     wheel.find_most_preferred_tag(
                         valid_tags, self._wheel_tag_preferences
                     )
                 )
+                variant_pri = -supported_variants.index(wheel.variant_hash)
             except ValueError:
                 raise UnsupportedWheel(
                     f"{wheel.filename} is not a supported wheel for this platform. It "
@@ -533,6 +560,7 @@ class CandidateEvaluator:
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
+            variant_pri = -sys.maxsize
         has_allowed_hash = int(link.is_hash_allowed(self._hashes))
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
@@ -540,6 +568,7 @@ class CandidateEvaluator:
             yank_value,
             binary_preference,
             candidate.version,
+            variant_pri,
             pri,
             build_tag,
         )
@@ -741,7 +770,7 @@ class PackageFinder:
         for link in links:
             if link not in seen:
                 seen.add(link)
-                if link.filename == "variants.json":
+                if link.filename.endswith("-variants.json"):
                     variants_json.append(link)
                 elif link.egg_fragment:
                     eggs.append(link)
@@ -784,10 +813,6 @@ class PackageFinder:
         except InvalidVersion:
             return None
 
-    @functools.cache
-    def get_variants_json(self, link: Link) -> dict:
-        return VariantJson(self._link_collector.session.request("GET", link.url).json())
-
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]
     ) -> List[InstallationCandidate]:
@@ -796,8 +821,11 @@ class PackageFinder:
         """
         candidates = []
         for link in self._sort_links(links):
-            if link.filename == "variants.json":
-                link_evaluator.variants_json = self.get_variants_json(link)
+            if link.filename.endswith("-variants.json"):
+                link_evaluator.variants_json[link.filename] = VariantJson(
+                    link.url,
+                    lambda url: self._link_collector.session.request("GET", url).json(),
+                )
                 continue
 
             candidate = self.get_install_candidate(link_evaluator, link)

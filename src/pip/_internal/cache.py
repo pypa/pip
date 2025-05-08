@@ -150,6 +150,7 @@ class SimpleWheelCache(Cache):
                     package_name,
                 )
                 continue
+            raise NotImplementedError
             if not wheel.supported(supported_tags):
                 # Built for a different python/arch/etc
                 continue

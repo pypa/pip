@@ -17,11 +17,6 @@ from pip._vendor.packaging.tags import (
     mac_platforms,
 )
 
-from pip._internal.utils.variant import (
-    VariantJson,
-    get_cached_variant_hashes_by_priority,
-)
-
 _apple_arch_pat = re.compile(r"(.+)_(\d+)_(\d+)_(.+)")
 
 
@@ -147,7 +142,6 @@ def get_supported(
     platforms: Optional[List[str]] = None,
     impl: Optional[str] = None,
     abis: Optional[List[str]] = None,
-    variants_json: Optional[VariantJson] = None,
 ) -> List[Tag]:
     """Return a list of supported tags for each version specified in
     `versions`.
@@ -195,42 +189,5 @@ def get_supported(
             platforms=platforms,
         )
     )
-
-    if variants_json is not None:
-        variants_by_priority = get_cached_variant_hashes_by_priority(
-            variants_json=variants_json
-        )
-
-        # NOTE: There is two choices implementation wise
-        # QUESTION: Which one should be the outer loop ?
-        #
-        # 1. Shall it iterate over all variants per `Tag`:
-        #   - cp313-cp313-manylinux_2_36_aarch64-054fcdf8
-        #   - cp313-cp313-manylinux_2_35_aarch64-054fcdf8
-        #   - cp313-cp313-manylinux_2_34_aarch64-054fcdf8
-        #   - ...
-        #   - cp313-cp313-manylinux_2_36_aarch64-39614353
-        #   - cp313-cp313-manylinux_2_35_aarch64-39614353
-        #   - cp313-cp313-manylinux_2_34_aarch64-39614353
-        #   - ...
-        #
-        # 2. Shall it iterate over all tags per `Variants`:
-        #   - cp313-cp313-manylinux_2_36_aarch64-054fcdf8
-        #   - cp313-cp313-manylinux_2_36_aarch64-39614353
-        #   - ...
-        #   - cp313-cp313-manylinux_2_35_aarch64-054fcdf8
-        #   - cp313-cp313-manylinux_2_35_aarch64-39614353
-        #   - ...
-        #   - cp313-cp313-manylinux_2_34_aarch64-054fcdf8
-        #   - cp313-cp313-manylinux_2_34_aarch64-39614353
-        #   - ...
-
-        # Current implementation is choice 1)
-        # Flip the order of `for loops` to switch to choice 2)
-        supported = [
-            Tag.create_varianttag_from_tag(tag, variant_hash=variant_hash)
-            for variant_hash in variants_by_priority
-            for tag in supported
-        ] + supported
 
     return supported

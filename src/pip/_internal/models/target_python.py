@@ -81,7 +81,6 @@ class TargetPython:
         )
 
     def get_sorted_tags(self,
-                        variants_json: Optional[VariantJson] = None
                         ) -> List[Tag]:
         """
         Return the supported PEP 425 tags to check wheel candidates against.
@@ -101,16 +100,12 @@ class TargetPython:
             platforms=self.platforms,
             abis=self.abis,
             impl=self.implementation,
-            variants_json=variants_json,
         )
 
     def get_unsorted_tags(self,
-                          variants_json: Optional[VariantJson] = None
                           ) -> Set[Tag]:
         """Exactly the same as get_sorted_tags, but returns a set.
 
         This is important for performance.
         """
-        return set(self.get_sorted_tags(
-            variants_json=variants_json,
-        ))
+        return set(self.get_sorted_tags())

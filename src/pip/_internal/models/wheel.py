@@ -66,7 +66,7 @@ class Wheel:
 
         # All the tag combinations from this file
         self.file_tags = {
-            Tag(x, y, z, self.variant_hash)
+            Tag(x, y, z)
             for x in self.pyversions
             for y in self.abis
             for z in self.plats

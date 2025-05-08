@@ -53,6 +53,7 @@ from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.variant import variant_wheel_supported
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, Constraint, Requirement
@@ -141,7 +142,10 @@ class Factory:
         if not link.is_wheel:
             return
         wheel = Wheel(link.filename)
-        if wheel.supported(self._finder.target_python.get_unsorted_tags()):
+        if (
+            wheel.supported(self._finder.target_python.get_unsorted_tags())
+            and variant_wheel_supported(wheel, link)
+        ):
             return
         msg = f"{link.filename} is not a supported wheel on this platform."
         raise UnsupportedWheel(msg)

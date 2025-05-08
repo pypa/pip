@@ -225,6 +225,7 @@ class Resolver(BaseResolver):
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
             tags = compatibility_tags.get_supported()
+            raise NotImplementedError
             if requirement_set.check_supported_wheels and not wheel.supported(tags):
                 raise InstallationError(
                     f"{wheel.filename} is not a supported wheel on this platform."
