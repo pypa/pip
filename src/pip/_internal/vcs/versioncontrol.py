@@ -451,7 +451,13 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def switch(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         """
         Switch the repo at ``dest`` to point to ``URL``.
 
@@ -460,7 +466,13 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def update(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         """
         Update an already-existing repo to the given ``rev_options``.
 
@@ -512,7 +524,7 @@ class VersionControl:
                         self.repo_name,
                         rev_display,
                     )
-                    self.update(dest, url, rev_options)
+                    self.update(dest, url, rev_options, verbosity=verbosity)
                 else:
                     logger.info("Skipping because already up-to-date.")
                 return
@@ -567,7 +579,7 @@ class VersionControl:
                 url,
                 rev_display,
             )
-            self.switch(dest, url, rev_options)
+            self.switch(dest, url, rev_options, verbosity=verbosity)
 
     def unpack(self, location: str, url: HiddenText, verbosity: int) -> None:
         """

@@ -331,31 +331,59 @@ class Git(VersionControl):
         logger.info("Resolved %s to commit %s", url, rev_options.rev)
 
         #: repo may contain submodules
-        self.update_submodules(dest)
+        self.update_submodules(dest, verbosity=verbosity)
 
-    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def switch(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         self.run_command(
             make_command("config", "remote.origin.url", url),
             cwd=dest,
         )
-        cmd_args = make_command("checkout", "-q", rev_options.to_args())
+
+        extra_flags = []
+
+        if verbosity <= 0:
+            extra_flags.append("-q")
+
+        cmd_args = make_command("checkout", *extra_flags, rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
-        self.update_submodules(dest)
+        self.update_submodules(dest, verbosity=verbosity)
 
-    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def update(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
+        extra_flags = []
+
+        if verbosity <= 0:
+            extra_flags.append("-q")
+
         # First fetch changes from the default remote
         if self.get_git_version() >= (1, 9):
             # fetch tags in addition to everything else
-            self.run_command(["fetch", "-q", "--tags"], cwd=dest)
+            self.run_command(["fetch", "--tags", *extra_flags], cwd=dest)
         else:
-            self.run_command(["fetch", "-q"], cwd=dest)
+            self.run_command(["fetch", *extra_flags], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         rev_options = self.resolve_revision(dest, url, rev_options)
-        cmd_args = make_command("reset", "--hard", "-q", rev_options.to_args())
+        cmd_args = make_command(
+            "reset",
+            "--hard",
+            *extra_flags,
+            rev_options.to_args(),
+        )
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
-        self.update_submodules(dest)
+        self.update_submodules(dest, verbosity=verbosity)
 
     @classmethod
     def get_remote_url(cls, location: str) -> str:
@@ -496,11 +524,16 @@ class Git(VersionControl):
         return url, rev, user_pass
 
     @classmethod
-    def update_submodules(cls, location: str) -> None:
+    def update_submodules(cls, location: str, verbosity: int = 0) -> None:
+        argv = ["submodule", "update", "--init", "--recursive"]
+
+        if verbosity <= 0:
+            argv.append("-q")
+
         if not os.path.exists(os.path.join(location, ".gitmodules")):
             return
         cls.run_command(
-            ["submodule", "update", "--init", "--recursive", "-q"],
+            argv,
             cwd=location,
         )
 
