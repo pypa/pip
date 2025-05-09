@@ -177,6 +177,8 @@ def test_install_special_extra(
         extras={specified_extra: ["missing_pkg"]},
     )
 
+    print(script.pip("list").stdout)
+
     result = script.pip(
         "install",
         "--no-index",
