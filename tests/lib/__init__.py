@@ -738,6 +738,17 @@ class PipTestEnvironment(TestFileEnvironment):
         expected = {canonicalize_name(k) for k in args}
         assert not (expected & installed), f"{expected!r} contained in {installed!r}"
 
+    def assert_installed_editable(self, dist_name: str) -> None:
+        dist_name = canonicalize_name(dist_name)
+        ret = self.pip("list", "--format=json")
+        installed = json.loads(ret.stdout)
+        assert any(
+            x
+            for x in installed
+            if canonicalize_name(x["name"]) == dist_name
+            and x.get("editable_project_location")
+        )
+
 
 # FIXME ScriptTest does something similar, but only within a single
 # ProcResult; this generalizes it so states can be compared across
