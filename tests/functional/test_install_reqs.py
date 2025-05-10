@@ -217,7 +217,6 @@ def test_relative_requirements_file(
 
     """
     dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
-    egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
     # Compute relative install path to FSPkg from scratch path.
@@ -249,7 +248,9 @@ def test_relative_requirements_file(
             result = script.pip(
                 "install", "-vvv", "-r", reqs_file.name, cwd=script.scratch_path
             )
-            result.did_create(egg_link_file)
+            direct_url = result.get_created_direct_url("fspkg")
+            assert direct_url
+            assert direct_url.is_local_editable()
 
 
 @pytest.mark.xfail
@@ -384,9 +385,8 @@ def test_install_local_editable_with_extras(
     res = script.pip_install_local(
         "-e", f"{to_install}[bar]", allow_stderr_warning=True
     )
-    res.did_update(script.site_packages / "easy-install.pth")
-    res.did_create(script.site_packages / "LocalExtras.egg-link")
-    res.did_create(script.site_packages / "simple")
+    res.assert_installed("LocalExtras", editable=True, editable_vcs=False)
+    res.assert_installed("simple", editable=False)
 
 
 def test_install_collected_dependencies_first(script: PipTestEnvironment) -> None:
