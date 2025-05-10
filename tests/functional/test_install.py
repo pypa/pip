@@ -1417,13 +1417,13 @@ def test_install_editable_with_target(script: PipTestEnvironment) -> None:
     pkg_path.mkdir()
     pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
+            """\
+            from setuptools import setup
+            setup(
+                name='pkg',
+                install_requires=['watching_testrunner']
+            )
             """
-        from setuptools import setup
-        setup(
-            name='pkg',
-            install_requires=['watching_testrunner']
-        )
-    """
         )
     )
 
