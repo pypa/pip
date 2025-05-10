@@ -11,15 +11,6 @@ def test_install_find_links_no_direct_url(script: PipTestEnvironment) -> None:
     assert not get_created_direct_url(result, "simple")
 
 
-def test_install_vcs_editable_no_direct_url(script: PipTestEnvironment) -> None:
-    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
-    args = ["install", "-e", f"git+{pkg_path.as_uri()}#egg=testpkg"]
-    result = script.pip(*args)
-    # legacy editable installs do not generate .dist-info,
-    # hence no direct_url.json
-    assert not get_created_direct_url(result, "testpkg")
-
-
 def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None:
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     url = pkg_path.as_uri()
