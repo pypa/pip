@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
@@ -478,8 +479,7 @@ def test_install_editable_uninstalls_existing_from_path(
         "-e",
         to_install,
     )
-    install_path = script.site_packages / "simplewheel.egg-link"
-    result.did_create(install_path)
+    result.assert_installed("simplewheel", editable=True)
     assert "Found existing installation: simplewheel 1.0" in result.stdout
     assert "Uninstalling simplewheel-" in result.stdout
     assert "Successfully uninstalled simplewheel" in result.stdout
@@ -575,7 +575,6 @@ def test_basic_install_relative_directory(
     Test installing a requirement using a relative path.
     """
     dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
-    egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
     # Compute relative install path to FSPkg from scratch path.
@@ -599,7 +598,9 @@ def test_basic_install_relative_directory(
     else:
         # Editable install.
         result = script.pip("install", "-e", req_path, cwd=script.scratch_path)
-        result.did_create(egg_link_file)
+        direct_url = result.get_created_direct_url("fspkg")
+        assert direct_url
+        assert direct_url.is_local_editable()
 
 
 def test_install_quiet(script: PipTestEnvironment, data: TestData) -> None:
@@ -1374,7 +1375,9 @@ def _test_install_editable_with_prefix(
     result = script.pip("install", "--editable", pkga_path, "--prefix", prefix_path)
 
     # assert pkga is installed at correct location
-    install_path = script.scratch / site_packages / "pkga.egg-link"
+    install_path = (
+        script.scratch / site_packages / "pkga-0.1.dist-info" / "direct_url.json"
+    )
     result.did_create(install_path)
 
     return result
@@ -1400,7 +1403,11 @@ def test_install_editable_with_target(script: PipTestEnvironment) -> None:
     target.mkdir()
     result = script.pip("install", "--editable", pkg_path, "--target", target)
 
-    result.did_create(script.scratch / "target" / "pkg.egg-link")
+    direct_url_path = result.get_created_direct_url_path("pkg")
+    assert direct_url_path
+    assert direct_url_path.parent.parent == target
+    direct_url = DirectUrl.from_json(direct_url_path.read_text())
+    assert direct_url.is_local_editable()
     result.did_create(script.scratch / "target" / "watching_testrunner.py")
 
 
