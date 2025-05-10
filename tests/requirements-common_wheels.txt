@@ -7,7 +7,7 @@
 
 # We pin setuptools<80 because our test suite currently
 # depends on setup.py develop to generate egg-link files.
-setuptools >= 40.8.0, != 60.6.0, <80
-wheel
+# We require >= 70.1 to support bdist_wheel without the wheel package
+setuptools >= 70.1, <80
 # As required by pytest-cov.
 coverage >= 4.4
