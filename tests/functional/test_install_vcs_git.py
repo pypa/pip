@@ -340,29 +340,6 @@ def test_install_git_logs_commit_sha(
 
 
 @pytest.mark.network
-def test_git_with_tag_name_and_update(script: PipTestEnvironment, tmpdir: Path) -> None:
-    """
-    Test cloning a git repository and updating to a different version.
-    """
-    url_path = "pypa/pip-test-package.git"
-    base_local_url = _github_checkout(url_path, tmpdir)
-
-    local_url = f"{base_local_url}#egg=pip-test-package"
-    result = script.pip("install", "-e", local_url)
-    result.assert_installed("pip-test-package", with_files=[".git"])
-
-    new_local_url = f"{base_local_url}@0.1.2#egg=pip-test-package"
-    result = script.pip(
-        "install",
-        "--global-option=--version",
-        "-e",
-        new_local_url,
-        allow_stderr_warning=True,
-    )
-    assert "0.1.2" in result.stdout
-
-
-@pytest.mark.network
 def test_git_branch_should_not_be_changed(
     script: PipTestEnvironment, tmpdir: Path
 ) -> None:

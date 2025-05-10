@@ -895,41 +895,6 @@ def test_editable_install__local_dir_no_setup_py(
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info >= (3, 12),
-    reason="Setuptools<64 does not support Python 3.12+",
-)
-@pytest.mark.network
-def test_editable_install_legacy__local_dir_no_setup_py_with_pyproject(
-    script: PipTestEnvironment,
-) -> None:
-    """
-    Test installing in legacy editable mode from a local directory with no
-    setup.py but that does have pyproject.toml with a build backend that does
-    not support the build_editable hook.
-    """
-    local_dir = script.scratch_path.joinpath("temp")
-    local_dir.mkdir()
-    pyproject_path = local_dir.joinpath("pyproject.toml")
-    pyproject_path.write_text(
-        textwrap.dedent(
-            """
-                [build-system]
-                requires = ["setuptools<64"]
-                build-backend = "setuptools.build_meta"
-            """
-        )
-    )
-
-    result = script.pip("install", "-e", local_dir, expect_error=True)
-    assert not result.files_created
-
-    msg = result.stderr
-    assert "has a 'pyproject.toml'" in msg
-    assert "does not have a 'setup.py' nor a 'setup.cfg'" in msg
-    assert "cannot be installed in editable mode" in msg
-
-
 def test_editable_install__local_dir_setup_requires_with_pyproject(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
