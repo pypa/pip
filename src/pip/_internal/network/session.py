@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from ssl import SSLContext
 
     from pip._vendor.urllib3.poolmanager import PoolManager
+    from pip._vendor.urllib3.proxymanager import ProxyManager
 
 
 logger = logging.getLogger(__name__)
@@ -282,6 +283,13 @@ class _SSLContextAdapterMixin:
             block=block,
             **pool_kwargs,
         )
+
+    def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> "ProxyManager":
+        # Proxy manager replaces the pool manager, so inject our SSL
+        # context here too. https://github.com/pypa/pip/issues/13288
+        if self._ssl_context is not None:
+            proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
 class HTTPAdapter(_SSLContextAdapterMixin, _BaseHTTPAdapter):
