@@ -91,7 +91,7 @@ def fix_script(path: str) -> bool:
 
     with open(path, "rb") as script:
         prelude = script.readline()
-        if (m := re.match(br"^#!python[^\s]*(\s.*)?$", prelude)) is None:
+        if (m := re.match(rb"^#!python[^\s]*(\s.*)?$", prelude)) is None:
             return False
         sm = ScriptMaker(None, None)
         sm.executable = sys.executable
