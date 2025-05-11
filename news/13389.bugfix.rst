@@ -1,2 +1,1 @@
-Python scripts added as :file:`data` files (e.g. via ``setuptools``\ ’ ``scripts=`` parameter)
-now get their shebang modified like regular scripts, and no longer break for venv paths with spaces.
+Rewriting of ``#!python`` headers in scripts has been improved to handle unusual paths more robustly.
