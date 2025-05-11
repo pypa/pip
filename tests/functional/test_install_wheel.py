@@ -378,11 +378,13 @@ def test_wheel_record_lines_have_hash_for_data_files(
 @pytest.mark.parametrize(
     "ws_dirname", ["work space", "workspace"], ids=["spaces", "no_spaces"]
 )
+@pytest.mark.parametrize("executable", ["python", "pythonw"])
 def test_wheel_record_lines_have_updated_hash_for_scripts(
     tmpdir: Path,
     virtualenv_factory: Callable[[Path], VirtualEnvironment],
     script_factory: ScriptFactory,
     ws_dirname: str,
+    executable: str,
 ) -> None:
     """
     pip rewrites "#!python" shebang lines in scripts when it installs them;
@@ -395,7 +397,7 @@ def test_wheel_record_lines_have_updated_hash_for_scripts(
         "simple",
         "0.1.0",
         extra_data_files={
-            "scripts/dostuff": "#!python\n",
+            "scripts/dostuff": f"#!{executable}\n",
         },
     ).save_to_dir(script.scratch_path)
     script.pip("install", package)
@@ -407,10 +409,8 @@ def test_wheel_record_lines_have_updated_hash_for_scripts(
     script_path = script.bin_path / "dostuff"
     script_contents = script_path.read_bytes()
     expected_prefix = (
-        b"#!/bin/sh\n'''exec'"
-        if " " in ws_dirname
-        else f"#!{script.bin_path}{os.path.sep}python".encode()
-    )
+        b"#!/bin/sh\n'''exec' \"" if " " in ws_dirname else b"#!"
+    ) + f"{script.bin_path}{os.path.sep}{executable}".encode()
     assert script_contents.startswith(expected_prefix)
 
     script_digest = hashlib.sha256(script_contents).digest()
