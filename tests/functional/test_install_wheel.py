@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import csv
 import hashlib
@@ -5,12 +7,19 @@ import os
 import shutil
 import sysconfig
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from tests.lib import PipTestEnvironment, TestData, create_basic_wheel_for_package
+from tests.lib import create_basic_wheel_for_package
 from tests.lib.wheel import WheelBuilder, make_wheel
+
+from ..lib.venv import VirtualEnvironment
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from tests.lib import PipTestEnvironment, ScriptFactory, TestData
 
 
 # assert_installed expects a package subdirectory, so give it to them
@@ -366,13 +375,22 @@ def test_wheel_record_lines_have_hash_for_data_files(
     ]
 
 
+@pytest.mark.parametrize(
+    "ws_dirname", ["work space", "workspace"], ids=["spaces", "no_spaces"]
+)
 def test_wheel_record_lines_have_updated_hash_for_scripts(
-    script: PipTestEnvironment,
+    tmpdir: Path,
+    virtualenv_factory: Callable[[Path], VirtualEnvironment],
+    script_factory: ScriptFactory,
+    ws_dirname: str,
 ) -> None:
     """
     pip rewrites "#!python" shebang lines in scripts when it installs them;
     make sure it updates the RECORD file correspondingly.
     """
+    (tmpdir / ws_dirname).mkdir(exist_ok=True, parents=True)
+    virtualenv = virtualenv_factory(tmpdir / ws_dirname / "venv")
+    script = script_factory(tmpdir / ws_dirname, virtualenv)
     package = make_wheel(
         "simple",
         "0.1.0",
@@ -388,7 +406,12 @@ def test_wheel_record_lines_have_updated_hash_for_scripts(
 
     script_path = script.bin_path / "dostuff"
     script_contents = script_path.read_bytes()
-    assert not script_contents.startswith(b"#!python\n")
+    expected_prefix = (
+        b"#!/bin/sh\n'''exec'"
+        if " " in ws_dirname
+        else f"#!{script.bin_path}{os.path.sep}python".encode()
+    )
+    assert script_contents.startswith(expected_prefix)
 
     script_digest = hashlib.sha256(script_contents).digest()
     script_digest_b64 = (
