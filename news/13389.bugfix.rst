@@ -1,0 +1,2 @@
+Python scripts added as :file:`data` files (e.g. via ``setuptools``\ ’ ``scripts=`` parameter)
+now get their shebang modified like regular scripts, and no longer break for venv paths with spaces.
