@@ -93,9 +93,7 @@ def fix_script(path: str) -> bool:
         prelude = script.readline()
         if (m := re.match(rb"^#!python[^\s]*(\s.*)?$", prelude)) is None:
             return False
-        sm = ScriptMaker(None, None)
-        sm.executable = sys.executable
-        prelude = sm._get_shebang("utf-8", m.group(1) or b"")
+        prelude = ScriptMaker(None, None)._get_shebang("utf-8", m.group(1) or b"")
         rest = script.read()
     with open(path, "wb") as script:
         script.write(prelude)
