@@ -43,6 +43,8 @@ from pip._internal.utils.variant import (
     get_variants_json_filename,
 )
 
+from variantlib.variants_json import VariantsJson
+
 if TYPE_CHECKING:
     from pip._vendor.typing_extensions import TypeGuard
 
@@ -596,6 +598,21 @@ class CandidateEvaluator:
         applicable_candidates = self.get_applicable_candidates(candidates)
 
         best_candidate = self.sort_best_candidate(applicable_candidates)
+        if best_candidate.variant_hash is not None:
+            variants_json = VariantsJson(
+                self._variants_json.get(
+                    f"{best_candidate.name}-{best_candidate.version}-variants.json"
+                ).json()
+            )
+            vdesc = variants_json.variants[best_candidate.variant_hash]
+            logger.info("%(name)s %(version)s; selected variant: %(variant_hash)s",
+                        {
+                            "name": best_candidate.name,
+                            "version": best_candidate.version,
+                            "variant_hash": best_candidate.variant_hash,
+                        })
+            for vprop in vdesc.properties:
+                logger.info("  %(vprop)s", {"vprop": vprop.to_str()})
 
         return BestCandidateResult(
             candidates,
