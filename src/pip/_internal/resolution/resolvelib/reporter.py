@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, DefaultDict
+from typing import Any
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
@@ -9,9 +11,9 @@ from .base import Candidate, Requirement
 logger = getLogger(__name__)
 
 
-class PipReporter(BaseReporter):
+class PipReporter(BaseReporter[Requirement, Candidate, str]):
     def __init__(self) -> None:
-        self.reject_count_by_package: DefaultDict[str, int] = defaultdict(int)
+        self.reject_count_by_package: defaultdict[str, int] = defaultdict(int)
 
         self._messages_at_reject_count = {
             1: (
@@ -55,7 +57,7 @@ class PipReporter(BaseReporter):
         logger.debug(msg)
 
 
-class PipDebuggingReporter(BaseReporter):
+class PipDebuggingReporter(BaseReporter[Requirement, Candidate, str]):
     """A reporter that does an info log for every event it sees."""
 
     def starting(self) -> None:
@@ -71,7 +73,9 @@ class PipDebuggingReporter(BaseReporter):
     def ending(self, state: Any) -> None:
         logger.info("Reporter.ending(%r)", state)
 
-    def adding_requirement(self, requirement: Requirement, parent: Candidate) -> None:
+    def adding_requirement(
+        self, requirement: Requirement, parent: Candidate | None
+    ) -> None:
         logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
 
     def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:

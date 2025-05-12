@@ -66,7 +66,7 @@ class TestUserCacheDir:
             return
 
         def my_get_win_folder(csidl_name: str) -> str:
-            return "\u00DF\u00E4\u03B1\u20AC"
+            return "\u00df\u00e4\u03b1\u20ac"
 
         monkeypatch.setattr(
             platformdirs.windows,  # type: ignore
@@ -106,6 +106,17 @@ class TestSiteConfigDirs:
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.site_config_dirs("pip") == [
+            "/Library/Application Support/pip",
+        ]
+
+    @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
+    def test_site_config_dirs_osx_homebrew(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(sys, "prefix", "/opt/homebrew/")
+
+        assert appdirs.site_config_dirs("pip") == [
+            "/opt/homebrew/share/pip",
             "/Library/Application Support/pip",
         ]
 

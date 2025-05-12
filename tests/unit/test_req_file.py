@@ -1,11 +1,15 @@
+from __future__ import annotations
+
+import codecs
 import collections
 import logging
 import os
 import re
 import textwrap
+from collections.abc import Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Any, Iterator, List, Optional, Protocol, Tuple, Union
+from typing import Any, Protocol
 from unittest import mock
 
 import pytest
@@ -53,10 +57,10 @@ def options(session: PipSession) -> mock.Mock:
 
 
 def parse_reqfile(
-    filename: Union[Path, str],
+    filename: Path | str,
     session: PipSession,
-    finder: Optional[PackageFinder] = None,
-    options: Optional[Values] = None,
+    finder: PackageFinder | None = None,
+    options: Values | None = None,
     constraint: bool = False,
     isolated: bool = False,
 ) -> Iterator[InstallRequirement]:
@@ -196,11 +200,11 @@ class LineProcessor(Protocol):
         line: str,
         filename: str,
         line_number: int,
-        finder: Optional[PackageFinder] = None,
-        options: Optional[Values] = None,
-        session: Optional[PipSession] = None,
+        finder: PackageFinder | None = None,
+        options: Values | None = None,
+        session: PipSession | None = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]: ...
+    ) -> list[InstallRequirement]: ...
 
 
 @pytest.fixture
@@ -209,11 +213,11 @@ def line_processor(monkeypatch: pytest.MonkeyPatch, tmpdir: Path) -> LineProcess
         line: str,
         filename: str,
         line_number: int,
-        finder: Optional[PackageFinder] = None,
-        options: Optional[Values] = None,
-        session: Optional[PipSession] = None,
+        finder: PackageFinder | None = None,
+        options: Values | None = None,
+        session: PipSession | None = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         if session is None:
             session = PipSession()
 
@@ -586,7 +590,7 @@ class TestProcessLine:
 
         def get_file_content(
             filename: str, *args: Any, **kwargs: Any
-        ) -> Tuple[None, str]:
+        ) -> tuple[None, str]:
             if filename == req_file:
                 return None, "-r reqs.txt"
             elif filename == "http://me.com/me/reqs.txt":
@@ -655,7 +659,7 @@ class TestProcessLine:
 
         def get_file_content(
             filename: str, *args: Any, **kwargs: Any
-        ) -> Tuple[None, str]:
+        ) -> tuple[None, str]:
             if filename == str(req_file):
                 return None, f"-r {nested_req_file}"
             elif filename == nested_req_file:
@@ -955,3 +959,118 @@ class TestParseRequirements:
             )
 
         assert req.global_options == [global_option]
+
+    @pytest.mark.parametrize(
+        "raw_req_file,expected_name,expected_spec",
+        [
+            pytest.param(
+                b"Django==1.4.2",
+                "Django",
+                "==1.4.2",
+                id="defaults to UTF-8",
+            ),
+            pytest.param(
+                "# coding=latin1\nDjango==1.4.2 # Pas trop de café".encode("latin-1"),
+                "Django",
+                "==1.4.2",
+                id="decodes based on PEP-263 style headers",
+            ),
+        ],
+    )
+    def test_general_decoding(
+        self,
+        raw_req_file: bytes,
+        expected_name: str,
+        expected_spec: str,
+        tmpdir: Path,
+        session: PipSession,
+    ) -> None:
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(raw_req_file)
+
+        reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
+
+        assert len(reqs) == 1
+        assert reqs[0].name == expected_name
+        assert reqs[0].specifier == expected_spec
+
+    @pytest.mark.parametrize(
+        "bom,encoding",
+        [
+            (codecs.BOM_UTF8, "utf-8"),
+            (codecs.BOM_UTF16_BE, "utf-16-be"),
+            (codecs.BOM_UTF16_LE, "utf-16-le"),
+            (codecs.BOM_UTF32_BE, "utf-32-be"),
+            (codecs.BOM_UTF32_LE, "utf-32-le"),
+            # BOM automatically added when encoding byte-order dependent encodings
+            (b"", "utf-16"),
+            (b"", "utf-32"),
+        ],
+    )
+    def test_decoding_with_BOM(
+        self, bom: bytes, encoding: str, tmpdir: Path, session: PipSession
+    ) -> None:
+        req_name = "Django"
+        req_specifier = "==1.4.2"
+        encoded_contents = bom + f"{req_name}{req_specifier}".encode(encoding)
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(encoded_contents)
+
+        reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
+
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert reqs[0].specifier == req_specifier
+
+    def test_warns_and_fallsback_to_locale_on_utf8_decode_fail(
+        self,
+        tmpdir: Path,
+        session: PipSession,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        # \xff is valid in latin-1 but not UTF-8
+        data = b"pip<=24.0 # some comment\xff\n"
+        locale_encoding = "latin-1"
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(data)
+
+        # it's hard to rely on a locale definitely existing for testing
+        # so patch things out for simplicity
+        with (
+            caplog.at_level(logging.WARNING),
+            mock.patch("locale.getpreferredencoding", return_value=locale_encoding),
+        ):
+            reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
+
+        assert len(caplog.records) == 1
+        assert (
+            caplog.records[0].msg
+            == "unable to decode data from %s with default encoding %s, "
+            "falling back to encoding from locale: %s. "
+            "If this is intentional you should specify the encoding with a "
+            "PEP-263 style comment, e.g. '# -*- coding: %s -*-'"
+        )
+        assert caplog.records[0].args == (
+            str(req_file),
+            "utf-8",
+            locale_encoding,
+            locale_encoding,
+        )
+
+        assert len(reqs) == 1
+        assert reqs[0].name == "pip"
+        assert str(reqs[0].specifier) == "<=24.0"
+
+    @pytest.mark.parametrize("encoding", ["utf-8", "gbk"])
+    def test_errors_on_non_decodable_data(
+        self, encoding: str, tmpdir: Path, session: PipSession
+    ) -> None:
+        data = b"\xff"
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(data)
+
+        with (
+            pytest.raises(UnicodeDecodeError),
+            mock.patch("locale.getpreferredencoding", return_value=encoding),
+        ):
+            next(parse_reqfile(req_file.resolve(), session=session))

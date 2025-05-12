@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-from typing import FrozenSet, List, Optional, Set, Tuple
 
 import pytest
 
@@ -82,7 +83,7 @@ def check_caplog(
 def test_check_link_requires_python__incompatible_python(
     caplog: pytest.LogCaptureFixture,
     ignore_requires_python: bool,
-    expected: Tuple[bool, str, str],
+    expected: tuple[bool, str, str],
 ) -> None:
     """
     Test an incompatible Python.
@@ -146,9 +147,9 @@ class TestLinkEvaluator:
     )
     def test_evaluate_link(
         self,
-        py_version_info: Tuple[int, int, int],
+        py_version_info: tuple[int, int, int],
         ignore_requires_python: bool,
-        expected: Tuple[LinkType, str],
+        expected: tuple[LinkType, str],
     ) -> None:
         target_python = TargetPython(py_version_info=py_version_info)
         evaluator = LinkEvaluator(
@@ -199,7 +200,7 @@ class TestLinkEvaluator:
         self,
         yanked_reason: str,
         allow_yanked: bool,
-        expected: Tuple[LinkType, str],
+        expected: tuple[LinkType, str],
     ) -> None:
         target_python = TargetPython(py_version_info=(3, 6, 4))
         evaluator = LinkEvaluator(
@@ -248,7 +249,7 @@ class TestLinkEvaluator:
         (64 * "c", ["1.0", "1.1", "1.2"]),
     ],
 )
-def test_filter_unallowed_hashes(hex_digest: str, expected_versions: List[str]) -> None:
+def test_filter_unallowed_hashes(hex_digest: str, expected_versions: list[str]) -> None:
     candidates = [
         make_mock_candidate("1.0"),
         make_mock_candidate("1.1", hex_digest=(64 * "a")),
@@ -434,7 +435,7 @@ class TestCandidateEvaluator:
     def test_get_applicable_candidates__hashes(
         self,
         specifier: SpecifierSet,
-        expected_versions: List[str],
+        expected_versions: list[str],
     ) -> None:
         """
         Test a non-None hashes value.
@@ -505,7 +506,7 @@ class TestCandidateEvaluator:
             (64 * "b", 0),
         ],
     )
-    def test_sort_key__hash(self, hex_digest: Optional[str], expected: int) -> None:
+    def test_sort_key__hash(self, hex_digest: str | None, expected: int) -> None:
         """
         Test the effect of the link's hash on _sort_key()'s return value.
         """
@@ -530,7 +531,7 @@ class TestCandidateEvaluator:
         ],
     )
     def test_sort_key__is_yanked(
-        self, yanked_reason: Optional[str], expected: int
+        self, yanked_reason: str | None, expected: int
     ) -> None:
         """
         Test the effect of is_yanked on _sort_key()'s return value.
@@ -736,8 +737,8 @@ class TestPackageFinder:
         self,
         allow_yanked: bool,
         ignore_requires_python: bool,
-        only_binary: Set[str],
-        expected_formats: FrozenSet[str],
+        only_binary: set[str],
+        expected_formats: frozenset[str],
     ) -> None:
         # Create a test TargetPython that we can check for.
         target_python = TargetPython(py_version_info=(3, 7))
@@ -899,7 +900,7 @@ def test_find_name_version_sep_failure(fragment: str, canonical_name: str) -> No
     ],
 )
 def test_extract_version_from_fragment(
-    fragment: str, canonical_name: str, expected: Optional[str]
+    fragment: str, canonical_name: str, expected: str | None
 ) -> None:
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected

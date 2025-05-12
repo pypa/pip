@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
-from typing import Protocol, Tuple, Union
+from typing import Protocol
 
 import pytest
 
@@ -23,12 +25,18 @@ complete -o default -F _pip_completion pip""",
         "fish",
         """\
 function __fish_complete_pip
-    set -lx COMP_WORDS (commandline -o) ""
-    set -lx COMP_CWORD ( \\
-        math (contains -i -- (commandline -t) $COMP_WORDS)-1 \\
-    )
+    set -lx COMP_WORDS \\
+        (commandline --current-process --tokenize --cut-at-cursor) \\
+        (commandline --current-token --cut-at-cursor)
+    set -lx COMP_CWORD (math (count $COMP_WORDS) - 1)
     set -lx PIP_AUTO_COMPLETE 1
-    string split \\  -- (eval $COMP_WORDS[1])
+    set -l completions
+    if string match -q '2.*' $version
+        set completions (eval $COMP_WORDS[1])
+    else
+        set completions ($COMP_WORDS[1])
+    end
+    string split \\  -- $completions
 end
 complete -fa "(__fish_complete_pip)" -c pip""",
     ),
@@ -123,10 +131,10 @@ class DoAutocomplete(Protocol):
         self,
         words: str,
         cword: str,
-        cwd: Union[Path, str, None] = None,
+        cwd: Path | str | None = None,
         include_env: bool = True,
         expect_error: bool = True,
-    ) -> Tuple[TestPipResult, PipTestEnvironment]: ...
+    ) -> tuple[TestPipResult, PipTestEnvironment]: ...
 
 
 @pytest.fixture
@@ -139,10 +147,10 @@ def autocomplete(
     def do_autocomplete(
         words: str,
         cword: str,
-        cwd: Union[Path, str, None] = None,
+        cwd: Path | str | None = None,
         include_env: bool = True,
         expect_error: bool = True,
-    ) -> Tuple[TestPipResult, PipTestEnvironment]:
+    ) -> tuple[TestPipResult, PipTestEnvironment]:
         if include_env:
             autocomplete_script.environ["COMP_WORDS"] = words
             autocomplete_script.environ["COMP_CWORD"] = cword

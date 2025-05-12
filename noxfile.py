@@ -1,13 +1,12 @@
-"""Automation using nox.
-"""
+"""Automation using nox."""
 
 import argparse
 import glob
 import os
 import shutil
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, List, Tuple
 
 import nox
 
@@ -70,7 +69,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -83,7 +82,7 @@ def test(session: nox.Session) -> None:
         )
         # fmt: on
     else:
-        msg = f"Re-using existing common-wheels at {LOCATIONS['common-wheels']}."
+        msg = f"Reusing existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
 
     # Build source distribution
@@ -137,7 +136,7 @@ def test(session: nox.Session) -> None:
 def docs(session: nox.Session) -> None:
     session.install("-r", REQUIREMENTS["docs"])
 
-    def get_sphinx_build_command(kind: str) -> List[str]:
+    def get_sphinx_build_command(kind: str) -> list[str]:
         # Having the conf.py in the docs/html is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
@@ -146,6 +145,7 @@ def docs(session: nox.Session) -> None:
         return [
             "sphinx-build",
             "--keep-going",
+            "--tag", kind,
             "-W",
             "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,
@@ -214,7 +214,7 @@ def vendoring(session: nox.Session) -> None:
         session.run("vendoring", "sync", "-v")
         return
 
-    def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
+    def pinned_requirements(path: Path) -> Iterator[tuple[str, str]]:
         for line in path.read_text().splitlines(keepends=False):
             one, sep, two = line.partition("==")
             if not sep:
@@ -339,7 +339,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("build", "twine")
+    session.install("twine")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -357,7 +357,7 @@ def build_release(session: nox.Session) -> None:
             shutil.copy(dist, final)
 
 
-def build_dists(session: nox.Session) -> List[str]:
+def build_dists(session: nox.Session) -> list[str]:
     """Return dists with valid metadata."""
     session.log(
         "# Check if there's any Git-untracked files before building the wheel",
@@ -375,11 +375,11 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
-    session.run("python", "-m", "build", silent=True)
+    session.run("python", "build-project/build-project.py", silent=True)
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")
-    session.run("twine", "check", *produced_dists, silent=True)
+    session.run("twine", "check", "--strict", *produced_dists, silent=True)
 
     return produced_dists
 

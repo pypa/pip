@@ -5,7 +5,9 @@
 # 4. Replacing the `setuptools` entry below with a `file:///...` URL
 # (Adjust artifact directory used based on preference and operating system)
 
-setuptools >= 40.8.0, != 60.6.0
+# We pin setuptools<80 because our test suite currently
+# depends on setup.py develop to generate egg-link files.
+setuptools >= 40.8.0, != 60.6.0, <80
 wheel
 # As required by pytest-cov.
 coverage >= 4.4

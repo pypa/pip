@@ -1,5 +1,4 @@
-"""Tests for all things related to the configuration
-"""
+"""Tests for all things related to the configuration"""
 
 import re
 from unittest.mock import MagicMock

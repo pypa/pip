@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Iterable, Optional, Set, Tuple
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
@@ -21,7 +24,7 @@ class SourceDistribution(AbstractDistribution):
     """
 
     @property
-    def build_tracker_id(self) -> Optional[str]:
+    def build_tracker_id(self) -> str | None:
         """Identify this requirement uniquely by its link."""
         assert self.req.link
         return self.req.link.url_without_fragment
@@ -31,7 +34,7 @@ class SourceDistribution(AbstractDistribution):
 
     def prepare_distribution_metadata(
         self,
-        finder: "PackageFinder",
+        finder: PackageFinder,
         build_isolation: bool,
         check_build_deps: bool,
     ) -> None:
@@ -68,7 +71,7 @@ class SourceDistribution(AbstractDistribution):
                 self._raise_missing_reqs(missing)
         self.req.prepare_metadata()
 
-    def _prepare_build_backend(self, finder: "PackageFinder") -> None:
+    def _prepare_build_backend(self, finder: PackageFinder) -> None:
         # Isolate in a BuildEnvironment and install the build-time
         # requirements.
         pyproject_requires = self.req.pyproject_requires
@@ -112,7 +115,7 @@ class SourceDistribution(AbstractDistribution):
             with backend.subprocess_runner(runner):
                 return backend.get_requires_for_build_editable()
 
-    def _install_build_reqs(self, finder: "PackageFinder") -> None:
+    def _install_build_reqs(self, finder: PackageFinder) -> None:
         # Install any extra build dependencies that the backend requests.
         # This must be done in a second pass, as the pyproject.toml
         # dependencies must be installed before we can call the backend.
@@ -132,7 +135,7 @@ class SourceDistribution(AbstractDistribution):
         )
 
     def _raise_conflicts(
-        self, conflicting_with: str, conflicting_reqs: Set[Tuple[str, str]]
+        self, conflicting_with: str, conflicting_reqs: set[tuple[str, str]]
     ) -> None:
         format_string = (
             "Some build dependencies for {requirement} "
@@ -148,7 +151,7 @@ class SourceDistribution(AbstractDistribution):
         )
         raise InstallationError(error_message)
 
-    def _raise_missing_reqs(self, missing: Set[str]) -> None:
+    def _raise_missing_reqs(self, missing: set[str]) -> None:
         format_string = (
             "Some build dependencies for {requirement} are missing: {missing}."
         )

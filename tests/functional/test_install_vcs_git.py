@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -45,9 +46,9 @@ def _get_branch_remote(
 def _github_checkout(
     url_path: str,
     tmpdir: Path,
-    rev: Optional[str] = None,
-    egg: Optional[str] = None,
-    scheme: Optional[str] = None,
+    rev: str | None = None,
+    egg: str | None = None,
+    scheme: str | None = None,
 ) -> str:
     """
     Call local_checkout() with a GitHub URL, and return the resulting URL.
@@ -73,7 +74,7 @@ def _github_checkout(
 
 
 def _make_version_pkg_url(
-    path: Path, rev: Optional[str] = None, name: str = "version_pkg"
+    path: Path, rev: str | None = None, name: str = "version_pkg"
 ) -> str:
     """
     Return a "git+file://" URL to the version_pkg test package.
@@ -93,7 +94,7 @@ def _make_version_pkg_url(
 def _install_version_pkg_only(
     script: PipTestEnvironment,
     path: Path,
-    rev: Optional[str] = None,
+    rev: str | None = None,
     allow_stderr_warning: bool = False,
 ) -> None:
     """
@@ -114,7 +115,7 @@ def _install_version_pkg_only(
 def _install_version_pkg(
     script: PipTestEnvironment,
     path: Path,
-    rev: Optional[str] = None,
+    rev: str | None = None,
     allow_stderr_warning: bool = False,
 ) -> str:
     """

@@ -1,3 +1,0 @@
-Files in the network cache will inherit the read/write permissions of pip's cache
-directory (in addition to the current user retaining read/write access). This
-enables a single cache to be shared among multiple users.

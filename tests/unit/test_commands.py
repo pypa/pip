@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List
+from typing import Callable
 from unittest import mock
 
 import pytest
@@ -14,10 +14,17 @@ from pip._internal.commands import commands_dict, create_command
 
 # These are the expected names of the commands whose classes inherit from
 # IndexGroupCommand.
-EXPECTED_INDEX_GROUP_COMMANDS = ["download", "index", "install", "list", "wheel"]
+EXPECTED_INDEX_GROUP_COMMANDS = [
+    "download",
+    "index",
+    "install",
+    "list",
+    "lock",
+    "wheel",
+]
 
 
-def check_commands(pred: Callable[[Command], bool], expected: List[str]) -> None:
+def check_commands(pred: Callable[[Command], bool], expected: list[str]) -> None:
     """
     Check the commands satisfying a predicate.
     """
@@ -53,7 +60,16 @@ def test_session_commands() -> None:
     def is_session_command(command: Command) -> bool:
         return isinstance(command, SessionCommandMixin)
 
-    expected = ["download", "index", "install", "list", "search", "uninstall", "wheel"]
+    expected = [
+        "download",
+        "index",
+        "install",
+        "list",
+        "lock",
+        "search",
+        "uninstall",
+        "wheel",
+    ]
     check_commands(is_session_command, expected)
 
 
@@ -124,7 +140,7 @@ def test_requirement_commands() -> None:
     def is_requirement_command(command: Command) -> bool:
         return isinstance(command, RequirementCommand)
 
-    check_commands(is_requirement_command, ["download", "install", "wheel"])
+    check_commands(is_requirement_command, ["download", "install", "lock", "wheel"])
 
 
 @pytest.mark.parametrize("flag", ["", "--outdated", "--uptodate"])

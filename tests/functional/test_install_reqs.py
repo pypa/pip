@@ -13,6 +13,7 @@ from tests.lib import (
     _create_test_package_with_subdirectory,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
+    make_wheel,
     need_svn,
     requirements_file,
 )
@@ -86,11 +87,98 @@ def test_requirements_file(script: PipTestEnvironment) -> None:
         )
     )
     result = script.pip("install", "-r", script.scratch_path / "initools-req.txt")
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / other_lib_name].dir
     fn = f"{other_lib_name}-{other_lib_version}.dist-info"
     assert result.files_created[script.site_packages / fn].dir
+
+
+@pytest.mark.network
+@pytest.mark.parametrize(
+    "path, groupname",
+    [
+        (None, "initools"),
+        ("pyproject.toml", "initools"),
+        ("./pyproject.toml", "initools"),
+        (lambda path: path.absolute(), "initools"),
+    ],
+)
+def test_dependency_group(
+    script: PipTestEnvironment,
+    path: Any,
+    groupname: str,
+) -> None:
+    """
+    Test installing from a dependency group.
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            initools = [
+                "INITools==0.2",
+                "peppercorn<=0.6",
+            ]
+            """
+        )
+    )
+    if path is None:
+        arg = groupname
+    else:
+        if callable(path):
+            path = path(pyproject)
+        arg = f"{path}:{groupname}"
+    result = script.pip("install", "--group", arg)
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
+    assert result.files_created[script.site_packages / "peppercorn"].dir
+    assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
+
+
+@pytest.mark.network
+def test_multiple_dependency_groups(script: PipTestEnvironment) -> None:
+    """
+    Test installing from two dependency groups simultaneously.
+
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            initools = ["INITools==0.2"]
+            peppercorn = ["peppercorn<=0.6"]
+            """
+        )
+    )
+    result = script.pip("install", "--group", "initools", "--group", "peppercorn")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
+    assert result.files_created[script.site_packages / "peppercorn"].dir
+    assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
+
+
+@pytest.mark.network
+def test_dependency_group_with_non_normalized_name(script: PipTestEnvironment) -> None:
+    """
+    Test installing from a dependency group with a non-normalized name, verifying that
+    the pyproject.toml content and CLI arg are normalized to match.
+
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            INITOOLS = ["INITools==0.2"]
+            """
+        )
+    )
+    result = script.pip("install", "--group", "IniTools")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
 
 
 def test_schema_check_in_requirements_file(script: PipTestEnvironment) -> None:
@@ -128,7 +216,7 @@ def test_relative_requirements_file(
     URLs, use an egg= definition.
 
     """
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
@@ -208,6 +296,32 @@ def test_package_in_constraints_and_dependencies(
         "-c",
         script.scratch_path / "constraints.txt",
         "TopoRequires2",
+    )
+    assert "installed TopoRequires-0.0.1" in result.stdout
+
+
+def test_constraints_apply_to_dependency_groups(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    script.scratch_path.joinpath("constraints.txt").write_text("TopoRequires==0.0.1")
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            mylibs = ["TopoRequires2"]
+            """
+        )
+    )
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-c",
+        script.scratch_path / "constraints.txt",
+        "--group",
+        "mylibs",
     )
     assert "installed TopoRequires-0.0.1" in result.stdout
 
@@ -804,3 +918,26 @@ def test_config_settings_local_to_package(
     assert "--verbose" not in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
+
+
+def test_nonpep517_setuptools_import_failure(script: PipTestEnvironment) -> None:
+    """Any import failures of `setuptools` should inform the user both that it's
+    not pip's fault, but also exactly what went wrong in the import."""
+    # Install a poisoned version of 'setuptools' that fails to import.
+    name = "setuptools_poisoned"
+    module = """\
+raise ImportError("this 'setuptools' was intentionally poisoned")
+"""
+    path = make_wheel(name, "0.1.0", extra_files={"setuptools.py": module}).save_to_dir(
+        script.scratch_path
+    )
+    script.pip("install", "--no-index", path)
+
+    result = script.pip_install_local("--no-use-pep517", "simple", expect_error=True)
+    nice_message = (
+        "ERROR: Can not execute `setup.py`"
+        " since setuptools failed to import in the build environment"
+    )
+    exc_message = "ImportError: this 'setuptools' was intentionally poisoned"
+    assert nice_message in result.stderr
+    assert exc_message in result.stderr

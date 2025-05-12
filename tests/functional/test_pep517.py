@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pytest
 import tomli_w
@@ -18,14 +20,14 @@ from tests.lib import (
 
 def make_project(
     tmpdir: Path,
-    requires: Optional[List[str]] = None,
-    backend: Optional[str] = None,
-    backend_path: Optional[List[str]] = None,
+    requires: list[str] | None = None,
+    backend: str | None = None,
+    backend_path: list[str] | None = None,
 ) -> Path:
     requires = requires or []
     project_dir = tmpdir / "project"
     project_dir.mkdir()
-    buildsys: Dict[str, Any] = {"requires": requires}
+    buildsys: dict[str, Any] = {"requires": requires}
     if backend:
         buildsys["build-backend"] = backend
     if backend_path:
@@ -252,7 +254,7 @@ def test_pep517_backend_requirements_satisfied_by_prerelease(
     script.pip("install", "test_backend", "--no-index", "-f", data.backends)
 
     project_dir = make_project(
-        script.temp_path,
+        script.scratch_path,
         requires=["test_backend", "myreq"],
         backend="test_backend",
     )
@@ -301,13 +303,13 @@ def test_pep517_install_with_no_cache_dir(
 
 def make_pyproject_with_setup(
     tmpdir: Path, build_system: bool = True, set_backend: bool = True
-) -> Tuple[Path, str]:
+) -> tuple[Path, str]:
     project_dir = tmpdir / "project"
     project_dir.mkdir()
     setup_script = "from setuptools import setup\n"
     expect_script_dir_on_path = True
     if build_system:
-        buildsys: Dict[str, Any] = {
+        buildsys: dict[str, Any] = {
             "requires": ["setuptools", "wheel"],
         }
         if set_backend:

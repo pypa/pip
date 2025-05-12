@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import errno
 import json
 import operator
@@ -5,9 +7,9 @@ import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP, Values
-from typing import List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.requests.exceptions import InvalidProxyURL
 from pip._vendor.rich import print_json
 
 # Eagerly import self_outdated_check to avoid crashes. Otherwise,
@@ -271,7 +273,7 @@ class InstallCommand(RequirementCommand):
         )
 
     @with_cleanup
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
@@ -307,8 +309,8 @@ class InstallCommand(RequirementCommand):
             isolated_mode=options.isolated_mode,
         )
 
-        target_temp_dir: Optional[TempDirectory] = None
-        target_temp_dir_path: Optional[str] = None
+        target_temp_dir: TempDirectory | None = None
+        target_temp_dir_path: str | None = None
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
@@ -419,7 +421,7 @@ class InstallCommand(RequirementCommand):
 
             reqs_to_build = [
                 r
-                for r in requirement_set.requirements.values()
+                for r in requirement_set.requirements_to_install
                 if should_build_for_install_command(r)
             ]
 
@@ -442,7 +444,7 @@ class InstallCommand(RequirementCommand):
             to_install = resolver.get_installation_order(requirement_set)
 
             # Check for conflicts in the package set we're installing.
-            conflicts: Optional[ConflictDetails] = None
+            conflicts: ConflictDetails | None = None
             should_warn_about_conflicts = (
                 not options.ignore_dependencies and options.warn_about_conflicts
             )
@@ -464,6 +466,7 @@ class InstallCommand(RequirementCommand):
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
+                progress_bar=options.progress_bar,
             )
 
             lib_locations = get_lib_location_guesses(
@@ -579,8 +582,8 @@ class InstallCommand(RequirementCommand):
                 shutil.move(os.path.join(lib_dir, item), target_item_dir)
 
     def _determine_conflicts(
-        self, to_install: List[InstallRequirement]
-    ) -> Optional[ConflictDetails]:
+        self, to_install: list[InstallRequirement]
+    ) -> ConflictDetails | None:
         try:
             return check_install_conflicts(to_install)
         except Exception:
@@ -597,7 +600,7 @@ class InstallCommand(RequirementCommand):
         if not missing and not conflicting:
             return
 
-        parts: List[str] = []
+        parts: list[str] = []
         if resolver_variant == "legacy":
             parts.append(
                 "pip's legacy dependency resolver does not consider dependency "
@@ -643,11 +646,11 @@ class InstallCommand(RequirementCommand):
 
 def get_lib_location_guesses(
     user: bool = False,
-    home: Optional[str] = None,
-    root: Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: Optional[str] = None,
-) -> List[str]:
+    prefix: str | None = None,
+) -> list[str]:
     scheme = get_scheme(
         "",
         user=user,
@@ -659,7 +662,7 @@ def get_lib_location_guesses(
     return [scheme.purelib, scheme.platlib]
 
 
-def site_packages_writable(root: Optional[str], isolated: bool) -> bool:
+def site_packages_writable(root: str | None, isolated: bool) -> bool:
     return all(
         test_writable_dir(d)
         for d in set(get_lib_location_guesses(root=root, isolated=isolated))
@@ -667,10 +670,10 @@ def site_packages_writable(root: Optional[str], isolated: bool) -> bool:
 
 
 def decide_user_install(
-    use_user_site: Optional[bool],
-    prefix_path: Optional[str] = None,
-    target_dir: Optional[str] = None,
-    root_path: Optional[str] = None,
+    use_user_site: bool | None,
+    prefix_path: str | None = None,
+    target_dir: str | None = None,
+    root_path: str | None = None,
     isolated_mode: bool = False,
 ) -> bool:
     """Determine whether to do a user install based on the input options.
@@ -763,6 +766,13 @@ def create_os_error_message(
             )
         else:
             parts.append(permissions_part)
+        parts.append(".\n")
+
+    # Suggest to check "pip config debug" in case of invalid proxy
+    if type(error) is InvalidProxyURL:
+        parts.append(
+            'Consider checking your local proxy configuration with "pip config debug"'
+        )
         parts.append(".\n")
 
     # Suggest the user to enable Long Paths if path length is

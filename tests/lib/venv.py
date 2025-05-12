@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import compileall
 import os
 import shutil
@@ -7,7 +9,7 @@ import sysconfig
 import textwrap
 import venv as _venv
 from pathlib import Path
-from typing import Dict, Literal, Optional, Union
+from typing import Literal
 
 import virtualenv as _virtualenv
 
@@ -23,8 +25,8 @@ class VirtualEnvironment:
     def __init__(
         self,
         location: Path,
-        template: Optional["VirtualEnvironment"] = None,
-        venv_type: Optional[VirtualEnvironmentType] = None,
+        template: VirtualEnvironment | None = None,
+        venv_type: VirtualEnvironmentType | None = None,
     ) -> None:
         self.location = location
         assert template is None or venv_type is None
@@ -37,7 +39,7 @@ class VirtualEnvironment:
             self._venv_type = "virtualenv"
         self._user_site_packages = False
         self._template = template
-        self._sitecustomize: Optional[str] = None
+        self._sitecustomize: str | None = None
         self._update_paths()
         self._create()
 
@@ -196,7 +198,7 @@ class VirtualEnvironment:
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
-    def _rewrite_pyvenv_cfg(self, replacements: Dict[str, str]) -> None:
+    def _rewrite_pyvenv_cfg(self, replacements: dict[str, str]) -> None:
         pyvenv_cfg = self.location.joinpath("pyvenv.cfg")
         lines = pyvenv_cfg.read_text(encoding="utf-8").splitlines()
 
@@ -214,13 +216,13 @@ class VirtualEnvironment:
     def clear(self) -> None:
         self._create(clear=True)
 
-    def move(self, location: Union[Path, str]) -> None:
+    def move(self, location: Path | str) -> None:
         shutil.move(os.fspath(self.location), location)
         self.location = Path(location)
         self._update_paths()
 
     @property
-    def sitecustomize(self) -> Optional[str]:
+    def sitecustomize(self) -> str | None:
         return self._sitecustomize
 
     @sitecustomize.setter

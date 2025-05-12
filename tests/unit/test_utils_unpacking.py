@@ -8,7 +8,6 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
-from typing import List, Tuple
 
 import pytest
 
@@ -81,7 +80,7 @@ class TestUnpackArchives:
                 mode == expected_mode
             ), f"mode: {mode}, expected mode: {expected_mode}"
 
-    def make_zip_file(self, filename: str, file_list: List[str]) -> str:
+    def make_zip_file(self, filename: str, file_list: list[str]) -> str:
         """
         Create a zip file for test case
         """
@@ -91,7 +90,7 @@ class TestUnpackArchives:
                 myzip.writestr(item, "file content")
         return test_zip
 
-    def make_tar_file(self, filename: str, file_list: List[str]) -> str:
+    def make_tar_file(self, filename: str, file_list: list[str]) -> str:
         """
         Create a tar file for test case
         """
@@ -272,6 +271,6 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
         (("parent/", "parent/../sub"), False),
     ],
 )
-def test_is_within_directory(args: Tuple[str, str], expected: bool) -> None:
+def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:
     result = is_within_directory(*args)
     assert result == expected

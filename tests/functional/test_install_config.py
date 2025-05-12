@@ -3,7 +3,7 @@ import ssl
 import tempfile
 import textwrap
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable
 
 import pytest
 
@@ -341,6 +341,34 @@ def test_do_not_prompt_for_authentication(
     assert "ERROR: HTTP error 401" in result.stderr
 
 
+def test_do_not_prompt_for_authentication_git(
+    script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
+) -> None:
+    """Test behaviour if --no-input option is given while installing
+    from a git http url requiring authentication
+    """
+    server = make_mock_server()
+    # Disable vscode user/password prompt, will make tests fail inside vscode
+    script.environ["GIT_ASKPASS"] = ""
+
+    # Return 401 on all URLs
+    server.mock.side_effect = lambda _, __: authorization_response(
+        data.packages / "simple-3.0.tar.gz"
+    )
+
+    url = f"git+http://{server.host}:{server.port}/simple"
+
+    with server_running(server):
+        result = script.pip(
+            "install",
+            url,
+            "--no-input",
+            expect_error=True,
+        )
+
+    assert "terminal prompts disabled" in result.stderr
+
+
 @pytest.fixture(params=(True, False), ids=("interactive", "noninteractive"))
 def interactive(request: pytest.FixtureRequest) -> bool:
     return request.param
@@ -368,7 +396,7 @@ def flags(
     auth_needed: bool,
     keyring_provider: str,
     keyring_provider_implementation: str,
-) -> List[str]:
+) -> list[str]:
     if (
         keyring_provider not in [None, "auto"]
         and keyring_provider_implementation != keyring_provider
@@ -389,11 +417,12 @@ def flags(
     return flags
 
 
+@pytest.mark.network
 def test_prompt_for_keyring_if_needed(
     data: TestData,
     cert_factory: CertFactory,
     auth_needed: bool,
-    flags: List[str],
+    flags: list[str],
     keyring_provider: str,
     keyring_provider_implementation: str,
     tmpdir: Path,

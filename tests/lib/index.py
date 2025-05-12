@@ -1,11 +1,11 @@
-from typing import Optional
+from __future__ import annotations
 
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 
 
 def make_mock_candidate(
-    version: str, yanked_reason: Optional[str] = None, hex_digest: Optional[str] = None
+    version: str, yanked_reason: str | None = None, hex_digest: str | None = None
 ) -> InstallationCandidate:
     url = f"https://example.com/pkg-{version}.tar.gz"
     if hex_digest is not None:

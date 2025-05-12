@@ -13,7 +13,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -28,7 +27,7 @@ authors = [
 
 # NOTE: requires-python is duplicated in __pip-runner__.py.
 # When changing this value, please change the other copy as well.
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.scripts]
 pip = "pip._internal.cli.main:main"
@@ -131,9 +130,11 @@ drop = [
   "_distutils_hack",
   "distutils-precedence.pth",
   "pkg_resources/extern/",
-  # trim vendored pygments styles and lexers
+  # trim vendored pygments styles, lexers, formatters, and CLI
   "pygments/styles/[!_]*.py",
   '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
+  '^pygments/formatters/(?!__init__|_mapping).*\.py$',
+  '^pygments/cmdline\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
 ]
@@ -152,6 +153,8 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 #
 
 [tool.ruff]
+# Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
+target-version = "py39"  # Pin Ruff to Python 3.9
 src = ["src"]
 line-length = 88
 extend-exclude = [
@@ -163,10 +166,10 @@ extend-exclude = [
 
 [tool.ruff.lint]
 ignore = [
-    "B019",
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
+    "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
 ]
 select = [
     "ASYNC",
@@ -184,6 +187,7 @@ select = [
     "W",
     "RUF100",
     "UP",
+    "FA",
 ]
 
 [tool.ruff.lint.isort]

@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -25,14 +25,14 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
     """
     _real_session = PipSession()
 
-    def _fake_session_get(*args: Any, **kwargs: Any) -> Dict[str, str]:
+    def _fake_session_get(*args: Any, **kwargs: Any) -> dict[str, str]:
         resp = _real_session.get(*args, **kwargs)
         del resp.headers["Content-Type"]
         return resp
 
     session = Mock()
     session.get = _fake_session_get
-    download = Downloader(session, progress_bar="on")
+    download = Downloader(session, progress_bar="on", resume_retries=0)
 
     uri = data.packages.joinpath("simple-1.0.tar.gz").as_uri()
     link = Link(uri)
@@ -78,7 +78,7 @@ def test_download_http_url__no_directory_traversal(
         "content-disposition": 'attachment;filename="../out_dir_file"',
     }
     session.get.return_value = resp
-    download = Downloader(session, progress_bar="on")
+    download = Downloader(session, progress_bar="on", resume_retries=0)
 
     download_dir = os.fspath(tmpdir.joinpath("download"))
     os.mkdir(download_dir)
