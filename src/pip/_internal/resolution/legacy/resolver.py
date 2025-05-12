@@ -46,6 +46,7 @@ from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.packaging import check_requires_python
+from pip._internal.utils.variant import variant_wheel_supported
 
 logger = logging.getLogger(__name__)
 
@@ -225,8 +226,12 @@ class Resolver(BaseResolver):
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
             tags = compatibility_tags.get_supported()
-            raise NotImplementedError
-            if requirement_set.check_supported_wheels and not wheel.supported(tags):
+            if (
+                requirement_set.check_supported_wheels and (
+                    not wheel.supported(tags)
+                    or not variant_wheel_supported(wheel, install_req.link)
+                )
+            ):
                 raise InstallationError(
                     f"{wheel.filename} is not a supported wheel on this platform."
                 )

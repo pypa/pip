@@ -16,6 +16,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.urls import path_to_url
+from pip._internal.utils.variant import variant_wheel_supported
 
 logger = logging.getLogger(__name__)
 
@@ -150,8 +151,10 @@ class SimpleWheelCache(Cache):
                     package_name,
                 )
                 continue
-            raise NotImplementedError
-            if not wheel.supported(supported_tags):
+            if (
+                not wheel.supported(supported_tags)
+                or not variant_wheel_supported(wheel, link)
+            ):
                 # Built for a different python/arch/etc
                 continue
             candidates.append(
