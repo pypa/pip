@@ -9,6 +9,8 @@ import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
+from variantlib.variants_json import VariantsJson
+
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
@@ -42,8 +44,6 @@ from pip._internal.utils.variant import (
     get_cached_variant_hashes_by_priority,
     get_variants_json_filename,
 )
-
-from variantlib.variants_json import VariantsJson
 
 if TYPE_CHECKING:
     from pip._vendor.typing_extensions import TypeGuard
@@ -225,9 +225,7 @@ class LinkEvaluator:
 
                 supported_variants = set(
                     get_cached_variant_hashes_by_priority(
-                        self.variants_json.get(
-                            get_variants_json_filename(wheel)
-                        )
+                        self.variants_json.get(get_variants_json_filename(wheel))
                     )
                 )
                 if wheel.variant_hash not in supported_variants:
@@ -536,9 +534,7 @@ class CandidateEvaluator:
             wheel = Wheel(link.filename)
 
             supported_variants = get_cached_variant_hashes_by_priority(
-                self._variants_json.get(
-                    get_variants_json_filename(wheel)
-                )
+                self._variants_json.get(get_variants_json_filename(wheel))
             )
 
             try:
@@ -598,21 +594,33 @@ class CandidateEvaluator:
         applicable_candidates = self.get_applicable_candidates(candidates)
 
         best_candidate = self.sort_best_candidate(applicable_candidates)
-        if best_candidate.variant_hash is not None:
+        if best_candidate is not None and best_candidate.variant_hash is not None:
             variants_json = VariantsJson(
                 self._variants_json.get(
-                    f"{best_candidate.name}-{best_candidate.version}-variants.json"
+                    f"{best_candidate.name.replace('-', '_')}-"
+                    f"{best_candidate.version}-variants.json"
                 ).json()
             )
             vdesc = variants_json.variants[best_candidate.variant_hash]
-            logger.info("%(name)s %(version)s; selected variant: %(variant_hash)s",
-                        {
-                            "name": best_candidate.name,
-                            "version": best_candidate.version,
-                            "variant_hash": best_candidate.variant_hash,
-                        })
+
+            header_str = (
+                f"{best_candidate.name}=={best_candidate.version}; "
+                f"variant_hash={best_candidate.variant_hash}"
+            )
+            header_offset, right_extra = divmod((80 - len(header_str) - 2), 2)
+
+            logger.info(
+                "\n%(left)s %(center)s %(right)s",
+                {
+                    "left": "#" * header_offset,
+                    "center": header_str,
+                    "right": "#" * (header_offset + right_extra),
+                },
+            )
             for vprop in vdesc.properties:
-                logger.info("  %(vprop)s", {"vprop": vprop.to_str()})
+                logger.info("Variant-property: %(vprop)s", {"vprop": vprop.to_str()})
+
+            logger.info("%s\n", "#" * 80)
 
         return BestCandidateResult(
             candidates,
