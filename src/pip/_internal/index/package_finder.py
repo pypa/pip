@@ -18,7 +18,7 @@ from typing import (
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
+from pip._vendor.packaging.version import InvalidVersion, Version, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
@@ -248,7 +248,17 @@ class LinkEvaluator:
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
-            reason = f"{version} Requires-Python {link.requires_python}"
+            rp_specs = specifiers.SpecifierSet(link.requires_python)
+            rp_versions = []
+            for rp_spec in rp_specs:
+                rp_version = rp_spec.version
+                if rp_spec.operator in ["==", "!="] and rp_version.endswith(".*"):
+                    rp_version = rp_version[:-2]
+                rp_versions.append(Version(rp_version))
+            sorted_requires_python = ",".join(
+                [str(s) for _, s in sorted(zip(rp_versions, rp_specs))]
+            )
+            reason = f"{version} Requires-Python {sorted_requires_python}"
             return (LinkType.requires_python_mismatch, reason)
 
         logger.debug("Found link %s, version: %s", link, version)
