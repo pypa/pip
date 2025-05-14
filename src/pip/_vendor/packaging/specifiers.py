@@ -256,10 +256,10 @@ class Specifier(BaseSpecifier):
         # operators, and if they are if they are including an explicit
         # prerelease.
         operator, version = self._spec
-        if operator in ["==", "!=", ">=", "<=", "~=", "===", ">", "<"]:
-            # The == and != specifier can include a trailing .*, if it does we
+        if operator in ["==", ">=", "<=", "~=", "===", ">", "<"]:
+            # The == specifier can include a trailing .*, if it does we
             # want to remove before parsing.
-            if operator in ["==", "!="] and version.endswith(".*"):
+            if operator == "==" and version.endswith(".*"):
                 version = version[:-2]
 
             # Parse the version, and if it is a pre-release than this

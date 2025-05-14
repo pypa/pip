@@ -248,17 +248,20 @@ class LinkEvaluator:
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
-            rp_specs = specifiers.SpecifierSet(link.requires_python)
-            rp_versions = []
-            for rp_spec in rp_specs:
-                rp_version = rp_spec.version
-                if rp_spec.operator in ["==", "!="] and rp_version.endswith(".*"):
-                    rp_version = rp_version[:-2]
-                rp_versions.append(Version(rp_version))
-            sorted_requires_python = ",".join(
-                [str(s) for _, s in sorted(zip(rp_versions, rp_specs))]
-            )
-            reason = f"{version} Requires-Python {sorted_requires_python}"
+            requires_python = link.requires_python
+            try:
+                rp_ver_spec_list = []
+                for rp_spec in specifiers.SpecifierSet(requires_python):
+                    rp_version = rp_spec.version
+                    if rp_spec.operator == "==" and rp_version.endswith(".*"):
+                        rp_version = rp_version[:-2]
+                    rp_ver_spec_list.append((Version(rp_version), rp_spec))
+                requires_python = ",".join(
+                    [str(s) for _, s in sorted(rp_ver_spec_list)]
+                )
+            except InvalidVersion:
+                pass
+            reason = f"{version} Requires-Python {requires_python}"
             return (LinkType.requires_python_mismatch, reason)
 
         logger.debug("Found link %s, version: %s", link, version)
