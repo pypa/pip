@@ -18,7 +18,7 @@ from typing import (
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import InvalidVersion, Version, _BaseVersion
+from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
@@ -250,12 +250,16 @@ class LinkEvaluator:
         if not supports_python:
             requires_python = link.requires_python
             if requires_python:
+
                 def get_version_sort_key(v: str) -> tuple[int, ...]:
                     return tuple(int(s) for s in v.split(".") if s.isdigit())
-                requires_python = ",".join(sorted(
-                    (str(s) for s in specifiers.SpecifierSet(requires_python)),
-                    key=get_version_sort_key,
-                ))
+
+                requires_python = ",".join(
+                    sorted(
+                        (str(s) for s in specifiers.SpecifierSet(requires_python)),
+                        key=get_version_sort_key,
+                    )
+                )
             reason = f"{version} Requires-Python {requires_python}"
             return (LinkType.requires_python_mismatch, reason)
 
