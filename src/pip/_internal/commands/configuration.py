@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 from optparse import Values
-from typing import Any
+from typing import Any, Callable
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -95,8 +95,8 @@ class ConfigurationCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: list[str]) -> int:
-        handlers = {
+    def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
+        return {
             "list": self.list_values,
             "edit": self.open_in_editor,
             "get": self.get_name,
@@ -105,11 +105,14 @@ class ConfigurationCommand(Command):
             "debug": self.list_config_values,
         }
 
+    def run(self, options: Values, args: list[str]) -> int:
+        handler_map = self.handler_map()
+
         # Determine action
-        if not args or args[0] not in handlers:
+        if not args or args[0] not in handler_map:
             logger.error(
                 "Need an action (%s) to perform.",
-                ", ".join(sorted(handlers)),
+                ", ".join(sorted(handler_map)),
             )
             return ERROR
 
@@ -133,7 +136,7 @@ class ConfigurationCommand(Command):
 
         # Error handling happens here, not in the action-handlers.
         try:
-            handlers[action](options, args[1:])
+            handler_map[action](options, args[1:])
         except PipError as e:
             logger.error(e.args[0])
             return ERROR

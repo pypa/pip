@@ -1,7 +1,7 @@
 import os
 import textwrap
 from optparse import Values
-from typing import Any
+from typing import Callable
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -49,8 +49,8 @@ class CacheCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: list[str]) -> int:
-        handlers = {
+    def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
+        return {
             "dir": self.get_cache_dir,
             "info": self.get_cache_info,
             "list": self.list_cache_items,
@@ -58,15 +58,18 @@ class CacheCommand(Command):
             "purge": self.purge_cache,
         }
 
+    def run(self, options: Values, args: list[str]) -> int:
+        handler_map = self.handler_map()
+
         if not options.cache_dir:
             logger.error("pip cache commands can not function since cache is disabled.")
             return ERROR
 
         # Determine action
-        if not args or args[0] not in handlers:
+        if not args or args[0] not in handler_map:
             logger.error(
                 "Need an action (%s) to perform.",
-                ", ".join(sorted(handlers)),
+                ", ".join(sorted(handler_map)),
             )
             return ERROR
 
@@ -74,20 +77,20 @@ class CacheCommand(Command):
 
         # Error handling happens here, not in the action-handlers.
         try:
-            handlers[action](options, args[1:])
+            handler_map[action](options, args[1:])
         except PipError as e:
             logger.error(e.args[0])
             return ERROR
 
         return SUCCESS
 
-    def get_cache_dir(self, options: Values, args: list[Any]) -> None:
+    def get_cache_dir(self, options: Values, args: list[str]) -> None:
         if args:
             raise CommandError("Too many arguments")
 
         logger.info(options.cache_dir)
 
-    def get_cache_info(self, options: Values, args: list[Any]) -> None:
+    def get_cache_info(self, options: Values, args: list[str]) -> None:
         if args:
             raise CommandError("Too many arguments")
 
@@ -129,7 +132,7 @@ class CacheCommand(Command):
 
         logger.info(message)
 
-    def list_cache_items(self, options: Values, args: list[Any]) -> None:
+    def list_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
             raise CommandError("Too many arguments")
 
@@ -161,7 +164,7 @@ class CacheCommand(Command):
         if files:
             logger.info("\n".join(sorted(files)))
 
-    def remove_cache_items(self, options: Values, args: list[Any]) -> None:
+    def remove_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
             raise CommandError("Too many arguments")
 
@@ -188,7 +191,7 @@ class CacheCommand(Command):
             logger.verbose("Removed %s", filename)
         logger.info("Files removed: %s (%s)", len(files), format_size(bytes_removed))
 
-    def purge_cache(self, options: Values, args: list[Any]) -> None:
+    def purge_cache(self, options: Values, args: list[str]) -> None:
         if args:
             raise CommandError("Too many arguments")
 
