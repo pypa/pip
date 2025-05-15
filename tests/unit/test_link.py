@@ -189,6 +189,12 @@ class TestLink:
         link = Link(url)
         assert link.is_vcs is expected
 
+    def test_link_size(self) -> None:
+        with patch("pip._internal.network.session.PipSession.head") as mock_head:
+            mock_head.return_value.headers = {"Content-Length": "12345"}
+            link = Link(url="https://example.com/package.tar.gz")
+            assert link.size == 12345
+
 
 @pytest.mark.parametrize(
     "url1, url2",
@@ -242,10 +248,3 @@ def test_links_equivalent(url1: str, url2: str) -> None:
 def test_links_equivalent_false(url1: str, url2: str) -> None:
     assert not links_equivalent(Link(url1), Link(url2))
 
-def test_link_size():
-    # Mock the HTTP HEAD response
-    with patch("pip._internal.network.session.PipSession.head") as mock_head:
-        mock_head.return_value.headers = {"Content-Length": "12345"}
-
-        link = Link(url="https://example.com/package.tar.gz")
-        assert link.size == 12345  # Verify size is correctly fetched

@@ -521,7 +521,7 @@ class Link:
             if size:
                 return int(size)
         except (ValueError) as e:
-            logger.warning(f"Could not fetch size for {self.url}: {e}")
+            logger.warning("Could not fetch size for " + self.url + ": " + e)
         return None
 
     @property
