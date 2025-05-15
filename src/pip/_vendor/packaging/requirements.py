@@ -42,6 +42,7 @@ class Requirement:
         self.extras: set[str] = set(parsed.extras or [])
         self.specifier: SpecifierSet = SpecifierSet(parsed.specifier)
         self.marker: Marker | None = None
+        self.variant_hash: str | None = parsed.variant_hash
         if parsed.marker is not None:
             self.marker = Marker.__new__(Marker)
             self.marker._markers = _normalize_extra_values(parsed.marker)

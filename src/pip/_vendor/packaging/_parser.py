@@ -53,6 +53,7 @@ class ParsedRequirement(NamedTuple):
     extras: list[str]
     specifier: str
     marker: MarkerList | None
+    variant_hash: str | None
 
 
 # --------------------------------------------------------------------------------------
@@ -77,23 +78,24 @@ def _parse_requirement(tokenizer: Tokenizer) -> ParsedRequirement:
     extras = _parse_extras(tokenizer)
     tokenizer.consume("WS")
 
-    url, specifier, marker = _parse_requirement_details(tokenizer)
+    url, specifier, marker, variant_hash = _parse_requirement_details(tokenizer)
     tokenizer.expect("END", expected="end of dependency specifier")
 
-    return ParsedRequirement(name, url, extras, specifier, marker)
+    return ParsedRequirement(name, url, extras, specifier, marker, variant_hash)
 
 
 def _parse_requirement_details(
     tokenizer: Tokenizer,
-) -> tuple[str, str, MarkerList | None]:
+) -> tuple[str, str, MarkerList | None, str | None]:
     """
     requirement_details = AT URL (WS requirement_marker?)?
-                        | specifier WS? (requirement_marker)?
+                        | specifier WS? (HASH variant_hash?) WS? (requirement_marker)?
     """
 
     specifier = ""
     url = ""
     marker = None
+    variant_hash = None
 
     if tokenizer.check("AT"):
         tokenizer.read()
@@ -102,13 +104,13 @@ def _parse_requirement_details(
         url_start = tokenizer.position
         url = tokenizer.expect("URL", expected="URL after @").text
         if tokenizer.check("END", peek=True):
-            return (url, specifier, marker)
+            return (url, specifier, marker, variant_hash)
 
         tokenizer.expect("WS", expected="whitespace after URL")
 
         # The input might end after whitespace.
         if tokenizer.check("END", peek=True):
-            return (url, specifier, marker)
+            return (url, specifier, marker, variant_hash)
 
         marker = _parse_requirement_marker(
             tokenizer, span_start=url_start, after="URL and whitespace"
@@ -118,8 +120,16 @@ def _parse_requirement_details(
         specifier = _parse_specifier(tokenizer)
         tokenizer.consume("WS")
 
+        if tokenizer.check("HASH"):
+            tokenizer.read()
+            variant_hash_token = tokenizer.expect(
+                "VARIANT_HASH", expected="variant hash after hash sign"
+            )
+            variant_hash = variant_hash_token.text
+            tokenizer.consume("WS")
+
         if tokenizer.check("END", peek=True):
-            return (url, specifier, marker)
+            return (url, specifier, marker, variant_hash)
 
         marker = _parse_requirement_marker(
             tokenizer,
@@ -131,7 +141,7 @@ def _parse_requirement_details(
             ),
         )
 
-    return (url, specifier, marker)
+    return (url, specifier, marker, variant_hash)
 
 
 def _parse_requirement_marker(

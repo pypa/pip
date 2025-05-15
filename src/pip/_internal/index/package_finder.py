@@ -403,6 +403,7 @@ class CandidateEvaluator:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         variants_json: dict[VariantJson] = {},
+        variant_hash: str | None = None,
     ) -> "CandidateEvaluator":
         """Create a CandidateEvaluator object.
 
@@ -429,6 +430,7 @@ class CandidateEvaluator:
             allow_all_prereleases=allow_all_prereleases,
             hashes=hashes,
             variants_json=variants_json,
+            variant_hash=variant_hash,
         )
 
     def __init__(
@@ -440,6 +442,7 @@ class CandidateEvaluator:
         allow_all_prereleases: bool = False,
         hashes: Optional[Hashes] = None,
         variants_json: dict[VariantJson] = [],
+        variant_hash: str | None = None,
     ) -> None:
         """
         :param supported_tags: The PEP 425 tags supported by the target
@@ -452,6 +455,7 @@ class CandidateEvaluator:
         self._specifier = specifier
         self._supported_tags = supported_tags
         self._variants_json = variants_json
+        self._variant_hash = variant_hash
         # Since the index of the tag in the _supported_tags list is used
         # as a priority, precompute a map from tag to index/priority to be
         # used in wheel.find_most_preferred_tag.
@@ -469,6 +473,10 @@ class CandidateEvaluator:
         # Using None infers from the specifier instead.
         allow_prereleases = self._allow_all_prereleases or None
         specifier = self._specifier
+
+        # require specific variant hash
+        if self._variant_hash is not None:
+            candidates = [c for c in candidates if c.variant_hash == self._variant_hash]
 
         # We turn the version object into a str here because otherwise
         # when we're debundled but setuptools isn't, Python will see
@@ -943,6 +951,7 @@ class PackageFinder:
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
         variants_json: Optional[VariantJson] = None,
+        variant_hash: str | None = None,
     ) -> CandidateEvaluator:
         """Create a CandidateEvaluator object to use."""
         candidate_prefs = self._candidate_prefs
@@ -954,6 +963,7 @@ class PackageFinder:
             specifier=specifier,
             hashes=hashes,
             variants_json=variants_json,
+            variant_hash=variant_hash,
         )
 
     @functools.lru_cache(maxsize=None)
@@ -962,6 +972,7 @@ class PackageFinder:
         project_name: str,
         specifier: Optional[specifiers.BaseSpecifier] = None,
         hashes: Optional[Hashes] = None,
+        variant_hash: str | None = None,
     ) -> BestCandidateResult:
         """Find matches for the given project and specifier.
 
@@ -977,6 +988,7 @@ class PackageFinder:
             specifier=specifier,
             hashes=hashes,
             variants_json=variants_json,
+            variant_hash=variant_hash,
         )
         return candidate_evaluator.compute_best_candidate(candidates)
 

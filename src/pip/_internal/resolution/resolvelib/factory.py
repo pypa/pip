@@ -270,10 +270,12 @@ class Factory:
         template = ireqs[0]
         assert template.req, "Candidates found on index must be PEP 508"
         name = canonicalize_name(template.req.name)
+        variant_hash = template.req.variant_hash
 
         extras: FrozenSet[str] = frozenset()
         for ireq in ireqs:
             assert ireq.req, "Candidates found on index must be PEP 508"
+            assert ireq.req.variant_hash == variant_hash
             specifier &= ireq.req.specifier
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
@@ -312,6 +314,7 @@ class Factory:
                 project_name=name,
                 specifier=specifier,
                 hashes=hashes,
+                variant_hash=variant_hash,
             )
             icans = result.applicable_candidates
 

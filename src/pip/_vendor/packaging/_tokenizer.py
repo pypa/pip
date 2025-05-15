@@ -84,6 +84,8 @@ DEFAULT_RULES: dict[str, str | re.Pattern[str]] = {
     "VERSION_LOCAL_LABEL_TRAIL": r"\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*",
     "WS": r"[ \t]+",
     "END": r"$",
+    "HASH": r"#",
+    "VARIANT_HASH": r"[a-fA-F0-9]{8}",
 }
 
 
