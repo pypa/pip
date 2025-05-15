@@ -247,5 +247,5 @@ def test_link_size():
     with patch("pip._internal.network.session.PipSession.head") as mock_head:
         mock_head.return_value.headers = {"Content-Length": "12345"}
 
-        link = Link(url="https://example.com/package.tar.gz", filename="package.tar.gz")
+        link = Link(url="https://example.com/package.tar.gz")
         assert link.size == 12345  # Verify size is correctly fetched
