@@ -5,6 +5,7 @@ import pytest
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
+from unittest.mock import patch
 
 class TestLink:
     @pytest.mark.parametrize(
@@ -240,3 +241,11 @@ def test_links_equivalent(url1: str, url2: str) -> None:
 )
 def test_links_equivalent_false(url1: str, url2: str) -> None:
     assert not links_equivalent(Link(url1), Link(url2))
+
+def test_link_size():
+    # Mock the HTTP HEAD response
+    with patch("pip._internal.network.session.PipSession.head") as mock_head:
+        mock_head.return_value.headers = {"Content-Length": "12345"}
+
+        link = Link(url="https://example.com/package.tar.gz", filename="package.tar.gz")
+        assert link.size == 12345  # Verify size is correctly fetched
