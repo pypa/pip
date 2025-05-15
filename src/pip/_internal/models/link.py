@@ -520,10 +520,10 @@ class Link:
             size = response.headers.get("Content-Length")
             if size:
                 return int(size)
-        except (NetworkConnectionError, ValueError) as e:
+        except (ValueError) as e:
             logger.warning(f"Could not fetch size for {self.url}: {e}")
         return None
-    
+
     @property
     def is_file(self) -> bool:
         return self.scheme == "file"

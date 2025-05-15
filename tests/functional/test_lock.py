@@ -240,7 +240,7 @@ def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None
     ]
 
 def test_lock_includes_size(script: PipTestEnvironment, shared_data: TestData) -> None:
-    result = script.pip(
+    script.pip(
         "lock",
         "simplewheel==2.0",
         "--no-index",
@@ -251,4 +251,3 @@ def test_lock_includes_size(script: PipTestEnvironment, shared_data: TestData) -
     pylock = tomllib.loads(script.scratch_path.joinpath("pylock.toml").read_text())
     assert "size" in pylock["packages"][0]["wheels"][0]
     assert pylock["packages"][0]["wheels"][0]["size"] > 0
-    
