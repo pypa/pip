@@ -122,6 +122,7 @@ def _parse_requirement_details(
 
         if tokenizer.check("HASH"):
             tokenizer.read()
+            tokenizer.consume("WS")
             variant_hash_token = tokenizer.expect(
                 "VARIANT_HASH", expected="variant hash after hash sign"
             )
