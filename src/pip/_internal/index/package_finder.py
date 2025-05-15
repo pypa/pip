@@ -250,18 +250,12 @@ class LinkEvaluator:
         if not supports_python:
             requires_python = link.requires_python
             if requires_python:
-                try:
-                    rp_ver_spec_list = []
-                    for rp_spec in specifiers.SpecifierSet(requires_python):
-                        rp_version = rp_spec.version
-                        if rp_spec.operator == "==" and rp_version.endswith(".*"):
-                            rp_version = rp_version[:-2]
-                        rp_ver_spec_list.append((Version(rp_version), rp_spec))
-                    requires_python = ",".join(
-                        [str(s) for _, s in sorted(rp_ver_spec_list)]
-                    )
-                except InvalidVersion:
-                    pass
+                def get_version_sort_key(v: str) -> tuple[int, ...]:
+                    return tuple(int(s) for s in v.split(".") if s.isdigit())
+                requires_python = ",".join(sorted(
+                    (str(s) for s in specifiers.SpecifierSet(requires_python)),
+                    key=get_version_sort_key,
+                ))
             reason = f"{version} Requires-Python {requires_python}"
             return (LinkType.requires_python_mismatch, reason)
 
