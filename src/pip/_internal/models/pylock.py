@@ -125,6 +125,7 @@ class Package:
                     raise NotImplementedError()
                 package.archive = PackageArchive(
                     url=download_info.url,
+                    size=link.size,
                     hashes=download_info.info.hashes,
                     subdirectory=download_info.subdirectory,
                 )
