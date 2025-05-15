@@ -1,1 +1,1 @@
-Requires-Python error message should not sort versions numerically, not alphabetically
+Requires-Python error message now sorts versions numerically.
