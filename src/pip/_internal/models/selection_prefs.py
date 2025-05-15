@@ -17,6 +17,7 @@ class SelectionPreferences:
         "format_control",
         "prefer_binary",
         "ignore_requires_python",
+        "use_variants",
     ]
 
     # Don't include an allow_yanked default value to make sure each call
@@ -30,6 +31,7 @@ class SelectionPreferences:
         format_control: Optional[FormatControl] = None,
         prefer_binary: bool = False,
         ignore_requires_python: Optional[bool] = None,
+        use_variants: bool = True,
     ) -> None:
         """Create a SelectionPreferences object.
 
@@ -51,3 +53,4 @@ class SelectionPreferences:
         self.format_control = format_control
         self.prefer_binary = prefer_binary
         self.ignore_requires_python = ignore_requires_python
+        self.use_variants = use_variants

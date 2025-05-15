@@ -644,6 +644,7 @@ class PackageFinder:
         format_control: Optional[FormatControl] = None,
         candidate_prefs: Optional[CandidatePreferences] = None,
         ignore_requires_python: Optional[bool] = None,
+        use_variants: bool = True,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -667,6 +668,7 @@ class PackageFinder:
         self._target_python = target_python
 
         self.format_control = format_control
+        self.use_variants = use_variants
 
         # These are boring links that have already been logged somehow.
         self._logged_links: Set[Tuple[Link, LinkType, str]] = set()
@@ -705,6 +707,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            use_variants=selection_prefs.use_variants,
         )
 
     @property
@@ -796,7 +799,8 @@ class PackageFinder:
             if link not in seen:
                 seen.add(link)
                 if link.filename.endswith("-variants.json"):
-                    variants_json.append(link)
+                    if self.use_variants:
+                        variants_json.append(link)
                 elif link.egg_fragment:
                     eggs.append(link)
                 else:

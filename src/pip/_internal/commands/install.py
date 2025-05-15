@@ -270,6 +270,16 @@ class InstallCommand(RequirementCommand):
             ),
         )
 
+        self.cmd_opts.add_option(
+            "--no-variant",
+            dest="use_variants",
+            action="store_false",
+            default=True,
+            help=(
+                "Disable installing variant wheels."
+            ),
+        )
+
     @with_cleanup
     def run(self, options: Values, args: List[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
