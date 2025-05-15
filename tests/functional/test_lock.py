@@ -33,6 +33,7 @@ def test_lock_wheel_from_findlinks(
                 "wheels": [
                     {
                         "name": "simplewheel-2.0-1-py2.py3-none-any.whl",
+                        "size": 2156,
                         "url": path_to_url(
                             str(
                                 shared_data.root
@@ -80,9 +81,11 @@ def test_lock_sdist_from_findlinks(
                     ),
                 },
                 "name": "simple-2.0.tar.gz",
+                "size": 673,
                 "url": path_to_url(
                     str(shared_data.root / "packages" / "simple-2.0.tar.gz")
                 ),
+
             },
             "version": "2.0",
         },
@@ -171,6 +174,7 @@ def test_lock_local_editable_with_dep(
                             / "simplewheel-2.0-1-py2.py3-none-any.whl"
                         )
                     ),
+                    "size": 2156,
                     "hashes": {
                         "sha256": (
                             "71e1ca6b16ae3382a698c284013f6650"
