@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
-from unittest.mock import patch
 
 class TestLink:
     @pytest.mark.parametrize(
@@ -247,4 +248,3 @@ def test_links_equivalent(url1: str, url2: str) -> None:
 )
 def test_links_equivalent_false(url1: str, url2: str) -> None:
     assert not links_equivalent(Link(url1), Link(url2))
-

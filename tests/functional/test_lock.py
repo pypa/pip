@@ -85,7 +85,6 @@ def test_lock_sdist_from_findlinks(
                 "url": path_to_url(
                     str(shared_data.root / "packages" / "simple-2.0.tar.gz")
                 ),
-
             },
             "version": "2.0",
         },
@@ -238,6 +237,7 @@ def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None
             },
         },
     ]
+
 
 def test_lock_includes_size(script: PipTestEnvironment, shared_data: TestData) -> None:
     script.pip(
