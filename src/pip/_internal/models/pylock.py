@@ -47,7 +47,7 @@ class PackageDirectory:
 class PackageArchive:
     url: str | None
     # (not supported) path: Optional[str]
-    size: int | None
+    # (not supported) size: int | None
     # (not supported) upload_time: Optional[datetime]
     hashes: dict[str, str]
     subdirectory: str | None
@@ -125,7 +125,7 @@ class Package:
                     raise NotImplementedError()
                 package.archive = PackageArchive(
                     url=download_info.url,
-                    size=link.size,
+                    # size=link.size,
                     hashes=download_info.info.hashes,
                     subdirectory=download_info.subdirectory,
                 )
