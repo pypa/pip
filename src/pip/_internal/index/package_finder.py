@@ -248,7 +248,19 @@ class LinkEvaluator:
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
-            reason = f"{version} Requires-Python {link.requires_python}"
+            requires_python = link.requires_python
+            if requires_python:
+
+                def get_version_sort_key(v: str) -> tuple[int, ...]:
+                    return tuple(int(s) for s in v.split(".") if s.isdigit())
+
+                requires_python = ",".join(
+                    sorted(
+                        (str(s) for s in specifiers.SpecifierSet(requires_python)),
+                        key=get_version_sort_key,
+                    )
+                )
+            reason = f"{version} Requires-Python {requires_python}"
             return (LinkType.requires_python_mismatch, reason)
 
         logger.debug("Found link %s, version: %s", link, version)

@@ -133,7 +133,7 @@ class TestLinkEvaluator:
                 False,
                 (
                     LinkType.requires_python_mismatch,
-                    "1.12 Requires-Python == 3.6.5",
+                    "1.12 Requires-Python ==3.6.5,!=3.13.3",
                 ),
                 id="requires-python-mismatch",
             ),
@@ -162,7 +162,7 @@ class TestLinkEvaluator:
         )
         link = Link(
             "https://example.com/#egg=twine-1.12",
-            requires_python="== 3.6.5",
+            requires_python="!= 3.13.3, == 3.6.5",
         )
         actual = evaluator.evaluate_link(link)
         assert actual == expected
