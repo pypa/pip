@@ -75,7 +75,7 @@ class Tests_UserSite:
                 )
             ),
         )
-        result.assert_installed("INITools", use_user_site=True)
+        result.assert_installed("INITools")
 
     def test_install_from_current_directory_into_usersite(
         self, script: PipTestEnvironment, data: TestData

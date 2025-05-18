@@ -183,7 +183,9 @@ def test_install_editable_from_git_with_https(
     url_path = "pypa/pip-test-package.git"
     local_url = _github_checkout(url_path, tmpdir, egg="pip-test-package")
     result = script.pip("install", "-e", local_url)
-    result.assert_installed("pip-test-package", with_files=[".git"])
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", with_files=[".git"]
+    )
 
 
 @pytest.mark.network
@@ -193,11 +195,12 @@ def test_install_noneditable_git(script: PipTestEnvironment) -> None:
     """
     result = script.pip(
         "install",
-        "git+https://github.com/pypa/pip-test-package.git"
-        "@0.1.1#egg=pip-test-package",
+        "git+https://github.com/pypa/pip-test-package.git@0.1.1#egg=pip-test-package",
     )
     dist_info_folder = script.site_packages / "pip_test_package-0.1.1.dist-info"
-    result.assert_installed("piptestpackage", without_egg_link=True, editable=False)
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", editable=False
+    )
     result.did_create(dist_info_folder)
 
 
