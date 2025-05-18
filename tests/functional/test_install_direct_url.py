@@ -3,12 +3,11 @@ import pytest
 from pip._internal.models.direct_url import VcsInfo
 
 from tests.lib import PipTestEnvironment, TestData, _create_test_package
-from tests.lib.direct_url import get_created_direct_url
 
 
 def test_install_find_links_no_direct_url(script: PipTestEnvironment) -> None:
     result = script.pip_install_local("simple")
-    assert not get_created_direct_url(result, "simple")
+    assert not result.get_created_direct_url("simple")
 
 
 def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None:
@@ -16,7 +15,7 @@ def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None
     url = pkg_path.as_uri()
     args = ["install", f"git+{url}#egg=testpkg"]
     result = script.pip(*args)
-    direct_url = get_created_direct_url(result, "testpkg")
+    direct_url = result.get_created_direct_url("testpkg")
     assert direct_url
     assert direct_url.url == url
     assert isinstance(direct_url.info, VcsInfo)
@@ -27,7 +26,7 @@ def test_install_archive_direct_url(script: PipTestEnvironment, data: TestData) 
     req = "simple @ " + data.packages.joinpath("simple-2.0.tar.gz").as_uri()
     assert req.startswith("simple @ file://")
     result = script.pip("install", req)
-    assert get_created_direct_url(result, "simple")
+    assert result.get_created_direct_url("simple")
 
 
 @pytest.mark.network
@@ -39,7 +38,7 @@ def test_install_vcs_constraint_direct_url(script: PipTestEnvironment) -> None:
         "#egg=pip-test-package"
     )
     result = script.pip("install", "pip-test-package", "-c", constraints_file)
-    assert get_created_direct_url(result, "pip_test_package")
+    assert result.get_created_direct_url("pip_test_package")
 
 
 def test_install_vcs_constraint_direct_file_url(script: PipTestEnvironment) -> None:
@@ -48,4 +47,4 @@ def test_install_vcs_constraint_direct_file_url(script: PipTestEnvironment) -> N
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(f"git+{url}#egg=testpkg")
     result = script.pip("install", "testpkg", "-c", constraints_file)
-    assert get_created_direct_url(result, "testpkg")
+    assert result.get_created_direct_url("testpkg")

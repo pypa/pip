@@ -15,7 +15,6 @@ from tests.lib import (
     make_wheel,
     wheel,
 )
-from tests.lib.direct_url import get_created_direct_url_path
 
 
 @pytest.fixture(scope="session")
@@ -736,7 +735,7 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     """
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", pkg_path)
-    direct_url_path = get_created_direct_url_path(result, "testpkg")
+    direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:
