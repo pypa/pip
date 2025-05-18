@@ -34,7 +34,6 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
-from pip._internal.utils.egg_link import _egg_link_names
 
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
@@ -294,12 +293,6 @@ class TestPipResult:
     def files_deleted(self) -> FoundFiles:
         return FoundFiles(self._impl.files_deleted)
 
-    def _get_egg_link_path_created(self, egg_link_paths: list[str]) -> str | None:
-        for egg_link_path in egg_link_paths:
-            if egg_link_path in self.files_created:
-                return egg_link_path
-        return None
-
     def get_created_direct_url_path(self, pkg: str) -> Path | None:
         dist_info_prefix = canonicalize_name(pkg).replace("-", "_") + "-"
         for filename in self.files_created:
@@ -321,81 +314,50 @@ class TestPipResult:
     def assert_installed(
         self,
         pkg_name: str,
+        *,
+        dist_name: str | None = None,
         editable: bool = True,
+        editable_vcs: bool = True,
         with_files: list[str] | None = None,
         without_files: list[str] | None = None,
-        without_egg_link: bool = False,
-        use_user_site: bool = False,
         sub_dir: str | None = None,
     ) -> None:
+        if dist_name is None:
+            dist_name = pkg_name
         with_files = with_files or []
         without_files = without_files or []
         e = self.test_env
 
-        if editable:
-            pkg_dir = e.venv / "src" / canonicalize_name(pkg_name)
+        if editable and editable_vcs:
+            pkg_dir = e.venv / "src" / canonicalize_name(dist_name)
             # If package was installed in a sub directory
             if sub_dir:
                 pkg_dir = pkg_dir / sub_dir
+        elif editable and not editable_vcs:
+            pkg_dir = None
+            assert not with_files
+            assert not without_files
         else:
-            without_egg_link = True
             pkg_dir = e.site_packages / pkg_name
 
-        if use_user_site:
-            egg_link_paths = [
-                e.user_site / egg_link_name
-                for egg_link_name in _egg_link_names(pkg_name)
-            ]
-        else:
-            egg_link_paths = [
-                e.site_packages / egg_link_name
-                for egg_link_name in _egg_link_names(pkg_name)
-            ]
-
-        egg_link_path_created = self._get_egg_link_path_created(egg_link_paths)
-        if without_egg_link:
-            if egg_link_path_created:
+        direct_url = self.get_created_direct_url(dist_name)
+        if not editable:
+            if direct_url and direct_url.is_local_editable():
                 raise TestFailure(
-                    f"unexpected egg link file created: {egg_link_path_created!r}\n"
+                    "unexpected editable direct_url.json created: "
+                    f"{self.get_created_direct_url_path(dist_name)!r}\n"
                     f"{self}"
                 )
         else:
-            if not egg_link_path_created:
+            if not direct_url or not direct_url.is_local_editable():
                 raise TestFailure(
-                    f"expected egg link file missing: {egg_link_paths!r}\n{self}"
+                    f"{dist_name!r} not installed as editable: direct_url.json "
+                    "not found or not editable\n"
+                    f"{self.get_created_direct_url_path(dist_name)!r}\n"
+                    f"{self}"
                 )
 
-            egg_link_file = self.files_created[egg_link_path_created]
-            egg_link_contents = egg_link_file.bytes.replace(os.linesep, "\n")
-
-            # FIXME: I don't understand why there's a trailing . here
-            if not (
-                egg_link_contents.endswith("\n.")
-                and egg_link_contents[:-2].endswith(os.fspath(pkg_dir))
-            ):
-                expected_ending = f"{pkg_dir}\n."
-                raise TestFailure(
-                    textwrap.dedent(
-                        f"""
-                        Incorrect egg_link file {egg_link_file!r}
-                        Expected ending: {expected_ending!r}
-                        ------- Actual contents -------
-                        {egg_link_contents!r}
-                        -------------------------------
-                        """
-                    ).strip()
-                )
-
-        if use_user_site:
-            pth_file = e.user_site / "easy-install.pth"
-        else:
-            pth_file = e.site_packages / "easy-install.pth"
-
-        if (pth_file in self.files_updated) == without_egg_link:
-            maybe = "" if without_egg_link else "not "
-            raise TestFailure(f"{pth_file} unexpectedly {maybe}updated by install")
-
-        if (pkg_dir in self.files_created) == (os.curdir in without_files):
+        if pkg_dir and (pkg_dir in self.files_created) == (os.curdir in without_files):
             maybe = "not " if os.curdir in without_files else ""
             files = sorted(p.as_posix() for p in self.files_created)
             raise TestFailure(
