@@ -437,7 +437,9 @@ def test_install_editable_uninstalls_existing(
     to_install = data.packages.joinpath("pip_test_package-0.1.tar.gz")
     result = script.pip_install_local(to_install)
     assert "Successfully installed pip-test-package" in result.stdout
-    result.assert_installed("piptestpackage", editable=False)
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", editable=False
+    )
 
     result = script.pip(
         "install",
@@ -449,7 +451,9 @@ def test_install_editable_uninstalls_existing(
             )
         ),
     )
-    result.assert_installed("pip-test-package", with_files=[".git"])
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", with_files=[".git"]
+    )
     assert "Found existing installation: pip-test-package 0.1" in result.stdout
     assert "Uninstalling pip-test-package-" in result.stdout
     assert "Successfully uninstalled pip-test-package" in result.stdout
