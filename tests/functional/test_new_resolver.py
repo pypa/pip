@@ -14,7 +14,6 @@ from tests.lib import (
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
-from tests.lib.direct_url import get_created_direct_url
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
@@ -2155,9 +2154,9 @@ def test_new_resolver_direct_url_with_extras(
     )
 
     script.assert_installed(pkg1="1", pkg2="1", pkg3="1")
-    assert not get_created_direct_url(result, "pkg1")
-    assert get_created_direct_url(result, "pkg2")
-    assert not get_created_direct_url(result, "pkg3")
+    assert not result.get_created_direct_url("pkg1")
+    assert result.get_created_direct_url("pkg2")
+    assert not result.get_created_direct_url("pkg3")
 
 
 def test_new_resolver_modifies_installed_incompatible(

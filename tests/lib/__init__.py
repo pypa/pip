@@ -14,6 +14,7 @@ from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO, StringIO
+from pathlib import Path
 from textwrap import dedent
 from typing import Any, AnyStr, Callable, Literal, Protocol, Union, cast
 from urllib.request import pathname2url
@@ -28,6 +29,7 @@ from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
+from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
@@ -296,6 +298,24 @@ class TestPipResult:
         for egg_link_path in egg_link_paths:
             if egg_link_path in self.files_created:
                 return egg_link_path
+        return None
+
+    def get_created_direct_url_path(self, pkg: str) -> Path | None:
+        dist_info_prefix = canonicalize_name(pkg).replace("-", "_") + "-"
+        for filename in self.files_created:
+            if (
+                filename.name == DIRECT_URL_METADATA_NAME
+                and filename.parent.name.endswith(".dist-info")
+                and filename.parent.name.startswith(dist_info_prefix)
+            ):
+                return self.test_env.base_path / filename
+        return None
+
+    def get_created_direct_url(self, pkg: str) -> DirectUrl | None:
+        direct_url_path = self.get_created_direct_url_path(pkg)
+        if direct_url_path:
+            with open(direct_url_path) as f:
+                return DirectUrl.from_json(f.read())
         return None
 
     def assert_installed(
