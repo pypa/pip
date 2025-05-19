@@ -11,6 +11,7 @@ import os.path
 import re
 import shutil
 import sys
+import textwrap
 import warnings
 from base64 import urlsafe_b64encode
 from email.message import Message
@@ -414,13 +415,16 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
-    script_template = r"""import sys
-from %(module)s import %(import_name)s
-if __name__ == '__main__':
-    if sys.argv[0].endswith('.exe'):
-        sys.argv[0] = sys.argv[0][:-4]
-    sys.exit(%(func)s())
+    script_template = textwrap.dedent(
+        """\
+        import sys
+        from %(module)s import %(import_name)s
+        if __name__ == '__main__':
+            if sys.argv[0].endswith('.exe'):
+                sys.argv[0] = sys.argv[0][:-4]
+            sys.exit(%(func)s())
 """
+    )
 
     def make(
         self, specification: str, options: Optional[Dict[str, Any]] = None
