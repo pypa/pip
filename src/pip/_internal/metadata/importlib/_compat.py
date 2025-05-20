@@ -83,7 +83,7 @@ def get_dist_canonical_name(dist: importlib.metadata.Distribution) -> Normalized
 
     name = cast(Any, dist).name
     if name is None:
-        raise BadMetadata(dist, reason="missing METADATA file")
+        raise BadMetadata(dist, reason="missing `METADATA` file")
     if not isinstance(name, str):
         raise BadMetadata(dist, reason="invalid metadata entry 'name'")
     return canonicalize_name(name)
