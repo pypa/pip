@@ -773,7 +773,7 @@ def test_list_missing_metadata_warning(script: PipTestEnvironment) -> None:
     METADATA file.
     """
     # Create a .dist-info dir without METADATA file
-    dist_info_path = script.site_packages_path / "foo.dist-info"
+    dist_info_path = script.site_packages_path / "foo-1.0.dist-info"
     dist_info_path.mkdir()
 
     # pip list should warn about missing .dist-info/METADATA
