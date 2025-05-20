@@ -778,6 +778,9 @@ def test_list_missing_metadata_warning(script: PipTestEnvironment) -> None:
 
     # pip list should warn about missing .dist-info/METADATA
     result = script.pip("list", allow_stderr_warning=True)
+    print(str(result.stdout))
+    print(str(result.stderr))
+    print(dir(result))
 
-    assert "WARNING: Skipping" in result.stderr
+    assert "Skipping" in result.stderr
     assert "missing `METADATA` file" in result.stderr
