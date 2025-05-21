@@ -765,3 +765,22 @@ def test_list_wheel_build(script: PipTestEnvironment) -> None:
     result = script.pip("list")
     assert "Build" in result.stdout, str(result)
     assert "123" in result.stdout, str(result)
+
+
+def test_list_missing_metadata_warning(script: PipTestEnvironment) -> None:
+    """
+    Test that a warning is shown when a dist-info directory is missing the
+    METADATA file.
+    """
+    # Create a .dist-info dir without METADATA file
+    dist_info_path = script.site_packages_path / "foo-1.0.dist-info"
+    dist_info_path.mkdir()
+
+    # pip list should warn about missing .dist-info/METADATA
+    result = script.pip("list", allow_stderr_warning=True)
+    print(str(result.stdout))
+    print(str(result.stderr))
+    print(dir(result))
+
+    assert "Skipping" in result.stderr
+    assert "missing `METADATA` file" in result.stderr

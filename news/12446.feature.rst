@@ -1,0 +1,1 @@
+improve error message shown when pkg.dist-info encounters a missing METADATA file
