@@ -284,7 +284,7 @@ class _SSLContextAdapterMixin:
             **pool_kwargs,
         )
 
-    def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> "ProxyManager":
+    def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> ProxyManager:
         # Proxy manager replaces the pool manager, so inject our SSL
         # context here too. https://github.com/pypa/pip/issues/13288
         if self._ssl_context is not None:
