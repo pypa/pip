@@ -51,6 +51,11 @@ def test_ensure_svn_available() -> None:
             ("git+https://example.com/pkg", "dev", "zope-interface"),
             "git+https://example.com/pkg@dev#egg=zope_interface",
         ),
+        # Test a revision with special characters.
+        (
+            ("git+https://example.com/pkg", "dev@1#2", "myproj"),
+            "git+https://example.com/pkg@dev%401%232#egg=myproj",
+        ),
     ],
 )
 def test_make_vcs_requirement_url(args: tuple[Any, ...], expected: str) -> None:
