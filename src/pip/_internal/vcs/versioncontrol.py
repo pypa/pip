@@ -397,6 +397,7 @@ class VersionControl:
                     "which is not supported. Include a revision after @ "
                     "or remove @ from the URL."
                 )
+            rev = urllib.parse.unquote(rev)
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
         return url, rev, user_pass
 
