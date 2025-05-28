@@ -397,6 +397,11 @@ def test_git__get_url_rev__idempotent() -> None:
             "svn+https://svn.example.com/My+Project",
             ("https://svn.example.com/My+Project", None, (None, None)),
         ),
+        # Test percent-encoded characters in revision.
+        (
+            "svn+https://svn.example.com/MyProject@dev%401%232",
+            ("https://svn.example.com/MyProject", "dev@1#2", (None, None)),
+        ),
     ],
 )
 def test_version_control__get_url_rev_and_auth(
