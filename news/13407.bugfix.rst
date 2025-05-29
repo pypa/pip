@@ -1,0 +1,1 @@
+Make the revision part percent-encoded in version control URLs
