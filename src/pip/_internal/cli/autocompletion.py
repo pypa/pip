@@ -16,38 +16,42 @@ from pip._internal.metadata import get_default_environment
 
 def get_completion_environment() -> tuple[list[str], int, Optional[int]]:
     """Get completion environment variables.
-    
+
     Returns:
         tuple containing:
         - list of command words
         - current word index
         - cursor position (or None if not available)
     """
-    if not all(var in os.environ for var in ["PIP_AUTO_COMPLETE", "COMP_WORDS", "COMP_CWORD"]):
+    if not all(
+        var in os.environ for var in ["PIP_AUTO_COMPLETE", "COMP_WORDS", "COMP_CWORD"]
+    ):
         return [], 0, None
-    
+
     try:
         cwords = os.environ["COMP_WORDS"].split()[1:]
         cword = int(os.environ["COMP_CWORD"])
     except (KeyError, ValueError):
         return [], 0, None
-        
+
     try:
         cursor_pos = int(os.environ.get("CURSOR_POS", ""))
     except (ValueError, TypeError):
         cursor_pos = None
-        
+
     return cwords, cword, cursor_pos
 
 
-def get_cursor_word(words: list[str], cword: int, cursor_pos: Optional[int] = None) -> str:
+def get_cursor_word(
+    words: list[str], cword: int, cursor_pos: Optional[int] = None
+) -> str:
     """Get the word under cursor, taking cursor position into account."""
     try:
         if cursor_pos is not None and words:
             # Adjust cursor_pos to account for the dropped program name and space
             prog_name_len = len(os.path.basename(sys.argv[0])) + 1
             adjusted_pos = max(0, cursor_pos - prog_name_len)
-            
+
             # Find which word contains the cursor
             pos = 0
             for word in words:
@@ -69,39 +73,50 @@ def get_installed_distributions(current: str, cwords: list[str]) -> list[str]:
     return [
         dist.canonical_name
         for dist in env.iter_installed_distributions(local_only=True)
-        if dist.canonical_name.startswith(lc)
-        and dist.canonical_name not in cwords[1:]
+        if dist.canonical_name.startswith(lc) and dist.canonical_name not in cwords[1:]
     ]
 
 
-def get_subcommand_options(subcommand: Any, current: str, cwords: list[str], cword: int) -> list[str]:
+def get_subcommand_options(
+    subcommand: Any, current: str, cwords: list[str], cword: int
+) -> list[str]:
     """Get completion options for a subcommand."""
     options = []
-    
+
     # Get all options from the subcommand
     for opt in subcommand.parser.option_list_all:
         if opt.help != optparse.SUPPRESS_HELP:
-            options.extend((opt_str, opt.nargs) for opt_str in opt._long_opts + opt._short_opts)
-    
+            options.extend(
+                (opt_str, opt.nargs) for opt_str in opt._long_opts + opt._short_opts
+            )
+
     # Filter out previously specified options
-    prev_opts = {x.split("=")[0] for x in cwords[1:cword - 1]}
-    options = [(k, v) for k, v in options if k not in prev_opts and k.startswith(current)]
-    
+    prev_opts = {x.split("=")[0] for x in cwords[1 : cword - 1]}
+    options = [
+        (k, v) for k, v in options if k not in prev_opts and k.startswith(current)
+    ]
+
     # Handle path completion
-    completion_type = get_path_completion_type(cwords, cword, subcommand.parser.option_list_all)
+    completion_type = get_path_completion_type(
+        cwords, cword, subcommand.parser.option_list_all
+    )
     if completion_type:
         return list(auto_complete_paths(current, completion_type))
-    
+
     # Format options
-    return [f"{opt[0]}=" if opt[1] and opt[0][:2] == "--" else opt[0] for opt in options]
+    return [
+        f"{opt[0]}=" if opt[1] and opt[0][:2] == "--" else opt[0] for opt in options
+    ]
 
 
-def get_main_options(parser: Any, current: str, cwords: list[str], cword: int) -> list[str]:
+def get_main_options(
+    parser: Any, current: str, cwords: list[str], cword: int
+) -> list[str]:
     """Get completion options for main parser."""
     opts = [i.option_list for i in parser.option_groups]
     opts.append(parser.option_list)
     flattened_opts = chain.from_iterable(opts)
-    
+
     if current.startswith("-"):
         return [
             opt_str
@@ -109,9 +124,11 @@ def get_main_options(parser: Any, current: str, cwords: list[str], cword: int) -
             if opt.help != optparse.SUPPRESS_HELP
             for opt_str in opt._long_opts + opt._short_opts
         ]
-    
+
     completion_type = get_path_completion_type(cwords, cword, flattened_opts)
-    return list(auto_complete_paths(current, completion_type)) if completion_type else []
+    return (
+        list(auto_complete_paths(current, completion_type)) if completion_type else []
+    )
 
 
 def autocomplete() -> None:
@@ -123,47 +140,49 @@ def autocomplete() -> None:
 
     # Get current word to complete
     current = get_cursor_word(cwords, cword, cursor_pos)
-    
+
     # Set up parser and get subcommands
     parser = create_main_parser()
     subcommands = list(commands_dict)
-    
+
     # Find active subcommand
     subcommand_name = next((word for word in cwords if word in subcommands), None)
-    
+
     if subcommand_name:
         # Handle help subcommand specially
         if subcommand_name == "help":
             sys.exit(1)
-            
+
         # Handle show/uninstall subcommands
         if not current.startswith("-") and subcommand_name in ["show", "uninstall"]:
             installed = get_installed_distributions(current, cwords)
             if installed:
                 print("\n".join(installed))
                 sys.exit(1)
-                
+
         # Handle install subcommand
         if not current.startswith("-") and subcommand_name == "install":
             paths = auto_complete_paths(current, "path")
             print("\n".join(paths))
             sys.exit(1)
-            
+
         # Get subcommand options
         subcommand = create_command(subcommand_name)
         options = get_subcommand_options(subcommand, current, cwords, cword)
-        
+
         # Print options and subcommand handlers
         print("\n".join(options))
         if not any(name in cwords for name in subcommand.handler_map()):
-            handlers = [name for name in subcommand.handler_map() if name.startswith(current)]
+            handlers = [
+                name for name in subcommand.handler_map() if name.startswith(current)
+            ]
             print("\n".join(handlers))
     else:
         # Handle main parser options
         options = get_main_options(parser, current, cwords, cword)
         options.extend(cmd for cmd in subcommands if cmd.startswith(current))
         print(" ".join(options))
-        
+
     sys.exit(1)
 
 

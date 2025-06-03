@@ -37,4 +37,4 @@ Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
     }
 
     return $completions
-} 
+}

@@ -1,6 +1,6 @@
+import logging
 import sys
 import textwrap
-import logging
 from optparse import Values
 from pathlib import Path
 
@@ -56,16 +56,21 @@ COMPLETION_SCRIPTS = {
         end
         complete -fa "(__fish_complete_pip)" -c {prog}
     """,
-    "powershell": None  # Will be loaded from file
+    "powershell": None,  # Will be loaded from file
 }
+
 
 def get_powershell_script():
     """Load the PowerShell completion script from file."""
     script_path = Path(__file__).parent.parent / "cli" / "pip-completion.ps1"
     if script_path.exists():
         return script_path.read_text()
-    logger.warning("PowerShell completion script not found at %s, falling back to basic completion", script_path)
+    logger.warning(
+        "PowerShell completion script not found at %s, falling back to basic completion",
+        script_path,
+    )
     return ""
+
 
 class CompletionCommand(Command):
     """A helper command to be used for command completion."""
@@ -112,7 +117,7 @@ class CompletionCommand(Command):
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ["--" + shell for shell in sorted(shells)]
-        
+
         if options.shell in shells:
             script = ""
             if options.shell == "powershell":
@@ -121,7 +126,7 @@ class CompletionCommand(Command):
                 script = textwrap.dedent(
                     COMPLETION_SCRIPTS.get(options.shell, "").format(prog=get_prog())
                 )
-            
+
             print(BASE_COMPLETION.format(script=script, shell=options.shell))
             return SUCCESS
         else:
