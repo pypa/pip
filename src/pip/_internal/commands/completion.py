@@ -1,10 +1,14 @@
 import sys
 import textwrap
+import logging
 from optparse import Values
+from pathlib import Path
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils.misc import get_prog
+
+logger = logging.getLogger(__name__)
 
 BASE_COMPLETION = """
 # pip {shell} completion start{script}# pip {shell} completion end
@@ -52,30 +56,16 @@ COMPLETION_SCRIPTS = {
         end
         complete -fa "(__fish_complete_pip)" -c {prog}
     """,
-    "powershell": """
-        if ((Test-Path Function:\\TabExpansion) -and -not `
-            (Test-Path Function:\\_pip_completeBackup)) {{
-            Rename-Item Function:\\TabExpansion _pip_completeBackup
-        }}
-        function TabExpansion($line, $lastWord) {{
-            $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
-            if ($lastBlock.StartsWith("{prog} ")) {{
-                $Env:COMP_WORDS=$lastBlock
-                $Env:COMP_CWORD=$lastBlock.Split().Length - 1
-                $Env:PIP_AUTO_COMPLETE=1
-                (& {prog}).Split()
-                Remove-Item Env:COMP_WORDS
-                Remove-Item Env:COMP_CWORD
-                Remove-Item Env:PIP_AUTO_COMPLETE
-            }}
-            elseif (Test-Path Function:\\_pip_completeBackup) {{
-                # Fall back on existing tab expansion
-                _pip_completeBackup $line $lastWord
-            }}
-        }}
-    """,
+    "powershell": None  # Will be loaded from file
 }
 
+def get_powershell_script():
+    """Load the PowerShell completion script from file."""
+    script_path = Path(__file__).parent.parent / "cli" / "pip-completion.ps1"
+    if script_path.exists():
+        return script_path.read_text()
+    logger.warning("PowerShell completion script not found at %s, falling back to basic completion", script_path)
+    return ""
 
 class CompletionCommand(Command):
     """A helper command to be used for command completion."""
@@ -122,10 +112,16 @@ class CompletionCommand(Command):
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ["--" + shell for shell in sorted(shells)]
+        
         if options.shell in shells:
-            script = textwrap.dedent(
-                COMPLETION_SCRIPTS.get(options.shell, "").format(prog=get_prog())
-            )
+            script = ""
+            if options.shell == "powershell":
+                script = get_powershell_script()
+            else:
+                script = textwrap.dedent(
+                    COMPLETION_SCRIPTS.get(options.shell, "").format(prog=get_prog())
+                )
+            
             print(BASE_COMPLETION.format(script=script, shell=options.shell))
             return SUCCESS
         else:
