@@ -2,7 +2,10 @@
 # This script enables modern tab completion in PowerShell 5.1+ and PowerShell Core (6.0+)
 
 # Determine the command name dynamically (e.g., pip, pip3, or custom shim)
-$commandName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Name)
+# Fallback to dynamic if placeholder is not replaced by Python.
+$_pip_command_name_placeholder = "##PIP_COMMAND_NAME_PLACEHOLDER##" # This line will be targeted for replacement
+$invokedCommandName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Name)
+$commandName = if ($_pip_command_name_placeholder -ne "##PIP_COMMAND_NAME_PLACEHOLDER##") { $_pip_command_name_placeholder } else { $invokedCommandName }
 
 Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
     param(
