@@ -60,13 +60,13 @@ COMPLETION_SCRIPTS = {
 }
 
 
-def get_powershell_script():
+def get_powershell_script() -> str:
     """Load the PowerShell completion script from file."""
     script_path = Path(__file__).parent.parent / "cli" / "pip-completion.ps1"
     if script_path.exists():
         return script_path.read_text()
     logger.warning(
-        "PowerShell completion script not found at %s, falling back to basic completion",
+        "PowerShell script not found at %s, falling back to basic completion",
         script_path,
     )
     return ""
@@ -116,21 +116,31 @@ class CompletionCommand(Command):
     def run(self, options: Values, args: list[str]) -> int:
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
-        shell_options = ["--" + shell for shell in sorted(shells)]
 
         if options.shell in shells:
             script = ""
             if options.shell == "powershell":
                 script = get_powershell_script()
             else:
-                script = textwrap.dedent(
-                    COMPLETION_SCRIPTS.get(options.shell, "").format(prog=get_prog())
-                )
+                # options.shell is not "powershell" and is a key in COMPLETION_SCRIPTS.
+                # All non-powershell entries in COMPLETION_SCRIPTS are strings.
+                shell_script_template = COMPLETION_SCRIPTS.get(options.shell)
+                if not isinstance(shell_script_template, str):
+                    # This case should not be reached with current data.
+                    logger.error(
+                        "Script template for shell '%s' is not a string.", options.shell
+                    )
+                    script = ""  # Fallback to an empty script
+                else:
+                    script = textwrap.dedent(
+                        shell_script_template.format(prog=get_prog())
+                    )
 
             print(BASE_COMPLETION.format(script=script, shell=options.shell))
             return SUCCESS
-        else:
-            sys.stderr.write(
-                "ERROR: You must pass {}\n".format(" or ".join(shell_options))
-            )
-            return SUCCESS
+
+        print(
+            "ERROR: You must pass --bash or --fish or --powershell or --zsh",
+            file=sys.stderr,
+        )
+        return SUCCESS

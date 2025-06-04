@@ -7,14 +7,14 @@ import os
 import sys
 from collections.abc import Iterable
 from itertools import chain
-from typing import Any, Optional
+from typing import Any
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.metadata import get_default_environment
 
 
-def get_completion_environment() -> tuple[list[str], int, Optional[int]]:
+def get_completion_environment() -> tuple[list[str], int, int | None]:
     """Get completion environment variables.
 
     Returns:
@@ -42,9 +42,7 @@ def get_completion_environment() -> tuple[list[str], int, Optional[int]]:
     return cwords, cword, cursor_pos
 
 
-def get_cursor_word(
-    words: list[str], cword: int, cursor_pos: Optional[int] = None
-) -> str:
+def get_cursor_word(words: list[str], cword: int, cursor_pos: int | None = None) -> str:
     """Get the word under cursor, taking cursor position into account."""
     try:
         if cursor_pos is not None and words:
@@ -59,7 +57,7 @@ def get_cursor_word(
                 if pos <= adjusted_pos < next_pos:
                     return word
                 pos = next_pos
-        # Fall back to the last word if cursor position is not available
+        # Fall back to using cword index
         # or if cursor is at the end
         return words[cword - 1] if cword > 0 else ""
     except (IndexError, ValueError):
@@ -81,7 +79,7 @@ def get_subcommand_options(
     subcommand: Any, current: str, cwords: list[str], cword: int
 ) -> list[str]:
     """Get completion options for a subcommand."""
-    options = []
+    options: list[tuple[str, int | None]] = []
 
     # Get all options from the subcommand
     for opt in subcommand.parser.option_list_all:
@@ -220,22 +218,26 @@ def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
     :return: A generator of regular files and/or directories
     """
     directory, filename = os.path.split(current)
-    current_path = os.path.abspath(directory)
-    # Don't complete paths if they can't be accessed
-    if not os.access(current_path, os.R_OK):
-        return
-    filename = os.path.normcase(filename)
-    # list all files that start with ``filename``
-    file_list = (
-        x for x in os.listdir(current_path) if os.path.normcase(x).startswith(filename)
-    )
-    for f in file_list:
-        opt = os.path.join(current_path, f)
-        comp_file = os.path.normcase(os.path.join(directory, f))
-        # complete regular files when there is not ``<dir>`` after option
-        # complete directories when there is ``<file>``, ``<path>`` or
-        # ``<dir>``after option
-        if completion_type != "dir" and os.path.isfile(opt):
-            yield comp_file
-        elif os.path.isdir(opt):
-            yield os.path.join(comp_file, "")
+    if directory == "":
+        directory = "."
+
+    # Remove ending os.sep to avoid duplicate entries
+    directory = directory.rstrip(os.sep)
+
+    try:
+        entries = os.listdir(directory)
+    except OSError:
+        return []
+
+    # Add ending os.sep to directories
+    entries = [
+        os.path.join(directory, e)
+        for e in entries
+        if e.startswith(filename)
+        and (
+            os.path.isdir(os.path.join(directory, e))
+            or completion_type in ("file", "path")
+        )
+    ]
+
+    return (entry + os.sep if os.path.isdir(entry) else entry for entry in entries)
