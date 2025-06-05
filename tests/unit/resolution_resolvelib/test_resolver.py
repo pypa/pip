@@ -13,10 +13,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_set import RequirementSet
-from pip._internal.resolution.resolvelib.resolver import (
-    Resolver,
-    get_topological_weights,
-)
+from pip._internal.resolution.resolvelib.resolver import Resolver
 
 
 @pytest.fixture
@@ -82,6 +79,24 @@ def _make_graph(
                 "toporequires4==0.0.1",
             ],
         ),
+        (
+            [
+                (None, "left"),
+                (None, "right"),
+                ("left", "left-left"),
+                ("left", "left-right"),
+                ("left-left", "left-left-left"),
+                ("right", "right-left"),
+            ],
+            [
+                "right-left==0.0.1",
+                "left-right==0.0.1",
+                "left-left-left==0.0.1",
+                "right==0.0.1",
+                "left-left==0.0.1",
+                "left==0.0.1",
+            ],
+        ),
     ],
 )
 def test_new_resolver_get_installation_order(
@@ -102,201 +117,3 @@ def test_new_resolver_get_installation_order(
     ireqs = resolver.get_installation_order(reqset)
     req_strs = [str(r.req) for r in ireqs]
     assert req_strs == ordered_reqs
-
-
-@pytest.mark.parametrize(
-    "name, edges, requirement_keys, expected_weights",
-    [
-        (
-            # From https://github.com/pypa/pip/pull/8127#discussion_r414564664
-            "deep second edge",
-            [
-                (None, "one"),
-                (None, "two"),
-                ("one", "five"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"five": 5, "four": 4, "one": 4, "three": 2, "two": 1},
-        ),
-        (
-            "linear",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND restricted",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-            ],
-            {"one", "three", "five"},
-            {"one": 1, "three": 3, "five": 5},
-        ),
-        (
-            "linear AND root -> two",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                (None, "two"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND root -> three",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                (None, "three"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND root -> four",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                (None, "four"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND root -> five",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                (None, "five"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND one -> four",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                ("one", "four"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND two -> four",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                ("two", "four"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND four -> one (cycle)",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                ("four", "one"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND four -> two (cycle)",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                ("four", "two"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND four -> three (cycle)",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                ("four", "three"),
-            ],
-            {"one", "two", "three", "four", "five"},
-            {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5},
-        ),
-        (
-            "linear AND four -> three (cycle) AND restricted 1-2-3",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                ("four", "three"),
-            ],
-            {"one", "two", "three"},
-            {"one": 1, "two": 2, "three": 3},
-        ),
-        (
-            "linear AND four -> three (cycle) AND restricted 4-5",
-            [
-                (None, "one"),
-                ("one", "two"),
-                ("two", "three"),
-                ("three", "four"),
-                ("four", "five"),
-                ("four", "three"),
-            ],
-            {"four", "five"},
-            {"four": 4, "five": 5},
-        ),
-    ],
-)
-def test_new_resolver_topological_weights(
-    name: str,
-    edges: list[tuple[str | None, str | None]],
-    requirement_keys: set[str],
-    expected_weights: dict[str | None, int],
-) -> None:
-    graph = _make_graph(edges)
-
-    weights = get_topological_weights(graph, requirement_keys)
-    assert weights == expected_weights

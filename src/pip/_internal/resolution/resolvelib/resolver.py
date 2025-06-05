@@ -4,6 +4,7 @@ import contextlib
 import functools
 import logging
 import os
+import sys
 from typing import TYPE_CHECKING, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -197,126 +198,77 @@ class Resolver(BaseResolver):
         get installed one-by-one.
 
         The current implementation creates a topological ordering of the
-        dependency graph, giving more weight to packages with less
-        or no dependencies, while breaking any cycles in the graph at
+        dependency graph, while breaking any cycles in the graph at
         arbitrary points. We make no guarantees about where the cycle
         would be broken, other than it *would* be broken.
         """
+        def has_children(node):
+            for _ in graph.iter_children(node):
+                return True
+            return False
+
         assert self._result is not None, "must call resolve() first"
 
         if not req_set.requirements:
             # Nothing is left to install, so we do not need an order.
             return []
 
-        graph = self._result.graph
-        weights = get_topological_weights(graph, set(req_set.requirements.keys()))
+        # Copy the graph since we are going to mutate it.
+        graph = self._result.graph.copy()
 
-        sorted_items = sorted(
-            req_set.requirements.items(),
-            key=functools.partial(_req_set_item_sorter, weights=weights),
-            reverse=True,
-        )
-        return [ireq for _, ireq in sorted_items]
+        # Remove anything from the graph which is not required. This simplifies
+        # the graph so we don't consider any nodes which we don't need to.
+        for node in set(graph).difference(req_set.requirements.keys()):
+            graph.remove(node)
 
+        # We will create an ordered list of names, with the ones which we want
+        # to install first at the front. We do this by repeatedly attempting to
+        # prune leaves from the graph until it's empty. Leaves are nodes which
+        # don't depend on any other nodes in the graph (i.e. have no children).
+        names = []
+        pruning = True
+        while len(graph) > 0:
+            # Remove all the leaves we can at the graph extremities, working our
+            # way inwards with each iteration. We try again and again, since
+            # each round of pruning may create more leaves. We walk the names in
+            # reverse asciibetical order so that the ordering is stable between
+            # runs and conforms to historical behavior.
+            while pruning:
+                # Determine the leaves as a first step, and remove them as a
+                # second step. We do it in two stages way since it's more
+                # breadth-first than depth-first, so preserves overall
+                # leaf-to-root distance semantics across all the leaves.
+                pruning = False
+                for node in [n for n in sorted(graph, reverse=True)
+                             if not has_children(n)]:
+                    pruning = True
+                    names.append(node)
+                    graph.remove(node)
 
-def get_topological_weights(
-    graph: DirectedGraph[str | None], requirement_keys: set[str]
-) -> dict[str | None, int]:
-    """Assign weights to each node based on how "deep" they are.
+            # If we pruned the leaves from the graph, but there are still nodes
+            # in it, then this implies that there is a cycle. We look for the
+            # node which is the most "leaf-like" (fewest children) and a high
+            # chance of being in the cycle (most parents). We remove that node
+            # in an attempt to break the cycle. This isn't guaranteed to work
+            # but such a node is something which we'll likely want to install in
+            # preference to other nodes anyhow. Since we'll keep doing this we
+            # are going to break the cycle _eventually_.
+            if len(graph) > 0:
+                target = (None, -1, sys.maxsize)
+                for node in sorted(graph, reverse=True):
+                    num_parents  = len(tuple(graph.iter_parents(node)))
+                    num_children = len(tuple(graph.iter_children(node)))
+                    if num_parents > target[1] and num_children < target[2]:
+                        target = (node, num_parents, num_children)
+                names.append(target[0])
+                graph.remove(target[0])
 
-    This implementation may change at any point in the future without prior
-    notice.
+                # We attempted to break the cycle so we're still trying to
+                # prune.
+                pruning = True
 
-    We first simplify the dependency graph by pruning any leaves and giving them
-    the highest weight: a package without any dependencies should be installed
-    first. This is done again and again in the same way, giving ever less weight
-    to the newly found leaves. The loop stops when no leaves are left: all
-    remaining packages have at least one dependency left in the graph.
-
-    Then we continue with the remaining graph, by taking the length for the
-    longest path to any node from root, ignoring any paths that contain a single
-    node twice (i.e. cycles). This is done through a depth-first search through
-    the graph, while keeping track of the path to the node.
-
-    Cycles in the graph result would result in node being revisited while also
-    being on its own path. In this case, take no action. This helps ensure we
-    don't get stuck in a cycle.
-
-    When assigning weight, the longer path (i.e. larger length) is preferred.
-
-    We are only interested in the weights of packages that are in the
-    requirement_keys.
-    """
-    path: set[str | None] = set()
-    weights: dict[str | None, int] = {}
-
-    def visit(node: str | None) -> None:
-        if node in path:
-            # We hit a cycle, so we'll break it here.
-            return
-
-        # Time to visit the children!
-        path.add(node)
-        for child in graph.iter_children(node):
-            visit(child)
-        path.remove(node)
-
-        if node not in requirement_keys:
-            return
-
-        last_known_parent_count = weights.get(node, 0)
-        weights[node] = max(last_known_parent_count, len(path))
-
-    # Simplify the graph, pruning leaves that have no dependencies.
-    # This is needed for large graphs (say over 200 packages) because the
-    # `visit` function is exponentially slower then, taking minutes.
-    # See https://github.com/pypa/pip/issues/10557
-    # We will loop until we explicitly break the loop.
-    while True:
-        leaves = set()
-        for key in graph:
-            if key is None:
-                continue
-            for _child in graph.iter_children(key):
-                # This means we have at least one child
-                break
-            else:
-                # No child.
-                leaves.add(key)
-        if not leaves:
-            # We are done simplifying.
-            break
-        # Calculate the weight for the leaves.
-        weight = len(graph) - 1
-        for leaf in leaves:
-            if leaf not in requirement_keys:
-                continue
-            weights[leaf] = weight
-        # Remove the leaves from the graph, making it simpler.
-        for leaf in leaves:
-            graph.remove(leaf)
-
-    # Visit the remaining graph.
-    # `None` is guaranteed to be the root node by resolvelib.
-    visit(None)
-
-    # Sanity check: all requirement keys should be in the weights,
-    # and no other keys should be in the weights.
-    difference = set(weights.keys()).difference(requirement_keys)
-    assert not difference, difference
-
-    return weights
-
-
-def _req_set_item_sorter(
-    item: tuple[str, InstallRequirement],
-    weights: dict[str | None, int],
-) -> tuple[int, str]:
-    """Key function used to sort install requirements for installation.
-
-    Based on the "weight" mapping calculated in ``get_installation_order()``.
-    The canonical package name is returned as the second member as a tie-
-    breaker to ensure the result is predictable, which is useful in tests.
-    """
-    name = canonicalize_name(item[0])
-    return weights[name], name
+        # When we get here the graph has been completely emptied and the ordered
+        # list of names can be mapped back to the requirements.
+        difference = set(names).difference(req_set.requirements.keys())
+        assert not difference, difference
+        return [req_set.get_requirement(name) for name in names]
