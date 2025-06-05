@@ -4,7 +4,7 @@ import contextlib
 import logging
 import os
 import sys
-from typing import TYPE_CHECKING, Tuple, cast
+from typing import TYPE_CHECKING, cast
 
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible, ResolutionTooDeep
 from pip._vendor.resolvelib import Resolver as RLResolver
@@ -254,7 +254,7 @@ class Resolver(BaseResolver):
             # preference to other nodes anyhow. Since we'll keep doing this we
             # are going to break the cycle _eventually_.
             if len(graph) > 0:
-                target: Tuple[str | None, int, int] = (None, -1, sys.maxsize)
+                target: tuple[str | None, int, int] = (None, -1, sys.maxsize)
                 named_nodes = [n for n in graph if n is not None]
                 for node in sorted(named_nodes, reverse=True):
                     num_parents = len(tuple(graph.iter_parents(node)))
