@@ -1,0 +1,1 @@
+Handle pathologically connected dependency graphs in reasonable time.
