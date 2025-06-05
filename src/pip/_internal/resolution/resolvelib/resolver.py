@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import contextlib
-import functools
 import logging
 import os
 import sys
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Tuple, cast
 
-from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible, ResolutionTooDeep
 from pip._vendor.resolvelib import Resolver as RLResolver
-from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import ResolutionTooDeepError
@@ -202,7 +199,7 @@ class Resolver(BaseResolver):
         arbitrary points. We make no guarantees about where the cycle
         would be broken, other than it *would* be broken.
         """
-        def has_children(node):
+        def has_children(node: str | None):
             for _ in graph.iter_children(node):
                 return True
             return False
@@ -239,7 +236,8 @@ class Resolver(BaseResolver):
                 # breadth-first than depth-first, so preserves overall
                 # leaf-to-root distance semantics across all the leaves.
                 pruning = False
-                for node in [n for n in sorted(graph, reverse=True)
+                named_nodes = [n for n in graph if n is not None]
+                for node in [n for n in sorted(named_nodes, reverse=True)
                              if not has_children(n)]:
                     pruning = True
                     names.append(node)
@@ -254,13 +252,15 @@ class Resolver(BaseResolver):
             # preference to other nodes anyhow. Since we'll keep doing this we
             # are going to break the cycle _eventually_.
             if len(graph) > 0:
-                target = (None, -1, sys.maxsize)
-                for node in sorted(graph, reverse=True):
+                target: Tuple[str | None, int, int] = (None, -1, sys.maxsize)
+                named_nodes = [n for n in graph if n is not None]
+                for node in sorted(named_nodes, reverse=True):
                     num_parents  = len(tuple(graph.iter_parents(node)))
                     num_children = len(tuple(graph.iter_children(node)))
                     if num_parents > target[1] and num_children < target[2]:
                         target = (node, num_parents, num_children)
-                names.append(target[0])
+                if target[0] is not None:
+                    names.append(target[0])
                 graph.remove(target[0])
 
                 # We attempted to break the cycle so we're still trying to
