@@ -199,7 +199,8 @@ class Resolver(BaseResolver):
         arbitrary points. We make no guarantees about where the cycle
         would be broken, other than it *would* be broken.
         """
-        def has_children(node: str | None):
+
+        def has_children(node: str | None) -> bool:
             for _ in graph.iter_children(node):
                 return True
             return False
@@ -237,8 +238,9 @@ class Resolver(BaseResolver):
                 # leaf-to-root distance semantics across all the leaves.
                 pruning = False
                 named_nodes = [n for n in graph if n is not None]
-                for node in [n for n in sorted(named_nodes, reverse=True)
-                             if not has_children(n)]:
+                for node in [
+                    n for n in sorted(named_nodes, reverse=True) if not has_children(n)
+                ]:
                     pruning = True
                     names.append(node)
                     graph.remove(node)
@@ -255,7 +257,7 @@ class Resolver(BaseResolver):
                 target: Tuple[str | None, int, int] = (None, -1, sys.maxsize)
                 named_nodes = [n for n in graph if n is not None]
                 for node in sorted(named_nodes, reverse=True):
-                    num_parents  = len(tuple(graph.iter_parents(node)))
+                    num_parents = len(tuple(graph.iter_parents(node)))
                     num_children = len(tuple(graph.iter_children(node)))
                     if num_parents > target[1] and num_children < target[2]:
                         target = (node, num_parents, num_children)
