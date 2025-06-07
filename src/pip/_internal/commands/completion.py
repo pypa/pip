@@ -12,52 +12,44 @@ from pip._internal.utils.misc import get_prog
 
 logger = logging.getLogger(__name__)
 
-BASE_COMPLETION = """
-# pip {shell} completion start{script}# pip {shell} completion end
-"""
+BASE_COMPLETION = "{script}"
 
 COMPLETION_SCRIPTS = {
-    "bash": """
-        _pip_completion()
-        {{
-            COMPREPLY=( $( COMP_WORDS="${{COMP_WORDS[*]}}" \\
-                           COMP_CWORD=$COMP_CWORD \\
-                           PIP_AUTO_COMPLETE=1 $1 2>/dev/null ) )
-        }}
-        complete -o default -F _pip_completion {prog}
-    """,
-    "zsh": """
-        #compdef -P pip[0-9.]#
-        __pip() {{
-          compadd $( COMP_WORDS="$words[*]" \\
-                     COMP_CWORD=$((CURRENT-1)) \\
-                     PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )
-        }}
-        if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
-          # autoload from fpath, call function directly
-          __pip "$@"
-        else
-          # eval/source/. command, register function for later
-          compdef __pip -P 'pip[0-9.]#'
-        fi
-    """,
-    "fish": """
-        function __fish_complete_pip
-            set -lx COMP_WORDS \\
-                (commandline --current-process --tokenize --cut-at-cursor) \\
-                (commandline --current-token --cut-at-cursor)
-            set -lx COMP_CWORD (math (count $COMP_WORDS) - 1)
-            set -lx PIP_AUTO_COMPLETE 1
-            set -l completions
-            if string match -q '2.*' $version
-                set completions (eval $COMP_WORDS[1])
-            else
-                set completions ($COMP_WORDS[1])
-            end
-            string split \\  -- $completions
-        end
-        complete -fa "(__fish_complete_pip)" -c {prog}
-    """,
+    "bash": """_pip_completion()
+{
+    COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \\
+                   COMP_CWORD=$COMP_CWORD \\
+                   PIP_AUTO_COMPLETE=1 $1 2>/dev/null ) )
+}
+complete -o default -F _pip_completion pip""",
+    "zsh": """#compdef -P pip[0-9.]#
+__pip() {
+  compadd $( COMP_WORDS="$words[*]" \\
+             COMP_CWORD=$((CURRENT-1)) \\
+             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )
+}
+if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+  # autoload from fpath, call function directly
+  __pip "$@"
+else
+  # eval/source/. command, register function for later
+  compdef __pip -P 'pip[0-9.]#'
+fi""",
+    "fish": """function __fish_complete_pip
+    set -lx COMP_WORDS \\
+        (commandline --current-process --tokenize --cut-at-cursor) \\
+        (commandline --current-token --cut-at-cursor)
+    set -lx COMP_CWORD (math (count $COMP_WORDS) - 1)
+    set -lx PIP_AUTO_COMPLETE 1
+    set -l completions
+    if string match -q '2.*' $version
+        set completions (eval $COMP_WORDS[1])
+    else
+        set completions ($COMP_WORDS[1])
+    end
+    string split \\  -- $completions
+end
+complete -fa "(__fish_complete_pip)" -c pip""",
     "powershell": None,  # Will be loaded from file
 }
 
@@ -72,8 +64,8 @@ def get_powershell_script() -> str:
             .read_text(encoding="utf-8")
         )
     except (FileNotFoundError, NotADirectoryError, TypeError):
-        # TypeError can be raised by importlib_resources
-        # on older Pythons if the package is not found
+        # TypeError can be raised by importlib_resources on older Pythons
+        # if the package is not found
         logger.warning(
             "PowerShell script not found or unreadable, "
             "falling back to basic completion"
@@ -125,7 +117,6 @@ class CompletionCommand(Command):
     def run(self, options: Values, args: list[str]) -> int:
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
-
         if options.shell in shells:
             script = ""
             if options.shell == "powershell":
@@ -139,23 +130,18 @@ class CompletionCommand(Command):
                 replacement_line = f'$_pip_command_name_placeholder = "{prog_name}"'
                 script = script_template.replace(placeholder_to_find, replacement_line)
             else:
-                # options.shell is not "powershell" and is a key in COMPLETION_SCRIPTS.
-                # All non-powershell entries in COMPLETION_SCRIPTS are strings.
-                shell_script_template = COMPLETION_SCRIPTS.get(options.shell)
-                if not isinstance(shell_script_template, str):
+                script = COMPLETION_SCRIPTS.get(options.shell)
+                if not isinstance(script, str):
                     # This case should not be reached with current data.
                     logger.error(
                         "Script template for shell '%s' is not a string.", options.shell
                     )
                     script = ""  # Fallback to an empty script
                 else:
-                    script = textwrap.dedent(
-                        shell_script_template.format(prog=get_prog())
-                    )
+                    script = textwrap.dedent(script)
 
             print(BASE_COMPLETION.format(script=script, shell=options.shell))
             return SUCCESS
-
         print(
             "ERROR: You must pass --bash or --fish or --powershell or --zsh",
             file=sys.stderr,

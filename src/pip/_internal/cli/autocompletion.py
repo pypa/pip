@@ -71,7 +71,8 @@ def get_installed_distributions(current: str, cwords: list[str]) -> list[str]:
     return [
         dist.canonical_name
         for dist in env.iter_installed_distributions(local_only=True)
-        if dist.canonical_name.startswith(lc) and dist.canonical_name not in cwords[1:]
+        if dist.canonical_name.startswith(lc)
+        and dist.canonical_name not in cwords[1:]
     ]
 
 
@@ -209,9 +210,9 @@ def get_path_completion_type(
 
 
 def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
-    """If ``completion_type`` is ``file`` or ``path``, list all regular files
-    and directories starting with ``current``; otherwise only list directories
-    starting with ``current``.
+    """If ``completion_type`` is ``file`` or ``path``, list all regular
+    files and directories starting with ``current``; otherwise only list
+    directories starting with ``current``.
 
     :param current: The word to be completed
     :param completion_type: path completion type(``file``, ``path`` or ``dir``)
@@ -235,8 +236,8 @@ def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
         for e in entries
         if e.startswith(filename)
         and (
-            os.path.isdir(os.path.join(directory, e))
-            or completion_type in ("file", "path")
+            completion_type in ("file", "path")
+            or os.path.isdir(os.path.join(directory, e))
         )
     ]
 

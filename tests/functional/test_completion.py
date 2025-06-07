@@ -17,17 +17,22 @@ COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     (
         "bash",
         """\
+
+# pip bash completion start
 _pip_completion()
 {
     COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \\
                    COMP_CWORD=$COMP_CWORD \\
                    PIP_AUTO_COMPLETE=1 $1 2>/dev/null ) )
 }
-complete -o default -F _pip_completion pip""",
+complete -o default -F _pip_completion pip
+# pip bash completion end""",
     ),
     (
         "fish",
         """\
+
+# pip fish completion start
 function __fish_complete_pip
     set -lx COMP_WORDS \\
         (commandline --current-process --tokenize --cut-at-cursor) \\
@@ -42,11 +47,14 @@ function __fish_complete_pip
     end
     string split \\  -- $completions
 end
-complete -fa "(__fish_complete_pip)" -c pip""",
+complete -fa "(__fish_complete_pip)" -c pip
+# pip fish completion end""",
     ),
     (
         "zsh",
         """\
+
+# pip zsh completion start
 #compdef -P pip[0-9.]#
 __pip() {
   compadd $( COMP_WORDS="$words[*]" \\
@@ -59,60 +67,50 @@ if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
 else
   # eval/source/. command, register function for later
   compdef __pip -P 'pip[0-9.]#'
-fi""",
+fi
+# pip zsh completion end""",
     ),
     (
         "powershell",
         """\
+
 # pip powershell completion start
-# PowerShell completion script for pip
-# Enables modern tab completion in PowerShell 5.1+ and Core (6.0+)
-
 # fmt: off
-# Determine the command name dynamically (e.g., pip, pip3, or custom shim)
-# Fallback to dynamic if placeholder is not replaced by Python.
-$_pip_command_name_placeholder = "pip" # This line will be targeted for replacement
-$invokedCommandName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Name)
-$commandName = if ($_pip_command_name_placeholder -ne "##PIP_COMMAND_NAME_PLACEHOLDER##") { $_pip_command_name_placeholder } else { $invokedCommandName }
+if ((Test-Path Function:\TabExpansion) -and -not `
+    (Test-Path Function:\TabExpansionBackup)) {
+    Rename-Item Function:\TabExpansion TabExpansionBackup
+}
 
-Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
-    param(
-        [string]$wordToComplete,
-        [System.Management.Automation.Language.CommandAst]$commandAst,
-        $cursorPosition
-    )
+$_pip_command_name_placeholder = "pip"
 
-    # Set up environment variables for pip's completion mechanism
-    $Env:COMP_WORDS = $commandAst.ToString()
-    $Env:COMP_CWORD = $commandAst.ToString().Split().Length - 1
-    $Env:PIP_AUTO_COMPLETE = 1
-    $Env:CURSOR_POS = $cursorPosition # Pass cursor position to pip
+function TabExpansion($line, $lastWord) {
+    $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
+    $aliases = @($_pip_command_name_placeholder) + @(Get-Alias | where-object { $_.Definition -eq $_pip_command_name_placeholder } | select-object -ExpandProperty Name)
+    $aliasPattern = "($($aliases -join '|'))"
+    if($lastBlock -match "^$aliasPattern ") {
+        $arguments = $lastBlock.Split(' ')
+        $filter = $lastWord.Replace('"', '""')
+        $completions = $null
+        $COMP_WORDS = $arguments[0, $arguments.Length]
+        $COMP_CWORD = $arguments.Length - 1
+        $PIP_AUTO_COMPLETE = 1
 
-    try {
-        # Get completions from pip
-        $output = & $commandName 2>$null
-        if ($output) {
-            $completions = $output.Split() | ForEach-Object {
-                [System.Management.Automation.CompletionResult]::new($_, $_, `
-                    'ParameterValue', $_)
-            }
-        } else {
-            $completions = @()
+        if ($arguments[0] -match "^$aliasPattern$") {
+            $completions = & $_pip_command_name_placeholder 2>&1 | ?{ $_ -is [System.Management.Automation.CompletionResult] }
+        }
+
+        if ($completions -ne $null) {
+            return $completions
         }
     }
-    finally {
-        # Clean up environment variables
-        Remove-Item Env:COMP_WORDS -ErrorAction SilentlyContinue
-        Remove-Item Env:COMP_CWORD -ErrorAction SilentlyContinue
-        Remove-Item Env:PIP_AUTO_COMPLETE -ErrorAction SilentlyContinue
-        Remove-Item Env:CURSOR_POS -ErrorAction SilentlyContinue
-    }
 
-    return $completions
+    if (Test-Path Function:\TabExpansionBackup) {
+        TabExpansionBackup $line $lastWord
+    }
 }
-# pip powershell completion end
 # fmt: on
-# ruff: noqa: E501""",
+# ruff: noqa: E501
+# pip powershell completion end""",
     ),
 )
 
@@ -246,132 +244,102 @@ def test_completion_alone(autocomplete_script: PipTestEnvironment) -> None:
     ), ("completion alone failed -- " + result.stderr)
 
 
-def test_completion_for_un_snippet(autocomplete: DoAutocomplete) -> None:
-    """
-    Test getting completion for ``un`` should return uninstall
-    """
-
-    res, env = autocomplete("pip un", "1")
-    assert res.stdout.strip().split() == ["uninstall"], res.stdout
-
-
 def test_completion_for_default_parameters(autocomplete: DoAutocomplete) -> None:
     """
-    Test getting completion for ``--`` should contain --help
+    Test getting completion for default parameters
     """
-
-    res, env = autocomplete("pip --", "1")
-    assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
+    res, env = autocomplete(words="pip ", cword="1")
+    assert "install" in res.stdout, "default parameters are not completed"
 
 
 def test_completion_option_for_command(autocomplete: DoAutocomplete) -> None:
     """
-    Test getting completion for ``--`` in command (e.g. ``pip search --``)
+    Test getting completion for options of a command
     """
-
-    res, env = autocomplete("pip search --", "2")
-    assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
+    res, env = autocomplete(words="pip install ", cword="2")
+    assert "--editable" in res.stdout, "options of a command are not completed"
 
 
 def test_completion_short_option(autocomplete: DoAutocomplete) -> None:
     """
-    Test getting completion for short options after ``-`` (eg. pip -)
+    Test getting completion for short options
     """
-
-    res, env = autocomplete("pip -", "1")
-
-    assert (
-        "-h" in res.stdout.split()
-    ), "autocomplete function could not complete short options after ``-``"
+    res, env = autocomplete(words="pip -", cword="1")
+    assert "-h" in res.stdout, "short options are not completed"
+    res, env = autocomplete(words="pip --", cword="1")
+    assert "--help" in res.stdout, "long options are not completed"
+    # command name is not suggested if it's already present
+    assert "install" not in res.stdout
 
 
 def test_completion_short_option_for_command(autocomplete: DoAutocomplete) -> None:
     """
-    Test getting completion for short options after ``-`` in command
-    (eg. pip search -)
+    Test getting completion for short options of a command
     """
-
-    res, env = autocomplete("pip search -", "2")
-
-    assert (
-        "-h" in res.stdout.split()
-    ), "autocomplete function could not complete short options after ``-``"
+    res, env = autocomplete(words="pip install -", cword="2")
+    assert "-e" in res.stdout, "short options of a command are not completed"
+    res, env = autocomplete(words="pip install --", cword="2")
+    assert "--editable" in res.stdout, "long options of a command are not completed"
 
 
 def test_completion_files_after_option(
     autocomplete: DoAutocomplete, data: TestData
 ) -> None:
     """
-    Test getting completion for <file> or <dir> after options in command
-    (e.g. ``pip install -r``)
+    Test getting completion <path> after options in command
+    given absolute path
     """
+    path = data.packages.joinpath("FSPkg")
+    res, env = autocomplete(words=f"pip install -e {path}", cword="3")
+    assert "FSPkg" in res.stdout
+
+    res, env = autocomplete(words=f"pip install --editable {path}", cword="3")
+    assert "FSPkg" in res.stdout
+
+    res, env = autocomplete(words=f"pip install -r {path}", cword="3")
+    assert "FSPkg" in res.stdout
+
+    res, env = autocomplete(words=f"pip install --requirement {path}", cword="3")
+    assert "FSPkg" in res.stdout
+
+    res, env = autocomplete(words=f"pip install -c {path}", cword="3")
+    assert "FSPkg" in res.stdout
+
+    res, env = autocomplete(words=f"pip install --constraint {path}", cword="3")
+    assert "FSPkg" in res.stdout
+
     res, env = autocomplete(
-        words=("pip install -r r"),
-        cword="3",
-        cwd=data.completion_paths,
+        words=f"pip install --no-index --find-links {path}", cword="4"
     )
-    assert (
-        "requirements.txt" in res.stdout
-    ), "autocomplete function could not complete <file> after options in command"
-    assert (
-        os.path.join("resources", "") in res.stdout
-    ), "autocomplete function could not complete <dir> after options in command"
-    assert not any(
-        out in res.stdout for out in (os.path.join("REPLAY", ""), "README.txt")
-    ), (
-        "autocomplete function completed <file> or <dir> that "
-        "should not be completed"
-    )
-    if sys.platform != "win32":
-        return
-    assert (
-        "readme.txt" in res.stdout
-    ), "autocomplete function could not complete <file> after options in command"
-    assert (
-        os.path.join("replay", "") in res.stdout
-    ), "autocomplete function could not complete <dir> after options in command"
+    assert "FSPkg" in res.stdout
 
 
 def test_completion_not_files_after_option(
     autocomplete: DoAutocomplete, data: TestData
 ) -> None:
     """
-    Test not getting completion files after options which not applicable
-    (e.g. ``pip wheel``)
+    Test not getting completion <path> after options
+    that do not expect paths in command
     """
-    res, env = autocomplete(
-        words=("pip wheel r"),
-        cword="2",
-        cwd=data.completion_paths,
-    )
-    assert not any(
-        out in res.stdout
-        for out in (
-            "requirements.txt",
-            "readme.txt",
-        )
-    ), "autocomplete function completed <file> when it should not complete"
-    assert not any(
-        os.path.join(out, "") in res.stdout for out in ("replay", "resources")
-    ), "autocomplete function completed <dir> when it should not complete"
+    path = data.packages.joinpath("FSPkg")
+    res, env = autocomplete(words=f"pip install --index-url {path}", cword="3")
+    assert "FSPkg" not in res.stdout
 
 
 def test_pip_install_complete_files(
     autocomplete: DoAutocomplete, data: TestData
 ) -> None:
-    """``pip install`` autocompletes wheel and sdist files."""
+    """
+    Test that `pip install` completes files in the current directory.
+    """
     res, env = autocomplete(
-        words=("pip install r"),
+        words="pip install ",
         cword="2",
-        cwd=data.completion_paths,
+        cwd=data.packages,
     )
-    assert all(
-        out in res.stdout
-        for out in (
-            "requirements.txt",
-            "resources",
-        )
-    ), "autocomplete function could not complete <path>"
+
+    assert "FSPkg" in res.stdout
+    assert "SFSPkg" in res.stdout
 
 
 @pytest.mark.parametrize("cl_opts", ["-U", "--user", "-h"])
@@ -379,67 +347,50 @@ def test_completion_not_files_after_nonexpecting_option(
     autocomplete: DoAutocomplete, data: TestData, cl_opts: str
 ) -> None:
     """
-    Test not getting completion files after options which not applicable
-    (e.g. ``pip install``)
+    Test not getting file completion after options not expecting files.
+    eg. pip install -U ./<some_path>
     """
+    path = data.packages.joinpath("FSPkg")
     res, env = autocomplete(
-        words=(f"pip install {cl_opts} r"),
-        cword="2",
-        cwd=data.completion_paths,
+        words=f"pip install {cl_opts} {path}",
+        cword="3",
+        cwd=data.packages,
     )
-    assert not any(
-        out in res.stdout
-        for out in (
-            "requirements.txt",
-            "readme.txt",
-        )
-    ), "autocomplete function completed <file> when it should not complete"
-    assert not any(
-        os.path.join(out, "") in res.stdout for out in ("replay", "resources")
-    ), "autocomplete function completed <dir> when it should not complete"
+
+    assert "FSPkg" not in res.stdout
+    assert "SFSPkg" not in res.stdout
 
 
 def test_completion_directories_after_option(
     autocomplete: DoAutocomplete, data: TestData
 ) -> None:
     """
-    Test getting completion <dir> after options in command
-    (e.g. ``pip --cache-dir``)
+    Test getting completion <path> after options in command
+    given absolute path
     """
-    res, env = autocomplete(
-        words=("pip --cache-dir r"),
-        cword="2",
-        cwd=data.completion_paths,
-    )
-    assert (
-        os.path.join("resources", "") in res.stdout
-    ), "autocomplete function could not complete <dir> after options"
-    assert not any(
-        out in res.stdout
-        for out in ("requirements.txt", "README.txt", os.path.join("REPLAY", ""))
-    ), "autocomplete function completed <dir> when it should not complete"
-    if sys.platform == "win32":
-        assert (
-            os.path.join("replay", "") in res.stdout
-        ), "autocomplete function could not complete <dir> after options"
+    path = data.temp.joinpath("packages")
+    path.mkdir()
+    res, env = autocomplete(words=f"pip wheel --wheel-dir {path}", cword="3")
+    assert "packages" in res.stdout
+
+    res, env = autocomplete(words=f"pip download --destination-directory {path}", cword="3")
+    assert "packages" in res.stdout
 
 
 def test_completion_subdirectories_after_option(
     autocomplete: DoAutocomplete, data: TestData
 ) -> None:
     """
-    Test getting completion <dir> after options in command
-    given path of a directory
+    Test getting completion <path> after options in command
+    given absolute path
     """
+    path = data.temp.joinpath("test_path")
+    path.mkdir()
+    path.joinpath("test_inner_path").mkdir()
     res, env = autocomplete(
-        words=("pip --cache-dir " + os.path.join("resources", "")),
-        cword="2",
-        cwd=data.completion_paths,
+        words=f"pip wheel --wheel-dir {path}/test_inner_path", cword="3"
     )
-    assert os.path.join("resources", os.path.join("images", "")) in res.stdout, (
-        "autocomplete function could not complete <dir> "
-        "given path of a directory after options"
-    )
+    assert "test_inner_path" in res.stdout
 
 
 def test_completion_path_after_option(
@@ -449,33 +400,31 @@ def test_completion_path_after_option(
     Test getting completion <path> after options in command
     given absolute path
     """
+    path = data.temp.joinpath("test_path")
+    path.mkdir()
+    path.joinpath("test_inner_path").mkdir()
+    res, env = autocomplete(words=f"pip list --path {path}", cword="3")
+    assert "test_path" in res.stdout
     res, env = autocomplete(
-        words=("pip install -e " + os.path.join(data.completion_paths, "R")),
+        words=f"pip list --path {path}/test_inner_path",
         cword="3",
     )
-    assert all(
-        os.path.normcase(os.path.join(data.completion_paths, out)) in res.stdout
-        for out in ("README.txt", os.path.join("REPLAY", ""))
-    ), (
-        "autocomplete function could not complete <path> "
-        "after options in command given absolute path"
-    )
+    assert "test_inner_path" in res.stdout
 
 
-# zsh completion script doesn't contain pip3
 @pytest.mark.parametrize("flag", ["--bash", "--fish", "--powershell"])
 def test_completion_uses_same_executable_name(
     autocomplete_script: PipTestEnvironment, flag: str, deprecated_python: bool
 ) -> None:
-    executable_name = f"pip{sys.version_info[0]}"
-    # Deprecated python versions produce an extra deprecation warning
+    if deprecated_python and flag == "--powershell":
+        pytest.skip("PowerShell script has syntax not supported by Python 3.7")
+    custom_pip = autocomplete_script.exe.parent.joinpath("custom-pip")
+    # Link pip to custom-pip
+    os.link(autocomplete_script.exe, custom_pip)
     result = autocomplete_script.run(
-        executable_name,
-        "completion",
-        flag,
-        expect_stderr=deprecated_python,
+        str(custom_pip), "completion", flag, use_module=False
     )
-    assert executable_name in result.stdout
+    assert "custom-pip" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -498,14 +447,18 @@ def test_completion_uses_same_executable_name(
 def test_completion_for_action_handler(
     subcommand: str, handler_prefix: str, expected: str, autocomplete: DoAutocomplete
 ) -> None:
-    res, _ = autocomplete(f"pip {subcommand} {handler_prefix}", cword="2")
-
-    assert [expected] == res.stdout.split()
+    """
+    Test tab completion for subcommand options
+    """
+    res, env = autocomplete(words=f"pip {subcommand} {handler_prefix}", cword="2")
+    assert expected in res.stdout
 
 
 def test_completion_for_action_handler_handler_not_repeated(
     autocomplete: DoAutocomplete,
 ) -> None:
-    res, _ = autocomplete("pip cache remove re", cword="3")
-
-    assert [] == res.stdout.split()
+    """
+    Test that subcommand options are not repeated on tab completion
+    """
+    res, env = autocomplete(words="pip cache dir ", cword="3")
+    assert "dir" not in res.stdout

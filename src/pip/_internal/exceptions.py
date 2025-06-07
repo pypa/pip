@@ -699,13 +699,10 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
 
     @staticmethod
     def _iter_externally_managed_error_keys() -> Iterator[str]:
-        # LC_MESSAGES is in POSIX, but not the C standard. The most common
-        # platform that does not implement this category is Windows, where
-        # using other categories for console message localization is equally
         # unreliable, so we fall back to the locale-less vendor message. This
         # can always be re-evaluated when a vendor proposes a new alternative.
         try:
-            category = locale.LC_MESSAGES  # type: ignore[attr-defined]
+            category = locale.LC_MESSAGES  # POSIX only
         except AttributeError:
             lang: str | None = None
         else:

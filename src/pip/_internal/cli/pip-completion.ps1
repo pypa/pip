@@ -1,6 +1,8 @@
+# pip powershell completion start
 # PowerShell completion script for pip
-# This script enables modern tab completion in PowerShell 5.1+ and PowerShell Core (6.0+)
+# Enables modern tab completion in PowerShell 5.1+ and Core (6.0+)
 
+# fmt: off
 # Determine the command name dynamically (e.g., pip, pip3, or custom shim)
 # Fallback to dynamic if placeholder is not replaced by Python.
 $_pip_command_name_placeholder = "##PIP_COMMAND_NAME_PLACEHOLDER##" # This line will be targeted for replacement
@@ -25,7 +27,8 @@ Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
         $output = & $commandName 2>$null
         if ($output) {
             $completions = $output.Split() | ForEach-Object {
-                [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+                [System.Management.Automation.CompletionResult]::new($_, $_, `
+                    'ParameterValue', $_)
             }
         } else {
             $completions = @()
@@ -41,3 +44,6 @@ Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
 
     return $completions
 }
+# pip powershell completion end
+# fmt: on
+# ruff: noqa: E501 
