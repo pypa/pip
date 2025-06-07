@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 from typing import Protocol
 
@@ -76,9 +75,9 @@ fi
 
 # pip powershell completion start
 # fmt: off
-if ((Test-Path Function:\TabExpansion) -and -not `
-    (Test-Path Function:\TabExpansionBackup)) {
-    Rename-Item Function:\TabExpansion TabExpansionBackup
+if ((Test-Path Function:\\TabExpansion) -and -not `
+    (Test-Path Function:\\TabExpansionBackup)) {
+    Rename-Item Function:\\TabExpansion TabExpansionBackup
 }
 
 $_pip_command_name_placeholder = "pip"
@@ -104,7 +103,7 @@ function TabExpansion($line, $lastWord) {
         }
     }
 
-    if (Test-Path Function:\TabExpansionBackup) {
+    if (Test-Path Function:\\TabExpansionBackup) {
         TabExpansionBackup $line $lastWord
     }
 }
@@ -373,7 +372,9 @@ def test_completion_directories_after_option(
     res, env = autocomplete(words=f"pip wheel --wheel-dir {path}", cword="3")
     assert "packages" in res.stdout
 
-    res, env = autocomplete(words=f"pip download --destination-directory {path}", cword="3")
+    res, env = autocomplete(
+        words=f"pip download --destination-directory {path}", cword="3"
+    )
     assert "packages" in res.stdout
 
 

@@ -71,8 +71,7 @@ def get_installed_distributions(current: str, cwords: list[str]) -> list[str]:
     return [
         dist.canonical_name
         for dist in env.iter_installed_distributions(local_only=True)
-        if dist.canonical_name.startswith(lc)
-        and dist.canonical_name not in cwords[1:]
+        if dist.canonical_name.startswith(lc) and dist.canonical_name not in cwords[1:]
     ]
 
 

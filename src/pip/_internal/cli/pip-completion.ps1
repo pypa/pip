@@ -46,4 +46,4 @@ Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
 }
 # pip powershell completion end
 # fmt: on
-# ruff: noqa: E501 
+# ruff: noqa: E501
