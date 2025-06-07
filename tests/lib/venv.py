@@ -226,7 +226,7 @@ class VirtualEnvironment:
         return self._sitecustomize
 
     @sitecustomize.setter
-    def sitecustomize(self, value: str) -> None:
+    def sitecustomize(self, value: str | None) -> None:
         self._sitecustomize = value
         self._customize_site()
 
