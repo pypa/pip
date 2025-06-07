@@ -705,7 +705,7 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
         # unreliable, so we fall back to the locale-less vendor message. This
         # can always be re-evaluated when a vendor proposes a new alternative.
         try:
-            category = locale.LC_MESSAGES
+            category = locale.LC_MESSAGES  # type: ignore[attr-defined]
         except AttributeError:
             lang: str | None = None
         else:

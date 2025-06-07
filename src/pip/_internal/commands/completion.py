@@ -1,11 +1,10 @@
 import logging
 import sys
 import textwrap
-from optparse import Values
-from typing import NoReturn
 
 # Zipapp-safe way to read package resources
 from importlib import resources
+from optparse import Values
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
@@ -67,11 +66,17 @@ def get_powershell_script() -> str:
     """Load the PowerShell completion script from file in a zipapp-safe way."""
     try:
         # Assuming pip-completion.ps1 is in pip._internal.cli package
-        return resources.files("pip._internal.cli").joinpath("pip-completion.ps1").read_text(encoding="utf-8")
+        return (
+            resources.files("pip._internal.cli")
+            .joinpath("pip-completion.ps1")
+            .read_text(encoding="utf-8")
+        )
     except (FileNotFoundError, NotADirectoryError, TypeError):
-        # TypeError can be raised by importlib_resources on older Pythons if package not found
+        # TypeError can be raised by importlib_resources
+        # on older Pythons if the package is not found
         logger.warning(
-            "PowerShell completion script not found or unreadable, falling back to basic completion"
+            "PowerShell script not found or unreadable, "
+            "falling back to basic completion"
         )
         return ""
 
@@ -126,12 +131,13 @@ class CompletionCommand(Command):
             if options.shell == "powershell":
                 script_template = get_powershell_script()
                 prog_name = get_prog()
-                # This assumes $_pip_command_name_placeholder is only ever set to the placeholder string
-                # in the .ps1 file, or to the actual program name after this replacement.
-                script = script_template.replace(
-                    '$_pip_command_name_placeholder = "##PIP_COMMAND_NAME_PLACEHOLDER##"',
-                    f'$_pip_command_name_placeholder = "{prog_name}"'
+                # Assumes placeholder is only ever the default or the actual prog_name.
+                placeholder_name = "##PIP_COMMAND_NAME_PLACEHOLDER##"
+                placeholder_to_find = (
+                    f'$_pip_command_name_placeholder = "{placeholder_name}"'
                 )
+                replacement_line = f'$_pip_command_name_placeholder = "{prog_name}"'
+                script = script_template.replace(placeholder_to_find, replacement_line)
             else:
                 # options.shell is not "powershell" and is a key in COMPLETION_SCRIPTS.
                 # All non-powershell entries in COMPLETION_SCRIPTS are strings.

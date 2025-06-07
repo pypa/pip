@@ -1,3 +1,7 @@
+"""Tests for the completion module."""
+
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import os
@@ -60,11 +64,16 @@ fi""",
     (
         "powershell",
         """\
+# pip powershell completion start
 # PowerShell completion script for pip
-# This script enables modern tab completion in PowerShell 5.1+ and PowerShell Core (6.0+)
+# Enables modern tab completion in PowerShell 5.1+ and Core (6.0+)
 
+# fmt: off
 # Determine the command name dynamically (e.g., pip, pip3, or custom shim)
-$commandName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Name)
+# Fallback to dynamic if placeholder is not replaced by Python.
+$_pip_command_name_placeholder = "pip" # This line will be targeted for replacement
+$invokedCommandName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Name)
+$commandName = if ($_pip_command_name_placeholder -ne "##PIP_COMMAND_NAME_PLACEHOLDER##") { $_pip_command_name_placeholder } else { $invokedCommandName }
 
 Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
     param(
@@ -84,7 +93,8 @@ Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
         $output = & $commandName 2>$null
         if ($output) {
             $completions = $output.Split() | ForEach-Object {
-                [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+                [System.Management.Automation.CompletionResult]::new($_, $_, `
+                    'ParameterValue', $_)
             }
         } else {
             $completions = @()
@@ -99,7 +109,10 @@ Register-ArgumentCompleter -Native -CommandName $commandName -ScriptBlock {
     }
 
     return $completions
-}""",
+}
+# pip powershell completion end
+# fmt: on
+# ruff: noqa: E501""",
     ),
 )
 
@@ -130,12 +143,26 @@ def test_completion_for_supported_shells(
     Test getting completion for bash shell
     """
     result = script_with_launchers.pip("completion", "--" + shell, use_module=False)
-    actual = str(result.stdout)
+    actual_raw = str(result.stdout)
+
     if script_with_launchers.zipapp:
-        # The zipapp reports its name as "pip.pyz", but the expected
-        # output assumes "pip"
-        actual = actual.replace("pip.pyz", "pip")
-    assert completion in actual, actual
+        actual_raw = actual_raw.replace("pip.pyz", "pip")
+
+    # Normalize line endings
+    normalized_actual = actual_raw.replace("\r\n", "\n").strip()
+    normalized_completion = completion.replace("\r\n", "\n").strip()
+
+    # Handle potential UTF-8 BOM in actual output (more common from files on Windows)
+    if normalized_actual.startswith("\ufeff"):
+        normalized_actual = normalized_actual[1:]
+
+    error_msg = (
+        f"Expected (len {len(normalized_completion)}):\n"
+        f"{normalized_completion}\n\n"
+        f"Actual (len {len(normalized_actual)}):\n"
+        f"{normalized_actual}"
+    )
+    assert normalized_completion == normalized_actual, error_msg
 
 
 @pytest.fixture(scope="session")
