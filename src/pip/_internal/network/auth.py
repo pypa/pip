@@ -230,7 +230,7 @@ class MultiDomainBasicAuth(AuthBase):
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
-        self.keyring_provider = keyring_provider  # type: ignore[assignment]
+        self.keyring_provider = keyring_provider
         self.passwords: dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
