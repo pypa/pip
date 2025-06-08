@@ -42,6 +42,7 @@ def mypy_whl_no_range(mock_server: MockServer, shared_data: TestData) -> Iterato
     mock_server.stop()
 
 
+@pytest.mark.enable_socket
 @pytest.mark.network
 def test_dist_from_wheel_url(session: PipSession) -> None:
     """Test if the acquired distribution contain correct information."""
@@ -53,6 +54,7 @@ def test_dist_from_wheel_url(session: PipSession) -> None:
     assert {str(d) for d in dist.iter_dependencies(extras)} == MYPY_0_782_REQS
 
 
+@pytest.mark.enable_socket
 def test_dist_from_wheel_url_no_range(
     session: PipSession, mypy_whl_no_range: str
 ) -> None:
@@ -61,6 +63,7 @@ def test_dist_from_wheel_url_no_range(
         dist_from_wheel_url("mypy", mypy_whl_no_range, session)
 
 
+@pytest.mark.enable_socket
 @pytest.mark.network
 def test_dist_from_wheel_url_not_zip(session: PipSession) -> None:
     """Test handling with the given URL does not point to a ZIP."""
