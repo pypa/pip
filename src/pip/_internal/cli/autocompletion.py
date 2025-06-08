@@ -14,118 +14,173 @@ from pip._internal.commands import commands_dict, create_command
 from pip._internal.metadata import get_default_environment
 
 
+def get_completion_environment() -> tuple[list[str], int, int | None]:
+    """Get completion environment variables.
+
+    Returns:
+        tuple containing:
+        - list of command words
+        - current word index
+        - cursor position (or None if not available)
+    """
+    if not all(
+        var in os.environ for var in ["PIP_AUTO_COMPLETE", "COMP_WORDS", "COMP_CWORD"]
+    ):
+        return [], 0, None
+
+    try:
+        cwords = os.environ["COMP_WORDS"].split()[1:]
+        cword = int(os.environ["COMP_CWORD"])
+    except (KeyError, ValueError):
+        return [], 0, None
+
+    try:
+        cursor_pos = int(os.environ.get("CURSOR_POS", ""))
+    except (ValueError, TypeError):
+        cursor_pos = None
+
+    return cwords, cword, cursor_pos
+
+
+def get_cursor_word(words: list[str], cword: int, cursor_pos: int | None = None) -> str:
+    """Get the word under cursor, taking cursor position into account."""
+    try:
+        if cursor_pos is not None and words:
+            # Adjust cursor_pos to account for the dropped program name and space
+            prog_name_len = len(os.path.basename(sys.argv[0])) + 1
+            adjusted_pos = max(0, cursor_pos - prog_name_len)
+
+            # Find which word contains the cursor
+            pos = 0
+            for word in words:
+                next_pos = pos + len(word) + 1  # +1 for space
+                if pos <= adjusted_pos < next_pos:
+                    return word
+                pos = next_pos
+        # Fall back to using cword index
+        # or if cursor is at the end
+        return words[cword - 1] if cword > 0 else ""
+    except (IndexError, ValueError):
+        return ""
+
+
+def get_installed_distributions(current: str, cwords: list[str]) -> list[str]:
+    """Get list of installed distributions for completion."""
+    env = get_default_environment()
+    lc = current.lower()
+    return [
+        dist.canonical_name
+        for dist in env.iter_installed_distributions(local_only=True)
+        if dist.canonical_name.startswith(lc) and dist.canonical_name not in cwords[1:]
+    ]
+
+
+def get_subcommand_options(
+    subcommand: Any, current: str, cwords: list[str], cword: int
+) -> list[str]:
+    """Get completion options for a subcommand."""
+    options: list[tuple[str, int | None]] = []
+
+    # Get all options from the subcommand
+    for opt in subcommand.parser.option_list_all:
+        if opt.help != optparse.SUPPRESS_HELP:
+            options.extend(
+                (opt_str, opt.nargs) for opt_str in opt._long_opts + opt._short_opts
+            )
+
+    # Filter out previously specified options
+    prev_opts = {x.split("=")[0] for x in cwords[1 : cword - 1]}
+    options = [
+        (k, v) for k, v in options if k not in prev_opts and k.startswith(current)
+    ]
+
+    # Handle path completion
+    completion_type = get_path_completion_type(
+        cwords, cword, subcommand.parser.option_list_all
+    )
+    if completion_type:
+        return list(auto_complete_paths(current, completion_type))
+
+    # Format options
+    return [
+        f"{opt[0]}=" if opt[1] and opt[0][:2] == "--" else opt[0] for opt in options
+    ]
+
+
+def get_main_options(
+    parser: Any, current: str, cwords: list[str], cword: int
+) -> list[str]:
+    """Get completion options for main parser."""
+    opts = [i.option_list for i in parser.option_groups]
+    opts.append(parser.option_list)
+    flattened_opts = chain.from_iterable(opts)
+
+    if current.startswith("-"):
+        return [
+            opt_str
+            for opt in flattened_opts
+            if opt.help != optparse.SUPPRESS_HELP
+            for opt_str in opt._long_opts + opt._short_opts
+        ]
+
+    completion_type = get_path_completion_type(cwords, cword, flattened_opts)
+    return (
+        list(auto_complete_paths(current, completion_type)) if completion_type else []
+    )
+
+
 def autocomplete() -> None:
     """Entry Point for completion of main and subcommand options."""
-    # Don't complete if user hasn't sourced bash_completion file.
-    if "PIP_AUTO_COMPLETE" not in os.environ:
+    # Get completion environment
+    cwords, cword, cursor_pos = get_completion_environment()
+    if not cwords:
         return
-    # Don't complete if autocompletion environment variables
-    # are not present
-    if not os.environ.get("COMP_WORDS") or not os.environ.get("COMP_CWORD"):
-        return
-    cwords = os.environ["COMP_WORDS"].split()[1:]
-    cword = int(os.environ["COMP_CWORD"])
-    try:
-        current = cwords[cword - 1]
-    except IndexError:
-        current = ""
 
+    # Get current word to complete
+    current = get_cursor_word(cwords, cword, cursor_pos)
+
+    # Set up parser and get subcommands
     parser = create_main_parser()
     subcommands = list(commands_dict)
-    options = []
 
-    # subcommand
-    subcommand_name: str | None = None
-    for word in cwords:
-        if word in subcommands:
-            subcommand_name = word
-            break
-    # subcommand options
-    if subcommand_name is not None:
-        # special case: 'help' subcommand has no options
+    # Find active subcommand
+    subcommand_name = next((word for word in cwords if word in subcommands), None)
+
+    if subcommand_name:
+        # Handle help subcommand specially
         if subcommand_name == "help":
             sys.exit(1)
-        # special case: list locally installed dists for show and uninstall
-        should_list_installed = not current.startswith("-") and subcommand_name in [
-            "show",
-            "uninstall",
-        ]
-        if should_list_installed:
-            env = get_default_environment()
-            lc = current.lower()
-            installed = [
-                dist.canonical_name
-                for dist in env.iter_installed_distributions(local_only=True)
-                if dist.canonical_name.startswith(lc)
-                and dist.canonical_name not in cwords[1:]
-            ]
-            # if there are no dists installed, fall back to option completion
+
+        # Handle show/uninstall subcommands
+        if not current.startswith("-") and subcommand_name in ["show", "uninstall"]:
+            installed = get_installed_distributions(current, cwords)
             if installed:
-                for dist in installed:
-                    print(dist)
+                print("\n".join(installed))
                 sys.exit(1)
 
-        should_list_installables = (
-            not current.startswith("-") and subcommand_name == "install"
-        )
-        if should_list_installables:
-            for path in auto_complete_paths(current, "path"):
-                print(path)
+        # Handle install subcommand
+        if not current.startswith("-") and subcommand_name == "install":
+            paths = auto_complete_paths(current, "path")
+            print("\n".join(paths))
             sys.exit(1)
 
+        # Get subcommand options
         subcommand = create_command(subcommand_name)
+        options = get_subcommand_options(subcommand, current, cwords, cword)
 
-        for opt in subcommand.parser.option_list_all:
-            if opt.help != optparse.SUPPRESS_HELP:
-                options += [
-                    (opt_str, opt.nargs) for opt_str in opt._long_opts + opt._short_opts
-                ]
-
-        # filter out previously specified options from available options
-        prev_opts = [x.split("=")[0] for x in cwords[1 : cword - 1]]
-        options = [(x, v) for (x, v) in options if x not in prev_opts]
-        # filter options by current input
-        options = [(k, v) for k, v in options if k.startswith(current)]
-        # get completion type given cwords and available subcommand options
-        completion_type = get_path_completion_type(
-            cwords,
-            cword,
-            subcommand.parser.option_list_all,
-        )
-        # get completion files and directories if ``completion_type`` is
-        # ``<file>``, ``<dir>`` or ``<path>``
-        if completion_type:
-            paths = auto_complete_paths(current, completion_type)
-            options = [(path, 0) for path in paths]
-        for option in options:
-            opt_label = option[0]
-            # append '=' to options which require args
-            if option[1] and option[0][:2] == "--":
-                opt_label += "="
-            print(opt_label)
-
-        # Complete sub-commands (unless one is already given).
+        # Print options and subcommand handlers
+        print("\n".join(options))
         if not any(name in cwords for name in subcommand.handler_map()):
-            for handler_name in subcommand.handler_map():
-                if handler_name.startswith(current):
-                    print(handler_name)
+            handlers = [
+                name for name in subcommand.handler_map() if name.startswith(current)
+            ]
+            print("\n".join(handlers))
     else:
-        # show main parser options only when necessary
+        # Handle main parser options
+        options = get_main_options(parser, current, cwords, cword)
+        options.extend(cmd for cmd in subcommands if cmd.startswith(current))
+        print(" ".join(options))
 
-        opts = [i.option_list for i in parser.option_groups]
-        opts.append(parser.option_list)
-        flattened_opts = chain.from_iterable(opts)
-        if current.startswith("-"):
-            for opt in flattened_opts:
-                if opt.help != optparse.SUPPRESS_HELP:
-                    subcommands += opt._long_opts + opt._short_opts
-        else:
-            # get completion type given cwords and all available options
-            completion_type = get_path_completion_type(cwords, cword, flattened_opts)
-            if completion_type:
-                subcommands = list(auto_complete_paths(current, completion_type))
-
-        print(" ".join([x for x in subcommands if x.startswith(current)]))
     sys.exit(1)
 
 
@@ -154,31 +209,35 @@ def get_path_completion_type(
 
 
 def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
-    """If ``completion_type`` is ``file`` or ``path``, list all regular files
-    and directories starting with ``current``; otherwise only list directories
-    starting with ``current``.
+    """If ``completion_type`` is ``file`` or ``path``, list all regular
+    files and directories starting with ``current``; otherwise only list
+    directories starting with ``current``.
 
     :param current: The word to be completed
     :param completion_type: path completion type(``file``, ``path`` or ``dir``)
     :return: A generator of regular files and/or directories
     """
     directory, filename = os.path.split(current)
-    current_path = os.path.abspath(directory)
-    # Don't complete paths if they can't be accessed
-    if not os.access(current_path, os.R_OK):
-        return
-    filename = os.path.normcase(filename)
-    # list all files that start with ``filename``
-    file_list = (
-        x for x in os.listdir(current_path) if os.path.normcase(x).startswith(filename)
-    )
-    for f in file_list:
-        opt = os.path.join(current_path, f)
-        comp_file = os.path.normcase(os.path.join(directory, f))
-        # complete regular files when there is not ``<dir>`` after option
-        # complete directories when there is ``<file>``, ``<path>`` or
-        # ``<dir>``after option
-        if completion_type != "dir" and os.path.isfile(opt):
-            yield comp_file
-        elif os.path.isdir(opt):
-            yield os.path.join(comp_file, "")
+    if directory == "":
+        directory = "."
+
+    # Remove ending os.sep to avoid duplicate entries
+    directory = directory.rstrip(os.sep)
+
+    try:
+        entries = os.listdir(directory)
+    except OSError:
+        return []
+
+    # Add ending os.sep to directories
+    entries = [
+        os.path.join(directory, e)
+        for e in entries
+        if e.startswith(filename)
+        and (
+            completion_type in ("file", "path")
+            or os.path.isdir(os.path.join(directory, e))
+        )
+    ]
+
+    return (entry + os.sep if os.path.isdir(entry) else entry for entry in entries)
