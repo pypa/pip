@@ -1,1 +1,2 @@
-Make the revision part percent-encoded in version control URLs
+Make the revision part percent-encoded in version control URLs,
+e.g. ``git+https://example.com/repo.git@issue%231`` to specify branch ``issue#1``.
