@@ -38,6 +38,7 @@ from pip._internal.req.req_install import (
     InstallRequirement,
     check_invalid_constraint_type,
 )
+from pip._internal.req.constructors import EXPLICIT_EMPTY_EXTRAS
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
 from pip._internal.utils import compatibility_tags
@@ -552,12 +553,13 @@ class Resolver(BaseResolver):
                     set(req_to_install.extras) - set(dist.iter_provided_extras())
                 )
                 for missing in missing_requested:
-                    logger.warning(
-                        "%s %s does not provide the extra '%s'",
-                        dist.raw_name,
-                        dist.version,
-                        missing,
-                    )
+                    if missing != EXPLICIT_EMPTY_EXTRAS:
+                        logger.warning(
+                            "%s %s does not provide the extra '%s'",
+                            dist.raw_name,
+                            dist.version,
+                            missing,
+                        )
 
                 available_requested = sorted(
                     set(dist.iter_provided_extras()) & set(req_to_install.extras)

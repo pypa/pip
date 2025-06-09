@@ -21,6 +21,7 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.constructors import EXPLICIT_EMPTY_EXTRAS
 from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.misc import normalize_version_info
 
@@ -515,12 +516,13 @@ class ExtrasCandidate(Candidate):
         valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
         invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
         for extra in sorted(invalid_extras):
-            logger.warning(
-                "%s %s does not provide the extra '%s'",
-                self.base.name,
-                self.version,
-                extra,
-            )
+            if extra != EXPLICIT_EMPTY_EXTRAS:
+                logger.warning(
+                    "%s %s does not provide the extra '%s'",
+                    self.base.name,
+                    self.version,
+                    extra,
+                )
 
         for r in self.base.dist.iter_dependencies(valid_extras):
             yield from factory.make_requirements_from_spec(
