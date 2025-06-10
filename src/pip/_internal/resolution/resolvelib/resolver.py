@@ -248,11 +248,22 @@ def get_topological_weights(
     requirement_keys.
     """
     path: set[str | None] = set()
-    weights: dict[str | None, int] = {}
+    weights: dict[str | None, list[int]] = {}
 
     def visit(node: str | None) -> None:
         if node in path:
             # We hit a cycle, so we'll break it here.
+            return
+
+        # The walk is exponential and for pathologically connected graphs (which
+        # are the ones most likely to contain cycles in the first place) it can
+        # take until the heat-death of the universe. To counter this we limit
+        # the number of attempts to visit (i.e. traverse through) any given
+        # node. We choose a value here which gives decent enough coverage for
+        # fairly well behaved graphs, and still limits the walk complexity to be
+        # linear in nature.
+        cur_weights = weights.get(node, [])
+        if len(cur_weights) >= 5:
             return
 
         # Time to visit the children!
@@ -264,14 +275,14 @@ def get_topological_weights(
         if node not in requirement_keys:
             return
 
-        last_known_parent_count = weights.get(node, 0)
-        weights[node] = max(last_known_parent_count, len(path))
+        cur_weights.append(len(path))
+        weights[node] = cur_weights
 
-    # Simplify the graph, pruning leaves that have no dependencies.
-    # This is needed for large graphs (say over 200 packages) because the
-    # `visit` function is exponentially slower then, taking minutes.
+    # Simplify the graph, pruning leaves that have no dependencies. This is
+    # needed for large graphs (say over 200 packages) because the `visit`
+    # function is slower for large/densely connected graphs, taking minutes.
     # See https://github.com/pypa/pip/issues/10557
-    # We will loop until we explicitly break the loop.
+    # We repeat the pruning step until we have no more leaves to remove.
     while True:
         leaves = set()
         for key in graph:
@@ -291,12 +302,13 @@ def get_topological_weights(
         for leaf in leaves:
             if leaf not in requirement_keys:
                 continue
-            weights[leaf] = weight
+            weights[leaf] = [weight]
         # Remove the leaves from the graph, making it simpler.
         for leaf in leaves:
             graph.remove(leaf)
 
-    # Visit the remaining graph.
+    # Visit the remaining graph, this will only have nodes to handle if the
+    # graph had a cycle in it, which the pruning step above could not handle.
     # `None` is guaranteed to be the root node by resolvelib.
     visit(None)
 
@@ -305,7 +317,9 @@ def get_topological_weights(
     difference = set(weights.keys()).difference(requirement_keys)
     assert not difference, difference
 
-    return weights
+    # Now give back all the weights, choosing the largest ones from what we
+    # accumulated.
+    return {node : max(wgts) for (node, wgts) in weights.items()}
 
 
 def _req_set_item_sorter(
