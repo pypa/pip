@@ -11,7 +11,7 @@ from pip._internal.utils.urls import path_to_url, url_to_path
 def test_path_to_url_unix() -> None:
     assert path_to_url("/tmp/file") == "file:///tmp/file"
     path = os.path.join(os.getcwd(), "file")
-    assert path_to_url("file") == "file://" + urllib.request.pathname2url(path)
+    assert path_to_url("file") == "file://" + path
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
