@@ -319,7 +319,7 @@ def get_topological_weights(
 
     # Now give back all the weights, choosing the largest ones from what we
     # accumulated.
-    return {node : max(wgts) for (node, wgts) in weights.items()}
+    return {node: max(wgts) for (node, wgts) in weights.items()}
 
 
 def _req_set_item_sorter(
