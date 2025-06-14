@@ -1,0 +1,1 @@
+Add ruff rules PIE for minor optimizations to avoid repeated calls to str.startswith and str.endswith.
