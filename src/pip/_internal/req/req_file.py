@@ -456,7 +456,7 @@ def break_args_options(line: str) -> tuple[str, str]:
     args = []
     options = tokens[:]
     for token in tokens:
-        if token.startswith("-") or token.startswith("--"):
+        if token.startswith(("-", "--")):
             break
         else:
             args.append(token)
