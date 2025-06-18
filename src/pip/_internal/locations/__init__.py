@@ -283,7 +283,7 @@ def get_scheme(
             continue
 
         # On Python 3.9+, sysconfig's posix_user scheme sets platlib against
-        # sys.platlibdir, but distutils's unix_user incorrectly coninutes
+        # sys.platlibdir, but distutils's unix_user incorrectly continues
         # using the same $usersite for both platlib and purelib. This creates a
         # mismatch when sys.platlibdir is not "lib".
         skip_bpo_44860 = (
