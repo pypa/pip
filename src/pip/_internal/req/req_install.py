@@ -22,6 +22,7 @@ from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError, PreviousBuildDirError
+from pip._internal.metadata import get_default_environment
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -879,6 +880,18 @@ class InstallRequirement:
         )
         self.install_succeeded = True
 
+        installed_version = get_installed_version(self.req.name)
+        if installed_version:
+            logger.info("Successfully installed %s-%s", self.req.name, installed_version)
+        else:
+            logger.info("Successfully installed %s (version unknown)", self.req.name)
+
+        self.install_succeeded = True
+
+def get_installed_version(package_name: str) -> str | None:
+    env = get_default_environment()
+    dist = env.get_distribution(package_name)
+    return dist.version if dist else None
 
 def check_invalid_constraint_type(req: InstallRequirement) -> str:
     # Check for unsupported forms
