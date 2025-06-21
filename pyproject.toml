@@ -57,6 +57,7 @@ exclude = ["contrib", "docs", "tests*", "tasks"]
 
 [tool.setuptools.package-data]
 "pip" = ["py.typed"]
+"pip._internal.cli" = ["pip-completion.ps1"]
 "pip._vendor" = ["vendor.txt"]
 "pip._vendor.certifi" = ["*.pem"]
 "pip._vendor.distlib" = [
