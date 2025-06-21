@@ -178,16 +178,17 @@ select = [
     "C90",
     "E",
     "F",
+    "FA",
     "G",
     "I",
     "ISC",
     "PERF",
+    "PIE810",
     "PLE",
     "PLR0",
-    "W",
     "RUF100",
     "UP",
-    "FA",
+    "W",
 ]
 
 [tool.ruff.lint.isort]

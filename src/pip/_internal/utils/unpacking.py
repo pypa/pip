@@ -133,7 +133,7 @@ def unzip_file(filename: str, location: str, flatten: bool = True) -> None:
                     "outside target directory ({})"
                 )
                 raise InstallationError(message.format(filename, fn, location))
-            if fn.endswith("/") or fn.endswith("\\"):
+            if fn.endswith(("/", "\\")):
                 # A directory
                 ensure_dir(fn)
             else:
