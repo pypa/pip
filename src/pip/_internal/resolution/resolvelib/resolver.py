@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible, ResolutionTooDeep
@@ -43,7 +45,7 @@ class Resolver(BaseResolver):
         self,
         preparer: RequirementPreparer,
         finder: PackageFinder,
-        wheel_cache: Optional[WheelCache],
+        wheel_cache: WheelCache | None,
         make_install_req: InstallRequirementProvider,
         use_user_site: bool,
         ignore_dependencies: bool,
@@ -51,7 +53,7 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
-        py_version_info: Optional[Tuple[int, ...]] = None,
+        py_version_info: tuple[int, ...] | None = None,
     ):
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
@@ -69,10 +71,10 @@ class Resolver(BaseResolver):
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
-        self._result: Optional[Result] = None
+        self._result: Result | None = None
 
     def resolve(
-        self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
+        self, root_reqs: list[InstallRequirement], check_supported_wheels: bool
     ) -> RequirementSet:
         collected = self.factory.collect_root_requirements(root_reqs)
         provider = PipProvider(
@@ -187,7 +189,7 @@ class Resolver(BaseResolver):
 
     def get_installation_order(
         self, req_set: RequirementSet
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         """Get order for installation of requirements in RequirementSet.
 
         The returned list contains a requirement before another that depends on
@@ -218,8 +220,8 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(
-    graph: "DirectedGraph[Optional[str]]", requirement_keys: Set[str]
-) -> Dict[Optional[str], int]:
+    graph: DirectedGraph[str | None], requirement_keys: set[str]
+) -> dict[str | None, int]:
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior
@@ -245,10 +247,10 @@ def get_topological_weights(
     We are only interested in the weights of packages that are in the
     requirement_keys.
     """
-    path: Set[Optional[str]] = set()
-    weights: Dict[Optional[str], int] = {}
+    path: set[str | None] = set()
+    weights: dict[str | None, int] = {}
 
-    def visit(node: Optional[str]) -> None:
+    def visit(node: str | None) -> None:
         if node in path:
             # We hit a cycle, so we'll break it here.
             return
@@ -307,9 +309,9 @@ def get_topological_weights(
 
 
 def _req_set_item_sorter(
-    item: Tuple[str, InstallRequirement],
-    weights: Dict[Optional[str], int],
-) -> Tuple[int, str]:
+    item: tuple[str, InstallRequirement],
+    weights: dict[str | None, int],
+) -> tuple[int, str]:
     """Key function used to sort install requirements for installation.
 
     Based on the "weight" mapping calculated in ``get_installation_order()``.

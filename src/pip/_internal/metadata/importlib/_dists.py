@@ -1,17 +1,12 @@
+from __future__ import annotations
+
 import email.message
 import importlib.metadata
 import pathlib
 import zipfile
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from os import PathLike
 from typing import (
-    Collection,
-    Dict,
-    Iterable,
-    Iterator,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
     cast,
 )
 
@@ -64,7 +59,7 @@ class WheelDistribution(importlib.metadata.Distribution):
         zf: zipfile.ZipFile,
         name: str,
         location: str,
-    ) -> "WheelDistribution":
+    ) -> WheelDistribution:
         info_dir, _ = parse_wheel(zf, name)
         paths = (
             (name, pathlib.PurePosixPath(name.split("/", 1)[-1]))
@@ -84,7 +79,7 @@ class WheelDistribution(importlib.metadata.Distribution):
             return iter(self._files)
         raise FileNotFoundError(path)
 
-    def read_text(self, filename: str) -> Optional[str]:
+    def read_text(self, filename: str) -> str | None:
         try:
             data = self._files[pathlib.PurePosixPath(filename)]
         except KeyError:
@@ -97,7 +92,7 @@ class WheelDistribution(importlib.metadata.Distribution):
             raise UnsupportedWheel(error)
         return text
 
-    def locate_file(self, path: Union[str, "PathLike[str]"]) -> pathlib.Path:
+    def locate_file(self, path: str | PathLike[str]) -> pathlib.Path:
         # This method doesn't make sense for our in-memory wheel, but the API
         # requires us to define it.
         raise NotImplementedError
@@ -107,8 +102,8 @@ class Distribution(BaseDistribution):
     def __init__(
         self,
         dist: importlib.metadata.Distribution,
-        info_location: Optional[BasePath],
-        installed_location: Optional[BasePath],
+        info_location: BasePath | None,
+        installed_location: BasePath | None,
     ) -> None:
         self._dist = dist
         self._info_location = info_location
@@ -147,19 +142,19 @@ class Distribution(BaseDistribution):
         return cls(dist, dist.info_location, pathlib.PurePosixPath(wheel.location))
 
     @property
-    def location(self) -> Optional[str]:
+    def location(self) -> str | None:
         if self._info_location is None:
             return None
         return str(self._info_location.parent)
 
     @property
-    def info_location(self) -> Optional[str]:
+    def info_location(self) -> str | None:
         if self._info_location is None:
             return None
         return str(self._info_location)
 
     @property
-    def installed_location(self) -> Optional[str]:
+    def installed_location(self) -> str | None:
         if self._installed_location is None:
             return None
         return normalize_path(str(self._installed_location))
@@ -215,7 +210,7 @@ class Distribution(BaseDistribution):
         ]
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        contexts: Sequence[Dict[str, str]] = [{"extra": e} for e in extras]
+        contexts: Sequence[dict[str, str]] = [{"extra": e} for e in extras]
         for req_string in self.metadata.get_all("Requires-Dist", []):
             # strip() because email.message.Message.get_all() may return a leading \n
             # in case a long header was wrapped.

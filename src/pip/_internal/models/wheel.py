@@ -2,8 +2,10 @@
 name that have meaning.
 """
 
+from __future__ import annotations
+
 import re
-from typing import Dict, Iterable, List, Optional
+from collections.abc import Iterable
 
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import BuildTag, parse_wheel_filename
@@ -31,7 +33,7 @@ class Wheel:
         # To make mypy happy specify type hints that can come from either
         # parse_wheel_filename or the legacy_wheel_file_re match.
         self.name: str
-        self._build_tag: Optional[BuildTag] = None
+        self._build_tag: BuildTag | None = None
 
         try:
             wheel_info = parse_wheel_filename(filename)
@@ -88,11 +90,11 @@ class Wheel:
 
         return self._build_tag
 
-    def get_formatted_file_tags(self) -> List[str]:
+    def get_formatted_file_tags(self) -> list[str]:
         """Return the wheel's tags as a sorted list of strings."""
         return sorted(str(tag) for tag in self.file_tags)
 
-    def support_index_min(self, tags: List[Tag]) -> int:
+    def support_index_min(self, tags: list[Tag]) -> int:
         """Return the lowest index that one of the wheel's file_tag combinations
         achieves in the given list of supported tags.
 
@@ -111,7 +113,7 @@ class Wheel:
             raise ValueError()
 
     def find_most_preferred_tag(
-        self, tags: List[Tag], tag_to_priority: Dict[Tag, int]
+        self, tags: list[Tag], tag_to_priority: dict[Tag, int]
     ) -> int:
         """Return the priority of the most preferred tag that one of the wheel's file
         tag combinations achieves in the given list of supported tags using the given

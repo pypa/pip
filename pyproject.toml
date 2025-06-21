@@ -156,7 +156,7 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 
 [tool.ruff]
 # Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
-target-version = "py38"  # Pin Ruff to Python 3.8
+target-version = "py39"  # Pin Ruff to Python 3.9
 src = ["src"]
 line-length = 88
 extend-exclude = [
@@ -168,7 +168,6 @@ extend-exclude = [
 
 [tool.ruff.lint]
 ignore = [
-    "B019",
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
@@ -181,16 +180,17 @@ select = [
     "C90",
     "E",
     "F",
+    "FA",
     "G",
     "I",
     "ISC",
     "PERF",
+    "PIE810",
     "PLE",
     "PLR0",
-    "W",
     "RUF100",
     "UP",
-    "FA102",  # future-required-type-annotation
+    "W",
 ]
 
 [tool.ruff.lint.isort]

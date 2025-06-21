@@ -9,6 +9,131 @@
 
 .. towncrier release notes start
 
+25.1.1 (2025-05-02)
+===================
+
+Bug Fixes
+---------
+
+- Fix ``req.source_dir`` AssertionError when using the legacy resolver. (`#13353 <https://github.com/pypa/pip/issues/13353>`_)
+- Fix crash on Python 3.9.6 and lower when pip failed to compile a Python module
+  during installation. (`#13364 <https://github.com/pypa/pip/issues/13364>`_)
+- Names in dependency group includes are now normalized before lookup, which
+  fixes incorrect ``Dependency group '...' not found`` errors. (`#13372 <https://github.com/pypa/pip/issues/13372>`_)
+
+Vendored Libraries
+------------------
+
+- Fix issues with using tomllib from the stdlib if available, rather than tomli
+- Upgrade dependency-groups to 1.3.1
+
+
+25.1 (2025-04-26)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Drop support for Python 3.8. (`#12989 <https://github.com/pypa/pip/issues/12989>`_)
+- On python 3.14+, the ``pkg_resources`` metadata backend cannot be used anymore. (`#13010 <https://github.com/pypa/pip/issues/13010>`_)
+- Hide ``--no-python-version-warning`` from CLI help and documentation
+  as it's useless since Python 2 support was removed. Despite being
+  formerly slated for removal, the flag will remain as a no-op to
+  avoid breakage. (`#13303 <https://github.com/pypa/pip/issues/13303>`_)
+- A warning is emitted when the deprecated ``pkg_resources`` library is used to
+  inspect and discover installed packages. This warning should only be visible to
+  users who set an undocumented environment variable to disable the default
+  ``importlib.metadata`` backend. (`#13318 <https://github.com/pypa/pip/issues/13318>`_)
+- Deprecate the legacy ``setup.py bdist_wheel`` mechanism. To silence the warning,
+  and future-proof their setup, users should enable ``--use-pep517`` or add a
+  ``pyproject.toml`` file to the projects they control. (`#13319 <https://github.com/pypa/pip/issues/13319>`_)
+
+Features
+--------
+
+- Suggest checking "pip config debug" in case of an InvalidProxyURL error. (`#12649 <https://github.com/pypa/pip/issues/12649>`_)
+- Using ``--debug`` also enables verbose logging. (`#12710 <https://github.com/pypa/pip/issues/12710>`_)
+- Display a transient progress bar during package installation. (`#12712 <https://github.com/pypa/pip/issues/12712>`_)
+- Minor performance improvement when installing packages with a large number
+  of dependencies by increasing the requirement string cache size. (`#12873 <https://github.com/pypa/pip/issues/12873>`_)
+- Add a ``--group`` option which allows installation from :pep:`735` Dependency
+  Groups. ``--group`` accepts arguments of the form ``group`` or
+  ``path:group``, where the default path is ``pyproject.toml``, and installs
+  the named Dependency Group from the provided ``pyproject.toml`` file. (`#12963 <https://github.com/pypa/pip/issues/12963>`_)
+- Add support to enable resuming incomplete downloads.
+
+  Control the number of retry attempts using the ``--resume-retries`` flag. (`#12991 <https://github.com/pypa/pip/issues/12991>`_)
+- Use :pep:`753` "Well-known Project URLs in Metadata" normalization rules when
+  identifying an equivalent project URL to replace a missing ``Home-Page`` field
+  in ``pip show``. (`#13135 <https://github.com/pypa/pip/issues/13135>`_)
+- Remove ``experimental`` warning from ``pip index versions`` command. (`#13188 <https://github.com/pypa/pip/issues/13188>`_)
+- Add a structured ``--json`` output to ``pip index versions`` (`#13194 <https://github.com/pypa/pip/issues/13194>`_)
+- Add a new, *experimental*, ``pip lock`` command, implementing :pep:`751`. (`#13213 <https://github.com/pypa/pip/issues/13213>`_)
+- Speed up resolution by first only considering the preference of
+  candidates that must be required to complete the resolution. (`#13253 <https://github.com/pypa/pip/issues/13253>`_)
+- Improved heuristics for determining the order of dependency resolution. (`#13273 <https://github.com/pypa/pip/issues/13273>`_)
+- Provide hint, documentation, and link to the documentation when
+  resolution too deep error occurs. (`#13282 <https://github.com/pypa/pip/issues/13282>`_)
+- Include traceback on failure to import ``setuptools`` when ``setup.py`` is being invoked directly. (`#13290 <https://github.com/pypa/pip/issues/13290>`_)
+- Support for :pep:`738` Android wheels. (`#13299 <https://github.com/pypa/pip/issues/13299>`_)
+- Display wheel build tag in ``pip list`` columns output if set. (`#5210 <https://github.com/pypa/pip/issues/5210>`_)
+- Build environment dependencies are no longer compiled to bytecode during
+  installation for a minor performance improvement. (`#7294 <https://github.com/pypa/pip/issues/7294>`_)
+
+Bug Fixes
+---------
+
+- When using the ``importlib.metadata`` backend (the default on Python 3.11+),
+  ``pip list`` does not show installed egg distributions more than once anymore.
+  Additionally, egg distributions whose parent directory was in ``sys.path`` but
+  the egg themselves were not in ``sys.path`` are not detected anymore. (`#12308 <https://github.com/pypa/pip/issues/12308>`_)
+- Disable Git and SSH prompts when ``--no-input`` is passed. (`#12718 <https://github.com/pypa/pip/issues/12718>`_)
+- Gracefully handle Windows registry access errors while guessing the MIME type of a file. (`#12769 <https://github.com/pypa/pip/issues/12769>`_)
+- Support multiple global configuration paths returned by ``platformdirs`` on MacOS. (`#12903 <https://github.com/pypa/pip/issues/12903>`_)
+- Resolvelib 1.1.0 fixes a known issue where pip would report a
+  ResolutionImpossible error even though there is a valid solution.
+  However, some very complex dependency resolutions that previously
+  resolved may resolve slower or fail with an ResolutionTooDeep error. (`#13001 <https://github.com/pypa/pip/issues/13001>`_)
+- Show the correct path to the interpreter also when it's a symlink in a venv in the pip upgrade prompt. (`#13156 <https://github.com/pypa/pip/issues/13156>`_)
+- Parse wheel filenames according to `binary distribution format specification
+  <https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-format>`_.
+  When a filename doesn't match the spec a deprecation warning is emitted and the
+  filename is parsed using the old method. (`#13229 <https://github.com/pypa/pip/issues/13229>`_)
+- While resolving dependencies prefer if any of the known requirements are
+  "direct", e.g. points to an explicit URL. (`#13244 <https://github.com/pypa/pip/issues/13244>`_)
+- When choosing a preferred requirement for resolving dependencies
+  do not consider a specifier with a * in it, e.g. "==1.*", to be a
+  pinned specifier. (`#13252 <https://github.com/pypa/pip/issues/13252>`_)
+- Fix a regression that causes dependencies to be checked *before* ``Requires-Python``
+  project metadata is checked, leading to wasted cycles when the Python version is
+  unsupported. (`#13270 <https://github.com/pypa/pip/issues/13270>`_)
+- Don't require the ``wheel`` library to be installed to use ``--no-use-pep517``, any more. (`#13330 <https://github.com/pypa/pip/issues/13330>`_)
+- Fix regression that suppressed errors indicating which packages were ignored
+  due to incompatible ``requires-python`` metadata. (`#13333 <https://github.com/pypa/pip/issues/13333>`_)
+- Fix fish shell completion when commandline contains multiple commands. (`#9727 <https://github.com/pypa/pip/issues/9727>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.14.2
+- Upgrade certifi to 2025.1.31
+- Upgrade packaging to 25.0
+- Upgrade platformdirs to 4.3.7
+- Upgrade pygments to 2.19.1
+- Upgrade resolvelib to 1.1.0.
+- Upgrade rich to 14.0.0
+- Vendor tomli-w 1.2.0
+- Upgrade truststore to 0.10.1
+- Upgrade typing_extensions to 4.13.2
+
+Improved Documentation
+----------------------
+
+- Added support for building only the man pages with minimal dependencies using
+  the sphinx-build ``--tag man`` option. This enables distributors to generate man
+  pages without requiring HTML documentation dependencies. (`#13168 <https://github.com/pypa/pip/issues/13168>`_)
+
+
 25.0.1 (2025-02-09)
 ===================
 

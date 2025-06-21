@@ -1,3 +1,0 @@
-Use :pep:`753` "Well-known Project URLs in Metadata" normalization rules when
-identifying an equivalent project URL to replace a missing ``Home-Page`` field
-in ``pip show``.

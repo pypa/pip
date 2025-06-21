@@ -1,1 +1,0 @@
-Include traceback on failure to import ``setuptools`` when ``setup.py`` is being invoked directly.

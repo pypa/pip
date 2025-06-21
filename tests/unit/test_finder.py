@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
 import pytest
@@ -319,7 +319,10 @@ def test_finder_priority_file_over_page(data: TestData) -> None:
         find_links=[data.find_links],
         index_urls=["http://pypi.org/simple/"],
     )
-    all_versions = finder.find_all_candidates(req.name)
+    name = req.name
+    assert name == "gmpy"
+
+    all_versions = finder.find_all_candidates(name)
     # 1 file InstallationCandidate followed by all https ones
     assert all_versions[0].link.scheme == "file"
     assert all(
@@ -335,9 +338,11 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     """Test PackageFinder prefers non-egg links over "#egg=" links"""
     req = install_req_from_line("bar==1.0")
     links = ["http://foo/bar.py#egg=bar-1.0", "http://foo/bar-1.0.tar.gz"]
+    name = req.name
+    assert name == "bar"
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions = finder.find_all_candidates(name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
 
@@ -349,7 +354,7 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     links.reverse()
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions = finder.find_all_candidates(name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
     found = finder.find_requirement(req, False)

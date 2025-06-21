@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import io
 import os
@@ -7,9 +9,9 @@ import sys
 import sysconfig
 import tarfile
 import textwrap
+from collections.abc import Iterable
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
@@ -1375,7 +1377,7 @@ def test_install_package_with_prefix(
 
 
 def _test_install_editable_with_prefix(
-    script: PipTestEnvironment, files: Dict[str, str]
+    script: PipTestEnvironment, files: dict[str, str]
 ) -> TestPipResult:
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
@@ -1774,7 +1776,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
         to_install,
         expect_error=True,  # error building wheelbroken
     )
-    wheels: List[str] = []
+    wheels: list[str] = []
     for _, _, files in os.walk(wheels_cache):
         wheels.extend(f for f in files if f.endswith(".whl"))
     # Built wheel for upper
@@ -1917,6 +1919,7 @@ def test_double_install(script: PipTestEnvironment) -> None:
     assert msg not in result.stderr
 
 
+@pytest.mark.network
 def test_double_install_fail(
     script: PipTestEnvironment, resolver_variant: ResolverVariant
 ) -> None:
@@ -2211,7 +2214,7 @@ def test_user_config_accepted(script: PipTestEnvironment) -> None:
 @pytest.mark.parametrize("use_module", [True, False])
 def test_install_pip_does_not_modify_pip_when_satisfied(
     script: PipTestEnvironment,
-    install_args: List[str],
+    install_args: list[str],
     expected_message: str,
     use_module: bool,
     resolver_variant: ResolverVariant,
@@ -2349,7 +2352,7 @@ def test_error_all_yanked_files_and_no_pin(
     ],
 )
 def test_install_sends_client_cert(
-    install_args: Tuple[str, ...],
+    install_args: tuple[str, ...],
     script: PipTestEnvironment,
     cert_factory: CertFactory,
     data: TestData,
@@ -2485,7 +2488,7 @@ def install_find_links(
     args: Iterable[str],
     *,
     dry_run: bool,
-    target_dir: Optional[Path],
+    target_dir: Path | None,
 ) -> TestPipResult:
     return script.pip(
         "install",
@@ -2677,6 +2680,7 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.parametrize("common_prefix", ["", "linktest-1.0/"])
+@pytest.mark.network
 def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
     """
     Test installing an sdist with hard and symbolic links.

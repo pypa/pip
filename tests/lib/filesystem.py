@@ -1,15 +1,17 @@
 """Helpers for filesystem-dependent tests."""
 
+from __future__ import annotations
+
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Iterator, List, Set, Union
 
 
-def get_filelist(base: str) -> Set[str]:
-    def join(dirpath: str, dirnames: List[str], filenames: List[str]) -> Iterator[str]:
+def get_filelist(base: str) -> set[str]:
+    def join(dirpath: str, dirnames: list[str], filenames: list[str]) -> Iterator[str]:
         relative_dirpath = os.path.relpath(dirpath, base)
         join_dirpath = partial(os.path.join, relative_dirpath)
         return chain(
@@ -21,7 +23,7 @@ def get_filelist(base: str) -> Set[str]:
 
 
 @contextmanager
-def chmod(path: Union[str, Path], mode: int) -> Iterator[None]:
+def chmod(path: str | Path, mode: int) -> Iterator[None]:
     """Contextmanager to temporarily update a path's mode."""
     old_mode = os.stat(path).st_mode
     try:

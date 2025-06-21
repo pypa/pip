@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import List, Tuple
 
 import pytest
 
@@ -34,7 +33,7 @@ def _is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
 
 
 @pytest.fixture
-def test_cases(data: TestData) -> List[Tuple[str, str, int]]:
+def test_cases(data: TestData) -> list[tuple[str, str, int]]:
     def _data_file(name: str) -> Path:
         return data.packages.joinpath(name)
 
@@ -67,7 +66,7 @@ def test_cases(data: TestData) -> List[Tuple[str, str, int]]:
 
 
 def test_new_resolver_requirement_has_name(
-    test_cases: List[Tuple[str, str, int]], factory: Factory
+    test_cases: list[tuple[str, str, int]], factory: Factory
 ) -> None:
     """All requirements should have a name"""
     for spec, name, _ in test_cases:
@@ -77,7 +76,7 @@ def test_new_resolver_requirement_has_name(
 
 
 def test_new_resolver_correct_number_of_matches(
-    test_cases: List[Tuple[str, str, int]], factory: Factory
+    test_cases: list[tuple[str, str, int]], factory: Factory
 ) -> None:
     """Requirements should return the correct number of candidates"""
     for spec, _, match_count in test_cases:
@@ -96,7 +95,7 @@ def test_new_resolver_correct_number_of_matches(
 
 
 def test_new_resolver_candidates_match_requirement(
-    test_cases: List[Tuple[str, str, int]], factory: Factory
+    test_cases: list[tuple[str, str, int]], factory: Factory
 ) -> None:
     """Candidates returned from find_candidates should satisfy the requirement"""
     for spec, _, _ in test_cases:

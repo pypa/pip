@@ -1,2 +1,0 @@
-Provide hint, documentation, and link to the documentation when
-resolution too deep error occurs.

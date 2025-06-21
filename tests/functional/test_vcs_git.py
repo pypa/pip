@@ -2,10 +2,11 @@
 Contains functional tests of the Git class.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import pathlib
-from typing import List, Optional, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -48,7 +49,7 @@ def do_commit(script: PipTestEnvironment, dest: str) -> str:
     return get_head_sha(script, dest)
 
 
-def add_commits(script: PipTestEnvironment, dest: str, count: int) -> List[str]:
+def add_commits(script: PipTestEnvironment, dest: str, count: int) -> list[str]:
     """Return a list of the commit hashes from oldest to newest."""
     shas = []
     for _ in range(count):
@@ -58,7 +59,7 @@ def add_commits(script: PipTestEnvironment, dest: str, count: int) -> List[str]:
     return shas
 
 
-def check_rev(repo_dir: str, rev: str, expected: Tuple[Optional[str], bool]) -> None:
+def check_rev(repo_dir: str, rev: str, expected: tuple[str | None, bool]) -> None:
     assert Git.get_revision_sha(repo_dir, rev) == expected
 
 

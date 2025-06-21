@@ -2,10 +2,11 @@ import logging
 import os
 import sys
 import textwrap
+from collections.abc import Iterator
 from os.path import join, normpath
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import Any, Iterator
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -628,10 +629,6 @@ def test_uninstall_with_symlink(
     assert symlink_target.stat().st_mode == st_mode
 
 
-@pytest.mark.skipif(
-    "sys.version_info >= (3, 14)",
-    reason="Uninstall of .egg distributions not supported in Python 3.14+",
-)
 def test_uninstall_setuptools_develop_install(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -642,11 +639,19 @@ def test_uninstall_setuptools_develop_install(
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
-    assert any(p.suffix == ".egg" for p in uninstall.files_deleted), str(uninstall)
     uninstall2 = script.pip("uninstall", "FSPkg", "-y")
-    assert (
+    # Depending on the metadata backend, the egg-link will be uninstalled first
+    # or second, so we use xor in the assertions below.
+    assert (join(script.site_packages, "FSPkg.egg-link") in uninstall.files_deleted) ^ (
         join(script.site_packages, "FSPkg.egg-link") in uninstall2.files_deleted
-    ), str(uninstall2)
+    )
+    assert any(
+        p.name.startswith("FSPkg") and p.suffix == ".egg"
+        for p in uninstall.files_deleted
+    ) ^ any(
+        p.name.startswith("FSPkg") and p.suffix == ".egg"
+        for p in uninstall2.files_deleted
+    )
     script.assert_not_installed("FSPkg")
 
 

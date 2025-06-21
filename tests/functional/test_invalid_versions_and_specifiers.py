@@ -96,12 +96,15 @@ def test_upgrade_require_invalid_version(
     script.pip("install", "--index-url", index_url, "require-invalid-version")
 
 
-def test_list_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
+@pytest.mark.parametrize("format", ["columns", "freeze", "json"])
+def test_list_invalid_version(
+    script: PipTestEnvironment, data: TestData, format: str
+) -> None:
     """
     Test that pip can list an environment containing a package with a legacy version.
     """
     _install_invalid_version(script, data)
-    script.pip("list")
+    script.pip("list", f"--format={format}")
 
 
 def test_freeze_invalid_version(script: PipTestEnvironment, data: TestData) -> None:

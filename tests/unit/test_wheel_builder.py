@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 
 import pytest
 
@@ -38,9 +40,9 @@ class ReqMock:
     name: str = "pendulum"
     is_wheel: bool = False
     editable: bool = False
-    link: Optional[Link] = None
+    link: Link | None = None
     constraint: bool = False
-    source_dir: Optional[str] = "/tmp/pip-install-123/pendulum"
+    source_dir: str | None = "/tmp/pip-install-123/pendulum"
     use_pep517: bool = True
     supports_pyproject_editable: bool = False
 

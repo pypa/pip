@@ -1,12 +1,13 @@
 """Tests the presentation style of exceptions."""
 
+from __future__ import annotations
+
 import io
 import locale
 import logging
 import pathlib
 import sys
 import textwrap
-from typing import Optional, Tuple
 
 import pytest
 
@@ -492,7 +493,7 @@ class TestExternallyManagedEnvironment:
     def patch_locale(self, monkeypatch: pytest.MonkeyPatch) -> None:
         orig_getlocal = locale.getlocale
 
-        def fake_getlocale(category: int) -> Tuple[Optional[str], Optional[str]]:
+        def fake_getlocale(category: int) -> tuple[str | None, str | None]:
             """Fake getlocale() that always reports zh_Hant for LC_MESSASGES."""
             result = orig_getlocal(category)
             if category == getattr(locale, "LC_MESSAGES", None):

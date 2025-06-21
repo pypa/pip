@@ -2,9 +2,10 @@ import pathlib
 import ssl
 import threading
 from base64 import b64encode
+from collections.abc import Iterable, Iterator
 from contextlib import ExitStack, contextmanager
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List
+from typing import TYPE_CHECKING, Any, Callable
 from unittest.mock import Mock
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
@@ -23,7 +24,7 @@ class _MockServer(BaseWSGIServer):
 
 
 class _RequestHandler(WSGIRequestHandler):
-    def make_environ(self) -> Dict[str, Any]:
+    def make_environ(self) -> dict[str, Any]:
         environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
@@ -150,7 +151,7 @@ def html5_page(text: str) -> str:
     )
 
 
-def package_page(spec: Dict[str, str]) -> "WSGIApplication":
+def package_page(spec: dict[str, str]) -> "WSGIApplication":
     def link(name: str, value: str) -> str:
         return f'<a href="{value}">{name}</a>'
 
@@ -226,7 +227,7 @@ class MockServer:
         assert self._running, "idle server cannot be stopped"
         self.context.close()
 
-    def get_requests(self) -> List[Dict[str, str]]:
+    def get_requests(self) -> list[dict[str, str]]:
         """Get environ for each received request."""
         assert not self._running, "cannot get mock from running server"
         # Legacy: replace call[0][0] with call.args[0]

@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import contextlib
 import email.message
 import os
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterator
 from functools import partial
 from pathlib import Path
-from typing import Iterator, Optional, Set, Tuple, cast
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -84,7 +87,7 @@ class TestRequirementSet:
         self,
         finder: PackageFinder,
         require_hashes: bool = False,
-        wheel_cache: Optional[WheelCache] = None,
+        wheel_cache: WheelCache | None = None,
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
@@ -816,7 +819,7 @@ class TestInstallRequirement:
         ],
     )
     def test_install_req_extend_extras(
-        self, inp: str, extras: Set[str], out: str
+        self, inp: str, extras: set[str], out: str
     ) -> None:
         """
         Test behavior of install_req_extend_extras
@@ -997,8 +1000,8 @@ def test_looks_like_path_win(args: str, expected: bool) -> None:
 def test_get_url_from_path(
     isdir_mock: mock.Mock,
     isfile_mock: mock.Mock,
-    args: Tuple[str, str],
-    mock_returns: Tuple[bool, bool],
+    args: tuple[str, str],
+    mock_returns: tuple[bool, bool],
     expected: None,
 ) -> None:
     isdir_mock.return_value = mock_returns[0]

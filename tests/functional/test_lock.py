@@ -1,15 +1,12 @@
-import sys
 import textwrap
 from pathlib import Path
 
+import pytest
+
+from pip._internal.utils.compat import tomllib
 from pip._internal.utils.urls import path_to_url
 
 from ..lib import PipTestEnvironment, TestData
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    from pip._vendor import tomli as tomllib
 
 
 def test_lock_wheel_from_findlinks(
@@ -186,6 +183,7 @@ def test_lock_local_editable_with_dep(
     ]
 
 
+@pytest.mark.network
 def test_lock_vcs(script: PipTestEnvironment, shared_data: TestData) -> None:
     result = script.pip(
         "lock",
@@ -210,6 +208,7 @@ def test_lock_vcs(script: PipTestEnvironment, shared_data: TestData) -> None:
     ]
 
 
+@pytest.mark.network
 def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None:
     result = script.pip(
         "lock",

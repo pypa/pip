@@ -120,7 +120,7 @@ def test_parse_gets_unexpected_oserror(
         raise OSError(errno.EPIPE, "Broken pipe")
 
     monkeypatch.setattr(
-        "pip._internal.req.req_dependency_group.tomli.load", epipe_toml_load
+        "pip._internal.req.req_dependency_group.tomllib.load", epipe_toml_load
     )
 
     with pytest.raises(InstallationError, match=r"Error reading pyproject\.toml"):

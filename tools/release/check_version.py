@@ -1,13 +1,14 @@
 """Checks if the version is acceptable, as per this project's release process."""
 
+from __future__ import annotations
+
 import sys
 from datetime import datetime
-from typing import Optional
 
 from packaging.version import InvalidVersion, Version
 
 
-def is_this_a_good_version_number(string: str) -> Optional[str]:
+def is_this_a_good_version_number(string: str) -> str | None:
     try:
         v = Version(string)
     except InvalidVersion as e:
