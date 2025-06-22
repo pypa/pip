@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from pip._vendor.requests.models import Request, Response
 
     from pip._internal.metadata import BaseDistribution
-    from pip._internal.models.link import Link
+    from pip._internal.network.download import _FileDownload
     from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
@@ -819,17 +819,19 @@ class IncompleteDownloadError(DiagnosticPipError):
 
     reference = "incomplete-download"
 
-    def __init__(
-        self, link: Link, received: int, expected: int, *, retries: int
-    ) -> None:
+    def __init__(self, download: _FileDownload) -> None:
         # Dodge circular import.
         from pip._internal.utils.misc import format_size
 
-        download_status = f"{format_size(received)}/{format_size(expected)}"
-        if retries:
-            retry_status = f"after {retries} attempts "
+        assert download.size is not None
+        download_status = (
+            f"{format_size(download.bytes_received)}/{format_size(download.size)}"
+        )
+        if download.reattempts:
+            retry_status = f"after {download.reattempts + 1} attempts "
             hint = "Use --resume-retries to configure resume attempt limit."
         else:
+            # Download retrying is not enabled.
             retry_status = ""
             hint = "Consider using --resume-retries to enable download resumption."
         message = Text(
@@ -839,7 +841,7 @@ class IncompleteDownloadError(DiagnosticPipError):
 
         super().__init__(
             message=message,
-            context=f"URL: {link.redacted_url}",
+            context=f"URL: {download.link.redacted_url}",
             hint_stmt=hint,
             note_stmt="This is an issue with network connectivity, not pip.",
         )

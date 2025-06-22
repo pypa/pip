@@ -12,8 +12,7 @@ from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
     _get_http_response_size,
-    _http_get_download,
-    _prepare_download,
+    _log_download,
     parse_content_disposition,
     sanitize_content_filename,
 )
@@ -77,7 +76,7 @@ from tests.lib.requests_mocks import MockResponse
         ),
     ],
 )
-def test_prepare_download__log(
+def test_log_download(
     caplog: pytest.LogCaptureFixture,
     url: str,
     headers: dict[str, str],
@@ -93,7 +92,7 @@ def test_prepare_download__log(
         resp.from_cache = from_cache
     link = Link(url)
     total_length = _get_http_response_size(resp)
-    _prepare_download(
+    _log_download(
         resp,
         link,
         progress_bar="on",
@@ -147,29 +146,6 @@ def test_sanitize_content_filename__platform_dependent(
     else:
         expected = non_win_expected
     assert sanitize_content_filename(filename) == expected
-
-
-@pytest.mark.parametrize(
-    "range_start, if_range, expected_headers",
-    [
-        (None, None, HEADERS),
-        (1234, None, {**HEADERS, "Range": "bytes=1234-"}),
-        (1234, '"etag"', {**HEADERS, "Range": "bytes=1234-", "If-Range": '"etag"'}),
-    ],
-)
-def test_http_get_download(
-    range_start: int | None,
-    if_range: str | None,
-    expected_headers: dict[str, str],
-) -> None:
-    session = PipSession()
-    session.get = MagicMock()
-    link = Link("http://example.com/foo.tgz")
-    with patch("pip._internal.network.download.raise_for_status"):
-        _http_get_download(session, link, range_start, if_range)
-    session.get.assert_called_once_with(
-        "http://example.com/foo.tgz", headers=expected_headers, stream=True
-    )
 
 
 @pytest.mark.parametrize(
@@ -253,9 +229,9 @@ def test_parse_content_disposition(
             [(24, None), (36, None)],
             b"new-0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
         ),
-        # The downloader should fail after n resume_retries attempts.
+        # The downloader should fail after N resume_retries attempts.
         # This prevents the downloader from getting stuck if the connection
-        # is unstable and the server doesn't not support range requests.
+        # is unstable and the server does NOT support range requests.
         (
             1,
             [
@@ -265,7 +241,7 @@ def test_parse_content_disposition(
             [(24, None)],
             None,
         ),
-        # The downloader should use If-Range header to make the range
+        # The downloader should use the If-Range header to make the range
         # request conditional if it is possible to check for modifications
         # (e.g. if we know the creation time of the initial response).
         (
@@ -281,15 +257,26 @@ def test_parse_content_disposition(
                 ),
                 (
                     {
+                        "content-length": "42",
+                        "last-modified": "Wed, 21 Oct 2015 07:30:00 GMT",
+                    },
+                    200,
+                    b"new-0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
+                ),
+                (
+                    {
                         "content-length": "12",
                         "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT",
                     },
-                    206,
+                    200,
                     b"f2561d5dfd89",
                 ),
             ],
-            [(24, "Wed, 21 Oct 2015 07:28:00 GMT")],
-            b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
+            [
+                (24, "Wed, 21 Oct 2015 07:28:00 GMT"),
+                (40, "Wed, 21 Oct 2015 07:30:00 GMT"),
+            ],
+            b"f2561d5dfd89",
         ),
         # ETag is preferred over Last-Modified for the If-Range condition.
         (
@@ -310,12 +297,12 @@ def test_parse_content_disposition(
                         "last-modified": "Wed, 21 Oct 2015 07:54:00 GMT",
                         "etag": '"33a64df551425fcc55e4d42a148795d9f25f89d4"',
                     },
-                    206,
+                    200,
                     b"f2561d5dfd89",
                 ),
             ],
             [(24, '"33a64df551425fcc55e4d42a148795d9f25f89d4"')],
-            b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89",
+            b"f2561d5dfd89",
         ),
     ],
 )
@@ -323,7 +310,7 @@ def test_downloader(
     resume_retries: int,
     mock_responses: list[tuple[dict[str, str], int, bytes]],
     # list of (range_start, if_range)
-    expected_resume_args: list[tuple[int | None, int | None]],
+    expected_resume_args: list[tuple[int | None, str | None]],
     # expected_bytes is None means the download should fail
     expected_bytes: bytes | None,
     tmpdir: Path,
@@ -338,9 +325,9 @@ def test_downloader(
         resp.headers = headers
         resp.status_code = status_code
         responses.append(resp)
-    _http_get_download = MagicMock(side_effect=responses)
+    _http_get_mock = MagicMock(side_effect=responses)
 
-    with patch("pip._internal.network.download._http_get_download", _http_get_download):
+    with patch.object(Downloader, "_http_get", _http_get_mock):
         if expected_bytes is None:
             remove = MagicMock(return_value=None)
             with patch("os.remove", remove):
@@ -354,9 +341,12 @@ def test_downloader(
                 downloaded_bytes = downloaded_file.read()
                 assert downloaded_bytes == expected_bytes
 
-    calls = [call(session, link)]  # the initial request
+    calls = [call(link)]  # the initial GET request
     for range_start, if_range in expected_resume_args:
-        calls.append(call(session, link, range_start=range_start, if_range=if_range))
+        headers = {**HEADERS, "Range": f"bytes={range_start}-"}
+        if if_range:
+            headers["If-Range"] = if_range
+        calls.append(call(link, headers))
 
-    # Make sure that the download makes additional requests for resumption
-    _http_get_download.assert_has_calls(calls)
+    # Make sure that the downloader makes additional requests for resumption
+    _http_get_mock.assert_has_calls(calls)

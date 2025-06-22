@@ -137,6 +137,8 @@ drop = [
   '^pygments/cmdline\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
+  # trim parts of distlib that aren't related to scripts
+  '^distlib/(?!__init__|compat|resources|scripts|util).*\.py$',
 ]
 
 [tool.vendoring.typing-stubs]
@@ -178,16 +180,17 @@ select = [
     "C90",
     "E",
     "F",
+    "FA",
     "G",
     "I",
     "ISC",
     "PERF",
+    "PIE810",
     "PLE",
     "PLR0",
-    "W",
     "RUF100",
     "UP",
-    "FA",
+    "W",
 ]
 
 [tool.ruff.lint.isort]
