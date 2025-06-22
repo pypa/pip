@@ -127,8 +127,8 @@ index 17ca75eda..ddbb6150d 100644
 -import importlib
  import sys
 
- # -------------------
-@@ -18,12 +17,6 @@ import sys
+ # -------
+@@ -30,12 +29,6 @@ import sys
  def _resolve_char_detection():
      """Find supported character detection libraries."""
      chardet = None
