@@ -71,6 +71,8 @@ def _create_test_package_with_submodule(
 
     env.run(
         "git",
+        "-c",
+        "protocol.file.allow=always",
         "submodule",
         "add",
         os.fspath(submodule_path),
