@@ -204,9 +204,9 @@ Examples
          pip-8.1.1-py2.py3-none-any.whl
 
 #. Download a package supporting one of several ABIs and platforms.
-    This is useful when fetching wheels for a well-defined interpreter, whose
-    supported ABIs and platforms are known and fixed, different than the one pip is
-    running under.
+   This is useful when fetching wheels for a well-defined interpreter, whose
+   supported ABIs and platforms are known and fixed, different than the one pip is
+   running under.
 
    .. tab:: Unix/macOS
 
