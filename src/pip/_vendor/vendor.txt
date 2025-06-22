@@ -5,7 +5,7 @@ msgpack==1.1.1
 packaging==25.0
 platformdirs==4.3.8
 pyproject-hooks==1.2.0
-requests==2.32.3
+requests==2.32.4
     certifi==2025.6.15
     idna==3.10
     urllib3==1.26.20
