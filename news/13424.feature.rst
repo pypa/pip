@@ -1,1 +1,1 @@
-Handle pathologically connected dependency graphs in reasonable time.
+Minor performance improvement getting the order to install a very large number of interdependent packages.
