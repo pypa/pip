@@ -16,7 +16,7 @@ from pip._internal.network.download import (
     parse_content_disposition,
     sanitize_content_filename,
 )
-from pip._internal.network.session import PipSession
+from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS
 
 from tests.lib.requests_mocks import MockResponse
@@ -350,3 +350,62 @@ def test_downloader(
 
     # Make sure that the downloader makes additional requests for resumption
     _http_get_mock.assert_has_calls(calls)
+
+
+def test_resumed_download_caching(tmpdir: Path) -> None:
+    """Test that resumed downloads are cached properly for future use."""
+    session = PipSession()
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on", resume_retries=5)
+
+    # Mock an incomplete download followed by a successful resume
+    incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    incomplete_resp.headers = {"content-length": "36"}
+    incomplete_resp.status_code = 200
+
+    resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.headers = {"content-length": "12"}
+    resume_resp.status_code = 206
+
+    responses = [incomplete_resp, resume_resp]
+    _http_get_mock = MagicMock(side_effect=responses)
+
+    # Mock the session's adapters to have a cache controller
+    mock_adapter = MagicMock(spec=CacheControlAdapter)
+    mock_controller = MagicMock()
+    mock_adapter.controller = mock_controller
+
+    # Create a mock for the session adapters
+    adapters_mock = MagicMock()
+    adapters_mock.__getitem__ = MagicMock(return_value=mock_adapter)
+
+    with (
+        patch.object(Downloader, "_http_get", _http_get_mock),
+        patch.object(session, "adapters", adapters_mock),
+    ):
+
+        filepath, _ = downloader(link, str(tmpdir))
+
+        # Verify the file was downloaded correctly
+        with open(filepath, "rb") as downloaded_file:
+            downloaded_bytes = downloaded_file.read()
+            expected_bytes = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+            assert downloaded_bytes == expected_bytes
+
+        # Verify that cache_response was called for the resumed download
+        mock_controller.cache_response.assert_called_once()
+
+        # Get the call arguments to verify the cached content
+        call_args = mock_controller.cache_response.call_args
+        assert call_args is not None
+
+        # Extract positional and keyword arguments
+        args, kwargs = call_args
+        request, response = args
+        body = kwargs.get("body")
+        status_codes = kwargs.get("status_codes")
+
+        assert body == expected_bytes, "Cached body should match complete file content"
+        assert response.status == 200, "Cached response should have status 200"
+        assert request.url == link.url_without_fragment
+        assert 200 in status_codes
