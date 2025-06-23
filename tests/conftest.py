@@ -122,11 +122,7 @@ def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) 
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
-        if (
-            module_root_dir.startswith("functional")
-            or module_root_dir.startswith("integration")
-            or module_root_dir.startswith("lib")
-        ):
+        if module_root_dir.startswith(("functional", "integration", "lib")):
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
@@ -503,10 +499,7 @@ def virtualenv_template(
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
-        if not (
-            exe.startswith("python")
-            or exe.startswith("libpy")  # Don't remove libpypy-c.so...
-        ):
+        if not exe.startswith(("python", "libpy")):  # Don't remove libpypy-c.so...
             (venv.bin / exe).unlink()
 
     # Rename original virtualenv directory to make sure
