@@ -9,6 +9,7 @@ import pytest
 
 from pip._internal.exceptions import IncompleteDownloadError
 from pip._internal.models.link import Link
+from pip._internal.network.cache import SafeFileCache
 from pip._internal.network.download import (
     Downloader,
     _get_http_response_size,
@@ -374,6 +375,13 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
     mock_adapter = MagicMock(spec=CacheControlAdapter)
     mock_controller = MagicMock()
     mock_adapter.controller = mock_controller
+    mock_controller.cache_url = MagicMock(return_value="cache_key")
+    mock_controller.serializer = MagicMock()
+    mock_controller.serializer.dumps = MagicMock(return_value=b"serialized_data")
+
+    # Mock the cache to be a SafeFileCache
+    mock_cache = MagicMock(spec=SafeFileCache)
+    mock_adapter.cache = mock_cache
 
     # Create a mock for the session adapters
     adapters_mock = MagicMock()
@@ -392,20 +400,18 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
             expected_bytes = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
             assert downloaded_bytes == expected_bytes
 
-        # Verify that cache_response was called for the resumed download
-        mock_controller.cache_response.assert_called_once()
+        # Verify that cache.set was called for metadata
+        mock_cache.set.assert_called_once()
 
-        # Get the call arguments to verify the cached content
-        call_args = mock_controller.cache_response.call_args
-        assert call_args is not None
+        # Verify that set_body_from_io was called for streaming the body
+        mock_cache.set_body_from_io.assert_called_once()
 
-        # Extract positional and keyword arguments
-        args, kwargs = call_args
-        request, response = args
-        body = kwargs.get("body")
-        status_codes = kwargs.get("status_codes")
+        # Verify the call arguments
+        set_call_args = mock_cache.set.call_args
+        assert set_call_args[0][0] == "cache_key"  # First argument should be cache_key
 
-        assert body == expected_bytes, "Cached body should match complete file content"
-        assert response.status == 200, "Cached response should have status 200"
-        assert request.url == link.url_without_fragment
-        assert 200 in status_codes
+        set_body_call_args = mock_cache.set_body_from_io.call_args
+
+        assert set_body_call_args[0][0] == "cache_key"
+        assert hasattr(set_body_call_args[0][1], "read")
+        assert set_body_call_args[0][1].name == filepath

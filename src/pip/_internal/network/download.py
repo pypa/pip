@@ -21,7 +21,7 @@ from pip._internal.cli.progress_bars import get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
-from pip._internal.network.cache import is_from_cache
+from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
@@ -284,6 +284,14 @@ class Downloader:
             )
             return
 
+        # Check SafeFileCache is being used
+        if not isinstance(adapter.cache, SafeFileCache):
+            logger.debug(
+                "Skipping resume download caching: "
+                "cache doesn't support separate body storage"
+            )
+            return
+
         synthetic_request = PreparedRequest()
         synthetic_request.prepare(method="GET", url=url, headers={})
 
@@ -300,15 +308,17 @@ class Downloader:
             preload_content=False,
         )
 
-        # Use the cache controller to store this as a complete response
+        # Stream the file to cache
+        cache_url = adapter.controller.cache_url(url)
+        adapter.cache.set(
+            cache_url,
+            adapter.controller.serializer.dumps(
+                synthetic_request, synthetic_response, b""
+            ),
+        )
         download.output_file.flush()
         with open(download.output_file.name, "rb") as f:
-            adapter.controller.cache_response(
-                synthetic_request,
-                synthetic_response,
-                body=f.read(),
-                status_codes=(200, 203, 300, 301, 308),
-            )
+            adapter.cache.set_body_from_io(cache_url, f)
 
         logger.debug(
             "Cached resumed download as complete response for future use: %s", url

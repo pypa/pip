@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
+import shutil
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import BinaryIO
+from typing import Any, BinaryIO, Callable
 
 from pip._vendor.cachecontrol.cache import SeparateBodyBaseCache
 from pip._vendor.cachecontrol.caches import SeparateBodyFileCache
@@ -72,12 +73,13 @@ class SafeFileCache(SeparateBodyBaseCache):
             with open(metadata_path, "rb") as f:
                 return f.read()
 
-    def _write(self, path: str, data: bytes) -> None:
+    def _write_to_file(self, path: str, writer_func: Callable[[BinaryIO], Any]) -> None:
+        """Common file writing logic with proper permissions and atomic replacement."""
         with suppressed_cache_errors():
             ensure_dir(os.path.dirname(path))
 
             with adjacent_tmp_file(path) as f:
-                f.write(data)
+                writer_func(f)
                 # Inherit the read/write permissions of the cache directory
                 # to enable multi-user cache use-cases.
                 mode = (
@@ -92,6 +94,12 @@ class SafeFileCache(SeparateBodyBaseCache):
                     os.chmod(f.name, mode, follow_symlinks=False)
 
             replace(f.name, path)
+
+    def _write(self, path: str, data: bytes) -> None:
+        self._write_to_file(path, lambda f: f.write(data))
+
+    def _write_from_io(self, path: str, source_file: BinaryIO) -> None:
+        self._write_to_file(path, lambda f: shutil.copyfileobj(source_file, f))
 
     def set(
         self, key: str, value: bytes, expires: int | datetime | None = None
@@ -118,3 +126,8 @@ class SafeFileCache(SeparateBodyBaseCache):
     def set_body(self, key: str, body: bytes) -> None:
         path = self._get_cache_path(key) + ".body"
         self._write(path, body)
+
+    def set_body_from_io(self, key: str, body_file: BinaryIO) -> None:
+        """Set the body of the cache entry from a file object."""
+        path = self._get_cache_path(key) + ".body"
+        self._write_from_io(path, body_file)
