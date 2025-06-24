@@ -9,7 +9,6 @@ import pytest
 
 from pip._internal.exceptions import IncompleteDownloadError
 from pip._internal.models.link import Link
-from pip._internal.network.cache import SafeFileCache
 from pip._internal.network.download import (
     Downloader,
     _get_http_response_size,
@@ -17,7 +16,7 @@ from pip._internal.network.download import (
     parse_content_disposition,
     sanitize_content_filename,
 )
-from pip._internal.network.session import CacheControlAdapter, PipSession
+from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS
 
 from tests.lib.requests_mocks import MockResponse
@@ -355,8 +354,9 @@ def test_downloader(
 
 def test_resumed_download_caching(tmpdir: Path) -> None:
     """Test that resumed downloads are cached properly for future use."""
-    session = PipSession()
-    link = Link("http://example.com/foo.tgz")
+    cache_dir = tmpdir / "cache"
+    session = PipSession(cache=str(cache_dir))
+    link = Link("https://example.com/foo.tgz")
     downloader = Downloader(session, "on", resume_retries=5)
 
     # Mock an incomplete download followed by a successful resume
@@ -371,27 +371,8 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
     responses = [incomplete_resp, resume_resp]
     _http_get_mock = MagicMock(side_effect=responses)
 
-    # Mock the session's adapters to have a cache controller
-    mock_adapter = MagicMock(spec=CacheControlAdapter)
-    mock_controller = MagicMock()
-    mock_adapter.controller = mock_controller
-    mock_controller.cache_url = MagicMock(return_value="cache_key")
-    mock_controller.serializer = MagicMock()
-    mock_controller.serializer.dumps = MagicMock(return_value=b"serialized_data")
-
-    # Mock the cache to be a SafeFileCache
-    mock_cache = MagicMock(spec=SafeFileCache)
-    mock_adapter.cache = mock_cache
-
-    # Create a mock for the session adapters
-    adapters_mock = MagicMock()
-    adapters_mock.__getitem__ = MagicMock(return_value=mock_adapter)
-
-    with (
-        patch.object(Downloader, "_http_get", _http_get_mock),
-        patch.object(session, "adapters", adapters_mock),
-    ):
-
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        # Perform the download (incomplete then resumed)
         filepath, _ = downloader(link, str(tmpdir))
 
         # Verify the file was downloaded correctly
@@ -400,18 +381,9 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
             expected_bytes = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
             assert downloaded_bytes == expected_bytes
 
-        # Verify that cache.set was called for metadata
-        mock_cache.set.assert_called_once()
-
-        # Verify that set_body_from_io was called for streaming the body
-        mock_cache.set_body_from_io.assert_called_once()
-
-        # Verify the call arguments
-        set_call_args = mock_cache.set.call_args
-        assert set_call_args[0][0] == "cache_key"  # First argument should be cache_key
-
-        set_body_call_args = mock_cache.set_body_from_io.call_args
-
-        assert set_body_call_args[0][0] == "cache_key"
-        assert hasattr(set_body_call_args[0][1], "read")
-        assert set_body_call_args[0][1].name == filepath
+        # Verify that the cache directory was created and contains cache files
+        # The resumed download should have been cached for future use
+        assert cache_dir.exists()
+        cache_files = list(cache_dir.rglob("*"))
+        # Should have cache files (both metadata and body files)
+        assert len([f for f in cache_files if f.is_file()]) == 2

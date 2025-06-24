@@ -270,12 +270,7 @@ class Downloader:
         requests can use the cache.
         """
         url = download.link.url_without_fragment
-        if url.startswith("https://"):
-            adapter = self._session.adapters["https://"]
-        elif url.startswith("http://"):
-            adapter = self._session.adapters["http://"]
-        else:
-            return
+        adapter = self._session.get_adapter(url)
 
         # Check if the adapter is the CacheControlAdapter (i.e. caching is enabled)
         if not isinstance(adapter, CacheControlAdapter):
@@ -285,12 +280,9 @@ class Downloader:
             return
 
         # Check SafeFileCache is being used
-        if not isinstance(adapter.cache, SafeFileCache):
-            logger.debug(
-                "Skipping resume download caching: "
-                "cache doesn't support separate body storage"
-            )
-            return
+        assert isinstance(
+            adapter.cache, SafeFileCache
+        ), "separate body cache not in use!"
 
         synthetic_request = PreparedRequest()
         synthetic_request.prepare(method="GET", url=url, headers={})
@@ -308,14 +300,12 @@ class Downloader:
             preload_content=False,
         )
 
-        # Stream the file to cache
+        # Save metadata and then stream the file contents to cache.
         cache_url = adapter.controller.cache_url(url)
-        adapter.cache.set(
-            cache_url,
-            adapter.controller.serializer.dumps(
-                synthetic_request, synthetic_response, b""
-            ),
+        metadata_blob = adapter.controller.serializer.dumps(
+            synthetic_request, synthetic_response, b""
         )
+        adapter.cache.set(cache_url, metadata_blob)
         download.output_file.flush()
         with open(download.output_file.name, "rb") as f:
             adapter.cache.set_body_from_io(cache_url, f)
