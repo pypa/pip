@@ -1,0 +1,56 @@
+This patch mainly handles tweaking imports into a form that can be transformed
+to import from the vendored namespace.
+
+diff --git a/src/pip/_vendor/pygments/__main__.py b/src/pip/_vendor/pygments/__main__.py
+index 5eb2c747..04997f49 100644
+--- a/src/pip/_vendor/pygments/__main__.py
++++ b/src/pip/_vendor/pygments/__main__.py
+@@ -9,9 +9,9 @@
+ """
+ 
+ import sys
+-import pygments.cmdline
++from pygments.cmdline import main
+ 
+ try:
+-    sys.exit(pygments.cmdline.main(sys.argv))
++    sys.exit(main(sys.argv))
+ except KeyboardInterrupt:
+     sys.exit(1)
+diff --git a/src/pip/_vendor/pygments/lexer.py b/src/pip/_vendor/pygments/lexer.py
+index eb5403e7..837ada12 100644
+--- a/src/pip/_vendor/pygments/lexer.py
++++ b/src/pip/_vendor/pygments/lexer.py
+@@ -207,7 +207,9 @@ class Lexer(metaclass=LexerMeta):
+                 text, _ = guess_decode(text)
+             elif self.encoding == 'chardet':
+                 try:
+-                    import chardet
++                    # pip vendoring note: this code is not reachable by pip,
++                    # removed import of chardet to make it clear.
++                    raise ImportError('chardet is not vendored by pip')
+                 except ImportError as e:
+                     raise ImportError('To enable chardet encoding guessing, '
+                                       'please install the chardet library '
+diff --git a/src/pip/_vendor/pygments/sphinxext.py b/src/pip/_vendor/pygments/sphinxext.py
+index f935688f..e2986361 100644
+--- a/src/pip/_vendor/pygments/sphinxext.py
++++ b/src/pip/_vendor/pygments/sphinxext.py
+@@ -91,7 +91,7 @@ class PygmentsDoc(Directive):
+         The columns are the lexer name, the extensions handled by this lexer
+         (or "None"), the aliases and a link to the lexer class."""
+         from pygments.lexers._mapping import LEXERS
+-        import pygments.lexers
++        from pygments.lexers import find_lexer_class
+         out = []
+ 
+         table = []
+@@ -102,7 +102,7 @@ class PygmentsDoc(Directive):
+             return name
+ 
+         for classname, data in sorted(LEXERS.items(), key=lambda x: x[1][1].lower()):
+-            lexer_cls = pygments.lexers.find_lexer_class(data[1])
++            lexer_cls = find_lexer_class(data[1])
+             extensions = lexer_cls.filenames + lexer_cls.alias_filenames
+ 
+             table.append({

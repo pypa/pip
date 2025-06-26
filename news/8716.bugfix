@@ -1,2 +1,0 @@
-Disable caching for range requests, which causes corrupted wheels
-when pip tries to obtain metadata using the feature ``fast-deps``.

@@ -1,2 +1,0 @@
-2020 Resolver: Correctly handle marker evaluation in constraints and exclude
-them if their markers do not match the current environment.

@@ -2,7 +2,7 @@ exclude: 'src/pip/_vendor/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.5.0
+  rev: v5.0.0
   hooks:
   - id: check-builtin-literals
   - id: check-added-large-files
@@ -16,46 +16,60 @@ repos:
   - id: trailing-whitespace
     exclude: .patch
 
-- repo: https://gitlab.com/pycqa/flake8
-  rev: 3.8.1
+- repo: https://github.com/psf/black-pre-commit-mirror
+  rev: 25.1.0
   hooks:
-  - id: flake8
-    additional_dependencies: [
-        'flake8-bugbear==20.1.4',
-        'flake8-logging-format==0.6.0',
-    ]
-    exclude: tests/data
+  - id: black
 
-- repo: https://github.com/timothycrosley/isort
-  rev: 4.3.21
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.11.12
   hooks:
-  - id: isort
-    files: \.py$
+    - id: ruff-check
+      args: [--fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.770
+  rev: v1.16.0
   hooks:
   - id: mypy
-    exclude: docs|tests
-    args: ["--pretty"]
-  - id: mypy
-    name: mypy, for Python 2
-    exclude: noxfile.py|tools/automation/release|docs|tests
-    args: ["--pretty", "-2"]
+    exclude: tests/data
+    args: ["--pretty", "--show-error-codes"]
+    additional_dependencies: [
+        'keyring==24.2.0',
+        'nox==2024.03.02',
+        'pytest',
+        'types-docutils==0.20.0.3',
+        'types-setuptools==68.2.0.0',
+        'types-freezegun==1.1.10',
+        'types-pyyaml==6.0.12.12',
+    ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.5.1
+  rev: v1.10.0
   hooks:
   - id: python-no-log-warn
   - id: python-no-eval
   - id: rst-backticks
-    # Validate existing ReST files and NEWS fragments.
-    files: .*\.rst$|^news/.*
+    files: .*\.rst$
     types: [file]
-    # The errors flagged in NEWS.rst are old.
-    exclude: NEWS.rst
+    exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
 
-- repo: https://github.com/mgedmin/check-manifest
-  rev: '0.42'
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.1
   hooks:
-  - id: check-manifest
+    - id: codespell
+      exclude: AUTHORS.txt|tests/data
+      args: ["--ignore-words", tools/codespell-ignore.txt]
+
+- repo: local
+  hooks:
+  - id: news-fragment-filenames
+    name: NEWS fragment
+    language: fail
+    entry: NEWS fragment files must be named *.(process|removal|feature|bugfix|vendor|doc|trivial).rst
+    exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
+    files: ^news/
+
+ci:
+  autofix_prs: false
+  autoupdate_commit_msg: 'pre-commit autoupdate'
+  autoupdate_schedule: monthly

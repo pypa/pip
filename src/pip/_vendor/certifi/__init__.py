@@ -1,3 +1,4 @@
 from .core import contents, where
 
-__version__ = "2020.06.20"
+__all__ = ["contents", "where"]
+__version__ = "2025.06.15"

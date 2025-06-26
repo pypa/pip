@@ -26,6 +26,7 @@ Architecture of pip's internals
     anatomy
     configuration-files
     package-finding
+    command-line-interface
     upgrade-options
 
 

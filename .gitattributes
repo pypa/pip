@@ -1,4 +1,4 @@
 # Patches must have Unix-style line endings, even on Windows
-tools/automation/vendoring/patches/* eol=lf
+tools/vendoring/patches/* eol=lf
 # The CA Bundle should always use Unix-style line endings, even on Windows
 src/pip/_vendor/certifi/*.pem eol=lf

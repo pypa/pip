@@ -1,22 +1,11 @@
+:orphan:
 
-.. _`pip cache`:
+.. meta::
 
-pip cache
----------
+  :http-equiv=refresh: 3; url=../../cli/pip_cache/
 
-.. contents::
+This page has moved
+===================
 
-Usage
-*****
-
-.. pip-command-usage:: cache
-
-Description
-***********
-
-.. pip-command-description:: cache
-
-Options
-*******
-
-.. pip-command-options:: cache
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/pip_cache`

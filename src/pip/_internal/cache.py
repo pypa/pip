@@ -1,95 +1,51 @@
-"""Cache Management
-"""
+"""Cache Management"""
+
+from __future__ import annotations
 
 import hashlib
 import json
 import logging
 import os
+from pathlib import Path
+from typing import Any
 
-from pip._vendor.packaging.tags import interpreter_name, interpreter_version
+from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, List, Any, Dict
-
-    from pip._vendor.packaging.tags import Tag
-
-    from pip._internal.models.format_control import FormatControl
 
 logger = logging.getLogger(__name__)
 
+ORIGIN_JSON_NAME = "origin.json"
 
-def _hash_dict(d):
-    # type: (Dict[str, str]) -> str
+
+def _hash_dict(d: dict[str, str]) -> str:
     """Return a stable sha224 of a dictionary."""
     s = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha224(s.encode("ascii")).hexdigest()
 
 
-class Cache(object):
+class Cache:
     """An abstract class - provides cache directories for data from links
 
-
-        :param cache_dir: The root of the cache.
-        :param format_control: An object of FormatControl class to limit
-            binaries being read from the cache.
-        :param allowed_formats: which formats of files the cache should store.
-            ('binary' and 'source' are the only allowed values)
+    :param cache_dir: The root of the cache.
     """
 
-    def __init__(self, cache_dir, format_control, allowed_formats):
-        # type: (str, FormatControl, Set[str]) -> None
-        super(Cache, self).__init__()
+    def __init__(self, cache_dir: str) -> None:
+        super().__init__()
         assert not cache_dir or os.path.isabs(cache_dir)
         self.cache_dir = cache_dir or None
-        self.format_control = format_control
-        self.allowed_formats = allowed_formats
 
-        _valid_formats = {"source", "binary"}
-        assert self.allowed_formats.union(_valid_formats) == _valid_formats
-
-    def _get_cache_path_parts_legacy(self, link):
-        # type: (Link) -> List[str]
-        """Get parts of part that must be os.path.joined with cache_dir
-
-        Legacy cache key (pip < 20) for compatibility with older caches.
-        """
+    def _get_cache_path_parts(self, link: Link) -> list[str]:
+        """Get parts of part that must be os.path.joined with cache_dir"""
 
         # We want to generate an url to use as our cache key, we don't want to
-        # just re-use the URL because it might have other items in the fragment
-        # and we don't care about those.
-        key_parts = [link.url_without_fragment]
-        if link.hash_name is not None and link.hash is not None:
-            key_parts.append("=".join([link.hash_name, link.hash]))
-        key_url = "#".join(key_parts)
-
-        # Encode our key url with sha224, we'll use this because it has similar
-        # security properties to sha256, but with a shorter total output (and
-        # thus less secure). However the differences don't make a lot of
-        # difference for our use case here.
-        hashed = hashlib.sha224(key_url.encode()).hexdigest()
-
-        # We want to nest the directories some to prevent having a ton of top
-        # level directories where we might run out of sub directories on some
-        # FS.
-        parts = [hashed[:2], hashed[2:4], hashed[4:6], hashed[6:]]
-
-        return parts
-
-    def _get_cache_path_parts(self, link):
-        # type: (Link) -> List[str]
-        """Get parts of part that must be os.path.joined with cache_dir
-        """
-
-        # We want to generate an url to use as our cache key, we don't want to
-        # just re-use the URL because it might have other items in the fragment
+        # just reuse the URL because it might have other items in the fragment
         # and we don't care about those.
         key_parts = {"url": link.url_without_fragment}
         if link.hash_name is not None and link.hash is not None:
@@ -118,51 +74,26 @@ class Cache(object):
 
         return parts
 
-    def _get_candidates(self, link, canonical_package_name):
-        # type: (Link, str) -> List[Any]
-        can_not_cache = (
-            not self.cache_dir or
-            not canonical_package_name or
-            not link
-        )
+    def _get_candidates(self, link: Link, canonical_package_name: str) -> list[Any]:
+        can_not_cache = not self.cache_dir or not canonical_package_name or not link
         if can_not_cache:
             return []
 
-        formats = self.format_control.get_allowed_formats(
-            canonical_package_name
-        )
-        if not self.allowed_formats.intersection(formats):
-            return []
-
-        candidates = []
         path = self.get_path_for_link(link)
         if os.path.isdir(path):
-            for candidate in os.listdir(path):
-                candidates.append((candidate, path))
-        # TODO remove legacy path lookup in pip>=21
-        legacy_path = self.get_path_for_link_legacy(link)
-        if os.path.isdir(legacy_path):
-            for candidate in os.listdir(legacy_path):
-                candidates.append((candidate, legacy_path))
-        return candidates
+            return [(candidate, path) for candidate in os.listdir(path)]
+        return []
 
-    def get_path_for_link_legacy(self, link):
-        # type: (Link) -> str
-        raise NotImplementedError()
-
-    def get_path_for_link(self, link):
-        # type: (Link) -> str
-        """Return a directory to store cached items in for link.
-        """
+    def get_path_for_link(self, link: Link) -> str:
+        """Return a directory to store cached items in for link."""
         raise NotImplementedError()
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Link
+        link: Link,
+        package_name: str | None,
+        supported_tags: list[Tag],
+    ) -> Link:
         """Returns a link to a cached item if it exists, otherwise returns the
         passed link.
         """
@@ -170,23 +101,12 @@ class Cache(object):
 
 
 class SimpleWheelCache(Cache):
-    """A cache of wheels for future installs.
-    """
+    """A cache of wheels for future installs."""
 
-    def __init__(self, cache_dir, format_control):
-        # type: (str, FormatControl) -> None
-        super(SimpleWheelCache, self).__init__(
-            cache_dir, format_control, {"binary"}
-        )
+    def __init__(self, cache_dir: str) -> None:
+        super().__init__(cache_dir)
 
-    def get_path_for_link_legacy(self, link):
-        # type: (Link) -> str
-        parts = self._get_cache_path_parts_legacy(link)
-        assert self.cache_dir
-        return os.path.join(self.cache_dir, "wheels", *parts)
-
-    def get_path_for_link(self, link):
-        # type: (Link) -> str
+    def get_path_for_link(self, link: Link) -> str:
         """Return a directory to store cached wheels for link
 
         Because there are M wheels for any one sdist, we provide a directory
@@ -208,20 +128,17 @@ class SimpleWheelCache(Cache):
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Link
+        link: Link,
+        package_name: str | None,
+        supported_tags: list[Tag],
+    ) -> Link:
         candidates = []
 
         if not package_name:
             return link
 
         canonical_package_name = canonicalize_name(package_name)
-        for wheel_name, wheel_dir in self._get_candidates(
-            link, canonical_package_name
-        ):
+        for wheel_name, wheel_dir in self._get_candidates(link, canonical_package_name):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
@@ -230,7 +147,9 @@ class SimpleWheelCache(Cache):
                 logger.debug(
                     "Ignoring cached wheel %s for %s as it "
                     "does not match the expected distribution name %s.",
-                    wheel_name, link, package_name,
+                    wheel_name,
+                    link,
+                    package_name,
                 )
                 continue
             if not wheel.supported(supported_tags):
@@ -252,29 +171,39 @@ class SimpleWheelCache(Cache):
 
 
 class EphemWheelCache(SimpleWheelCache):
-    """A SimpleWheelCache that creates it's own temporary cache directory
-    """
+    """A SimpleWheelCache that creates it's own temporary cache directory"""
 
-    def __init__(self, format_control):
-        # type: (FormatControl) -> None
+    def __init__(self) -> None:
         self._temp_dir = TempDirectory(
             kind=tempdir_kinds.EPHEM_WHEEL_CACHE,
             globally_managed=True,
         )
 
-        super(EphemWheelCache, self).__init__(
-            self._temp_dir.path, format_control
-        )
+        super().__init__(self._temp_dir.path)
 
 
-class CacheEntry(object):
+class CacheEntry:
     def __init__(
         self,
-        link,  # type: Link
-        persistent,  # type: bool
+        link: Link,
+        persistent: bool,
     ):
         self.link = link
         self.persistent = persistent
+        self.origin: DirectUrl | None = None
+        origin_direct_url_path = Path(self.link.file_path).parent / ORIGIN_JSON_NAME
+        if origin_direct_url_path.exists():
+            try:
+                self.origin = DirectUrl.from_json(
+                    origin_direct_url_path.read_text(encoding="utf-8")
+                )
+            except Exception as e:
+                logger.warning(
+                    "Ignoring invalid cache entry origin file %s for %s (%s)",
+                    origin_direct_url_path,
+                    link.filename,
+                    e,
+                )
 
 
 class WheelCache(Cache):
@@ -284,33 +213,23 @@ class WheelCache(Cache):
     when a certain link is not found in the simple wheel cache first.
     """
 
-    def __init__(self, cache_dir, format_control):
-        # type: (str, FormatControl) -> None
-        super(WheelCache, self).__init__(
-            cache_dir, format_control, {'binary'}
-        )
-        self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
-        self._ephem_cache = EphemWheelCache(format_control)
+    def __init__(self, cache_dir: str) -> None:
+        super().__init__(cache_dir)
+        self._wheel_cache = SimpleWheelCache(cache_dir)
+        self._ephem_cache = EphemWheelCache()
 
-    def get_path_for_link_legacy(self, link):
-        # type: (Link) -> str
-        return self._wheel_cache.get_path_for_link_legacy(link)
-
-    def get_path_for_link(self, link):
-        # type: (Link) -> str
+    def get_path_for_link(self, link: Link) -> str:
         return self._wheel_cache.get_path_for_link(link)
 
-    def get_ephem_path_for_link(self, link):
-        # type: (Link) -> str
+    def get_ephem_path_for_link(self, link: Link) -> str:
         return self._ephem_cache.get_path_for_link(link)
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Link
+        link: Link,
+        package_name: str | None,
+        supported_tags: list[Tag],
+    ) -> Link:
         cache_entry = self.get_cache_entry(link, package_name, supported_tags)
         if cache_entry is None:
             return link
@@ -318,11 +237,10 @@ class WheelCache(Cache):
 
     def get_cache_entry(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Tag]
-    ):
-        # type: (...) -> Optional[CacheEntry]
+        link: Link,
+        package_name: str | None,
+        supported_tags: list[Tag],
+    ) -> CacheEntry | None:
         """Returns a CacheEntry with a link to a cached item if it exists or
         None. The cache entry indicates if the item was found in the persistent
         or ephemeral cache.
@@ -344,3 +262,30 @@ class WheelCache(Cache):
             return CacheEntry(retval, persistent=False)
 
         return None
+
+    @staticmethod
+    def record_download_origin(cache_dir: str, download_info: DirectUrl) -> None:
+        origin_path = Path(cache_dir) / ORIGIN_JSON_NAME
+        if origin_path.exists():
+            try:
+                origin = DirectUrl.from_json(origin_path.read_text(encoding="utf-8"))
+            except Exception as e:
+                logger.warning(
+                    "Could not read origin file %s in cache entry (%s). "
+                    "Will attempt to overwrite it.",
+                    origin_path,
+                    e,
+                )
+            else:
+                # TODO: use DirectUrl.equivalent when
+                # https://github.com/pypa/pip/pull/10564 is merged.
+                if origin.url != download_info.url:
+                    logger.warning(
+                        "Origin URL %s in cache entry %s does not match download URL "
+                        "%s. This is likely a pip bug or a cache corruption issue. "
+                        "Will overwrite it with the new value.",
+                        origin.url,
+                        cache_dir,
+                        download_info.url,
+                    )
+        origin_path.write_text(download_info.to_json(), encoding="utf-8")

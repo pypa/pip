@@ -1,34 +1,33 @@
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
-from __future__ import absolute_import, division, print_function
+
+from __future__ import annotations
 
 import operator
 import os
 import platform
 import sys
+from typing import AbstractSet, Any, Callable, Literal, TypedDict, Union, cast
 
-from pip._vendor.pyparsing import ParseException, ParseResults, stringStart, stringEnd
-from pip._vendor.pyparsing import ZeroOrMore, Group, Forward, QuotedString
-from pip._vendor.pyparsing import Literal as L  # noqa
-
-from ._compat import string_types
-from ._typing import TYPE_CHECKING
-from .specifiers import Specifier, InvalidSpecifier
-
-if TYPE_CHECKING:  # pragma: no cover
-    from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
-    Operator = Callable[[str, str], bool]
-
+from ._parser import MarkerAtom, MarkerList, Op, Value, Variable
+from ._parser import parse_marker as _parse_marker
+from ._tokenizer import ParserSyntaxError
+from .specifiers import InvalidSpecifier, Specifier
+from .utils import canonicalize_name
 
 __all__ = [
+    "EvaluateContext",
     "InvalidMarker",
+    "Marker",
     "UndefinedComparison",
     "UndefinedEnvironmentName",
-    "Marker",
     "default_environment",
 ]
+
+Operator = Callable[[str, Union[str, AbstractSet[str]]], bool]
+EvaluateContext = Literal["metadata", "lock_file", "requirement"]
+MARKERS_ALLOWING_SET = {"extras", "dependency_groups"}
 
 
 class InvalidMarker(ValueError):
@@ -50,111 +49,98 @@ class UndefinedEnvironmentName(ValueError):
     """
 
 
-class Node(object):
-    def __init__(self, value):
-        # type: (Any) -> None
-        self.value = value
+class Environment(TypedDict):
+    implementation_name: str
+    """The implementation's identifier, e.g. ``'cpython'``."""
 
-    def __str__(self):
-        # type: () -> str
-        return str(self.value)
+    implementation_version: str
+    """
+    The implementation's version, e.g. ``'3.13.0a2'`` for CPython 3.13.0a2, or
+    ``'7.3.13'`` for PyPy3.10 v7.3.13.
+    """
 
-    def __repr__(self):
-        # type: () -> str
-        return "<{0}({1!r})>".format(self.__class__.__name__, str(self))
+    os_name: str
+    """
+    The value of :py:data:`os.name`. The name of the operating system dependent module
+    imported, e.g. ``'posix'``.
+    """
 
-    def serialize(self):
-        # type: () -> str
-        raise NotImplementedError
+    platform_machine: str
+    """
+    Returns the machine type, e.g. ``'i386'``.
 
+    An empty string if the value cannot be determined.
+    """
 
-class Variable(Node):
-    def serialize(self):
-        # type: () -> str
-        return str(self)
+    platform_release: str
+    """
+    The system's release, e.g. ``'2.2.0'`` or ``'NT'``.
 
+    An empty string if the value cannot be determined.
+    """
 
-class Value(Node):
-    def serialize(self):
-        # type: () -> str
-        return '"{0}"'.format(self)
+    platform_system: str
+    """
+    The system/OS name, e.g. ``'Linux'``, ``'Windows'`` or ``'Java'``.
 
+    An empty string if the value cannot be determined.
+    """
 
-class Op(Node):
-    def serialize(self):
-        # type: () -> str
-        return str(self)
+    platform_version: str
+    """
+    The system's release version, e.g. ``'#3 on degas'``.
 
+    An empty string if the value cannot be determined.
+    """
 
-VARIABLE = (
-    L("implementation_version")
-    | L("platform_python_implementation")
-    | L("implementation_name")
-    | L("python_full_version")
-    | L("platform_release")
-    | L("platform_version")
-    | L("platform_machine")
-    | L("platform_system")
-    | L("python_version")
-    | L("sys_platform")
-    | L("os_name")
-    | L("os.name")  # PEP-345
-    | L("sys.platform")  # PEP-345
-    | L("platform.version")  # PEP-345
-    | L("platform.machine")  # PEP-345
-    | L("platform.python_implementation")  # PEP-345
-    | L("python_implementation")  # undocumented setuptools legacy
-    | L("extra")  # PEP-508
-)
-ALIASES = {
-    "os.name": "os_name",
-    "sys.platform": "sys_platform",
-    "platform.version": "platform_version",
-    "platform.machine": "platform_machine",
-    "platform.python_implementation": "platform_python_implementation",
-    "python_implementation": "platform_python_implementation",
-}
-VARIABLE.setParseAction(lambda s, l, t: Variable(ALIASES.get(t[0], t[0])))
+    python_full_version: str
+    """
+    The Python version as string ``'major.minor.patchlevel'``.
 
-VERSION_CMP = (
-    L("===") | L("==") | L(">=") | L("<=") | L("!=") | L("~=") | L(">") | L("<")
-)
+    Note that unlike the Python :py:data:`sys.version`, this value will always include
+    the patchlevel (it defaults to 0).
+    """
 
-MARKER_OP = VERSION_CMP | L("not in") | L("in")
-MARKER_OP.setParseAction(lambda s, l, t: Op(t[0]))
+    platform_python_implementation: str
+    """
+    A string identifying the Python implementation, e.g. ``'CPython'``.
+    """
 
-MARKER_VALUE = QuotedString("'") | QuotedString('"')
-MARKER_VALUE.setParseAction(lambda s, l, t: Value(t[0]))
+    python_version: str
+    """The Python version as string ``'major.minor'``."""
 
-BOOLOP = L("and") | L("or")
+    sys_platform: str
+    """
+    This string contains a platform identifier that can be used to append
+    platform-specific components to :py:data:`sys.path`, for instance.
 
-MARKER_VAR = VARIABLE | MARKER_VALUE
-
-MARKER_ITEM = Group(MARKER_VAR + MARKER_OP + MARKER_VAR)
-MARKER_ITEM.setParseAction(lambda s, l, t: tuple(t[0]))
-
-LPAREN = L("(").suppress()
-RPAREN = L(")").suppress()
-
-MARKER_EXPR = Forward()
-MARKER_ATOM = MARKER_ITEM | Group(LPAREN + MARKER_EXPR + RPAREN)
-MARKER_EXPR << MARKER_ATOM + ZeroOrMore(BOOLOP + MARKER_EXPR)
-
-MARKER = stringStart + MARKER_EXPR + stringEnd
+    For Unix systems, except on Linux and AIX, this is the lowercased OS name as
+    returned by ``uname -s`` with the first part of the version as returned by
+    ``uname -r`` appended, e.g. ``'sunos5'`` or ``'freebsd8'``, at the time when Python
+    was built.
+    """
 
 
-def _coerce_parse_result(results):
-    # type: (Union[ParseResults, List[Any]]) -> List[Any]
-    if isinstance(results, ParseResults):
-        return [_coerce_parse_result(i) for i in results]
-    else:
-        return results
+def _normalize_extra_values(results: Any) -> Any:
+    """
+    Normalize extra values.
+    """
+    if isinstance(results[0], tuple):
+        lhs, op, rhs = results[0]
+        if isinstance(lhs, Variable) and lhs.value == "extra":
+            normalized_extra = canonicalize_name(rhs.value)
+            rhs = Value(normalized_extra)
+        elif isinstance(rhs, Variable) and rhs.value == "extra":
+            normalized_extra = canonicalize_name(lhs.value)
+            lhs = Value(normalized_extra)
+        results[0] = lhs, op, rhs
+    return results
 
 
-def _format_marker(marker, first=True):
-    # type: (Union[List[str], Tuple[Node, ...], str], Optional[bool]) -> str
-
-    assert isinstance(marker, (list, tuple, string_types))
+def _format_marker(
+    marker: list[str] | MarkerAtom | str, first: bool | None = True
+) -> str:
+    assert isinstance(marker, (list, tuple, str))
 
     # Sometimes we have a structure like [[...]] which is a single item list
     # where the single item is itself it's own list. In that case we want skip
@@ -179,7 +165,7 @@ def _format_marker(marker, first=True):
         return marker
 
 
-_operators = {
+_operators: dict[str, Operator] = {
     "in": lambda lhs, rhs: lhs in rhs,
     "not in": lambda lhs, rhs: lhs not in rhs,
     "<": operator.lt,
@@ -188,52 +174,52 @@ _operators = {
     "!=": operator.ne,
     ">=": operator.ge,
     ">": operator.gt,
-}  # type: Dict[str, Operator]
+}
 
 
-def _eval_op(lhs, op, rhs):
-    # type: (str, Op, str) -> bool
-    try:
-        spec = Specifier("".join([op.serialize(), rhs]))
-    except InvalidSpecifier:
-        pass
-    else:
-        return spec.contains(lhs)
+def _eval_op(lhs: str, op: Op, rhs: str | AbstractSet[str]) -> bool:
+    if isinstance(rhs, str):
+        try:
+            spec = Specifier("".join([op.serialize(), rhs]))
+        except InvalidSpecifier:
+            pass
+        else:
+            return spec.contains(lhs, prereleases=True)
 
-    oper = _operators.get(op.serialize())  # type: Optional[Operator]
+    oper: Operator | None = _operators.get(op.serialize())
     if oper is None:
-        raise UndefinedComparison(
-            "Undefined {0!r} on {1!r} and {2!r}.".format(op, lhs, rhs)
-        )
+        raise UndefinedComparison(f"Undefined {op!r} on {lhs!r} and {rhs!r}.")
 
     return oper(lhs, rhs)
 
 
-class Undefined(object):
-    pass
+def _normalize(
+    lhs: str, rhs: str | AbstractSet[str], key: str
+) -> tuple[str, str | AbstractSet[str]]:
+    # PEP 685 – Comparison of extra names for optional distribution dependencies
+    # https://peps.python.org/pep-0685/
+    # > When comparing extra names, tools MUST normalize the names being
+    # > compared using the semantics outlined in PEP 503 for names
+    if key == "extra":
+        assert isinstance(rhs, str), "extra value must be a string"
+        return (canonicalize_name(lhs), canonicalize_name(rhs))
+    if key in MARKERS_ALLOWING_SET:
+        if isinstance(rhs, str):  # pragma: no cover
+            return (canonicalize_name(lhs), canonicalize_name(rhs))
+        else:
+            return (canonicalize_name(lhs), {canonicalize_name(v) for v in rhs})
+
+    # other environment markers don't have such standards
+    return lhs, rhs
 
 
-_undefined = Undefined()
-
-
-def _get_env(environment, name):
-    # type: (Dict[str, str], str) -> str
-    value = environment.get(name, _undefined)  # type: Union[str, Undefined]
-
-    if isinstance(value, Undefined):
-        raise UndefinedEnvironmentName(
-            "{0!r} does not exist in evaluation environment.".format(name)
-        )
-
-    return value
-
-
-def _evaluate_markers(markers, environment):
-    # type: (List[Any], Dict[str, str]) -> bool
-    groups = [[]]  # type: List[List[bool]]
+def _evaluate_markers(
+    markers: MarkerList, environment: dict[str, str | AbstractSet[str]]
+) -> bool:
+    groups: list[list[bool]] = [[]]
 
     for marker in markers:
-        assert isinstance(marker, (list, tuple, string_types))
+        assert isinstance(marker, (list, tuple, str))
 
         if isinstance(marker, list):
             groups[-1].append(_evaluate_markers(marker, environment))
@@ -241,12 +227,15 @@ def _evaluate_markers(markers, environment):
             lhs, op, rhs = marker
 
             if isinstance(lhs, Variable):
-                lhs_value = _get_env(environment, lhs.value)
+                environment_key = lhs.value
+                lhs_value = environment[environment_key]
                 rhs_value = rhs.value
             else:
                 lhs_value = lhs.value
-                rhs_value = _get_env(environment, rhs.value)
-
+                environment_key = rhs.value
+                rhs_value = environment[environment_key]
+            assert isinstance(lhs_value, str), "lhs must be a string"
+            lhs_value, rhs_value = _normalize(lhs_value, rhs_value, key=environment_key)
             groups[-1].append(_eval_op(lhs_value, op, rhs_value))
         else:
             assert marker in ["and", "or"]
@@ -256,27 +245,17 @@ def _evaluate_markers(markers, environment):
     return any(all(item) for item in groups)
 
 
-def format_full_version(info):
-    # type: (sys._version_info) -> str
-    version = "{0.major}.{0.minor}.{0.micro}".format(info)
+def format_full_version(info: sys._version_info) -> str:
+    version = f"{info.major}.{info.minor}.{info.micro}"
     kind = info.releaselevel
     if kind != "final":
         version += kind[0] + str(info.serial)
     return version
 
 
-def default_environment():
-    # type: () -> Dict[str, str]
-    if hasattr(sys, "implementation"):
-        # Ignoring the `sys.implementation` reference for type checking due to
-        # mypy not liking that the attribute doesn't exist in Python 2.7 when
-        # run with the `--py27` flag.
-        iver = format_full_version(sys.implementation.version)  # type: ignore
-        implementation_name = sys.implementation.name  # type: ignore
-    else:
-        iver = "0"
-        implementation_name = ""
-
+def default_environment() -> Environment:
+    iver = format_full_version(sys.implementation.version)
+    implementation_name = sys.implementation.name
     return {
         "implementation_name": implementation_name,
         "implementation_version": iver,
@@ -292,37 +271,92 @@ def default_environment():
     }
 
 
-class Marker(object):
-    def __init__(self, marker):
-        # type: (str) -> None
+class Marker:
+    def __init__(self, marker: str) -> None:
+        # Note: We create a Marker object without calling this constructor in
+        #       packaging.requirements.Requirement. If any additional logic is
+        #       added here, make sure to mirror/adapt Requirement.
         try:
-            self._markers = _coerce_parse_result(MARKER.parseString(marker))
-        except ParseException as e:
-            err_str = "Invalid marker: {0!r}, parse error at {1!r}".format(
-                marker, marker[e.loc : e.loc + 8]
-            )
-            raise InvalidMarker(err_str)
+            self._markers = _normalize_extra_values(_parse_marker(marker))
+            # The attribute `_markers` can be described in terms of a recursive type:
+            # MarkerList = List[Union[Tuple[Node, ...], str, MarkerList]]
+            #
+            # For example, the following expression:
+            # python_version > "3.6" or (python_version == "3.6" and os_name == "unix")
+            #
+            # is parsed into:
+            # [
+            #     (<Variable('python_version')>, <Op('>')>, <Value('3.6')>),
+            #     'and',
+            #     [
+            #         (<Variable('python_version')>, <Op('==')>, <Value('3.6')>),
+            #         'or',
+            #         (<Variable('os_name')>, <Op('==')>, <Value('unix')>)
+            #     ]
+            # ]
+        except ParserSyntaxError as e:
+            raise InvalidMarker(str(e)) from e
 
-    def __str__(self):
-        # type: () -> str
+    def __str__(self) -> str:
         return _format_marker(self._markers)
 
-    def __repr__(self):
-        # type: () -> str
-        return "<Marker({0!r})>".format(str(self))
+    def __repr__(self) -> str:
+        return f"<Marker('{self}')>"
 
-    def evaluate(self, environment=None):
-        # type: (Optional[Dict[str, str]]) -> bool
+    def __hash__(self) -> int:
+        return hash((self.__class__.__name__, str(self)))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Marker):
+            return NotImplemented
+
+        return str(self) == str(other)
+
+    def evaluate(
+        self,
+        environment: dict[str, str] | None = None,
+        context: EvaluateContext = "metadata",
+    ) -> bool:
         """Evaluate a marker.
 
         Return the boolean from evaluating the given marker against the
         environment. environment is an optional argument to override all or
-        part of the determined environment.
+        part of the determined environment. The *context* parameter specifies what
+        context the markers are being evaluated for, which influences what markers
+        are considered valid. Acceptable values are "metadata" (for core metadata;
+        default), "lock_file", and "requirement" (i.e. all other situations).
 
         The environment is determined from the current Python process.
         """
-        current_environment = default_environment()
+        current_environment = cast(
+            "dict[str, str | AbstractSet[str]]", default_environment()
+        )
+        if context == "lock_file":
+            current_environment.update(
+                extras=frozenset(), dependency_groups=frozenset()
+            )
+        elif context == "metadata":
+            current_environment["extra"] = ""
         if environment is not None:
             current_environment.update(environment)
+            # The API used to allow setting extra to None. We need to handle this
+            # case for backwards compatibility.
+            if "extra" in current_environment and current_environment["extra"] is None:
+                current_environment["extra"] = ""
 
-        return _evaluate_markers(self._markers, current_environment)
+        return _evaluate_markers(
+            self._markers, _repair_python_full_version(current_environment)
+        )
+
+
+def _repair_python_full_version(
+    env: dict[str, str | AbstractSet[str]],
+) -> dict[str, str | AbstractSet[str]]:
+    """
+    Work around platform.python_version() returning something that is not PEP 440
+    compliant for non-tagged Python builds.
+    """
+    python_full_version = cast(str, env["python_full_version"])
+    if python_full_version.endswith("+"):
+        env["python_full_version"] = f"{python_full_version}local"
+    return env

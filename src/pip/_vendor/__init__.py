@@ -32,11 +32,15 @@ def vendored(modulename):
     try:
         __import__(modulename, globals(), locals(), level=0)
     except ImportError:
-        # This error used to be silenced in earlier variants of this file, to instead
-        # raise the error when pip actually tries to use the missing module. 
-        # Based on inputs in #5354, this was changed to explicitly raise the error.
-        # Re-raising the exception without modifying it is an intentional choice. 
-        raise
+        # We can just silently allow import failures to pass here. If we
+        # got to this point it means that ``import pip._vendor.whatever``
+        # failed and so did ``import whatever``. Since we're importing this
+        # upfront in an attempt to alias imports, not erroring here will
+        # just mean we get a regular import error whenever pip *actually*
+        # tries to import one of these modules to use it, which actually
+        # gives us a better error message than we would have otherwise
+        # gotten.
+        pass
     else:
         sys.modules[vendored_name] = sys.modules[modulename]
         base, head = vendored_name.rsplit(".", 1)
@@ -54,25 +58,18 @@ if DEBUNDLED:
     sys.path[:] = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
 
     # Actually alias all of our vendored dependencies.
-    vendored("appdirs")
     vendored("cachecontrol")
     vendored("certifi")
-    vendored("colorama")
-    vendored("contextlib2")
+    vendored("dependency-groups")
     vendored("distlib")
     vendored("distro")
-    vendored("html5lib")
-    vendored("six")
-    vendored("six.moves")
-    vendored("six.moves.urllib")
-    vendored("six.moves.urllib.parse")
     vendored("packaging")
     vendored("packaging.version")
     vendored("packaging.specifiers")
-    vendored("pep517")
     vendored("pkg_resources")
+    vendored("platformdirs")
     vendored("progress")
-    vendored("retrying")
+    vendored("pyproject_hooks")
     vendored("requests")
     vendored("requests.exceptions")
     vendored("requests.packages")
@@ -104,7 +101,17 @@ if DEBUNDLED:
     vendored("requests.packages.urllib3.util.timeout")
     vendored("requests.packages.urllib3.util.url")
     vendored("resolvelib")
-    vendored("toml")
-    vendored("toml.encoder")
-    vendored("toml.decoder")
+    vendored("rich")
+    vendored("rich.console")
+    vendored("rich.highlighter")
+    vendored("rich.logging")
+    vendored("rich.markup")
+    vendored("rich.progress")
+    vendored("rich.segment")
+    vendored("rich.style")
+    vendored("rich.text")
+    vendored("rich.traceback")
+    if sys.version_info < (3, 11):
+        vendored("tomli")
+    vendored("truststore")
     vendored("urllib3")

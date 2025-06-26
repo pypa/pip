@@ -1,22 +1,31 @@
-from pip._vendor.packaging.specifiers import SpecifierSet
+from __future__ import annotations
+
+import math
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from functools import cache
+from typing import (
+    TYPE_CHECKING,
+    TypeVar,
+)
+
 from pip._vendor.resolvelib.providers import AbstractProvider
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.req.req_install import InstallRequirement
 
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        Dict,
-        Iterable,
-        Optional,
-        Sequence,
-        Set,
-        Tuple,
-        Union,
-    )
+from .base import Candidate, Constraint, Requirement
+from .candidates import REQUIRES_PYTHON_IDENTIFIER
+from .factory import Factory
+from .requirements import ExplicitRequirement
 
-    from .base import Requirement, Candidate
-    from .factory import Factory
+if TYPE_CHECKING:
+    from pip._vendor.resolvelib.providers import Preference
+    from pip._vendor.resolvelib.resolvers import RequirementInformation
+
+    PreferenceInformation = RequirementInformation[Requirement, Candidate]
+
+    _ProviderBase = AbstractProvider[Requirement, Candidate, str]
+else:
+    _ProviderBase = AbstractProvider
 
 # Notes on the relationship between the provider, the factory, and the
 # candidate and requirement classes.
@@ -37,48 +46,190 @@ if MYPY_CHECK_RUNNING:
 # services to those objects (access to pip's finder and preparer).
 
 
-class PipProvider(AbstractProvider):
+D = TypeVar("D")
+V = TypeVar("V")
+
+
+def _get_with_identifier(
+    mapping: Mapping[str, V],
+    identifier: str,
+    default: D,
+) -> D | V:
+    """Get item from a package name lookup mapping with a resolver identifier.
+
+    This extra logic is needed when the target mapping is keyed by package
+    name, which cannot be directly looked up with an identifier (which may
+    contain requested extras). Additional logic is added to also look up a value
+    by "cleaning up" the extras from the identifier.
+    """
+    if identifier in mapping:
+        return mapping[identifier]
+    # HACK: Theoretically we should check whether this identifier is a valid
+    # "NAME[EXTRAS]" format, and parse out the name part with packaging or
+    # some regular expression. But since pip's resolver only spits out three
+    # kinds of identifiers: normalized PEP 503 names, normalized names plus
+    # extras, and Requires-Python, we can cheat a bit here.
+    name, open_bracket, _ = identifier.partition("[")
+    if open_bracket and name in mapping:
+        return mapping[name]
+    return default
+
+
+class PipProvider(_ProviderBase):
+    """Pip's provider implementation for resolvelib.
+
+    :params constraints: A mapping of constraints specified by the user. Keys
+        are canonicalized project names.
+    :params ignore_dependencies: Whether the user specified ``--no-deps``.
+    :params upgrade_strategy: The user-specified upgrade strategy.
+    :params user_requested: A set of canonicalized package names that the user
+        supplied for pip to install/upgrade.
+    """
+
     def __init__(
         self,
-        factory,  # type: Factory
-        constraints,  # type: Dict[str, SpecifierSet]
-        ignore_dependencies,  # type: bool
-        upgrade_strategy,  # type: str
-        user_requested,  # type: Set[str]
-    ):
-        # type: (...) -> None
+        factory: Factory,
+        constraints: dict[str, Constraint],
+        ignore_dependencies: bool,
+        upgrade_strategy: str,
+        user_requested: dict[str, int],
+    ) -> None:
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
-        self.user_requested = user_requested
+        self._user_requested = user_requested
 
-    def _sort_matches(self, matches):
-        # type: (Iterable[Candidate]) -> Sequence[Candidate]
+    def identify(self, requirement_or_candidate: Requirement | Candidate) -> str:
+        return requirement_or_candidate.name
 
-        # The requirement is responsible for returning a sequence of potential
-        # candidates, one per version. The provider handles the logic of
-        # deciding the order in which these candidates should be passed to
-        # the resolver.
+    def narrow_requirement_selection(
+        self,
+        identifiers: Iterable[str],
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterator[PreferenceInformation]],
+        backtrack_causes: Sequence[PreferenceInformation],
+    ) -> Iterable[str]:
+        """Produce a subset of identifiers that should be considered before others.
 
-        # The `matches` argument is a sequence of candidates, one per version,
-        # which are potential options to be installed. The requirement will
-        # have already sorted out whether to give us an already-installed
-        # candidate or a version from PyPI (i.e., it will deal with options
-        # like --force-reinstall and --ignore-installed).
+        Currently pip narrows the following selection:
+            * Requires-Python, if present is always returned by itself
+            * Backtrack causes are considered next because they can be identified
+              in linear time here, whereas because get_preference() is called
+              for each identifier, it would be quadratic to check for them there.
+              Further, the current backtrack causes likely need to be resolved
+              before other requirements as a resolution can't be found while
+              there is a conflict.
+        """
+        backtrack_identifiers = set()
+        for info in backtrack_causes:
+            backtrack_identifiers.add(info.requirement.name)
+            if info.parent is not None:
+                backtrack_identifiers.add(info.parent.name)
 
-        # We now work out the correct order.
-        #
-        # 1. If no other considerations apply, later versions take priority.
-        # 2. An already installed distribution is preferred over any other,
-        #    unless the user has requested an upgrade.
-        #    Upgrades are allowed when:
-        #    * The --upgrade flag is set, and
-        #      - The project was specified on the command line, or
-        #      - The project is a dependency and the "eager" upgrade strategy
-        #        was requested.
-        def _eligible_for_upgrade(name):
-            # type: (str) -> bool
+        current_backtrack_causes = []
+        for identifier in identifiers:
+            # Requires-Python has only one candidate and the check is basically
+            # free, so we always do it first to avoid needless work if it fails.
+            # This skips calling get_preference() for all other identifiers.
+            if identifier == REQUIRES_PYTHON_IDENTIFIER:
+                return [identifier]
+
+            # Check if this identifier is a backtrack cause
+            if identifier in backtrack_identifiers:
+                current_backtrack_causes.append(identifier)
+                continue
+
+        if current_backtrack_causes:
+            return current_backtrack_causes
+
+        return identifiers
+
+    def get_preference(
+        self,
+        identifier: str,
+        resolutions: Mapping[str, Candidate],
+        candidates: Mapping[str, Iterator[Candidate]],
+        information: Mapping[str, Iterable[PreferenceInformation]],
+        backtrack_causes: Sequence[PreferenceInformation],
+    ) -> Preference:
+        """Produce a sort key for given requirement based on preference.
+
+        The lower the return value is, the more preferred this group of
+        arguments is.
+
+        Currently pip considers the following in order:
+
+        * Any requirement that is "direct", e.g., points to an explicit URL.
+        * Any requirement that is "pinned", i.e., contains the operator ``===``
+          or ``==`` without a wildcard.
+        * Any requirement that imposes an upper version limit, i.e., contains the
+          operator ``<``, ``<=``, ``~=``, or ``==`` with a wildcard. Because
+          pip prioritizes the latest version, preferring explicit upper bounds
+          can rule out infeasible candidates sooner. This does not imply that
+          upper bounds are good practice; they can make dependency management
+          and resolution harder.
+        * Order user-specified requirements as they are specified, placing
+          other requirements afterward.
+        * Any "non-free" requirement, i.e., one that contains at least one
+          operator, such as ``>=`` or ``!=``.
+        * Alphabetical order for consistency (aids debuggability).
+        """
+        try:
+            next(iter(information[identifier]))
+        except StopIteration:
+            # There is no information for this identifier, so there's no known
+            # candidates.
+            has_information = False
+        else:
+            has_information = True
+
+        if not has_information:
+            direct = False
+            ireqs: tuple[InstallRequirement | None, ...] = ()
+        else:
+            # Go through the information and for each requirement,
+            # check if it's explicit (e.g., a direct link) and get the
+            # InstallRequirement (the second element) from get_candidate_lookup()
+            directs, ireqs = zip(
+                *(
+                    (isinstance(r, ExplicitRequirement), r.get_candidate_lookup()[1])
+                    for r, _ in information[identifier]
+                )
+            )
+            direct = any(directs)
+
+        operators: list[tuple[str, str]] = [
+            (specifier.operator, specifier.version)
+            for specifier_set in (ireq.specifier for ireq in ireqs if ireq)
+            for specifier in specifier_set
+        ]
+
+        pinned = any(((op[:2] == "==") and ("*" not in ver)) for op, ver in operators)
+        upper_bounded = any(
+            ((op in ("<", "<=", "~=")) or (op == "==" and "*" in ver))
+            for op, ver in operators
+        )
+        unfree = bool(operators)
+        requested_order = self._user_requested.get(identifier, math.inf)
+
+        return (
+            not direct,
+            not pinned,
+            not upper_bounded,
+            requested_order,
+            not unfree,
+            identifier,
+        )
+
+    def find_matches(
+        self,
+        identifier: str,
+        requirements: Mapping[str, Iterator[Requirement]],
+        incompatibilities: Mapping[str, Iterator[Candidate]],
+    ) -> Iterable[Candidate]:
+        def _eligible_for_upgrade(identifier: str) -> bool:
             """Are upgrades allowed for this project?
 
             This checks the upgrade strategy, and whether the project was one
@@ -92,62 +243,34 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self.user_requested)
+                user_order = _get_with_identifier(
+                    self._user_requested,
+                    identifier,
+                    default=None,
+                )
+                return user_order is not None
             return False
 
-        def sort_key(c):
-            # type: (Candidate) -> int
-            """Return a sort key for the matches.
-
-            The highest priority should be given to installed candidates that
-            are not eligible for upgrade. We use the integer value in the first
-            part of the key to sort these before other candidates.
-
-            We only pull the installed candidate to the bottom (i.e. most
-            preferred), but otherwise keep the ordering returned by the
-            requirement. The requirement is responsible for returning a list
-            otherwise sorted for the resolver, taking account for versions
-            and binary preferences as specified by the user.
-            """
-            if c.is_installed and not _eligible_for_upgrade(c.name):
-                return 1
-            return 0
-
-        return sorted(matches, key=sort_key)
-
-    def identify(self, dependency):
-        # type: (Union[Requirement, Candidate]) -> str
-        return dependency.name
-
-    def get_preference(
-        self,
-        resolution,  # type: Optional[Candidate]
-        candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
-    ):
-        # type: (...) -> Any
-        # Use the "usual" value for now
-        return len(candidates)
-
-    def find_matches(self, requirements):
-        # type: (Sequence[Requirement]) -> Iterable[Candidate]
-        if not requirements:
-            return []
-        constraint = self._constraints.get(
-            requirements[0].name, SpecifierSet(),
+        constraint = _get_with_identifier(
+            self._constraints,
+            identifier,
+            default=Constraint.empty(),
         )
-        candidates = self._factory.find_candidates(requirements, constraint)
-        return reversed(self._sort_matches(candidates))
+        return self._factory.find_candidates(
+            identifier=identifier,
+            requirements=requirements,
+            constraint=constraint,
+            prefers_installed=(not _eligible_for_upgrade(identifier)),
+            incompatibilities=incompatibilities,
+            is_satisfied_by=self.is_satisfied_by,
+        )
 
-    def is_satisfied_by(self, requirement, candidate):
-        # type: (Requirement, Candidate) -> bool
+    @staticmethod
+    @cache
+    def is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
         return requirement.is_satisfied_by(candidate)
 
-    def get_dependencies(self, candidate):
-        # type: (Candidate) -> Sequence[Requirement]
+    def get_dependencies(self, candidate: Candidate) -> Iterable[Requirement]:
         with_requires = not self._ignore_dependencies
-        return [
-            r
-            for r in candidate.iter_dependencies(with_requires)
-            if r is not None
-        ]
+        # iter_dependencies() can perform nontrivial work so delay until needed.
+        return (r for r in candidate.iter_dependencies(with_requires) if r is not None)

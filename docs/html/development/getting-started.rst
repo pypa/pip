@@ -27,71 +27,104 @@ Development Environment
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
-For developing pip, you need to install :pypi:`tox`. Often, you can run
-``python -m pip install tox`` to install and use it.
+For developing pip, you need to install :pypi:`nox`. The full development setup would then be:
 
+.. tab:: Unix/macOS
+
+    .. code-block:: shell
+
+        python -m venv .venv
+        source .venv/bin/activate
+        python -m pip install nox
+
+.. tab:: Windows
+
+    .. code-block:: shell
+
+        py -m venv .venv
+        .venv\Scripts\activate
+        py -m pip install nox
 
 Running pip From Source Tree
 ============================
 
 To run the pip executable from your source tree during development, install pip
 locally using editable installation (inside a virtualenv).
-You can then invoke your local source tree pip normally.
+You can then invoke your local source tree pip normally (be sure virtualenv is active).
 
-.. code-block:: console
+.. tab:: Unix/macOS
 
-    $ virtualenv venv # You can also use "python -m venv venv" from python3.3+
-    $ source venv/bin/activate
-    $ python -m pip install -e .
-    $ python -m pip --version
+    .. code-block:: shell
 
+        python -m pip install -e .
+        python -m pip --version
+
+.. tab:: Windows
+
+    .. code-block:: shell
+
+        py -m pip install -e .
+        py -m pip --version
 
 Running Tests
 =============
 
-pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
-and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
-pip's tests.
+pip's tests are written using the :pypi:`pytest` test framework and
+:mod:`unittest.mock`. :pypi:`nox` is used to automate the setup and execution
+of pip's tests.
 
-It is preferable to run the tests in parallel for better experience during development,
+It is preferable to run the tests in parallel for a better experience during development,
 since the tests can take a long time to finish when run sequentially.
 
 To run tests:
 
 .. code-block:: console
 
-    $ tox -e py36 -- -n auto
+    $ nox -s test-3.10 -- -n auto
 
 To run tests without parallelization, run:
 
 .. code-block:: console
 
-    $ tox -e py36
+    $ nox -s test-3.10
 
-The example above runs tests against Python 3.6. You can also use other
-versions like ``py27`` and ``pypy3``.
+The example above runs tests against Python 3.10. You can also use other
+versions like ``3.9`` and ``pypy3``.
 
-``tox`` has been configured to forward any additional arguments it is given to
+``nox`` has been configured to forward any additional arguments it is given to
 ``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you
 can select tests using the various ways that pytest provides:
 
 .. code-block:: console
 
     $ # Using file name
-    $ tox -e py36 -- tests/functional/test_install.py
+    $ nox -s test-3.10 -- tests/functional/test_install.py
     $ # Using markers
-    $ tox -e py36 -- -m unit
+    $ nox -s test-3.10 -- -m unit
     $ # Using keywords
-    $ tox -e py36 -- -k "install and not wheel"
+    $ nox -s test-3.10 -- -k "install and not wheel"
 
-Running pip's test suite requires supported version control tools (subversion,
-bazaar, git, and mercurial) to be installed. If you are missing one of the VCS
-tools, you can tell pip to skip those tests:
+.. note::
+
+    When running pip's tests with OS distribution Python versions, be aware that some
+    functional tests may fail due to potential patches introduced by the distribution.
+    For all tests to pass consider:
+
+    - Installing Python from `python.org`_ or compile from source
+    - Or, using `pyenv`_ to assist with source compilation
+
+Running pip's entire test suite requires supported version control tools
+(subversion, bazaar, git, and mercurial) to be installed. If you are missing
+any of these VCS, those tests should be skipped automatically. You can also
+explicitly tell pytest to skip those tests:
 
 .. code-block:: console
 
-    $ tox -e py36 -- -k "not svn"
-    $ tox -e py36 -- -k "not (svn or git)"
+    $ nox -s test-3.10 -- -k "not svn"
+    $ nox -s test-3.10 -- -k "not (svn or git)"
+
+.. _python.org: https://www.python.org/downloads/
+.. _pyenv: https://github.com/pyenv/pyenv
 
 
 Running Linters
@@ -105,7 +138,7 @@ To use linters locally, run:
 
 .. code-block:: console
 
-    $ tox -e lint
+    $ nox -s lint
 
 .. note::
 
@@ -113,6 +146,25 @@ To use linters locally, run:
     possible, warnings should be fixed instead. ``# noqa`` comments are
     reserved for rare cases where the recommended style causes severe
     readability problems.
+
+
+Running pip under a debugger
+============================
+
+In order to debug pip's behavior, you can run it under a debugger like so:
+
+.. code-block:: console
+
+    $ python -m pdb -m pip --debug ...
+
+
+Replace the ``...`` with arguments you'd like to run pip with. Give PDB the
+``c`` ("continue") command afterwards, to run the process.
+
+The ``--debug`` flag disables pip's exception handler, which would normally
+catch all unhandled exceptions. With this flag, pip will let these exceptions
+propagate outside of its main subroutine, letting them get caught by the
+debugger. This way you'll be able to debug an exception post-mortem via PDB.
 
 
 Building Documentation
@@ -125,7 +177,7 @@ To build it locally, run:
 
 .. code-block:: console
 
-    $ tox -e docs
+    $ nox -s docs
 
 The built documentation can be found in the ``docs/build`` folder.
 
@@ -147,14 +199,13 @@ in order to start contributing.
 * A guide on `triaging issues`_ for issue tracker
 * Getting started with Git
 
-   - `Hello World for Git`_
-   - `Understanding the GitHub flow`_
-   - `Start using Git on the command line`_
+  - `Hello World for Git`_
+  - `Understanding the GitHub flow`_
+  - `Start using Git on the command line`_
 
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
-.. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
 .. _`GitHub`: https://github.com/pypa/pip
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue

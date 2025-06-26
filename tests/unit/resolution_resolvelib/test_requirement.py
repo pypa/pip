@@ -1,9 +1,15 @@
+import os
+from pathlib import Path
+
 import pytest
-from pip._vendor.packaging.specifiers import SpecifierSet
+
 from pip._vendor.resolvelib import BaseReporter, Resolver
 
-from pip._internal.resolution.resolvelib.base import Candidate
-from pip._internal.utils.urls import path_to_url
+from pip._internal.resolution.resolvelib.base import Candidate, Constraint, Requirement
+from pip._internal.resolution.resolvelib.factory import Factory
+from pip._internal.resolution.resolvelib.provider import PipProvider
+
+from tests.lib import TestData
 
 # NOTE: All tests are prefixed `test_rlr` (for "test resolvelib resolver").
 #       This helps select just these tests using pytest's `-k` option, and
@@ -18,13 +24,24 @@ from pip._internal.utils.urls import path_to_url
 #   Editables
 
 
+def _is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
+    """A helper function to check if a requirement is satisfied by a candidate.
+
+    Used for mocking PipProvider.is_satified_by.
+    """
+    return requirement.is_satisfied_by(candidate)
+
+
 @pytest.fixture
-def test_cases(data):
-    def data_file(name):
+def test_cases(data: TestData) -> list[tuple[str, str, int]]:
+    def _data_file(name: str) -> Path:
         return data.packages.joinpath(name)
 
-    def data_url(name):
-        return path_to_url(data_file(name))
+    def data_file(name: str) -> str:
+        return os.fspath(_data_file(name))
+
+    def data_url(name: str) -> str:
+        return _data_file(name).as_uri()
 
     test_cases = [
         # requirement, name, matches
@@ -45,37 +62,63 @@ def test_cases(data):
         # TODO: directory, editables
     ]
 
-    yield test_cases
+    return test_cases
 
 
-def test_new_resolver_requirement_has_name(test_cases, factory):
+def test_new_resolver_requirement_has_name(
+    test_cases: list[tuple[str, str, int]], factory: Factory
+) -> None:
     """All requirements should have a name"""
     for spec, name, _ in test_cases:
-        req = factory.make_requirement_from_spec(spec, comes_from=None)
-        assert req.name == name
+        reqs = list(factory.make_requirements_from_spec(spec, comes_from=None))
+        assert len(reqs) == 1
+        assert reqs[0].name == name
 
 
-def test_new_resolver_correct_number_of_matches(test_cases, factory):
+def test_new_resolver_correct_number_of_matches(
+    test_cases: list[tuple[str, str, int]], factory: Factory
+) -> None:
     """Requirements should return the correct number of candidates"""
     for spec, _, match_count in test_cases:
-        req = factory.make_requirement_from_spec(spec, comes_from=None)
-        matches = factory.find_candidates([req], SpecifierSet())
-        assert len(list(matches)) == match_count
+        reqs = list(factory.make_requirements_from_spec(spec, comes_from=None))
+        assert len(reqs) == 1
+        req = reqs[0]
+        matches = factory.find_candidates(
+            req.name,
+            {req.name: [req]},
+            {},
+            Constraint.empty(),
+            prefers_installed=False,
+            is_satisfied_by=_is_satisfied_by,
+        )
+        assert sum(1 for _ in matches) == match_count
 
 
-def test_new_resolver_candidates_match_requirement(test_cases, factory):
-    """Candidates returned from find_candidates should satisfy the requirement
-    """
+def test_new_resolver_candidates_match_requirement(
+    test_cases: list[tuple[str, str, int]], factory: Factory
+) -> None:
+    """Candidates returned from find_candidates should satisfy the requirement"""
     for spec, _, _ in test_cases:
-        req = factory.make_requirement_from_spec(spec, comes_from=None)
-        for c in factory.find_candidates([req], SpecifierSet()):
+        reqs = list(factory.make_requirements_from_spec(spec, comes_from=None))
+        assert len(reqs) == 1
+        req = reqs[0]
+        candidates = factory.find_candidates(
+            req.name,
+            {req.name: [req]},
+            {},
+            Constraint.empty(),
+            prefers_installed=False,
+            is_satisfied_by=_is_satisfied_by,
+        )
+        for c in candidates:
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
 
 
-def test_new_resolver_full_resolve(factory, provider):
+def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> None:
     """A very basic full resolve"""
-    req = factory.make_requirement_from_spec("simplewheel", comes_from=None)
-    r = Resolver(provider, BaseReporter())
-    result = r.resolve([req])
-    assert set(result.mapping.keys()) == {'simplewheel'}
+    reqs = list(factory.make_requirements_from_spec("simplewheel", comes_from=None))
+    assert len(reqs) == 1
+    r: Resolver[Requirement, Candidate, str] = Resolver(provider, BaseReporter())
+    result = r.resolve(reqs)
+    assert set(result.mapping.keys()) == {"simplewheel"}

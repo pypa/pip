@@ -1,0 +1,39 @@
+diff --git a/src/pip/_vendor/urllib3/response.py b/src/pip/_vendor/urllib3/response.py
+index 01f08eee8..4969b70e3 100644
+--- a/src/pip/_vendor/urllib3/response.py
++++ b/src/pip/_vendor/urllib3/response.py
+@@ -8,13 +8,7 @@
+ from socket import error as SocketError
+ from socket import timeout as SocketTimeout
+ 
+-try:
+-    try:
+-        import brotlicffi as brotli
+-    except ImportError:
+-        import brotli
+-except ImportError:
+-    brotli = None
++brotli = None
+ 
+ from . import util
+ from ._collections import HTTPHeaderDict
+diff --git a/src/pip/_vendor/urllib3/util/request.py b/src/pip/_vendor/urllib3/util/request.py
+index b574b081e..330766ef4 100644
+--- a/src/pip/_vendor/urllib3/util/request.py
++++ b/src/pip/_vendor/urllib3/util/request.py
+@@ -13,15 +13,6 @@
+ SKIPPABLE_HEADERS = frozenset(["accept-encoding", "host", "user-agent"])
+ 
+ ACCEPT_ENCODING = "gzip,deflate"
+-try:
+-    try:
+-        import brotlicffi as _unused_module_brotli  # noqa: F401
+-    except ImportError:
+-        import brotli as _unused_module_brotli  # noqa: F401
+-except ImportError:
+-    pass
+-else:
+-    ACCEPT_ENCODING += ",br"
+ 
+ _FAILEDTELL = object()
+ 

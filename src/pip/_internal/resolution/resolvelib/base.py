@@ -1,82 +1,142 @@
-from pip._vendor.packaging.utils import canonicalize_name
+from __future__ import annotations
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Optional
 
-if MYPY_CHECK_RUNNING:
-    from typing import FrozenSet, Iterable, Optional, Tuple
+from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.utils import NormalizedName
+from pip._vendor.packaging.version import Version
 
-    from pip._vendor.packaging.version import _BaseVersion
+from pip._internal.models.link import Link, links_equivalent
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.hashes import Hashes
 
-    from pip._internal.models.link import Link
-    from pip._internal.req.req_install import InstallRequirement
-
-    CandidateLookup = Tuple[
-        Optional["Candidate"],
-        Optional[InstallRequirement],
-    ]
+CandidateLookup = tuple[Optional["Candidate"], Optional[InstallRequirement]]
 
 
-def format_name(project, extras):
-    # type: (str, FrozenSet[str]) -> str
+def format_name(project: NormalizedName, extras: frozenset[NormalizedName]) -> str:
     if not extras:
         return project
-    canonical_extras = sorted(canonicalize_name(e) for e in extras)
-    return "{}[{}]".format(project, ",".join(canonical_extras))
+    extras_expr = ",".join(sorted(extras))
+    return f"{project}[{extras_expr}]"
 
 
-class Requirement(object):
+@dataclass(frozen=True)
+class Constraint:
+    specifier: SpecifierSet
+    hashes: Hashes
+    links: frozenset[Link]
+
+    @classmethod
+    def empty(cls) -> Constraint:
+        return Constraint(SpecifierSet(), Hashes(), frozenset())
+
+    @classmethod
+    def from_ireq(cls, ireq: InstallRequirement) -> Constraint:
+        links = frozenset([ireq.link]) if ireq.link else frozenset()
+        return Constraint(ireq.specifier, ireq.hashes(trust_internet=False), links)
+
+    def __bool__(self) -> bool:
+        return bool(self.specifier) or bool(self.hashes) or bool(self.links)
+
+    def __and__(self, other: InstallRequirement) -> Constraint:
+        if not isinstance(other, InstallRequirement):
+            return NotImplemented
+        specifier = self.specifier & other.specifier
+        hashes = self.hashes & other.hashes(trust_internet=False)
+        links = self.links
+        if other.link:
+            links = links.union([other.link])
+        return Constraint(specifier, hashes, links)
+
+    def is_satisfied_by(self, candidate: Candidate) -> bool:
+        # Reject if there are any mismatched URL constraints on this package.
+        if self.links and not all(_match_link(link, candidate) for link in self.links):
+            return False
+        # We can safely always allow prereleases here since PackageFinder
+        # already implements the prerelease logic, and would have filtered out
+        # prerelease candidates if the user does not expect them.
+        return self.specifier.contains(candidate.version, prereleases=True)
+
+
+class Requirement:
     @property
-    def name(self):
-        # type: () -> str
+    def project_name(self) -> NormalizedName:
+        """The "project name" of a requirement.
+
+        This is different from ``name`` if this requirement contains extras,
+        in which case ``name`` would contain the ``[...]`` part, while this
+        refers to the name of the project.
+        """
         raise NotImplementedError("Subclass should override")
 
-    def is_satisfied_by(self, candidate):
-        # type: (Candidate) -> bool
+    @property
+    def name(self) -> str:
+        """The name identifying this requirement in the resolver.
+
+        This is different from ``project_name`` if this requirement contains
+        extras, where ``project_name`` would not contain the ``[...]`` part.
+        """
+        raise NotImplementedError("Subclass should override")
+
+    def is_satisfied_by(self, candidate: Candidate) -> bool:
         return False
 
-    def get_candidate_lookup(self):
-        # type: () -> CandidateLookup
+    def get_candidate_lookup(self) -> CandidateLookup:
         raise NotImplementedError("Subclass should override")
 
-    def format_for_error(self):
-        # type: () -> str
+    def format_for_error(self) -> str:
         raise NotImplementedError("Subclass should override")
 
 
-class Candidate(object):
-    @property
-    def name(self):
-        # type: () -> str
-        raise NotImplementedError("Override in subclass")
+def _match_link(link: Link, candidate: Candidate) -> bool:
+    if candidate.source_link:
+        return links_equivalent(link, candidate.source_link)
+    return False
 
-    @property
-    def version(self):
-        # type: () -> _BaseVersion
-        raise NotImplementedError("Override in subclass")
 
+class Candidate:
     @property
-    def is_installed(self):
-        # type: () -> bool
-        raise NotImplementedError("Override in subclass")
+    def project_name(self) -> NormalizedName:
+        """The "project name" of the candidate.
 
-    @property
-    def is_editable(self):
-        # type: () -> bool
+        This is different from ``name`` if this candidate contains extras,
+        in which case ``name`` would contain the ``[...]`` part, while this
+        refers to the name of the project.
+        """
         raise NotImplementedError("Override in subclass")
 
     @property
-    def source_link(self):
-        # type: () -> Optional[Link]
+    def name(self) -> str:
+        """The name identifying this candidate in the resolver.
+
+        This is different from ``project_name`` if this candidate contains
+        extras, where ``project_name`` would not contain the ``[...]`` part.
+        """
         raise NotImplementedError("Override in subclass")
 
-    def iter_dependencies(self, with_requires):
-        # type: (bool) -> Iterable[Optional[Requirement]]
+    @property
+    def version(self) -> Version:
         raise NotImplementedError("Override in subclass")
 
-    def get_install_requirement(self):
-        # type: () -> Optional[InstallRequirement]
+    @property
+    def is_installed(self) -> bool:
         raise NotImplementedError("Override in subclass")
 
-    def format_for_error(self):
-        # type: () -> str
+    @property
+    def is_editable(self) -> bool:
+        raise NotImplementedError("Override in subclass")
+
+    @property
+    def source_link(self) -> Link | None:
+        raise NotImplementedError("Override in subclass")
+
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
+        raise NotImplementedError("Override in subclass")
+
+    def get_install_requirement(self) -> InstallRequirement | None:
+        raise NotImplementedError("Override in subclass")
+
+    def format_for_error(self) -> str:
         raise NotImplementedError("Subclass should override")

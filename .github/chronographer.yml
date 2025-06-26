@@ -1,0 +1,10 @@
+branch-protection-check-name: Changelog entry
+action-hints:
+  check-title-prefix: "Chronographer: "
+  external-docs-url: https://pip.pypa.io/dev/news-entry-failure
+  inline-markdown: >
+    See https://pip.pypa.io/dev/news-entry-failure for details.
+enforce-name:
+  suffix: .rst
+labels:
+  skip-changelog: skip news

@@ -1,51 +1,37 @@
-from __future__ import absolute_import
+from __future__ import annotations
 
-import io
+import importlib.util
 import os
-import sys
 from collections import namedtuple
+from typing import Any
 
-from pip._vendor import six, toml
-from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from pip._vendor.packaging.requirements import InvalidRequirement
 
-from pip._internal.exceptions import InstallationError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, List
-
-
-def _is_list_of_str(obj):
-    # type: (Any) -> bool
-    return (
-        isinstance(obj, list) and
-        all(isinstance(item, six.string_types) for item in obj)
-    )
+from pip._internal.exceptions import (
+    InstallationError,
+    InvalidPyProjectBuildRequires,
+    MissingPyProjectBuildRequires,
+)
+from pip._internal.utils.compat import tomllib
+from pip._internal.utils.packaging import get_requirement
 
 
-def make_pyproject_path(unpacked_source_directory):
-    # type: (str) -> str
-    path = os.path.join(unpacked_source_directory, 'pyproject.toml')
-
-    # Python2 __file__ should not be unicode
-    if six.PY2 and isinstance(path, six.text_type):
-        path = path.encode(sys.getfilesystemencoding())
-
-    return path
+def _is_list_of_str(obj: Any) -> bool:
+    return isinstance(obj, list) and all(isinstance(item, str) for item in obj)
 
 
-BuildSystemDetails = namedtuple('BuildSystemDetails', [
-    'requires', 'backend', 'check', 'backend_path'
-])
+def make_pyproject_path(unpacked_source_directory: str) -> str:
+    return os.path.join(unpacked_source_directory, "pyproject.toml")
+
+
+BuildSystemDetails = namedtuple(
+    "BuildSystemDetails", ["requires", "backend", "check", "backend_path"]
+)
 
 
 def load_pyproject_toml(
-    use_pep517,  # type: Optional[bool]
-    pyproject_toml,  # type: str
-    setup_py,  # type: str
-    req_name  # type: str
-):
-    # type: (...) -> Optional[BuildSystemDetails]
+    use_pep517: bool | None, pyproject_toml: str, setup_py: str, req_name: str
+) -> BuildSystemDetails | None:
     """Load the pyproject.toml file.
 
     Parameters:
@@ -70,15 +56,21 @@ def load_pyproject_toml(
     has_pyproject = os.path.isfile(pyproject_toml)
     has_setup = os.path.isfile(setup_py)
 
+    if not has_pyproject and not has_setup:
+        raise InstallationError(
+            f"{req_name} does not appear to be a Python project: "
+            f"neither 'setup.py' nor 'pyproject.toml' found."
+        )
+
     if has_pyproject:
-        with io.open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = toml.load(f)
+        with open(pyproject_toml, encoding="utf-8") as f:
+            pp_toml = tomllib.loads(f.read())
         build_system = pp_toml.get("build-system")
     else:
         build_system = None
 
     # The following cases must use PEP 517
-    # We check for use_pep517 being non-None and falsey because that means
+    # We check for use_pep517 being non-None and falsy because that means
     # the user explicitly requested --no-use-pep517.  The value 0 as
     # opposed to False can occur when the value is provided via an
     # environment variable or config file option (due to the quirk of
@@ -95,17 +87,26 @@ def load_pyproject_toml(
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
                 "project specifies a build backend of {} "
-                "in pyproject.toml".format(
-                    build_system["build-backend"]
-                )
+                "in pyproject.toml".format(build_system["build-backend"])
             )
         use_pep517 = True
 
     # If we haven't worked out whether to use PEP 517 yet,
     # and the user hasn't explicitly stated a preference,
-    # we do so if the project has a pyproject.toml file.
+    # we do so if the project has a pyproject.toml file
+    # or if we cannot import setuptools or wheels.
+
+    # We fallback to PEP 517 when without setuptools or without the wheel package,
+    # so setuptools can be installed as a default build backend.
+    # For more info see:
+    # https://discuss.python.org/t/pip-without-setuptools-could-the-experience-be-improved/11810/9
+    # https://github.com/pypa/pip/issues/8559
     elif use_pep517 is None:
-        use_pep517 = has_pyproject
+        use_pep517 = (
+            has_pyproject
+            or not importlib.util.find_spec("setuptools")
+            or not importlib.util.find_spec("wheel")
+        )
 
     # At this point, we know whether we're going to use PEP 517.
     assert use_pep517 is not None
@@ -125,7 +126,7 @@ def load_pyproject_toml(
         # a version of setuptools that supports that backend.
 
         build_system = {
-            "requires": ["setuptools>=40.8.0", "wheel"],
+            "requires": ["setuptools>=40.8.0"],
             "build-backend": "setuptools.build_meta:__legacy__",
         }
 
@@ -137,52 +138,37 @@ def load_pyproject_toml(
 
     # Ensure that the build-system section in pyproject.toml conforms
     # to PEP 518.
-    error_template = (
-        "{package} has a pyproject.toml file that does not comply "
-        "with PEP 518: {reason}"
-    )
 
     # Specifying the build-system table but not the requires key is invalid
     if "requires" not in build_system:
-        raise InstallationError(
-            error_template.format(package=req_name, reason=(
-                "it has a 'build-system' table but not "
-                "'build-system.requires' which is mandatory in the table"
-            ))
-        )
+        raise MissingPyProjectBuildRequires(package=req_name)
 
     # Error out if requires is not a list of strings
     requires = build_system["requires"]
     if not _is_list_of_str(requires):
-        raise InstallationError(error_template.format(
+        raise InvalidPyProjectBuildRequires(
             package=req_name,
-            reason="'build-system.requires' is not a list of strings.",
-        ))
+            reason="It is not a list of strings.",
+        )
 
     # Each requirement must be valid as per PEP 508
     for requirement in requires:
         try:
-            Requirement(requirement)
-        except InvalidRequirement:
-            raise InstallationError(
-                error_template.format(
-                    package=req_name,
-                    reason=(
-                        "'build-system.requires' contains an invalid "
-                        "requirement: {!r}".format(requirement)
-                    ),
-                )
-            )
+            get_requirement(requirement)
+        except InvalidRequirement as error:
+            raise InvalidPyProjectBuildRequires(
+                package=req_name,
+                reason=f"It contains an invalid requirement: {requirement!r}",
+            ) from error
 
     backend = build_system.get("build-backend")
     backend_path = build_system.get("backend-path", [])
-    check = []  # type: List[str]
+    check: list[str] = []
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included
-        # a version of setuptools which supplies the backend, or wheel
-        # (which is needed by the backend) in their requirements. So we
-        # make a note to check that those requirements are present once
+        # a version of setuptools which supplies the backend. So we
+        # make a note to check that this requirement is present once
         # we have set up the environment.
         # This is quite a lot of work to check for a very specific case. But
         # the problem is, that case is potentially quite common - projects that
@@ -191,6 +177,6 @@ def load_pyproject_toml(
         # tools themselves. The original PEP 518 code had a similar check (but
         # implemented in a different way).
         backend = "setuptools.build_meta:__legacy__"
-        check = ["setuptools>=40.8.0", "wheel"]
+        check = ["setuptools>=40.8.0"]
 
     return BuildSystemDetails(requires, backend, check, backend_path)

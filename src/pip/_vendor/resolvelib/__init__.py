@@ -1,26 +1,27 @@
 __all__ = [
-    "__version__",
     "AbstractProvider",
     "AbstractResolver",
     "BaseReporter",
     "InconsistentCandidate",
-    "Resolver",
     "RequirementsConflicted",
     "ResolutionError",
     "ResolutionImpossible",
     "ResolutionTooDeep",
+    "Resolver",
+    "__version__",
 ]
 
-__version__ = "0.4.0"
+__version__ = "1.2.0"
 
 
-from .providers import AbstractProvider, AbstractResolver
+from .providers import AbstractProvider
 from .reporters import BaseReporter
 from .resolvers import (
+    AbstractResolver,
     InconsistentCandidate,
     RequirementsConflicted,
-    Resolver,
     ResolutionError,
     ResolutionImpossible,
     ResolutionTooDeep,
+    Resolver,
 )

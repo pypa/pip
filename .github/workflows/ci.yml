@@ -1,0 +1,291 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags:
+      # Tags for all potential release numbers till 2030.
+      - "2[0-9].[0-3]" # 20.0 -> 29.3
+      - "2[0-9].[0-3].[0-9]+" # 20.0.0 -> 29.3.[0-9]+
+  pull_request:
+  schedule:
+    - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
+  workflow_dispatch:
+    # allow manual runs on branches without a PR
+
+env:
+  # The "FORCE_COLOR" variable, when set to 1,
+  # tells Nox to colorize itself.
+  FORCE_COLOR: "1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: docs
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install nox
+      - run: nox -s docs
+
+  determine-changes:
+    runs-on: ubuntu-22.04
+    outputs:
+      tests: ${{ steps.filter.outputs.tests }}
+      vendoring: ${{ steps.filter.outputs.vendoring }}
+    steps:
+      # For pull requests it's not necessary to checkout the code
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            vendoring:
+              # Anything that's touching "vendored code"
+              - "src/pip/_vendor/**"
+              - "pyproject.toml"
+              - "noxfile.py"
+            tests:
+              # Anything that's touching code-related stuff
+              - ".github/workflows/ci.yml"
+              - "src/**"
+              - "tests/**"
+              - "noxfile.py"
+              # The test suite should also run when cutting a release
+              # (which is the only time this file is modified).
+              - "NEWS.rst"
+        if: github.event_name == 'pull_request'
+
+  packaging:
+    name: packaging / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Set up git credentials
+        run: |
+          git config --global user.email "pypa-dev@googlegroups.com"
+          git config --global user.name "pip"
+
+      - run: pip install nox
+      - run: nox -s prepare-release -- 99.9
+      - run: nox -s build-release -- 99.9
+      - run: pipx run check-manifest
+
+  vendoring:
+    name: vendoring
+    runs-on: ubuntu-22.04
+
+    needs: [determine-changes]
+    if: >-
+      needs.determine-changes.outputs.vendoring == 'true' ||
+      github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pip install nox
+      - run: nox -s vendoring
+      - run: git diff --exit-code
+
+  tests-unix:
+    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    needs: [determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-22.04, macos-13, macos-latest]
+        python:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+
+      - name: Install Ubuntu dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install bzr
+
+      - name: Install MacOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          DEPS=breezy
+          if ! which svn; then
+            DEPS="${DEPS} subversion"
+          fi
+          brew install ${DEPS}
+
+      - run: pip install nox
+
+      # Main check
+      - name: Run unit tests
+        run: >-
+          nox -s test-${{ matrix.python.key || matrix.python }} --
+          tests/unit
+          --verbose --numprocesses auto --showlocals
+      - name: Run integration tests
+        run: >-
+          nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
+          tests/functional
+          --verbose --numprocesses auto --showlocals
+          --durations=5
+
+  tests-windows:
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
+    runs-on: ${{ matrix.os }}-latest
+
+    needs: [determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [Windows]
+        python:
+          - "3.9"
+          # Commented out, since Windows tests are expensively slow,
+          # only test the oldest and newest Python supported by pip
+          # - "3.10"
+          # - "3.11"
+          # - "3.12"
+          - "3.13"
+        group:
+          - { number: 1, pytest-filter: "not test_install" }
+          - { number: 2, pytest-filter: "test_install" }
+
+    steps:
+      # The D: drive is significantly faster than the system C: drive.
+      # https://github.com/actions/runner-images/issues/8755
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+
+      - run: pip install nox
+
+      # Main check
+      - name: Run unit tests (group 1)
+        if: matrix.group.number == 1
+        run: >-
+          nox -s test-${{ matrix.python }} --
+          tests/unit
+          --verbose --numprocesses auto --showlocals
+
+      - name: Run integration tests (group ${{ matrix.group.number }})
+        run: >-
+          nox -s test-${{ matrix.python }} --no-install --
+          tests/functional -k "${{ matrix.group.pytest-filter }}"
+          --verbose --numprocesses auto --showlocals
+
+  tests-zipapp:
+    name: tests / zipapp
+    # The macos-latest (M1) runners are the fastest available on GHA, even
+    # beating out the ubuntu-latest runners. The zipapp tests are slow by
+    # nature, and we don't care where they run, so we pick the fastest one.
+    runs-on: macos-latest
+
+    needs: [packaging, determine-changes]
+    if: >-
+      needs.determine-changes.outputs.tests == 'true' ||
+      github.event_name != 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install MacOS dependencies
+        run: brew install breezy subversion
+
+      - run: pip install nox
+
+      # Main check
+      - name: Run integration tests
+        run: >-
+          nox -s test-3.10 --
+          tests/functional
+          --verbose --numprocesses auto --showlocals
+          --durations=5
+          --use-zipapp
+
+  check:  # This job does nothing and is only used for the branch protection
+    if: always()
+
+    needs:
+      - determine-changes
+      - docs
+      - packaging
+      - tests-unix
+      - tests-windows
+      - tests-zipapp
+      - vendoring
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          allowed-skips: >-
+            ${{
+              (
+                needs.determine-changes.outputs.vendoring != 'true'
+                && github.event_name == 'pull_request'
+              )
+              && 'vendoring'
+              || ''
+            }}
+            ,
+            ${{
+              (
+                needs.determine-changes.outputs.tests != 'true'
+                && github.event_name == 'pull_request'
+              )
+              && '
+                tests-unix,
+                tests-windows,
+                tests-zipapp,
+                tests-importlib-metadata,
+              '
+              || ''
+            }}
+          jobs: ${{ toJSON(needs) }}

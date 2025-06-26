@@ -1,64 +1,31 @@
-import os
-import signal
+import pathlib
 import ssl
 import threading
-from contextlib import contextmanager
+from base64 import b64encode
+from collections.abc import Iterable, Iterator
+from contextlib import ExitStack, contextmanager
 from textwrap import dedent
+from typing import TYPE_CHECKING, Any, Callable
+from unittest.mock import Mock
 
-from mock import Mock
-from pip._vendor.contextlib2 import nullcontext
-from werkzeug.serving import WSGIRequestHandler
+from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from .compat import blocked_signals
 
-if MYPY_CHECK_RUNNING:
-    from types import TracebackType
-    from typing import (
-        Any, Callable, Dict, Iterable, List, Optional, Text, Tuple, Type, Union
-    )
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
-    from werkzeug.serving import BaseWSGIServer
+Body = Iterable[bytes]
 
-    Environ = Dict[str, str]
-    Status = str
-    Headers = Iterable[Tuple[str, str]]
-    ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
-    Write = Callable[[bytes], None]
-    StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
-    Body = List[bytes]
-    Responder = Callable[[Environ, StartResponse], Body]
 
-    class MockServer(BaseWSGIServer):
-        mock = Mock()  # type: Mock
-
-# Applies on Python 2 and Windows.
-if not hasattr(signal, "pthread_sigmask"):
-    # We're not relying on this behavior anywhere currently, it's just best
-    # practice.
-    blocked_signals = nullcontext
-else:
-    @contextmanager
-    def blocked_signals():
-        """Block all signals for e.g. starting a worker thread.
-        """
-        # valid_signals() was added in Python 3.8 (and not using it results
-        # in a warning on pthread_sigmask() call)
-        try:
-            mask = signal.valid_signals()
-        except AttributeError:
-            mask = set(range(1, signal.NSIG))
-
-        old_mask = signal.pthread_sigmask(signal.SIG_SETMASK, mask)
-        try:
-            yield
-        finally:
-            signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
+class _MockServer(BaseWSGIServer):
+    mock: Mock = Mock()
 
 
 class _RequestHandler(WSGIRequestHandler):
-    def make_environ(self):
-        environ = super(_RequestHandler, self).make_environ()
+    def make_environ(self) -> dict[str, Any]:
+        environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
         # 0.16.0.
@@ -81,21 +48,24 @@ class _RequestHandler(WSGIRequestHandler):
         return environ
 
 
-def _mock_wsgi_adapter(mock):
-    # type: (Callable[[Environ, StartResponse], Responder]) -> Responder
+def _mock_wsgi_adapter(
+    mock: Callable[["WSGIEnvironment", "StartResponse"], "WSGIApplication"],
+) -> "WSGIApplication":
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
     """
-    def adapter(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
-        responder = mock(environ, start_response)
+
+    def adapter(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
+        try:
+            responder = mock(environ, start_response)
+        except StopIteration:
+            raise RuntimeError("Ran out of mocked responses.")
         return responder(environ, start_response)
 
     return adapter
 
 
-def make_mock_server(**kwargs):
-    # type: (Any) -> MockServer
+def make_mock_server(**kwargs: Any) -> _MockServer:
     """Creates a mock HTTP(S) server listening on a random port on localhost.
 
     The `mock` property of the returned server provides and records all WSGI
@@ -135,10 +105,8 @@ def make_mock_server(**kwargs):
 
 
 @contextmanager
-def server_running(server):
-    # type: (BaseWSGIServer) -> None
-    """Context manager for running the provided server in a separate thread.
-    """
+def server_running(server: BaseWSGIServer) -> Iterator[None]:
+    """Context manager for running the provided server in a separate thread."""
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
     with blocked_signals():
@@ -153,81 +121,115 @@ def server_running(server):
 # Helper functions for making responses in a declarative way.
 
 
-def text_html_response(text):
-    # type: (Text) -> Responder
-    def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
-        start_response("200 OK", [
-            ("Content-Type", "text/html; charset=UTF-8"),
-        ])
-        return [text.encode('utf-8')]
+def text_html_response(text: str) -> "WSGIApplication":
+    def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
+        start_response(
+            "200 OK",
+            [
+                ("Content-Type", "text/html; charset=UTF-8"),
+            ],
+        )
+        return [text.encode("utf-8")]
 
     return responder
 
 
-def html5_page(text):
-    # type: (Union[Text, str]) -> Text
-    return dedent(u"""
+def html5_page(text: str) -> str:
+    return (
+        dedent(
+            """
     <!DOCTYPE html>
     <html>
       <body>
         {}
       </body>
     </html>
-    """).strip().format(text)
-
-
-def index_page(spec):
-    # type: (Dict[str, str]) -> Responder
-    def link(name, value):
-        return '<a href="{}">{}</a>'.format(
-            value, name
+    """
         )
+        .strip()
+        .format(text)
+    )
 
-    links = ''.join(link(*kv) for kv in spec.items())
+
+def package_page(spec: dict[str, str]) -> "WSGIApplication":
+    def link(name: str, value: str) -> str:
+        return f'<a href="{value}">{name}</a>'
+
+    links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
 
 
-def package_page(spec):
-    # type: (Dict[str, str]) -> Responder
-    def link(name, value):
-        return '<a href="{}">{}</a>'.format(
-            value, name
-        )
-
-    links = ''.join(link(*kv) for kv in spec.items())
-    return text_html_response(html5_page(links))
-
-
-def file_response(path):
-    # type: (str) -> Responder
-    def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
-        size = os.stat(path).st_size
+def file_response(path: pathlib.Path) -> "WSGIApplication":
+    def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
         start_response(
-            "200 OK", [
+            "200 OK",
+            [
                 ("Content-Type", "application/octet-stream"),
-                ("Content-Length", str(size)),
+                ("Content-Length", str(path.stat().st_size)),
             ],
         )
-
-        with open(path, 'rb') as f:
-            return [f.read()]
+        return [path.read_bytes()]
 
     return responder
 
 
-def authorization_response(path):
-    def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+def authorization_response(path: pathlib.Path) -> "WSGIApplication":
+    correct_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
 
+    def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
+        if environ.get("HTTP_AUTHORIZATION") != correct_auth:
+            start_response("401 Unauthorized", [("WWW-Authenticate", "Basic")])
+            return ()
         start_response(
-            "401 Unauthorized", [
-                ("WWW-Authenticate", "Basic"),
+            "200 OK",
+            [
+                ("Content-Type", "application/octet-stream"),
+                ("Content-Length", str(path.stat().st_size)),
             ],
         )
-
-        with open(path, 'rb') as f:
-            return [f.read()]
+        return [path.read_bytes()]
 
     return responder
+
+
+class MockServer:
+    def __init__(self, server: _MockServer) -> None:
+        self._server = server
+        self._running = False
+        self.context = ExitStack()
+
+    @property
+    def port(self) -> int:
+        return self._server.port
+
+    @property
+    def host(self) -> str:
+        return self._server.host
+
+    def set_responses(self, responses: Iterable["WSGIApplication"]) -> None:
+        assert not self._running, "responses cannot be set on running server"
+        self._server.mock.side_effect = responses
+
+    def start(self) -> None:
+        assert not self._running, "running server cannot be started"
+        self.context.enter_context(server_running(self._server))
+        self.context.enter_context(self._set_running())
+
+    @contextmanager
+    def _set_running(self) -> Iterator[None]:
+        self._running = True
+        try:
+            yield
+        finally:
+            self._running = False
+
+    def stop(self) -> None:
+        assert self._running, "idle server cannot be stopped"
+        self.context.close()
+
+    def get_requests(self) -> list[dict[str, str]]:
+        """Get environ for each received request."""
+        assert not self._running, "cannot get mock from running server"
+        # Legacy: replace call[0][0] with call.args[0]
+        # when pip drops support for python3.7
+        return [call[0][0] for call in self._server.mock.call_args_list]

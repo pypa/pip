@@ -1,14 +1,9 @@
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from __future__ import annotations
 
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional
-
-
-__version__ = "20.3.dev0"
+__version__ = "25.2.dev0"
 
 
-def main(args=None):
-    # type: (Optional[List[str]]) -> int
+def main(args: list[str] | None = None) -> int:
     """This is an internal API only meant for use by pip's own console scripts.
 
     For additional details, see https://github.com/pypa/pip/issues/7498.

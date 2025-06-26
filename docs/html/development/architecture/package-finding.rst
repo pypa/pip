@@ -101,7 +101,7 @@ One of ``PackageFinder``'s main top-level methods is
 1. Calls its ``find_all_candidates()`` method, which gathers all
    possible package links by reading and parsing the index URL's and
    locations provided by the user (the :ref:`LinkCollector
-   <link-collector-class>` class's ``collect_links()`` method), constructs a
+   <link-collector-class>` class's ``collect_sources()`` method), constructs a
    :ref:`LinkEvaluator <link-evaluator-class>` object to filter out some of
    those links, and then returns a list of ``InstallationCandidates`` (aka
    candidates for install). This corresponds to steps 1-3 of the
@@ -131,7 +131,7 @@ responsible for collecting the raw list of "links" to package files
 The ``LinkCollector`` class takes into account the user's :ref:`--find-links
 <install_--find-links>`, :ref:`--extra-index-url <install_--extra-index-url>`,
 and related options when deciding which locations to collect links from. The
-class's main method is the ``collect_links()`` method. The :ref:`PackageFinder
+class's main method is the ``collect_sources()`` method. The :ref:`PackageFinder
 <package-finder-class>` class invokes this method as the first step of its
 ``find_all_candidates()`` method.
 
@@ -182,8 +182,9 @@ example, whether a pre-release is eligible for selection or whether a file
 whose hash doesn't match is eligible depends on properties of the collection
 as a whole.
 
-The ``CandidateEvaluator`` class uses information like the list of `PEP 425`_
-tags compatible with the target Python interpreter, hashes provided by the
+The ``CandidateEvaluator`` class uses information like the list of
+:ref:`platform tags <pypug:platform-compatibility-tags>`
+compatible with the target Python interpreter, hashes provided by the
 user, and other user preferences, etc.
 
 Specifically, the class has a ``get_applicable_candidates()`` method.
@@ -236,5 +237,4 @@ The class is the return type of both the ``CandidateEvaluator`` class's
 ``find_best_candidate()`` method.
 
 
-.. _`PEP 425`: https://www.python.org/dev/peps/pep-0425/
 .. _`PEP 503`: https://www.python.org/dev/peps/pep-0503/

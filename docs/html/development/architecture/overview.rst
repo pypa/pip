@@ -4,7 +4,6 @@
     developers welcome your help to complete this documentation. If you're
     interested in helping out, please let us know in the `tracking issue`_.
 
-.. contents::
 
 ****************************
 Broad functionality overview
@@ -25,9 +24,9 @@ Things pip does:
            backwards compatibility reasons. But thing with setuptools:
            has a ``setup.py`` file that it invokes to …… get info?
 
-2. Decides where to install stuff. Once the package is built, resulting
-   artifact is then installed into system in appropriate place. :pep:`517`
-   defines interface between build backend & installer.
+2. Decides where to install stuff. Once the package is built, the resulting
+   artifact is then installed to the system in its appropriate place. :pep:`517`
+   defines the interface between the build backend & installer.
 
 Broad overview of flow
 ======================
@@ -43,13 +42,13 @@ In sequence, what does pip do?:
    user-given requirements, and where to get them from.
 
    a. this step is convoluted - also exploratory, involves dependency
-         resolution -- we need to get to the index, see what versions
-         are available
+      resolution -- we need to get to the index, see what versions
+      are available
 
    b. Sometimes you need to build the package itself in order to get
-         dependency information, which means fetching the package from
-         package index, which means knowing whether it exists. For a
-         single package,
+      dependency information, which means fetching the package from
+      package index, which means knowing whether it exists. For a
+      single package,
 
 4. Install the actual items to be installed.
 
@@ -112,30 +111,30 @@ The package index gives pip a list of files for that package (via the existing P
 
 pip chooses from the list a single file to download.
 
-It may go back and choose another file to download
+It may go back and choose another file to download.
 
 When pip looks at the package index, the place where it looks has
-basically a link. The link’s text is the name of the file
+basically a link. The link’s text is the name of the file.
 
 This is the `PyPI Simple API`_ (PyPI has several APIs, some are being
 deprecated). pip looks at Simple API, documented initially at :pep:`503` --
 packaging.python.org has PyPA specifications with more details for
-Simple Repository API
+Simple Repository API.
 
-For this package name -- this is the list of files available
+For this package name -- this is the list of files available.
 
 Looks there for:
 
 * The list of filenames
 * Other info
 
-Once it has those, selects one file, downloads it
+Once it has those, it selects one file and downloads it.
 
 (Question: If I want to ``pip install flask``, I think the whole list of filenames
 cannot….should not be …. ? I want only the Flask …. Why am I getting the
 whole list?
 
-Answer: It's not every file, just files of Flask. No API for getting alllllll
+Answer: It's not every file, just files of Flask. No API for getting all
 files on PyPI. It’s for getting all files of Flask.)
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831

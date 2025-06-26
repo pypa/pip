@@ -7,7 +7,7 @@ Release process
 Release Cadence
 ===============
 
-The pip project has a release cadence of releasing whatever is on ``master``
+The pip project has a release cadence of releasing whatever is on ``main``
 every 3 months. This gives users a predictable pattern for when releases
 are going to happen and prevents locking up improvements for fixes for long
 periods of time, while still preventing massively fracturing the user base
@@ -16,20 +16,32 @@ with version numbers.
 Our release months are January, April, July, October. The release date within
 that month will be up to the release manager for that release. If there are
 no changes, then that release month is skipped and the next release will be
-3 month later.
+3 months later.
+
+The version number of pip is ``YY.N``, where ``YY`` is the year of the release
+and ``N`` identifies the quarter of the year (0-3).
 
 The release manager may, at their discretion, choose whether or not there
 will be a pre-release period for a release, and if there is may extend that
 period into the next month if needed.
 
-Because releases are made direct from the ``master`` branch, it is essential
-that ``master`` is always in a releasable state. It is acceptable to merge
+Because releases are made direct from the ``main`` branch, it is essential
+that ``main`` is always in a releasable state. It is acceptable to merge
 PRs that partially implement a new feature, but only if the partially
 implemented version is usable in that state (for example, with reduced
 functionality or disabled by default). In the case where a merged PR is found
 to need extra work before being released, the release manager always has the
 option to back out the partial change prior to a release. The PR can then be
 reworked and resubmitted for the next release.
+
+Vendoring updates will be picked up from the ``main`` branch, as for any other
+update. Ideally, vendoring updates should be merged between releases, just like
+any other change. If there are outstanding updates to vendored packages, the
+release manager *may* at their discretion choose to do a vendoring update
+before the release. However this is *not* a requirement and in particular,
+updates to vendored packages that fix issues in pip should be merged
+proactively, to ensure that they will be present in the next release.
+
 
 .. _`Deprecation Policy`:
 
@@ -38,11 +50,17 @@ Deprecation Policy
 
 Any change to pip that removes or significantly alters user-visible behavior
 that is described in the pip documentation will be deprecated for a minimum of
-6 months before the change occurs. Deprecation will take the form of a warning
-being issued by pip when the feature is used. Longer deprecation periods, or
-deprecation warnings for behavior changes that would not normally be covered by
-this policy, are also possible depending on circumstances, but this is at the
-discretion of the pip developers.
+6 months before the change occurs.
+
+Certain changes may be fast tracked and have a deprecation period of 3 months.
+This requires at least two members of the pip team to be in favor of doing so,
+and no pip maintainers opposing.
+
+Deprecation will take the form of a warning being issued by pip when the
+feature is used. Longer deprecation periods, or deprecation warnings for
+behavior changes that would not normally be covered by this policy, are also
+possible depending on circumstances, but this is at the discretion of the pip
+maintainers.
 
 Note that the documentation is the sole reference for what counts as agreed
 behavior. If something isn't explicitly mentioned in the documentation, it can
@@ -59,19 +77,32 @@ their merits.
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
 
-Python 2 support
+Supported Versions
+==================
+
+The latest version of the pip is the only supported version, previous
+versions should be considered unsupported. Users are encouraged to make
+regular updates to their version of pip in order to remain supported.
+
+.. _`Python 2 Support`:
+
+Python 2 Support
 ----------------
 
-pip will continue to ensure that it runs on Python 2.7 after the CPython 2.7
-EOL date. Support for Python 2.7 will be dropped, if bugs in Python 2.7 itself
-make this necessary (which is unlikely) or in pip 21.0 (Jan 2021), whichever is
-earlier.
+pip 20.3 was the last version of pip that supported Python 2. Bugs reported
+with pip which only occur on Python 2.7 will likely be closed as "won't fix"
+issues by pip's maintainers.
 
-However, bugs reported with pip which only occur on Python 2.7 would likely not
-be addressed directly by pip's maintainers. Pull Requests to fix Python 2.7
-only bugs will be considered, and merged (subject to normal review processes).
-Note that there may be delays due to the lack of developer resources for
-reviewing such pull requests.
+Python Support Policy
+---------------------
+
+pip supports `CPython versions that are not end-of-life`_. Older versions of CPython may
+be supported at the discretion of pip maintainers (based on criteria such as download
+statistics on PyPI, Python versions supported by the vendored dependencies and
+maintenance burden).
+
+pip maintainers accept pull requests to support other Python implementations, but the
+pip CI does not test for compatibility with them.
 
 .. _`Feature Flags`:
 
@@ -109,19 +140,23 @@ Release Process
 Creating a new release
 ----------------------
 
-#. Checkout the current pip ``master`` branch.
 #. Ensure you have the latest ``nox`` installed.
+#. Create a new ``release/YY.N`` branch off ``main`` and switch to it.
 #. Prepare for release using ``nox -s prepare-release -- YY.N``.
    This will update the relevant files and tag the correct commit.
-#. Build the release artifacts using ``nox -s build-release -- YY.N``.
-   This will checkout the tag, generate the distribution files to be
-   uploaded and checkout the master branch again.
-#. Upload the release to PyPI using ``nox -s upload-release -- YY.N``.
-#. Push all of the changes including the tag.
+#. Submit the ``release/YY.N`` branch as a pull request and ensure CI passes.
+   Merge the changes back into ``main`` and pull them back locally.
+#. Push the tag created by ``prepare-release``. This will trigger the release
+   workflow on GitHub.
+#. Go to https://github.com/pypa/pip/actions, find the latest ``Publish Python
+   🐍 distribution 📦 to PyPI`` workflow run, open it, wait for the build step
+   to complete, then approve the PyPI environment to let the publishing step
+   run. If you desire, you have the possibility to download and inspect the
+   artifacts before approving.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
-#. Submit a Pull Request to `CPython`_ adding the new version of pip (and upgrading
-   setuptools) to ``Lib/ensurepip/_bundled``, removing the existing version, and
+#. Submit a Pull Request to `CPython`_ adding the new version of pip
+   to ``Lib/ensurepip/_bundled``, removing the existing version, and
    adjusting the versions listed in ``Lib/ensurepip/__init__.py``.
 
 
@@ -148,21 +183,27 @@ Creating a bug-fix release
 
 Sometimes we need to release a bugfix release of the form ``YY.N.Z+1``. In
 order to create one of these the changes should already be merged into the
-``master`` branch.
+``main`` branch.
+
+Note that this process is only needed when there are changes on the main branch
+that you do *not* want to include in the bugfix release. For a bugfix release
+that will include everything that is on the ``main`` branch, the above process
+for creating a new release can be used, simply changing the version number.
 
 #. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
    command ``git checkout -b release/YY.N.Z+1 YY.N``.
-#. Cherry pick the fixed commits off of the ``master`` branch, fixing any
+#. Cherry pick the fixed commits off of the ``main`` branch, fixing any
    conflicts.
 #. Run ``nox -s prepare-release -- YY.N.Z+1``.
-#. Merge master into your release branch and drop the news files that have been
+#. Merge main into your release branch and drop the news files that have been
    included in your release (otherwise they would also appear in the ``YY.N+1``
    changelog)
 #. Push the ``release/YY.N.Z+1`` branch to github and submit a PR for it against
-   the ``master`` branch and wait for the tests to run.
-#. Once tests run, merge the ``release/YY.N.Z+1`` branch into master, and follow
-   the above release process starting with step 4.
+   the ``main`` branch and wait for the tests to run.
+#. Once tests run, merge the ``release/YY.N.Z+1`` branch into ``main``, and
+   follow the above release process starting with step 5.
 
 .. _`get-pip repository`: https://github.com/pypa/get-pip
 .. _`psf-salt repository`: https://github.com/python/psf-salt
 .. _`CPython`: https://github.com/python/cpython
+.. _`CPython versions that are not end-of-life`: https://devguide.python.org/versions/

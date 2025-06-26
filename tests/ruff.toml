@@ -1,0 +1,14 @@
+# Extend the `pyproject.toml` file in the parent directory.
+extend = "../pyproject.toml"
+
+# And extend linting to include pytest specific rules and configuration
+[lint]
+extend-select = ["PT"]
+ignore = ["PT011"]
+
+[lint.flake8-pytest-style]
+mark-parentheses = false
+fixture-parentheses = false
+parametrize-names-type = "csv"
+parametrize-values-type = "list"
+parametrize-values-row-type = "tuple"

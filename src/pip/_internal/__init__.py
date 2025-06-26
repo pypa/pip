@@ -1,12 +1,13 @@
-import pip._internal.utils.inject_securetransport  # noqa
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from __future__ import annotations
 
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, List
+from pip._internal.utils import _log
+
+# init_logging() must be called before any call to logging.getLogger()
+# which happens at import of most modules.
+_log.init_logging()
 
 
-def main(args=None):
-    # type: (Optional[List[str]]) -> int
+def main(args: list[str] | None = None) -> int:
     """This is preserved for old console scripts that may still be referencing
     it.
 

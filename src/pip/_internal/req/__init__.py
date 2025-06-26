@@ -1,57 +1,51 @@
-from __future__ import absolute_import
+from __future__ import annotations
 
 import collections
 import logging
+from collections.abc import Generator, Sequence
+from dataclasses import dataclass
 
+from pip._internal.cli.progress_bars import get_install_progress_renderer
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .req_file import parse_requirements
 from .req_install import InstallRequirement
 from .req_set import RequirementSet
 
-if MYPY_CHECK_RUNNING:
-    from typing import Iterator, List, Optional, Sequence, Tuple
-
 __all__ = [
-    "RequirementSet", "InstallRequirement",
-    "parse_requirements", "install_given_reqs",
+    "RequirementSet",
+    "InstallRequirement",
+    "parse_requirements",
+    "install_given_reqs",
 ]
 
 logger = logging.getLogger(__name__)
 
 
-class InstallationResult(object):
-    def __init__(self, name):
-        # type: (str) -> None
-        self.name = name
-
-    def __repr__(self):
-        # type: () -> str
-        return "InstallationResult(name={!r})".format(self.name)
+@dataclass(frozen=True)
+class InstallationResult:
+    name: str
 
 
 def _validate_requirements(
-    requirements,  # type: List[InstallRequirement]
-):
-    # type: (...) -> Iterator[Tuple[str, InstallRequirement]]
+    requirements: list[InstallRequirement],
+) -> Generator[tuple[str, InstallRequirement], None, None]:
     for req in requirements:
-        assert req.name, "invalid to-be-installed requirement: {}".format(req)
+        assert req.name, f"invalid to-be-installed requirement: {req}"
         yield req.name, req
 
 
 def install_given_reqs(
-    requirements,  # type: List[InstallRequirement]
-    install_options,  # type: List[str]
-    global_options,  # type: Sequence[str]
-    root,  # type: Optional[str]
-    home,  # type: Optional[str]
-    prefix,  # type: Optional[str]
-    warn_script_location,  # type: bool
-    use_user_site,  # type: bool
-    pycompile,  # type: bool
-):
-    # type: (...) -> List[InstallationResult]
+    requirements: list[InstallRequirement],
+    global_options: Sequence[str],
+    root: str | None,
+    home: str | None,
+    prefix: str | None,
+    warn_script_location: bool,
+    use_user_site: bool,
+    pycompile: bool,
+    progress_bar: str,
+) -> list[InstallationResult]:
     """
     Install everything in the given list.
 
@@ -61,26 +55,34 @@ def install_given_reqs(
 
     if to_install:
         logger.info(
-            'Installing collected packages: %s',
-            ', '.join(to_install.keys()),
+            "Installing collected packages: %s",
+            ", ".join(to_install.keys()),
         )
 
     installed = []
 
+    show_progress = logger.isEnabledFor(logging.INFO) and len(to_install) > 1
+
+    items = iter(to_install.values())
+    if show_progress:
+        renderer = get_install_progress_renderer(
+            bar_type=progress_bar, total=len(to_install)
+        )
+        items = renderer(items)
+
     with indent_log():
-        for req_name, requirement in to_install.items():
+        for requirement in items:
+            req_name = requirement.name
+            assert req_name is not None
             if requirement.should_reinstall:
-                logger.info('Attempting uninstall: %s', req_name)
+                logger.info("Attempting uninstall: %s", req_name)
                 with indent_log():
-                    uninstalled_pathset = requirement.uninstall(
-                        auto_confirm=True
-                    )
+                    uninstalled_pathset = requirement.uninstall(auto_confirm=True)
             else:
                 uninstalled_pathset = None
 
             try:
                 requirement.install(
-                    install_options,
                     global_options,
                     root=root,
                     home=home,

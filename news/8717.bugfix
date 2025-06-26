@@ -1,1 +1,0 @@
-Always use UTF-8 to read ``pyvenv.cfg`` to match the built-in ``venv``.

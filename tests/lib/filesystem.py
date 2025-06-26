@@ -1,41 +1,17 @@
-"""Helpers for filesystem-dependent tests.
-"""
+"""Helpers for filesystem-dependent tests."""
+
+from __future__ import annotations
+
 import os
-import socket
-import subprocess
-import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from functools import partial
 from itertools import chain
-
-from .path import Path
-
-
-def make_socket_file(path):
-    # Socket paths are limited to 108 characters (sometimes less) so we
-    # chdir before creating it and use a relative path name.
-    cwd = os.getcwd()
-    os.chdir(os.path.dirname(path))
-    try:
-        sock = socket.socket(socket.AF_UNIX)
-        sock.bind(os.path.basename(path))
-    finally:
-        os.chdir(cwd)
+from pathlib import Path
 
 
-def make_unreadable_file(path):
-    Path(path).touch()
-    os.chmod(path, 0o000)
-    if sys.platform == "win32":
-        # Once we drop PY2 we can use `os.getlogin()` instead.
-        username = os.environ["USERNAME"]
-        # Remove "Read Data/List Directory" permission for current user, but
-        # leave everything else.
-        args = ["icacls", path, "/deny", username + ":(RD)"]
-        subprocess.check_call(args)
-
-
-def get_filelist(base):
-    def join(dirpath, dirnames, filenames):
+def get_filelist(base: str) -> set[str]:
+    def join(dirpath: str, dirnames: list[str], filenames: list[str]) -> Iterator[str]:
         relative_dirpath = os.path.relpath(dirpath, base)
         join_dirpath = partial(os.path.join, relative_dirpath)
         return chain(
@@ -43,6 +19,15 @@ def get_filelist(base):
             (join_dirpath(p) for p in filenames),
         )
 
-    return set(chain.from_iterable(
-        join(*dirinfo) for dirinfo in os.walk(base)
-    ))
+    return set(chain.from_iterable(join(*dirinfo) for dirinfo in os.walk(base)))
+
+
+@contextmanager
+def chmod(path: str | Path, mode: int) -> Iterator[None]:
+    """Contextmanager to temporarily update a path's mode."""
+    old_mode = os.stat(path).st_mode
+    try:
+        os.chmod(path, mode)
+        yield
+    finally:
+        os.chmod(path, old_mode)

@@ -1,31 +1,35 @@
 """
-SSL with SNI_-support for Python 2. Follow these instructions if you would
-like to verify SSL certificates in Python 2. Note, the default libraries do
+TLS with SNI_-support for Python 2. Follow these instructions if you would
+like to verify TLS certificates in Python 2. Note, the default libraries do
 *not* do certificate checking; you need to do additional work to validate
 certificates yourself.
 
 This needs the following packages installed:
 
-* pyOpenSSL (tested with 16.0.0)
-* cryptography (minimum 1.3.4, from pyopenssl)
-* idna (minimum 2.0, from cryptography)
+* `pyOpenSSL`_ (tested with 16.0.0)
+* `cryptography`_ (minimum 1.3.4, from pyopenssl)
+* `idna`_ (minimum 2.0, from cryptography)
 
 However, pyopenssl depends on cryptography, which depends on idna, so while we
 use all three directly here we end up having relatively few packages required.
 
 You can install them with the following command:
 
-    pip install pyopenssl cryptography idna
+.. code-block:: bash
+
+    $ python -m pip install pyopenssl cryptography idna
 
 To activate certificate checking, call
 :func:`~urllib3.contrib.pyopenssl.inject_into_urllib3` from your Python code
 before you begin making HTTP requests. This can be done in a ``sitecustomize``
 module, or at any other time before your application begins using ``urllib3``,
-like this::
+like this:
+
+.. code-block:: python
 
     try:
-        import urllib3.contrib.pyopenssl
-        urllib3.contrib.pyopenssl.inject_into_urllib3()
+        import pip._vendor.urllib3.contrib.pyopenssl as pyopenssl
+        pyopenssl.inject_into_urllib3()
     except ImportError:
         pass
 
@@ -35,18 +39,18 @@ when the required modules are installed.
 Activating this module also has the positive side effect of disabling SSL/TLS
 compression in Python 2 (see `CRIME attack`_).
 
-If you want to configure the default list of supported cipher suites, you can
-set the ``urllib3.contrib.pyopenssl.DEFAULT_SSL_CIPHER_LIST`` variable.
-
 .. _sni: https://en.wikipedia.org/wiki/Server_Name_Indication
 .. _crime attack: https://en.wikipedia.org/wiki/CRIME_(security_exploit)
+.. _pyopenssl: https://www.pyopenssl.org
+.. _cryptography: https://cryptography.io
+.. _idna: https://github.com/kjd/idna
 """
 from __future__ import absolute_import
 
+import OpenSSL.crypto
 import OpenSSL.SSL
 from cryptography import x509
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
-from cryptography.hazmat.backends.openssl.x509 import _Certificate
 
 try:
     from cryptography.x509 import UnsupportedExtension
@@ -56,8 +60,9 @@ except ImportError:
         pass
 
 
-from socket import timeout, error as SocketError
 from io import BytesIO
+from socket import error as SocketError
+from socket import timeout
 
 try:  # Platform-specific: Python 2
     from socket import _fileobject
@@ -67,11 +72,20 @@ except ImportError:  # Platform-specific: Python 3
 
 import logging
 import ssl
-from ..packages import six
 import sys
+import warnings
 
 from .. import util
+from ..packages import six
+from ..util.ssl_ import PROTOCOL_TLS_CLIENT
 
+warnings.warn(
+    "'urllib3.contrib.pyopenssl' module is deprecated and will be removed "
+    "in a future release of urllib3 2.x. Read more in this issue: "
+    "https://github.com/urllib3/urllib3/issues/2680",
+    category=DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = ["inject_into_urllib3", "extract_from_urllib3"]
 
@@ -81,6 +95,7 @@ HAS_SNI = True
 # Map from urllib3 to PyOpenSSL compatible parameter-values.
 _openssl_versions = {
     util.PROTOCOL_TLS: OpenSSL.SSL.SSLv23_METHOD,
+    PROTOCOL_TLS_CLIENT: OpenSSL.SSL.SSLv23_METHOD,
     ssl.PROTOCOL_TLSv1: OpenSSL.SSL.TLSv1_METHOD,
 }
 
@@ -213,9 +228,8 @@ def get_subj_alt_name(peer_cert):
     if hasattr(peer_cert, "to_cryptography"):
         cert = peer_cert.to_cryptography()
     else:
-        # This is technically using private APIs, but should work across all
-        # relevant versions before PyOpenSSL got a proper API for this.
-        cert = _Certificate(openssl_backend, peer_cert._x509)
+        der = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_ASN1, peer_cert)
+        cert = x509.load_der_x509_certificate(der, openssl_backend)
 
     # We want to find the SAN extension. Ask Cryptography to locate it (it's
     # faster than looping in Python)
@@ -400,7 +414,6 @@ if _fileobject:  # Platform-specific: Python 2
         self._makefile_refs += 1
         return _fileobject(self, mode, bufsize, close=True)
 
-
 else:  # Platform-specific: Python 3
     makefile = backport_makefile
 
@@ -464,6 +477,10 @@ class PyOpenSSLContext(object):
                 password = password.encode("utf-8")
             self._ctx.set_passwd_cb(lambda *_: password)
         self._ctx.use_privatekey_file(keyfile or certfile)
+
+    def set_alpn_protocols(self, protocols):
+        protocols = [six.ensure_binary(p) for p in protocols]
+        return self._ctx.set_alpn_protos(protocols)
 
     def wrap_socket(
         self,

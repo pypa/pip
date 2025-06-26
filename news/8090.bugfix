@@ -1,3 +1,0 @@
-Only attempt to use the keyring once and if it fails, don't try again.
-This prevents spamming users with several keyring unlock prompts when they
-cannot unlock or don't want to do so.

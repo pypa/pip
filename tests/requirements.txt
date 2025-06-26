@@ -1,0 +1,17 @@
+cryptography
+freezegun
+installer
+pytest
+pytest-cov
+pytest-rerunfailures
+pytest-xdist
+scripttest
+setuptools
+# macOS (darwin) arm64 always uses virtualenv >= 20.0
+# for other platforms, it depends on python version
+virtualenv < 20.0 ; python_version < '3.10' and (sys_platform != 'darwin' or platform_machine != 'arm64')
+virtualenv >= 20.0 ; python_version >= '3.10' or (sys_platform == 'darwin' and platform_machine == 'arm64')
+werkzeug
+wheel
+tomli-w
+proxy.py

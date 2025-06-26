@@ -7,8 +7,8 @@ of all forms. The sections below will help you get started with development,
 testing, and documentation.
 
 You can also join ``#pypa`` (general packaging discussion and user support) and
-``#pypa-dev`` (discussion about development of packaging tools) `on Freenode`_,
-or the `distutils-sig mailing list`_, to ask questions or get involved.
+``#pypa-dev`` (discussion about development of packaging tools) `on Libera.chat`_,
+or the ``#pip`` channel on the `PyPA Discord`_, to ask questions or get involved.
 
 .. toctree::
     :maxdepth: 2
@@ -26,5 +26,5 @@ or the `distutils-sig mailing list`_, to ask questions or get involved.
     pip's development documentation has been rearranged and some older
     references might be broken.
 
-.. _`on Freenode`: https://webchat.freenode.net/?channels=%23pypa-dev,pypa
-.. _`distutils-sig mailing list`: https://mail.python.org/mailman3/lists/distutils-sig.python.org/
+.. _`on Libera.chat`: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
+.. _`PyPA Discord`: https://discord.gg/pypa
