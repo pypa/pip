@@ -36,3 +36,5 @@ prune docs/build
 prune news
 prune tests
 prune tools
+
+include src/pip/_internal/cli/pip-completion.ps1
