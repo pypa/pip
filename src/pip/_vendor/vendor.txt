@@ -12,7 +12,7 @@ requests==2.32.4
 rich==14.0.0
     pygments==2.19.2
     typing_extensions==4.14.0
-resolvelib==1.1.0
+resolvelib==1.2.0
 setuptools==70.3.0
 tomli==2.2.1
 tomli-w==1.2.0
