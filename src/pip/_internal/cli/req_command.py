@@ -147,6 +147,9 @@ class RequirementCommand(IndexGroupCommand):
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
             resume_retries=options.resume_retries,
+            inprocess_build_deps=(
+                "legacy-build-deps-installer" not in options.deprecated_features_enabled
+            ),
             options=options,
         )
 

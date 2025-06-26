@@ -47,7 +47,88 @@ class _Prefix:
 
 
 class BuildEnvironmentInstaller(Protocol):
-    def install(self, requirements: Iterable[str], prefix: _Prefix) -> None: ...
+    def install(
+        self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
+    ) -> None: ...
+
+
+class SubprocessBuildEnvironmentInstaller:
+    """
+    Install build dependencies by calling pip in a subprocess.
+
+    XXX: this is the legacy installation method and will be removed at
+         some point once InprocessBuildEnvironmentInstaller is stable.
+    """
+
+    def __init__(self, finder: PackageFinder) -> None:
+        self.finder = finder
+
+    def install(
+        self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
+    ) -> None:
+        finder = self.finder
+        args: list[str] = [
+            sys.executable,
+            get_runnable_pip(),
+            "install",
+            "--ignore-installed",
+            "--no-user",
+            "--prefix",
+            prefix.path,
+            "--no-warn-script-location",
+            "--disable-pip-version-check",
+            # As the build environment is ephemeral, it's wasteful to
+            # pre-compile everything, especially as not every Python
+            # module will be used/compiled in most cases.
+            "--no-compile",
+            # The prefix specified two lines above, thus
+            # target from config file or env var should be ignored
+            "--target",
+            "",
+        ]
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            args.append("-vv")
+        elif logger.getEffectiveLevel() <= VERBOSE:
+            args.append("-v")
+        for format_control in ("no_binary", "only_binary"):
+            formats = getattr(finder.format_control, format_control)
+            args.extend(
+                (
+                    "--" + format_control.replace("_", "-"),
+                    ",".join(sorted(formats or {":none:"})),
+                )
+            )
+
+        index_urls = finder.index_urls
+        if index_urls:
+            args.extend(["-i", index_urls[0]])
+            for extra_index in index_urls[1:]:
+                args.extend(["--extra-index-url", extra_index])
+        else:
+            args.append("--no-index")
+        for link in finder.find_links:
+            args.extend(["--find-links", link])
+
+        if finder.proxy:
+            args.extend(["--proxy", finder.proxy])
+        for host in finder.trusted_hosts:
+            args.extend(["--trusted-host", host])
+        if finder.custom_cert:
+            args.extend(["--cert", finder.custom_cert])
+        if finder.client_cert:
+            args.extend(["--client-cert", finder.client_cert])
+        if finder.allow_all_prereleases:
+            args.append("--pre")
+        if finder.prefer_binary:
+            args.append("--prefer-binary")
+        args.append("--")
+        args.extend(requirements)
+        with open_spinner(f"Installing {kind}") as spinner:
+            call_subprocess(
+                args,
+                command_desc=f"pip subprocess to install {kind}",
+                spinner=spinner,
+            )
 
 
 class InprocessBuildEnvironmentInstaller:
@@ -75,7 +156,9 @@ class InprocessBuildEnvironmentInstaller:
         self._install_command = create_command("install")
         self._wheel_cache = WheelCache(options.cache_dir)
 
-    def install(self, requirements: Iterable[str], prefix: _Prefix) -> None:
+    def install(
+        self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
+    ) -> None:
         from pip._internal.req import install_given_reqs
         from pip._internal.req.constructors import install_req_from_line
         from pip._internal.wheel_builder import build, should_build_for_install_command
@@ -320,86 +403,7 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        # self._install_requirements(
-        #     get_runnable_pip(),
-        #     finder,
-        #     requirements,
-        #     prefix,
-        #     kind=kind,
-        # )
-        installer.install(requirements, prefix)
-
-    @staticmethod
-    def _install_requirements(
-        pip_runnable: str,
-        finder: PackageFinder,
-        requirements: Iterable[str],
-        prefix: _Prefix,
-        *,
-        kind: str,
-    ) -> None:
-        args: list[str] = [
-            sys.executable,
-            pip_runnable,
-            "install",
-            "--ignore-installed",
-            "--no-user",
-            "--prefix",
-            prefix.path,
-            "--no-warn-script-location",
-            "--disable-pip-version-check",
-            # As the build environment is ephemeral, it's wasteful to
-            # pre-compile everything, especially as not every Python
-            # module will be used/compiled in most cases.
-            "--no-compile",
-            # The prefix specified two lines above, thus
-            # target from config file or env var should be ignored
-            "--target",
-            "",
-        ]
-        if logger.getEffectiveLevel() <= logging.DEBUG:
-            args.append("-vv")
-        elif logger.getEffectiveLevel() <= VERBOSE:
-            args.append("-v")
-        for format_control in ("no_binary", "only_binary"):
-            formats = getattr(finder.format_control, format_control)
-            args.extend(
-                (
-                    "--" + format_control.replace("_", "-"),
-                    ",".join(sorted(formats or {":none:"})),
-                )
-            )
-
-        index_urls = finder.index_urls
-        if index_urls:
-            args.extend(["-i", index_urls[0]])
-            for extra_index in index_urls[1:]:
-                args.extend(["--extra-index-url", extra_index])
-        else:
-            args.append("--no-index")
-        for link in finder.find_links:
-            args.extend(["--find-links", link])
-
-        if finder.proxy:
-            args.extend(["--proxy", finder.proxy])
-        for host in finder.trusted_hosts:
-            args.extend(["--trusted-host", host])
-        if finder.custom_cert:
-            args.extend(["--cert", finder.custom_cert])
-        if finder.client_cert:
-            args.extend(["--client-cert", finder.client_cert])
-        if finder.allow_all_prereleases:
-            args.append("--pre")
-        if finder.prefer_binary:
-            args.append("--prefer-binary")
-        args.append("--")
-        args.extend(requirements)
-        with open_spinner(f"Installing {kind}") as spinner:
-            call_subprocess(
-                args,
-                command_desc=f"pip subprocess to install {kind}",
-                spinner=spinner,
-            )
+        installer.install(requirements, prefix, kind=kind)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):

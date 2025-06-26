@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.build_env import InprocessBuildEnvironmentInstaller
+from pip._internal.build_env import InprocessBuildEnvironmentInstaller, SubprocessBuildEnvironmentInstaller
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -239,6 +239,7 @@ class RequirementPreparer:
         legacy_resolver: bool,
         resume_retries: int,
         # TODO: handle this better
+        inprocess_build_deps: bool,
         options,
     ) -> None:
         super().__init__()
@@ -256,9 +257,12 @@ class RequirementPreparer:
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
-        self.build_env_installer = InprocessBuildEnvironmentInstaller(
-            finder, self, options
-        )
+        if inprocess_build_deps:
+            self.build_env_installer = InprocessBuildEnvironmentInstaller(
+                finder, self, options
+            )
+        else:
+            self.build_env_installer = SubprocessBuildEnvironmentInstaller(finder)
 
         # Should check build dependencies?
         self.check_build_deps = check_build_deps

@@ -1083,6 +1083,7 @@ use_deprecated_feature: Callable[..., Option] = partial(
     choices=[
         "legacy-resolver",
         "legacy-certs",
+        "legacy-build-deps-installer",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
