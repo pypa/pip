@@ -147,6 +147,7 @@ class RequirementCommand(IndexGroupCommand):
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
             resume_retries=options.resume_retries,
+            options=options,
         )
 
     @classmethod

@@ -10,8 +10,9 @@ import sys
 import textwrap
 from collections import OrderedDict
 from collections.abc import Iterable
+from optparse import Values
 from types import TracebackType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from pip._vendor.packaging.version import Version
 
@@ -26,6 +27,8 @@ from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.operations.prepare import RequirementPreparer
+    from pip._internal.resolution.base import BaseResolver
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,107 @@ class _Prefix:
         scheme = get_scheme("", prefix=path)
         self.bin_dir = scheme.scripts
         self.lib_dirs = _dedup(scheme.purelib, scheme.platlib)
+
+
+class BuildEnvironmentInstaller(Protocol):
+    def install(self, requirements: Iterable[str], prefix: _Prefix) -> None: ...
+
+
+class InprocessBuildEnvironmentInstaller:
+    """
+    Build dependency installer that runs in the same pip process.
+
+    Differences from the subprocess-based installer:
+      - Conflicts with already installed packages aren't detected
+      -
+    """
+
+    # TODO: ensure build tracking still works
+    # TODO: figure out what options are actually being inherited
+
+    def __init__(
+        self, finder: PackageFinder, preparer: RequirementPreparer, options: Values
+    ) -> None:
+        from pip._internal.cache import WheelCache
+        from pip._internal.commands import create_command
+
+        self.finder = finder
+        self.preparer = preparer
+        self.options = options
+
+        self._install_command = create_command("install")
+        self._wheel_cache = WheelCache(options.cache_dir)
+
+    def install(self, requirements: Iterable[str], prefix: _Prefix) -> None:
+        from pip._internal.req import install_given_reqs
+        from pip._internal.req.constructors import install_req_from_line
+        from pip._internal.wheel_builder import build, should_build_for_install_command
+
+        ireqs = []
+        for req in requirements:
+            ireq = install_req_from_line(
+                req,
+                comes_from=None,
+                # TODO: does --isolated matter here?
+                isolated=self.options.isolated_mode,
+                use_pep517=True,
+                user_supplied=True,
+                config_settings={},
+            )
+            ireqs.append(ireq)
+
+        resolver = self._make_resolver()
+        requirement_set = resolver.resolve(ireqs, check_supported_wheels=True)
+
+        reqs_to_build = filter(
+            should_build_for_install_command, requirement_set.requirements_to_install
+        )
+        _, build_failures = build(
+            reqs_to_build,
+            wheel_cache=self._wheel_cache,
+            verify=True,
+            build_options=[],
+            global_options=[],
+        )
+
+        if build_failures:
+            raise InstallationError(
+                "Failed to build installable wheels for some "
+                "pyproject.toml based projects ({})".format(
+                    ", ".join(r.name for r in build_failures)  # type: ignore
+                )
+            )
+
+        to_install = resolver.get_installation_order(requirement_set)
+
+        install_given_reqs(
+            to_install,
+            global_options=[],
+            root=None,
+            home=None,
+            prefix=prefix.path,
+            warn_script_location=False,
+            use_user_site=False,
+            pycompile=False,
+            progress_bar="off",
+        )
+        print(f"[in-process] installed {', '.join(requirements)}")
+
+    def _make_resolver(self) -> BaseResolver:
+        # TODO: the old logic only uses the resolvelib resolver, this won't
+        return self._install_command.make_resolver(
+            preparer=self.preparer,
+            finder=self.finder,
+            options=self.options,
+            wheel_cache=self._wheel_cache,
+            use_user_site=False,
+            ignore_installed=True,
+            ignore_requires_python=self.options.ignore_requires_python,
+            force_reinstall=False,
+            upgrade_strategy="to-satisfy-only",
+            use_pep517=True,
+            py_version_info=self.options.python_version,
+        )
 
 
 def get_runnable_pip() -> str:
@@ -205,7 +309,7 @@ class BuildEnvironment:
 
     def install_requirements(
         self,
-        finder: PackageFinder,
+        installer: BuildEnvironmentInstaller,
         requirements: Iterable[str],
         prefix_as_string: str,
         *,
@@ -216,13 +320,14 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        self._install_requirements(
-            get_runnable_pip(),
-            finder,
-            requirements,
-            prefix,
-            kind=kind,
-        )
+        # self._install_requirements(
+        #     get_runnable_pip(),
+        #     finder,
+        #     requirements,
+        #     prefix,
+        #     kind=kind,
+        # )
+        installer.install(requirements, prefix)
 
     @staticmethod
     def _install_requirements(
@@ -319,7 +424,7 @@ class NoOpBuildEnvironment(BuildEnvironment):
 
     def install_requirements(
         self,
-        finder: PackageFinder,
+        finder: BuildEnvironmentInstaller,
         requirements: Iterable[str],
         prefix_as_string: str,
         *,
