@@ -137,7 +137,11 @@ class RequirementCommand(IndexGroupCommand):
                 )
 
         build_isolation_installer: BuildEnvironmentInstaller
-        if "legacy-build-deps-installer" not in options.deprecated_features_enabled:
+        if "inprocess-build-deps" in options.features_enabled:
+            if resolver_variant == "legacy":
+                raise CommandError(
+                    "inprocess-build-deps cannot be used with the legacy resolver."
+                )
             build_isolation_installer = InprocessBuildEnvironmentInstaller(
                 finder, session, build_tracker, temp_build_dir_path, verbosity, options
             )
