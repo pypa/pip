@@ -903,3 +903,17 @@ class BuildDependencyInstallError(DiagnosticPipError):
             f"[green]Cannot install build dependencies[/] for {req!s}"
         )
         super().__init__(message=message, context=context, hint_stmt=hint)
+
+
+class InstallWheelBuildError(DiagnosticPipError):
+    reference = "failed-wheel-build-for-install"
+
+    def __init__(self, failed: list[InstallRequirement]) -> None:
+        super().__init__(
+            message=(
+                "Failed to build installable wheels for some "
+                "pyproject.toml based projects"
+            ),
+            context=", ".join(r.name for r in failed),  # type: ignore
+            hint_stmt=None,
+        )

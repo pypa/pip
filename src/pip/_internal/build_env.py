@@ -21,7 +21,11 @@ from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
-from pip._internal.exceptions import BuildDependencyInstallError, DiagnosticPipError
+from pip._internal.exceptions import (
+    BuildDependencyInstallError,
+    DiagnosticPipError,
+    InstallWheelBuildError,
+)
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.logging import VERBOSE, capture_logging
@@ -155,7 +159,6 @@ class InprocessBuildEnvironmentInstaller:
       -
     """
 
-    # TODO: ensure build tracking still works
     # TODO: figure out what options are actually being inherited
 
     def __init__(self, finder: PackageFinder, options: Values) -> None:
@@ -240,14 +243,8 @@ class InprocessBuildEnvironmentInstaller:
             build_options=[],
             global_options=[],
         )
-
         if build_failures:
-            raise InstallationError(
-                "Failed to build installable wheels for some "
-                "pyproject.toml based projects ({})".format(
-                    ", ".join(r.name for r in build_failures)  # type: ignore
-                )
-            )
+            raise InstallWheelBuildError(build_failures)
 
         to_install = resolver.get_installation_order(requirement_set)
         installed = install_given_reqs(
