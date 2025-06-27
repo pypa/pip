@@ -12,6 +12,11 @@ from functools import partial
 from optparse import Values
 from typing import Any
 
+from pip._internal.build_env import (
+    BuildEnvironmentInstaller,
+    InprocessBuildEnvironmentInstaller,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
@@ -131,11 +136,20 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
-        return RequirementPreparer(
+        build_isolation_installer: BuildEnvironmentInstaller
+        if "legacy-build-deps-installer" not in options.deprecated_features_enabled:
+            build_isolation_installer = InprocessBuildEnvironmentInstaller(
+                finder, options
+            )
+        else:
+            build_isolation_installer = SubprocessBuildEnvironmentInstaller(finder)
+
+        preparer = RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
+            build_isolation_installer=build_isolation_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
@@ -147,11 +161,10 @@ class RequirementCommand(IndexGroupCommand):
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
             resume_retries=options.resume_retries,
-            inprocess_build_deps=(
-                "legacy-build-deps-installer" not in options.deprecated_features_enabled
-            ),
-            options=options,
         )
+        if isinstance(build_isolation_installer, InprocessBuildEnvironmentInstaller):
+            build_isolation_installer.preparer = preparer
+        return preparer
 
     @classmethod
     def make_resolver(

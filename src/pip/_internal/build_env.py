@@ -11,6 +11,7 @@ import textwrap
 from collections import OrderedDict
 from collections.abc import Iterable
 from contextlib import AbstractContextManager, nullcontext
+from functools import partial
 from io import StringIO
 from optparse import Values
 from types import TracebackType
@@ -145,22 +146,20 @@ class InprocessBuildEnvironmentInstaller:
     # TODO: ensure build tracking still works
     # TODO: figure out what options are actually being inherited
 
-    def __init__(
-        self, finder: PackageFinder, preparer: RequirementPreparer, options: Values
-    ) -> None:
+    def __init__(self, finder: PackageFinder, options: Values) -> None:
         from pip._internal.cache import WheelCache
-        from pip._internal.commands import create_command
 
         self.finder = finder
-        self.preparer = preparer
         self.options = options
 
-        self._install_command = create_command("install")
+        self.preparer: RequirementPreparer
         self._wheel_cache = WheelCache(options.cache_dir)
 
     def install(
         self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
     ) -> None:
+        assert hasattr(self, "preparer"), "preparer must be available!"
+
         capture_ctx: AbstractContextManager[StringIO]
         should_capture = not logger.isEnabledFor(VERBOSE)
         if should_capture:
@@ -240,18 +239,27 @@ class InprocessBuildEnvironmentInstaller:
             logger.info(summary)
 
     def _make_resolver(self) -> BaseResolver:
-        # TODO: the old logic only uses the resolvelib resolver, this won't
-        return self._install_command.make_resolver(
+        # Legacy installer never used the legacy resolver so create a
+        # resolvelib resolver directly. Yuck.
+        from pip._internal.req.constructors import install_req_from_req_string
+        from pip._internal.resolution.resolvelib.resolver import Resolver
+
+        make_install_req = partial(
+            install_req_from_req_string,
+            isolated=self.options.isolated_mode,
+            use_pep517=True,
+        )
+        return Resolver(
             preparer=self.preparer,
             finder=self.finder,
-            options=self.options,
             wheel_cache=self._wheel_cache,
+            make_install_req=make_install_req,
             use_user_site=False,
+            ignore_dependencies=False,
             ignore_installed=True,
             ignore_requires_python=self.options.ignore_requires_python,
             force_reinstall=False,
             upgrade_strategy="to-satisfy-only",
-            use_pep517=True,
             py_version_info=getattr(self.options, "python_version", None),
         )
 

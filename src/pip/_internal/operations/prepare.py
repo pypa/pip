@@ -13,10 +13,7 @@ from pathlib import Path
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.build_env import (
-    InprocessBuildEnvironmentInstaller,
-    SubprocessBuildEnvironmentInstaller,
-)
+from pip._internal.build_env import BuildEnvironmentInstaller
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -64,7 +61,7 @@ logger = getLogger(__name__)
 def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
-    build_env_installer: InprocessBuildEnvironmentInstaller,
+    build_env_installer: BuildEnvironmentInstaller,
     build_isolation: bool,
     check_build_deps: bool,
 ) -> BaseDistribution:
@@ -224,12 +221,14 @@ def _check_download_dir(
 class RequirementPreparer:
     """Prepares a Requirement"""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 (too many parameters)
         self,
+        *,
         build_dir: str,
         download_dir: str | None,
         src_dir: str,
         build_isolation: bool,
+        build_isolation_installer: BuildEnvironmentInstaller,
         check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
@@ -241,9 +240,6 @@ class RequirementPreparer:
         verbosity: int,
         legacy_resolver: bool,
         resume_retries: int,
-        # TODO: handle this better
-        inprocess_build_deps: bool,
-        options,
     ) -> None:
         super().__init__()
 
@@ -260,12 +256,7 @@ class RequirementPreparer:
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
-        if inprocess_build_deps:
-            self.build_env_installer = InprocessBuildEnvironmentInstaller(
-                finder, self, options
-            )
-        else:
-            self.build_env_installer = SubprocessBuildEnvironmentInstaller(finder)
+        self.build_env_installer = build_isolation_installer
 
         # Should check build dependencies?
         self.check_build_deps = check_build_deps
