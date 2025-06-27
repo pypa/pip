@@ -8,7 +8,7 @@ import logging
 import pathlib
 import re
 import zipfile
-from collections.abc import Collection, Container, Iterable, Iterator
+from collections.abc import Collection, Container, Iterable, Iterator, Sequence
 from typing import (
     IO,
     Any,
@@ -584,7 +584,7 @@ class BaseEnvironment:
         raise NotImplementedError()
 
     @classmethod
-    def from_paths(cls, paths: list[str] | None) -> BaseEnvironment:
+    def from_paths(cls, paths: Sequence[str] | None) -> BaseEnvironment:
         raise NotImplementedError()
 
     def get_distribution(self, name: str) -> BaseDistribution | None:

@@ -4,6 +4,7 @@ import contextlib
 import functools
 import os
 import sys
+from collections.abc import Sequence
 from typing import Literal, Protocol, cast
 
 from pip._internal.utils.deprecation import deprecated
@@ -112,7 +113,7 @@ def get_default_environment() -> BaseEnvironment:
     return select_backend().Environment.default()
 
 
-def get_environment(paths: list[str] | None) -> BaseEnvironment:
+def get_environment(paths: Sequence[str] | None) -> BaseEnvironment:
     """Get a representation of the environment specified by ``paths``.
 
     This returns an Environment instance from the chosen backend based on the

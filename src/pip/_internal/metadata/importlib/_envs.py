@@ -122,7 +122,7 @@ class Environment(BaseEnvironment):
         return cls(sys.path)
 
     @classmethod
-    def from_paths(cls, paths: list[str] | None) -> BaseEnvironment:
+    def from_paths(cls, paths: Sequence[str] | None) -> BaseEnvironment:
         if paths is None:
             return cls(sys.path)
         return cls(paths)

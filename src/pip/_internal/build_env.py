@@ -10,6 +10,8 @@ import sys
 import textwrap
 from collections import OrderedDict
 from collections.abc import Iterable
+from contextlib import AbstractContextManager, nullcontext
+from io import StringIO
 from optparse import Values
 from types import TracebackType
 from typing import TYPE_CHECKING, Protocol
@@ -17,10 +19,10 @@ from typing import TYPE_CHECKING, Protocol
 from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
-from pip._internal.cli.spinners import open_spinner
+from pip._internal.cli.spinners import open_rich_spinner, open_spinner
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
-from pip._internal.utils.logging import VERBOSE
+from pip._internal.utils.logging import VERBOSE, capture_logging
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -159,6 +161,26 @@ class InprocessBuildEnvironmentInstaller:
     def install(
         self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
     ) -> None:
+        capture_ctx: AbstractContextManager[StringIO]
+        should_capture = not logger.isEnabledFor(VERBOSE)
+        if should_capture:
+            # Hide the logs from the installation of build dependencies.
+            # They will be shown only if an error occurs.
+            capture_ctx = capture_logging()
+        else:
+            # Otherwise, pass-through all logs (with a header).
+            capture_ctx = nullcontext(StringIO())
+            logger.info("Installing %s ...", kind)
+
+        # TODO: error handling
+        with open_rich_spinner(f"Installing {kind}"), capture_ctx as stream:
+            self._install_impl(requirements, prefix)
+
+        # print("captured:", "\n---\n" + stream.getvalue().rstrip())
+        # print("---")
+
+    def _install_impl(self, requirements: Iterable[str], prefix: _Prefix) -> None:
+        from pip._internal.commands.install import installed_packages_summary
         from pip._internal.req import install_given_reqs
         from pip._internal.req.constructors import install_req_from_line
         from pip._internal.wheel_builder import build, should_build_for_install_command
@@ -179,9 +201,11 @@ class InprocessBuildEnvironmentInstaller:
         resolver = self._make_resolver()
         requirement_set = resolver.resolve(ireqs, check_supported_wheels=True)
 
-        reqs_to_build = filter(
-            should_build_for_install_command, requirement_set.requirements_to_install
-        )
+        reqs_to_build = [
+            r
+            for r in requirement_set.requirements_to_install
+            if should_build_for_install_command(r)
+        ]
         _, build_failures = build(
             reqs_to_build,
             wheel_cache=self._wheel_cache,
@@ -199,8 +223,7 @@ class InprocessBuildEnvironmentInstaller:
             )
 
         to_install = resolver.get_installation_order(requirement_set)
-
-        install_given_reqs(
+        installed = install_given_reqs(
             to_install,
             global_options=[],
             root=None,
@@ -211,7 +234,10 @@ class InprocessBuildEnvironmentInstaller:
             pycompile=False,
             progress_bar="off",
         )
-        print(f"[in-process] installed {', '.join(requirements)}")
+
+        env = get_environment(prefix.lib_dirs)
+        if summary := installed_packages_summary(installed, env):
+            logger.info(summary)
 
     def _make_resolver(self) -> BaseResolver:
         # TODO: the old logic only uses the resolvelib resolver, this won't
@@ -226,7 +252,7 @@ class InprocessBuildEnvironmentInstaller:
             force_reinstall=False,
             upgrade_strategy="to-satisfy-only",
             use_pep517=True,
-            py_version_info=self.options.python_version,
+            py_version_info=getattr(self.options, "python_version", None),
         )
 
 
