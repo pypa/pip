@@ -63,7 +63,7 @@ class BuildEnvironmentInstaller(Protocol):
         prefix: _Prefix,
         *,
         kind: str,
-        for_req: InstallRequirement,
+        for_req: InstallRequirement | None,
     ) -> None: ...
 
 
@@ -84,7 +84,7 @@ class SubprocessBuildEnvironmentInstaller:
         prefix: _Prefix,
         *,
         kind: str,
-        for_req: InstallRequirement,
+        for_req: InstallRequirement | None,
     ) -> None:
         finder = self.finder
         args: list[str] = [
@@ -214,7 +214,7 @@ class InprocessBuildEnvironmentInstaller:
         prefix: _Prefix,
         *,
         kind: str,
-        for_req: InstallRequirement,
+        for_req: InstallRequirement | None,
     ) -> None:
         """Install entrypoint. Manages output capturing and error handling."""
         capture_ctx: AbstractContextManager[StringIO]
@@ -377,7 +377,8 @@ def _get_system_sitepackages() -> set[str]:
 class BuildEnvironment:
     """Creates and manages an isolated environment to install build deps"""
 
-    def __init__(self) -> None:
+    def __init__(self, installer: BuildEnvironmentInstaller) -> None:
+        self.installer = installer
         temp_dir = TempDirectory(kind=tempdir_kinds.BUILD_ENV, globally_managed=True)
 
         self._prefixes = OrderedDict(
@@ -500,19 +501,18 @@ class BuildEnvironment:
 
     def install_requirements(
         self,
-        installer: BuildEnvironmentInstaller,
         requirements: Iterable[str],
         prefix_as_string: str,
         *,
         kind: str,
-        for_req: InstallRequirement,
+        for_req: InstallRequirement | None = None,
     ) -> None:
         prefix = self._prefixes[prefix_as_string]
         assert not prefix.setup
         prefix.setup = True
         if not requirements:
             return
-        installer.install(requirements, prefix, kind=kind, for_req=for_req)
+        self.installer.install(requirements, prefix, kind=kind, for_req=for_req)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
@@ -537,11 +537,10 @@ class NoOpBuildEnvironment(BuildEnvironment):
 
     def install_requirements(
         self,
-        installer: BuildEnvironmentInstaller,
         requirements: Iterable[str],
         prefix_as_string: str,
         *,
         kind: str,
-        for_req: InstallRequirement,
+        for_req: InstallRequirement | None = None,
     ) -> None:
         raise NotImplementedError()

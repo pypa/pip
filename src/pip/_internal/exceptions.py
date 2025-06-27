@@ -874,7 +874,7 @@ class BuildDependencyInstallError(DiagnosticPipError):
 
     def __init__(
         self,
-        req: InstallRequirement,
+        req: InstallRequirement | None,
         build_reqs: Iterable[str],
         *,
         cause: Exception,
@@ -899,9 +899,9 @@ class BuildDependencyInstallError(DiagnosticPipError):
                 ("\n[end of output]", "red"),
             )
 
-        message = Text.from_markup(
-            f"[green]Cannot install build dependencies[/] for {req!s}"
-        )
+        message = Text("Cannot install build dependencies", "green")
+        if req:
+            message += Text(f" for {req}")
         super().__init__(message=message, context=context, hint_stmt=hint)
 
 
