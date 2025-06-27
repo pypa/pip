@@ -155,12 +155,17 @@ class InprocessBuildEnvironmentInstaller:
     """
     Build dependency installer that runs in the same pip process.
 
-    Differences from the subprocess-based installer:
-      - Conflicts with already installed packages aren't detected
-      -
-    """
+    This contains a stripped down version of the install command with
+    only the logic necessary for installing build dependencies. The
+    finder, session, and build tracker are reused, but new instances
+    of everything else are created as needed.
 
-    # TODO: figure out what options are actually being inherited
+    Options are inherited from the parent install command unless
+    they don't make sense for build dependencies (in which case, they
+    are hard-coded, see comments below).
+
+    NOTE: This can only be used with the resolvelib resolver.
+    """
 
     def __init__(
         self,
@@ -178,25 +183,28 @@ class InprocessBuildEnvironmentInstaller:
         self.options = options
 
         self._preparer = RequirementPreparer(
+            build_isolation_installer=self,
+            # Inherited options or state.
+            finder=finder,
+            session=session,
             build_dir=build_dir,
-            # TODO: probably don't inherit --src or --download-dir?
+            build_tracker=build_tracker,
+            verbosity=verbosity,
+            resume_retries=options.resume_retries,
+            # This probably shouldn't be inherited, but it won't be used
+            # anyway as it only applies to editable requirements.
             src_dir=options.src_dir,
+            # Hard-coded options (they should NOT be inherited).
             download_dir=None,
             build_isolation=True,
-            build_isolation_installer=self,
             check_build_deps=False,
-            build_tracker=build_tracker,
-            session=session,
             progress_bar="off",
-            finder=finder,
             # TODO: hash-checking should be extended to build deps, but that is
-            # deferred for later.
+            # deferred for later as it'd be a breaking change.
             require_hashes=False,
             use_user_site=False,
             lazy_wheel=False,
-            verbosity=verbosity,
             legacy_resolver=False,
-            resume_retries=options.resume_retries,
         )
         self._wheel_cache = WheelCache(options.cache_dir)
 
@@ -208,6 +216,7 @@ class InprocessBuildEnvironmentInstaller:
         kind: str,
         for_req: InstallRequirement,
     ) -> None:
+        """Install entrypoint. Manages output capturing and error handling."""
         capture_ctx: AbstractContextManager[StringIO]
         spinner: AbstractContextManager[None]
         should_capture = not logger.isEnabledFor(VERBOSE)
@@ -227,6 +236,8 @@ class InprocessBuildEnvironmentInstaller:
                 self._install_impl(requirements, prefix)
         except Exception as exc:
             if isinstance(exc, DiagnosticPipError):
+                # Format similar to a nested subprocess error, where the
+                # causing error is shown first, followed by the build error.
                 logger.error("%s", exc, extra={"rich": True})
                 logger.info("")
 
@@ -238,6 +249,7 @@ class InprocessBuildEnvironmentInstaller:
             )
 
     def _install_impl(self, requirements: Iterable[str], prefix: _Prefix) -> None:
+        """Core build dependency install logic."""
         from pip._internal.commands.install import installed_packages_summary
         from pip._internal.req import install_given_reqs
         from pip._internal.req.constructors import install_req_from_line
@@ -247,9 +259,10 @@ class InprocessBuildEnvironmentInstaller:
         for req in requirements:
             ireq = install_req_from_line(
                 req,
-                comes_from=None,
-                # TODO: does --isolated matter here?
+                # I have no idea whether inheriting this is useful, but whatever.
                 isolated=self.options.isolated_mode,
+                # Hard-coded options (they should NOT be inherited).
+                comes_from=None,
                 use_pep517=True,
                 user_supplied=True,
                 config_settings={},
@@ -268,6 +281,7 @@ class InprocessBuildEnvironmentInstaller:
             reqs_to_build,
             wheel_cache=self._wheel_cache,
             verify=True,
+            # Hard-coded options (they should NOT be inherited).
             build_options=[],
             global_options=[],
         )
@@ -277,12 +291,16 @@ class InprocessBuildEnvironmentInstaller:
         to_install = resolver.get_installation_order(requirement_set)
         installed = install_given_reqs(
             to_install,
+            prefix=prefix.path,
+            # Hard-coded options (they should NOT be inherited).
             global_options=[],
             root=None,
             home=None,
-            prefix=prefix.path,
             warn_script_location=False,
             use_user_site=False,
+            # As the build environment is ephemeral, it's wasteful to
+            # pre-compile everything, especially as not every Python
+            # module will be used/compiled in most cases.
             pycompile=False,
             progress_bar="off",
         )
@@ -292,6 +310,7 @@ class InprocessBuildEnvironmentInstaller:
             logger.info(summary)
 
     def _make_resolver(self) -> BaseResolver:
+        """Create a new resolver for one time use."""
         # Legacy installer never used the legacy resolver so create a
         # resolvelib resolver directly. Yuck.
         from pip._internal.req.constructors import install_req_from_req_string
@@ -303,17 +322,19 @@ class InprocessBuildEnvironmentInstaller:
             use_pep517=True,
         )
         return Resolver(
+            make_install_req=make_install_req,
+            # Inherited state.
             preparer=self._preparer,
             finder=self.finder,
             wheel_cache=self._wheel_cache,
-            make_install_req=make_install_req,
+            ignore_requires_python=self.options.ignore_requires_python,
+            # Hard-coded options (they should NOT be inherited).
             use_user_site=False,
             ignore_dependencies=False,
             ignore_installed=True,
-            ignore_requires_python=self.options.ignore_requires_python,
             force_reinstall=False,
             upgrade_strategy="to-satisfy-only",
-            py_version_info=getattr(self.options, "python_version", None),
+            py_version_info=None,
         )
 
 
