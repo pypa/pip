@@ -5,7 +5,7 @@ import email.parser
 import logging
 import os
 import zipfile
-from collections.abc import Collection, Iterable, Iterator, Mapping
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from typing import (
     NamedTuple,
 )
@@ -256,7 +256,7 @@ class Environment(BaseEnvironment):
         return cls(pkg_resources.working_set)
 
     @classmethod
-    def from_paths(cls, paths: list[str] | None) -> BaseEnvironment:
+    def from_paths(cls, paths: Sequence[str] | None) -> BaseEnvironment:
         return cls(pkg_resources.WorkingSet(paths))
 
     def _iter_distributions(self) -> Iterator[BaseDistribution]:

@@ -14,7 +14,7 @@ import logging
 import pathlib
 import re
 import sys
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Literal
 
@@ -864,4 +864,56 @@ class ResolutionTooDeepError(DiagnosticPipError):
                 "for example: 'package>=2.0.0' instead of just 'package'. "
             ),
             link="https://pip.pypa.io/en/stable/topics/dependency-resolution/#handling-resolution-too-deep-errors",
+        )
+
+
+class BuildDependencyInstallError(DiagnosticPipError):
+    """Raised when build dependencies cannot be installed."""
+
+    reference = "failed-build-dependency-install"
+
+    def __init__(
+        self,
+        req: InstallRequirement | None,
+        build_reqs: Iterable[str],
+        *,
+        cause: Exception,
+        log_lines: list[str],
+    ) -> None:
+        hint = None
+
+        if not log_lines:
+            # No logs are available, they must have been printed earlier.
+            context = Text(f"ERROR: {cause}")
+            hint = "Look above for more details."
+        else:
+            if isinstance(cause, DiagnosticPipError):
+                hint = "Look above for the original error that caused this failure."
+            else:
+                log_lines.append(f"ERROR: {cause}")
+
+            context = Text.assemble(
+                f"Installing {' '.join(build_reqs)}\n",
+                (f"[{len(log_lines)} lines of output]\n", "red"),
+                "\n".join(log_lines),
+                ("\n[end of output]", "red"),
+            )
+
+        message = Text("Cannot install build dependencies", "green")
+        if req:
+            message += Text(f" for {req}")
+        super().__init__(message=message, context=context, hint_stmt=hint)
+
+
+class InstallWheelBuildError(DiagnosticPipError):
+    reference = "failed-wheel-build-for-install"
+
+    def __init__(self, failed: list[InstallRequirement]) -> None:
+        super().__init__(
+            message=(
+                "Failed to build installable wheels for some "
+                "pyproject.toml based projects"
+            ),
+            context=", ".join(r.name for r in failed),  # type: ignore
+            hint_stmt=None,
         )

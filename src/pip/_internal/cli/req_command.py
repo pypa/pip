@@ -12,6 +12,11 @@ from functools import partial
 from optparse import Values
 from typing import Any
 
+from pip._internal.build_env import (
+    BuildEnvironmentInstaller,
+    InprocessBuildEnvironmentInstaller,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
@@ -131,11 +136,24 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        build_isolation_installer: BuildEnvironmentInstaller
+        if "inprocess-build-deps" in options.features_enabled:
+            if resolver_variant == "legacy":
+                raise CommandError(
+                    "inprocess-build-deps cannot be used with the legacy resolver."
+                )
+            build_isolation_installer = InprocessBuildEnvironmentInstaller(
+                finder, session, build_tracker, temp_build_dir_path, verbosity, options
+            )
+        else:
+            build_isolation_installer = SubprocessBuildEnvironmentInstaller(finder)
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
+            build_isolation_installer=build_isolation_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
