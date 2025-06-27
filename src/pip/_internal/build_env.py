@@ -35,7 +35,8 @@ from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.operations.prepare import RequirementPreparer
+    from pip._internal.network.session import PipSession
+    from pip._internal.operations.build.build_tracker import BuildTracker
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import BaseResolver
 
@@ -161,13 +162,42 @@ class InprocessBuildEnvironmentInstaller:
 
     # TODO: figure out what options are actually being inherited
 
-    def __init__(self, finder: PackageFinder, options: Values) -> None:
+    def __init__(
+        self,
+        finder: PackageFinder,
+        session: PipSession,
+        build_tracker: BuildTracker,
+        build_dir: str,
+        verbosity: int,
+        options: Values,
+    ) -> None:
         from pip._internal.cache import WheelCache
+        from pip._internal.operations.prepare import RequirementPreparer
 
         self.finder = finder
         self.options = options
 
-        self.preparer: RequirementPreparer
+        self._preparer = RequirementPreparer(
+            build_dir=build_dir,
+            # TODO: probably don't inherit --src or --download-dir?
+            src_dir=options.src_dir,
+            download_dir=None,
+            build_isolation=True,
+            build_isolation_installer=self,
+            check_build_deps=False,
+            build_tracker=build_tracker,
+            session=session,
+            progress_bar="off",
+            finder=finder,
+            # TODO: hash-checking should be extended to build deps, but that is
+            # deferred for later.
+            require_hashes=False,
+            use_user_site=False,
+            lazy_wheel=False,
+            verbosity=verbosity,
+            legacy_resolver=False,
+            resume_retries=options.resume_retries,
+        )
         self._wheel_cache = WheelCache(options.cache_dir)
 
     def install(
@@ -178,8 +208,6 @@ class InprocessBuildEnvironmentInstaller:
         kind: str,
         for_req: InstallRequirement,
     ) -> None:
-        assert hasattr(self, "preparer"), "preparer must be available!"
-
         capture_ctx: AbstractContextManager[StringIO]
         spinner: AbstractContextManager[None]
         should_capture = not logger.isEnabledFor(VERBOSE)
@@ -275,7 +303,7 @@ class InprocessBuildEnvironmentInstaller:
             use_pep517=True,
         )
         return Resolver(
-            preparer=self.preparer,
+            preparer=self._preparer,
             finder=self.finder,
             wheel_cache=self._wheel_cache,
             make_install_req=make_install_req,

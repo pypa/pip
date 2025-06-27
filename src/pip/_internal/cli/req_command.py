@@ -139,12 +139,12 @@ class RequirementCommand(IndexGroupCommand):
         build_isolation_installer: BuildEnvironmentInstaller
         if "legacy-build-deps-installer" not in options.deprecated_features_enabled:
             build_isolation_installer = InprocessBuildEnvironmentInstaller(
-                finder, options
+                finder, session, build_tracker, temp_build_dir_path, verbosity, options
             )
         else:
             build_isolation_installer = SubprocessBuildEnvironmentInstaller(finder)
 
-        preparer = RequirementPreparer(
+        return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
@@ -162,9 +162,6 @@ class RequirementCommand(IndexGroupCommand):
             legacy_resolver=legacy_resolver,
             resume_retries=options.resume_retries,
         )
-        if isinstance(build_isolation_installer, InprocessBuildEnvironmentInstaller):
-            build_isolation_installer.preparer = preparer
-        return preparer
 
     @classmethod
     def make_resolver(
