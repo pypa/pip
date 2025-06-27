@@ -21,6 +21,7 @@ from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
+from pip._internal.exceptions import BuildDependencyInstallError, DiagnosticPipError
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.logging import VERBOSE, capture_logging
@@ -31,6 +32,7 @@ from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
+    from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import BaseResolver
 
 logger = logging.getLogger(__name__)
@@ -51,7 +53,12 @@ class _Prefix:
 
 class BuildEnvironmentInstaller(Protocol):
     def install(
-        self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
+        self,
+        requirements: Iterable[str],
+        prefix: _Prefix,
+        *,
+        kind: str,
+        for_req: InstallRequirement,
     ) -> None: ...
 
 
@@ -67,7 +74,12 @@ class SubprocessBuildEnvironmentInstaller:
         self.finder = finder
 
     def install(
-        self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
+        self,
+        requirements: Iterable[str],
+        prefix: _Prefix,
+        *,
+        kind: str,
+        for_req: InstallRequirement,
     ) -> None:
         finder = self.finder
         args: list[str] = [
@@ -156,27 +168,43 @@ class InprocessBuildEnvironmentInstaller:
         self._wheel_cache = WheelCache(options.cache_dir)
 
     def install(
-        self, requirements: Iterable[str], prefix: _Prefix, *, kind: str
+        self,
+        requirements: Iterable[str],
+        prefix: _Prefix,
+        *,
+        kind: str,
+        for_req: InstallRequirement,
     ) -> None:
         assert hasattr(self, "preparer"), "preparer must be available!"
 
         capture_ctx: AbstractContextManager[StringIO]
+        spinner: AbstractContextManager[None]
         should_capture = not logger.isEnabledFor(VERBOSE)
         if should_capture:
             # Hide the logs from the installation of build dependencies.
             # They will be shown only if an error occurs.
             capture_ctx = capture_logging()
+            spinner = open_rich_spinner(f"Installing {kind}")
         else:
             # Otherwise, pass-through all logs (with a header).
             capture_ctx = nullcontext(StringIO())
+            spinner = nullcontext()
             logger.info("Installing %s ...", kind)
 
-        # TODO: error handling
-        with open_rich_spinner(f"Installing {kind}"), capture_ctx as stream:
-            self._install_impl(requirements, prefix)
+        try:
+            with spinner, capture_ctx as stream:
+                self._install_impl(requirements, prefix)
+        except Exception as exc:
+            if isinstance(exc, DiagnosticPipError):
+                logger.error("%s", exc, extra={"rich": True})
+                logger.info("")
 
-        # print("captured:", "\n---\n" + stream.getvalue().rstrip())
-        # print("---")
+            raise BuildDependencyInstallError(
+                for_req,
+                requirements,
+                cause=exc,
+                log_lines=textwrap.dedent(stream.getvalue()).splitlines(),
+            )
 
     def _install_impl(self, requirements: Iterable[str], prefix: _Prefix) -> None:
         from pip._internal.commands.install import installed_packages_summary
@@ -431,13 +459,14 @@ class BuildEnvironment:
         prefix_as_string: str,
         *,
         kind: str,
+        for_req: InstallRequirement,
     ) -> None:
         prefix = self._prefixes[prefix_as_string]
         assert not prefix.setup
         prefix.setup = True
         if not requirements:
             return
-        installer.install(requirements, prefix, kind=kind)
+        installer.install(requirements, prefix, kind=kind, for_req=for_req)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
@@ -462,10 +491,11 @@ class NoOpBuildEnvironment(BuildEnvironment):
 
     def install_requirements(
         self,
-        finder: BuildEnvironmentInstaller,
+        installer: BuildEnvironmentInstaller,
         requirements: Iterable[str],
         prefix_as_string: str,
         *,
         kind: str,
+        for_req: InstallRequirement,
     ) -> None:
         raise NotImplementedError()
