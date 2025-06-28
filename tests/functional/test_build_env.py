@@ -6,7 +6,11 @@ from textwrap import dedent
 
 import pytest
 
-from pip._internal.build_env import BuildEnvironment, _get_system_sitepackages
+from pip._internal.build_env import (
+    BuildEnvironment,
+    SubprocessBuildEnvironmentInstaller,
+    _get_system_sitepackages,
+)
 
 from tests.lib import (
     PipTestEnvironment,
@@ -33,7 +37,10 @@ def run_with_build_env(
             import subprocess
             import sys
 
-            from pip._internal.build_env import BuildEnvironment
+            from pip._internal.build_env import (
+                BuildEnvironment,
+                SubprocessBuildEnvironmentInstaller,
+            )
             from pip._internal.index.collector import LinkCollector
             from pip._internal.index.package_finder import PackageFinder
             from pip._internal.models.search_scope import SearchScope
@@ -56,7 +63,9 @@ def run_with_build_env(
             )
 
             with global_tempdir_manager():
-                build_env = BuildEnvironment()
+                build_env = BuildEnvironment(
+                    SubprocessBuildEnvironmentInstaller(finder)
+                )
             """
         )
         + indent(dedent(setup_script_contents), "    ")
@@ -81,30 +90,26 @@ def run_with_build_env(
 
 def test_build_env_allow_empty_requirements_install() -> None:
     finder = make_test_finder()
-    build_env = BuildEnvironment()
+    build_env = BuildEnvironment(SubprocessBuildEnvironmentInstaller(finder))
     for prefix in ("normal", "overlay"):
-        build_env.install_requirements(
-            finder, [], prefix, kind="Installing build dependencies"
-        )
+        build_env.install_requirements([], prefix, kind="Installing build dependencies")
 
 
 def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
-    build_env = BuildEnvironment()
+    build_env = BuildEnvironment(SubprocessBuildEnvironmentInstaller(finder))
     for prefix in ("normal", "overlay"):
         build_env.install_requirements(
-            finder, ["foo"], prefix, kind=f"installing foo in {prefix}"
+            ["foo"], prefix, kind=f"installing foo in {prefix}"
         )
         with pytest.raises(AssertionError):
             build_env.install_requirements(
-                finder, ["bar"], prefix, kind=f"installing bar in {prefix}"
+                ["bar"], prefix, kind=f"installing bar in {prefix}"
             )
         with pytest.raises(AssertionError):
-            build_env.install_requirements(
-                finder, [], prefix, kind=f"installing in {prefix}"
-            )
+            build_env.install_requirements([], prefix, kind=f"installing in {prefix}")
 
 
 def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
@@ -132,7 +137,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
     run_with_build_env(
         script,
         """
-        build_env.install_requirements(finder, ['foo', 'bar==3.0'], 'normal',
+        build_env.install_requirements(['foo', 'bar==3.0'], 'normal',
                                        kind='installing foo in normal')
 
         r = build_env.check_requirements(['foo', 'bar', 'other'])
@@ -149,9 +154,9 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
     run_with_build_env(
         script,
         """
-        build_env.install_requirements(finder, ['foo', 'bar==3.0'], 'normal',
+        build_env.install_requirements(['foo', 'bar==3.0'], 'normal',
                                        kind='installing foo in normal')
-        build_env.install_requirements(finder, ['bar==1.0'], 'overlay',
+        build_env.install_requirements(['bar==1.0'], 'overlay',
                                        kind='installing foo in overlay')
 
         r = build_env.check_requirements(['foo', 'bar', 'other'])
@@ -170,7 +175,6 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
         script,
         """
         build_env.install_requirements(
-            finder,
             ["bar==3.0"],
             "normal",
             kind="installing bar in normal",
@@ -193,9 +197,9 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
     result = run_with_build_env(
         script,
         """
-        build_env.install_requirements(finder, ['pkg==2.0'], 'overlay',
+        build_env.install_requirements(['pkg==2.0'], 'overlay',
                                        kind='installing pkg==2.0 in overlay')
-        build_env.install_requirements(finder, ['pkg==4.3'], 'normal',
+        build_env.install_requirements(['pkg==4.3'], 'normal',
                                        kind='installing pkg==4.3 in normal')
         """,
         """
