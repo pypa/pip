@@ -27,7 +27,11 @@ from pip._internal.cli.req_command import (
     with_cleanup,
 )
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.exceptions import CommandError, InstallationError
+from pip._internal.exceptions import (
+    CommandError,
+    InstallationError,
+    InstallWheelBuildError,
+)
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
 from pip._internal.models.installation_report import InstallationReport
@@ -434,12 +438,7 @@ class InstallCommand(RequirementCommand):
             )
 
             if build_failures:
-                raise InstallationError(
-                    "Failed to build installable wheels for some "
-                    "pyproject.toml based projects ({})".format(
-                        ", ".join(r.name for r in build_failures)  # type: ignore
-                    )
-                )
+                raise InstallWheelBuildError(build_failures)
 
             to_install = resolver.get_installation_order(requirement_set)
 
