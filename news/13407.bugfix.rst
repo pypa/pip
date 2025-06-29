@@ -1,2 +1,3 @@
-Make the revision part percent-encoded in version control URLs,
-e.g. ``git+https://example.com/repo.git@issue%231`` to specify branch ``issue#1``.
+Modified to percent-encode the revision part in version control URLs.
+For example, use ``git+https://example.com/repo.git@issue%231`` to specify the branch ``issue#1``.
+If you previously used a branch name containing a ``%`` character in a version control URL, you now need to replace it with ``%25`` to ensure correct percent-encoding.
