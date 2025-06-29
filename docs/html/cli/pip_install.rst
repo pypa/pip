@@ -321,7 +321,7 @@ Examples
 
          py -m pip install --upgrade SomePackage
 
-    .. note::
+   .. note::
 
       This will guarantee an update to ``SomePackage`` as it is a direct
       requirement, and possibly upgrade dependencies if their installed

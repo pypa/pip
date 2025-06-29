@@ -350,3 +350,40 @@ def test_downloader(
 
     # Make sure that the downloader makes additional requests for resumption
     _http_get_mock.assert_has_calls(calls)
+
+
+def test_resumed_download_caching(tmpdir: Path) -> None:
+    """Test that resumed downloads are cached properly for future use."""
+    cache_dir = tmpdir / "cache"
+    session = PipSession(cache=str(cache_dir))
+    link = Link("https://example.com/foo.tgz")
+    downloader = Downloader(session, "on", resume_retries=5)
+
+    # Mock an incomplete download followed by a successful resume
+    incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    incomplete_resp.headers = {"content-length": "36"}
+    incomplete_resp.status_code = 200
+
+    resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.headers = {"content-length": "12"}
+    resume_resp.status_code = 206
+
+    responses = [incomplete_resp, resume_resp]
+    _http_get_mock = MagicMock(side_effect=responses)
+
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        # Perform the download (incomplete then resumed)
+        filepath, _ = downloader(link, str(tmpdir))
+
+        # Verify the file was downloaded correctly
+        with open(filepath, "rb") as downloaded_file:
+            downloaded_bytes = downloaded_file.read()
+            expected_bytes = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+            assert downloaded_bytes == expected_bytes
+
+        # Verify that the cache directory was created and contains cache files
+        # The resumed download should have been cached for future use
+        assert cache_dir.exists()
+        cache_files = list(cache_dir.rglob("*"))
+        # Should have cache files (both metadata and body files)
+        assert len([f for f in cache_files if f.is_file()]) == 2
