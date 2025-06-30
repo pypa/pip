@@ -359,6 +359,51 @@ There are many interaction design principles that help designers design great ex
 - [Command Line Interface Guidelines](https://clig.dev)
 - [10 design principles for delightful CLIs](https://blog.developer.atlassian.com/10-design-principles-for-delightful-clis/)
 
+### Error Message Format and Guidelines
+
+#### Principles
+
+A good error message should mention:
+
+- what the user has tried to do.
+- possible next steps to try and solve the error.
+- possible steps need to go from "easiest" to "most complicated".
+- why the error has happened - see more information about the situation.
+
+In the case of pip error messages, they should also provide:
+
+- The reason(s) the resolution failed.
+
+##### Further reading
+
+[Error-Message Guidelines from Tim Neusesser and Evan Sunwall](https://www.nngroup.com/articles/error-message-guidelines/)
+
+#### Error Message Format
+
+We propose pip resolver error messages have 3 parts:
+
+- what the error is (i.e. what the user has tried to do).
+- what has caused the error.
+- possible ways to solve the error
+
+#### Example:Depency Conflict
+
+```bash
+pip install peach==1.0 apple==2.0
+```
+ERROR: Could not install Peach 1.0 and Apple 2.0 due to conflicting dependencies:
+
+- Peach 1.0 requires Banana 3.0
+- Apple 2.0 requires Banana 2.0
+
+There are a number of possible solutions. You can try:
+
+- removing package versions from your requirements, and letting pip try to resolve the problem for you .
+- Trying  a version of Peach that depends on Banana2.0. Try pip-search peach —dep banana2.0
+- replacing Apple or Peach with a different package altogether
+- patching Apple2.0 to use Banana3.0
+- force installing (Be aware!)
+
 ### Design Tools
 
 Tools that are frequently used in the design process are personas and guidelines, but also wireframing, prototyping, and testing, as well as creating flow diagrams or models.
