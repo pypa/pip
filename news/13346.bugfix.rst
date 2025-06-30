@@ -1,0 +1,1 @@
+This change will improve error hint for long filenames on Windows (EINVAL)
