@@ -52,3 +52,4 @@ tests/data/common_wheels/
 
 # Profiling related artifacts
 *.prof
+venv/
