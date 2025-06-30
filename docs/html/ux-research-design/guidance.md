@@ -386,7 +386,7 @@ We propose pip resolver error messages have 3 parts:
 - what has caused the error.
 - possible ways to solve the error
 
-#### Example:Depency Conflict
+#### Example:Dependency Conflict
 
 ```bash
 pip install peach==1.0 apple==2.0
