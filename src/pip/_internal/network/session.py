@@ -354,10 +354,15 @@ class PipSession(requests.Session):
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
-        retries = urllib3.Retry(
+        retry_config = urllib3.Retry(
             # Set the total number of retries that a particular request can
             # have.
             total=retries,
+            # Set explicit read retries to handle connection reset errors
+            # that commonly occur in firewall environments. These errors
+            # are classified as read errors by urllib3 and need specific
+            # retry handling for better firewall compatibility.
+            read=retries if retries > 0 else 3,
             # A 503 error from PyPI typically means that the Fastly -> Origin
             # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
@@ -366,9 +371,9 @@ class PipSession(requests.Session):
             # A 502 may be a transient error from a CDN like CloudFlare or CloudFront
             # A 520 or 527 - may indicate transient error in CloudFlare
             status_forcelist=[500, 502, 503, 520, 527],
-            # Add a small amount of back off between failed requests in
-            # order to prevent hammering the service.
-            backoff_factor=0.25,
+            # Increase backoff factor to give firewalls time to reset their
+            # connection tracking state between retry attempts.
+            backoff_factor=0.5,
         )  # type: ignore
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
@@ -376,7 +381,7 @@ class PipSession(requests.Session):
         # If caching is disabled, we will also use it for
         # https:// hosts that we've marked as ignoring
         # TLS errors for (trusted-hosts).
-        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        insecure_adapter = InsecureHTTPAdapter(max_retries=retry_config)
 
         # We want to _only_ cache responses on securely fetched origins or when
         # the host is specified as trusted. We do this because
@@ -386,15 +391,15 @@ class PipSession(requests.Session):
         if cache:
             secure_adapter = CacheControlAdapter(
                 cache=SafeFileCache(cache),
-                max_retries=retries,
+                max_retries=retry_config,
                 ssl_context=ssl_context,
             )
             self._trusted_host_adapter = InsecureCacheControlAdapter(
                 cache=SafeFileCache(cache),
-                max_retries=retries,
+                max_retries=retry_config,
             )
         else:
-            secure_adapter = HTTPAdapter(max_retries=retries, ssl_context=ssl_context)
+            secure_adapter = HTTPAdapter(max_retries=retry_config, ssl_context=ssl_context)
             self._trusted_host_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
