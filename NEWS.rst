@@ -2675,7 +2675,7 @@ Deprecations and Removals
 - Deprecate support for Python 3.4 (`#6106 <https://github.com/pypa/pip/issues/6106>`_)
 - Start printing a warning for Python 2.7 to warn of impending Python 2.7 End-of-life and
   prompt users to start migrating to Python 3. (`#6148 <https://github.com/pypa/pip/issues/6148>`_)
-- Remove the deprecated ``--process-dependency-links`` option. (`#6060 <https://github.com/pypa/pip/issues/6060>`_)
+- Remove the deprecated ``--process-dependency-links`` option. The ``dependency_links`` option in ``setup.py`` is now ignored. (`#6060 <https://github.com/pypa/pip/issues/6060>`_)
 - Remove the deprecated SVN editable detection based on dependency links
   during freeze. (`#5866 <https://github.com/pypa/pip/issues/5866>`_)
 
