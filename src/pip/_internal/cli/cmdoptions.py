@@ -290,7 +290,7 @@ resume_retries: Callable[..., Option] = partial(
     "--resume-retries",
     dest="resume_retries",
     type="int",
-    default=0,
+    default=5,
     help="Maximum attempts to resume or restart an incomplete download. "
     "(default: %default)",
 )
