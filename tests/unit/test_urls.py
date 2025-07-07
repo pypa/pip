@@ -1,24 +1,10 @@
 import os
 import sys
 import urllib.request
-from typing import Optional
 
 import pytest
 
-from pip._internal.utils.urls import get_url_scheme, path_to_url, url_to_path
-
-
-@pytest.mark.parametrize(
-    "url,expected",
-    [
-        ("http://localhost:8080/", "http"),
-        ("file:c:/path/to/file", "file"),
-        ("file:/dev/null", "file"),
-        ("", None),
-    ],
-)
-def test_get_url_scheme(url: str, expected: Optional[str]) -> None:
-    assert get_url_scheme(url) == expected
+from pip._internal.utils.urls import path_to_url, url_to_path
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
@@ -29,12 +15,31 @@ def test_path_to_url_unix() -> None:
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_path_to_url_win() -> None:
-    assert path_to_url("c:/tmp/file") == "file:///C:/tmp/file"
-    assert path_to_url("c:\\tmp\\file") == "file:///C:/tmp/file"
-    assert path_to_url(r"\\unc\as\path") == "file://unc/as/path"
-    path = os.path.join(os.getcwd(), "file")
-    assert path_to_url("file") == "file:" + urllib.request.pathname2url(path)
+@pytest.mark.parametrize(
+    "path, url",
+    [
+        pytest.param("c:/tmp/file", "file:///C:/tmp/file", id="posix-path"),
+        pytest.param("c:\\tmp\\file", "file:///C:/tmp/file", id="nt-path"),
+    ],
+)
+def test_path_to_url_win(path: str, url: str) -> None:
+    assert path_to_url(path) == url
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_unc_path_to_url_win() -> None:
+    # The two and four slash forms are both acceptable for our purposes. CPython's
+    # behaviour has changed several times here, so blindly accept either.
+    # - https://github.com/python/cpython/issues/78457
+    # - https://github.com/python/cpython/issues/126205
+    url = path_to_url(r"\\unc\as\path")
+    assert url in ["file://unc/as/path", "file:////unc/as/path"]
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_relative_path_to_url_win() -> None:
+    resolved_path = os.path.join(os.getcwd(), "file")
+    assert path_to_url("file") == "file:" + urllib.request.pathname2url(resolved_path)
 
 
 @pytest.mark.parametrize(

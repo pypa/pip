@@ -1,22 +1,18 @@
 """Handles all VCS (version control) support"""
 
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 import sys
 import urllib.parse
+from collections.abc import Iterable, Iterator, Mapping
+from dataclasses import dataclass, field
 from typing import (
-    TYPE_CHECKING,
     Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
+    Literal,
     Optional,
-    Tuple,
-    Type,
-    Union,
 )
 
 from pip._internal.cli.spinners import SpinnerInterface
@@ -37,35 +33,27 @@ from pip._internal.utils.subprocess import (
     format_command_args,
     make_command,
 )
-from pip._internal.utils.urls import get_url_scheme
-
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    #
-    # TODO: Remove `if TYPE_CHECKING` when dropping support for Python 3.7.
-    from typing import Literal
-
 
 __all__ = ["vcs"]
 
 
 logger = logging.getLogger(__name__)
 
-AuthInfo = Tuple[Optional[str], Optional[str]]
+AuthInfo = tuple[Optional[str], Optional[str]]
 
 
 def is_url(name: str) -> bool:
     """
     Return true if the name looks like a URL.
     """
-    scheme = get_url_scheme(name)
-    if scheme is None:
+    scheme = urllib.parse.urlsplit(name).scheme
+    if not scheme:
         return False
     return scheme in ["http", "https", "file", "ftp"] + vcs.all_schemes
 
 
 def make_vcs_requirement_url(
-    repo_url: str, rev: str, project_name: str, subdir: Optional[str] = None
+    repo_url: str, rev: str, project_name: str, subdir: str | None = None
 ) -> str:
     """
     Return the URL for a VCS requirement.
@@ -84,7 +72,7 @@ def make_vcs_requirement_url(
 
 def find_path_to_project_root_from_repo_root(
     location: str, repo_root: str
-) -> Optional[str]:
+) -> str | None:
     """
     Find the the Python project's root by searching up the filesystem from
     `location`. Return the path to project root relative to `repo_root`.
@@ -121,40 +109,28 @@ class RemoteNotValidError(Exception):
         self.url = url
 
 
+@dataclass(frozen=True)
 class RevOptions:
-
     """
     Encapsulates a VCS-specific revision to install, along with any VCS
     install options.
 
-    Instances of this class should be treated as if immutable.
+    Args:
+        vc_class: a VersionControl subclass.
+        rev: the name of the revision to install.
+        extra_args: a list of extra options.
     """
 
-    def __init__(
-        self,
-        vc_class: Type["VersionControl"],
-        rev: Optional[str] = None,
-        extra_args: Optional[CommandArgs] = None,
-    ) -> None:
-        """
-        Args:
-          vc_class: a VersionControl subclass.
-          rev: the name of the revision to install.
-          extra_args: a list of extra options.
-        """
-        if extra_args is None:
-            extra_args = []
-
-        self.extra_args = extra_args
-        self.rev = rev
-        self.vc_class = vc_class
-        self.branch_name: Optional[str] = None
+    vc_class: type[VersionControl]
+    rev: str | None = None
+    extra_args: CommandArgs = field(default_factory=list)
+    branch_name: str | None = None
 
     def __repr__(self) -> str:
         return f"<RevOptions {self.vc_class.name}: rev={self.rev!r}>"
 
     @property
-    def arg_rev(self) -> Optional[str]:
+    def arg_rev(self) -> str | None:
         if self.rev is None:
             return self.vc_class.default_arg_rev
 
@@ -178,7 +154,7 @@ class RevOptions:
 
         return f" (to revision {self.rev})"
 
-    def make_new(self, rev: str) -> "RevOptions":
+    def make_new(self, rev: str) -> RevOptions:
         """
         Make a copy of the current instance, but with a new rev.
 
@@ -189,7 +165,7 @@ class RevOptions:
 
 
 class VcsSupport:
-    _registry: Dict[str, "VersionControl"] = {}
+    _registry: dict[str, VersionControl] = {}
     schemes = ["ssh", "git", "hg", "bzr", "sftp", "svn"]
 
     def __init__(self) -> None:
@@ -202,21 +178,21 @@ class VcsSupport:
         return self._registry.__iter__()
 
     @property
-    def backends(self) -> List["VersionControl"]:
+    def backends(self) -> list[VersionControl]:
         return list(self._registry.values())
 
     @property
-    def dirnames(self) -> List[str]:
+    def dirnames(self) -> list[str]:
         return [backend.dirname for backend in self.backends]
 
     @property
-    def all_schemes(self) -> List[str]:
-        schemes: List[str] = []
+    def all_schemes(self) -> list[str]:
+        schemes: list[str] = []
         for backend in self.backends:
             schemes.extend(backend.schemes)
         return schemes
 
-    def register(self, cls: Type["VersionControl"]) -> None:
+    def register(self, cls: type[VersionControl]) -> None:
         if not hasattr(cls, "name"):
             logger.warning("Cannot register VCS %s", cls.__name__)
             return
@@ -228,7 +204,7 @@ class VcsSupport:
         if name in self._registry:
             del self._registry[name]
 
-    def get_backend_for_dir(self, location: str) -> Optional["VersionControl"]:
+    def get_backend_for_dir(self, location: str) -> VersionControl | None:
         """
         Return a VersionControl object if a repository of that type is found
         at the given directory.
@@ -251,7 +227,7 @@ class VcsSupport:
         inner_most_repo_path = max(vcs_backends, key=len)
         return vcs_backends[inner_most_repo_path]
 
-    def get_backend_for_scheme(self, scheme: str) -> Optional["VersionControl"]:
+    def get_backend_for_scheme(self, scheme: str) -> VersionControl | None:
         """
         Return a VersionControl object or None.
         """
@@ -260,7 +236,7 @@ class VcsSupport:
                 return vcs_backend
         return None
 
-    def get_backend(self, name: str) -> Optional["VersionControl"]:
+    def get_backend(self, name: str) -> VersionControl | None:
         """
         Return a VersionControl object or None.
         """
@@ -276,10 +252,10 @@ class VersionControl:
     dirname = ""
     repo_name = ""
     # List of supported schemes for this Version Control
-    schemes: Tuple[str, ...] = ()
+    schemes: tuple[str, ...] = ()
     # Iterable of environment variable names to pass to call_subprocess().
-    unset_environ: Tuple[str, ...] = ()
-    default_arg_rev: Optional[str] = None
+    unset_environ: tuple[str, ...] = ()
+    default_arg_rev: str | None = None
 
     @classmethod
     def should_add_vcs_url_prefix(cls, remote_url: str) -> bool:
@@ -290,7 +266,7 @@ class VersionControl:
         return not remote_url.lower().startswith(f"{cls.name}:")
 
     @classmethod
-    def get_subdirectory(cls, location: str) -> Optional[str]:
+    def get_subdirectory(cls, location: str) -> str | None:
         """
         Return the path to Python project root, relative to the repo root.
         Return None if the project root is in the repo root.
@@ -329,7 +305,7 @@ class VersionControl:
         return req
 
     @staticmethod
-    def get_base_rev_args(rev: str) -> List[str]:
+    def get_base_rev_args(rev: str) -> list[str]:
         """
         Return the base revision arguments for a vcs command.
 
@@ -353,7 +329,7 @@ class VersionControl:
 
     @classmethod
     def make_rev_options(
-        cls, rev: Optional[str] = None, extra_args: Optional[CommandArgs] = None
+        cls, rev: str | None = None, extra_args: CommandArgs | None = None
     ) -> RevOptions:
         """
         Return a RevOptions object.
@@ -362,7 +338,7 @@ class VersionControl:
           rev: the name of a revision to install.
           extra_args: a list of extra options.
         """
-        return RevOptions(cls, rev, extra_args=extra_args)
+        return RevOptions(cls, rev, extra_args=extra_args or [])
 
     @classmethod
     def _is_local_repository(cls, repo: str) -> bool:
@@ -376,7 +352,7 @@ class VersionControl:
     @classmethod
     def get_netloc_and_auth(
         cls, netloc: str, scheme: str
-    ) -> Tuple[str, Tuple[Optional[str], Optional[str]]]:
+    ) -> tuple[str, tuple[str | None, str | None]]:
         """
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.
@@ -395,7 +371,7 @@ class VersionControl:
         return netloc, (None, None)
 
     @classmethod
-    def get_url_rev_and_auth(cls, url: str) -> Tuple[str, Optional[str], AuthInfo]:
+    def get_url_rev_and_auth(cls, url: str) -> tuple[str, str | None, AuthInfo]:
         """
         Parse the repository URL to use, and return the URL, revision,
         and auth info to use.
@@ -405,9 +381,9 @@ class VersionControl:
         scheme, netloc, path, query, frag = urllib.parse.urlsplit(url)
         if "+" not in scheme:
             raise ValueError(
-                "Sorry, {!r} is a malformed VCS url. "
+                f"Sorry, {url!r} is a malformed VCS url. "
                 "The format is <vcs>+<protocol>://<url>, "
-                "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp".format(url)
+                "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
             )
         # Remove the vcs prefix.
         scheme = scheme.split("+", 1)[1]
@@ -417,30 +393,28 @@ class VersionControl:
             path, rev = path.rsplit("@", 1)
             if not rev:
                 raise InstallationError(
-                    "The URL {!r} has an empty revision (after @) "
+                    f"The URL {url!r} has an empty revision (after @) "
                     "which is not supported. Include a revision after @ "
-                    "or remove @ from the URL.".format(url)
+                    "or remove @ from the URL."
                 )
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
         return url, rev, user_pass
 
     @staticmethod
-    def make_rev_args(
-        username: Optional[str], password: Optional[HiddenText]
-    ) -> CommandArgs:
+    def make_rev_args(username: str | None, password: HiddenText | None) -> CommandArgs:
         """
         Return the RevOptions "extra arguments" to use in obtain().
         """
         return []
 
-    def get_url_rev_options(self, url: HiddenText) -> Tuple[HiddenText, RevOptions]:
+    def get_url_rev_options(self, url: HiddenText) -> tuple[HiddenText, RevOptions]:
         """
         Return the URL and RevOptions object to use in obtain(),
         as a tuple (url, rev_options).
         """
         secret_url, rev, user_pass = self.get_url_rev_and_auth(url.secret)
         username, secret_password = user_pass
-        password: Optional[HiddenText] = None
+        password: HiddenText | None = None
         if secret_password is not None:
             password = hide_value(secret_password)
         extra_args = self.make_rev_args(username, password)
@@ -477,7 +451,13 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def switch(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def switch(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         """
         Switch the repo at ``dest`` to point to ``URL``.
 
@@ -486,7 +466,13 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def update(self, dest: str, url: HiddenText, rev_options: RevOptions) -> None:
+    def update(
+        self,
+        dest: str,
+        url: HiddenText,
+        rev_options: RevOptions,
+        verbosity: int = 0,
+    ) -> None:
         """
         Update an already-existing repo to the given ``rev_options``.
 
@@ -496,7 +482,7 @@ class VersionControl:
         raise NotImplementedError
 
     @classmethod
-    def is_commit_id_equal(cls, dest: str, name: Optional[str]) -> bool:
+    def is_commit_id_equal(cls, dest: str, name: str | None) -> bool:
         """
         Return whether the id of the current commit equals the given name.
 
@@ -538,7 +524,7 @@ class VersionControl:
                         self.repo_name,
                         rev_display,
                     )
-                    self.update(dest, url, rev_options)
+                    self.update(dest, url, rev_options, verbosity=verbosity)
                 else:
                     logger.info("Skipping because already up-to-date.")
                 return
@@ -566,7 +552,7 @@ class VersionControl:
             self.name,
             url,
         )
-        response = ask_path_exists("What to do?  {}".format(prompt[0]), prompt[1])
+        response = ask_path_exists(f"What to do?  {prompt[0]}", prompt[1])
 
         if response == "a":
             sys.exit(-1)
@@ -593,7 +579,7 @@ class VersionControl:
                 url,
                 rev_display,
             )
-            self.switch(dest, url, rev_options)
+            self.switch(dest, url, rev_options, verbosity=verbosity)
 
     def unpack(self, location: str, url: HiddenText, verbosity: int) -> None:
         """
@@ -627,14 +613,14 @@ class VersionControl:
     @classmethod
     def run_command(
         cls,
-        cmd: Union[List[str], CommandArgs],
+        cmd: list[str] | CommandArgs,
         show_stdout: bool = True,
-        cwd: Optional[str] = None,
-        on_returncode: 'Literal["raise", "warn", "ignore"]' = "raise",
-        extra_ok_returncodes: Optional[Iterable[int]] = None,
-        command_desc: Optional[str] = None,
-        extra_environ: Optional[Mapping[str, Any]] = None,
-        spinner: Optional[SpinnerInterface] = None,
+        cwd: str | None = None,
+        on_returncode: Literal["raise", "warn", "ignore"] = "raise",
+        extra_ok_returncodes: Iterable[int] | None = None,
+        command_desc: str | None = None,
+        extra_environ: Mapping[str, Any] | None = None,
+        spinner: SpinnerInterface | None = None,
         log_failed_cmd: bool = True,
         stdout_only: bool = False,
     ) -> str:
@@ -660,6 +646,8 @@ class VersionControl:
                 log_failed_cmd=log_failed_cmd,
                 stdout_only=stdout_only,
             )
+        except NotADirectoryError:
+            raise BadCommand(f"Cannot find command {cls.name!r} - invalid PATH")
         except FileNotFoundError:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
@@ -689,7 +677,7 @@ class VersionControl:
         return os.path.exists(os.path.join(path, cls.dirname))
 
     @classmethod
-    def get_repository_root(cls, location: str) -> Optional[str]:
+    def get_repository_root(cls, location: str) -> str | None:
         """
         Return the "root" (top-level) directory controlled by the vcs,
         or `None` if the directory is not in any.

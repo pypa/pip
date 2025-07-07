@@ -1,1 +1,0 @@
-Added reference to `vulnerability reporting guidelines <https://www.python.org/dev/security/>`_ to pip's security policy.

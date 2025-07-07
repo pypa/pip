@@ -71,8 +71,8 @@ def test_new_resolver_conflict_constraints_file(
 
 
 def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
-    compatible_python = ">={0.major}.{0.minor}".format(sys.version_info)
-    incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
+    compatible_python = f">={sys.version_info.major}.{sys.version_info.minor}"
+    incompatible_python = f"<{sys.version_info.major}.{sys.version_info.minor}"
 
     pkga = create_test_package_with_setup(
         script,
@@ -99,7 +99,7 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
 def test_new_resolver_checks_requires_python_before_dependencies(
     script: PipTestEnvironment,
 ) -> None:
-    incompatible_python = "<{0.major}.{0.minor}".format(sys.version_info)
+    incompatible_python = f"<{sys.version_info.major}.{sys.version_info.minor}"
 
     pkg_dep = create_basic_wheel_for_package(
         script,
@@ -126,7 +126,9 @@ def test_new_resolver_checks_requires_python_before_dependencies(
         expect_error=True,
     )
 
-    # Resolution should fail because of pkg-a's Requires-Python.
-    # This check should be done before pkg-b, so pkg-b should never be pulled.
+    # Resolution should fail because of pkg-root's Requires-Python.
+    # This is done before dependencies so pkg-dep should never be pulled.
     assert incompatible_python in result.stderr, str(result)
-    assert "pkg-b" not in result.stderr, str(result)
+    # Setuptools produces wheels with normalized names.
+    assert "pkg_dep" not in result.stderr, str(result)
+    assert "pkg_dep" not in result.stdout, str(result)

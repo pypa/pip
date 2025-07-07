@@ -2,6 +2,12 @@
 
 Relevant API reference: https://docs.readthedocs.io/en/stable/api/v3.html#redirects
 """
+
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["httpx", "rich", "pyyaml"]
+# ///
+
 import operator
 import os
 import sys

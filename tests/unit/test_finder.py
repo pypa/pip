@@ -1,8 +1,9 @@
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
 import pytest
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.version import parse as parse_version
@@ -18,6 +19,7 @@ from pip._internal.index.package_finder import (
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
+
 from tests.lib import TestData, make_test_finder
 
 
@@ -128,7 +130,10 @@ class TestWheel:
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
 
-        assert "Skipping link: invalid wheel filename:" in caplog.text
+        assert (
+            "Could not find a version that satisfies the requirement invalid"
+            " (from versions:" in caplog.text
+        )
 
     def test_not_find_wheel_not_supported(self, data: TestData) -> None:
         """
@@ -314,7 +319,10 @@ def test_finder_priority_file_over_page(data: TestData) -> None:
         find_links=[data.find_links],
         index_urls=["http://pypi.org/simple/"],
     )
-    all_versions = finder.find_all_candidates(req.name)
+    name = req.name
+    assert name == "gmpy"
+
+    all_versions = finder.find_all_candidates(name)
     # 1 file InstallationCandidate followed by all https ones
     assert all_versions[0].link.scheme == "file"
     assert all(
@@ -330,9 +338,11 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     """Test PackageFinder prefers non-egg links over "#egg=" links"""
     req = install_req_from_line("bar==1.0")
     links = ["http://foo/bar.py#egg=bar-1.0", "http://foo/bar-1.0.tar.gz"]
+    name = req.name
+    assert name == "bar"
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions = finder.find_all_candidates(name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
 
@@ -344,7 +354,7 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     links.reverse()
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions = finder.find_all_candidates(name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
     found = finder.find_requirement(req, False)

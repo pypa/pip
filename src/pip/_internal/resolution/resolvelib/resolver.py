@@ -1,16 +1,21 @@
+from __future__ import annotations
+
+import contextlib
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
+from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible, ResolutionTooDeep
 from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
+from pip._internal.exceptions import ResolutionTooDeepError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req.constructors import install_req_extend_extras
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
@@ -19,6 +24,7 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
+from pip._internal.utils.packaging import get_requirement
 
 from .base import Candidate, Requirement
 from .factory import Factory
@@ -39,7 +45,7 @@ class Resolver(BaseResolver):
         self,
         preparer: RequirementPreparer,
         finder: PackageFinder,
-        wheel_cache: Optional[WheelCache],
+        wheel_cache: WheelCache | None,
         make_install_req: InstallRequirementProvider,
         use_user_site: bool,
         ignore_dependencies: bool,
@@ -47,7 +53,7 @@ class Resolver(BaseResolver):
         ignore_requires_python: bool,
         force_reinstall: bool,
         upgrade_strategy: str,
-        py_version_info: Optional[Tuple[int, ...]] = None,
+        py_version_info: tuple[int, ...] | None = None,
     ):
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
@@ -65,10 +71,10 @@ class Resolver(BaseResolver):
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
-        self._result: Optional[Result] = None
+        self._result: Result | None = None
 
     def resolve(
-        self, root_reqs: List[InstallRequirement], check_supported_wheels: bool
+        self, root_reqs: list[InstallRequirement], check_supported_wheels: bool
     ) -> RequirementSet:
         collected = self.factory.collect_root_requirements(root_reqs)
         provider = PipProvider(
@@ -79,7 +85,7 @@ class Resolver(BaseResolver):
             user_requested=collected.user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter: BaseReporter = PipDebuggingReporter()
+            reporter: BaseReporter[Requirement, Candidate, str] = PipDebuggingReporter()
         else:
             reporter = PipReporter()
         resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
@@ -99,11 +105,28 @@ class Resolver(BaseResolver):
                 collected.constraints,
             )
             raise error from e
+        except ResolutionTooDeep:
+            raise ResolutionTooDeepError from None
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        for candidate in result.mapping.values():
+        # process candidates with extras last to ensure their base equivalent is
+        # already in the req_set if appropriate.
+        # Python's sort is stable so using a binary key function keeps relative order
+        # within both subsets.
+        for candidate in sorted(
+            result.mapping.values(), key=lambda c: c.name != c.project_name
+        ):
             ireq = candidate.get_install_requirement()
             if ireq is None:
+                if candidate.name != candidate.project_name:
+                    # extend existing req's extras
+                    with contextlib.suppress(KeyError):
+                        req = req_set.get_requirement(candidate.project_name)
+                        req_set.add_named_requirement(
+                            install_req_extend_extras(
+                                req, get_requirement(candidate.name).extras
+                            )
+                        )
                 continue
 
             # Check if there is already an installation under the same name,
@@ -166,7 +189,7 @@ class Resolver(BaseResolver):
 
     def get_installation_order(
         self, req_set: RequirementSet
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         """Get order for installation of requirements in RequirementSet.
 
         The returned list contains a requirement before another that depends on
@@ -197,8 +220,8 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(
-    graph: "DirectedGraph[Optional[str]]", requirement_keys: Set[str]
-) -> Dict[Optional[str], int]:
+    graph: DirectedGraph[str | None], requirement_keys: set[str]
+) -> dict[str | None, int]:
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior
@@ -224,10 +247,10 @@ def get_topological_weights(
     We are only interested in the weights of packages that are in the
     requirement_keys.
     """
-    path: Set[Optional[str]] = set()
-    weights: Dict[Optional[str], int] = {}
+    path: set[str | None] = set()
+    weights: dict[str | None, int] = {}
 
-    def visit(node: Optional[str]) -> None:
+    def visit(node: str | None) -> None:
         if node in path:
             # We hit a cycle, so we'll break it here.
             return
@@ -286,9 +309,9 @@ def get_topological_weights(
 
 
 def _req_set_item_sorter(
-    item: Tuple[str, InstallRequirement],
-    weights: Dict[Optional[str], int],
-) -> Tuple[int, str]:
+    item: tuple[str, InstallRequirement],
+    weights: dict[str | None, int],
+) -> tuple[int, str]:
     """Key function used to sort install requirements for installation.
 
     Based on the "weight" mapping calculated in ``get_installation_order()``.

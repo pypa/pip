@@ -1,14 +1,14 @@
-"""Checks if the version is acceptable, as per this project's release process.
-"""
+"""Checks if the version is acceptable, as per this project's release process."""
+
+from __future__ import annotations
 
 import sys
 from datetime import datetime
-from typing import Optional
 
 from packaging.version import InvalidVersion, Version
 
 
-def is_this_a_good_version_number(string: str) -> Optional[str]:
+def is_this_a_good_version_number(string: str) -> str | None:
     try:
         v = Version(string)
     except InvalidVersion as e:
@@ -27,7 +27,7 @@ def is_this_a_good_version_number(string: str) -> Optional[str]:
     expected_major = datetime.now().year % 100
 
     if len(release) not in [2, 3]:
-        return "Not of the form: {0}.N or {0}.N.P".format(expected_major)
+        return f"Not of the form: {expected_major}.N or {expected_major}.N.P"
 
     return None
 

@@ -1,7 +1,6 @@
 import os
 import textwrap
 from pathlib import Path
-from typing import Tuple
 
 from tests.lib import PipTestEnvironment, _create_main_file, _git_commit
 
@@ -41,7 +40,7 @@ def _pull_in_submodule_changes_to_module(
 
 def _create_test_package_with_submodule(
     env: PipTestEnvironment, rel_path: str
-) -> Tuple[Path, Path]:
+) -> tuple[Path, Path]:
     """
     Args:
       rel_path: the location of the submodule relative to the superproject.

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import json
 import logging
@@ -6,10 +8,10 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
+
 from pip._vendor import requests
 from pip._vendor.packaging.requirements import Requirement
 
@@ -35,7 +37,15 @@ from pip._internal.models.link import (
     _ensure_quoted_url,
 )
 from pip._internal.network.session import PipSession
-from tests.lib import TestData, make_test_link_collector
+
+from tests.lib import (
+    TestData,
+    make_test_link_collector,
+    skip_needs_new_pathname2url_trailing_slash_behavior_win,
+    skip_needs_new_urlun_behavior_win,
+    skip_needs_old_pathname2url_trailing_slash_behavior_win,
+    skip_needs_old_urlun_behavior_win,
+)
 
 ACCEPT = ", ".join(
     [
@@ -119,8 +129,8 @@ def test_get_index_content_invalid_content_type_archive(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because it looks like an archive, and cannot "
-        "be checked by a HTTP HEAD request.".format(url),
+        f"Skipping page {url} because it looks like an archive, and cannot "
+        "be checked by a HTTP HEAD request.",
     ) in caplog.record_tuples
 
 
@@ -254,7 +264,7 @@ def test_get_simple_response_dont_log_clear_text_password(
 
 
 @pytest.mark.parametrize(
-    ("path", "expected"),
+    "path, expected",
     [
         # Test a character that needs quoting.
         ("a b", "a%20b"),
@@ -294,7 +304,7 @@ def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    ("path", "expected"),
+    "path, expected",
     [
         # Test a VCS path with a Windows drive letter and revision.
         pytest.param(
@@ -317,7 +327,7 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("url", "clean_url"),
+    "url, clean_url",
     [
         # URL with hostname and port. Port separator should not be quoted.
         (
@@ -383,7 +393,26 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "file:///T:/path/with spaces/",
             "file:///T:/path/with%20spaces",
-            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+            marks=[
+                skip_needs_old_urlun_behavior_win,
+                skip_needs_old_pathname2url_trailing_slash_behavior_win,
+            ],
+        ),
+        pytest.param(
+            "file:///T:/path/with spaces/",
+            "file://///T:/path/with%20spaces",
+            marks=[
+                skip_needs_new_urlun_behavior_win,
+                skip_needs_old_pathname2url_trailing_slash_behavior_win,
+            ],
+        ),
+        pytest.param(
+            "file:///T:/path/with spaces/",
+            "file://///T:/path/with%20spaces/",
+            marks=[
+                skip_needs_new_urlun_behavior_win,
+                skip_needs_new_pathname2url_trailing_slash_behavior_win,
+            ],
         ),
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.
@@ -396,7 +425,12 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
             "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
-            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+            marks=skip_needs_old_urlun_behavior_win,
+        ),
+        pytest.param(
+            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+            "git+file://///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
+            marks=skip_needs_new_urlun_behavior_win,
         ),
         # Test a VCS URL with a Windows drive letter and revision,
         # running on non-windows platform.
@@ -412,13 +446,13 @@ def test_ensure_quoted_url(url: str, clean_url: str) -> None:
 
 
 def _test_parse_links_data_attribute(
-    anchor_html: str, attr: str, expected: Optional[str]
+    anchor_html: str, attr: str, expected: str | None
 ) -> Link:
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><head>'
-        "<body>{}</body></html>"
-    ).format(anchor_html)
+        f"<body>{anchor_html}</body></html>"
+    )
     html_bytes = html.encode("utf-8")
     page = IndexContent(
         html_bytes,
@@ -454,9 +488,7 @@ def _test_parse_links_data_attribute(
         ),
     ],
 )
-def test_parse_links__requires_python(
-    anchor_html: str, expected: Optional[str]
-) -> None:
+def test_parse_links__requires_python(anchor_html: str, expected: str | None) -> None:
     _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
 
 
@@ -600,7 +632,7 @@ def test_parse_links_json() -> None:
         ),
     ],
 )
-def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -> None:
+def test_parse_links__yanked_reason(anchor_html: str, expected: str | None) -> None:
     _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
 
 
@@ -625,7 +657,7 @@ _pkg1_requirement = Requirement("pkg1==1.0")
         ),
         # Test with a provided hash value.
         (
-            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe"></a>',  # noqa: E501
+            '<a href="/pkg1-1.0.tar.gz" data-core-metadata="sha256=aa113592bbe"></a>',
             MetadataFile({"sha256": "aa113592bbe"}),
             {},
         ),
@@ -651,8 +683,8 @@ _pkg1_requirement = Requirement("pkg1==1.0")
 )
 def test_parse_links__metadata_file_data(
     anchor_html: str,
-    expected: Optional[str],
-    hashes: Dict[str, str],
+    expected: str | None,
+    hashes: dict[str, str],
 ) -> None:
     link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
     assert link._hashes == hashes
@@ -764,8 +796,8 @@ def test_get_index_content_invalid_scheme(
         (
             "pip._internal.index.collector",
             logging.WARNING,
-            "Cannot look at {} URL {} because it does not support "
-            "lookup as web pages.".format(vcs_scheme, url),
+            f"Cannot look at {vcs_scheme} URL {url} because it does not support "
+            "lookup as web pages.",
         ),
     ]
 
@@ -802,9 +834,9 @@ def test_get_index_content_invalid_content_type(
     assert (
         "pip._internal.index.collector",
         logging.WARNING,
-        "Skipping page {} because the GET request got Content-Type: {}. "
-        "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
-        "application/vnd.pypi.simple.v1+html, and text/html".format(url, content_type),
+        f"Skipping page {url} because the GET request got Content-Type: {content_type}."
+        " The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
+        "application/vnd.pypi.simple.v1+html, and text/html",
     ) in caplog.record_tuples
 
 
@@ -862,14 +894,12 @@ def test_collect_sources__file_expand_dir(data: TestData) -> None:
     )
     sources = collector.collect_sources(
         # Shouldn't be used.
-        project_name=None,  # type: ignore[arg-type]
+        project_name="",
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert (
-        not sources.index_urls
-        and len(sources.find_links) == 1
-        and isinstance(sources.find_links[0], _FlatDirectorySource)
-    ), (
+    assert not sources.index_urls
+    assert len(sources.find_links) == 1
+    assert isinstance(sources.find_links[0], _FlatDirectorySource), (
         "Directory source should have been found "
         f"at find-links url: {data.find_links}"
     )
@@ -894,10 +924,10 @@ def test_collect_sources__file_not_find_link(data: TestData) -> None:
         # Shouldn't be used.
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert (
-        not sources.find_links
-        and len(sources.index_urls) == 1
-        and isinstance(sources.index_urls[0], _IndexDirectorySource)
+    assert not sources.find_links
+    assert len(sources.index_urls) == 1
+    assert isinstance(
+        sources.index_urls[0], _IndexDirectorySource
     ), "Directory specified as index should be treated as a page"
 
 
@@ -911,7 +941,7 @@ def test_collect_sources__non_existing_path() -> None:
             index_url="ignored-by-no-index",
             extra_index_urls=[],
             no_index=True,
-            find_links=[os.path.join("this", "doesnt", "exist")],
+            find_links=[os.path.join("this", "does", "not", "exist")],
         ),
     )
     sources = collector.collect_sources(
@@ -919,12 +949,11 @@ def test_collect_sources__non_existing_path() -> None:
         project_name=None,  # type: ignore[arg-type]
         candidates_from_page=None,  # type: ignore[arg-type]
     )
-    assert not sources.index_urls and sources.find_links == [
-        None
-    ], "Nothing should have been found"
+    assert not sources.index_urls
+    assert sources.find_links == [None], "Nothing should have been found"
 
 
-def check_links_include(links: List[Link], names: List[str]) -> None:
+def check_links_include(links: list[Link], names: list[str]) -> None:
     """
     Assert that the given list of Link objects includes, for each of the
     given names, a link whose URL has a base name matching that name.
@@ -960,7 +989,7 @@ class TestLinkCollector:
             session=link_collector.session,
         )
 
-    def test_collect_sources(
+    def test_collect_page_sources(
         self, caplog: pytest.LogCaptureFixture, data: TestData
     ) -> None:
         caplog.set_level(logging.DEBUG)
@@ -993,9 +1022,8 @@ class TestLinkCollector:
         files = list(files_it)
         pages = list(pages_it)
 
-        # Spot-check the returned sources.
-        assert len(files) > 20
-        check_links_include(files, names=["simple-1.0.tar.gz"])
+        # Only "twine" should return from collecting sources
+        assert len(files) == 1
 
         assert [page.link for page in pages] == [Link("https://pypi.org/simple/twine/")]
         # Check that index URLs are marked as *un*cacheable.
@@ -1005,6 +1033,52 @@ class TestLinkCollector:
             """\
         1 location(s) to search for versions of twine:
         * https://pypi.org/simple/twine/"""
+        )
+        assert caplog.record_tuples == [
+            ("pip._internal.index.collector", logging.DEBUG, expected_message),
+        ]
+
+    def test_collect_file_sources(
+        self, caplog: pytest.LogCaptureFixture, data: TestData
+    ) -> None:
+        caplog.set_level(logging.DEBUG)
+
+        link_collector = make_test_link_collector(
+            find_links=[data.find_links],
+            # Include two copies of the URL to check that the second one
+            # is skipped.
+            index_urls=[PyPI.simple_url, PyPI.simple_url],
+        )
+        collected_sources = link_collector.collect_sources(
+            "singlemodule",
+            candidates_from_page=lambda link: [
+                InstallationCandidate("singlemodule", "0.0.1", link)
+            ],
+        )
+
+        files_it = itertools.chain.from_iterable(
+            source.file_links()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        pages_it = itertools.chain.from_iterable(
+            source.page_candidates()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        files = list(files_it)
+        _ = list(pages_it)
+
+        # singlemodule should return files
+        assert len(files) > 0
+        check_links_include(files, names=["singlemodule-0.0.1.tar.gz"])
+
+        expected_message = dedent(
+            """\
+        1 location(s) to search for versions of singlemodule:
+        * https://pypi.org/simple/singlemodule/"""
         )
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
@@ -1024,10 +1098,10 @@ class TestLinkCollector:
     ],
 )
 def test_link_collector_create(
-    find_links: List[str],
+    find_links: list[str],
     no_index: bool,
     suppress_no_index: bool,
-    expected: Tuple[List[str], List[str]],
+    expected: tuple[list[str], list[str]],
 ) -> None:
     """
     :param expected: the expected (find_links, index_urls) values.
@@ -1121,7 +1195,7 @@ def test_link_collector_create_find_links_expansion(
         ("https://pypi.org/pip-18.0.tar.gz#sha500=aa113592bbe", None),
     ],
 )
-def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
+def test_link_hash_parsing(url: str, result: LinkHash | None) -> None:
     assert LinkHash.find_hash_url_fragment(url) == result
 
 
@@ -1139,13 +1213,14 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
     ],
 )
 def test_metadata_file_info_parsing_html(
-    metadata_attrib: str, expected: Optional[MetadataFile]
+    metadata_attrib: str, expected: MetadataFile | None
 ) -> None:
-    attribs: Dict[str, Optional[str]] = {
+    attribs: dict[str, str | None] = {
         "href": "something",
         "data-dist-info-metadata": metadata_attrib,
     }
     page_url = "dummy_for_comes_from"
     base_url = "https://index.url/simple"
     link = Link.from_element(attribs, page_url, base_url)
-    assert link is not None and link.metadata_file_data == expected
+    assert link is not None
+    assert link.metadata_file_data == expected

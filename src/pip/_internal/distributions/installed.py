@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.index.package_finder import PackageFinder
@@ -13,7 +13,7 @@ class InstalledDistribution(AbstractDistribution):
     """
 
     @property
-    def build_tracker_id(self) -> Optional[str]:
+    def build_tracker_id(self) -> str | None:
         return None
 
     def get_metadata_distribution(self) -> BaseDistribution:

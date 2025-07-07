@@ -2,7 +2,7 @@ import json
 import os
 import textwrap
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, Protocol
 
 import pytest
 
@@ -13,15 +13,11 @@ from tests.lib import (
     _create_test_package_with_subdirectory,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
+    make_wheel,
     need_svn,
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
 
 
 class ArgRecordingSdist:
@@ -34,11 +30,10 @@ class ArgRecordingSdist:
 
 
 class ArgRecordingSdistMaker(Protocol):
-    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist:
-        ...
+    def __call__(self, name: str, **kwargs: Any) -> ArgRecordingSdist: ...
 
 
-@pytest.fixture()
+@pytest.fixture
 def arg_recording_sdist_maker(
     script: PipTestEnvironment,
 ) -> ArgRecordingSdistMaker:
@@ -92,11 +87,98 @@ def test_requirements_file(script: PipTestEnvironment) -> None:
         )
     )
     result = script.pip("install", "-r", script.scratch_path / "initools-req.txt")
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / other_lib_name].dir
-    fn = "{}-{}.dist-info".format(other_lib_name, other_lib_version)
+    fn = f"{other_lib_name}-{other_lib_version}.dist-info"
     assert result.files_created[script.site_packages / fn].dir
+
+
+@pytest.mark.network
+@pytest.mark.parametrize(
+    "path, groupname",
+    [
+        (None, "initools"),
+        ("pyproject.toml", "initools"),
+        ("./pyproject.toml", "initools"),
+        (lambda path: path.absolute(), "initools"),
+    ],
+)
+def test_dependency_group(
+    script: PipTestEnvironment,
+    path: Any,
+    groupname: str,
+) -> None:
+    """
+    Test installing from a dependency group.
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            initools = [
+                "INITools==0.2",
+                "peppercorn<=0.6",
+            ]
+            """
+        )
+    )
+    if path is None:
+        arg = groupname
+    else:
+        if callable(path):
+            path = path(pyproject)
+        arg = f"{path}:{groupname}"
+    result = script.pip("install", "--group", arg)
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
+    assert result.files_created[script.site_packages / "peppercorn"].dir
+    assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
+
+
+@pytest.mark.network
+def test_multiple_dependency_groups(script: PipTestEnvironment) -> None:
+    """
+    Test installing from two dependency groups simultaneously.
+
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            initools = ["INITools==0.2"]
+            peppercorn = ["peppercorn<=0.6"]
+            """
+        )
+    )
+    result = script.pip("install", "--group", "initools", "--group", "peppercorn")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
+    assert result.files_created[script.site_packages / "peppercorn"].dir
+    assert result.files_created[script.site_packages / "peppercorn-0.6.dist-info"].dir
+
+
+@pytest.mark.network
+def test_dependency_group_with_non_normalized_name(script: PipTestEnvironment) -> None:
+    """
+    Test installing from a dependency group with a non-normalized name, verifying that
+    the pyproject.toml content and CLI arg are normalized to match.
+
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            INITOOLS = ["INITools==0.2"]
+            """
+        )
+    )
+    result = script.pip("install", "--group", "IniTools")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools")
 
 
 def test_schema_check_in_requirements_file(script: PipTestEnvironment) -> None:
@@ -134,7 +216,7 @@ def test_relative_requirements_file(
     URLs, use an egg= definition.
 
     """
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
@@ -218,6 +300,32 @@ def test_package_in_constraints_and_dependencies(
     assert "installed TopoRequires-0.0.1" in result.stdout
 
 
+def test_constraints_apply_to_dependency_groups(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    script.scratch_path.joinpath("constraints.txt").write_text("TopoRequires==0.0.1")
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            mylibs = ["TopoRequires2"]
+            """
+        )
+    )
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-c",
+        script.scratch_path / "constraints.txt",
+        "--group",
+        "mylibs",
+    )
+    assert "installed TopoRequires-0.0.1" in result.stdout
+
+
 def test_multiple_constraints_files(script: PipTestEnvironment, data: TestData) -> None:
     script.scratch_path.joinpath("outer.txt").write_text("-c inner.txt")
     script.scratch_path.joinpath("inner.txt").write_text("Upper==1.0")
@@ -260,13 +368,13 @@ def test_respect_order_in_requirements_file(
 
     assert (
         "parent" in downloaded[0]
-    ), 'First download should be "parent" but was "{}"'.format(downloaded[0])
+    ), f'First download should be "parent" but was "{downloaded[0]}"'
     assert (
         "child" in downloaded[1]
-    ), 'Second download should be "child" but was "{}"'.format(downloaded[1])
+    ), f'Second download should be "child" but was "{downloaded[1]}"'
     assert (
         "simple" in downloaded[2]
-    ), 'Third download should be "simple" but was "{}"'.format(downloaded[2])
+    ), f'Third download should be "simple" but was "{downloaded[2]}"'
 
 
 def test_install_local_editable_with_extras(
@@ -300,7 +408,7 @@ def test_install_local_editable_with_subdirectory(script: PipTestEnvironment) ->
         ),
     )
 
-    result.assert_installed("version-subpkg", sub_dir="version_subdir")
+    result.assert_installed("version_subpkg", sub_dir="version_subdir")
 
 
 @pytest.mark.network
@@ -392,11 +500,8 @@ def test_constraints_local_editable_install_causes_error(
         to_install,
         expect_error=True,
     )
-    if resolver_variant == "legacy-resolver":
-        assert "Could not satisfy constraints" in result.stderr, str(result)
-    else:
-        # Because singlemodule only has 0.0.1 available.
-        assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
+    # Because singlemodule only has 0.0.1 available.
+    assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
 
 
 @pytest.mark.network
@@ -426,11 +531,8 @@ def test_constraints_local_install_causes_error(
         to_install,
         expect_error=True,
     )
-    if resolver_variant == "legacy-resolver":
-        assert "Could not satisfy constraints" in result.stderr, str(result)
-    else:
-        # Because singlemodule only has 0.0.1 available.
-        assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
+    # Because singlemodule only has 0.0.1 available.
+    assert "Cannot install singlemodule 0.0.1" in result.stderr, str(result)
 
 
 def test_constraints_constrain_to_local_editable(
@@ -451,9 +553,9 @@ def test_constraints_constrain_to_local_editable(
         script.scratch_path / "constraints.txt",
         "singlemodule",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Editable requirements are not allowed as constraints" in result.stderr
     else:
         assert "Running setup.py develop for singlemodule" in result.stdout
@@ -551,9 +653,9 @@ def test_install_with_extras_from_constraints(
         script.scratch_path / "constraints.txt",
         "LocalExtras",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Constraints cannot have extras" in result.stderr
     else:
         result.did_create(script.site_packages / "simple")
@@ -589,9 +691,9 @@ def test_install_with_extras_joined(
         script.scratch_path / "constraints.txt",
         "LocalExtras[baz]",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Constraints cannot have extras" in result.stderr
     else:
         result.did_create(script.site_packages / "simple")
@@ -610,9 +712,9 @@ def test_install_with_extras_editable_joined(
         script.scratch_path / "constraints.txt",
         "LocalExtras[baz]",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "Editable requirements are not allowed as constraints" in result.stderr
     else:
         result.did_create(script.site_packages / "simple")
@@ -636,10 +738,9 @@ def test_install_distribution_duplicate_extras(
 ) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     package_name = f"{to_install}[bar]"
-    with pytest.raises(AssertionError):
-        result = script.pip_install_local(package_name, package_name)
-        expected = f"Double requirement given: {package_name}"
-        assert expected in result.stderr
+    result = script.pip_install_local(package_name, package_name)
+    unexpected = f"Double requirement given: {package_name}"
+    assert unexpected not in result.stderr
 
 
 def test_install_distribution_union_with_constraints(
@@ -654,9 +755,9 @@ def test_install_distribution_union_with_constraints(
         script.scratch_path / "constraints.txt",
         f"{to_install}[baz]",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         msg = "Unnamed requirements are not allowed as constraints"
         assert msg in result.stderr
     else:
@@ -674,12 +775,12 @@ def test_install_distribution_union_with_versions(
     result = script.pip_install_local(
         f"{to_install_001}[bar]",
         f"{to_install_002}[baz]",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
-        assert "Cannot install localextras[bar]" in result.stderr
-        assert ("localextras[bar] 0.0.1 depends on localextras 0.0.1") in result.stdout
-        assert ("localextras[baz] 0.0.2 depends on localextras 0.0.2") in result.stdout
+    if resolver_variant == "resolvelib":
+        assert "Cannot install localextras" in result.stderr
+        assert ("The user requested localextras 0.0.1") in result.stdout
+        assert ("The user requested localextras 0.0.2") in result.stdout
     else:
         assert (
             "Successfully installed LocalExtras-0.0.1 simple-3.0 singlemodule-0.0.1"
@@ -817,3 +918,26 @@ def test_config_settings_local_to_package(
     assert "--verbose" not in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
+
+
+def test_nonpep517_setuptools_import_failure(script: PipTestEnvironment) -> None:
+    """Any import failures of `setuptools` should inform the user both that it's
+    not pip's fault, but also exactly what went wrong in the import."""
+    # Install a poisoned version of 'setuptools' that fails to import.
+    name = "setuptools_poisoned"
+    module = """\
+raise ImportError("this 'setuptools' was intentionally poisoned")
+"""
+    path = make_wheel(name, "0.1.0", extra_files={"setuptools.py": module}).save_to_dir(
+        script.scratch_path
+    )
+    script.pip("install", "--no-index", path)
+
+    result = script.pip_install_local("--no-use-pep517", "simple", expect_error=True)
+    nice_message = (
+        "ERROR: Can not execute `setup.py`"
+        " since setuptools failed to import in the build environment"
+    )
+    exc_message = "ImportError: this 'setuptools' was intentionally poisoned"
+    assert nice_message in result.stderr
+    assert exc_message in result.stderr

@@ -1,9 +1,13 @@
-import abc
-from typing import Optional
+from __future__ import annotations
 
-from pip._internal.index.package_finder import PackageFinder
+import abc
+from typing import TYPE_CHECKING
+
 from pip._internal.metadata.base import BaseDistribution
 from pip._internal.req import InstallRequirement
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import PackageFinder
 
 
 class AbstractDistribution(metaclass=abc.ABCMeta):
@@ -30,7 +34,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
         self.req = req
 
     @abc.abstractproperty
-    def build_tracker_id(self) -> Optional[str]:
+    def build_tracker_id(self) -> str | None:
         """A string that uniquely identifies this requirement to the build tracker.
 
         If None, then this dist has no work to do in the build tracker, and

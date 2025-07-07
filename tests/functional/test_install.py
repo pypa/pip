@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import hashlib
+import io
 import os
 import re
 import ssl
 import sys
 import sysconfig
+import tarfile
 import textwrap
+from collections.abc import Iterable
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
@@ -15,8 +19,9 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
-from tests.conftest import CertFactory
+
 from tests.lib import (
+    CertFactory,
     PipTestEnvironment,
     ResolverVariant,
     TestData,
@@ -40,8 +45,8 @@ from tests.lib.server import (
 )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
-@pytest.mark.parametrize("variant", ("missing_setuptools", "bad_setuptools"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
+@pytest.mark.parametrize("variant", ["missing_setuptools", "bad_setuptools"])
 def test_pep518_uses_build_env(
     script: PipTestEnvironment,
     data: TestData,
@@ -103,16 +108,13 @@ def test_pep518_refuses_conflicting_requires(
     result = script.pip_install_local(
         "-f", script.scratch_path, project_dir, expect_error=True
     )
+    assert result.returncode != 0
     assert (
-        result.returncode != 0
-        and (
-            "Some build dependencies for {url} conflict "
-            "with PEP 517/518 supported "
-            "requirements: setuptools==1.0 is incompatible with "
-            "setuptools>=40.8.0.".format(url=project_dir.as_uri())
-        )
-        in result.stderr
-    ), str(result)
+        f"Some build dependencies for {project_dir.as_uri()} conflict "
+        "with PEP 517/518 supported "
+        "requirements: setuptools==1.0 is incompatible with "
+        "setuptools>=40.8.0."
+    ) in result.stderr, str(result)
 
 
 def test_pep518_refuses_invalid_requires(
@@ -241,10 +243,10 @@ def test_pep518_with_namespace_package(
     )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
 @pytest.mark.parametrize(
     "package",
-    ("pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"),
+    ["pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"],
 )
 def test_pep518_forkbombs(
     script: PipTestEnvironment,
@@ -291,7 +293,7 @@ def test_pip_second_command_line_interface_works(
     args.extend(["install", "INITools==0.2"])
     args.extend(["-f", os.fspath(data.packages)])
     result = script.run(*args)
-    dist_info_folder = script.site_packages / "INITools-0.2.dist-info"
+    dist_info_folder = script.site_packages / "initools-0.2.dist-info"
     initools_folder = script.site_packages / "initools"
     result.did_create(dist_info_folder)
     result.did_create(initools_folder)
@@ -318,13 +320,52 @@ def test_install_exit_status_code_when_blank_requirements_file(
     script.pip("install", "-r", "blank.txt")
 
 
+def test_install_exit_status_code_when_empty_dependency_group(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Test install exit status code is 0 when empty dependency group specified
+    """
+    script.scratch_path.joinpath("pyproject.toml").write_text(
+        """\
+[dependency-groups]
+empty = []
+"""
+    )
+    script.pip("install", "--group", "empty")
+
+
+@pytest.mark.parametrize("file_exists", [True, False])
+def test_install_dependency_group_bad_filename_error(
+    script: PipTestEnvironment, file_exists: bool
+) -> None:
+    """
+    Test install exit status code is 2 (usage error) when a dependency group path is
+    specified which isn't a `pyproject.toml`
+    """
+    if file_exists:
+        script.scratch_path.joinpath("not-pyproject.toml").write_text(
+            textwrap.dedent(
+                """
+                [dependency-groups]
+                publish = ["twine"]
+                """
+            )
+        )
+    result = script.pip(
+        "install", "--group", "not-pyproject.toml:publish", expect_error=True
+    )
+    assert "group paths use 'pyproject.toml' filenames" in result.stderr
+    assert result.returncode == 2
+
+
 @pytest.mark.network
 def test_basic_install_from_pypi(script: PipTestEnvironment) -> None:
     """
     Test installing a package from PyPI.
     """
     result = script.pip("install", "INITools==0.2")
-    dist_info_folder = script.site_packages / "INITools-0.2.dist-info"
+    dist_info_folder = script.site_packages / "initools-0.2.dist-info"
     initools_folder = script.site_packages / "initools"
     result.did_create(dist_info_folder)
     result.did_create(initools_folder)
@@ -358,7 +399,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
     checkout_path = _create_test_package(script.scratch_path)
     repo_url = _create_svn_repo(script.scratch_path, checkout_path)
     result = script.pip("install", "-e", "svn+" + repo_url + "#egg=version-pkg")
-    result.assert_installed("version-pkg", with_files=[".svn"])
+    result.assert_installed("version_pkg", with_files=[".svn"])
 
 
 def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
@@ -391,7 +432,7 @@ def test_install_editable_uninstalls_existing(
     https://github.com/pypa/pip/issues/1548
     https://github.com/pypa/pip/pull/1552
     """
-    to_install = data.packages.joinpath("pip-test-package-0.1.tar.gz")
+    to_install = data.packages.joinpath("pip_test_package-0.1.tar.gz")
     result = script.pip_install_local(to_install)
     assert "Successfully installed pip-test-package" in result.stdout
     result.assert_installed("piptestpackage", editable=False)
@@ -480,26 +521,15 @@ def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
     result.assert_installed("testpackage", with_files=[".bzr"])
 
 
-@pytest.mark.network
-@need_bzr
-def test_vcs_url_urlquote_normalization(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
+def test_vcs_url_urlquote_normalization(script: PipTestEnvironment) -> None:
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
-    script.pip(
-        "install",
-        "-e",
-        "{url}/#egg=django-wikiapp".format(
-            url=local_checkout(
-                "bzr+http://bazaar.launchpad.net/"
-                "%7Edjango-wikiapp/django-wikiapp"
-                "/release-0.1",
-                tmpdir,
-            )
-        ),
+    pkg_path = _create_test_package(
+        script.scratch_path, name="django_wikiapp", vcs="git"
     )
+    url = f"git+{pkg_path.as_uri().replace('django_', 'django%5F')}/#egg=django_wikiapp"
+    script.pip("install", "-e", url)
 
 
 @pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
@@ -516,7 +546,7 @@ def test_basic_install_from_local_directory(
     args.append(os.fspath(to_install))
     result = script.pip(*args)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -538,7 +568,7 @@ def test_basic_install_relative_directory(
     """
     Test installing a requirement using a relative path.
     """
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
@@ -595,8 +625,8 @@ def test_hashed_install_success(
     with requirements_file(
         "simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e"
         "3848c2b9bbd2e8bf01db88c2c7\n"
-        "{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c"
-        "a016b42d2e6ce53619b653".format(simple=file_url),
+        f"{file_url} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c"
+        "a016b42d2e6ce53619b653",
         tmpdir,
     ) as reqs_file:
         script.pip_install_local("-r", reqs_file.resolve())
@@ -617,6 +647,18 @@ def test_hashed_install_failure(script: PipTestEnvironment, tmpdir: Path) -> Non
     ) as reqs_file:
         result = script.pip_install_local("-r", reqs_file.resolve(), expect_error=True)
     assert len(result.files_created) == 0
+
+
+def test_case_insensitive_hashed_install_success(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """Test that hashes that differ only by case don't halt installation."""
+    with requirements_file(
+        "simple2==1.0 --hash=sha256:9336AF72CA661E6336EB87BC7DE3E8844D853E"
+        "3848C2B9BBD2E8BF01DB88C2C7\n",
+        tmpdir,
+    ) as reqs_file:
+        script.pip_install_local("-r", reqs_file.resolve())
 
 
 def test_link_hash_pass_require_hashes(
@@ -685,7 +727,9 @@ def test_link_hash_in_dep_fails_require_hashes(
     # Build a wheel for pkga and compute its hash.
     wheelhouse = tmp_path / "wheehouse"
     wheelhouse.mkdir()
-    script.pip("wheel", "--no-deps", "-w", wheelhouse, project_path)
+    script.pip(
+        "wheel", "--no-build-isolation", "--no-deps", "-w", wheelhouse, project_path
+    )
     digest = hashlib.sha256(
         wheelhouse.joinpath("pkga-1.0-py3-none-any.whl").read_bytes()
     ).hexdigest()
@@ -818,7 +862,7 @@ def test_install_from_local_directory_with_in_tree_build(
     assert not in_tree_build_dir.exists()
     result = script.pip("install", to_install)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
     assert in_tree_build_dir.exists()
@@ -903,7 +947,14 @@ def test_editable_install__local_dir_setup_requires_with_pyproject(
         "setup(name='dummy', setup_requires=['simplewheel'])\n"
     )
 
-    script.pip("install", "--find-links", shared_data.find_links, "-e", local_dir)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--find-links",
+        shared_data.find_links,
+        "-e",
+        local_dir,
+    )
 
 
 def test_install_pre__setup_requires_with_pyproject(
@@ -965,7 +1016,7 @@ def test_install_curdir(script: PipTestEnvironment, data: TestData) -> None:
         rmtree(egg_info)
     result = script.pip("install", curdir, cwd=run_from)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -977,7 +1028,7 @@ def test_install_pardir(script: PipTestEnvironment, data: TestData) -> None:
     run_from = data.packages.joinpath("FSPkg", "fspkg")
     result = script.pip("install", pardir, cwd=run_from)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -1172,7 +1223,7 @@ def test_install_nonlocal_compatible_wheel(
     )
     assert result.returncode == SUCCESS
 
-    distinfo = Path("scratch") / "target" / "simplewheel-2.0-1.dist-info"
+    distinfo = Path("scratch") / "target" / "simplewheel-2.0.dist-info"
     result.did_create(distinfo)
 
     # Test install without --target
@@ -1209,9 +1260,9 @@ def test_install_nonlocal_compatible_wheel_path(
         "--no-index",
         "--only-binary=:all:",
         Path(data.packages) / "simplewheel-2.0-py3-fakeabi-fakeplat.whl",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert result.returncode == ERROR
     else:
         assert result.returncode == SUCCESS
@@ -1230,7 +1281,7 @@ def test_install_nonlocal_compatible_wheel_path(
     assert result.returncode == ERROR
 
 
-@pytest.mark.parametrize("opt", ("--target", "--prefix"))
+@pytest.mark.parametrize("opt", ["--target", "--prefix"])
 def test_install_with_target_or_prefix_and_scripts_no_warning(
     opt: str, script: PipTestEnvironment
 ) -> None:
@@ -1326,8 +1377,8 @@ def test_install_package_with_prefix(
 
 
 def _test_install_editable_with_prefix(
-    script: PipTestEnvironment, files: Dict[str, str]
-) -> None:
+    script: PipTestEnvironment, files: dict[str, str]
+) -> TestPipResult:
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
@@ -1354,6 +1405,8 @@ def _test_install_editable_with_prefix(
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / "pkga.egg-link"
     result.did_create(install_path)
+
+    return result
 
 
 @pytest.mark.network
@@ -1404,9 +1457,10 @@ version = 0.1
 requires = ["setuptools<64", "wheel"]
 build-backend = "setuptools.build_meta"
 """
-    _test_install_editable_with_prefix(
+    result = _test_install_editable_with_prefix(
         script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
     )
+    assert "(setup.py develop) is deprecated" in result.stderr
 
 
 def test_install_package_conflict_prefix_and_user(
@@ -1487,9 +1541,9 @@ def test_url_req_case_mismatch_no_index(
     )
 
     # only Upper-1.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Upper-1.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-1.0.dist-info"
     result.did_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Upper-2.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-2.0.dist-info"
     result.did_not_create(dist_info_folder)
 
 
@@ -1515,10 +1569,10 @@ def test_url_req_case_mismatch_file_index(
         "install", "--index-url", data.find_links3, Dinner, "requiredinner"
     )
 
-    # only Upper-1.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Dinner-1.0.dist-info"
+    # only Dinner-1.0.tar.gz should get installed.
+    dist_info_folder = script.site_packages / "dinner-1.0.dist-info"
     result.did_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Dinner-2.0.dist-info"
+    dist_info_folder = script.site_packages / "dinner-2.0.dist-info"
     result.did_not_create(dist_info_folder)
 
 
@@ -1539,9 +1593,9 @@ def test_url_incorrect_case_no_index(
     )
 
     # only Upper-2.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Upper-1.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-1.0.dist-info"
     result.did_not_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Upper-2.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-2.0.dist-info"
     result.did_create(dist_info_folder)
 
 
@@ -1561,10 +1615,10 @@ def test_url_incorrect_case_file_index(
         expect_stderr=True,
     )
 
-    # only Upper-2.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Dinner-1.0.dist-info"
+    # only Dinner-2.0.tar.gz should get installed.
+    dist_info_folder = script.site_packages / "dinner-1.0.dist-info"
     result.did_not_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Dinner-2.0.dist-info"
+    dist_info_folder = script.site_packages / "dinner-2.0.dist-info"
     result.did_create(dist_info_folder)
 
     # Should show index-url location in output
@@ -1722,7 +1776,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
         to_install,
         expect_error=True,  # error building wheelbroken
     )
-    wheels: List[str] = []
+    wheels: list[str] = []
     for _, _, files in os.walk(wheels_cache):
         wheels.extend(f for f in files if f.endswith(".whl"))
     # Built wheel for upper
@@ -1731,11 +1785,11 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     assert "Building wheel for wheelb" in str(res), str(res)
     assert "Failed to build wheelbroken" in str(res), str(res)
     # Wheels are built for local directories, but not cached.
-    assert "Building wheel for requir" in str(res), str(res)
+    assert "Building wheel for require" in str(res), str(res)
     # into the cache
     assert wheels != [], str(res)
     assert wheels == [
-        "Upper-2.0-py{}-none-any.whl".format(sys.version_info[0]),
+        f"upper-2.0-py{sys.version_info[0]}-none-any.whl",
     ]
 
 
@@ -1754,7 +1808,7 @@ def test_install_no_binary_builds_wheels(
     )
     # Wheels are built for all requirements
     assert "Building wheel for wheelb" in str(res), str(res)
-    assert "Building wheel for requir" in str(res), str(res)
+    assert "Building wheel for require" in str(res), str(res)
     assert "Building wheel for upper" in str(res), str(res)
     # Wheelbroken failed to build
     assert "Failed to build wheelbroken" in str(res), str(res)
@@ -1825,14 +1879,14 @@ def test_install_editable_with_wrong_egg_name(
         "install",
         "--editable",
         f"file://{pkga_path}#egg=pkgb",
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=(resolver_variant == "resolvelib"),
     )
     assert (
         "Generating metadata for package pkgb produced metadata "
         "for project name pkga. Fix your #egg=pkgb "
         "fragments."
     ) in result.stderr
-    if resolver_variant == "2020-resolver":
+    if resolver_variant == "resolvelib":
         assert "has inconsistent" in result.stdout, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
@@ -1865,6 +1919,7 @@ def test_double_install(script: PipTestEnvironment) -> None:
     assert msg not in result.stderr
 
 
+@pytest.mark.network
 def test_double_install_fail(
     script: PipTestEnvironment, resolver_variant: ResolverVariant
 ) -> None:
@@ -2001,7 +2056,7 @@ def test_install_pep508_with_url_in_install_requires(
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("index", (PyPI.simple_url, TestPyPI.simple_url))
+@pytest.mark.parametrize("index", [PyPI.simple_url, TestPyPI.simple_url])
 def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
     script: PipTestEnvironment, index: str
 ) -> None:
@@ -2159,7 +2214,7 @@ def test_user_config_accepted(script: PipTestEnvironment) -> None:
 @pytest.mark.parametrize("use_module", [True, False])
 def test_install_pip_does_not_modify_pip_when_satisfied(
     script: PipTestEnvironment,
-    install_args: List[str],
+    install_args: list[str],
     expected_message: str,
     use_module: bool,
     resolver_variant: ResolverVariant,
@@ -2253,14 +2308,14 @@ def test_yanked_version_missing_from_availble_versions_error_message(
     """
     result = script.pip(
         "install",
-        "simple==",
+        "simple==0.1",
         "--index-url",
         data.index_url("yanked"),
         expect_error=True,
     )
     # the yanked version (3.0) is filtered out from the output:
     expected_warning = (
-        "Could not find a version that satisfies the requirement simple== "
+        "Could not find a version that satisfies the requirement simple==0.1 "
         "(from versions: 1.0, 2.0)"
     )
     assert expected_warning in result.stderr, str(result)
@@ -2283,16 +2338,12 @@ def test_error_all_yanked_files_and_no_pin(
         expect_error=True,
     )
     # Make sure an error is raised
-    assert (
-        result.returncode == 1
-        and "ERROR: No matching distribution found for simple\n" in result.stderr
-    ), str(result)
+    assert result.returncode == 1
+    assert "ERROR: No matching distribution found for simple\n" in result.stderr, str(
+        result
+    )
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux" and sys.version_info < (3, 8),
-    reason="Custom SSL certification not running well in CI",
-)
 @pytest.mark.parametrize(
     "install_args",
     [
@@ -2301,7 +2352,7 @@ def test_error_all_yanked_files_and_no_pin(
     ],
 )
 def test_install_sends_client_cert(
-    install_args: Tuple[str, ...],
+    install_args: tuple[str, ...],
     script: PipTestEnvironment,
     cert_factory: CertFactory,
     data: TestData,
@@ -2341,6 +2392,38 @@ def test_install_sends_client_cert(
         assert environ["SSL_CLIENT_CERT"]
 
 
+def test_install_sends_certs_for_pep518_deps(
+    script: PipTestEnvironment,
+    cert_factory: CertFactory,
+    data: TestData,
+    common_wheels: Path,
+) -> None:
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    setuptools_pkg = next(common_wheels.glob("setuptools*")).name
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({setuptools_pkg: f"/files/{setuptools_pkg}"}),
+        file_response(common_wheels / setuptools_pkg),
+    ]
+    url = f"https://{server.host}:{server.port}/simple"
+
+    args = ["install", str(data.packages / "pep517_setup_and_pyproject")]
+    args.extend(["--index-url", url])
+    args.extend(["--cert", cert_path, "--client-cert", cert_path])
+
+    with server_running(server):
+        script.pip(*args)
+
+    for call_args in server.mock.call_args_list:
+        environ, _ = call_args.args
+        assert environ.get("SSL_CLIENT_CERT", "")
+
+
 def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that install of a package in working directory
@@ -2370,7 +2453,7 @@ def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -
 
 
 @pytest.mark.parametrize(
-    "package_name", ("simple-package", "simple_package", "simple.package")
+    "package_name", ["simple-package", "simple_package", "simple.package"]
 )
 def test_install_verify_package_name_normalization(
     script: PipTestEnvironment, package_name: str
@@ -2387,7 +2470,7 @@ def test_install_verify_package_name_normalization(
     assert "Successfully installed simple-package" in result.stdout
 
     result = script.pip("install", package_name)
-    assert "Requirement already satisfied: {}".format(package_name) in result.stdout
+    assert f"Requirement already satisfied: {package_name}" in result.stdout
 
 
 def test_install_logs_pip_version_in_debug(
@@ -2405,7 +2488,7 @@ def install_find_links(
     args: Iterable[str],
     *,
     dry_run: bool,
-    target_dir: Optional[Path],
+    target_dir: Path | None,
 ) -> TestPipResult:
     return script.pip(
         "install",
@@ -2427,7 +2510,7 @@ def install_find_links(
 
 @pytest.mark.parametrize(
     "with_target_dir",
-    (True, False),
+    [True, False],
 )
 def test_install_dry_run_nothing_installed(
     script: PipTestEnvironment,
@@ -2594,3 +2677,131 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
         f"Collecting python-openid "
         f"(from Paste[openid]==1.7.5.1->-r {req_path} (line 1))" in result.stdout
     )
+
+
+@pytest.mark.parametrize("common_prefix", ["", "linktest-1.0/"])
+@pytest.mark.network
+def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
+    """
+    Test installing an sdist with hard and symbolic links.
+    """
+
+    # Build an unpack an sdist that contains data files:
+    # - root.dat
+    # - sub/inner.dat
+    # and links (symbolic and hard) to both of those, both in the top-level
+    # and 'sub/' directories. That's 8 links total.
+
+    # We build the sdist from in-memory data, since the filesystem
+    # might not support both kinds of links.
+
+    sdist_path = script.scratch_path.joinpath("linktest-1.0.tar.gz")
+
+    def add_file(tar: tarfile.TarFile, name: str, content: str) -> None:
+        info = tarfile.TarInfo(common_prefix + name)
+        content_bytes = content.encode("utf-8")
+        info.size = len(content_bytes)
+        tar.addfile(info, io.BytesIO(content_bytes))
+
+    def add_link(tar: tarfile.TarFile, name: str, linktype: str, target: str) -> None:
+        info = tarfile.TarInfo(common_prefix + name)
+        info.type = {"sym": tarfile.SYMTYPE, "hard": tarfile.LNKTYPE}[linktype]
+        info.linkname = target
+        tar.addfile(info)
+
+    with tarfile.open(sdist_path, "w:gz") as sdist_tar:
+        add_file(
+            sdist_tar,
+            "PKG-INFO",
+            textwrap.dedent(
+                """
+                    Metadata-Version: 2.1
+                    Name: linktest
+                    Version: 1.0
+                """
+            ),
+        )
+
+        add_file(sdist_tar, "src/linktest/__init__.py", "")
+        add_file(sdist_tar, "src/linktest/root.dat", "Data")
+        add_file(sdist_tar, "src/linktest/sub/__init__.py", "")
+        add_file(sdist_tar, "src/linktest/sub/inner.dat", "Data")
+        linknames = []
+
+        # Windows requires native path separators in symlink targets.
+        # (see https://github.com/python/cpython/issues/57911)
+        # (This is not needed for hardlinks, nor for the workaround tarfile
+        # uses if symlinking is disabled.)
+        SEP = os.path.sep
+
+        pkg_root = f"{common_prefix}src/linktest"
+        for prefix, target_tag, linktype, target in [
+            ("", "root", "sym", "root.dat"),
+            ("", "root", "hard", f"{pkg_root}/root.dat"),
+            ("", "inner", "sym", f"sub{SEP}inner.dat"),
+            ("", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
+            ("sub/", "root", "sym", f"..{SEP}root.dat"),
+            ("sub/", "root", "hard", f"{pkg_root}/root.dat"),
+            ("sub/", "inner", "sym", "inner.dat"),
+            ("sub/", "inner", "hard", f"{pkg_root}/sub/inner.dat"),
+        ]:
+            name = f"{prefix}link.{target_tag}.{linktype}.dat"
+            add_link(sdist_tar, "src/linktest/" + name, linktype, target)
+            linknames.append(name)
+
+        add_file(
+            sdist_tar,
+            "pyproject.toml",
+            textwrap.dedent(
+                """
+                    [build-system]
+                    requires = ["setuptools"]
+                    build-backend = "setuptools.build_meta"
+                    [project]
+                    name = "linktest"
+                    version = "1.0"
+                    [tool.setuptools]
+                    include-package-data = true
+                    [tool.setuptools.packages.find]
+                    where = ["src"]
+                    [tool.setuptools.package-data]
+                    "*" = ["*.dat"]
+                """
+            ),
+        )
+
+        add_file(
+            sdist_tar,
+            "src/linktest/__main__.py",
+            textwrap.dedent(
+                f"""
+                    from pathlib import Path
+                    linknames = {linknames!r}
+
+                    # we could use importlib.resources here once
+                    # it has stable convenient API across supported versions
+                    res_path = Path(__file__).parent
+
+                    for name in linknames:
+                        data_text = res_path.joinpath(name).read_text()
+                        assert data_text == "Data"
+                    print(str(len(linknames)) + ' files checked')
+                """
+            ),
+        )
+
+    # Show sdist content, for debugging the test
+    result = script.run("python", "-m", "tarfile", "-vl", str(sdist_path))
+    print(result)
+
+    # Install the package
+    result = script.pip("install", str(sdist_path))
+    print(result)
+
+    # Show installed content, for debugging the test
+    result = script.pip("show", "-f", "linktest")
+    print(result)
+
+    # Run the internal test
+    result = script.run("python", "-m", "linktest")
+    assert result.stdout.strip() == "8 files checked"

@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import functools
 import os
 import subprocess
 import sys
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Any
 
 import pytest
 
 import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
+
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def reset_keyring() -> Iterable[None]:
     yield None
     # Reset the state of the module between tests
@@ -20,7 +24,7 @@ def reset_keyring() -> Iterable[None]:
 
 
 @pytest.mark.parametrize(
-    ["input_url", "url", "username", "password"],
+    "input_url, url, username, password",
     [
         (
             "http://user%40email.com:password@example.com/path",
@@ -49,7 +53,7 @@ def reset_keyring() -> Iterable[None]:
     ],
 )
 def test_get_credentials_parses_correctly(
-    input_url: str, url: str, username: Optional[str], password: Optional[str]
+    input_url: str, url: str, username: str | None, password: str | None
 ) -> None:
     auth = MultiDomainBasicAuth()
     get = auth._get_url_and_credentials
@@ -162,9 +166,9 @@ class KeyringModuleV1:
     """
 
     def __init__(self) -> None:
-        self.saved_passwords: List[Tuple[str, str, str]] = []
+        self.saved_passwords: list[tuple[str, str, str]] = []
 
-    def get_password(self, system: str, username: str) -> Optional[str]:
+    def get_password(self, system: str, username: str) -> str | None:
         if system == "example.com" and username:
             return username + "!netloc"
         if system == "http://example.com/path2/" and username:
@@ -177,7 +181,7 @@ class KeyringModuleV1:
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
         ("http://user@example.com/path3", ("user", "user!netloc")),
@@ -185,12 +189,12 @@ class KeyringModuleV1:
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-    ),
+    ],
 )
 def test_keyring_get_password(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
-    expect: Tuple[Optional[str], Optional[str]],
+    expect: tuple[str | None, str | None],
 ) -> None:
     keyring = KeyringModuleV1()
     monkeypatch.setitem(sys.modules, "keyring", keyring)
@@ -257,7 +261,7 @@ def test_keyring_get_password_username_in_index(
 
 @pytest.mark.parametrize(
     "response_status, creds, expect_save",
-    (
+    [
         (403, ("user", "pass", True), False),
         (
             200,
@@ -269,12 +273,12 @@ def test_keyring_get_password_username_in_index(
             ("user", "pass", False),
             False,
         ),
-    ),
+    ],
 )
 def test_keyring_set_password(
     monkeypatch: pytest.MonkeyPatch,
     response_status: int,
-    creds: Tuple[str, str, bool],
+    creds: tuple[str, str, bool],
     expect_save: bool,
 ) -> None:
     keyring = KeyringModuleV1()
@@ -291,7 +295,7 @@ def test_keyring_set_password(
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a: Any) -> bool:
-            assert False, "_should_save_password_to_keyring should not be called"
+            pytest.fail("_should_save_password_to_keyring should not be called")
 
     monkeypatch.setattr(
         auth, "_should_save_password_to_keyring", should_save_password_to_keyring
@@ -333,9 +337,9 @@ class KeyringModuleV2:
             self.password = password
 
     def get_password(self, system: str, username: str) -> None:
-        assert False, "get_password should not ever be called"
+        pytest.fail("get_password should not ever be called")
 
-    def get_credential(self, system: str, username: str) -> Optional[Credential]:
+    def get_credential(self, system: str, username: str) -> Credential | None:
         if system == "http://example.com/path2/":
             return self.Credential("username", "url")
         if system == "example.com":
@@ -345,14 +349,14 @@ class KeyringModuleV2:
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", ("username", "netloc")),
         ("http://example.com/path2/path3", ("username", "url")),
         ("http://user2@example.com/path2/path3", ("username", "url")),
-    ),
+    ],
 )
 def test_keyring_get_credential(
-    monkeypatch: pytest.MonkeyPatch, url: str, expect: str
+    monkeypatch: pytest.MonkeyPatch, url: str, expect: tuple[str, str]
 ) -> None:
     monkeypatch.setitem(sys.modules, "keyring", KeyringModuleV2())
     auth = MultiDomainBasicAuth(
@@ -400,13 +404,13 @@ class KeyringSubprocessResult(KeyringModuleV1):
 
     def __call__(
         self,
-        cmd: List[str],
+        cmd: list[str],
         *,
-        env: Dict[str, str],
-        stdin: Optional[Any] = None,
-        stdout: Optional[Any] = None,
-        input: Optional[bytes] = None,
-        check: Optional[bool] = None
+        env: dict[str, str],
+        stdin: Any | None = None,
+        stdout: Any | None = None,
+        input: bytes | None = None,
+        check: bool | None = None,
     ) -> Any:
         if cmd[1] == "get":
             assert stdin == -3  # subprocess.DEVNULL
@@ -442,7 +446,7 @@ class KeyringSubprocessResult(KeyringModuleV1):
 
 @pytest.mark.parametrize(
     "url, expect",
-    (
+    [
         ("http://example.com/path1", (None, None)),
         # path1 URLs will be resolved by netloc
         ("http://user@example.com/path3", ("user", "user!netloc")),
@@ -450,12 +454,12 @@ class KeyringSubprocessResult(KeyringModuleV1):
         # path2 URLs will be resolved by index URL
         ("http://example.com/path2/path3", (None, None)),
         ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-    ),
+    ],
 )
 def test_keyring_cli_get_password(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
-    expect: Tuple[Optional[str], Optional[str]],
+    expect: tuple[str | None, str | None],
 ) -> None:
     monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
     monkeypatch.setattr(
@@ -472,7 +476,7 @@ def test_keyring_cli_get_password(
 
 @pytest.mark.parametrize(
     "response_status, creds, expect_save",
-    (
+    [
         (403, ("user", "pass", True), False),
         (
             200,
@@ -484,12 +488,12 @@ def test_keyring_cli_get_password(
             ("user", "pass", False),
             False,
         ),
-    ),
+    ],
 )
 def test_keyring_cli_set_password(
     monkeypatch: pytest.MonkeyPatch,
     response_status: int,
-    creds: Tuple[str, str, bool],
+    creds: tuple[str, str, bool],
     expect_save: bool,
 ) -> None:
     monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
@@ -507,7 +511,7 @@ def test_keyring_cli_set_password(
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a: Any) -> bool:
-            assert False, "_should_save_password_to_keyring should not be called"
+            pytest.fail("_should_save_password_to_keyring should not be called")
 
     monkeypatch.setattr(
         auth, "_should_save_password_to_keyring", should_save_password_to_keyring

@@ -1,11 +1,13 @@
 """pip sphinx extensions"""
 
+from __future__ import annotations
+
 import optparse
 import pathlib
 import re
 import sys
+from collections.abc import Iterable, Iterator
 from textwrap import dedent
-from typing import Dict, Iterable, Iterator, List, Optional, Union
 
 from docutils import nodes, statemachine
 from docutils.parsers import rst
@@ -14,15 +16,26 @@ from sphinx.application import Sphinx
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
+from pip._internal.configuration import _normalize_name
 from pip._internal.req.req_file import SUPPORTED_OPTIONS
+
+
+def convert_cli_option_to_envvar(opt_name: str) -> str:
+    undashed_opt_name = _normalize_name(opt_name)
+    normalized_opt_name = undashed_opt_name.upper().replace("-", "_")
+    return f"PIP_{normalized_opt_name}"
+
+
+def convert_cli_opt_names_to_envvars(original_cli_opt_names: list[str]) -> list[str]:
+    return [
+        convert_cli_option_to_envvar(opt_name) for opt_name in original_cli_opt_names
+    ]
 
 
 class PipNewsInclude(rst.Directive):
     required_arguments = 1
 
-    def _is_version_section_title_underline(
-        self, prev: Optional[str], curr: str
-    ) -> bool:
+    def _is_version_section_title_underline(self, prev: str | None, curr: str) -> bool:
         """Find a ==== line that marks the version section title."""
         if prev is None:
             return False
@@ -56,7 +69,7 @@ class PipNewsInclude(rst.Directive):
         if prev is not None:
             yield prev
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         source = self.state_machine.input_lines.source(
             self.lineno - self.state_machine.input_offset - 1,
         )
@@ -77,7 +90,7 @@ class PipCommandUsage(rst.Directive):
     required_arguments = 1
     optional_arguments = 3
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         cmd = create_command(self.arguments[0])
         cmd_prefix = "python -m pip"
         if len(self.arguments) > 1:
@@ -92,7 +105,7 @@ class PipCommandUsage(rst.Directive):
 class PipCommandDescription(rst.Directive):
     required_arguments = 1
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
         desc = ViewList()
@@ -107,8 +120,8 @@ class PipCommandDescription(rst.Directive):
 
 class PipOptions(rst.Directive):
     def _format_option(
-        self, option: optparse.Option, cmd_name: Optional[str] = None
-    ) -> List[str]:
+        self, option: optparse.Option, cmd_name: str | None = None
+    ) -> list[str]:
         bookmark_line = (
             f".. _`{cmd_name}_{option._long_opts[0]}`:"
             if cmd_name
@@ -130,10 +143,21 @@ class PipOptions(rst.Directive):
         opt_help = option.help.replace("%default", str(option.default))
         # fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
-        return [bookmark_line, "", line, "", "    " + opt_help, ""]
+        env_var_names = convert_cli_opt_names_to_envvars(option._long_opts)
+        env_var_names_src = ", ".join(f"``{env_var}``" for env_var in env_var_names)
+        return [
+            bookmark_line,
+            "",
+            line,
+            "",
+            f"    {opt_help}",
+            "",
+            f"    (environment variable: {env_var_names_src})",
+            "",
+        ]
 
     def _format_options(
-        self, options: Iterable[optparse.Option], cmd_name: Optional[str] = None
+        self, options: Iterable[optparse.Option], cmd_name: str | None = None
     ) -> None:
         for option in options:
             if option.help == optparse.SUPPRESS_HELP:
@@ -141,7 +165,7 @@ class PipOptions(rst.Directive):
             for line in self._format_option(option, cmd_name):
                 self.view_list.append(line, "")
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
         self.view_list = ViewList()
@@ -194,22 +218,17 @@ class PipReqFileOptionsReference(PipOptions):
             opt = option()
             opt_name = opt._long_opts[0]
             if opt._short_opts:
-                short_opt_name = "{}, ".format(opt._short_opts[0])
+                short_opt_name = f"{opt._short_opts[0]}, "
             else:
                 short_opt_name = ""
 
             if option in cmdoptions.general_group["options"]:
                 prefix = ""
             else:
-                prefix = "{}_".format(self.determine_opt_prefix(opt_name))
+                prefix = f"{self.determine_opt_prefix(opt_name)}_"
 
             self.view_list.append(
-                "*  :ref:`{short}{long}<{prefix}{opt_name}>`".format(
-                    short=short_opt_name,
-                    long=opt_name,
-                    prefix=prefix,
-                    opt_name=opt_name,
-                ),
+                f"*  :ref:`{short_opt_name}{opt_name}<{prefix}{opt_name}>`",
                 "\n",
             )
 
@@ -223,7 +242,7 @@ class PipCLIDirective(rst.Directive):
     has_content = True
     optional_arguments = 1
 
-    def run(self) -> List[nodes.Node]:
+    def run(self) -> list[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
 
@@ -291,7 +310,7 @@ class PipCLIDirective(rst.Directive):
         return [node]
 
 
-def setup(app: Sphinx) -> Dict[str, Union[bool, str]]:
+def setup(app: Sphinx) -> dict[str, bool | str]:
     app.add_directive("pip-command-usage", PipCommandUsage)
     app.add_directive("pip-command-description", PipCommandDescription)
     app.add_directive("pip-command-options", PipCommandOptions)

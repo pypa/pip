@@ -1,7 +1,6 @@
 import sys
 import textwrap
 from optparse import Values
-from typing import List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
@@ -23,18 +22,33 @@ COMPLETION_SCRIPTS = {
     """,
     "zsh": """
         #compdef -P pip[0-9.]#
-        compadd $( COMP_WORDS="$words[*]" \\
-                   COMP_CWORD=$((CURRENT-1)) \\
-                   PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )
+        __pip() {{
+          compadd $( COMP_WORDS="$words[*]" \\
+                     COMP_CWORD=$((CURRENT-1)) \\
+                     PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null )
+        }}
+        if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+          # autoload from fpath, call function directly
+          __pip "$@"
+        else
+          # eval/source/. command, register function for later
+          compdef __pip -P 'pip[0-9.]#'
+        fi
     """,
     "fish": """
         function __fish_complete_pip
-            set -lx COMP_WORDS (commandline -o) ""
-            set -lx COMP_CWORD ( \\
-                math (contains -i -- (commandline -t) $COMP_WORDS)-1 \\
-            )
+            set -lx COMP_WORDS \\
+                (commandline --current-process --tokenize --cut-at-cursor) \\
+                (commandline --current-token --cut-at-cursor)
+            set -lx COMP_CWORD (math (count $COMP_WORDS) - 1)
             set -lx PIP_AUTO_COMPLETE 1
-            string split \\  -- (eval $COMP_WORDS[1])
+            set -l completions
+            if string match -q '2.*' $version
+                set completions (eval $COMP_WORDS[1])
+            else
+                set completions ($COMP_WORDS[1])
+            end
+            string split \\  -- $completions
         end
         complete -fa "(__fish_complete_pip)" -c {prog}
     """,
@@ -104,7 +118,7 @@ class CompletionCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ["--" + shell for shell in sorted(shells)]

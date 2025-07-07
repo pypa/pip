@@ -1,16 +1,15 @@
 import os
 import ssl
-import sys
 import tempfile
 import textwrap
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable
 
 import pytest
 
-from tests.conftest import CertFactory, MockServer, ScriptFactory
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import CertFactory, PipTestEnvironment, ScriptFactory, TestData
 from tests.lib.server import (
+    MockServer,
     authorization_response,
     file_response,
     make_mock_server,
@@ -125,9 +124,6 @@ def test_command_line_append_flags(
         "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     )
-    assert (
-        f"Skipping link: not a file: {data.find_links}" in result.stdout
-    ), f"stdout: {result.stdout}"
 
 
 @pytest.mark.network
@@ -151,9 +147,6 @@ def test_command_line_appends_correctly(
         "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), result.stdout
-    assert (
-        f"Skipping link: not a file: {data.find_links}" in result.stdout
-    ), f"stdout: {result.stdout}"
 
 
 def test_config_file_override_stack(
@@ -184,12 +177,10 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {}/simple1
-        """.format(
-                base_address
-            )
+        index-url = {base_address}/simple1
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
@@ -197,14 +188,12 @@ def test_config_file_override_stack(
 
     config_file.write_text(
         textwrap.dedent(
-            """\
+            f"""\
         [global]
-        index-url = {address}/simple1
+        index-url = {base_address}/simple1
         [install]
-        index-url = {address}/simple2
-        """.format(
-                address=base_address
-            )
+        index-url = {base_address}/simple2
+        """
         )
     )
     script.pip("install", "-vvv", "INITools", expect_error=True)
@@ -270,10 +259,6 @@ def test_install_no_binary_via_config_disables_cached_wheels(
     assert "Building wheel for upper" in str(res), str(res)
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux" and sys.version_info < (3, 8),
-    reason="Custom SSL certification not running well in CI",
-)
 def test_prompt_for_authentication(
     script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
 ) -> None:
@@ -314,10 +299,6 @@ def test_prompt_for_authentication(
     assert f"User for {server.host}:{server.port}" in result.stdout, str(result)
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux" and sys.version_info < (3, 8),
-    reason="Custom SSL certification not running well in CI",
-)
 def test_do_not_prompt_for_authentication(
     script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
 ) -> None:
@@ -360,6 +341,34 @@ def test_do_not_prompt_for_authentication(
     assert "ERROR: HTTP error 401" in result.stderr
 
 
+def test_do_not_prompt_for_authentication_git(
+    script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
+) -> None:
+    """Test behaviour if --no-input option is given while installing
+    from a git http url requiring authentication
+    """
+    server = make_mock_server()
+    # Disable vscode user/password prompt, will make tests fail inside vscode
+    script.environ["GIT_ASKPASS"] = ""
+
+    # Return 401 on all URLs
+    server.mock.side_effect = lambda _, __: authorization_response(
+        data.packages / "simple-3.0.tar.gz"
+    )
+
+    url = f"git+http://{server.host}:{server.port}/simple"
+
+    with server_running(server):
+        result = script.pip(
+            "install",
+            url,
+            "--no-input",
+            expect_error=True,
+        )
+
+    assert "terminal prompts disabled" in result.stderr
+
+
 @pytest.fixture(params=(True, False), ids=("interactive", "noninteractive"))
 def interactive(request: pytest.FixtureRequest) -> bool:
     return request.param
@@ -380,14 +389,14 @@ def keyring_provider_implementation(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def flags(
     request: pytest.FixtureRequest,
     interactive: bool,
     auth_needed: bool,
     keyring_provider: str,
     keyring_provider_implementation: str,
-) -> List[str]:
+) -> list[str]:
     if (
         keyring_provider not in [None, "auto"]
         and keyring_provider_implementation != keyring_provider
@@ -408,15 +417,12 @@ def flags(
     return flags
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux" and sys.version_info < (3, 8),
-    reason="Custom SSL certification not running well in CI",
-)
+@pytest.mark.network
 def test_prompt_for_keyring_if_needed(
     data: TestData,
     cert_factory: CertFactory,
     auth_needed: bool,
-    flags: List[str],
+    flags: list[str],
     keyring_provider: str,
     keyring_provider_implementation: str,
     tmpdir: Path,

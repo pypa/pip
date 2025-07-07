@@ -2,6 +2,7 @@
 Tests for compatibility workarounds.
 
 """
+
 import os
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from tests.lib import (
     PipTestEnvironment,
     TestData,
     assert_all_changes,
-    pyversion,  # noqa: F401
+    pyversion,
 )
 
 

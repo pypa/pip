@@ -2,7 +2,10 @@
 network request configuration and behavior.
 """
 
+from __future__ import annotations
+
 import email.utils
+import functools
 import io
 import ipaddress
 import json
@@ -15,16 +18,11 @@ import subprocess
 import sys
 import urllib.parse
 import warnings
+from collections.abc import Generator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Generator,
-    List,
-    Mapping,
     Optional,
-    Sequence,
-    Tuple,
     Union,
 )
 
@@ -53,18 +51,19 @@ if TYPE_CHECKING:
     from ssl import SSLContext
 
     from pip._vendor.urllib3.poolmanager import PoolManager
+    from pip._vendor.urllib3.proxymanager import ProxyManager
 
 
 logger = logging.getLogger(__name__)
 
-SecureOrigin = Tuple[str, str, Optional[Union[int, str]]]
+SecureOrigin = tuple[str, str, Optional[Union[int, str]]]
 
 
 # Ignore warning raised when using --trusted-host.
 warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
-SECURE_ORIGINS: List[SecureOrigin] = [
+SECURE_ORIGINS: list[SecureOrigin] = [
     # protocol, hostname, port
     # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
     ("https", "*", "*"),
@@ -106,11 +105,12 @@ def looks_like_ci() -> bool:
     return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
+@functools.lru_cache(maxsize=1)
 def user_agent() -> str:
     """
     Return a string representing the user agent.
     """
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "installer": {"name": "pip", "version": __version__},
         "python": platform.python_version(),
         "implementation": {
@@ -138,7 +138,7 @@ def user_agent() -> str:
         from pip._vendor import distro
 
         linux_distribution = distro.name(), distro.version(), distro.codename()
-        distro_infos: Dict[str, Any] = dict(
+        distro_infos: dict[str, Any] = dict(
             filter(
                 lambda x: x[1],
                 zip(["name", "version", "id"], linux_distribution),
@@ -212,10 +212,10 @@ class LocalFSAdapter(BaseAdapter):
         self,
         request: PreparedRequest,
         stream: bool = False,
-        timeout: Optional[Union[float, Tuple[float, float]]] = None,
-        verify: Union[bool, str] = True,
-        cert: Optional[Union[str, Tuple[str, str]]] = None,
-        proxies: Optional[Mapping[str, str]] = None,
+        timeout: float | tuple[float, float] | None = None,
+        verify: bool | str = True,
+        cert: str | tuple[str, str] | None = None,
+        proxies: Mapping[str, str] | None = None,
     ) -> Response:
         pathname = url_to_path(request.url)
 
@@ -230,7 +230,7 @@ class LocalFSAdapter(BaseAdapter):
             # to return a better error message:
             resp.status_code = 404
             resp.reason = type(exc).__name__
-            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode("utf8"))
+            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode())
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
@@ -262,7 +262,7 @@ class _SSLContextAdapterMixin:
     def __init__(
         self,
         *,
-        ssl_context: Optional["SSLContext"] = None,
+        ssl_context: SSLContext | None = None,
         **kwargs: Any,
     ) -> None:
         self._ssl_context = ssl_context
@@ -274,7 +274,7 @@ class _SSLContextAdapterMixin:
         maxsize: int,
         block: bool = DEFAULT_POOLBLOCK,
         **pool_kwargs: Any,
-    ) -> "PoolManager":
+    ) -> PoolManager:
         if self._ssl_context is not None:
             pool_kwargs.setdefault("ssl_context", self._ssl_context)
         return super().init_poolmanager(  # type: ignore[misc]
@@ -283,6 +283,13 @@ class _SSLContextAdapterMixin:
             block=block,
             **pool_kwargs,
         )
+
+    def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> ProxyManager:
+        # Proxy manager replaces the pool manager, so inject our SSL
+        # context here too. https://github.com/pypa/pip/issues/13288
+        if self._ssl_context is not None:
+            proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
 class HTTPAdapter(_SSLContextAdapterMixin, _BaseHTTPAdapter):
@@ -298,8 +305,8 @@ class InsecureHTTPAdapter(HTTPAdapter):
         self,
         conn: ConnectionPool,
         url: str,
-        verify: Union[bool, str],
-        cert: Optional[Union[str, Tuple[str, str]]],
+        verify: bool | str,
+        cert: str | tuple[str, str] | None,
     ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
@@ -309,23 +316,23 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
         self,
         conn: ConnectionPool,
         url: str,
-        verify: Union[bool, str],
-        cert: Optional[Union[str, Tuple[str, str]]],
+        verify: bool | str,
+        cert: str | tuple[str, str] | None,
     ) -> None:
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class PipSession(requests.Session):
-    timeout: Optional[int] = None
+    timeout: int | None = None
 
     def __init__(
         self,
         *args: Any,
         retries: int = 0,
-        cache: Optional[str] = None,
+        cache: str | None = None,
         trusted_hosts: Sequence[str] = (),
-        index_urls: Optional[List[str]] = None,
-        ssl_context: Optional["SSLContext"] = None,
+        index_urls: list[str] | None = None,
+        ssl_context: SSLContext | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -336,7 +343,8 @@ class PipSession(requests.Session):
 
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
-        self.pip_trusted_origins: List[Tuple[str, Optional[int]]] = []
+        self.pip_trusted_origins: list[tuple[str, int | None]] = []
+        self.pip_proxy = None
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
@@ -355,8 +363,9 @@ class PipSession(requests.Session):
             # is typically considered a transient error so we'll go ahead and
             # retry it.
             # A 500 may indicate transient error in Amazon S3
+            # A 502 may be a transient error from a CDN like CloudFlare or CloudFront
             # A 520 or 527 - may indicate transient error in CloudFlare
-            status_forcelist=[500, 503, 520, 527],
+            status_forcelist=[500, 502, 503, 520, 527],
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
@@ -397,7 +406,7 @@ class PipSession(requests.Session):
         for host in trusted_hosts:
             self.add_trusted_host(host, suppress_logging=True)
 
-    def update_index_urls(self, new_index_urls: List[str]) -> None:
+    def update_index_urls(self, new_index_urls: list[str]) -> None:
         """
         :param new_index_urls: New index urls to update the authentication
             handler with.
@@ -405,7 +414,7 @@ class PipSession(requests.Session):
         self.auth.index_urls = new_index_urls
 
     def add_trusted_host(
-        self, host: str, source: Optional[str] = None, suppress_logging: bool = False
+        self, host: str, source: str | None = None, suppress_logging: bool = False
     ) -> None:
         """
         :param host: It is okay to provide a host that has previously been

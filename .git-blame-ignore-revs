@@ -34,3 +34,4 @@ c7ee560e00b85f7486b452c14ff49e4737996eda  # Blacken tools/
 94999255d5ede440c37137d210666fdf64302e75  # Reformat the codebase, with black
 585037a80a1177f1fa92e159a7079855782e543e  # Cleanup implicit string concatenation
 8a6f6ac19b80a6dc35900a47016c851d9fcd2ee2  # Blacken src/pip/_internal/resolution directory
+acfcae8941bb12ecfc372a05c875a7b414992604  # Reformat with Black's 2025 code style

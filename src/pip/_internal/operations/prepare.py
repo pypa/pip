@@ -1,14 +1,15 @@
-"""Prepares a distribution for installation
-"""
+"""Prepares a distribution for installation"""
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+from __future__ import annotations
 
 import mimetypes
 import os
 import shutil
+from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -28,7 +29,7 @@ from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.direct_url import ArchiveInfo
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.network.download import BatchDownloader, Downloader
+from pip._internal.network.download import Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -47,6 +48,7 @@ from pip._internal.utils.misc import (
     display_path,
     hash_file,
     hide_url,
+    redact_auth_from_requirement,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
@@ -79,20 +81,26 @@ def unpack_vcs_link(link: Link, location: str, verbosity: int) -> None:
     vcs_backend.unpack(location, url=hide_url(link.url), verbosity=verbosity)
 
 
+@dataclass
 class File:
-    def __init__(self, path: str, content_type: Optional[str]) -> None:
-        self.path = path
-        if content_type is None:
-            self.content_type = mimetypes.guess_type(path)[0]
-        else:
-            self.content_type = content_type
+    path: str
+    content_type: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.content_type is None:
+            # Try to guess the file's MIME type. If the system MIME tables
+            # can't be loaded, give up.
+            try:
+                self.content_type = mimetypes.guess_type(self.path)[0]
+            except OSError:
+                pass
 
 
 def get_http_url(
     link: Link,
     download: Downloader,
-    download_dir: Optional[str] = None,
-    hashes: Optional[Hashes] = None,
+    download_dir: str | None = None,
+    hashes: Hashes | None = None,
 ) -> File:
     temp_dir = TempDirectory(kind="unpack", globally_managed=True)
     # If a download dir is specified, is the file already downloaded there?
@@ -113,7 +121,7 @@ def get_http_url(
 
 
 def get_file_url(
-    link: Link, download_dir: Optional[str] = None, hashes: Optional[Hashes] = None
+    link: Link, download_dir: str | None = None, hashes: Hashes | None = None
 ) -> File:
     """Get file and optionally check its hash."""
     # If a download dir is specified, is the file already there and valid?
@@ -141,9 +149,9 @@ def unpack_url(
     location: str,
     download: Downloader,
     verbosity: int,
-    download_dir: Optional[str] = None,
-    hashes: Optional[Hashes] = None,
-) -> Optional[File]:
+    download_dir: str | None = None,
+    hashes: Hashes | None = None,
+) -> File | None:
     """Unpack link into location, downloading if required.
 
     :param hashes: A Hashes object, one of whose embedded hashes must match,
@@ -182,9 +190,9 @@ def unpack_url(
 def _check_download_dir(
     link: Link,
     download_dir: str,
-    hashes: Optional[Hashes],
+    hashes: Hashes | None,
     warn_on_hash_mismatch: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """Check download_dir for previously downloaded file with correct hash
     If a correct file is found return its path else None
     """
@@ -215,7 +223,7 @@ class RequirementPreparer:
     def __init__(
         self,
         build_dir: str,
-        download_dir: Optional[str],
+        download_dir: str | None,
         src_dir: str,
         build_isolation: bool,
         check_build_deps: bool,
@@ -228,6 +236,7 @@ class RequirementPreparer:
         lazy_wheel: bool,
         verbosity: int,
         legacy_resolver: bool,
+        resume_retries: int,
     ) -> None:
         super().__init__()
 
@@ -235,8 +244,7 @@ class RequirementPreparer:
         self.build_dir = build_dir
         self.build_tracker = build_tracker
         self._session = session
-        self._download = Downloader(session, progress_bar)
-        self._batch_download = BatchDownloader(session, progress_bar)
+        self._download = Downloader(session, progress_bar, resume_retries)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -265,7 +273,7 @@ class RequirementPreparer:
         self.legacy_resolver = legacy_resolver
 
         # Memoized downloaded files, as mapping of url: path.
-        self._downloaded: Dict[str, str] = {}
+        self._downloaded: dict[str, str] = {}
 
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
@@ -277,13 +285,13 @@ class RequirementPreparer:
             information = str(display_path(req.link.file_path))
         else:
             message = "Collecting %s"
-            information = str(req.req or req)
+            information = redact_auth_from_requirement(req.req) if req.req else str(req)
 
         # If we used req.req, inject requirement source if available (this
         # would already be included if we used req directly)
         if req.req and req.comes_from:
             if isinstance(req.comes_from, str):
-                comes_from: Optional[str] = req.comes_from
+                comes_from: str | None = req.comes_from
             else:
                 comes_from = req.comes_from.from_path()
             if comes_from:
@@ -355,7 +363,7 @@ class RequirementPreparer:
     def _fetch_metadata_only(
         self,
         req: InstallRequirement,
-    ) -> Optional[BaseDistribution]:
+    ) -> BaseDistribution | None:
         if self.legacy_resolver:
             logger.debug(
                 "Metadata-only fetching is not used in the legacy resolver",
@@ -374,7 +382,7 @@ class RequirementPreparer:
     def _fetch_metadata_using_link_data_attr(
         self,
         req: InstallRequirement,
-    ) -> Optional[BaseDistribution]:
+    ) -> BaseDistribution | None:
         """Fetch metadata from the data-dist-info-metadata attribute, if possible."""
         # (1) Get the link to the metadata file, if provided by the backend.
         metadata_link = req.link.metadata_link()
@@ -415,7 +423,7 @@ class RequirementPreparer:
     def _fetch_metadata_using_lazy_wheel(
         self,
         link: Link,
-    ) -> Optional[BaseDistribution]:
+    ) -> BaseDistribution | None:
         """Fetch metadata using lazy wheel, if possible."""
         # --use-feature=fast-deps must be provided.
         if not self.use_lazy_wheel:
@@ -454,15 +462,12 @@ class RequirementPreparer:
         # Map each link to the requirement that owns it. This allows us to set
         # `req.local_file_path` on the appropriate requirement after passing
         # all the links at once into BatchDownloader.
-        links_to_fully_download: Dict[Link, InstallRequirement] = {}
+        links_to_fully_download: dict[Link, InstallRequirement] = {}
         for req in partially_downloaded_reqs:
             assert req.link
             links_to_fully_download[req.link] = req
 
-        batch_download = self._batch_download(
-            links_to_fully_download.keys(),
-            temp_dir,
-        )
+        batch_download = self._download.batch(links_to_fully_download.keys(), temp_dir)
         for link, (filepath, _) in batch_download:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
@@ -539,7 +544,7 @@ class RequirementPreparer:
 
         # Prepare requirements we found were already downloaded for some
         # reason. The other downloads will be completed separately.
-        partially_downloaded_reqs: List[InstallRequirement] = []
+        partially_downloaded_reqs: list[InstallRequirement] = []
         for req in reqs:
             if req.needs_more_preparation:
                 partially_downloaded_reqs.append(req)
@@ -602,8 +607,8 @@ class RequirementPreparer:
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(
-                    "Could not install requirement {} because of HTTP "
-                    "error {} for URL {}".format(req, exc, link)
+                    f"Could not install requirement {req} because of HTTP "
+                    f"error {exc} for URL {link}"
                 )
         else:
             file_path = self._downloaded[link.url]
@@ -683,9 +688,9 @@ class RequirementPreparer:
         with indent_log():
             if self.require_hashes:
                 raise InstallationError(
-                    "The editable requirement {} cannot be installed when "
+                    f"The editable requirement {req} cannot be installed when "
                     "requiring hashes, because there is no single file to "
-                    "hash.".format(req)
+                    "hash."
                 )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable()
@@ -713,7 +718,7 @@ class RequirementPreparer:
         assert req.satisfied_by, "req should have been satisfied but isn't"
         assert skip_reason is not None, (
             "did not get skip reason skipped but req.satisfied_by "
-            "is set to {}".format(req.satisfied_by)
+            f"is set to {req.satisfied_by}"
         )
         logger.info(
             "Requirement %s: %s (%s)", skip_reason, req, req.satisfied_by.version

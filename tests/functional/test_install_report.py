@@ -1,7 +1,7 @@
 import json
 import textwrap
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -9,7 +9,7 @@ from packaging.utils import canonicalize_name
 from ..lib import PipTestEnvironment, TestData
 
 
-def _install_dict(report: Dict[str, Any]) -> Dict[str, Any]:
+def _install_dict(report: dict[str, Any]) -> dict[str, Any]:
     return {canonicalize_name(i["metadata"]["name"]): i for i in report["install"]}
 
 
@@ -39,7 +39,7 @@ def test_install_report_basic(
     assert url.endswith("/packages/simplewheel-2.0-1-py2.py3-none-any.whl")
     assert (
         simplewheel_report["download_info"]["archive_info"]["hash"]
-        == "sha256=191d6520d0570b13580bf7642c97ddfbb46dd04da5dd2cf7bef9f32391dfe716"
+        == "sha256=71e1ca6b16ae3382a698c284013f66504f2581099b2ce4801f60e9536236ceee"
     )
 
 
@@ -117,14 +117,26 @@ def test_skipped_yanked_version(
     assert simple_report["metadata"]["version"] == "2.0"
 
 
+@pytest.mark.parametrize(
+    "specifiers",
+    [
+        # result should be the same regardless of the method and order in which
+        # extras are specified
+        ("Paste[openid]==1.7.5.1",),
+        ("Paste==1.7.5.1", "Paste[openid]==1.7.5.1"),
+        ("Paste[openid]==1.7.5.1", "Paste==1.7.5.1"),
+    ],
+)
 @pytest.mark.network
-def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> None:
+def test_install_report_index(
+    script: PipTestEnvironment, tmp_path: Path, specifiers: tuple[str, ...]
+) -> None:
     """Test report for sdist obtained from index."""
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
         "--dry-run",
-        "Paste[openid]==1.7.5.1",
+        *specifiers,
         "--report",
         str(report_path),
     )
@@ -144,6 +156,26 @@ def test_install_report_index(script: PipTestEnvironment, tmp_path: Path) -> Non
     )
     assert paste_report["requested_extras"] == ["openid"]
     assert "requires_dist" in paste_report["metadata"]
+
+
+@pytest.mark.network
+def test_install_report_index_multiple_extras(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    """Test report for sdist obtained from index, with multiple extras requested."""
+    report_path = tmp_path / "report.json"
+    script.pip(
+        "install",
+        "--dry-run",
+        "Paste[openid]",
+        "Paste[subprocess]",
+        "--report",
+        str(report_path),
+    )
+    report = json.loads(report_path.read_text())
+    install_dict = _install_dict(report)
+    assert "paste" in install_dict
+    assert install_dict["paste"]["requested_extras"] == ["openid", "subprocess"]
 
 
 @pytest.mark.network

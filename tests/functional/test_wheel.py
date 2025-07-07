@@ -1,16 +1,19 @@
 """'pip wheel' tests"""
+
 import os
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
+
 from tests.lib import (
     PipTestEnvironment,
     TestData,
-    pyversion,  # noqa: F401
+    pyversion,
 )
 
 
@@ -59,9 +62,42 @@ def test_pip_wheel_success(script: PipTestEnvironment, data: TestData) -> None:
     wheel_file_path = script.scratch / wheel_file_name
     assert re.search(
         r"Created wheel for simple: "
-        r"filename={filename} size=\d+ sha256=[A-Fa-f0-9]{{64}}".format(
-            filename=re.escape(wheel_file_name)
-        ),
+        rf"filename={re.escape(wheel_file_name)} size=\d+ sha256=[A-Fa-f0-9]{{64}}",
+        result.stdout,
+    )
+    assert re.search(r"^\s+Stored in directory: ", result.stdout, re.M)
+    result.did_create(wheel_file_path)
+    assert "Successfully built simple" in result.stdout, result.stdout
+
+
+def test_pip_wheel_success_with_dependency_group(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test 'pip wheel' success.
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(
+        textwrap.dedent(
+            """\
+            [dependency-groups]
+            simple = ["simple==3.0"]
+            """
+        )
+    )
+    result = script.pip(
+        "wheel",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "--group",
+        "simple",
+    )
+    wheel_file_name = f"simple-3.0-py{pyversion[0]}-none-any.whl"
+    wheel_file_path = script.scratch / wheel_file_name
+    assert re.search(
+        r"Created wheel for simple: "
+        rf"filename={re.escape(wheel_file_name)} size=\d+ sha256=[A-Fa-f0-9]{{64}}",
         result.stdout,
     )
     assert re.search(r"^\s+Stored in directory: ", result.stdout, re.M)

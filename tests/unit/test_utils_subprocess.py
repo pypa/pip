@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
-from typing import List, Optional, Tuple, Type
 
 import pytest
 
@@ -39,7 +40,7 @@ def test_format_command_args(args: CommandArgs, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("stdout_only", "expected"),
+    "stdout_only, expected",
     [
         (True, ("out\n", "out\r\n")),
         (False, ("out\nerr\n", "out\r\nerr\r\n", "err\nout\n", "err\r\nout\r\n")),
@@ -49,7 +50,7 @@ def test_call_subprocess_stdout_only(
     capfd: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
     stdout_only: bool,
-    expected: Tuple[str, ...],
+    expected: tuple[str, ...],
 ) -> None:
     log = []
     monkeypatch.setattr(
@@ -79,7 +80,7 @@ def test_call_subprocess_stdout_only(
 class FakeSpinner(SpinnerInterface):
     def __init__(self) -> None:
         self.spin_count = 0
-        self.final_status: Optional[str] = None
+        self.final_status: str | None = None
 
     def spin(self) -> None:
         self.spin_count += 1
@@ -89,7 +90,6 @@ class FakeSpinner(SpinnerInterface):
 
 
 class TestCallSubprocess:
-
     """
     Test call_subprocess().
     """
@@ -100,9 +100,9 @@ class TestCallSubprocess:
         caplog: pytest.LogCaptureFixture,
         log_level: int,
         spinner: FakeSpinner,
-        result: Optional[str],
-        expected: Tuple[Optional[List[str]], List[Tuple[str, int, str]]],
-        expected_spinner: Tuple[int, Optional[str]],
+        result: str | None,
+        expected: tuple[list[str] | None, list[tuple[str, int, str]]],
+        expected_spinner: tuple[int, str | None],
     ) -> None:
         """
         Check the result of calling call_subprocess().
@@ -153,8 +153,8 @@ class TestCallSubprocess:
         self,
         caplog: pytest.LogCaptureFixture,
         log_level: int,
-        command: Optional[str] = None,
-    ) -> Tuple[List[str], FakeSpinner]:
+        command: str | None = None,
+    ) -> tuple[list[str], FakeSpinner]:
         if command is None:
             command = 'print("Hello"); print("world")'
 
@@ -212,7 +212,7 @@ class TestCallSubprocess:
             spinner=spinner,
         )
 
-        expected: Tuple[List[str], List[Tuple[str, int, str]]] = (
+        expected: tuple[list[str], list[tuple[str, int, str]]] = (
             ["Hello", "world"],
             [],
         )
@@ -260,9 +260,9 @@ class TestCallSubprocess:
         expected = (
             None,
             [
-                # pytest's caplog overrides th formatter, which means that we
+                # pytest's caplog overrides the formatter, which means that we
                 # won't see the message formatted through our formatters.
-                ("pip.subprocessor", ERROR, "[present-rich]"),
+                ("pip.subprocessor", ERROR, "subprocess error exited with 1"),
             ],
         )
         # The spinner should spin three times in this case since the
@@ -313,7 +313,7 @@ class TestCallSubprocess:
         )
 
     @pytest.mark.parametrize(
-        ("exit_status", "show_stdout", "extra_ok_returncodes", "log_level", "expected"),
+        "exit_status, show_stdout, extra_ok_returncodes, log_level, expected",
         [
             # The spinner should show here because show_stdout=False means
             # the subprocess should get logged at DEBUG level, but the passed
@@ -338,10 +338,10 @@ class TestCallSubprocess:
         self,
         exit_status: int,
         show_stdout: bool,
-        extra_ok_returncodes: Optional[Tuple[int, ...]],
+        extra_ok_returncodes: tuple[int, ...] | None,
         log_level: int,
         caplog: pytest.LogCaptureFixture,
-        expected: Tuple[Optional[Type[Exception]], Optional[str], int],
+        expected: tuple[type[Exception] | None, str | None, int],
     ) -> None:
         """
         Test that the spinner finishes correctly.
@@ -352,7 +352,7 @@ class TestCallSubprocess:
 
         command = f'print("Hello"); print("world"); exit({exit_status})'
         args, spinner = self.prepare_call(caplog, log_level, command=command)
-        exc_type: Optional[Type[Exception]]
+        exc_type: type[Exception] | None
         try:
             call_subprocess(
                 args,

@@ -1,7 +1,7 @@
 import os
 import shutil
 from glob import glob
-from typing import Callable, List, Tuple
+from typing import Callable
 
 import pytest
 
@@ -20,7 +20,7 @@ def cache_dir(script: PipTestEnvironment) -> str:
 
 @pytest.fixture
 def http_cache_dir(cache_dir: str) -> str:
-    return os.path.normcase(os.path.join(cache_dir, "http"))
+    return os.path.normcase(os.path.join(cache_dir, "http-v2"))
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def wheel_cache_dir(cache_dir: str) -> str:
 
 
 @pytest.fixture
-def http_cache_files(http_cache_dir: str) -> List[str]:
+def http_cache_files(http_cache_dir: str) -> list[str]:
     destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
 
     if not os.path.exists(destination):
@@ -40,7 +40,7 @@ def http_cache_files(http_cache_dir: str) -> List[str]:
 
 
 @pytest.fixture
-def wheel_cache_files(wheel_cache_dir: str) -> List[str]:
+def wheel_cache_files(wheel_cache_dir: str) -> list[str]:
     destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
 
     if not os.path.exists(destination):
@@ -51,7 +51,7 @@ def wheel_cache_files(wheel_cache_dir: str) -> List[str]:
 
 
 @pytest.fixture
-def populate_http_cache(http_cache_dir: str) -> List[Tuple[str, str]]:
+def populate_http_cache(http_cache_dir: str) -> list[tuple[str, str]]:
     destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
 
@@ -69,7 +69,7 @@ def populate_http_cache(http_cache_dir: str) -> List[Tuple[str, str]]:
 
 
 @pytest.fixture
-def populate_wheel_cache(wheel_cache_dir: str) -> List[Tuple[str, str]]:
+def populate_wheel_cache(wheel_cache_dir: str) -> list[tuple[str, str]]:
     destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
 
@@ -114,10 +114,8 @@ def list_matches_wheel_abspath(wheel_name: str, result: TestPipResult) -> bool:
     lines = result.stdout.splitlines()
     expected = f"{wheel_name}-py3-none-any.whl"
     return any(
-        (
-            (os.path.basename(line).startswith(expected) and os.path.exists(line))
-            for line in lines
-        )
+        (os.path.basename(line).startswith(expected) and os.path.exists(line))
+        for line in lines
     )
 
 
@@ -199,11 +197,14 @@ def test_cache_info(
     script: PipTestEnvironment,
     http_cache_dir: str,
     wheel_cache_dir: str,
-    wheel_cache_files: List[str],
+    wheel_cache_files: list[str],
 ) -> None:
     result = script.pip("cache", "info")
 
-    assert f"Package index page cache location: {http_cache_dir}" in result.stdout
+    assert (
+        f"Package index page cache location (pip v23.3+): {http_cache_dir}"
+        in result.stdout
+    )
     assert f"Locally built wheels location: {wheel_cache_dir}" in result.stdout
     num_wheels = len(wheel_cache_files)
     assert f"Number of locally built wheels: {num_wheels}" in result.stdout
@@ -255,7 +256,7 @@ def test_cache_purge_with_empty_cache(script: PipTestEnvironment) -> None:
     and exit without an error code."""
     result = script.pip("cache", "purge", allow_stderr_warning=True)
     assert result.stderr == "WARNING: No matching packages\n"
-    assert result.stdout == "Files removed: 0\n"
+    assert result.stdout == "Files removed: 0 (0 bytes)\n"
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
@@ -264,7 +265,7 @@ def test_cache_remove_with_bad_pattern(script: PipTestEnvironment) -> None:
     and exit without an error code."""
     result = script.pip("cache", "remove", "aaa", allow_stderr_warning=True)
     assert result.stderr == 'WARNING: No matching packages for pattern "aaa"\n'
-    assert result.stdout == "Files removed: 0\n"
+    assert result.stdout == "Files removed: 0 (0 bytes)\n"
 
 
 def test_cache_list_too_many_args(script: PipTestEnvironment) -> None:
@@ -382,8 +383,8 @@ def test_cache_purge(
 @pytest.mark.usefixtures("populate_http_cache", "populate_wheel_cache")
 def test_cache_purge_too_many_args(
     script: PipTestEnvironment,
-    http_cache_files: List[str],
-    wheel_cache_files: List[str],
+    http_cache_files: list[str],
+    wheel_cache_files: list[str],
 ) -> None:
     """Running `pip cache purge aaa` should raise an error and remove no
     cached http files or wheels."""

@@ -1,19 +1,29 @@
+from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
 import pytest
+
 from pip._vendor import requests
 
 from pip import __version__
 from pip._internal.models.link import Link
-from pip._internal.network.session import CI_ENVIRONMENT_VARIABLES, PipSession
+from pip._internal.network.session import (
+    CI_ENVIRONMENT_VARIABLES,
+    PipSession,
+    user_agent,
+)
 
 
 def get_user_agent() -> str:
+    # These tests are testing the computation of the user agent, so we want to
+    # avoid reusing cached values.
+    user_agent.cache_clear()
     return PipSession().headers["User-Agent"]
 
 
@@ -58,7 +68,7 @@ def test_user_agent__ci(
 
 def test_user_agent_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_USER_AGENT_USER_DATA", "some_string")
-    assert "some_string" in PipSession().headers["User-Agent"]
+    assert "some_string" in get_user_agent()
 
 
 class TestPipSession:
@@ -223,7 +233,7 @@ class TestPipSession:
         self,
         caplog: pytest.LogCaptureFixture,
         location: str,
-        trusted: List[str],
+        trusted: list[str],
         expected: bool,
     ) -> None:
         class MockLogger:
@@ -248,7 +258,7 @@ class TestPipSession:
         assert "is not a trusted or secure host" in actual_message
 
     @pytest.mark.network
-    def test_proxy(self, proxy: Optional[str]) -> None:
+    def test_proxy(self, proxy: str | None) -> None:
         session = PipSession(trusted_hosts=[])
 
         if not proxy:

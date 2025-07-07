@@ -45,11 +45,11 @@ When looking at the items to be installed, pip checks what type of item
 each is, in the following order:
 
 1. Project or archive URL.
-2. Local directory (which must contain a ``setup.py``, or pip will report
-   an error).
+2. Local directory (which must contain a ``pyproject.toml`` or ``setup.py``,
+   otherwise pip will report an error).
 3. Local file (a sdist or wheel format archive, following the naming
    conventions for those formats).
-4. A requirement, as specified in :pep:`440`.
+4. A :ref:`version specifier <pypug:version-specifiers>`.
 
 Each item identified is added to the set of requirements to be satisfied by
 the install.
@@ -97,7 +97,8 @@ Installation Order
 .. note::
 
    This section is only about installation order of runtime dependencies, and
-   does not apply to build dependencies (those are specified using PEP 518).
+   does not apply to build dependencies (those are specified using the
+   :ref:`[build-system] table <pypug:pyproject-build-system-table>`).
 
 As of v6.1.0, pip installs dependencies before their dependents, i.e. in
 "topological order."  This is the only commitment pip currently makes related
@@ -181,8 +182,9 @@ Pre-release Versions
 --------------------
 
 Starting with v1.4, pip will only install stable versions as specified by
-`pre-releases`_ by default. If a version cannot be parsed as a compliant :pep:`440`
-version then it is assumed to be a pre-release.
+`pre-releases`_ by default. If a version cannot be parsed as a
+:ref:`compliant <pypug:version-specifiers>` version then it is assumed to be
+a pre-release.
 
 If a Requirement specifier includes a pre-release or development version
 (e.g. ``>=0.0.dev0``) then pip will allow pre-release and development versions
@@ -210,12 +212,13 @@ and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 pip offers a number of package index options for modifying how packages are
 found.
 
-pip looks for packages in a number of places: on PyPI (if not disabled via
-``--no-index``), in the local filesystem, and in any additional repositories
-specified via ``--find-links`` or ``--index-url``. There is no ordering in
-the locations that are searched. Rather they are all checked, and the "best"
-match for the requirements (in terms of version number - see :pep:`440` for
-details) is selected.
+pip looks for packages in a number of places: on PyPI (or the index given as
+``--index-url``, if not disabled via ``--no-index``), in the local filesystem,
+and in any additional repositories specified via ``--find-links`` or
+``--extra-index-url``. There is no priority in the locations that are searched.
+Rather they are all checked, and the "best" match for the requirements (in
+terms of version number - see the
+:ref:`specification <pypug:version-specifiers>` for details) is selected.
 
 See the :ref:`pip install Examples<pip install Examples>`.
 
@@ -318,7 +321,7 @@ Examples
 
          py -m pip install --upgrade SomePackage
 
-    .. note::
+   .. note::
 
       This will guarantee an update to ``SomePackage`` as it is a direct
       requirement, and possibly upgrade dependencies if their installed
@@ -380,7 +383,8 @@ Examples
          py -m pip install -e "git+https://git.repo/some_pkg.git@feature#egg=SomePackage"  # from 'feature' branch
          py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
-#. Install a package with `extras`_.
+#. Install a package with extras, i.e., optional dependencies
+   (:ref:`specification <pypug:dependency-specifiers>`).
 
    .. tab:: Unix/macOS
 
@@ -418,7 +422,8 @@ Examples
          py -m pip install "./downloads/SomePackage-1.0.4.tar.gz"
          py -m pip install "http://my.package.repo/SomePackage-1.0.4.zip"
 
-#. Install a particular source archive file following :pep:`440` direct references.
+#. Install a particular source archive file following direct references
+   (:ref:`specification <pypug:dependency-specifiers>`).
 
    .. tab:: Unix/macOS
 
@@ -539,5 +544,4 @@ Examples
 
          py -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
-.. _extras: https://www.python.org/dev/peps/pep-0508/#extras
 .. _PyPI: https://pypi.org/

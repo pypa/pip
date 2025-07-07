@@ -2,9 +2,10 @@ import pathlib
 import ssl
 import threading
 from base64 import b64encode
-from contextlib import contextmanager
+from collections.abc import Iterable, Iterator
+from contextlib import ExitStack, contextmanager
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator
+from typing import TYPE_CHECKING, Any, Callable
 from unittest.mock import Mock
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
@@ -18,12 +19,12 @@ if TYPE_CHECKING:
 Body = Iterable[bytes]
 
 
-class MockServer(BaseWSGIServer):
+class _MockServer(BaseWSGIServer):
     mock: Mock = Mock()
 
 
 class _RequestHandler(WSGIRequestHandler):
-    def make_environ(self) -> Dict[str, Any]:
+    def make_environ(self) -> dict[str, Any]:
         environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
@@ -48,7 +49,7 @@ class _RequestHandler(WSGIRequestHandler):
 
 
 def _mock_wsgi_adapter(
-    mock: Callable[["WSGIEnvironment", "StartResponse"], "WSGIApplication"]
+    mock: Callable[["WSGIEnvironment", "StartResponse"], "WSGIApplication"],
 ) -> "WSGIApplication":
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
@@ -64,7 +65,7 @@ def _mock_wsgi_adapter(
     return adapter
 
 
-def make_mock_server(**kwargs: Any) -> MockServer:
+def make_mock_server(**kwargs: Any) -> _MockServer:
     """Creates a mock HTTP(S) server listening on a random port on localhost.
 
     The `mock` property of the returned server provides and records all WSGI
@@ -150,9 +151,9 @@ def html5_page(text: str) -> str:
     )
 
 
-def package_page(spec: Dict[str, str]) -> "WSGIApplication":
+def package_page(spec: dict[str, str]) -> "WSGIApplication":
     def link(name: str, value: str) -> str:
-        return '<a href="{}">{}</a>'.format(value, name)
+        return f'<a href="{value}">{name}</a>'
 
     links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
@@ -189,3 +190,46 @@ def authorization_response(path: pathlib.Path) -> "WSGIApplication":
         return [path.read_bytes()]
 
     return responder
+
+
+class MockServer:
+    def __init__(self, server: _MockServer) -> None:
+        self._server = server
+        self._running = False
+        self.context = ExitStack()
+
+    @property
+    def port(self) -> int:
+        return self._server.port
+
+    @property
+    def host(self) -> str:
+        return self._server.host
+
+    def set_responses(self, responses: Iterable["WSGIApplication"]) -> None:
+        assert not self._running, "responses cannot be set on running server"
+        self._server.mock.side_effect = responses
+
+    def start(self) -> None:
+        assert not self._running, "running server cannot be started"
+        self.context.enter_context(server_running(self._server))
+        self.context.enter_context(self._set_running())
+
+    @contextmanager
+    def _set_running(self) -> Iterator[None]:
+        self._running = True
+        try:
+            yield
+        finally:
+            self._running = False
+
+    def stop(self) -> None:
+        assert self._running, "idle server cannot be stopped"
+        self.context.close()
+
+    def get_requests(self) -> list[dict[str, str]]:
+        """Get environ for each received request."""
+        assert not self._running, "cannot get mock from running server"
+        # Legacy: replace call[0][0] with call.args[0]
+        # when pip drops support for python3.7
+        return [call[0][0] for call in self._server.mock.call_args_list]
