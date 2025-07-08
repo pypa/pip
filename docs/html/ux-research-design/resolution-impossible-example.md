@@ -1,3 +1,7 @@
+---
+orphan:
+---
+
 # Example error: ResolutionImpossible
 
 ## What if there are user-provided pinned packages?
