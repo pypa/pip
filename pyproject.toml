@@ -4,11 +4,16 @@ dynamic = ["version"]
 name = "pip"
 description = "The PyPA recommended tool for installing Python packages."
 readme = "README.rst"
-license = {text = "MIT"}
+license = "MIT"
+license-files = [
+  "AUTHORS.txt",
+  "LICENSE.txt",
+  "src/pip/_vendor/**/*COPYING*",
+  "src/pip/_vendor/**/*LICENSE*",
+]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Topic :: Software Development :: Build Tools",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
@@ -40,8 +45,7 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-# The lower bound is for <https://github.com/pypa/setuptools/issues/3865>.
-requires = ["setuptools>=67.6.1"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
