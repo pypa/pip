@@ -6,13 +6,16 @@ import os
 import sys
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Iterator
+from typing import TYPE_CHECKING, NoReturn
 
 from .api import PlatformDirsABC
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 if sys.platform == "win32":
 
-    def getuid() -> int:
+    def getuid() -> NoReturn:
         msg = "should only be used on Unix"
         raise RuntimeError(msg)
 
@@ -20,17 +23,17 @@ else:
     from os import getuid
 
 
-class Unix(PlatformDirsABC):
+class Unix(PlatformDirsABC):  # noqa: PLR0904
     """
-    On Unix/Linux, we follow the
-    `XDG Basedir Spec <https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_. The spec allows
-    overriding directories with environment variables. The examples show are the default values, alongside the name of
-    the environment variable that overrides them. Makes use of the
-    `appname <platformdirs.api.PlatformDirsABC.appname>`,
-    `version <platformdirs.api.PlatformDirsABC.version>`,
-    `multipath <platformdirs.api.PlatformDirsABC.multipath>`,
-    `opinion <platformdirs.api.PlatformDirsABC.opinion>`,
-    `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+    On Unix/Linux, we follow the `XDG Basedir Spec <https://specifications.freedesktop.org/basedir-spec/basedir-spec-
+    latest.html>`_.
+
+    The spec allows overriding directories with environment variables. The examples shown are the default values,
+    alongside the name of the environment variable that overrides them. Makes use of the `appname
+    <platformdirs.api.PlatformDirsABC.appname>`, `version <platformdirs.api.PlatformDirsABC.version>`, `multipath
+    <platformdirs.api.PlatformDirsABC.multipath>`, `opinion <platformdirs.api.PlatformDirsABC.opinion>`, `ensure_exists
+    <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
     """
 
     @property
@@ -205,24 +208,18 @@ class Unix(PlatformDirsABC):
 
     @property
     def site_data_path(self) -> Path:
-        """:return: data path shared by users. Only return first item, even if ``multipath`` is set to ``True``"""
+        """:return: data path shared by users. Only return the first item, even if ``multipath`` is set to ``True``"""
         return self._first_item_as_path_if_multipath(self.site_data_dir)
 
     @property
     def site_config_path(self) -> Path:
-        """:return: config path shared by the users. Only return first item, even if ``multipath`` is set to ``True``"""
+        """:return: config path shared by the users, returns the first item, even if ``multipath`` is set to ``True``"""
         return self._first_item_as_path_if_multipath(self.site_config_dir)
 
     @property
     def site_cache_path(self) -> Path:
-        """:return: cache path shared by users. Only return first item, even if ``multipath`` is set to ``True``"""
+        """:return: cache path shared by users. Only return the first item, even if ``multipath`` is set to ``True``"""
         return self._first_item_as_path_if_multipath(self.site_cache_dir)
-
-    def _first_item_as_path_if_multipath(self, directory: str) -> Path:
-        if self.multipath:
-            # If multipath is True, the first path is returned.
-            directory = directory.split(os.pathsep)[0]
-        return Path(directory)
 
     def iter_config_dirs(self) -> Iterator[str]:
         """:yield: all user and site configuration directories."""
@@ -246,7 +243,12 @@ def _get_user_media_dir(env_var: str, fallback_tilde_path: str) -> str:
 
 
 def _get_user_dirs_folder(key: str) -> str | None:
-    """Return directory from user-dirs.dirs config file. See https://freedesktop.org/wiki/Software/xdg-user-dirs/."""
+    """
+    Return directory from user-dirs.dirs config file.
+
+    See https://freedesktop.org/wiki/Software/xdg-user-dirs/.
+
+    """
     user_dirs_config_path = Path(Unix().user_config_dir) / "user-dirs.dirs"
     if user_dirs_config_path.exists():
         parser = ConfigParser()

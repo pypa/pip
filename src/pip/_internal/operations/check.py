@@ -1,40 +1,47 @@
-"""Validation of dependencies of packages
-"""
+"""Validation of dependencies of packages"""
+
+from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, List, NamedTuple, Optional, Set, Tuple
+from collections.abc import Generator, Iterable
+from contextlib import suppress
+from email.parser import Parser
+from functools import reduce
+from typing import (
+    Callable,
+    NamedTuple,
+)
 
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.specifiers import LegacySpecifier
+from pip._vendor.packaging.tags import Tag, parse_tag
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import LegacyVersion
+from pip._vendor.packaging.version import Version
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.metadata import get_default_environment
-from pip._internal.metadata.base import DistributionVersion
+from pip._internal.metadata.base import BaseDistribution
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.deprecation import deprecated
 
 logger = logging.getLogger(__name__)
 
 
 class PackageDetails(NamedTuple):
-    version: DistributionVersion
-    dependencies: List[Requirement]
+    version: Version
+    dependencies: list[Requirement]
 
 
 # Shorthands
-PackageSet = Dict[NormalizedName, PackageDetails]
-Missing = Tuple[NormalizedName, Requirement]
-Conflicting = Tuple[NormalizedName, DistributionVersion, Requirement]
+PackageSet = dict[NormalizedName, PackageDetails]
+Missing = tuple[NormalizedName, Requirement]
+Conflicting = tuple[NormalizedName, Version, Requirement]
 
-MissingDict = Dict[NormalizedName, List[Missing]]
-ConflictingDict = Dict[NormalizedName, List[Conflicting]]
-CheckResult = Tuple[MissingDict, ConflictingDict]
-ConflictDetails = Tuple[PackageSet, CheckResult]
+MissingDict = dict[NormalizedName, list[Missing]]
+ConflictingDict = dict[NormalizedName, list[Conflicting]]
+CheckResult = tuple[MissingDict, ConflictingDict]
+ConflictDetails = tuple[PackageSet, CheckResult]
 
 
-def create_package_set_from_installed() -> Tuple[PackageSet, bool]:
+def create_package_set_from_installed() -> tuple[PackageSet, bool]:
     """Converts a list of distributions into a PackageSet."""
     package_set = {}
     problems = False
@@ -46,13 +53,13 @@ def create_package_set_from_installed() -> Tuple[PackageSet, bool]:
             package_set[name] = PackageDetails(dist.version, dependencies)
         except (OSError, ValueError) as e:
             # Don't crash on unreadable or broken metadata.
-            logger.warning("Error parsing requirements for %s: %s", name, e)
+            logger.warning("Error parsing dependencies of %s: %s", name, e)
             problems = True
     return package_set, problems
 
 
 def check_package_set(
-    package_set: PackageSet, should_ignore: Optional[Callable[[str], bool]] = None
+    package_set: PackageSet, should_ignore: Callable[[str], bool] | None = None
 ) -> CheckResult:
     """Check if a package set is consistent
 
@@ -60,15 +67,13 @@ def check_package_set(
     package name and returns a boolean.
     """
 
-    warn_legacy_versions_and_specifiers(package_set)
-
     missing = {}
     conflicting = {}
 
     for package_name, package_detail in package_set.items():
         # Info about dependencies of package_name
-        missing_deps: Set[Missing] = set()
-        conflicting_deps: Set[Conflicting] = set()
+        missing_deps: set[Missing] = set()
+        conflicting_deps: set[Conflicting] = set()
 
         if should_ignore and should_ignore(package_name):
             continue
@@ -98,7 +103,7 @@ def check_package_set(
     return missing, conflicting
 
 
-def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDetails:
+def check_install_conflicts(to_install: list[InstallRequirement]) -> ConflictDetails:
     """For checking if the dependency graph would be consistent after \
     installing given requirements
     """
@@ -118,9 +123,25 @@ def check_install_conflicts(to_install: List[InstallRequirement]) -> ConflictDet
     )
 
 
+def check_unsupported(
+    packages: Iterable[BaseDistribution],
+    supported_tags: Iterable[Tag],
+) -> Generator[BaseDistribution, None, None]:
+    for p in packages:
+        with suppress(FileNotFoundError):
+            wheel_file = p.read_text("WHEEL")
+            wheel_tags: frozenset[Tag] = reduce(
+                frozenset.union,
+                map(parse_tag, Parser().parsestr(wheel_file).get_all("Tag", [])),
+                frozenset(),
+            )
+            if wheel_tags.isdisjoint(supported_tags):
+                yield p
+
+
 def _simulate_installation_of(
-    to_install: List[InstallRequirement], package_set: PackageSet
-) -> Set[NormalizedName]:
+    to_install: list[InstallRequirement], package_set: PackageSet
+) -> set[NormalizedName]:
     """Computes the version of packages after installing to_install."""
     # Keep track of packages that were installed
     installed = set()
@@ -138,8 +159,8 @@ def _simulate_installation_of(
 
 
 def _create_whitelist(
-    would_be_installed: Set[NormalizedName], package_set: PackageSet
-) -> Set[NormalizedName]:
+    would_be_installed: set[NormalizedName], package_set: PackageSet
+) -> set[NormalizedName]:
     packages_affected = set(would_be_installed)
 
     for package_name in package_set:
@@ -152,36 +173,3 @@ def _create_whitelist(
                 break
 
     return packages_affected
-
-
-def warn_legacy_versions_and_specifiers(package_set: PackageSet) -> None:
-    for project_name, package_details in package_set.items():
-        if isinstance(package_details.version, LegacyVersion):
-            deprecated(
-                reason=(
-                    f"{project_name} {package_details.version} "
-                    f"has a non-standard version number."
-                ),
-                replacement=(
-                    f"to upgrade to a newer version of {project_name} "
-                    f"or contact the author to suggest that they "
-                    f"release a version with a conforming version number"
-                ),
-                issue=12063,
-                gone_in="24.1",
-            )
-        for dep in package_details.dependencies:
-            if any(isinstance(spec, LegacySpecifier) for spec in dep.specifier):
-                deprecated(
-                    reason=(
-                        f"{project_name} {package_details.version} "
-                        f"has a non-standard dependency specifier {dep}."
-                    ),
-                    replacement=(
-                        f"to upgrade to a newer version of {project_name} "
-                        f"or contact the author to suggest that they "
-                        f"release a version with a conforming dependency specifiers"
-                    ),
-                    issue=12063,
-                    gone_in="24.1",
-                )

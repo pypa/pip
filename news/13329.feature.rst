@@ -1,0 +1,1 @@
+consistently pass verbosity flag to VCS module

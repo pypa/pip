@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import contextlib
 import itertools
 import logging
 import sys
 import time
-from typing import IO, Generator, Optional
+from collections.abc import Generator
+from typing import IO
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
@@ -23,7 +26,7 @@ class InteractiveSpinner(SpinnerInterface):
     def __init__(
         self,
         message: str,
-        file: Optional[IO[str]] = None,
+        file: IO[str] | None = None,
         spin_chars: str = "-\\|/",
         # Empirically, 8 updates/second looks nice
         min_update_interval_seconds: float = 0.125,

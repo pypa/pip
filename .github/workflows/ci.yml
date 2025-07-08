@@ -10,6 +10,8 @@ on:
   pull_request:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
+  workflow_dispatch:
+    # allow manual runs on branches without a PR
 
 env:
   # The "FORCE_COLOR" variable, when set to 1,
@@ -23,7 +25,7 @@ concurrency:
 jobs:
   docs:
     name: docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -34,13 +36,13 @@ jobs:
       - run: nox -s docs
 
   determine-changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       tests: ${{ steps.filter.outputs.tests }}
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
@@ -55,11 +57,17 @@ jobs:
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              # The test suite should also run when cutting a release
+              # (which is the only time this file is modified).
+              - "NEWS.rst"
         if: github.event_name == 'pull_request'
 
   packaging:
-    name: packaging
-    runs-on: ubuntu-latest
+    name: packaging / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -78,7 +86,7 @@ jobs:
 
   vendoring:
     name: vendoring
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     needs: [determine-changes]
     if: >-
@@ -97,9 +105,9 @@ jobs:
 
   tests-unix:
     name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -107,13 +115,13 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [Ubuntu, MacOS]
+        os: [ubuntu-22.04, macos-13, macos-latest]
         python:
-          - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
 
     steps:
       - uses: actions/checkout@v4
@@ -123,14 +131,19 @@ jobs:
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'Ubuntu'
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install bzr
 
       - name: Install MacOS dependencies
-        if: matrix.os == 'MacOS'
-        run: brew install breezy
+        if: runner.os == 'macOS'
+        run: |
+          DEPS=breezy
+          if ! which svn; then
+            DEPS="${DEPS} subversion"
+          fi
+          brew install ${DEPS}
 
       - run: pip install nox
 
@@ -138,20 +151,20 @@ jobs:
       - name: Run unit tests
         run: >-
           nox -s test-${{ matrix.python.key || matrix.python }} --
-          -m unit
+          tests/unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python.key || matrix.python }} --
-          -m integration
+          nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
+          tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=5
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -161,60 +174,53 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - "3.8"
+          - "3.9"
           # Commented out, since Windows tests are expensively slow,
           # only test the oldest and newest Python supported by pip
-          # - "3.9"
           # - "3.10"
           # - "3.11"
-          - "3.12"
-        group: [1, 2]
+          # - "3.12"
+          - "3.13"
+        group:
+          - { number: 1, pytest-filter: "not test_install" }
+          - { number: 2, pytest-filter: "test_install" }
 
     steps:
+      # The D: drive is significantly faster than the system C: drive.
+      # https://github.com/actions/runner-images/issues/8755
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
+
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
 
-      # We use C:\Temp (which is already available on the worker)
-      # as a temporary directory for all of the tests because the
-      # default value (under the user dir) is more deeply nested
-      # and causes tests to fail with "path too long" errors.
       - run: pip install nox
-        env:
-          TEMP: "C:\\Temp"
 
       # Main check
-      - name: Run unit tests
-        if: matrix.group == 1
+      - name: Run unit tests (group 1)
+        if: matrix.group.number == 1
         run: >-
           nox -s test-${{ matrix.python }} --
-          -m unit
+          tests/unit
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
 
-      - name: Run integration tests (group 1)
-        if: matrix.group == 1
+      - name: Run integration tests (group ${{ matrix.group.number }})
         run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration -k "not test_install"
+          nox -s test-${{ matrix.python }} --no-install --
+          tests/functional -k "${{ matrix.group.pytest-filter }}"
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
-
-      - name: Run integration tests (group 2)
-        if: matrix.group == 2
-        run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration -k "test_install"
-          --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "C:\\Temp"
 
   tests-zipapp:
     name: tests / zipapp
-    runs-on: ubuntu-latest
+    # The macos-latest (M1) runners are the fastest available on GHA, even
+    # beating out the ubuntu-latest runners. The zipapp tests are slow by
+    # nature, and we don't care where they run, so we pick the fastest one.
+    runs-on: macos-latest
 
     needs: [packaging, determine-changes]
     if: >-
@@ -227,10 +233,8 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install bzr
+      - name: Install MacOS dependencies
+        run: brew install breezy subversion
 
       - run: pip install nox
 
@@ -238,7 +242,7 @@ jobs:
       - name: Run integration tests
         run: >-
           nox -s test-3.10 --
-          -m integration
+          tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=5
           --use-zipapp
@@ -255,7 +259,7 @@ jobs:
       - tests-zipapp
       - vendoring
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed

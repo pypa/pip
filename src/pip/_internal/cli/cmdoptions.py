@@ -9,15 +9,17 @@ pass on state. To be consistent, all options will follow this design.
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+from __future__ import annotations
 
 import importlib.util
 import logging
 import os
+import pathlib
 import textwrap
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -47,7 +49,7 @@ def raise_option_error(parser: OptionParser, option: Option, msg: str) -> None:
     parser.error(msg)
 
 
-def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> OptionGroup:
+def make_option_group(group: dict[str, Any], parser: ConfigOptionParser) -> OptionGroup:
     """
     Return an OptionGroup object
     group  -- assumed to be dict with 'name' and 'options' keys
@@ -260,8 +262,8 @@ keyring_provider: Callable[..., Option] = partial(
     default="auto",
     help=(
         "Enable the credential lookup via the keyring library if user input is allowed."
-        " Specify which mechanism to use [disabled, import, subprocess]."
-        " (default: disabled)"
+        " Specify which mechanism to use [auto, disabled, import, subprocess]."
+        " (default: %default)"
     ),
 )
 
@@ -280,8 +282,17 @@ retries: Callable[..., Option] = partial(
     dest="retries",
     type="int",
     default=5,
-    help="Maximum number of retries each connection should attempt "
-    "(default %default times).",
+    help="Maximum attempts to establish a new HTTP connection. (default: %default)",
+)
+
+resume_retries: Callable[..., Option] = partial(
+    Option,
+    "--resume-retries",
+    dest="resume_retries",
+    type="int",
+    default=0,
+    help="Maximum attempts to resume or restart an incomplete download. "
+    "(default: %default)",
 )
 
 timeout: Callable[..., Option] = partial(
@@ -545,7 +556,7 @@ platforms: Callable[..., Option] = partial(
 
 
 # This was made a separate function for unit-testing purposes.
-def _convert_python_version(value: str) -> Tuple[Tuple[int, ...], Optional[str]]:
+def _convert_python_version(value: str) -> tuple[tuple[int, ...], str | None]:
     """
     Convert a version string like "3", "37", or "3.7.3" into a tuple of ints.
 
@@ -733,6 +744,46 @@ no_deps: Callable[..., Option] = partial(
     help="Don't install package dependencies.",
 )
 
+
+def _handle_dependency_group(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    Process a value provided for the --group option.
+
+    Splits on the rightmost ":", and validates that the path (if present) ends
+    in `pyproject.toml`. Defaults the path to `pyproject.toml` when one is not given.
+
+    `:` cannot appear in dependency group names, so this is a safe and simple parse.
+
+    This is an optparse.Option callback for the dependency_groups option.
+    """
+    path, sep, groupname = value.rpartition(":")
+    if not sep:
+        path = "pyproject.toml"
+    else:
+        # check for 'pyproject.toml' filenames using pathlib
+        if pathlib.PurePath(path).name != "pyproject.toml":
+            msg = "group paths use 'pyproject.toml' filenames"
+            raise_option_error(parser, option=option, msg=msg)
+
+    parser.values.dependency_groups.append((path, groupname))
+
+
+dependency_groups: Callable[..., Option] = partial(
+    Option,
+    "--group",
+    dest="dependency_groups",
+    default=[],
+    type=str,
+    action="callback",
+    callback=_handle_dependency_group,
+    metavar="[path:]group",
+    help='Install a named dependency-group from a "pyproject.toml" file. '
+    'If a path is given, the name of the file must be "pyproject.toml". '
+    'Defaults to using "pyproject.toml" in the current directory.',
+)
+
 ignore_requires_python: Callable[..., Option] = partial(
     Option,
     "--ignore-requires-python",
@@ -783,9 +834,9 @@ def _handle_no_use_pep517(
         """
         raise_option_error(parser, option=option, msg=msg)
 
-    # If user doesn't wish to use pep517, we check if setuptools and wheel are installed
+    # If user doesn't wish to use pep517, we check if setuptools is installed
     # and raise error if it is not.
-    packages = ("setuptools", "wheel")
+    packages = ("setuptools",)
     if not all(importlib.util.find_spec(package) for package in packages):
         msg = (
             f"It is not possible to use --no-use-pep517 "
@@ -885,6 +936,14 @@ pre: Callable[..., Option] = partial(
     default=False,
     help="Include pre-release and development versions. By default, "
     "pip only finds stable versions.",
+)
+
+json: Callable[..., Option] = partial(
+    Option,
+    "--json",
+    action="store_true",
+    default=False,
+    help="Output data in a machine-readable JSON format.",
 )
 
 disable_pip_version_check: Callable[..., Option] = partial(
@@ -990,12 +1049,13 @@ no_python_version_warning: Callable[..., Option] = partial(
     dest="no_python_version_warning",
     action="store_true",
     default=False,
-    help="Silence deprecation warnings for upcoming unsupported Pythons.",
+    help=SUPPRESS_HELP,  # No-op, a hold-over from the Python 2->3 transition.
 )
 
 
 # Features that are now always on. A warning is printed if they are used.
 ALWAYS_ENABLED_FEATURES = [
+    "truststore",  # always on since 24.2
     "no-binary-enable-wheel-cache",  # always on since 23.1
 ]
 
@@ -1008,7 +1068,6 @@ use_new_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "fast-deps",
-        "truststore",
     ]
     + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",
@@ -1023,16 +1082,16 @@ use_deprecated_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "legacy-resolver",
+        "legacy-certs",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
-
 
 ##########
 # groups #
 ##########
 
-general_group: Dict[str, Any] = {
+general_group: dict[str, Any] = {
     "name": "General Options",
     "options": [
         help_,
@@ -1060,10 +1119,11 @@ general_group: Dict[str, Any] = {
         no_python_version_warning,
         use_new_feature,
         use_deprecated_feature,
+        resume_retries,
     ],
 }
 
-index_group: Dict[str, Any] = {
+index_group: dict[str, Any] = {
     "name": "Package Index Options",
     "options": [
         index_url,

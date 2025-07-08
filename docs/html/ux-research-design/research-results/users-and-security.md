@@ -56,13 +56,15 @@ Both of these groups identified their "sphere of influence" and did their best t
 
 ### User thoughts about security
 
+Selected quotes from research participants
+
 #### Responsibility as author
 
 Participants who spent a lot of their time writing Python code - either for community or as part of their job - expressed a responsibility to their users for the code they wrote - people who wrote code which was made public expressed a stronger responsibility.
 
 They thought about where the software would be used, who would use it, and possible attack surfaces.
 
-> "On the basic point, I have to think about attack surfaces. If I am writing the thing (software), I have to give a crap. I have to answer the emails! In the code I push to[ pypi.org](http://pypi.org/) I think about it doubley. What could people do with this code? Whether I do a good job, that's different! I am aware of it when publishing it or making it publically available. Whether I do a good job, that's different! I am aware of it when publishing it or making it publically available. I rely on community resources - Python security related, I follow security people blogs, Twitter. I use Hypothesis for fuzz-testing. I also rely on having security policies in place and a reporting mechanism. I steer clear of crypto, I rely on other peoples. There's a certain amount of knowledge in the Python community, I am actively involved in it. If something happens, I will hear about it. I use Twitter, if something happens, in the morning it can take me awhile to figure out what's happened. I have a lot of trust in the ecosystem to be self healing. As long as you don't stray too far-off the reservation (into using odd or uncommon or new packages), it's a better sense of security." **- Participant (data scientist turned Python developer)**
+> "On the basic point, I have to think about attack surfaces. If I am writing the thing (software), I have to give a crap. I have to answer the emails! In the code I push to[ pypi.org](http://pypi.org/) I think about it doubley. What could people do with this code? Whether I do a good job, that's different! I am aware of it when publishing it or making it [publicly] available. Whether I do a good job, that's different! I am aware of it when publishing it or making it [publicly] available. I rely on community resources - Python security related, I follow security people blogs, Twitter. I use Hypothesis for fuzz-testing. I also rely on having security policies in place and a reporting mechanism. I steer clear of crypto, I rely on other peoples. There's a certain amount of knowledge in the Python community, I am actively involved in it. If something happens, I will hear about it. I use Twitter, if something happens, in the morning it can take me awhile to figure out what's happened. I have a lot of trust in the ecosystem to be self healing. As long as you don't stray too far-off the reservation (into using odd or uncommon or new packages), it's a better sense of security." **- Participant (data scientist turned Python developer)**
 
 > Yes, because I'm liable for that. If the problem is my code, and I deliver something and they get attacked. I'm screwed. **- Participant (professional Python developer and trainer)**
 
@@ -76,8 +78,7 @@ Participants also explained they rely on code security scanning and checking sof
 
 #### Reliance on good software development practices
 
-A small number of participants e### Selected quotes from research participants
-xplained they have good software practices in place, which help with writing secure software.
+A small number of participants explained they have good software practices in place, which help with writing secure software.
 
 > "We have a book about ethics of code - we have mandatory certification."
 

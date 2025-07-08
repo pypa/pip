@@ -13,11 +13,11 @@ def test_falsey_path_none() -> None:
     assert wc.cache_dir is None
 
 
-def test_subdirectory_fragment() -> None:
+def test_subdirectory_fragment(tmp_path: Path) -> None:
     """
     Test the subdirectory URL fragment is part of the cache key.
     """
-    wc = WheelCache("/tmp/.foo/")
+    wc = WheelCache(os.fspath(tmp_path))
     link1 = Link("git+https://g.c/o/r#subdirectory=d1")
     link2 = Link("git+https://g.c/o/r#subdirectory=d2")
     assert wc.get_path_for_link(link1) != wc.get_path_for_link(link2)

@@ -3,11 +3,15 @@
 Relevant API reference: https://docs.readthedocs.io/en/stable/api/v3.html#redirects
 """
 
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["httpx", "rich", "pyyaml"]
+# ///
+
 import operator
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 import httpx
 import rich
@@ -86,8 +90,8 @@ rich.print(f"{rtd_redirects['count']} entries.")
 
 next_step("Compare and determine modifications.")
 
-redirects_to_remove: List[int] = []
-redirects_to_add: Dict[str, str] = {}
+redirects_to_remove: list[int] = []
+redirects_to_add: dict[str, str] = {}
 
 for redirect in rtd_redirects["results"]:
     if redirect["type"] != "exact":

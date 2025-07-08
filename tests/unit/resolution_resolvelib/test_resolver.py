@@ -1,7 +1,10 @@
-from typing import Dict, List, Optional, Set, Tuple, cast
+from __future__ import annotations
+
+from typing import cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib.resolvers import Result
 from pip._vendor.resolvelib.structs import DirectedGraph
@@ -16,7 +19,7 @@ from pip._internal.resolution.resolvelib.resolver import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
     resolver = Resolver(
         preparer=preparer,
@@ -34,11 +37,11 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
 
 
 def _make_graph(
-    edges: List[Tuple[Optional[str], Optional[str]]]
-) -> "DirectedGraph[Optional[str]]":
+    edges: list[tuple[str | None, str | None]],
+) -> DirectedGraph[str | None]:
     """Build graph from edge declarations."""
 
-    graph: "DirectedGraph[Optional[str]]" = DirectedGraph()
+    graph: DirectedGraph[str | None] = DirectedGraph()
     for parent, child in edges:
         parent = cast(str, canonicalize_name(parent)) if parent else None
         child = cast(str, canonicalize_name(child)) if child else None
@@ -83,8 +86,8 @@ def _make_graph(
 )
 def test_new_resolver_get_installation_order(
     resolver: Resolver,
-    edges: List[Tuple[Optional[str], Optional[str]]],
-    ordered_reqs: List[str],
+    edges: list[tuple[str | None, str | None]],
+    ordered_reqs: list[str],
 ) -> None:
     graph = _make_graph(edges)
 
@@ -289,9 +292,9 @@ def test_new_resolver_get_installation_order(
 )
 def test_new_resolver_topological_weights(
     name: str,
-    edges: List[Tuple[Optional[str], Optional[str]]],
-    requirement_keys: Set[str],
-    expected_weights: Dict[Optional[str], int],
+    edges: list[tuple[str | None, str | None]],
+    requirement_keys: set[str],
+    expected_weights: dict[str | None, int],
 ) -> None:
     graph = _make_graph(edges)
 

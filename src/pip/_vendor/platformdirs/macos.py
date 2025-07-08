@@ -4,17 +4,24 @@ from __future__ import annotations
 
 import os.path
 import sys
+from typing import TYPE_CHECKING
 
 from .api import PlatformDirsABC
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class MacOS(PlatformDirsABC):
     """
-    Platform directories for the macOS operating system. Follows the guidance from `Apple documentation
-    <https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/MacOSXDirectories/MacOSXDirectories.html>`_.
+    Platform directories for the macOS operating system.
+
+    Follows the guidance from
+    `Apple documentation <https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/MacOSXDirectories/MacOSXDirectories.html>`_.
     Makes use of the `appname <platformdirs.api.PlatformDirsABC.appname>`,
     `version <platformdirs.api.PlatformDirsABC.version>`,
     `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
     """
 
     @property
@@ -28,7 +35,7 @@ class MacOS(PlatformDirsABC):
         :return: data directory shared by users, e.g. ``/Library/Application Support/$appname/$version``.
           If we're using a Python binary managed by `Homebrew <https://brew.sh>`_, the directory
           will be under the Homebrew prefix, e.g. ``/opt/homebrew/share/$appname/$version``.
-          If `multipath <platformdirs.api.PlatformDirsABC.multipath>` is enabled and we're in Homebrew,
+          If `multipath <platformdirs.api.PlatformDirsABC.multipath>` is enabled, and we're in Homebrew,
           the response is a multi-path string separated by ":", e.g.
           ``/opt/homebrew/share/$appname/$version:/Library/Application Support/$appname/$version``
         """
@@ -38,6 +45,11 @@ class MacOS(PlatformDirsABC):
         if self.multipath:
             return os.pathsep.join(path_list)
         return path_list[0]
+
+    @property
+    def site_data_path(self) -> Path:
+        """:return: data path shared by users. Only return the first item, even if ``multipath`` is set to ``True``"""
+        return self._first_item_as_path_if_multipath(self.site_data_dir)
 
     @property
     def user_config_dir(self) -> str:
@@ -60,7 +72,7 @@ class MacOS(PlatformDirsABC):
         :return: cache directory shared by users, e.g. ``/Library/Caches/$appname/$version``.
           If we're using a Python binary managed by `Homebrew <https://brew.sh>`_, the directory
           will be under the Homebrew prefix, e.g. ``/opt/homebrew/var/cache/$appname/$version``.
-          If `multipath <platformdirs.api.PlatformDirsABC.multipath>` is enabled and we're in Homebrew,
+          If `multipath <platformdirs.api.PlatformDirsABC.multipath>` is enabled, and we're in Homebrew,
           the response is a multi-path string separated by ":", e.g.
           ``/opt/homebrew/var/cache/$appname/$version:/Library/Caches/$appname/$version``
         """
@@ -70,6 +82,11 @@ class MacOS(PlatformDirsABC):
         if self.multipath:
             return os.pathsep.join(path_list)
         return path_list[0]
+
+    @property
+    def site_cache_path(self) -> Path:
+        """:return: cache path shared by users. Only return the first item, even if ``multipath`` is set to ``True``"""
+        return self._first_item_as_path_if_multipath(self.site_cache_dir)
 
     @property
     def user_state_dir(self) -> str:

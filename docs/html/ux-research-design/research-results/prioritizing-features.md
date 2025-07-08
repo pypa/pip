@@ -85,9 +85,9 @@ Results varied by the amount of Python experience the user had.
 
 ![Screenshot of Warn about broken dependencies](https://i.imgur.com/uNv2tnG.png)
 
-#### Upgrade packages to the lastest version
+#### Upgrade packages to the latest version
 
-![Screenshot of Upgrade packages to the lastest version](https://i.imgur.com/pQgCLBO.png)
+![Screenshot of Upgrade packages to the latest version](https://i.imgur.com/pQgCLBO.png)
 
 #### Install packages from an alternative package index, or indexes
 
@@ -109,9 +109,9 @@ Results varied by the amount of Python experience the user had.
 
 ![Screenshot of Install a package from wheels](https://i.imgur.com/9DMBfNL.png)
 
-#### Install apackage from a local directory
+#### Install a package from a local directory
 
-![Screenshot of Install apackage from a local directory](https://i.imgur.com/Jp95rak.png)
+![Screenshot of Install a package from a local directory](https://i.imgur.com/Jp95rak.png)
 
 #### Control where you want your installed package to live on your computer
 

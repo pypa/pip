@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import json
 import logging
@@ -5,18 +7,20 @@ import os
 import sys
 from optparse import Values
 from pathlib import Path
-from typing import Optional
 from unittest.mock import ANY, Mock, patch
 
 import pytest
 from freezegun import freeze_time
+
 from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
+from pip._internal.self_outdated_check import UpgradePrompt, pip_self_version_check
+from pip._internal.utils.misc import ExternallyManagedEnvironment
 
 
 @pytest.mark.parametrize(
-    ["key", "expected"],
+    "key, expected",
     [
         (
             "/hello/world/venv",
@@ -35,12 +39,14 @@ def test_get_statefile_name_known_values(key: str, expected: str) -> None:
 @freeze_time("1970-01-02T11:00:00Z")
 @patch("pip._internal.self_outdated_check._self_version_check_logic")
 @patch("pip._internal.self_outdated_check.SelfCheckState")
+@patch("pip._internal.self_outdated_check.check_externally_managed", new=lambda: None)
 def test_pip_self_version_check_calls_underlying_implementation(
     mocked_state: Mock, mocked_function: Mock, tmpdir: Path
 ) -> None:
     # GIVEN
     mock_session = Mock()
     fake_options = Values({"cache_dir": str(tmpdir)})
+    mocked_function.return_value = None
 
     # WHEN
     self_outdated_check.pip_self_version_check(mock_session, fake_options)
@@ -58,7 +64,7 @@ def test_pip_self_version_check_calls_underlying_implementation(
 
 
 @pytest.mark.parametrize(
-    [
+    [  # noqa: PT006 - String representation is too long
         "installed_version",
         "remote_version",
         "stored_version",
@@ -83,7 +89,7 @@ def test_pip_self_version_check_calls_underlying_implementation(
 def test_core_logic(
     installed_version: str,
     remote_version: str,
-    stored_version: Optional[str],
+    stored_version: str | None,
     installed_by_pip: bool,
     should_show_prompt: bool,
     caplog: pytest.LogCaptureFixture,
@@ -183,3 +189,15 @@ class TestSelfCheckState:
             "last_check": "2000-01-01T00:00:00+00:00",
             "pypi_version": "1.0.0",
         }
+
+
+@patch("pip._internal.self_outdated_check._self_version_check_logic")
+def test_suppressed_by_externally_managed(mocked_function: Mock, tmpdir: Path) -> None:
+    mocked_function.return_value = UpgradePrompt(old="1.0", new="2.0")
+    fake_options = Values({"cache_dir": str(tmpdir)})
+    with patch(
+        "pip._internal.self_outdated_check.check_externally_managed",
+        side_effect=ExternallyManagedEnvironment("nope"),
+    ):
+        pip_self_version_check(session=Mock(), options=fake_options)
+    mocked_function.assert_not_called()

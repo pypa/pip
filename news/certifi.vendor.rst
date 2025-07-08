@@ -1,1 +1,1 @@
-Upgrade certifi to 2024.2.2
+Upgrade certifi to 2025.6.15

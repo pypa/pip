@@ -212,6 +212,7 @@ CERT_CHAIN_POLICY_IGNORE_INVALID_POLICY_FLAG = 0x00000080
 CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS = 0x00000F00
 CERT_CHAIN_POLICY_ALLOW_TESTROOT_FLAG = 0x00008000
 CERT_CHAIN_POLICY_TRUST_TESTROOT_FLAG = 0x00004000
+SECURITY_FLAG_IGNORE_CERT_CN_INVALID = 0x00001000
 AUTHTYPE_SERVER = 2
 CERT_CHAIN_POLICY_SSL = 4
 FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
@@ -325,6 +326,12 @@ def _verify_peercerts_impl(
     server_hostname: str | None = None,
 ) -> None:
     """Verify the cert_chain from the server using Windows APIs."""
+
+    # If the peer didn't send any certificates then
+    # we can't do verification. Raise an error.
+    if not cert_chain:
+        raise ssl.SSLCertVerificationError("Peer sent no certificates to verify")
+
     pCertContext = None
     hIntermediateCertStore = CertOpenStore(CERT_STORE_PROV_MEMORY, 0, None, 0, None)
     try:
@@ -375,7 +382,7 @@ def _verify_peercerts_impl(
                 server_hostname,
                 chain_flags=chain_flags,
             )
-        except ssl.SSLCertVerificationError:
+        except ssl.SSLCertVerificationError as e:
             # If that fails but custom CA certs have been added
             # to the SSLContext using load_verify_locations,
             # try verifying using a custom chain engine
@@ -384,15 +391,19 @@ def _verify_peercerts_impl(
                 binary_form=True
             )
             if custom_ca_certs:
-                _verify_using_custom_ca_certs(
-                    ssl_context,
-                    custom_ca_certs,
-                    hIntermediateCertStore,
-                    pCertContext,
-                    pChainPara,
-                    server_hostname,
-                    chain_flags=chain_flags,
-                )
+                try:
+                    _verify_using_custom_ca_certs(
+                        ssl_context,
+                        custom_ca_certs,
+                        hIntermediateCertStore,
+                        pCertContext,
+                        pChainPara,
+                        server_hostname,
+                        chain_flags=chain_flags,
+                    )
+                # Raise the original error, not the new error.
+                except ssl.SSLCertVerificationError:
+                    raise e from None
             else:
                 raise
     finally:
@@ -433,6 +444,10 @@ def _get_and_verify_cert_chain(
         )
         ssl_extra_cert_chain_policy_para.dwAuthType = AUTHTYPE_SERVER
         ssl_extra_cert_chain_policy_para.fdwChecks = 0
+        if ssl_context.check_hostname is False:
+            ssl_extra_cert_chain_policy_para.fdwChecks = (
+                SECURITY_FLAG_IGNORE_CERT_CN_INVALID
+            )
         if server_hostname:
             ssl_extra_cert_chain_policy_para.pwszServerName = c_wchar_p(server_hostname)
 
@@ -442,8 +457,6 @@ def _get_and_verify_cert_chain(
         )
         if ssl_context.verify_mode == ssl.CERT_NONE:
             chain_policy.dwFlags |= CERT_CHAIN_POLICY_VERIFY_MODE_NONE_FLAGS
-        if not ssl_context.check_hostname:
-            chain_policy.dwFlags |= CERT_CHAIN_POLICY_IGNORE_INVALID_NAME_FLAG
         chain_policy.cbSize = sizeof(chain_policy)
 
         pPolicyPara = pointer(chain_policy)

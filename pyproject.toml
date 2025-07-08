@@ -13,11 +13,11 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -27,7 +27,7 @@ authors = [
 
 # NOTE: requires-python is duplicated in __pip-runner__.py.
 # When changing this value, please change the other copy as well.
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.scripts]
 pip = "pip._internal.cli.main:main"
@@ -41,7 +41,7 @@ Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
 # The lower bound is for <https://github.com/pypa/setuptools/issues/3865>.
-requires = ["setuptools>=67.6.1", "wheel"]
+requires = ["setuptools>=67.6.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -59,8 +59,6 @@ exclude = ["contrib", "docs", "tests*", "tasks"]
 "pip" = ["py.typed"]
 "pip._vendor" = ["vendor.txt"]
 "pip._vendor.certifi" = ["*.pem"]
-"pip._vendor.requests" = ["*.pem"]
-"pip._vendor.distlib._backport" = ["sysconfig.cfg"]
 "pip._vendor.distlib" = [
     "t32.exe",
     "t64.exe",
@@ -122,6 +120,9 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
+  # optional accelerator extension libraries
+  "*mypyc*.so",
+  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
@@ -129,32 +130,34 @@ drop = [
   "_distutils_hack",
   "distutils-precedence.pth",
   "pkg_resources/extern/",
-  # trim vendored pygments styles and lexers
+  # trim vendored pygments styles, lexers, formatters, and CLI
   "pygments/styles/[!_]*.py",
   '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
+  '^pygments/formatters/(?!__init__|_mapping).*\.py$',
+  '^pygments/cmdline\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
+  # trim parts of distlib that aren't related to scripts
+  '^distlib/(?!__init__|compat|resources|scripts|util).*\.py$',
 ]
 
 [tool.vendoring.typing-stubs]
-six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
 distro = []
 
 [tool.vendoring.license.directories]
 setuptools = "pkg_resources"
 
 [tool.vendoring.license.fallback-urls]
-CacheControl = "https://raw.githubusercontent.com/ionrock/cachecontrol/v0.12.6/LICENSE.txt"
 distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
-webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"
 
 ######################################################################################
 # ruff
 #
 
 [tool.ruff]
+# Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
+target-version = "py39"  # Pin Ruff to Python 3.9
 src = ["src"]
-target-version = "py38"
 line-length = 88
 extend-exclude = [
     "_vendor",
@@ -165,10 +168,10 @@ extend-exclude = [
 
 [tool.ruff.lint]
 ignore = [
-    "B019",
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
+    "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
 ]
 select = [
     "ASYNC",
@@ -177,21 +180,33 @@ select = [
     "C90",
     "E",
     "F",
+    "FA",
     "G",
     "I",
     "ISC",
     "PERF",
+    "PIE810",
     "PLE",
     "PLR0",
-    "W",
     "RUF100",
-    "UP032",
+    "UP",
+    "W",
 ]
 
 [tool.ruff.lint.isort]
-# Explicitly make tests "first party" as it's not in the "src" directory
-known-first-party = ["tests"]
-known-third-party = ["pip._vendor"]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "vendored",
+  "first-party",
+  "tests",
+  "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"vendored" = ["pip._vendor"]
+"tests" = ["tests"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 33  # default is 10
@@ -297,10 +312,7 @@ source0 = [
 ]
 
 [tool.coverage.report]
-exclude_lines = [
-    # We must re-state the default because the `exclude_lines` option overrides
-    # it.
-    "pragma: no cover",
+exclude_also = [
     # This excludes typing-specific code, which will be validated by mypy anyway.
     "if TYPE_CHECKING",
 ]

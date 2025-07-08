@@ -2,9 +2,10 @@ import os
 import platform
 import socket
 import ssl
+import sys
 import typing
 
-import _ssl  # type: ignore[import]
+import _ssl
 
 from ._ssl_constants import (
     _original_SSLContext,
@@ -42,6 +43,23 @@ def inject_into_ssl() -> None:
     except ImportError:
         pass
 
+    # requests starting with 2.32.0 added a preloaded SSL context to improve concurrent performance;
+    # this unfortunately leads to a RecursionError, which can be avoided by patching the preloaded SSL context with
+    # the truststore patched instance
+    # also see https://github.com/psf/requests/pull/6667
+    try:
+        from pip._vendor.requests import adapters as requests_adapters
+
+        preloaded_context = getattr(requests_adapters, "_preloaded_ssl_context", None)
+        if preloaded_context is not None:
+            setattr(
+                requests_adapters,
+                "_preloaded_ssl_context",
+                SSLContext(ssl.PROTOCOL_TLS_CLIENT),
+            )
+    except ImportError:
+        pass
+
 
 def extract_from_ssl() -> None:
     """Restores the :class:`ssl.SSLContext` class to its original state"""
@@ -49,7 +67,7 @@ def extract_from_ssl() -> None:
     try:
         import pip._vendor.urllib3.util.ssl_ as urllib3_ssl
 
-        urllib3_ssl.SSLContext = _original_SSLContext
+        urllib3_ssl.SSLContext = _original_SSLContext  # type: ignore[assignment]
     except ImportError:
         pass
 
@@ -168,19 +186,19 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
     def cert_store_stats(self) -> dict[str, int]:
         raise NotImplementedError()
 
+    def set_default_verify_paths(self) -> None:
+        self._ctx.set_default_verify_paths()
+
     @typing.overload
     def get_ca_certs(
         self, binary_form: typing.Literal[False] = ...
-    ) -> list[typing.Any]:
-        ...
+    ) -> list[typing.Any]: ...
 
     @typing.overload
-    def get_ca_certs(self, binary_form: typing.Literal[True] = ...) -> list[bytes]:
-        ...
+    def get_ca_certs(self, binary_form: typing.Literal[True] = ...) -> list[bytes]: ...
 
     @typing.overload
-    def get_ca_certs(self, binary_form: bool = ...) -> typing.Any:
-        ...
+    def get_ca_certs(self, binary_form: bool = ...) -> typing.Any: ...
 
     def get_ca_certs(self, binary_form: bool = False) -> list[typing.Any] | list[bytes]:
         raise NotImplementedError()
@@ -276,6 +294,25 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
         )
 
 
+# Python 3.13+ makes get_unverified_chain() a public API that only returns DER
+# encoded certificates. We detect whether we need to call public_bytes() for 3.10->3.12
+# Pre-3.13 returned None instead of an empty list from get_unverified_chain()
+if sys.version_info >= (3, 13):
+
+    def _get_unverified_chain_bytes(sslobj: ssl.SSLObject) -> list[bytes]:
+        unverified_chain = sslobj.get_unverified_chain() or ()  # type: ignore[attr-defined]
+        return [
+            cert if isinstance(cert, bytes) else cert.public_bytes(_ssl.ENCODING_DER)
+            for cert in unverified_chain
+        ]
+
+else:
+
+    def _get_unverified_chain_bytes(sslobj: ssl.SSLObject) -> list[bytes]:
+        unverified_chain = sslobj.get_unverified_chain() or ()  # type: ignore[attr-defined]
+        return [cert.public_bytes(_ssl.ENCODING_DER) for cert in unverified_chain]
+
+
 def _verify_peercerts(
     sock_or_sslobj: ssl.SSLSocket | ssl.SSLObject, server_hostname: str | None
 ) -> None:
@@ -290,13 +327,7 @@ def _verify_peercerts(
     except AttributeError:
         pass
 
-    # SSLObject.get_unverified_chain() returns 'None'
-    # if the peer sends no certificates. This is common
-    # for the server-side scenario.
-    unverified_chain: typing.Sequence[_ssl.Certificate] = (
-        sslobj.get_unverified_chain() or ()  # type: ignore[attr-defined]
-    )
-    cert_bytes = [cert.public_bytes(_ssl.ENCODING_DER) for cert in unverified_chain]
+    cert_bytes = _get_unverified_chain_bytes(sslobj)
     _verify_peercerts_impl(
         sock_or_sslobj.context, cert_bytes, server_hostname=server_hostname
     )

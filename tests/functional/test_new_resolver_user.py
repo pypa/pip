@@ -27,7 +27,7 @@ def test_new_resolver_install_user_satisfied_by_global_site(
     script: PipTestEnvironment,
 ) -> None:
     """
-    An install a matching version to user site should re-use a global site
+    An install a matching version to user site should reuse a global site
     installation if it satisfies.
     """
     create_basic_wheel_for_package(script, "base", "1.0.0")
@@ -91,7 +91,7 @@ def test_new_resolver_install_user_conflict_in_user_site(
     result.did_not_create(base_2_dist_info)
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtualenv, and to avoid the "Will not
     # install to the usersite because it will lack sys.path precedence..."

@@ -2,7 +2,7 @@ exclude: 'src/pip/_vendor/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
+  rev: v5.0.0
   hooks:
   - id: check-builtin-literals
   - id: check-added-large-files
@@ -17,30 +17,29 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 24.4.0
+  rev: 25.1.0
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.3.6
+  rev: v0.12.2
   hooks:
-    - id: ruff
-      args: [--fix, --exit-non-zero-on-fix]
+    - id: ruff-check
+      args: [--fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.8.0
+  rev: v1.16.1
   hooks:
   - id: mypy
     exclude: tests/data
     args: ["--pretty", "--show-error-codes"]
     additional_dependencies: [
         'keyring==24.2.0',
-        'nox==2023.4.22',
+        'nox==2024.03.02',
         'pytest',
         'types-docutils==0.20.0.3',
         'types-setuptools==68.2.0.0',
         'types-freezegun==1.1.10',
-        'types-six==1.16.21.9',
         'types-pyyaml==6.0.12.12',
     ]
 
@@ -53,6 +52,13 @@ repos:
     files: .*\.rst$
     types: [file]
     exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
+
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.1
+  hooks:
+    - id: codespell
+      exclude: AUTHORS.txt|tests/data
+      args: ["--ignore-words", tools/codespell-ignore.txt]
 
 - repo: local
   hooks:

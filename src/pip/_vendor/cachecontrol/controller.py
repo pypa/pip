@@ -5,12 +5,14 @@
 """
 The httplib2 algorithms ported for use with requests.
 """
+
 from __future__ import annotations
 
 import calendar
 import logging
 import re
 import time
+import weakref
 from email.utils import parsedate_tz
 from typing import TYPE_CHECKING, Collection, Mapping
 
@@ -142,6 +144,11 @@ class CacheController:
         """
         Load a cached response, or return None if it's not available.
         """
+        # We do not support caching of partial content: so if the request contains a
+        # Range header then we don't want to load anything from the cache.
+        if "Range" in request.headers:
+            return None
+
         cache_url = request.url
         assert cache_url is not None
         cache_data = self.cache.get(cache_url)
@@ -317,7 +324,7 @@ class CacheController:
     def cache_response(
         self,
         request: PreparedRequest,
-        response: HTTPResponse,
+        response_or_ref: HTTPResponse | weakref.ReferenceType[HTTPResponse],
         body: bytes | None = None,
         status_codes: Collection[int] | None = None,
     ) -> None:
@@ -326,6 +333,16 @@ class CacheController:
 
         This assumes a requests Response object.
         """
+        if isinstance(response_or_ref, weakref.ReferenceType):
+            response = response_or_ref()
+            if response is None:
+                # The weakref can be None only in case the user used streamed request
+                # and did not consume or close it, and holds no reference to requests.Response.
+                # In such case, we don't want to cache the response.
+                return
+        else:
+            response = response_or_ref
+
         # From httplib2: Don't cache 206's since we aren't going to
         #                handle byte range requests
         cacheable_status_codes = status_codes or self.cacheable_status_codes
@@ -480,7 +497,7 @@ class CacheController:
         cached_response.headers.update(
             {
                 k: v
-                for k, v in response.headers.items()  # type: ignore[no-untyped-call]
+                for k, v in response.headers.items()
                 if k.lower() not in excluded_headers
             }
         )

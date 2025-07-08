@@ -21,4 +21,4 @@ You can help the team by testing new features as they are released to the commun
 If you believe that you have found a user experience bug in pip, or you have ideas for how pip could be made better for all users, please file an issue on the [pip issue tracker](https://github.com/pypa/pip/issues/new).
 
 You can also help improve pip’s user experience by [working on UX issues](https://github.com/pypa/pip/issues?q=is%3Aissue+label%3AUX+is%3Aopen). Issues that are ideal for new contributors are marked with “[good first issue](https://github.com/pypa/pip/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)”. Explore the
-[UX Guidance](guidance) if you have questions.
+[UX Guidance](guidance.md) if you have questions.

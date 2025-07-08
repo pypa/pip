@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import compileall
 import contextlib
 import fnmatch
@@ -8,26 +10,14 @@ import shutil
 import subprocess
 import sys
 import threading
+from collections.abc import Iterable, Iterator
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AnyStr,
-    Callable,
-    ClassVar,
-    ContextManager,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any, AnyStr, Callable, ClassVar
 from unittest.mock import patch
 from zipfile import ZipFile
 
@@ -47,6 +37,7 @@ from installer.sources import WheelFile
 from pip import __file__ as pip_location
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
+
 from tests.lib import (
     DATA_DIR,
     SRC_DIR,
@@ -103,7 +94,7 @@ def pytest_addoption(parser: Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) -> None:
+def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) -> None:
     for item in items:
         if not hasattr(item, "module"):  # e.g.: DoctestTextfile
             continue
@@ -131,11 +122,7 @@ def pytest_collection_modifyitems(config: Config, items: List[pytest.Function]) 
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
-        if (
-            module_root_dir.startswith("functional")
-            or module_root_dir.startswith("integration")
-            or module_root_dir.startswith("lib")
-        ):
+        if module_root_dir.startswith(("functional", "integration", "lib")):
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
@@ -216,7 +203,7 @@ def tmp_path(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tmpdir(tmp_path: Path) -> Path:
     """Override Pytest's ``tmpdir`` with our pathlib implementation.
 
@@ -336,7 +323,7 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
     temporary directories in the application.
     """
     if "no_auto_tempdir_manager" in request.keywords:
-        ctx: Callable[[], ContextManager[None]] = contextlib.nullcontext
+        ctx: Callable[[], AbstractContextManager[None]] = contextlib.nullcontext
     else:
         ctx = global_tempdir_manager
 
@@ -346,7 +333,7 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
 
 @pytest.fixture(scope="session")
 def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
-    def not_code_files_and_folders(path: str, names: List[str]) -> Iterable[str]:
+    def not_code_files_and_folders(path: str, names: list[str]) -> Iterable[str]:
         # In the root directory...
         if os.path.samefile(path, SRC_DIR):
             # ignore all folders except "src"
@@ -379,7 +366,7 @@ def pip_src(tmpdir_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture(scope="session")
 def pip_editable_parts(
     pip_src: Path, tmpdir_factory: pytest.TempPathFactory
-) -> Tuple[Path, ...]:
+) -> tuple[Path, ...]:
     pip_editable = tmpdir_factory.mktemp("pip") / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
@@ -395,6 +382,7 @@ def pip_editable_parts(
             "-m",
             "pip",
             "install",
+            "--no-build-isolation",
             "--target",
             pip_self_install_path,
             "-e",
@@ -410,7 +398,10 @@ def _common_wheel_editable_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path, package: str
 ) -> Path:
     wheel_candidates = list(common_wheels.glob(f"{package}-*.whl"))
-    assert len(wheel_candidates) == 1, wheel_candidates
+    assert len(wheel_candidates) == 1, (
+        f"Missing wheels in {common_wheels}, expected 1 got '{wheel_candidates}'."
+        " Are you running the tests via nox? See https://pip.pypa.io/en/latest/development/getting-started/#running-tests"
+    )
     install_dir = tmpdir_factory.mktemp(package) / "install"
     lib_install_dir = install_dir / "lib"
     bin_install_dir = install_dir / "bin"
@@ -469,11 +460,11 @@ def virtualenv_template(
     request: pytest.FixtureRequest,
     tmpdir_factory: pytest.TempPathFactory,
     pip_src: Path,
-    pip_editable_parts: Tuple[Path, ...],
+    pip_editable_parts: tuple[Path, ...],
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
-) -> Iterator[VirtualEnvironment]:
+) -> VirtualEnvironment:
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
         venv_type = "venv"
@@ -495,7 +486,7 @@ def virtualenv_template(
         dist_info, venv.site / dist_info.name, dirs_exist_ok=True, symlinks=True
     )
     # Create placeholder ``easy-install.pth``, as several tests depend on its
-    # existance.  TODO: Ensure ``tests.lib.TestPipResult.files_updated`` correctly
+    # existence.  TODO: Ensure ``tests.lib.TestPipResult.files_updated`` correctly
     # detects changed files.
     venv.site.joinpath("easy-install.pth").touch()
 
@@ -508,17 +499,14 @@ def virtualenv_template(
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
-        if not (
-            exe.startswith("python")
-            or exe.startswith("libpy")  # Don't remove libpypy-c.so...
-        ):
+        if not exe.startswith(("python", "libpy")):  # Don't remove libpypy-c.so...
             (venv.bin / exe).unlink()
 
     # Rename original virtualenv directory to make sure
     # it's not reused by mistake from one of the copies.
     venv_template = tmpdir / "venv_template"
     venv.move(venv_template)
-    yield venv
+    return venv
 
 
 @pytest.fixture(scope="session")
@@ -534,26 +522,26 @@ def virtualenv_factory(
 @pytest.fixture
 def virtualenv(
     virtualenv_factory: Callable[[Path], VirtualEnvironment], tmpdir: Path
-) -> Iterator[VirtualEnvironment]:
+) -> VirtualEnvironment:
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
     temporary directory. The returned object is a
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
-    yield virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
+    return virtualenv_factory(tmpdir.joinpath("workspace", "venv"))
 
 
 @pytest.fixture(scope="session")
 def script_factory(
     virtualenv_factory: Callable[[Path], VirtualEnvironment],
     deprecated_python: bool,
-    zipapp: Optional[str],
+    zipapp: str | None,
 ) -> ScriptFactory:
     def factory(
         tmpdir: Path,
-        virtualenv: Optional[VirtualEnvironment] = None,
-        environ: Optional[Dict[AnyStr, AnyStr]] = None,
+        virtualenv: VirtualEnvironment | None = None,
+        environ: dict[AnyStr, AnyStr] | None = None,
     ) -> PipTestEnvironment:
         kwargs = {}
         if environ:
@@ -615,7 +603,7 @@ def make_zipapp_from_pip(zipapp_name: Path) -> None:
 @pytest.fixture(scope="session")
 def zipapp(
     request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
-) -> Optional[str]:
+) -> str | None:
     """
     If the user requested for pip to be run from a zipapp, build that zipapp
     and return its location. If the user didn't request a zipapp, return None.
@@ -741,9 +729,9 @@ class FakePackage:
     filename: str
     metadata: MetadataKind
     # This will override any dependencies specified in the actual dist's METADATA.
-    requires_dist: Tuple[str, ...] = ()
+    requires_dist: tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
-    metadata_name: Optional[str] = None
+    metadata_name: str | None = None
 
     def metadata_filename(self) -> str:
         """This is specified by PEP 658."""
@@ -782,7 +770,7 @@ class FakePackage:
 
 
 @pytest.fixture(scope="session")
-def fake_packages() -> Dict[str, List[FakePackage]]:
+def fake_packages() -> dict[str, list[FakePackage]]:
     """The package database we generate for testing PEP 658 support."""
     return {
         "simple": [
@@ -875,7 +863,7 @@ def fake_packages() -> Dict[str, List[FakePackage]]:
 @pytest.fixture(scope="session")
 def html_index_for_packages(
     shared_data: TestData,
-    fake_packages: Dict[str, List[FakePackage]],
+    fake_packages: dict[str, list[FakePackage]],
     tmpdir_factory: pytest.TempPathFactory,
 ) -> Path:
     """Generate a PyPI HTML package index within a local directory pointing to
@@ -910,7 +898,7 @@ def html_index_for_packages(
         pkg_subdir = html_dir / pkg
         pkg_subdir.mkdir()
 
-        download_links: List[str] = []
+        download_links: list[str] = []
         for package_link in links:
             # (3.1) Generate the <a> tag which pip can crawl pointing to this
             # specific package version.
@@ -955,7 +943,7 @@ class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
     """Serve files from the current directory, but error if a file is downloaded more
     than once."""
 
-    _seen_paths: ClassVar[Set[str]] = set()
+    _seen_paths: ClassVar[set[str]] = set()
 
     def do_GET(self) -> None:
         if self.path in self._seen_paths:
@@ -969,7 +957,7 @@ class OneTimeDownloadHandler(http.server.SimpleHTTPRequestHandler):
             self._seen_paths.add(self.path)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def html_index_with_onetime_server(
     html_index_for_packages: Path,
 ) -> Iterator[http.server.ThreadingHTTPServer]:
@@ -980,7 +968,7 @@ def html_index_with_onetime_server(
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
-        def finish_request(self: "Self", request: Any, client_address: Any) -> None:
+        def finish_request(self: Self, request: Any, client_address: Any) -> None:
             self.RequestHandlerClass(
                 request,
                 client_address,
@@ -989,7 +977,7 @@ def html_index_with_onetime_server(
             )
 
     class Handler(OneTimeDownloadHandler):
-        _seen_paths: ClassVar[Set[str]] = set()
+        _seen_paths: ClassVar[set[str]] = set()
 
     with InDirectoryServer(("", 8000), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)

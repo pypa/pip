@@ -1,1 +1,0 @@
-Reduce startup time of commands (e.g. show, freeze) that do not access the network by 15-30%.

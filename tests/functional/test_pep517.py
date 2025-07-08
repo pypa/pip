@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pytest
 import tomli_w
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
+
 from tests.lib import (
     PipTestEnvironment,
     TestData,
@@ -17,14 +20,14 @@ from tests.lib import (
 
 def make_project(
     tmpdir: Path,
-    requires: Optional[List[str]] = None,
-    backend: Optional[str] = None,
-    backend_path: Optional[List[str]] = None,
+    requires: list[str] | None = None,
+    backend: str | None = None,
+    backend_path: list[str] | None = None,
 ) -> Path:
     requires = requires or []
     project_dir = tmpdir / "project"
     project_dir.mkdir()
-    buildsys: Dict[str, Any] = {"requires": requires}
+    buildsys: dict[str, Any] = {"requires": requires}
     if backend:
         buildsys["build-backend"] = backend
     if backend_path:
@@ -44,7 +47,8 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     finder = make_test_finder(find_links=[data.backends])
     env.install_requirements(finder, ["dummy_backend"], "normal", kind="Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
-    assert not conflicting and not missing
+    assert not conflicting
+    assert not missing
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
         assert req.pep517_backend is not None
@@ -163,7 +167,8 @@ def test_conflicting_pep517_backend_requirements(
         "dependencies: simplewheel==1.0 is incompatible with "
         "simplewheel==2.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_no_check_build_deps(
@@ -208,7 +213,8 @@ def test_validate_missing_pep517_backend_requirements(
         f"Some build dependencies for {project_dir.as_uri()} are missing: "
         "'simplewheel==1.0', 'test_backend'."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_validate_conflicting_pep517_backend_requirements(
@@ -235,7 +241,8 @@ def test_validate_conflicting_pep517_backend_requirements(
         "dependencies: simplewheel==2.0 is incompatible with "
         "simplewheel==1.0."
     )
-    assert result.returncode != 0 and msg in result.stderr, str(result)
+    assert result.returncode != 0
+    assert msg in result.stderr, str(result)
 
 
 def test_pep517_backend_requirements_satisfied_by_prerelease(
@@ -247,7 +254,7 @@ def test_pep517_backend_requirements_satisfied_by_prerelease(
     script.pip("install", "test_backend", "--no-index", "-f", data.backends)
 
     project_dir = make_project(
-        script.temp_path,
+        script.scratch_path,
         requires=["test_backend", "myreq"],
         backend="test_backend",
     )
@@ -296,13 +303,13 @@ def test_pep517_install_with_no_cache_dir(
 
 def make_pyproject_with_setup(
     tmpdir: Path, build_system: bool = True, set_backend: bool = True
-) -> Tuple[Path, str]:
+) -> tuple[Path, str]:
     project_dir = tmpdir / "project"
     project_dir.mkdir()
     setup_script = "from setuptools import setup\n"
     expect_script_dir_on_path = True
     if build_system:
-        buildsys: Dict[str, Any] = {
+        buildsys: dict[str, Any] = {
             "requires": ["setuptools", "wheel"],
         }
         if set_backend:

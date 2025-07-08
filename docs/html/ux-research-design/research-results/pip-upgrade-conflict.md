@@ -64,5 +64,5 @@ From the 407 responses that answered "why" a particular solution was best, the f
 Based on the results of this research, the pip UX team has made the following recommendations to the development team:
 
 - While the current behaviour exists, [warn the user when conflicts are introduced](https://github.com/pypa/pip/issues/7744#issuecomment-717573440)
-- [Change the current behaviour](https://github.com/pypa/pip/issues/9094), so that pip takes into account packages that are already installed when upgrading other packages. Show the user a warning when pip anticipates a depdenency conflict (as per option 4)
+- [Change the current behaviour](https://github.com/pypa/pip/issues/9094), so that pip takes into account packages that are already installed when upgrading other packages. Show the user a warning when pip anticipates a dependency conflict (as per option 4)
 - Explore [the possibility of adding additional flags to the upgrade command](https://github.com/pypa/pip/issues/9095), to give users more control

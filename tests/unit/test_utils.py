@@ -3,24 +3,26 @@ util tests
 
 """
 
-import codecs
+from __future__ import annotations
+
 import os
 import shutil
 import stat
 import sys
 import time
+from collections.abc import Iterator
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Iterator, List, NoReturn, Optional, Tuple, Type
-from unittest.mock import Mock, patch
+from typing import Any, Callable, NoReturn
+from unittest.mock import Mock
 
 import pytest
+
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.egg_link import egg_link_path_from_location
-from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
     glibc_version_string,
     glibc_version_string_confstr,
@@ -248,10 +250,10 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
     by the given unreadable directory.
     """
     # Create directory without read permission
-    subdir_path = tmpdir / "subdir"
-    subdir_path.mkdir()
-    path = str(subdir_path)
-    os.chmod(path, stat.S_IWRITE)
+    path = tmpdir / "subdir"
+    path.mkdir()
+    old_mode = path.stat().st_mode
+    path.chmod(stat.S_IWRITE)
 
     mock_func = Mock()
 
@@ -267,6 +269,9 @@ def test_rmtree_errorhandler_reraises_error(tmpdir: Path) -> None:
             rmtree_errorhandler(
                 mock_func, path, sys.exc_info()  # type: ignore[arg-type]
             )
+    finally:
+        # Restore permissions to let pytest to clean up temp dirs
+        path.chmod(old_mode)
 
     mock_func.assert_not_called()
 
@@ -441,49 +446,7 @@ class TestHashes:
         assert not empty_hashes.has_one_of({"sha256": "xyzt"})
 
 
-class TestEncoding:
-    """Tests for pip._internal.utils.encoding"""
-
-    def test_auto_decode_utf_16_le(self) -> None:
-        data = (
-            b"\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00"
-            b"=\x001\x00.\x004\x00.\x002\x00"
-        )
-        assert data.startswith(codecs.BOM_UTF16_LE)
-        assert auto_decode(data) == "Django==1.4.2"
-
-    def test_auto_decode_utf_16_be(self) -> None:
-        data = (
-            b"\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00="
-            b"\x00=\x001\x00.\x004\x00.\x002"
-        )
-        assert data.startswith(codecs.BOM_UTF16_BE)
-        assert auto_decode(data) == "Django==1.4.2"
-
-    def test_auto_decode_no_bom(self) -> None:
-        assert auto_decode(b"foobar") == "foobar"
-
-    def test_auto_decode_pep263_headers(self) -> None:
-        latin1_req = "# coding=latin1\n# Pas trop de café"
-        assert auto_decode(latin1_req.encode("latin1")) == latin1_req
-
-    def test_auto_decode_no_preferred_encoding(self) -> None:
-        om, em = Mock(), Mock()
-        om.return_value = "ascii"
-        em.return_value = None
-        data = "data"
-        with patch("sys.getdefaultencoding", om):
-            with patch("locale.getpreferredencoding", em):
-                ret = auto_decode(data.encode(sys.getdefaultencoding()))
-        assert ret == data
-
-    @pytest.mark.parametrize("encoding", [encoding for bom, encoding in BOMS])
-    def test_all_encodings_are_valid(self, encoding: str) -> None:
-        # we really only care that there is no LookupError
-        assert "".encode(encoding).decode(encoding) == ""
-
-
-def raises(error: Type[Exception]) -> NoReturn:
+def raises(error: type[Exception]) -> NoReturn:
     raise error
 
 
@@ -548,7 +511,7 @@ class TestGlibc:
     ],
 )
 def test_normalize_version_info(
-    version_info: Tuple[int, ...], expected: Tuple[int, int, int]
+    version_info: tuple[int, ...], expected: tuple[int, int, int]
 ) -> None:
     actual = normalize_version_info(version_info)
     assert actual == expected
@@ -556,7 +519,7 @@ def test_normalize_version_info(
 
 class TestGetProg:
     @pytest.mark.parametrize(
-        ("argv", "executable", "expected"),
+        "argv, executable, expected",
         [
             ("/usr/bin/pip", "", "pip"),
             ("-c", "/usr/bin/python", "/usr/bin/python -m pip"),
@@ -587,9 +550,7 @@ class TestGetProg:
         (("2001:db6::1", 5000), "[2001:db6::1]:5000"),
     ],
 )
-def test_build_netloc(
-    host_port: Tuple[str, Optional[int]], expected_netloc: str
-) -> None:
+def test_build_netloc(host_port: tuple[str, int | None], expected_netloc: str) -> None:
     assert build_netloc(*host_port) == expected_netloc
 
 
@@ -617,7 +578,7 @@ def test_build_netloc(
 def test_build_url_from_netloc_and_parse_netloc(
     netloc: str,
     expected_url: str,
-    expected_host_port: Tuple[str, Optional[int]],
+    expected_host_port: tuple[str, int | None],
 ) -> None:
     assert build_url_from_netloc(netloc) == expected_url
     assert parse_netloc(netloc) == expected_host_port
@@ -643,7 +604,7 @@ def test_build_url_from_netloc_and_parse_netloc(
     ],
 )
 def test_split_auth_from_netloc(
-    netloc: str, expected: Tuple[str, Tuple[Optional[str], Optional[str]]]
+    netloc: str, expected: tuple[str, tuple[str | None, str | None]]
 ) -> None:
     actual = split_auth_from_netloc(netloc)
     assert actual == expected
@@ -690,7 +651,7 @@ def test_split_auth_from_netloc(
     ],
 )
 def test_split_auth_netloc_from_url(
-    url: str, expected: Tuple[str, str, Tuple[Optional[str], Optional[str]]]
+    url: str, expected: tuple[str, str, tuple[str | None, str | None]]
 ) -> None:
     actual = split_auth_netloc_from_url(url)
     assert actual == expected
@@ -857,7 +818,7 @@ def test_hide_url() -> None:
     assert hidden_url.secret == "https://user:password@example.com"
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_deprecation_check_version() -> Iterator[None]:
     # We do this, so that the deprecation tests are easier to write.
     import pip._internal.utils.deprecation as d
@@ -874,10 +835,10 @@ def patch_deprecation_check_version() -> Iterator[None]:
 @pytest.mark.parametrize("issue", [None, 988])
 @pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
 def test_deprecated_message_contains_information(
-    gone_in: Optional[str],
-    replacement: Optional[str],
-    issue: Optional[int],
-    feature_flag: Optional[str],
+    gone_in: str | None,
+    replacement: str | None,
+    issue: int | None,
+    feature_flag: str | None,
 ) -> None:
     with pytest.warns(PipDeprecationWarning) as record:
         deprecated(
@@ -904,7 +865,7 @@ def test_deprecated_message_contains_information(
 @pytest.mark.parametrize("issue", [None, 988])
 @pytest.mark.parametrize("feature_flag", [None, "magic-8-ball"])
 def test_deprecated_raises_error_if_too_old(
-    replacement: Optional[str], issue: Optional[int], feature_flag: Optional[str]
+    replacement: str | None, issue: int | None, feature_flag: str | None
 ) -> None:
     with pytest.raises(PipDeprecationWarning) as exception:
         deprecated(
@@ -992,7 +953,7 @@ def test_make_setuptools_shim_args() -> None:
 
 @pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])
 def test_make_setuptools_shim_args__global_options(
-    global_options: Optional[List[str]],
+    global_options: list[str] | None,
 ) -> None:
     args = make_setuptools_shim_args(
         "/dir/path/setup.py",
@@ -1058,7 +1019,7 @@ def test_format_size(size: int, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("rows", "table", "sizes"),
+    "rows, table, sizes",
     [
         ([], [], []),
         (
@@ -1081,5 +1042,5 @@ def test_format_size(size: int, expected: str) -> None:
         ),
     ],
 )
-def test_tabulate(rows: List[Tuple[str]], table: List[str], sizes: List[int]) -> None:
+def test_tabulate(rows: list[tuple[str]], table: list[str], sizes: list[int]) -> None:
     assert tabulate(rows) == (table, sizes)
