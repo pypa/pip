@@ -344,7 +344,7 @@ Designing for pip includes:
 - Writing pip's _output_ - establishing how pip responds to commands and what information it provides the user. This includes writing success and error messages.
 - Providing supplemental materials - e.g. documentation that helps users understand pip's operation
 
-### Error message format and guidelines
+### Error Message Format
 
 A good error message should mention:
 
