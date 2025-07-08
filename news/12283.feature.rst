@@ -1,1 +1,1 @@
-vcs/pip : Remove warning when cloning from a reference
+Remove warning when cloning from a Git reference that does not like a commit hash.
