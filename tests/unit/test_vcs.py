@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
 from typing import Any
@@ -271,6 +272,7 @@ def test_git_resolve_revision_rev_not_found(get_sha_mock: mock.Mock) -> None:
 def test_git_resolve_revision_not_found_warning(
     get_sha_mock: mock.Mock, caplog: pytest.LogCaptureFixture
 ) -> None:
+    caplog.set_level(logging.INFO)
     get_sha_mock.return_value = (None, False)
     url = HiddenText("git+https://git.example.com", redacted="*")
     sha = 40 * "a"
