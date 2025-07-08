@@ -345,31 +345,21 @@ Designing for pip includes:
 - Providing supplemental materials - e.g. documentation that helps users understand pip's operation
 
 ### Error message format and guidelines
-**Principle**
 
 A good error message should mention:
+
 * what the user has tried to do
 * possible next steps to try and solve the error
   * possible steps need to go from "easiest" to "most complicated"
-* why the error has happened - see more information about the situation
-  
-In the case of `pip` error messages, they should also provide:
-* reason(s) why the error occured
-
+* why the error has happened - include a way to see more information
+  about the situation
+ 
 **Further reading**
 
-`https://uxplanet.org/how-to-write-good-error-messages-858e4551cd4`
+- <https://uxplanet.org/how-to-write-good-error-messages-858e4551cd4>
+- <https://www.nngroup.com/articles/error-message-guidelines/>
 
-`https://www.nngroup.com/articles/error-message-guidelines/`
-
-**Error message format**
-
-We propose pip resolver error messages have 3 parts -
-* what the error is (i.e. what the user has tried to do)
-* what has caused the error
-* possible ways to solve the error
-
-**resolution:impossible**
+#### Example error: ResolutionImpossible
 
 where a user wants to install packages (with 1 or more pinned version)
 with default verbose level
