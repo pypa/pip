@@ -37,7 +37,7 @@ separately, as a "formatting cleanup" PR, if needed.
 
 .. attention::
 
-   While contributors may use whatever tools they like, when developing a pull
+   While contributors may use whatever tools they like when developing a pull
    request, it is the contributor's responsibility to ensure that submitted
    code meets the project requirements, and that they understand the submitted
    code well enough to respond to review comments.
