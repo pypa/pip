@@ -35,6 +35,15 @@ Examples include re-flowing text in comments or documentation, or adding or
 removing blank lines or whitespace within lines. Such changes can be made
 separately, as a "formatting cleanup" PR, if needed.
 
+.. attention::
+
+   While contributors may use whatever tools they like, when developing a pull
+   request, it is the contributor's responsibility to ensure that submitted
+   code meets the project requirements, and that they understand the submitted
+   code well enough to respond to review comments.
+
+   In particular, we will mark LLM-generated issues and pull requests as spam
+   without additional discussion.
 
 Automated Testing
 =================
