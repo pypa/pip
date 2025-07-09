@@ -1,8 +1,13 @@
 """Tests for the config command"""
 
+from __future__ import annotations
+
 import os
 import re
 import textwrap
+from collections.abc import Generator
+
+import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
@@ -18,6 +23,15 @@ def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
 
 
 class TestBasicLoading(ConfigurationMixin):
+    @pytest.fixture(autouse=True)
+    def cleanup_files(self) -> Generator[None]:
+        """Avoid state leaking for tests reusing config files."""
+        yield
+        for variant in get_configuration_files():
+            for path in variant:
+                if os.path.exists(path):
+                    os.remove(path)
+
     def test_basic_modification_pipeline(self, script: PipTestEnvironment) -> None:
         script.pip("config", "get", "test.blah", expect_error=True)
         script.pip("config", "set", "test.blah", "1")
@@ -112,9 +126,6 @@ class TestBasicLoading(ConfigurationMixin):
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"user:\n(  .+\n)+", result.stdout)
 
-        # Avoid state leaking for tests reusing the new config file
-        os.remove(new_config_file)
-
     def test_site_values(
         self, script: PipTestEnvironment, virtualenv: VirtualEnvironment
     ) -> None:
@@ -145,10 +156,6 @@ class TestBasicLoading(ConfigurationMixin):
         global_config_file = get_configuration_files()[kinds.GLOBAL][0]
         result = script.pip("config", "debug")
         assert f"{global_config_file}, exists:" in result.stdout
-
-        # Avoid state leaking for tests reusing the new config file
-        if os.path.exists(global_config_file):
-            os.remove(global_config_file)
 
     def test_editor_does_not_exist(self, script: PipTestEnvironment) -> None:
         """Ensure that FileNotFoundError sets filename correctly"""
