@@ -341,3 +341,10 @@ exclude_also = [
     # This excludes typing-specific code, which will be validated by mypy anyway.
     "if TYPE_CHECKING",
 ]
+
+[tool.check-sdist]
+git-only = [
+  "tests/**", 
+  "tools/**"
+]
+default-ignore = true
