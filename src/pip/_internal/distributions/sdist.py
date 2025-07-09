@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import logging
-from typing import Iterable, Optional, Set, Tuple
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
-from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.subprocess import runner_with_spinner_message
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import PackageFinder
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +24,7 @@ class SourceDistribution(AbstractDistribution):
     """
 
     @property
-    def build_tracker_id(self) -> Optional[str]:
+    def build_tracker_id(self) -> str | None:
         """Identify this requirement uniquely by its link."""
         assert self.req.link
         return self.req.link.url_without_fragment
@@ -130,7 +135,7 @@ class SourceDistribution(AbstractDistribution):
         )
 
     def _raise_conflicts(
-        self, conflicting_with: str, conflicting_reqs: Set[Tuple[str, str]]
+        self, conflicting_with: str, conflicting_reqs: set[tuple[str, str]]
     ) -> None:
         format_string = (
             "Some build dependencies for {requirement} "
@@ -146,7 +151,7 @@ class SourceDistribution(AbstractDistribution):
         )
         raise InstallationError(error_message)
 
-    def _raise_missing_reqs(self, missing: Set[str]) -> None:
+    def _raise_missing_reqs(self, missing: set[str]) -> None:
         format_string = (
             "Some build dependencies for {requirement} are missing: {missing}."
         )

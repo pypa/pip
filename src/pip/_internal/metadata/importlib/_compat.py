@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 import importlib.metadata
-from typing import Any, Optional, Protocol, cast
+import os
+from typing import Any, Protocol, cast
+
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 
 class BadMetadata(ValueError):
@@ -27,11 +32,11 @@ class BasePath(Protocol):
         raise NotImplementedError()
 
     @property
-    def parent(self) -> "BasePath":
+    def parent(self) -> BasePath:
         raise NotImplementedError()
 
 
-def get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
+def get_info_location(d: importlib.metadata.Distribution) -> BasePath | None:
     """Find the path to the distribution's metadata directory.
 
     HACK: This relies on importlib.metadata's private ``_path`` attribute. Not
@@ -43,13 +48,40 @@ def get_info_location(d: importlib.metadata.Distribution) -> Optional[BasePath]:
     return getattr(d, "_path", None)
 
 
-def get_dist_name(dist: importlib.metadata.Distribution) -> str:
-    """Get the distribution's project name.
+def parse_name_and_version_from_info_directory(
+    dist: importlib.metadata.Distribution,
+) -> tuple[str | None, str | None]:
+    """Get a name and version from the metadata directory name.
+
+    This is much faster than reading distribution metadata.
+    """
+    info_location = get_info_location(dist)
+    if info_location is None:
+        return None, None
+
+    stem, suffix = os.path.splitext(info_location.name)
+    if suffix == ".dist-info":
+        name, sep, version = stem.partition("-")
+        if sep:
+            return name, version
+
+    if suffix == ".egg-info":
+        name = stem.split("-", 1)[0]
+        return name, None
+
+    return None, None
+
+
+def get_dist_canonical_name(dist: importlib.metadata.Distribution) -> NormalizedName:
+    """Get the distribution's normalized name.
 
     The ``name`` attribute is only available in Python 3.10 or later. We are
     targeting exactly that, but Mypy does not know this.
     """
+    if name := parse_name_and_version_from_info_directory(dist)[0]:
+        return canonicalize_name(name)
+
     name = cast(Any, dist).name
     if not isinstance(name, str):
         raise BadMetadata(dist, reason="invalid metadata entry 'name'")
-    return name
+    return canonicalize_name(name)

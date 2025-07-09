@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import functools
 import types
+import weakref
 import zlib
 from typing import TYPE_CHECKING, Any, Collection, Mapping
 
@@ -77,7 +78,7 @@ class CacheControlAdapter(HTTPAdapter):
 
         return resp
 
-    def build_response(
+    def build_response(  # type: ignore[override]
         self,
         request: PreparedRequest,
         response: HTTPResponse,
@@ -125,25 +126,31 @@ class CacheControlAdapter(HTTPAdapter):
             else:
                 # Wrap the response file with a wrapper that will cache the
                 #   response when the stream has been consumed.
-                response._fp = CallbackFileWrapper(  # type: ignore[attr-defined]
-                    response._fp,  # type: ignore[attr-defined]
+                response._fp = CallbackFileWrapper(  # type: ignore[assignment]
+                    response._fp,  # type: ignore[arg-type]
                     functools.partial(
-                        self.controller.cache_response, request, response
+                        self.controller.cache_response, request, weakref.ref(response)
                     ),
                 )
                 if response.chunked:
-                    super_update_chunk_length = response._update_chunk_length  # type: ignore[attr-defined]
+                    super_update_chunk_length = response.__class__._update_chunk_length
 
-                    def _update_chunk_length(self: HTTPResponse) -> None:
-                        super_update_chunk_length()
+                    def _update_chunk_length(
+                        weak_self: weakref.ReferenceType[HTTPResponse],
+                    ) -> None:
+                        self = weak_self()
+                        if self is None:
+                            return
+
+                        super_update_chunk_length(self)
                         if self.chunk_left == 0:
-                            self._fp._close()  # type: ignore[attr-defined]
+                            self._fp._close()  # type: ignore[union-attr]
 
-                    response._update_chunk_length = types.MethodType(  # type: ignore[attr-defined]
-                        _update_chunk_length, response
+                    response._update_chunk_length = functools.partial(  # type: ignore[method-assign]
+                        _update_chunk_length, weakref.ref(response)
                     )
 
-        resp: Response = super().build_response(request, response)  # type: ignore[no-untyped-call]
+        resp: Response = super().build_response(request, response)
 
         # See if we should invalidate the cache.
         if request.method in self.invalidating_methods and resp.ok:

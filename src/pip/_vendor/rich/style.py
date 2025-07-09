@@ -524,7 +524,7 @@ class Style:
                 if not word:
                     raise errors.StyleSyntaxError("color expected after 'on'")
                 try:
-                    Color.parse(word) is None
+                    Color.parse(word)
                 except ColorParseError as error:
                     raise errors.StyleSyntaxError(
                         f"unable to parse {word!r} as background color; {error}"
@@ -663,7 +663,7 @@ class Style:
         style._set_attributes = self._set_attributes
         style._link = None
         style._link_id = ""
-        style._hash = self._hash
+        style._hash = None
         style._null = False
         style._meta = None
         return style

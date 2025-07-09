@@ -1,11 +1,12 @@
-"""Tests for the config command
-"""
+"""Tests for the config command"""
+
 import os
 import re
 import textwrap
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
+
 from tests.lib import PipTestEnvironment
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 from tests.lib.venv import VirtualEnvironment
@@ -111,7 +112,7 @@ class TestBasicLoading(ConfigurationMixin):
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"user:\n(  .+\n)+", result.stdout)
 
-        # Avoid state leaking for tests re-using the new config file
+        # Avoid state leaking for tests reusing the new config file
         os.remove(new_config_file)
 
     def test_site_values(

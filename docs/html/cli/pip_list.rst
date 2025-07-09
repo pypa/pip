@@ -142,10 +142,10 @@ Examples
 
 #. List packages installed in editable mode
 
-When some packages are installed in editable mode, ``pip list`` outputs an
-additional column that shows the directory where the editable project is
-located (i.e. the directory that contains the ``pyproject.toml`` or
-``setup.py`` file).
+   When some packages are installed in editable mode, ``pip list`` outputs an
+   additional column that shows the directory where the editable project is
+   located (i.e. the directory that contains the ``pyproject.toml`` or
+   ``setup.py`` file).
 
    .. tab:: Unix/macOS
 
@@ -172,7 +172,7 @@ located (i.e. the directory that contains the ``pyproject.toml`` or
          setuptools       57.4.0
          wheel            0.36.2
 
-The json format outputs an additional ``editable_project_location`` field.
+   The json format outputs an additional ``editable_project_location`` field.
 
    .. tab:: Unix/macOS
 

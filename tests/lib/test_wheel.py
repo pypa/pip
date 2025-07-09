@@ -1,5 +1,5 @@
-"""Tests for wheel helper.
-"""
+"""Tests for wheel helper."""
+
 import csv
 from email import message_from_string
 from email.message import Message
@@ -79,7 +79,7 @@ def test_make_metadata_file_custom_value_overrides() -> None:
 
 def test_make_metadata_file_custom_contents() -> None:
     value = b"hello"
-    f = default_make_metadata(value=value)
+    f = default_make_metadata(value=value)  # type: ignore[arg-type]
     assert f is not None
     assert f.contents == value
 

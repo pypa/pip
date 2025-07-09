@@ -80,12 +80,7 @@ instead opt to patch the software they distribute to debundle it and make it
 rely on the global versions of the software that they already have packaged
 (which may have its own patches applied to it). We (the pip team) would prefer
 it if pip was *not* debundled in this manner due to the above reasons and
-instead we would prefer it if pip would be left intact as it is now. The one
-exception to this, is it is acceptable to remove the
-``pip/_vendor/requests/cacert.pem`` file provided you ensure that the
-``ssl.get_default_verify_paths().cafile`` API returns the correct CA bundle for
-your system. This will ensure that pip will use your system provided CA bundle
-instead of the copy bundled with pip.
+instead we would prefer it if pip would be left intact as it is now.
 
 In the longer term, if someone has a *portable* solution to the above problems,
 other than the bundling method we currently use, that doesn't add additional
@@ -119,6 +114,16 @@ Vendoring is automated via the `vendoring <https://pypi.org/project/vendoring/>`
 ``tools/vendoring/patches``.
 Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
 Tool configuration is done via ``pyproject.toml``.
+
+To update the vendored library versions, we have a session defined in ``nox``.
+The command to upgrade everything is::
+
+    nox -s vendoring -- --upgrade-all --skip urllib3 --skip setuptools
+
+At the time of writing (April 2025) we do not upgrade ``urllib3`` because the
+next version is a major upgrade and will be handled as an independent PR. We also
+do not upgrade ``setuptools``, because we only rely on ``pkg_resources``, and
+tracking every ``setuptools`` change is unnecessary for our needs.
 
 
 Managing Local Patches

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import functools
 import hashlib
@@ -7,8 +9,9 @@ import optparse
 import os.path
 import sys
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
+from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.rich.console import Group
 from pip._vendor.rich.markup import escape
@@ -17,7 +20,6 @@ from pip._vendor.rich.text import Text
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import get_default_environment
-from pip._internal.metadata.base import DistributionVersion
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import WINDOWS
@@ -26,7 +28,11 @@ from pip._internal.utils.entrypoints import (
     get_best_invocation_for_this_python,
 )
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
-from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.misc import (
+    ExternallyManagedEnvironment,
+    check_externally_managed,
+    ensure_dir,
+)
 
 _WEEK = datetime.timedelta(days=7)
 
@@ -50,7 +56,7 @@ def _convert_date(isodate: str) -> datetime.datetime:
 
 class SelfCheckState:
     def __init__(self, cache_dir: str) -> None:
-        self._state: Dict[str, Any] = {}
+        self._state: dict[str, Any] = {}
         self._statefile_path = None
 
         # Try to load the existing state
@@ -70,7 +76,7 @@ class SelfCheckState:
     def key(self) -> str:
         return sys.prefix
 
-    def get(self, current_time: datetime.datetime) -> Optional[str]:
+    def get(self, current_time: datetime.datetime) -> str | None:
         """Check if we have a not-outdated version loaded already."""
         if not self._state:
             return None
@@ -161,7 +167,7 @@ def was_installed_by_pip(pkg: str) -> bool:
 
 def _get_current_remote_pip_version(
     session: PipSession, options: optparse.Values
-) -> Optional[str]:
+) -> str | None:
     # Lets use PackageFinder to see what the latest pip version is
     link_collector = LinkCollector.create(
         session,
@@ -191,9 +197,9 @@ def _self_version_check_logic(
     *,
     state: SelfCheckState,
     current_time: datetime.datetime,
-    local_version: DistributionVersion,
-    get_remote_version: Callable[[], Optional[str]],
-) -> Optional[UpgradePrompt]:
+    local_version: Version,
+    get_remote_version: Callable[[], str | None],
+) -> UpgradePrompt | None:
     remote_version_str = state.get(current_time)
     if remote_version_str is None:
         remote_version_str = get_remote_version()
@@ -231,18 +237,18 @@ def pip_self_version_check(session: PipSession, options: optparse.Values) -> Non
     installed_dist = get_default_environment().get_distribution("pip")
     if not installed_dist:
         return
-
     try:
-        upgrade_prompt = _self_version_check_logic(
-            state=SelfCheckState(cache_dir=options.cache_dir),
-            current_time=datetime.datetime.now(datetime.timezone.utc),
-            local_version=installed_dist.version,
-            get_remote_version=functools.partial(
-                _get_current_remote_pip_version, session, options
-            ),
-        )
-        if upgrade_prompt is not None:
-            logger.warning("%s", upgrade_prompt, extra={"rich": True})
-    except Exception:
-        logger.warning("There was an error checking the latest version of pip.")
-        logger.debug("See below for error", exc_info=True)
+        check_externally_managed()
+    except ExternallyManagedEnvironment:
+        return
+
+    upgrade_prompt = _self_version_check_logic(
+        state=SelfCheckState(cache_dir=options.cache_dir),
+        current_time=datetime.datetime.now(datetime.timezone.utc),
+        local_version=installed_dist.version,
+        get_remote_version=functools.partial(
+            _get_current_remote_pip_version, session, options
+        ),
+    )
+    if upgrade_prompt is not None:
+        logger.warning("%s", upgrade_prompt, extra={"rich": True})

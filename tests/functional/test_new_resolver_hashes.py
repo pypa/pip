@@ -89,19 +89,15 @@ def test_new_resolver_hash_intersect_from_constraint(
     script: PipTestEnvironment,
 ) -> None:
     find_links = _create_find_links(script)
+    sdist_hash = find_links.sdist_hash
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text(
-        f"base==0.1.0 --hash=sha256:{find_links.sdist_hash}",
-    )
+    constraints_txt.write_text(f"base==0.1.0 --hash=sha256:{sdist_hash}")
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
-        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
-        """.format(
-            sdist_hash=find_links.sdist_hash,
-            wheel_hash=find_links.wheel_hash,
-        ),
+        f"""
+        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{find_links.wheel_hash}
+        """,
     )
 
     result = script.pip(

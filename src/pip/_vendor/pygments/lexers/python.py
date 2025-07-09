@@ -4,15 +4,14 @@
 
     Lexers for Python and related languages.
 
-    :copyright: Copyright 2006-2023 by the Pygments team, see AUTHORS.
+    :copyright: Copyright 2006-2025 by the Pygments team, see AUTHORS.
     :license: BSD, see LICENSE for details.
 """
 
-import re
 import keyword
 
-from pip._vendor.pygments.lexer import DelegatingLexer, Lexer, RegexLexer, include, \
-    bygroups, using, default, words, combined, do_insertions, this, line_re
+from pip._vendor.pygments.lexer import DelegatingLexer, RegexLexer, include, \
+    bygroups, using, default, words, combined, this
 from pip._vendor.pygments.util import get_bool_opt, shebang_matches
 from pip._vendor.pygments.token import Text, Comment, Operator, Keyword, Name, String, \
     Number, Punctuation, Generic, Other, Error, Whitespace
@@ -27,16 +26,14 @@ class PythonLexer(RegexLexer):
     """
     For Python source code (version 3.x).
 
-    .. versionadded:: 0.10
-
     .. versionchanged:: 2.5
        This is now the default ``PythonLexer``.  It is still available as the
        alias ``Python3Lexer``.
     """
 
     name = 'Python'
-    url = 'http://www.python.org'
-    aliases = ['python', 'py', 'sage', 'python3', 'py3']
+    url = 'https://www.python.org'
+    aliases = ['python', 'py', 'sage', 'python3', 'py3', 'bazel', 'starlark', 'pyi']
     filenames = [
         '*.py',
         '*.pyw',
@@ -61,8 +58,9 @@ class PythonLexer(RegexLexer):
     ]
     mimetypes = ['text/x-python', 'application/x-python',
                  'text/x-python3', 'application/x-python3']
+    version_added = '0.10'
 
-    uni_name = "[%s][%s]*" % (uni.xid_start, uni.xid_continue)
+    uni_name = f"[{uni.xid_start}][{uni.xid_continue}]*"
 
     def innerstring_rules(ttype):
         return [
@@ -111,11 +109,11 @@ class PythonLexer(RegexLexer):
             (r'\\', Text),
             include('keywords'),
             include('soft-keywords'),
-            (r'(def)((?:\s|\\\s)+)', bygroups(Keyword, Text), 'funcname'),
-            (r'(class)((?:\s|\\\s)+)', bygroups(Keyword, Text), 'classname'),
-            (r'(from)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Text),
+            (r'(def)((?:\s|\\\s)+)', bygroups(Keyword, Whitespace), 'funcname'),
+            (r'(class)((?:\s|\\\s)+)', bygroups(Keyword, Whitespace), 'classname'),
+            (r'(from)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Whitespace),
              'fromimport'),
-            (r'(import)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Text),
+            (r'(import)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Whitespace),
              'import'),
             include('expr'),
         ],
@@ -224,7 +222,8 @@ class PythonLexer(RegexLexer):
              r'(match|case)\b'         # a possible keyword
              r'(?![ \t]*(?:'           # not followed by...
              r'[:,;=^&|@~)\]}]|(?:' +  # characters and keywords that mean this isn't
-             r'|'.join(keyword.kwlist) + r')\b))',                 # pattern matching
+                                       # pattern matching (but None/True/False is ok)
+             r'|'.join(k for k in keyword.kwlist if k[0].islower()) + r')\b))',
              bygroups(Text, Keyword), 'soft-keywords-inner'),
         ],
         'soft-keywords-inner': [
@@ -330,14 +329,14 @@ class PythonLexer(RegexLexer):
             (uni_name, Name.Class, '#pop'),
         ],
         'import': [
-            (r'(\s+)(as)(\s+)', bygroups(Text, Keyword, Text)),
+            (r'(\s+)(as)(\s+)', bygroups(Whitespace, Keyword, Whitespace)),
             (r'\.', Name.Namespace),
             (uni_name, Name.Namespace),
-            (r'(\s*)(,)(\s*)', bygroups(Text, Operator, Text)),
+            (r'(\s*)(,)(\s*)', bygroups(Whitespace, Operator, Whitespace)),
             default('#pop')  # all else: go back
         ],
         'fromimport': [
-            (r'(\s+)(import)\b', bygroups(Text, Keyword.Namespace), '#pop'),
+            (r'(\s+)(import)\b', bygroups(Whitespace, Keyword.Namespace), '#pop'),
             (r'\.', Name.Namespace),
             # if None occurs here, it's "raise x from None", since None can
             # never be a module name
@@ -425,10 +424,11 @@ class Python2Lexer(RegexLexer):
     """
 
     name = 'Python 2.x'
-    url = 'http://www.python.org'
+    url = 'https://www.python.org'
     aliases = ['python2', 'py2']
     filenames = []  # now taken over by PythonLexer (3.x)
     mimetypes = ['text/x-python2', 'application/x-python2']
+    version_added = ''
 
     def innerstring_rules(ttype):
         return [
@@ -459,11 +459,11 @@ class Python2Lexer(RegexLexer):
             (r'(in|is|and|or|not)\b', Operator.Word),
             (r'!=|==|<<|>>|[-~+/*%=<>&^|.]', Operator),
             include('keywords'),
-            (r'(def)((?:\s|\\\s)+)', bygroups(Keyword, Text), 'funcname'),
-            (r'(class)((?:\s|\\\s)+)', bygroups(Keyword, Text), 'classname'),
-            (r'(from)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Text),
+            (r'(def)((?:\s|\\\s)+)', bygroups(Keyword, Whitespace), 'funcname'),
+            (r'(class)((?:\s|\\\s)+)', bygroups(Keyword, Whitespace), 'classname'),
+            (r'(from)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Whitespace),
              'fromimport'),
-            (r'(import)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Text),
+            (r'(import)((?:\s|\\\s)+)', bygroups(Keyword.Namespace, Whitespace),
              'import'),
             include('builtins'),
             include('magicfuncs'),
@@ -635,9 +635,10 @@ class Python2Lexer(RegexLexer):
     def analyse_text(text):
         return shebang_matches(text, r'pythonw?2(\.\d)?')
 
+
 class _PythonConsoleLexerBase(RegexLexer):
     name = 'Python console session'
-    aliases = ['pycon']
+    aliases = ['pycon', 'python-console']
     mimetypes = ['text/x-python-doctest']
 
     """Auxiliary lexer for `PythonConsoleLexer`.
@@ -671,6 +672,7 @@ class _PythonConsoleLexerBase(RegexLexer):
         ],
     }
 
+
 class PythonConsoleLexer(DelegatingLexer):
     """
     For Python console output or doctests, such as:
@@ -696,8 +698,10 @@ class PythonConsoleLexer(DelegatingLexer):
     """
 
     name = 'Python console session'
-    aliases = ['pycon']
+    aliases = ['pycon', 'python-console']
     mimetypes = ['text/x-python-doctest']
+    url = 'https://python.org'
+    version_added = ''
 
     def __init__(self, **options):
         python3 = get_bool_opt(options, 'python3', True)
@@ -717,11 +721,10 @@ class PythonConsoleLexer(DelegatingLexer):
                 super().__init__(pylexer, _PythonConsoleLexerBase, Other.Code, **options)
         super().__init__(tblexer, _ReplaceInnerCode, Other.Traceback, **options)
 
+
 class PythonTracebackLexer(RegexLexer):
     """
     For Python 3.x tracebacks, with support for chained exceptions.
-
-    .. versionadded:: 1.0
 
     .. versionchanged:: 2.5
        This is now the default ``PythonTracebackLexer``.  It is still available
@@ -732,6 +735,8 @@ class PythonTracebackLexer(RegexLexer):
     aliases = ['pytb', 'py3tb']
     filenames = ['*.pytb', '*.py3tb']
     mimetypes = ['text/x-python-traceback', 'text/x-python3-traceback']
+    url = 'https://python.org'
+    version_added = '1.0'
 
     tokens = {
         'root': [
@@ -778,8 +783,6 @@ class Python2TracebackLexer(RegexLexer):
     """
     For Python tracebacks.
 
-    .. versionadded:: 0.7
-
     .. versionchanged:: 2.5
        This class has been renamed from ``PythonTracebackLexer``.
        ``PythonTracebackLexer`` now refers to the Python 3 variant.
@@ -789,6 +792,8 @@ class Python2TracebackLexer(RegexLexer):
     aliases = ['py2tb']
     filenames = ['*.py2tb']
     mimetypes = ['text/x-python2-traceback']
+    url = 'https://python.org'
+    version_added = '0.7'
 
     tokens = {
         'root': [
@@ -825,15 +830,14 @@ class Python2TracebackLexer(RegexLexer):
 class CythonLexer(RegexLexer):
     """
     For Pyrex and Cython source code.
-
-    .. versionadded:: 1.1
     """
 
     name = 'Cython'
-    url = 'http://cython.org'
+    url = 'https://cython.org'
     aliases = ['cython', 'pyx', 'pyrex']
     filenames = ['*.pyx', '*.pxd', '*.pxi']
     mimetypes = ['text/x-cython', 'application/x-cython']
+    version_added = '1.1'
 
     tokens = {
         'root': [
@@ -850,16 +854,16 @@ class CythonLexer(RegexLexer):
              bygroups(Punctuation, Keyword.Type, Punctuation)),
             (r'!=|==|<<|>>|[-~+/*%=<>&^|.?]', Operator),
             (r'(from)(\d+)(<=)(\s+)(<)(\d+)(:)',
-             bygroups(Keyword, Number.Integer, Operator, Name, Operator,
+             bygroups(Keyword, Number.Integer, Operator, Whitespace, Operator,
                       Name, Punctuation)),
             include('keywords'),
-            (r'(def|property)(\s+)', bygroups(Keyword, Text), 'funcname'),
-            (r'(cp?def)(\s+)', bygroups(Keyword, Text), 'cdef'),
+            (r'(def|property)(\s+)', bygroups(Keyword, Whitespace), 'funcname'),
+            (r'(cp?def)(\s+)', bygroups(Keyword, Whitespace), 'cdef'),
             # (should actually start a block with only cdefs)
             (r'(cdef)(:)', bygroups(Keyword, Punctuation)),
-            (r'(class|struct)(\s+)', bygroups(Keyword, Text), 'classname'),
-            (r'(from)(\s+)', bygroups(Keyword, Text), 'fromimport'),
-            (r'(c?import)(\s+)', bygroups(Keyword, Text), 'import'),
+            (r'(class|struct)(\s+)', bygroups(Keyword, Whitespace), 'classname'),
+            (r'(from)(\s+)', bygroups(Keyword, Whitespace), 'fromimport'),
+            (r'(c?import)(\s+)', bygroups(Keyword, Whitespace), 'import'),
             include('builtins'),
             include('backtick'),
             ('(?:[rR]|[uU][rR]|[rR][uU])"""', String, 'tdqs'),
@@ -937,9 +941,9 @@ class CythonLexer(RegexLexer):
             (r'(public|readonly|extern|api|inline)\b', Keyword.Reserved),
             (r'(struct|enum|union|class)\b', Keyword),
             (r'([a-zA-Z_]\w*)(\s*)(?=[(:#=]|$)',
-             bygroups(Name.Function, Text), '#pop'),
+             bygroups(Name.Function, Whitespace), '#pop'),
             (r'([a-zA-Z_]\w*)(\s*)(,)',
-             bygroups(Name.Function, Text, Punctuation)),
+             bygroups(Name.Function, Whitespace, Punctuation)),
             (r'from\b', Keyword, '#pop'),
             (r'as\b', Keyword),
             (r':', Punctuation, '#pop'),
@@ -951,13 +955,13 @@ class CythonLexer(RegexLexer):
             (r'[a-zA-Z_]\w*', Name.Class, '#pop')
         ],
         'import': [
-            (r'(\s+)(as)(\s+)', bygroups(Text, Keyword, Text)),
+            (r'(\s+)(as)(\s+)', bygroups(Whitespace, Keyword, Whitespace)),
             (r'[a-zA-Z_][\w.]*', Name.Namespace),
-            (r'(\s*)(,)(\s*)', bygroups(Text, Operator, Text)),
+            (r'(\s*)(,)(\s*)', bygroups(Whitespace, Operator, Whitespace)),
             default('#pop')  # all else: go back
         ],
         'fromimport': [
-            (r'(\s+)(c?import)\b', bygroups(Text, Keyword), '#pop'),
+            (r'(\s+)(c?import)\b', bygroups(Whitespace, Keyword), '#pop'),
             (r'[a-zA-Z_.][\w.]*', Name.Namespace),
             # ``cdef foo from "header"``, or ``for foo from 0 < i < 10``
             default('#pop'),
@@ -1007,13 +1011,13 @@ class DgLexer(RegexLexer):
     Lexer for dg,
     a functional and object-oriented programming language
     running on the CPython 3 VM.
-
-    .. versionadded:: 1.6
     """
     name = 'dg'
     aliases = ['dg']
     filenames = ['*.dg']
     mimetypes = ['text/x-dg']
+    url = 'http://pyos.github.io/dg'
+    version_added = '1.6'
 
     tokens = {
         'root': [
@@ -1104,13 +1108,12 @@ class DgLexer(RegexLexer):
 class NumPyLexer(PythonLexer):
     """
     A Python lexer recognizing Numerical Python builtins.
-
-    .. versionadded:: 0.10
     """
 
     name = 'NumPy'
     url = 'https://numpy.org/'
     aliases = ['numpy']
+    version_added = '0.10'
 
     # override the mimetypes to not inherit them from python
     mimetypes = []

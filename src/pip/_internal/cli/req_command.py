@@ -1,21 +1,21 @@
-"""Contains the Command base classes that depend on PipSession.
+"""Contains the RequirementCommand base class.
 
-The classes in this module are in a separate module so the commands not
-needing download / PackageFinder capability don't unnecessarily import the
+This class is in a separate module so the commands that do not always
+need PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+from __future__ import annotations
+
 import logging
-import os
-import sys
 from functools import partial
 from optparse import Values
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import Any
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import Command
-from pip._internal.cli.command_context import CommandContextMixIn
+from pip._internal.cli.index_command import IndexGroupCommand
+from pip._internal.cli.index_command import SessionCommandMixin as SessionCommandMixin
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
@@ -30,162 +30,17 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
     install_req_from_req_string,
 )
+from pip._internal.req.req_dependency_group import parse_dependency_groups
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
-from pip._internal.self_outdated_check import pip_self_version_check
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
     tempdir_kinds,
 )
-from pip._internal.utils.virtualenv import running_under_virtualenv
-
-if TYPE_CHECKING:
-    from ssl import SSLContext
 
 logger = logging.getLogger(__name__)
-
-
-def _create_truststore_ssl_context() -> Optional["SSLContext"]:
-    if sys.version_info < (3, 10):
-        raise CommandError("The truststore feature is only available for Python 3.10+")
-
-    try:
-        import ssl
-    except ImportError:
-        logger.warning("Disabling truststore since ssl support is missing")
-        return None
-
-    try:
-        from pip._vendor import truststore
-    except ImportError as e:
-        raise CommandError(f"The truststore feature is unavailable: {e}")
-
-    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-
-
-class SessionCommandMixin(CommandContextMixIn):
-
-    """
-    A class mixin for command classes needing _build_session().
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._session: Optional[PipSession] = None
-
-    @classmethod
-    def _get_index_urls(cls, options: Values) -> Optional[List[str]]:
-        """Return a list of index urls from user-provided options."""
-        index_urls = []
-        if not getattr(options, "no_index", False):
-            url = getattr(options, "index_url", None)
-            if url:
-                index_urls.append(url)
-        urls = getattr(options, "extra_index_urls", None)
-        if urls:
-            index_urls.extend(urls)
-        # Return None rather than an empty list
-        return index_urls or None
-
-    def get_default_session(self, options: Values) -> PipSession:
-        """Get a default-managed session."""
-        if self._session is None:
-            self._session = self.enter_context(self._build_session(options))
-            # there's no type annotation on requests.Session, so it's
-            # automatically ContextManager[Any] and self._session becomes Any,
-            # then https://github.com/python/mypy/issues/7696 kicks in
-            assert self._session is not None
-        return self._session
-
-    def _build_session(
-        self,
-        options: Values,
-        retries: Optional[int] = None,
-        timeout: Optional[int] = None,
-        fallback_to_certifi: bool = False,
-    ) -> PipSession:
-        cache_dir = options.cache_dir
-        assert not cache_dir or os.path.isabs(cache_dir)
-
-        if "truststore" in options.features_enabled:
-            try:
-                ssl_context = _create_truststore_ssl_context()
-            except Exception:
-                if not fallback_to_certifi:
-                    raise
-                ssl_context = None
-        else:
-            ssl_context = None
-
-        session = PipSession(
-            cache=os.path.join(cache_dir, "http-v2") if cache_dir else None,
-            retries=retries if retries is not None else options.retries,
-            trusted_hosts=options.trusted_hosts,
-            index_urls=self._get_index_urls(options),
-            ssl_context=ssl_context,
-        )
-
-        # Handle custom ca-bundles from the user
-        if options.cert:
-            session.verify = options.cert
-
-        # Handle SSL client certificate
-        if options.client_cert:
-            session.cert = options.client_cert
-
-        # Handle timeouts
-        if options.timeout or timeout:
-            session.timeout = timeout if timeout is not None else options.timeout
-
-        # Handle configured proxies
-        if options.proxy:
-            session.proxies = {
-                "http": options.proxy,
-                "https": options.proxy,
-            }
-
-        # Determine if we can prompt the user for authentication or not
-        session.auth.prompting = not options.no_input
-        session.auth.keyring_provider = options.keyring_provider
-
-        return session
-
-
-class IndexGroupCommand(Command, SessionCommandMixin):
-
-    """
-    Abstract base class for commands with the index_group options.
-
-    This also corresponds to the commands that permit the pip version check.
-    """
-
-    def handle_pip_version_check(self, options: Values) -> None:
-        """
-        Do the pip version check if not disabled.
-
-        This overrides the default behavior of not doing the check.
-        """
-        # Make sure the index_group options are present.
-        assert hasattr(options, "no_index")
-
-        if options.disable_pip_version_check or options.no_index:
-            return
-
-        # Otherwise, check if we're using the latest version of pip available.
-        session = self._build_session(
-            options,
-            retries=0,
-            timeout=min(5, options.timeout),
-            # This is set to ensure the function does not fail when truststore is
-            # specified in use-feature but cannot be loaded. This usually raises a
-            # CommandError and shows a nice user-facing error, but this function is not
-            # called in that try-except block.
-            fallback_to_certifi=True,
-        )
-        with session:
-            pip_self_version_check(session, options)
 
 
 KEEPABLE_TEMPDIR_TYPES = [
@@ -193,36 +48,6 @@ KEEPABLE_TEMPDIR_TYPES = [
     tempdir_kinds.EPHEM_WHEEL_CACHE,
     tempdir_kinds.REQ_BUILD,
 ]
-
-
-def warn_if_run_as_root() -> None:
-    """Output a warning for sudo users on Unix.
-
-    In a virtual environment, sudo pip still writes to virtualenv.
-    On Windows, users may run pip as Administrator without issues.
-    This warning only applies to Unix root users outside of virtualenv.
-    """
-    if running_under_virtualenv():
-        return
-    if not hasattr(os, "getuid"):
-        return
-    # On Windows, there are no "system managed" Python packages. Installing as
-    # Administrator via pip is the correct way of updating system environments.
-    #
-    # We choose sys.platform over utils.compat.WINDOWS here to enable Mypy platform
-    # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
-    if sys.platform == "win32" or sys.platform == "cygwin":
-        return
-
-    if os.getuid() != 0:
-        return
-
-    logger.warning(
-        "Running pip as the 'root' user can result in broken permissions and "
-        "conflicting behaviour with the system package manager. "
-        "It is recommended to use a virtual environment instead: "
-        "https://pip.pypa.io/warnings/venv"
-    )
 
 
 def with_cleanup(func: Any) -> Any:
@@ -235,8 +60,8 @@ def with_cleanup(func: Any) -> Any:
             registry.set_delete(t, False)
 
     def wrapper(
-        self: RequirementCommand, options: Values, args: List[Any]
-    ) -> Optional[int]:
+        self: RequirementCommand, options: Values, args: list[Any]
+    ) -> int | None:
         assert self.tempdir_registry is not None
         if options.no_clean:
             configure_tempdir_registry(self.tempdir_registry)
@@ -257,6 +82,7 @@ class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
 
+        self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
@@ -276,7 +102,7 @@ class RequirementCommand(IndexGroupCommand):
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
-        download_dir: Optional[str] = None,
+        download_dir: str | None = None,
         verbosity: int = 0,
     ) -> RequirementPreparer:
         """
@@ -320,6 +146,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            resume_retries=options.resume_retries,
         )
 
     @classmethod
@@ -328,14 +155,14 @@ class RequirementCommand(IndexGroupCommand):
         preparer: RequirementPreparer,
         finder: PackageFinder,
         options: Values,
-        wheel_cache: Optional[WheelCache] = None,
+        wheel_cache: WheelCache | None = None,
         use_user_site: bool = False,
         ignore_installed: bool = True,
         ignore_requires_python: bool = False,
         force_reinstall: bool = False,
         upgrade_strategy: str = "to-satisfy-only",
-        use_pep517: Optional[bool] = None,
-        py_version_info: Optional[Tuple[int, ...]] = None,
+        use_pep517: bool | None = None,
+        py_version_info: tuple[int, ...] | None = None,
     ) -> BaseResolver:
         """
         Create a Resolver instance for the given parameters.
@@ -383,15 +210,15 @@ class RequirementCommand(IndexGroupCommand):
 
     def get_requirements(
         self,
-        args: List[str],
+        args: list[str],
         options: Values,
         finder: PackageFinder,
         session: PipSession,
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         """
         Parse command-line arguments into the corresponding requirements.
         """
-        requirements: List[InstallRequirement] = []
+        requirements: list[InstallRequirement] = []
         for filename in options.constraints:
             for parsed_req in parse_requirements(
                 filename,
@@ -418,6 +245,16 @@ class RequirementCommand(IndexGroupCommand):
             )
             requirements.append(req_to_add)
 
+        if options.dependency_groups:
+            for req in parse_dependency_groups(options.dependency_groups):
+                req_to_add = install_req_from_req_string(
+                    req,
+                    isolated=options.isolated_mode,
+                    use_pep517=options.use_pep517,
+                    user_supplied=True,
+                )
+                requirements.append(req_to_add)
+
         for req in options.editables:
             req_to_add = install_req_from_editable(
                 req,
@@ -438,9 +275,11 @@ class RequirementCommand(IndexGroupCommand):
                     isolated=options.isolated_mode,
                     use_pep517=options.use_pep517,
                     user_supplied=True,
-                    config_settings=parsed_req.options.get("config_settings")
-                    if parsed_req.options
-                    else None,
+                    config_settings=(
+                        parsed_req.options.get("config_settings")
+                        if parsed_req.options
+                        else None
+                    ),
                 )
                 requirements.append(req_to_add)
 
@@ -448,7 +287,12 @@ class RequirementCommand(IndexGroupCommand):
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
-        if not (args or options.editables or options.requirements):
+        if not (
+            args
+            or options.editables
+            or options.requirements
+            or options.dependency_groups
+        ):
             opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
@@ -480,8 +324,8 @@ class RequirementCommand(IndexGroupCommand):
         self,
         options: Values,
         session: PipSession,
-        target_python: Optional[TargetPython] = None,
-        ignore_requires_python: Optional[bool] = None,
+        target_python: TargetPython | None = None,
+        ignore_requires_python: bool | None = None,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to this requirement command.

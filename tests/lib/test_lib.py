@@ -1,11 +1,13 @@
 """Test the test support."""
+
 import filecmp
 import pathlib
 import re
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from os.path import isdir, join
-from typing import Any, Dict, Iterator, Type
+from typing import Any
 
 import pytest
 
@@ -14,7 +16,7 @@ from tests.lib import SRC_DIR, PipTestEnvironment
 
 @contextmanager
 def assert_error_startswith(
-    exc_type: Type[Exception], expected_start: str
+    exc_type: type[Exception], expected_start: str
 ) -> Iterator[None]:
     """
     Assert that an exception is raised starting with a certain message.
@@ -114,11 +116,11 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix",
-        (
+        [
             "DEBUG",
             "INFO",
             "FOO",
-        ),
+        ],
     )
     def test_run__allowed_stderr(self, script: PipTestEnvironment, prefix: str) -> None:
         """
@@ -149,10 +151,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix",
-        (
+        [
             "WARNING",
             "ERROR",
-        ),
+        ],
     )
     def test_run__allow_stderr_error(
         self, script: PipTestEnvironment, prefix: str
@@ -165,10 +167,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "prefix, expected_start",
-        (
+        [
             ("WARNING", "stderr has an unexpected warning"),
             ("ERROR", "stderr has an unexpected error"),
-        ),
+        ],
     )
     def test_run__unexpected_stderr(
         self, script: PipTestEnvironment, prefix: str, expected_start: str
@@ -226,10 +228,10 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize(
         "arg_name",
-        (
+        [
             "expect_error",
             "allow_stderr_error",
-        ),
+        ],
     )
     def test_run__allow_stderr_warning_false_error(
         self, script: PipTestEnvironment, arg_name: str
@@ -237,7 +239,7 @@ class TestPipTestEnvironment:
         """
         Test passing allow_stderr_warning=False when it is not allowed.
         """
-        kwargs: Dict[str, Any] = {"allow_stderr_warning": False, arg_name: True}
+        kwargs: dict[str, Any] = {"allow_stderr_warning": False, arg_name: True}
         expected_start = (
             "cannot pass allow_stderr_warning=False with allow_stderr_error=True"
         )

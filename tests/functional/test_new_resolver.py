@@ -2,7 +2,7 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Dict, List, Protocol, Tuple
+from typing import TYPE_CHECKING, Callable, Protocol
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -35,7 +35,7 @@ def assert_editable(script: PipTestEnvironment, *args: str) -> None:
     ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_fake_wheel(script: PipTestEnvironment) -> MakeFakeWheel:
     def _make_fake_wheel(name: str, version: str, wheel_tag: str) -> pathlib.Path:
         wheel_house = script.scratch_path.joinpath("wheelhouse")
@@ -418,6 +418,30 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
     assert message in result.stderr, str(result)
 
 
+def test_new_resolver_requires_python_ok_with_python_version_flag(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        requires_python="<3",
+    )
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--dry-run",
+        "--python-version=2",
+        "--only-binary=:all:",
+        "base",
+    )
+
+    assert not result.stderr, str(result)
+
+
 def test_new_resolver_installed(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(
         script,
@@ -608,8 +632,8 @@ def test_new_resolver_force_reinstall(script: PipTestEnvironment) -> None:
 )
 def test_new_resolver_handles_prerelease(
     script: PipTestEnvironment,
-    available_versions: List[str],
-    pip_args: List[str],
+    available_versions: list[str],
+    pip_args: list[str],
     expected_version: str,
 ) -> None:
     for version in available_versions:
@@ -635,7 +659,7 @@ def test_new_resolver_handles_prerelease(
     ],
 )
 def test_new_resolver_skips_marker(
-    script: PipTestEnvironment, pkg_deps: List[str], root_deps: List[str]
+    script: PipTestEnvironment, pkg_deps: list[str], root_deps: list[str]
 ) -> None:
     create_basic_wheel_for_package(script, "pkg", "1.0", depends=pkg_deps)
     create_basic_wheel_for_package(script, "dep", "1.0")
@@ -662,7 +686,7 @@ def test_new_resolver_skips_marker(
     ],
 )
 def test_new_resolver_constraints(
-    script: PipTestEnvironment, constraints: List[str]
+    script: PipTestEnvironment, constraints: list[str]
 ) -> None:
     create_basic_wheel_for_package(script, "pkg", "1.0")
     create_basic_wheel_for_package(script, "pkg", "2.0")
@@ -928,18 +952,17 @@ if TYPE_CHECKING:
             script: PipTestEnvironment,
             name: str,
             version: str,
-            requires: List[str],
-            extras: Dict[str, List[str]],
-        ) -> str:
-            ...
+            requires: list[str],
+            extras: dict[str, list[str]],
+        ) -> str: ...
 
 
 def _local_with_setup(
     script: PipTestEnvironment,
     name: str,
     version: str,
-    requires: List[str],
-    extras: Dict[str, List[str]],
+    requires: list[str],
+    extras: dict[str, list[str]],
 ) -> str:
     """Create the package as a local source directory to install from path."""
     path = create_test_package_with_setup(
@@ -956,8 +979,8 @@ def _direct_wheel(
     script: PipTestEnvironment,
     name: str,
     version: str,
-    requires: List[str],
-    extras: Dict[str, List[str]],
+    requires: list[str],
+    extras: dict[str, list[str]],
 ) -> str:
     """Create the package as a wheel to install from path directly."""
     path = create_basic_wheel_for_package(
@@ -974,8 +997,8 @@ def _wheel_from_index(
     script: PipTestEnvironment,
     name: str,
     version: str,
-    requires: List[str],
-    extras: Dict[str, List[str]],
+    requires: list[str],
+    extras: dict[str, list[str]],
 ) -> str:
     """Create the package as a wheel to install from index."""
     create_basic_wheel_for_package(
@@ -1832,7 +1855,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(req_line)
 
-    last_args: Tuple[str, ...]
+    last_args: tuple[str, ...]
     if editable:
         last_args = ("-e", os.fspath(source_dir))
     else:
@@ -2276,8 +2299,8 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained(
     script.assert_installed(pkg="1.0", dep="1.0")
 
 
-@pytest.mark.parametrize("swap_order", (True, False))
-@pytest.mark.parametrize("two_extras", (True, False))
+@pytest.mark.parametrize("swap_order", [True, False])
+@pytest.mark.parametrize("two_extras", [True, False])
 def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement(
     script: PipTestEnvironment, swap_order: bool, two_extras: bool
 ) -> None:
@@ -2297,7 +2320,7 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement
         script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
     )
 
-    to_install: Tuple[str, str] = (
+    to_install: tuple[str, str] = (
         "pkg[ext1]",
         "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
@@ -2314,8 +2337,8 @@ def test_new_resolver_dont_backtrack_on_extra_if_base_constrained_in_requirement
     script.assert_installed(pkg="1.0", dep="1.0")
 
 
-@pytest.mark.parametrize("swap_order", (True, False))
-@pytest.mark.parametrize("two_extras", (True, False))
+@pytest.mark.parametrize("swap_order", [True, False])
+@pytest.mark.parametrize("two_extras", [True, False])
 def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
     tmpdir: pathlib.Path,
     virtualenv: VirtualEnvironment,
@@ -2344,7 +2367,7 @@ def test_new_resolver_dont_backtrack_on_conflicting_constraints_on_extras(
         script, "pkg", "2.0", extras={"ext1": ["dep"], "ext2": ["dep"]}
     )
 
-    to_install: Tuple[str, str] = (
+    to_install: tuple[str, str] = (
         "pkg[ext1]>1",
         "pkg[ext2]==1.0" if two_extras else "pkg==1.0",
     )
@@ -2495,7 +2518,7 @@ def test_new_resolver_works_when_failing_package_builds_are_disallowed(
     script.assert_installed(pkg2="1.0", pkg1="1.0")
 
 
-@pytest.mark.parametrize("swap_order", (True, False))
+@pytest.mark.parametrize("swap_order", [True, False])
 def test_new_resolver_comes_from_with_extra(
     script: PipTestEnvironment, swap_order: bool
 ) -> None:
@@ -2508,7 +2531,7 @@ def test_new_resolver_comes_from_with_extra(
     create_basic_wheel_for_package(script, "dep", "1.0")
     create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
 
-    to_install: Tuple[str, str] = ("pkg", "pkg[ext]")
+    to_install: tuple[str, str] = ("pkg", "pkg[ext]")
 
     result = script.pip(
         "install",

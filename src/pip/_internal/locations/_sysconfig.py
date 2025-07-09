@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
 import sysconfig
-import typing
 
 from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationInvalid
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
@@ -124,10 +125,10 @@ if sysconfig.get_config_var("userbase") is not None:
 def get_scheme(
     dist_name: str,
     user: bool = False,
-    home: typing.Optional[str] = None,
-    root: typing.Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: typing.Optional[str] = None,
+    prefix: str | None = None,
 ) -> Scheme:
     """
     Get the "scheme" corresponding to the input parameters.
@@ -192,9 +193,10 @@ def get_scheme(
         data=paths["data"],
     )
     if root is not None:
+        converted_keys = {}
         for key in SCHEME_KEYS:
-            value = change_root(root, getattr(scheme, key))
-            setattr(scheme, key, value)
+            converted_keys[key] = change_root(root, getattr(scheme, key))
+        scheme = Scheme(**converted_keys)
     return scheme
 
 
