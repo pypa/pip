@@ -9,8 +9,11 @@ from collections.abc import Generator
 
 import pytest
 
+import pip._vendor.platformdirs.windows as platformdirs_windows
+
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
+from pip._internal.utils.compat import WINDOWS
 
 from tests.lib import PipTestEnvironment
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
@@ -24,13 +27,12 @@ def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
 
 class TestBasicLoading(ConfigurationMixin):
     @pytest.fixture(autouse=True)
-    def cleanup_files(self) -> Generator[None]:
-        """Avoid state leaking for tests reusing config files."""
+    def clear_platformdirs_cache(self) -> Generator[None]:
+        # This is ugly, but platformdirs caches the user config directory on
+        # Windows which breaks our test assertions.
         yield
-        for variant in get_configuration_files():
-            for path in variant:
-                if os.path.exists(path):
-                    os.remove(path)
+        if WINDOWS:
+            platformdirs_windows.get_win_folder.cache_clear()
 
     def test_basic_modification_pipeline(self, script: PipTestEnvironment) -> None:
         script.pip("config", "get", "test.blah", expect_error=True)
