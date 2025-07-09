@@ -344,7 +344,10 @@ exclude_also = [
 
 [tool.check-sdist]
 git-only = [
-  "tests/**", 
-  "tools/**"
+  "tests/**",
+  "tools/**",
+  ".gitattributes",
+  ".gitignore",
+  "news/.gitignore"
 ]
 default-ignore = true
