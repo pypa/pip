@@ -30,6 +30,8 @@ class TestBasicLoading(ConfigurationMixin):
     def clear_platformdirs_cache(self) -> Generator[None]:
         # This is ugly, but platformdirs caches the user config directory on
         # Windows which breaks our test assertions.
+        if WINDOWS:
+            platformdirs_windows.get_win_folder.cache_clear()
         yield
         if WINDOWS:
             platformdirs_windows.get_win_folder.cache_clear()
