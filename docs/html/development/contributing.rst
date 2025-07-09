@@ -42,8 +42,8 @@ separately, as a "formatting cleanup" PR, if needed.
    code meets the project requirements, and that they understand the submitted
    code well enough to respond to review comments.
 
-   In particular, we will mark LLM-generated issues and pull requests as spam
-   without additional discussion.
+   In particular, we will mark LLM-generated slop as spam without additional
+   discussion.
 
 Automated Testing
 =================
