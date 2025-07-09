@@ -146,6 +146,10 @@ class TestBasicLoading(ConfigurationMixin):
         result = script.pip("config", "debug")
         assert f"{global_config_file}, exists:" in result.stdout
 
+        # Avoid state leaking for tests reusing the new config file
+        if os.path.exists(global_config_file):
+            os.remove(global_config_file)
+
     def test_editor_does_not_exist(self, script: PipTestEnvironment) -> None:
         """Ensure that FileNotFoundError sets filename correctly"""
         result = script.pip(
