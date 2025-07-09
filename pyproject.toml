@@ -1,6 +1,5 @@
 [project]
 dynamic = ["version"]
-
 name = "pip"
 description = "The PyPA recommended tool for installing Python packages."
 readme = "README.rst"
@@ -45,31 +44,53 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+requires = ["flit-core >=3.8,<4"]
+build-backend = "flit_core.buildapi"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-include-package-data = false
+[tool.flit.module]
+name = "pip"
+path = "src/pip"
 
-[tool.setuptools.dynamic]
-version = {attr = "pip.__version__"}
+[tool.flit.sdist]
+include = [
+  "AUTHORS.txt",
+  "LICENSE.txt",
+  "NEWS.rst",
+  "README.rst",
+  "SECURITY.md",
+  "pyproject.toml",
+  "build-project/build-requirements.in",
+  "build-project/build-requirements.txt",
+  "build-project/build-project.py",
+  "build-project/.python-version",
+  "src/pip/_vendor/README.rst",
+  "src/pip/_vendor/vendor.txt",
+  "src/pip/_vendor/**/*LICENSE*",
+  "src/pip/_vendor/**/*COPYING*",
+  "docs/requirements.txt",
+  "src/pip/_vendor/**/*.pem",
+  "src/pip/_vendor/**/py.typed",
+  "docs/**/*.css",
+  "docs/**/*.py",
+  "docs/**/*.rst",
+  "docs/**/*.md",
+  "docs/**/*.dot",
+  "docs/**/*.png",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["contrib", "docs", "tests*", "tasks"]
-
-[tool.setuptools.package-data]
-"pip" = ["py.typed"]
-"pip._vendor" = ["vendor.txt"]
-"pip._vendor.certifi" = ["*.pem"]
-"pip._vendor.distlib" = [
-    "t32.exe",
-    "t64.exe",
-    "t64-arm.exe",
-    "w32.exe",
-    "w64.exe",
-    "w64-arm.exe",
+exclude = [
+  ".git-blame-ignore-revs",
+  ".mailmap",
+  ".readthedocs.yml",
+  ".pre-commit-config.yaml",
+  ".readthedocs-custom-redirects.yml",
+  "noxfile.py",
+  "*.pyi",
+  ".github/**",
+  "docs/build/**",
+  "news/**",
+  "tests/**",
+  "tools/**",
 ]
 
 ######################################################################################
