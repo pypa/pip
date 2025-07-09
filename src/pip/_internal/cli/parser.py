@@ -189,37 +189,23 @@ class ConfigOptionParser(CustomOptionParser):
             name: [] for name in override_order
         }
 
-        for key, value in self.config.items():
-            if not isinstance(value, dict):
+        for _, value in self.config.items():  # noqa: PERF102
+            for section_key, val in value.items():
                 # ignore empty values
-                if not value:
+                if not val:
                     logger.debug(
                         "Ignoring configuration key '%s' as its value is empty.",
-                        key,
+                        section_key,
                     )
                     continue
 
-                section, key = key.split(".", 1)
+                section, key = section_key.split(".", 1)
                 if section in override_order:
-                    section_items[section].append((key, value))
-            else:
-                for section_key, val in value.items():
-                    # ignore empty values
-                    if not val:
-                        logger.debug(
-                            "Ignoring configuration key '%s' as its value is empty.",
-                            section_key,
-                        )
-                        continue
-
-                    section, key = section_key.split(".", 1)
-                    if section in override_order:
-                        section_items[section].append((key, val))
+                    section_items[section].append((key, val))
 
             # Yield each group in their override order
             for section in override_order:
-                for key, val in section_items[section]:
-                    yield key, val
+                yield from section_items[section]
 
     def _update_defaults(self, defaults: dict[str, Any]) -> dict[str, Any]:
         """Updates the given defaults with values from the config files and

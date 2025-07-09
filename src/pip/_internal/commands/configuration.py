@@ -177,10 +177,7 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            if isinstance(value, dict):
-                for key, value in sorted(value.items()):
-                    write_output("%s=%r", key, value)
-            else:
+            for key, value in sorted(value.items()):
                 write_output("%s=%r", key, value)
 
     def get_name(self, options: Values, args: list[str]) -> None:

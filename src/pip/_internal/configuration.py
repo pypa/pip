@@ -148,12 +148,9 @@ class Configuration:
         orig_key = key
         key = _normalize_name(key)
         try:
-            clean_config = {}
-            for k, value in self._dictionary.items():
-                if isinstance(value, dict):
-                    clean_config.update(value)
-                else:
-                    clean_config[k] = value
+            clean_config: dict[str, Any] = {}
+            for file_values in self._dictionary.values():
+                clean_config.update(file_values)
             return clean_config[key]
         except KeyError:
             # disassembling triggers a more useful error message than simply
@@ -245,7 +242,7 @@ class Configuration:
         logger.debug("Will be working with %s variant only", self.load_only)
 
     @property
-    def _dictionary(self) -> dict[str, Any]:
+    def _dictionary(self) -> dict[str, dict[str, Any]]:
         """A dictionary representing the loaded configuration."""
         # NOTE: Dictionaries are not populated if not loaded. So, conditionals
         #       are not needed here.
@@ -313,7 +310,8 @@ class Configuration:
 
     def _load_environment_vars(self) -> None:
         """Loads configuration from environment variables"""
-        self._config[kinds.ENV_VAR].update(
+        self._config[kinds.ENV_VAR].setdefault(":env:", {})
+        self._config[kinds.ENV_VAR][":env:"].update(
             self._normalized_keys(":env:", self.get_environ_vars())
         )
 
