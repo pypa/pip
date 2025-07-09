@@ -85,7 +85,7 @@ exclude = [
   ".pre-commit-config.yaml",
   ".readthedocs-custom-redirects.yml",
   "noxfile.py",
-  "*.pyi",
+  "**/*.pyi",
   ".github/**",
   "docs/build/**",
   "news/**",
