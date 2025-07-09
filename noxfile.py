@@ -156,6 +156,7 @@ def docs(session: nox.Session) -> None:
         ]
         # fmt: on
 
+    shutil.rmtree("docs/build", ignore_errors=True)
     session.run(*get_sphinx_build_command("html"))
     session.run(*get_sphinx_build_command("man"))
 
