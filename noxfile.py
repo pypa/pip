@@ -26,8 +26,6 @@ LOCATIONS = {
 }
 REQUIREMENTS = {
     "docs": "docs/requirements.txt",
-    "tests": "tests/requirements.txt",
-    "common-wheels": "tests/requirements-common_wheels.txt",
 }
 
 AUTHORS_FILE = "AUTHORS.txt"
@@ -54,10 +52,10 @@ def should_update_common_wheels() -> bool:
     if not os.path.exists(LOCATIONS["common-wheels"]):
         return True
 
-    # If the requirements was updated after cache, we'll repopulate it.
+    # If the pyproject.toml was updated after cache, we'll repopulate it.
     cache_last_populated_at = os.path.getmtime(LOCATIONS["common-wheels"])
-    requirements_updated_at = os.path.getmtime(REQUIREMENTS["common-wheels"])
-    need_to_repopulate = requirements_updated_at > cache_last_populated_at
+    pyproject_updated_at = os.path.getmtime("pyproject.toml")
+    need_to_repopulate = pyproject_updated_at > cache_last_populated_at
 
     # Clear the stale cache.
     if need_to_repopulate:
@@ -78,7 +76,7 @@ def test(session: nox.Session) -> None:
             session,
             "wheel",
             "-w", LOCATIONS["common-wheels"],
-            "-r", REQUIREMENTS["common-wheels"],
+            "--group", "test-common-wheels",
         )
         # fmt: on
     else:
@@ -115,7 +113,7 @@ def test(session: nox.Session) -> None:
     run_with_protected_pip(session, "install", generated_sdist)
 
     # Install test dependencies
-    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
+    run_with_protected_pip(session, "install", "--group", "test")
 
     # Parallelize tests as much as possible, by default.
     arguments = session.posargs or ["-n", "auto"]
