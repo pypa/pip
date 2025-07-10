@@ -1,13 +1,12 @@
-"""Automation using nox.
-"""
+"""Automation using nox."""
 
 import argparse
 import glob
 import os
 import shutil
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, List, Tuple
 
 import nox
 
@@ -19,6 +18,7 @@ sys.path.pop()
 
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["lint"]
+nox.needs_version = ">=2024.03.02"  # for session.run_install()
 
 LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
@@ -44,7 +44,9 @@ def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     env = {"VIRTUAL_ENV": session.virtualenv.location}
 
     command = ("python", LOCATIONS["protected-pip"]) + arguments
-    session.run(*command, env=env, silent=True)
+    # By using run_install(), these installation steps can be skipped when -R
+    # or --no-install is passed.
+    session.run_install(*command, env=env, silent=True)
 
 
 def should_update_common_wheels() -> bool:
@@ -67,7 +69,7 @@ def should_update_common_wheels() -> bool:
 # -----------------------------------------------------------------------------
 # Development Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "pypy3"])
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     if should_update_common_wheels():
@@ -80,12 +82,17 @@ def test(session: nox.Session) -> None:
         )
         # fmt: on
     else:
-        msg = f"Re-using existing common-wheels at {LOCATIONS['common-wheels']}."
+        msg = f"Reusing existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
 
     # Build source distribution
+    # HACK: we want to skip building and installing pip when nox's --no-install
+    # flag is given (to save time when running tests back to back with different
+    # arguments), but unfortunately nox does not expose this configuration state
+    # yet. https://github.com/wntrblm/nox/issues/710
+    no_install = "-R" in sys.argv or "--no-install" in sys.argv
     sdist_dir = os.path.join(session.virtualenv.location, "sdist")
-    if os.path.exists(sdist_dir):
+    if not no_install and os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
     run_with_protected_pip(session, "install", "build")
@@ -94,7 +101,7 @@ def test(session: nox.Session) -> None:
     # pip, so uninstall pip to force build to provision a known good version of pip.
     run_with_protected_pip(session, "uninstall", "pip", "-y")
     # fmt: off
-    session.run(
+    session.run_install(
         "python", "-I", "-m", "build", "--sdist", "--outdir", sdist_dir,
         silent=True,
     )
@@ -127,10 +134,9 @@ def test(session: nox.Session) -> None:
 
 @nox.session
 def docs(session: nox.Session) -> None:
-    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
-    def get_sphinx_build_command(kind: str) -> List[str]:
+    def get_sphinx_build_command(kind: str) -> list[str]:
         # Having the conf.py in the docs/html is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
@@ -139,22 +145,24 @@ def docs(session: nox.Session) -> None:
         return [
             "sphinx-build",
             "--keep-going",
+            "--tag", kind,
             "-W",
             "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,
             "-b", kind,
+            "--jobs", "auto",
             "docs/" + kind,
             "docs/build/" + kind,
         ]
         # fmt: on
 
+    shutil.rmtree("docs/build", ignore_errors=True)
     session.run(*get_sphinx_build_command("html"))
     session.run(*get_sphinx_build_command("man"))
 
 
 @nox.session(name="docs-live")
 def docs_live(session: nox.Session) -> None:
-    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
 
     session.run(
@@ -163,6 +171,7 @@ def docs_live(session: nox.Session) -> None:
         "-b=dirhtml",
         "docs/html",
         "docs/build/livehtml",
+        "--jobs=auto",
         *session.posargs,
     )
 
@@ -229,7 +238,7 @@ def vendoring(session: nox.Session) -> None:
         session.run("vendoring", "sync", "-v")
         return
 
-    def pinned_requirements(path: Path) -> Iterator[Tuple[str, str]]:
+    def pinned_requirements(path: Path) -> Iterator[tuple[str, str]]:
         for line in path.read_text().splitlines(keepends=False):
             one, sep, two = line.partition("==")
             if not sep:
@@ -354,7 +363,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("build", "twine")
+    session.install("twine")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -372,7 +381,7 @@ def build_release(session: nox.Session) -> None:
             shutil.copy(dist, final)
 
 
-def build_dists(session: nox.Session) -> List[str]:
+def build_dists(session: nox.Session) -> list[str]:
     """Return dists with valid metadata."""
     session.log(
         "# Check if there's any Git-untracked files before building the wheel",
@@ -390,11 +399,11 @@ def build_dists(session: nox.Session) -> List[str]:
         )
 
     session.log("# Build distributions")
-    session.run("python", "-m", "build", silent=True)
+    session.run("python", "build-project/build-project.py", silent=True)
     produced_dists = glob.glob("dist/*")
 
     session.log(f"# Verify distributions: {', '.join(produced_dists)}")
-    session.run("twine", "check", *produced_dists, silent=True)
+    session.run("twine", "check", "--strict", *produced_dists, silent=True)
 
     return produced_dists
 

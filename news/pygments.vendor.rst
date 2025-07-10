@@ -1,1 +1,1 @@
-Upgrade pygments to 2.18.0
+Upgrade pygments to 2.19.2

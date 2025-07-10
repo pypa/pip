@@ -5,10 +5,12 @@ need PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+from __future__ import annotations
+
 import logging
 from functools import partial
 from optparse import Values
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -28,6 +30,7 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
     install_req_from_req_string,
 )
+from pip._internal.req.req_dependency_group import parse_dependency_groups
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
@@ -57,8 +60,8 @@ def with_cleanup(func: Any) -> Any:
             registry.set_delete(t, False)
 
     def wrapper(
-        self: RequirementCommand, options: Values, args: List[Any]
-    ) -> Optional[int]:
+        self: RequirementCommand, options: Values, args: list[Any]
+    ) -> int | None:
         assert self.tempdir_registry is not None
         if options.no_clean:
             configure_tempdir_registry(self.tempdir_registry)
@@ -79,6 +82,7 @@ class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
 
+        self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
@@ -98,7 +102,7 @@ class RequirementCommand(IndexGroupCommand):
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
-        download_dir: Optional[str] = None,
+        download_dir: str | None = None,
         verbosity: int = 0,
     ) -> RequirementPreparer:
         """
@@ -142,6 +146,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            resume_retries=options.resume_retries,
         )
 
     @classmethod
@@ -150,14 +155,14 @@ class RequirementCommand(IndexGroupCommand):
         preparer: RequirementPreparer,
         finder: PackageFinder,
         options: Values,
-        wheel_cache: Optional[WheelCache] = None,
+        wheel_cache: WheelCache | None = None,
         use_user_site: bool = False,
         ignore_installed: bool = True,
         ignore_requires_python: bool = False,
         force_reinstall: bool = False,
         upgrade_strategy: str = "to-satisfy-only",
-        use_pep517: Optional[bool] = None,
-        py_version_info: Optional[Tuple[int, ...]] = None,
+        use_pep517: bool | None = None,
+        py_version_info: tuple[int, ...] | None = None,
     ) -> BaseResolver:
         """
         Create a Resolver instance for the given parameters.
@@ -205,15 +210,15 @@ class RequirementCommand(IndexGroupCommand):
 
     def get_requirements(
         self,
-        args: List[str],
+        args: list[str],
         options: Values,
         finder: PackageFinder,
         session: PipSession,
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         """
         Parse command-line arguments into the corresponding requirements.
         """
-        requirements: List[InstallRequirement] = []
+        requirements: list[InstallRequirement] = []
         for filename in options.constraints:
             for parsed_req in parse_requirements(
                 filename,
@@ -239,6 +244,16 @@ class RequirementCommand(IndexGroupCommand):
                 config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
+
+        if options.dependency_groups:
+            for req in parse_dependency_groups(options.dependency_groups):
+                req_to_add = install_req_from_req_string(
+                    req,
+                    isolated=options.isolated_mode,
+                    use_pep517=options.use_pep517,
+                    user_supplied=True,
+                )
+                requirements.append(req_to_add)
 
         for req in options.editables:
             req_to_add = install_req_from_editable(
@@ -272,7 +287,12 @@ class RequirementCommand(IndexGroupCommand):
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
-        if not (args or options.editables or options.requirements):
+        if not (
+            args
+            or options.editables
+            or options.requirements
+            or options.dependency_groups
+        ):
             opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
@@ -304,8 +324,8 @@ class RequirementCommand(IndexGroupCommand):
         self,
         options: Values,
         session: PipSession,
-        target_python: Optional[TargetPython] = None,
-        ignore_requires_python: Optional[bool] = None,
+        target_python: TargetPython | None = None,
+        ignore_requires_python: bool | None = None,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to this requirement command.

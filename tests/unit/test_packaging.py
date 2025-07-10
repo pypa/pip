@@ -1,6 +1,7 @@
-from typing import Optional, Tuple
+from __future__ import annotations
 
 import pytest
+
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.requirements import Requirement
 
@@ -16,7 +17,7 @@ from pip._internal.utils.packaging import check_requires_python, get_requirement
     ],
 )
 def test_check_requires_python(
-    version_info: Tuple[int, int, int], requires_python: Optional[str], expected: bool
+    version_info: tuple[int, int, int], requires_python: str | None, expected: bool
 ) -> None:
     actual = check_requires_python(requires_python, version_info)
     assert actual == expected

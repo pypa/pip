@@ -1,0 +1,1 @@
+Remove warning when cloning from a Git reference that does not look like a commit hash.

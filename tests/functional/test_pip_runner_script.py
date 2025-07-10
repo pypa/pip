@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from pip import __version__
+
 from tests.lib import PipTestEnvironment
 
 

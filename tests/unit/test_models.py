@@ -1,5 +1,4 @@
-"""Tests for various classes in pip._internal.models
-"""
+"""Tests for various classes in pip._internal.models"""
 
 from pip._vendor.packaging.version import parse as parse_version
 

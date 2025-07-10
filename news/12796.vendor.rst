@@ -1,1 +1,0 @@
-Update the preload list for the ``DEBUNDLED`` case, to replace ``pep517`` that has been renamed to ``pyproject_hooks``.

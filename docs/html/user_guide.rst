@@ -256,6 +256,98 @@ Same as requirements files, constraints files can also be served via a URL,
 e.g. http://example.com/constraints.txt, so that your organization can store and
 serve them in a centralized place.
 
+
+.. _`Dependency Groups`:
+
+
+Dependency Groups
+=================
+
+"Dependency Groups" are lists of items to be installed stored in a
+``pyproject.toml`` file.
+
+A dependency group is logically just a list of requirements, similar to the
+contents of :ref:`Requirements Files`. Unlike requirements files, dependency
+groups cannot contain non-package arguments for :ref:`pip install`.
+
+Groups can be declared like so:
+
+.. code-block:: toml
+
+    # pyproject.toml
+    [dependency-groups]
+    groupA = [
+        "pkg1",
+        "pkg2",
+    ]
+
+and installed with :ref:`pip install` like so:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group groupA
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group groupA
+
+Full details on the contents of ``[dependency-groups]`` and more examples are
+available in :ref:`the specification documentation <pypug:dependency-groups>`.
+
+.. note::
+
+    Dependency Groups are defined by a standard, and therefore do not support
+    ``pip``-specific syntax for requirements, only :ref:`standard dependency
+    specifiers <pypug:dependency-specifiers>`.
+
+``pip`` does not search projects or directories to discover ``pyproject.toml``
+files. The ``--group`` option is used to pass the path to the file,
+and if the path is omitted, as in the example above, it defaults to
+``pyproject.toml`` in the current directory. Using explicit paths,
+:ref:`pip install` can use a file from another directory. For example:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group './project/subproject/pyproject.toml:groupA'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group './project/subproject/pyproject.toml:groupA'
+
+
+This also makes it possible to install groups from multiple different projects
+at once. For example, with a directory structure like so::
+
+    + project/
+      + sub1/
+        - pyproject.toml
+      + sub2/
+        - pyproject.toml
+
+it is possible to install, from the ``project/`` directory, groups from the
+subprojects thusly:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group './sub1/pyproject.toml:groupA' --group './sub2/pyproject.toml:groupB'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group './sub1/pyproject.toml:groupA' --group './sub2/pyproject.toml:groupB'
+
+
 .. _`Installing from Wheels`:
 
 
@@ -630,7 +722,7 @@ User Installs
 =============
 
 With Python 2.6 came the `"user scheme" for installation
-<https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
+<https://docs.python.org/3/library/sysconfig.html#sysconfig-user-scheme>`_,
 which means that all Python distributions support an alternative install
 location that is specific to a user.  The default location for each OS is
 explained in the python documentation for the `site.USER_BASE

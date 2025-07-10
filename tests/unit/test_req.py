@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import contextlib
 import email.message
 import os
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterator
 from functools import partial
 from pathlib import Path
-from typing import Iterator, Optional, Set, Tuple, cast
+from typing import cast
 from unittest import mock
 
 import pytest
+
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
@@ -46,6 +50,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
 
@@ -82,7 +87,7 @@ class TestRequirementSet:
         self,
         finder: PackageFinder,
         require_hashes: bool = False,
-        wheel_cache: Optional[WheelCache] = None,
+        wheel_cache: WheelCache | None = None,
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
@@ -107,6 +112,7 @@ class TestRequirementSet:
                 lazy_wheel=False,
                 verbosity=0,
                 legacy_resolver=True,
+                resume_retries=0,
             )
             yield Resolver(
                 preparer=preparer,
@@ -464,7 +470,9 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.is_wheel_from_cache
-            assert "Ignoring invalid cache entry origin file" in caplog.messages[0]
+            assert any(
+                "Ignoring invalid cache entry origin file" in x for x in caplog.messages
+            )
 
     def test_download_info_local_wheel(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local wheel."""
@@ -811,7 +819,7 @@ class TestInstallRequirement:
         ],
     )
     def test_install_req_extend_extras(
-        self, inp: str, extras: Set[str], out: str
+        self, inp: str, extras: set[str], out: str
     ) -> None:
         """
         Test behavior of install_req_extend_extras
@@ -992,8 +1000,8 @@ def test_looks_like_path_win(args: str, expected: bool) -> None:
 def test_get_url_from_path(
     isdir_mock: mock.Mock,
     isfile_mock: mock.Mock,
-    args: Tuple[str, str],
-    mock_returns: Tuple[bool, bool],
+    args: tuple[str, str],
+    mock_returns: tuple[bool, bool],
     expected: None,
 ) -> None:
     isdir_mock.return_value = mock_returns[0]

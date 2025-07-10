@@ -1,14 +1,16 @@
 """Tests the presentation style of exceptions."""
 
+from __future__ import annotations
+
 import io
 import locale
 import logging
 import pathlib
 import sys
 import textwrap
-from typing import Optional, Tuple
 
 import pytest
+
 from pip._vendor import rich
 
 from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
@@ -491,7 +493,7 @@ class TestExternallyManagedEnvironment:
     def patch_locale(self, monkeypatch: pytest.MonkeyPatch) -> None:
         orig_getlocal = locale.getlocale
 
-        def fake_getlocale(category: int) -> Tuple[Optional[str], Optional[str]]:
+        def fake_getlocale(category: int) -> tuple[str | None, str | None]:
             """Fake getlocale() that always reports zh_Hant for LC_MESSASGES."""
             result = orig_getlocal(category)
             if category == getattr(locale, "LC_MESSAGES", None):
@@ -500,7 +502,7 @@ class TestExternallyManagedEnvironment:
 
         monkeypatch.setattr(locale, "getlocale", fake_getlocale)
 
-    @pytest.fixture()
+    @pytest.fixture
     def marker(self, tmp_path: pathlib.Path) -> pathlib.Path:
         marker = tmp_path.joinpath("EXTERNALLY-MANAGED")
         marker.touch()

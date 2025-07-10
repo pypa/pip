@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import io
 import os
@@ -7,9 +9,9 @@ import sys
 import sysconfig
 import tarfile
 import textwrap
+from collections.abc import Iterable
 from os.path import curdir, join, pardir
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
@@ -17,6 +19,7 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
+
 from tests.lib import (
     CertFactory,
     PipTestEnvironment,
@@ -42,8 +45,8 @@ from tests.lib.server import (
 )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
-@pytest.mark.parametrize("variant", ("missing_setuptools", "bad_setuptools"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
+@pytest.mark.parametrize("variant", ["missing_setuptools", "bad_setuptools"])
 def test_pep518_uses_build_env(
     script: PipTestEnvironment,
     data: TestData,
@@ -105,16 +108,13 @@ def test_pep518_refuses_conflicting_requires(
     result = script.pip_install_local(
         "-f", script.scratch_path, project_dir, expect_error=True
     )
+    assert result.returncode != 0
     assert (
-        result.returncode != 0
-        and (
-            f"Some build dependencies for {project_dir.as_uri()} conflict "
-            "with PEP 517/518 supported "
-            "requirements: setuptools==1.0 is incompatible with "
-            "setuptools>=40.8.0."
-        )
-        in result.stderr
-    ), str(result)
+        f"Some build dependencies for {project_dir.as_uri()} conflict "
+        "with PEP 517/518 supported "
+        "requirements: setuptools==1.0 is incompatible with "
+        "setuptools>=40.8.0."
+    ) in result.stderr, str(result)
 
 
 def test_pep518_refuses_invalid_requires(
@@ -243,10 +243,10 @@ def test_pep518_with_namespace_package(
     )
 
 
-@pytest.mark.parametrize("command", ("install", "wheel"))
+@pytest.mark.parametrize("command", ["install", "wheel"])
 @pytest.mark.parametrize(
     "package",
-    ("pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"),
+    ["pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"],
 )
 def test_pep518_forkbombs(
     script: PipTestEnvironment,
@@ -293,7 +293,7 @@ def test_pip_second_command_line_interface_works(
     args.extend(["install", "INITools==0.2"])
     args.extend(["-f", os.fspath(data.packages)])
     result = script.run(*args)
-    dist_info_folder = script.site_packages / "INITools-0.2.dist-info"
+    dist_info_folder = script.site_packages / "initools-0.2.dist-info"
     initools_folder = script.site_packages / "initools"
     result.did_create(dist_info_folder)
     result.did_create(initools_folder)
@@ -320,13 +320,52 @@ def test_install_exit_status_code_when_blank_requirements_file(
     script.pip("install", "-r", "blank.txt")
 
 
+def test_install_exit_status_code_when_empty_dependency_group(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Test install exit status code is 0 when empty dependency group specified
+    """
+    script.scratch_path.joinpath("pyproject.toml").write_text(
+        """\
+[dependency-groups]
+empty = []
+"""
+    )
+    script.pip("install", "--group", "empty")
+
+
+@pytest.mark.parametrize("file_exists", [True, False])
+def test_install_dependency_group_bad_filename_error(
+    script: PipTestEnvironment, file_exists: bool
+) -> None:
+    """
+    Test install exit status code is 2 (usage error) when a dependency group path is
+    specified which isn't a `pyproject.toml`
+    """
+    if file_exists:
+        script.scratch_path.joinpath("not-pyproject.toml").write_text(
+            textwrap.dedent(
+                """
+                [dependency-groups]
+                publish = ["twine"]
+                """
+            )
+        )
+    result = script.pip(
+        "install", "--group", "not-pyproject.toml:publish", expect_error=True
+    )
+    assert "group paths use 'pyproject.toml' filenames" in result.stderr
+    assert result.returncode == 2
+
+
 @pytest.mark.network
 def test_basic_install_from_pypi(script: PipTestEnvironment) -> None:
     """
     Test installing a package from PyPI.
     """
     result = script.pip("install", "INITools==0.2")
-    dist_info_folder = script.site_packages / "INITools-0.2.dist-info"
+    dist_info_folder = script.site_packages / "initools-0.2.dist-info"
     initools_folder = script.site_packages / "initools"
     result.did_create(dist_info_folder)
     result.did_create(initools_folder)
@@ -482,26 +521,15 @@ def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
     result.assert_installed("testpackage", with_files=[".bzr"])
 
 
-@pytest.mark.network
-@need_bzr
-def test_vcs_url_urlquote_normalization(
-    script: PipTestEnvironment, tmpdir: Path
-) -> None:
+def test_vcs_url_urlquote_normalization(script: PipTestEnvironment) -> None:
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
-    script.pip(
-        "install",
-        "-e",
-        "{url}/#egg=django-wikiapp".format(
-            url=local_checkout(
-                "bzr+http://bazaar.launchpad.net/"
-                "%7Edjango-wikiapp/django-wikiapp"
-                "/release-0.1",
-                tmpdir,
-            )
-        ),
+    pkg_path = _create_test_package(
+        script.scratch_path, name="django_wikiapp", vcs="git"
     )
+    url = f"git+{pkg_path.as_uri().replace('django_', 'django%5F')}/#egg=django_wikiapp"
+    script.pip("install", "-e", url)
 
 
 @pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
@@ -518,7 +546,7 @@ def test_basic_install_from_local_directory(
     args.append(os.fspath(to_install))
     result = script.pip(*args)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -540,7 +568,7 @@ def test_basic_install_relative_directory(
     """
     Test installing a requirement using a relative path.
     """
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
@@ -834,7 +862,7 @@ def test_install_from_local_directory_with_in_tree_build(
     assert not in_tree_build_dir.exists()
     result = script.pip("install", to_install)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
     assert in_tree_build_dir.exists()
@@ -988,7 +1016,7 @@ def test_install_curdir(script: PipTestEnvironment, data: TestData) -> None:
         rmtree(egg_info)
     result = script.pip("install", curdir, cwd=run_from)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -1000,7 +1028,7 @@ def test_install_pardir(script: PipTestEnvironment, data: TestData) -> None:
     run_from = data.packages.joinpath("FSPkg", "fspkg")
     result = script.pip("install", pardir, cwd=run_from)
     fspkg_folder = script.site_packages / "fspkg"
-    dist_info_folder = script.site_packages / "FSPkg-0.1.dev0.dist-info"
+    dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
     result.did_create(fspkg_folder)
     result.did_create(dist_info_folder)
 
@@ -1253,7 +1281,7 @@ def test_install_nonlocal_compatible_wheel_path(
     assert result.returncode == ERROR
 
 
-@pytest.mark.parametrize("opt", ("--target", "--prefix"))
+@pytest.mark.parametrize("opt", ["--target", "--prefix"])
 def test_install_with_target_or_prefix_and_scripts_no_warning(
     opt: str, script: PipTestEnvironment
 ) -> None:
@@ -1349,7 +1377,7 @@ def test_install_package_with_prefix(
 
 
 def _test_install_editable_with_prefix(
-    script: PipTestEnvironment, files: Dict[str, str]
+    script: PipTestEnvironment, files: dict[str, str]
 ) -> TestPipResult:
     # make a dummy project
     pkga_path = script.scratch_path / "pkga"
@@ -1513,9 +1541,9 @@ def test_url_req_case_mismatch_no_index(
     )
 
     # only Upper-1.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Upper-1.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-1.0.dist-info"
     result.did_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Upper-2.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-2.0.dist-info"
     result.did_not_create(dist_info_folder)
 
 
@@ -1541,10 +1569,10 @@ def test_url_req_case_mismatch_file_index(
         "install", "--index-url", data.find_links3, Dinner, "requiredinner"
     )
 
-    # only Upper-1.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Dinner-1.0.dist-info"
+    # only Dinner-1.0.tar.gz should get installed.
+    dist_info_folder = script.site_packages / "dinner-1.0.dist-info"
     result.did_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Dinner-2.0.dist-info"
+    dist_info_folder = script.site_packages / "dinner-2.0.dist-info"
     result.did_not_create(dist_info_folder)
 
 
@@ -1565,9 +1593,9 @@ def test_url_incorrect_case_no_index(
     )
 
     # only Upper-2.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Upper-1.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-1.0.dist-info"
     result.did_not_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Upper-2.0.dist-info"
+    dist_info_folder = script.site_packages / "upper-2.0.dist-info"
     result.did_create(dist_info_folder)
 
 
@@ -1587,10 +1615,10 @@ def test_url_incorrect_case_file_index(
         expect_stderr=True,
     )
 
-    # only Upper-2.0.tar.gz should get installed.
-    dist_info_folder = script.site_packages / "Dinner-1.0.dist-info"
+    # only Dinner-2.0.tar.gz should get installed.
+    dist_info_folder = script.site_packages / "dinner-1.0.dist-info"
     result.did_not_create(dist_info_folder)
-    dist_info_folder = script.site_packages / "Dinner-2.0.dist-info"
+    dist_info_folder = script.site_packages / "dinner-2.0.dist-info"
     result.did_create(dist_info_folder)
 
     # Should show index-url location in output
@@ -1748,7 +1776,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
         to_install,
         expect_error=True,  # error building wheelbroken
     )
-    wheels: List[str] = []
+    wheels: list[str] = []
     for _, _, files in os.walk(wheels_cache):
         wheels.extend(f for f in files if f.endswith(".whl"))
     # Built wheel for upper
@@ -1761,7 +1789,7 @@ def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> No
     # into the cache
     assert wheels != [], str(res)
     assert wheels == [
-        f"Upper-2.0-py{sys.version_info[0]}-none-any.whl",
+        f"upper-2.0-py{sys.version_info[0]}-none-any.whl",
     ]
 
 
@@ -1891,6 +1919,7 @@ def test_double_install(script: PipTestEnvironment) -> None:
     assert msg not in result.stderr
 
 
+@pytest.mark.network
 def test_double_install_fail(
     script: PipTestEnvironment, resolver_variant: ResolverVariant
 ) -> None:
@@ -2027,7 +2056,7 @@ def test_install_pep508_with_url_in_install_requires(
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("index", (PyPI.simple_url, TestPyPI.simple_url))
+@pytest.mark.parametrize("index", [PyPI.simple_url, TestPyPI.simple_url])
 def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
     script: PipTestEnvironment, index: str
 ) -> None:
@@ -2185,7 +2214,7 @@ def test_user_config_accepted(script: PipTestEnvironment) -> None:
 @pytest.mark.parametrize("use_module", [True, False])
 def test_install_pip_does_not_modify_pip_when_satisfied(
     script: PipTestEnvironment,
-    install_args: List[str],
+    install_args: list[str],
     expected_message: str,
     use_module: bool,
     resolver_variant: ResolverVariant,
@@ -2309,10 +2338,10 @@ def test_error_all_yanked_files_and_no_pin(
         expect_error=True,
     )
     # Make sure an error is raised
-    assert (
-        result.returncode == 1
-        and "ERROR: No matching distribution found for simple\n" in result.stderr
-    ), str(result)
+    assert result.returncode == 1
+    assert "ERROR: No matching distribution found for simple\n" in result.stderr, str(
+        result
+    )
 
 
 @pytest.mark.parametrize(
@@ -2323,7 +2352,7 @@ def test_error_all_yanked_files_and_no_pin(
     ],
 )
 def test_install_sends_client_cert(
-    install_args: Tuple[str, ...],
+    install_args: tuple[str, ...],
     script: PipTestEnvironment,
     cert_factory: CertFactory,
     data: TestData,
@@ -2363,6 +2392,38 @@ def test_install_sends_client_cert(
         assert environ["SSL_CLIENT_CERT"]
 
 
+def test_install_sends_certs_for_pep518_deps(
+    script: PipTestEnvironment,
+    cert_factory: CertFactory,
+    data: TestData,
+    common_wheels: Path,
+) -> None:
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    setuptools_pkg = next(common_wheels.glob("setuptools*")).name
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({setuptools_pkg: f"/files/{setuptools_pkg}"}),
+        file_response(common_wheels / setuptools_pkg),
+    ]
+    url = f"https://{server.host}:{server.port}/simple"
+
+    args = ["install", str(data.packages / "pep517_setup_and_pyproject")]
+    args.extend(["--index-url", url])
+    args.extend(["--cert", cert_path, "--client-cert", cert_path])
+
+    with server_running(server):
+        script.pip(*args)
+
+    for call_args in server.mock.call_args_list:
+        environ, _ = call_args.args
+        assert environ.get("SSL_CLIENT_CERT", "")
+
+
 def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that install of a package in working directory
@@ -2392,7 +2453,7 @@ def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -
 
 
 @pytest.mark.parametrize(
-    "package_name", ("simple-package", "simple_package", "simple.package")
+    "package_name", ["simple-package", "simple_package", "simple.package"]
 )
 def test_install_verify_package_name_normalization(
     script: PipTestEnvironment, package_name: str
@@ -2427,7 +2488,7 @@ def install_find_links(
     args: Iterable[str],
     *,
     dry_run: bool,
-    target_dir: Optional[Path],
+    target_dir: Path | None,
 ) -> TestPipResult:
     return script.pip(
         "install",
@@ -2449,7 +2510,7 @@ def install_find_links(
 
 @pytest.mark.parametrize(
     "with_target_dir",
-    (True, False),
+    [True, False],
 )
 def test_install_dry_run_nothing_installed(
     script: PipTestEnvironment,
@@ -2618,7 +2679,8 @@ def test_install_pip_prints_req_chain_pypi(script: PipTestEnvironment) -> None:
     )
 
 
-@pytest.mark.parametrize("common_prefix", ("", "linktest-1.0/"))
+@pytest.mark.parametrize("common_prefix", ["", "linktest-1.0/"])
+@pytest.mark.network
 def test_install_sdist_links(script: PipTestEnvironment, common_prefix: str) -> None:
     """
     Test installing an sdist with hard and symbolic links.

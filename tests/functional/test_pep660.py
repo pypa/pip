@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import tomli_w
 
@@ -71,7 +71,7 @@ def _make_project(
         project_dir.joinpath("setup.py").write_text(SETUP_PY)
     if backend_code:
         assert with_pyproject
-        buildsys: Dict[str, Any] = {"requires": ["setuptools", "wheel"]}
+        buildsys: dict[str, Any] = {"requires": ["setuptools", "wheel"]}
         buildsys["build-backend"] = "test_backend"
         buildsys["backend-path"] = ["."]
         data = tomli_w.dumps({"build-system": buildsys})
@@ -89,7 +89,7 @@ def _assert_hook_called(project_dir: Path, hook: str) -> None:
 
 
 def _assert_hook_called_with_config_settings(
-    project_dir: Path, hook: str, config_settings: Dict[str, str]
+    project_dir: Path, hook: str, config_settings: dict[str, str]
 ) -> None:
     log = project_dir.joinpath("log.txt").read_text()
     assert f":{hook} called" in log, f"{hook} has not been called"

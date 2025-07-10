@@ -3,6 +3,7 @@ import zipfile
 import pytest
 
 from pip._internal.metadata import select_backend
+
 from tests.lib import PipTestEnvironment, TestData
 
 
@@ -95,12 +96,15 @@ def test_upgrade_require_invalid_version(
     script.pip("install", "--index-url", index_url, "require-invalid-version")
 
 
-def test_list_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
+@pytest.mark.parametrize("format", ["columns", "freeze", "json"])
+def test_list_invalid_version(
+    script: PipTestEnvironment, data: TestData, format: str
+) -> None:
     """
     Test that pip can list an environment containing a package with a legacy version.
     """
     _install_invalid_version(script, data)
-    script.pip("list")
+    script.pip("list", f"--format={format}")
 
 
 def test_freeze_invalid_version(script: PipTestEnvironment, data: TestData) -> None:
@@ -136,4 +140,4 @@ def test_show_require_invalid_version(
     elif select_backend().NAME == "pkg_resources":
         assert "Required-by: \n" in result.stdout
     else:
-        assert False, "Unknown metadata backend"
+        pytest.fail("Unknown metadata backend")

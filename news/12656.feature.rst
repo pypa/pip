@@ -1,3 +1,0 @@
-Improve discovery performance of installed packages when the
-``importlib.metadata`` backend is used to load distribution metadata
-(used by default under Python 3.11+).

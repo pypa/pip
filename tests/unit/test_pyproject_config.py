@@ -1,12 +1,10 @@
-from typing import Dict, List
-
 import pytest
 
 from pip._internal.commands import create_command
 
 
 @pytest.mark.parametrize(
-    ("command", "expected"),
+    "command, expected",
     [
         ("install", True),
         ("wheel", True),
@@ -39,13 +37,13 @@ def test_set_config_empty_value() -> None:
 
 
 @pytest.mark.parametrize(
-    ("passed", "expected"),
+    "passed, expected",
     [
         (["x=hello", "x=world"], {"x": ["hello", "world"]}),
         (["x=hello", "x=world", "x=other"], {"x": ["hello", "world", "other"]}),
     ],
 )
-def test_multiple_config_values(passed: List[str], expected: Dict[str, str]) -> None:
+def test_multiple_config_values(passed: list[str], expected: dict[str, str]) -> None:
     i = create_command("install")
     options, _ = i.parse_args(
         ["xxx", *(f"--config-settings={option}" for option in passed)]

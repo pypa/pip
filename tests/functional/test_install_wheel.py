@@ -190,7 +190,7 @@ def test_install_from_wheel_with_headers(script: PipTestEnvironment) -> None:
     dist_info_folder = script.site_packages / "headers.dist-0.1.dist-info"
     result.did_create(dist_info_folder)
 
-    header_scheme_path = get_header_scheme_path_for_script(script, "headers.dist")
+    header_scheme_path = get_header_scheme_path_for_script(script, "headers-dist")
     header_path = header_scheme_path / "header.h"
     assert header_path.read_text() == header_text
 

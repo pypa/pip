@@ -1,14 +1,13 @@
 import os
 import subprocess
 from pathlib import Path
-from typing import List, Tuple
 
 _BROKEN_STDOUT_RETURN_CODE = 120
 
 
 def setup_broken_stdout_test(
-    args: List[str], deprecated_python: bool
-) -> Tuple[str, int]:
+    args: list[str], deprecated_python: bool
+) -> tuple[str, int]:
     proc = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,

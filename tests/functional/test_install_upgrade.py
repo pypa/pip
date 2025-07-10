@@ -144,8 +144,8 @@ def test_upgrade_to_specific_version(script: PipTestEnvironment) -> None:
     script.pip("install", "INITools==0.1")
     result = script.pip("install", "INITools==0.2")
     assert result.files_created, "pip install with specific version did not upgrade"
-    assert script.site_packages / "INITools-0.1.dist-info" in result.files_deleted
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    assert script.site_packages / "initools-0.1.dist-info" in result.files_deleted
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
 
 
 @pytest.mark.network
@@ -157,7 +157,7 @@ def test_upgrade_if_requested(script: PipTestEnvironment) -> None:
     script.pip("install", "INITools==0.1")
     result = script.pip("install", "--upgrade", "INITools")
     assert result.files_created, "pip install --upgrade did not upgrade"
-    result.did_not_create(script.site_packages / "INITools-0.1.dist-info")
+    result.did_not_create(script.site_packages / "initools-0.1.dist-info")
 
 
 def test_upgrade_with_newest_already_installed(
@@ -319,8 +319,8 @@ def test_should_not_install_always_from_cache(script: PipTestEnvironment) -> Non
     script.pip("install", "INITools==0.2")
     script.pip("uninstall", "-y", "INITools")
     result = script.pip("install", "INITools==0.1")
-    result.did_not_create(script.site_packages / "INITools-0.2.dist-info")
-    result.did_create(script.site_packages / "INITools-0.1.dist-info")
+    result.did_not_create(script.site_packages / "initools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.1.dist-info")
 
 
 @pytest.mark.network
@@ -332,8 +332,8 @@ def test_install_with_ignoreinstalled_requested(script: PipTestEnvironment) -> N
     result = script.pip("install", "-I", "INITools==0.3")
     assert result.files_created, "pip install -I did not install"
     # both the old and new metadata should be present.
-    assert os.path.exists(script.site_packages_path / "INITools-0.1.dist-info")
-    assert os.path.exists(script.site_packages_path / "INITools-0.3.dist-info")
+    assert os.path.exists(script.site_packages_path / "initools-0.1.dist-info")
+    assert os.path.exists(script.site_packages_path / "initools-0.3.dist-info")
 
 
 @pytest.mark.network

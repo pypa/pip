@@ -1,1 +1,0 @@
-Use prerelease version of CFFI for Python 3.13 testing

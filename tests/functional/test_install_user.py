@@ -53,7 +53,7 @@ class Tests_UserSite:
             "('initools').project_name)",
         )
         project_name = result.stdout.strip()
-        assert "INITools" == project_name, project_name
+        assert "initools" == project_name, project_name
 
     @pytest.mark.xfail
     @pytest.mark.network
@@ -95,7 +95,7 @@ class Tests_UserSite:
         fspkg_folder = script.user_site / "fspkg"
         result.did_create(fspkg_folder)
 
-        dist_info_folder = script.user_site / "FSPkg-0.1.dev0.dist-info"
+        dist_info_folder = script.user_site / "fspkg-0.1.dev0.dist-info"
         result.did_create(dist_info_folder)
 
     def test_install_user_venv_nositepkgs_fails(
@@ -133,7 +133,7 @@ class Tests_UserSite:
         result2 = script.pip("install", "--user", "INITools==0.1", "--no-binary=:all:")
 
         # usersite has 0.1
-        dist_info_folder = script.user_site / "INITools-0.1.dist-info"
+        dist_info_folder = script.user_site / "initools-0.1.dist-info"
         initools_v3_file = (
             # file only in 0.3
             script.base_path

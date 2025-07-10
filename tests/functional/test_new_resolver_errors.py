@@ -126,7 +126,9 @@ def test_new_resolver_checks_requires_python_before_dependencies(
         expect_error=True,
     )
 
-    # Resolution should fail because of pkg-a's Requires-Python.
-    # This check should be done before pkg-b, so pkg-b should never be pulled.
+    # Resolution should fail because of pkg-root's Requires-Python.
+    # This is done before dependencies so pkg-dep should never be pulled.
     assert incompatible_python in result.stderr, str(result)
-    assert "pkg-b" not in result.stderr, str(result)
+    # Setuptools produces wheels with normalized names.
+    assert "pkg_dep" not in result.stderr, str(result)
+    assert "pkg_dep" not in result.stdout, str(result)

@@ -1,0 +1,1 @@
+Resumed downloads are saved to the HTTP cache like any other normal download.

@@ -344,6 +344,24 @@ Designing for pip includes:
 - Writing pip's _output_ - establishing how pip responds to commands and what information it provides the user. This includes writing success and error messages.
 - Providing supplemental materials - e.g. documentation that helps users understand pip's operation
 
+### Error Message Format
+
+A good error message should mention:
+
+* what the user has tried to do
+* possible next steps to try and solve the error
+  * possible steps need to go from "easiest" to "most complicated"
+* why the error has happened - include a way to see more information
+  about the situation
+
+A [sample `ResolutionImpossible` error that follows this guidance
+is available](resolution-impossible-example).
+
+**Further reading**
+
+- <https://uxplanet.org/how-to-write-good-error-messages-858e4551cd4>
+- <https://www.nngroup.com/articles/error-message-guidelines/>
+
 ### Design Principles / Usability Heuristics
 
 There are many interaction design principles that help designers design great experiences. Nielsen Norman's [10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics) is a great place to start. Here are some of the ways these principles apply to pip:

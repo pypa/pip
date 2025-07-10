@@ -1,5 +1,6 @@
-"""Utilities related archives.
-"""
+"""Utilities related archives."""
+
+from __future__ import annotations
 
 import logging
 import os
@@ -8,7 +9,7 @@ import stat
 import sys
 import tarfile
 import zipfile
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 from zipfile import ZipInfo
 
 from pip._internal.exceptions import InstallationError
@@ -48,7 +49,7 @@ def current_umask() -> int:
     return mask
 
 
-def split_leading_dir(path: str) -> List[str]:
+def split_leading_dir(path: str) -> list[str]:
     path = path.lstrip("/").lstrip("\\")
     if "/" in path and (
         ("\\" in path and path.find("/") < path.find("\\")) or "\\" not in path
@@ -132,7 +133,7 @@ def unzip_file(filename: str, location: str, flatten: bool = True) -> None:
                     "outside target directory ({})"
                 )
                 raise InstallationError(message.format(filename, fn, location))
-            if fn.endswith("/") or fn.endswith("\\"):
+            if fn.endswith(("/", "\\")):
                 # A directory
                 ensure_dir(fn)
             else:
@@ -176,7 +177,7 @@ def untar_file(filename: str, location: str) -> None:
         )
         mode = "r:*"
 
-    tar = tarfile.open(filename, mode, encoding="utf-8")
+    tar = tarfile.open(filename, mode, encoding="utf-8")  # type: ignore
     try:
         leading = has_leading_dir([member.name for member in tar.getmembers()])
 
@@ -209,7 +210,6 @@ def untar_file(filename: str, location: str) -> None:
                         member = data_filter(member, location)
                     except tarfile.LinkOutsideDestinationError:
                         if sys.version_info[:3] in {
-                            (3, 8, 17),
                             (3, 9, 17),
                             (3, 10, 12),
                             (3, 11, 4),
@@ -309,7 +309,7 @@ def _untar_without_filter(
 def unpack_file(
     filename: str,
     location: str,
-    content_type: Optional[str] = None,
+    content_type: str | None = None,
 ) -> None:
     filename = os.path.realpath(filename)
     if (

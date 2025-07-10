@@ -42,13 +42,13 @@ In sequence, what does pip do?:
    user-given requirements, and where to get them from.
 
    a. this step is convoluted - also exploratory, involves dependency
-         resolution -- we need to get to the index, see what versions
-         are available
+      resolution -- we need to get to the index, see what versions
+      are available
 
    b. Sometimes you need to build the package itself in order to get
-         dependency information, which means fetching the package from
-         package index, which means knowing whether it exists. For a
-         single package,
+      dependency information, which means fetching the package from
+      package index, which means knowing whether it exists. For a
+      single package,
 
 4. Install the actual items to be installed.
 
@@ -134,7 +134,7 @@ Once it has those, it selects one file and downloads it.
 cannot….should not be …. ? I want only the Flask …. Why am I getting the
 whole list?
 
-Answer: It's not every file, just files of Flask. No API for getting alllllll
+Answer: It's not every file, just files of Flask. No API for getting all
 files on PyPI. It’s for getting all files of Flask.)
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831

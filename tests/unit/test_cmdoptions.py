@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Optional, Tuple
 from venv import EnvBuilder
 
 import pytest
@@ -29,7 +30,7 @@ from pip._internal.cli.main_parser import identify_python_interpreter
     ],
 )
 def test_convert_python_version(
-    value: str, expected: Tuple[Optional[Tuple[int, ...]], Optional[str]]
+    value: str, expected: tuple[tuple[int, ...] | None, str | None]
 ) -> None:
     actual = _convert_python_version(value)
     assert actual == expected, f"actual: {actual!r}"

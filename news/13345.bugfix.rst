@@ -1,0 +1,2 @@
+``pip list`` with the ``json`` or ``freeze`` format enabled will no longer
+crash when encountering a package with an invalid version.

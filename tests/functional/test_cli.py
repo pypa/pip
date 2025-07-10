@@ -1,5 +1,4 @@
-"""Basic CLI functionality checks.
-"""
+"""Basic CLI functionality checks."""
 
 import subprocess
 import sys
@@ -9,6 +8,7 @@ from textwrap import dedent
 import pytest
 
 from pip._internal.commands import commands_dict
+
 from tests.lib import PipTestEnvironment
 
 
@@ -24,7 +24,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
     if script.zipapp:
         pytest.skip("Zipapp does not include entrypoints")
 
-    fake_pkg = script.temp_path / "fake_pkg"
+    fake_pkg = script.scratch_path / "fake_pkg"
     fake_pkg.mkdir()
     fake_pkg.joinpath("setup.py").write_text(
         dedent(
@@ -57,7 +57,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
     sorted(
         set(commands_dict).symmetric_difference(
             # Exclude commands that are expected to use the network.
-            {"install", "download", "search", "index", "wheel"}
+            {"install", "download", "search", "index", "lock", "wheel"}
         )
     ),
 )

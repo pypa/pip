@@ -5,12 +5,14 @@ from pathlib import Path
 import pytest
 
 from pip._internal.models.direct_url import DirectUrl, DirInfo
+
 from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
     TestData,
     _create_test_package,
     create_test_package_with_setup,
+    make_wheel,
     wheel,
 )
 from tests.lib.direct_url import get_created_direct_url_path
@@ -749,4 +751,17 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
             assert item["editable_project_location"]
             break
     else:
-        assert False, "package 'testpkg' not found in pip list result"
+        pytest.fail("package 'testpkg' not found in pip list result")
+
+
+def test_list_wheel_build(script: PipTestEnvironment) -> None:
+    package = make_wheel(
+        name="package",
+        version="3.0",
+        wheel_metadata_updates={"Build": "123"},
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", package, "--no-index")
+
+    result = script.pip("list")
+    assert "Build" in result.stdout, str(result)
+    assert "123" in result.stdout, str(result)

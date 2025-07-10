@@ -2,10 +2,11 @@
 Contains functional tests of the Git class.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import pathlib
-from typing import List, Optional, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -13,6 +14,7 @@ import pytest
 from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
+
 from tests.lib import PipTestEnvironment, _create_test_package, _git_commit
 
 
@@ -47,7 +49,7 @@ def do_commit(script: PipTestEnvironment, dest: str) -> str:
     return get_head_sha(script, dest)
 
 
-def add_commits(script: PipTestEnvironment, dest: str, count: int) -> List[str]:
+def add_commits(script: PipTestEnvironment, dest: str, count: int) -> list[str]:
     """Return a list of the commit hashes from oldest to newest."""
     shas = []
     for _ in range(count):
@@ -57,7 +59,7 @@ def add_commits(script: PipTestEnvironment, dest: str, count: int) -> List[str]:
     return shas
 
 
-def check_rev(repo_dir: str, rev: str, expected: Tuple[Optional[str], bool]) -> None:
+def check_rev(repo_dir: str, rev: str, expected: tuple[str | None, bool]) -> None:
     assert Git.get_revision_sha(repo_dir, rev) == expected
 
 
@@ -319,11 +321,11 @@ def _initialize_clonetest_server(
 
 @pytest.mark.parametrize(
     "version_out, expected_message",
-    (
+    [
         ("git version -2.25.1", "Can't parse git version: git version -2.25.1"),
         ("git version 2.a.1", "Can't parse git version: git version 2.a.1"),
         ("git ver. 2.25.1", "Can't parse git version: git ver. 2.25.1"),
-    ),
+    ],
 )
 @patch("pip._internal.vcs.versioncontrol.VersionControl.run_command")
 def test_git_parse_fail_warning(

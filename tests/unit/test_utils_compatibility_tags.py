@@ -1,5 +1,5 @@
 import sysconfig
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable
 from unittest.mock import patch
 
 import pytest
@@ -20,7 +20,7 @@ from pip._internal.utils import compatibility_tags
         ((3, 10), "310"),
     ],
 )
-def test_version_info_to_nodot(version_info: Tuple[int], expected: str) -> None:
+def test_version_info_to_nodot(version_info: tuple[int], expected: str) -> None:
     actual = compatibility_tags.version_info_to_nodot(version_info)
     assert actual == expected
 
@@ -70,7 +70,7 @@ class TestManylinux2010Tags:
         """
         Specifying manylinux2010 implies manylinux1.
         """
-        groups: Dict[Tuple[str, str], List[str]] = {}
+        groups: dict[tuple[str, str], list[str]] = {}
         supported = compatibility_tags.get_supported(platforms=[manylinux2010])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)
@@ -90,12 +90,12 @@ class TestManylinux2014Tags:
         ],
     )
     def test_manylinuxA_implies_manylinuxB(
-        self, manylinuxA: str, manylinuxB: List[str]
+        self, manylinuxA: str, manylinuxB: list[str]
     ) -> None:
         """
         Specifying manylinux2014 implies manylinux2010/manylinux1.
         """
-        groups: Dict[Tuple[str, str], List[str]] = {}
+        groups: dict[tuple[str, str], list[str]] = {}
         supported = compatibility_tags.get_supported(platforms=[manylinuxA])
         for tag in supported:
             groups.setdefault((tag.interpreter, tag.abi), []).append(tag.platform)

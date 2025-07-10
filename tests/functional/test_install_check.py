@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from tests.lib import PipTestEnvironment, create_test_package_with_setup
 

@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 import pytest
 
@@ -119,7 +119,7 @@ class TestLink:
             ("there was a mistake", True),
         ],
     )
-    def test_is_yanked(self, yanked_reason: Optional[str], expected: bool) -> None:
+    def test_is_yanked(self, yanked_reason: str | None, expected: bool) -> None:
         link = Link(
             "https://example.com/wheel.whl",
             yanked_reason=yanked_reason,
@@ -168,7 +168,7 @@ class TestLink:
         ],
     )
     def test_is_hash_allowed__none_hashes(
-        self, hashes: Optional[Hashes], expected: bool
+        self, hashes: Hashes | None, expected: bool
     ) -> None:
         url = "https://example.com/wheel.whl#sha512={}".format(128 * "a")
         link = Link(url)

@@ -3,18 +3,20 @@
 These are written according to the order they are called in.
 """
 
+from __future__ import annotations
+
 import contextlib
 import os
 import pathlib
 import subprocess
 import tempfile
 import unicodedata
-from typing import Iterator, List, Optional, Set
+from collections.abc import Iterator
 
 from nox.sessions import Session
 
 
-def get_version_from_arguments(session: Session) -> Optional[str]:
+def get_version_from_arguments(session: Session) -> str | None:
     """Checks the arguments passed to `nox -s release`.
 
     If there is only 1 argument that looks like a pip version, returns that.
@@ -74,7 +76,7 @@ def strip_rtl_ltr_overrides(a: str) -> str:
     return combined
 
 
-def get_author_list() -> List[str]:
+def get_author_list() -> list[str]:
     """Get the list of authors from Git commits."""
     # subprocess because session.run doesn't give us stdout
     # only use names in list of Authors
@@ -86,7 +88,7 @@ def get_author_list() -> List[str]:
 
     # Create a unique list.
     authors = []
-    seen_authors: Set[str] = set()
+    seen_authors: set[str] = set()
     for author in result.stdout.splitlines():
         author = author.strip()
         author = strip_rtl_ltr_overrides(author)
