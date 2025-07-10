@@ -320,7 +320,10 @@ exclude_also = [
 git-only = [
   "tests/**",
   "tools/**",
+  "news/.gitignore",
   ".gitattributes",
   ".gitignore",
-  "news/.gitignore"
+  ".git-blame-ignore-revs",
+  ".mailmap",
+  ".readthedocs-custom-redirects.yml"
 ]
