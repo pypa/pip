@@ -1,6 +1,6 @@
 cryptography
 freezegun
-flit-core
+flit-core >= 3.11, < 4
 installer
 pytest
 pytest-cov

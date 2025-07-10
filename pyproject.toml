@@ -44,53 +44,27 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-requires = ["flit-core >=3.8,<4"]
+requires = ["flit-core >=3.11,<4"]
 build-backend = "flit_core.buildapi"
-
-[tool.flit.module]
-name = "pip"
-path = "src/pip"
 
 [tool.flit.sdist]
 include = [
-  "AUTHORS.txt",
-  "LICENSE.txt",
-  "NEWS.rst",
-  "README.rst",
-  "SECURITY.md",
-  "pyproject.toml",
-  "build-project/build-requirements.in",
-  "build-project/build-requirements.txt",
-  "build-project/build-project.py",
-  "build-project/.python-version",
-  "src/pip/_vendor/README.rst",
-  "src/pip/_vendor/vendor.txt",
-  "src/pip/_vendor/**/*LICENSE*",
-  "src/pip/_vendor/**/*COPYING*",
-  "docs/requirements.txt",
-  "src/pip/_vendor/**/*.pem",
-  "src/pip/_vendor/**/py.typed",
-  "docs/**/*.css",
-  "docs/**/*.py",
-  "docs/**/*.rst",
-  "docs/**/*.md",
-  "docs/**/*.dot",
-  "docs/**/*.png",
+    "NEWS.rst",
+    "SECURITY.md",
+    "build-project/.python-version",
+    "build-project/build-project.py",
+    "build-project/build-requirements.in",
+    "build-project/build-requirements.txt",
+    "docs/requirements.txt",
+    "docs/**/*.css",
+    "docs/**/*.dot",
+    "docs/**/*.md",
+    "docs/**/*.png",
+    "docs/**/*.py",
+    "docs/**/*.rst",
 ]
-
 exclude = [
-  ".git-blame-ignore-revs",
-  ".mailmap",
-  ".readthedocs.yml",
-  ".pre-commit-config.yaml",
-  ".readthedocs-custom-redirects.yml",
-  "noxfile.py",
-  "**/*.pyi",
-  ".github/**",
-  "docs/build/**",
-  "news/**",
-  "tests/**",
-  "tools/**",
+    "src/pip/_vendor/**/*.pyi",
 ]
 
 ######################################################################################

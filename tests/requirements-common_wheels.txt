@@ -9,7 +9,7 @@
 # depends on setup.py develop to generate egg-link files.
 setuptools >= 40.8.0, != 60.6.0, <80
 # flit-core is now the build backend for pip itself
-flit-core >= 3.8, < 4
+flit-core >= 3.11, < 4
 wheel
 # As required by pytest-cov.
 coverage >= 4.4
