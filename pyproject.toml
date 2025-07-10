@@ -324,4 +324,3 @@ git-only = [
   ".gitignore",
   "news/.gitignore"
 ]
-default-ignore = true
