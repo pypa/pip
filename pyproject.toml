@@ -48,6 +48,36 @@ Changelog = "https://pip.pypa.io/en/stable/news/"
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+test = [
+    "cryptography",
+    "freezegun",
+    "installer",
+    "pytest",
+    "pytest-cov",
+    "pytest-rerunfailures",
+    "pytest-xdist",
+    "scripttest",
+    "setuptools",
+    # macOS (darwin) arm64 always uses virtualenv >= 20.0
+    # for other platforms, it depends on python version
+    "virtualenv < 20.0 ; python_version < '3.10' and (sys_platform != 'darwin' or platform_machine != 'arm64')",
+    "virtualenv >= 20.0 ; python_version >= '3.10' or (sys_platform == 'darwin' and platform_machine == 'arm64')",
+    "werkzeug",
+    "wheel",
+    "tomli-w",
+    "proxy.py",
+]
+
+test-common-wheels = [
+    # We pin setuptools<80 because our test suite currently
+    # depends on setup.py develop to generate egg-link files.
+    "setuptools >= 40.8.0, != 60.6.0, <80",
+    "wheel",
+    # As required by pytest-cov.
+    "coverage >= 4.4",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 include-package-data = false
