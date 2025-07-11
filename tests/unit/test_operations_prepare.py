@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -18,6 +18,11 @@ from pip._internal.utils.hashes import Hashes
 from tests.lib import TestData
 from tests.lib.requests_mocks import MockResponse
 
+if TYPE_CHECKING:
+    from requests.models import Response
+else:
+    from pip._vendor.requests.models import Response
+
 
 def test_unpack_url_with_urllib_response_without_content_type(data: TestData) -> None:
     """
@@ -25,7 +30,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
     """
     _real_session = PipSession()
 
-    def _fake_session_get(*args: Any, **kwargs: Any) -> dict[str, str]:
+    def _fake_session_get(*args: Any, **kwargs: Any) -> Response:
         resp = _real_session.get(*args, **kwargs)
         del resp.headers["Content-Type"]
         return resp
