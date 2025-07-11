@@ -7,9 +7,9 @@ import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP, Values
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.requests.exceptions import InvalidProxyURL
 from pip._vendor.rich import print_json
 
 # Eagerly import self_outdated_check to avoid crashes. Otherwise,
@@ -59,6 +59,12 @@ from pip._internal.utils.virtualenv import (
     virtualenv_no_global,
 )
 from pip._internal.wheel_builder import build, should_build_for_install_command
+
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    from requests.exceptions import InvalidProxyURL
+else:
+    from pip._vendor.requests.exceptions import InvalidProxyURL
 
 logger = getLogger(__name__)
 

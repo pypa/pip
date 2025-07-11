@@ -9,13 +9,7 @@ import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import BinaryIO
-
-from pip._vendor.requests import PreparedRequest
-from pip._vendor.requests.models import Response
-from pip._vendor.urllib3 import HTTPResponse as URLlib3Response
-from pip._vendor.urllib3._collections import HTTPHeaderDict
-from pip._vendor.urllib3.exceptions import ReadTimeoutError
+from typing import TYPE_CHECKING, BinaryIO
 
 from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
@@ -25,6 +19,19 @@ from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
+
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    from requests import PreparedRequest
+    from requests.models import Response
+    from urllib3 import HTTPResponse as URLlib3Response
+    from urllib3._collections import HTTPHeaderDict
+    from urllib3.exceptions import ReadTimeoutError
+else:
+    from pip._vendor.requests import PreparedRequest
+    from pip._vendor.urllib3 import HTTPResponse as URLlib3Response
+    from pip._vendor.urllib3._collections import HTTPHeaderDict
+    from pip._vendor.urllib3.exceptions import ReadTimeoutError
 
 logger = logging.getLogger(__name__)
 

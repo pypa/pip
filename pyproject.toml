@@ -91,7 +91,7 @@ docs = [
   "sphinx-issues"
 ]
 
-# Libraries that are not required for pip to run, 
+# Libraries that are not required for pip to run,
 # but are used in some optional features.
 all-optional = ["keyring"]
 

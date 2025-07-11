@@ -18,14 +18,11 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
+    TYPE_CHECKING,
     Callable,
     NamedTuple,
     Protocol,
 )
-
-from pip._vendor import requests
-from pip._vendor.requests import Response
-from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
@@ -37,6 +34,15 @@ from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.vcs import vcs
 
 from .sources import CandidatesFromPage, LinkSource, build_source
+
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    import requests
+    from requests import Response
+    from requests.exceptions import RetryError, SSLError
+else:
+    from pip._vendor import requests
+    from pip._vendor.requests.exceptions import RetryError, SSLError
 
 logger = logging.getLogger(__name__)
 

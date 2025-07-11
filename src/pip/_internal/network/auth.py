@@ -17,11 +17,7 @@ from abc import ABC, abstractmethod
 from functools import cache
 from os.path import commonprefix
 from pathlib import Path
-from typing import Any, NamedTuple
-
-from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import Request, Response
-from pip._vendor.requests.utils import get_netrc_auth
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -32,6 +28,16 @@ from pip._internal.utils.misc import (
     split_auth_netloc_from_url,
 )
 from pip._internal.vcs.versioncontrol import AuthInfo
+
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    from requests.auth import AuthBase, HTTPBasicAuth
+    from requests.models import Request, Response
+    from requests.utils import get_netrc_auth
+else:
+    from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+    from pip._vendor.requests.utils import get_netrc_auth
+
 
 logger = getLogger(__name__)
 
