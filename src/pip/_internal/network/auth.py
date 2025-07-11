@@ -32,7 +32,7 @@ from pip._internal.vcs.versioncontrol import AuthInfo
 if TYPE_CHECKING:
     # Vendored libraries with type stubs
     from requests.auth import AuthBase, HTTPBasicAuth
-    from requests.models import Request, Response
+    from requests.models import PreparedRequest, Response
     from requests.utils import get_netrc_auth
 else:
     from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
@@ -443,8 +443,9 @@ class MultiDomainBasicAuth(AuthBase):
 
         return url, username, password
 
-    def __call__(self, req: Request) -> Request:
+    def __call__(self, req: PreparedRequest) -> PreparedRequest:
         # Get credentials for this request
+        assert req.url is not None, f"{req} URL should not be None"
         url, username, password = self._get_url_and_credentials(req.url)
 
         # Set the url of the request to the url without any credentials
