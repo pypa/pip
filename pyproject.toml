@@ -96,7 +96,7 @@ docs = [
 all-optional = ["keyring"]
 
 nox = ["nox"] # noxfile.py
-update-rtd-redirects = ["httpx", "rich"] # tools/update-rtd-redirects.py
+update-rtd-redirects = ["httpx", "rich", "PyYAML"] # tools/update-rtd-redirects.py
 
 type-check = [
   # Actual type checker:
@@ -108,6 +108,7 @@ type-check = [
   "types-urllib3", # vendored (can be removed when we upgrade to urllib3 >= 2.0)
   "types-setuptools", # test dependency and used in distutils_hack
   "types-six", # via python-dateutil via freezegun (test dependency)
+  "types-PyYAML", # update-rtd-redirects dependency
 
   # Everything else that could contain type hints:
   {include-group = "test"},
