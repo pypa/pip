@@ -99,7 +99,10 @@ def make_mock_server(**kwargs: Any) -> _MockServer:
 
     mock = Mock()
     app = _mock_wsgi_adapter(mock)
-    server = _make_server("localhost", 0, app=app, **kwargs)
+    base_server = _make_server("localhost", 0, app=app, **kwargs)
+
+    # Create a _MockServer with the same configuration
+    server = _MockServer(base_server.server_name, base_server.server_port, app)
     server.mock = mock
     return server
 
