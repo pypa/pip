@@ -19,7 +19,7 @@ except (ImportError, AttributeError):
 import logging
 import os
 import sys
-from distutils.command.install import SCHEME_KEYS
+from distutils.command.install import SCHEME_KEYS  # type: ignore
 from typing import TYPE_CHECKING
 
 from pip._internal.models.scheme import Scheme
