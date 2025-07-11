@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 from collections.abc import Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
@@ -13,6 +13,11 @@ import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
 
 from tests.lib.requests_mocks import MockConnection, MockRequest, MockResponse
+
+if TYPE_CHECKING:
+    from requests.models import Response
+else:
+    from pip._vendor.requests.models import Response
 
 
 @pytest.fixture(autouse=True)
@@ -320,7 +325,7 @@ def test_keyring_set_password(
     resp.status_code = 401
     resp.connection = connection
 
-    auth.handle_401(resp)
+    auth.handle_401(cast("Response", resp))
 
     if expect_save:
         assert keyring.saved_passwords == [("example.com", creds[0], creds[1])]
@@ -536,7 +541,7 @@ def test_keyring_cli_set_password(
     resp.status_code = 401
     resp.connection = connection
 
-    auth.handle_401(resp)
+    auth.handle_401(cast("Response", resp))
 
     if expect_save:
         assert keyring.saved_passwords == [("example.com", creds[0], creds[1])]
