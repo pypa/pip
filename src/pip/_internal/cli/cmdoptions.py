@@ -228,9 +228,13 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=["on", "off", "raw"],
-    default="on",
-    help="Specify whether the progress bar should be used [on, off, raw] (default: on)",
+    choices=["auto", "on", "off", "raw"],
+    default="auto",
+    help=(
+        "Specify whether the progress bar should be used. In 'auto'"
+        " mode, --quiet will suppress all progress bars."
+        " [auto, on, off, raw] (default: auto)"
+    ),
 )
 
 log: Callable[..., Option] = partial(

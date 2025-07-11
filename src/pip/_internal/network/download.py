@@ -17,7 +17,7 @@ from pip._vendor.urllib3 import HTTPResponse as URLlib3Response
 from pip._vendor.urllib3._collections import HTTPHeaderDict
 from pip._vendor.urllib3.exceptions import ReadTimeoutError
 
-from pip._internal.cli.progress_bars import get_download_progress_renderer
+from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
@@ -47,7 +47,7 @@ def _get_http_response_etag_or_last_modified(resp: Response) -> str | None:
 def _log_download(
     resp: Response,
     link: Link,
-    progress_bar: str,
+    progress_bar: BarType,
     total_length: int | None,
     range_start: int | None = 0,
 ) -> Iterable[bytes]:
@@ -166,7 +166,7 @@ class Downloader:
     def __init__(
         self,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
         resume_retries: int,
     ) -> None:
         assert (
