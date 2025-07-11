@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from hashlib import _Hash
 
     # Vendored libraries with type stubs
-    from requests.models import Request, Response
+    from requests.models import PreparedRequest, Request, Response
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.network.download import _FileDownload
@@ -298,7 +298,7 @@ class NetworkConnectionError(PipError):
         self,
         error_msg: str,
         response: Response | None = None,
-        request: Request | None = None,
+        request: Request | PreparedRequest | None = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
