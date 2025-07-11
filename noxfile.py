@@ -24,9 +24,6 @@ LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
     "protected-pip": "tools/protected_pip.py",
 }
-REQUIREMENTS = {
-    "docs": "docs/requirements.txt",
-}
 
 AUTHORS_FILE = "AUTHORS.txt"
 VERSION_FILE = "src/pip/__init__.py"
@@ -132,7 +129,7 @@ def test(session: nox.Session) -> None:
 
 @nox.session
 def docs(session: nox.Session) -> None:
-    session.install("-r", REQUIREMENTS["docs"])
+    session.install("--group", "docs")
 
     def get_sphinx_build_command(kind: str) -> list[str]:
         # Having the conf.py in the docs/html is weird but needed because we
@@ -161,7 +158,7 @@ def docs(session: nox.Session) -> None:
 
 @nox.session(name="docs-live")
 def docs_live(session: nox.Session) -> None:
-    session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
+    session.install("--group", "docs", "sphinx-autobuild")
 
     session.run(
         "sphinx-autobuild",
@@ -176,15 +173,12 @@ def docs_live(session: nox.Session) -> None:
 
 @nox.session
 def typecheck(session: nox.Session) -> None:
-    session.install(
-        "mypy",
-        "keyring",
-        "nox",
-        "pytest",
-        "types-docutils",
-        "types-setuptools",
-        "types-freezegun",
-        "types-pyyaml",
+    # Install test and test-types dependency groups
+    run_with_protected_pip(
+        session,
+        "install",
+        "--group",
+        "type-check",
     )
 
     session.run(
@@ -290,7 +284,7 @@ def coverage(session: nox.Session) -> None:
     run_with_protected_pip(session, "install", ".")
 
     # Install test dependencies
-    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
+    run_with_protected_pip(session, "install", "--group", "docs")
 
     if not os.path.exists(".coverage-output"):
         os.mkdir(".coverage-output")
