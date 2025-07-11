@@ -17,6 +17,7 @@ import pytest
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
@@ -97,11 +98,13 @@ class TestRequirementSet:
         session = PipSession()
 
         with get_build_tracker() as tracker:
+            installer = SubprocessBuildEnvironmentInstaller(finder)
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, "build"),
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
                 build_isolation=True,
+                build_isolation_installer=installer,
                 check_build_deps=False,
                 build_tracker=tracker,
                 session=session,

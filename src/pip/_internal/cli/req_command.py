@@ -12,6 +12,7 @@ from functools import partial
 from optparse import Values
 from typing import Any
 
+from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
@@ -136,6 +137,7 @@ class RequirementCommand(IndexGroupCommand):
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
+            build_isolation_installer=SubprocessBuildEnvironmentInstaller(finder),
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
