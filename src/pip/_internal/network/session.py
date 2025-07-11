@@ -18,14 +18,8 @@ import subprocess
 import sys
 import urllib.parse
 import warnings
-from collections.abc import Generator, Mapping, Sequence
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Optional,
-    Union,
-    cast,
-)
+from collections.abc import Callable, Generator, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union, cast
 
 from pip import __version__
 from pip._internal.metadata import get_default_environment
@@ -48,6 +42,7 @@ if TYPE_CHECKING:
     from requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
     from requests.adapters import HTTPAdapter as _BaseHTTPAdapter
     from requests.models import PreparedRequest, Response
+    from requests.sessions import Session
     from requests.structures import CaseInsensitiveDict
     from urllib3 import ProxyManager
     from urllib3.connectionpool import ConnectionPool
@@ -55,15 +50,27 @@ if TYPE_CHECKING:
     from urllib3.poolmanager import PoolManager
 
     from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
-
 else:
     from pip._vendor import requests, urllib3
     from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
     from pip._vendor.requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
     from pip._vendor.requests.adapters import HTTPAdapter as _BaseHTTPAdapter
     from pip._vendor.requests.models import PreparedRequest, Response
+    from pip._vendor.requests.sessions import Session
     from pip._vendor.requests.structures import CaseInsensitiveDict
     from pip._vendor.urllib3.exceptions import InsecureRequestWarning
+
+
+# copy_signature is a decorator that copies the type signature of the
+# target function to the wrapped function. This is useful for maintaining
+# type hints when using *args and **kwargs in the wrapped function.
+# recipe from: https://github.com/python/typing/issues/270#issuecomment-555966301
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+class copy_signature(Generic[F]):
+    def __init__(self, target: F) -> None: ...
+    def __call__(self, wrapped: Callable[..., Any]) -> F: ...  # type: ignore[empty-body]
 
 
 logger = logging.getLogger(__name__)
@@ -229,11 +236,11 @@ class LocalFSAdapter(BaseAdapter):
         cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
         proxies: Mapping[str, str] | None = None,
     ) -> Response:
+        assert request.url is not None
         pathname = url_to_path(request.url)
 
         resp = Response()
         resp.status_code = 200
-        assert request.url is not None
         resp.url = request.url
 
         try:
@@ -250,13 +257,13 @@ class LocalFSAdapter(BaseAdapter):
             resp.headers = CaseInsensitiveDict(
                 {
                     "Content-Type": content_type,
-                    "Content-Length": stats.st_size,
+                    "Content-Length": str(stats.st_size),
                     "Last-Modified": modified,
                 }
             )
 
             resp.raw = open(pathname, "rb")
-            resp.close = resp.raw.close
+            resp.close = resp.raw.close  # type: ignore[method-assign]
 
         return resp
 
@@ -336,6 +343,9 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
 
 class PipSession(requests.Session):
+    # Let the type checker know that we are using a custom auth handler.
+    auth: MultiDomainBasicAuth
+
     timeout: int | None = None
 
     def __init__(
@@ -363,7 +373,7 @@ class PipSession(requests.Session):
         self.headers["User-Agent"] = user_agent()
 
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth(index_urls=index_urls)  # type: ignore[assignment]
+        self.auth = MultiDomainBasicAuth(index_urls=index_urls)
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
@@ -537,6 +547,7 @@ class PipSession(requests.Session):
 
         return False
 
+    @copy_signature(Session.request)
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
