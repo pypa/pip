@@ -86,6 +86,7 @@ def _ensure_api_header(response: Response) -> None:
     ):
         return
 
+    assert response.request.method is not None
     raise _NotAPIContent(content_type, response.request.method)
 
 
