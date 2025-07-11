@@ -21,8 +21,6 @@ from typing import (
 )
 from zipfile import ZipFile
 
-from pip._vendor.requests.structures import CaseInsensitiveDict
-
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 
 # As would be used in metadata
@@ -85,13 +83,11 @@ def make_metadata_file(
     if value is not _default:
         return File(path, ensure_binary(value))
 
-    metadata = CaseInsensitiveDict(
-        {
-            "Metadata-Version": "2.1",
-            "Name": name,
-            "Version": version,
-        }
-    )
+    metadata: dict[str, HeaderValue] = {
+        "Metadata-Version": "2.1",
+        "Name": name,
+        "Version": version,
+    }
     if updates is not _default:
         metadata.update(updates)
 
@@ -117,14 +113,12 @@ def make_wheel_metadata_file(
     if value is not _default:
         return File(path, ensure_binary(value))
 
-    metadata = CaseInsensitiveDict(
-        {
-            "Wheel-Version": "1.0",
-            "Generator": "pip-test-suite",
-            "Root-Is-Purelib": "true",
-            "Tag": ["-".join(parts) for parts in tags],
-        }
-    )
+    metadata: dict[str, HeaderValue] = {
+        "Wheel-Version": "1.0",
+        "Generator": "pip-test-suite",
+        "Root-Is-Purelib": "true",
+        "Tag": ["-".join(parts) for parts in tags],
+    }
 
     if updates is not _default:
         metadata.update(updates)

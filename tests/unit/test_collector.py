@@ -8,11 +8,11 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
 
-from pip._vendor import requests
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import NetworkConnectionError
@@ -46,6 +46,12 @@ from tests.lib import (
     skip_needs_old_pathname2url_trailing_slash_behavior_win,
     skip_needs_old_urlun_behavior_win,
 )
+
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    import requests
+else:
+    from pip._vendor import requests
 
 ACCEPT = ", ".join(
     [

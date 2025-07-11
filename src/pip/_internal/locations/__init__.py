@@ -6,7 +6,7 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -80,7 +80,7 @@ def _looks_like_bpo_44860() -> bool:
 
     See <https://bugs.python.org/issue44860>.
     """
-    from distutils.command.install import INSTALL_SCHEMES
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
 
     try:
         unix_user_platlib = INSTALL_SCHEMES["unix_user"]["platlib"]
@@ -105,7 +105,7 @@ def _looks_like_red_hat_lib() -> bool:
 
     This is the only way I can see to tell a Red Hat-patched Python.
     """
-    from distutils.command.install import INSTALL_SCHEMES
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
 
     return all(
         k in INSTALL_SCHEMES
@@ -117,7 +117,7 @@ def _looks_like_red_hat_lib() -> bool:
 @functools.cache
 def _looks_like_debian_scheme() -> bool:
     """Debian adds two additional schemes."""
-    from distutils.command.install import INSTALL_SCHEMES
+    from distutils.command.install import INSTALL_SCHEMES  # type: ignore
 
     return "deb_system" in INSTALL_SCHEMES and "unix_local" in INSTALL_SCHEMES
 
@@ -131,8 +131,13 @@ def _looks_like_red_hat_scheme() -> bool:
     (fortunately?) done quite unconditionally, so we create a default command
     object without any configuration to detect this.
     """
-    from distutils.command.install import install
-    from distutils.dist import Distribution
+    if TYPE_CHECKING:
+        # Vendored libraries with type stubs
+        from setuptools._distutils.command.install import install
+        from setuptools._distutils.dist import Distribution
+    else:
+        from distutils.command.install import install
+        from distutils.dist import Distribution
 
     cmd: Any = install(Distribution())
     cmd.finalize_options()
