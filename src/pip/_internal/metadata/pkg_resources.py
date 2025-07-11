@@ -125,7 +125,7 @@ class Distribution(BaseDistribution):
         }
         dist = pkg_resources.DistInfoDistribution(
             location=filename,
-            metadata=InMemoryMetadata(metadata_dict, filename),
+            metadata=InMemoryMetadata(metadata_dict, filename),  # type: ignore[arg-type]
             project_name=project_name,
         )
         return cls(dist)
@@ -146,7 +146,7 @@ class Distribution(BaseDistribution):
             raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
         dist = pkg_resources.DistInfoDistribution(
             location=wheel.location,
-            metadata=InMemoryMetadata(metadata_dict, wheel.location),
+            metadata=InMemoryMetadata(metadata_dict, wheel.location),  # type: ignore[arg-type]
             project_name=name,
         )
         return cls(dist)
@@ -176,7 +176,7 @@ class Distribution(BaseDistribution):
         # provider has a "path" attribute not present anywhere else. Not the
         # best introspection logic, but pip has been doing this for a long time.
         try:
-            return bool(self._dist._provider.path)
+            return bool(self._dist._provider.path) # type: ignore
         except AttributeError:
             return False
 
