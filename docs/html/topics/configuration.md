@@ -2,11 +2,12 @@
 
 # Configuration
 
-pip allows a user to change its behaviour via 3 mechanisms:
+pip allows a user to change its behaviour via 3 mechanisms.
+These mechanisms are listed in order of priority, highest to lowest:
 
-- command line options
-- environment variables
-- configuration files
+1. command line options
+2. [environment variables](env-variables)
+3. [configuration files](config-file)
 
 This page explains how the configuration files and environment variables work,
 and how they are related to pip's various command line options.
@@ -22,13 +23,18 @@ and how they are related to pip's various command line options.
 Configuration files can change the default values for command line options.
 The files are written using standard INI format.
 
-pip has 3 "levels" of configuration files:
+pip has 3 "levels" of configuration files, in order of priority, highest to lowest:
 
-- `global`: system-wide configuration file, shared across users.
-- `user`: per-user configuration file.
 - `site`: per-environment configuration file; i.e. per-virtualenv.
+- `user`: per-user configuration file.
+- `global`: system-wide configuration file, shared across users.
 
-Additionally, environment variables can be specified which will override any of the above.
+```{important}
+Values in command-specific sections override values in the global section.
+
+Options specified through environment variables or command line options
+take precedence over configuration files.
+```
 
 ### Location
 
@@ -199,42 +205,45 @@ trusted-host =
 This enables users to add additional values in the order of entry for such
 command line arguments.
 
+(env-variables)=
+
 ## Environment Variables
 
-pip's command line options can be set with environment variables using the
-format `PIP_<UPPER_LONG_NAME>` . Dashes (`-`) have to be replaced with
-underscores (`_`).
+All pip command line options have equivalent environment variables,
+they can be specified using:
+```shell
+PIP_<UPPERCASE_LONG_NAME>
+```
 
-- `PIP_TIMEOUT=60` is the same as `--timeout=60`
-- ```
-  PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-  ```
+Dashes (`-`) have to be replaced with underscores (`_`).
 
-  is the same as
+Examples:
 
-  ```
-  --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-  ```
+```shell
+PIP_VERBOSE=3 PIP_CACHE_DIR=/home/user/tmp pip ...
+PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com" pip ...
+PIP_NO_DEPS=yes pip ...
+# are equivalent to
+pip ... -vvv --cache-dir=/home/user/tmp
+pip ... --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+pip ... --no-deps
+```
 
-Repeatable options that do not take a value (such as `--verbose`) can be
-specified using the number of repetitions:
-
-- `PIP_VERBOSE=3` is the same as `pip install -vvv`
+All option values follows the same rules as for the [configuration files](config-file).
 
 ```{note}
 Environment variables set to an empty string (like with `export X=` on Unix) will **not** be treated as false.
 Use `no`, `false` or `0` instead.
+
+Consequently, boolean options prefixed with `--no-*` can be disabled by using
+truthy values, e.g. `PIP_NO_CACHE_DIR=true`.
 ```
 
-## Precedence / Override order
+```{warning}
+`PIP_NO_BUILD_ISOLATION` functions **opposite** to how it reads. For example, to
+disable build isolation, `PIP_NO_BUILD_ISOLATION` must be set to a **falsy** value,
+e.g. `PIP_NO_BUILD_ISOLATION=off`.
 
-Command line options override environment variables, which override the
-values in a configuration file. Within the configuration file, values in
-command-specific sections override values in the global section.
-
-Examples:
-
-- `--host=foo` overrides `PIP_HOST=foo`
-- `PIP_HOST=foo` overrides a config file with `[global] host = foo`
-- A command specific section in the config file `[<command>] host = bar`
-  overrides the option with same name in the `[global]` config file section.
+This confusing behavior is known and will be addressed, please see issue {issue}`5735` for
+discussion on potential fixes.
+```
