@@ -18,7 +18,8 @@ from pip._internal.metadata.pkg_resources import (
 )
 
 pkg_resources = pytest.importorskip("pip._vendor.pkg_resources")
-from pip._vendor.pkg_resources import WorkingSet
+from pip._vendor.pkg_resources import WorkingSet  # noqa: E402
+
 
 def _dist_is_local(dist: mock.Mock) -> bool:
     return dist.kind != "global" and dist.kind != "user"
