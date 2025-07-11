@@ -1,0 +1,2 @@
+``pip config debug`` now correctly separates options as set by the different files
+at the same level.

@@ -177,7 +177,8 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            write_output("%s=%r", key, value)
+            for key, value in sorted(value.items()):
+                write_output("%s=%r", key, value)
 
     def get_name(self, options: Values, args: list[str]) -> None:
         key = self._get_n_args(args, "get [name]", n=1)
@@ -211,13 +212,15 @@ class ConfigurationCommand(Command):
                     file_exists = os.path.exists(fname)
                     write_output("%s, exists: %r", fname, file_exists)
                     if file_exists:
-                        self.print_config_file_values(variant)
+                        self.print_config_file_values(variant, fname)
 
-    def print_config_file_values(self, variant: Kind) -> None:
+    def print_config_file_values(self, variant: Kind, fname: str) -> None:
         """Get key-value pairs from the file of a variant"""
         for name, value in self.configuration.get_values_in_config(variant).items():
             with indent_log():
-                write_output("%s: %s", name, value)
+                if name == fname:
+                    for confname, confvalue in value.items():
+                        write_output("%s: %s", confname, confvalue)
 
     def print_env_var_values(self) -> None:
         """Get key-values pairs present as environment variables"""
