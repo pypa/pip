@@ -176,7 +176,7 @@ class Distribution(BaseDistribution):
         # provider has a "path" attribute not present anywhere else. Not the
         # best introspection logic, but pip has been doing this for a long time.
         try:
-            return bool(self._dist._provider.path) # type: ignore
+            return bool(self._dist._provider.path)  # type: ignore
         except AttributeError:
             return False
 

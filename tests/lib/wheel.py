@@ -15,22 +15,13 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
     AnyStr,
     TypeVar,
     Union,
-    cast,
 )
 from zipfile import ZipFile
 
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
-
-if TYPE_CHECKING:
-    # Vendored libraries with type stubs
-    from requests.structures import CaseInsensitiveDict
-else:
-    from pip._vendor.requests.structures import CaseInsensitiveDict
-
 
 # As would be used in metadata
 HeaderValue = Union[str, list[str]]
