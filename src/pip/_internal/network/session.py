@@ -26,15 +26,6 @@ from typing import (
     Union,
 )
 
-from pip._vendor import requests, urllib3
-from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
-from pip._vendor.requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
-from pip._vendor.requests.adapters import HTTPAdapter as _BaseHTTPAdapter
-from pip._vendor.requests.models import PreparedRequest, Response
-from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.urllib3.connectionpool import ConnectionPool
-from pip._vendor.urllib3.exceptions import InsecureRequestWarning
-
 from pip import __version__
 from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
@@ -50,8 +41,28 @@ from pip._internal.utils.urls import url_to_path
 if TYPE_CHECKING:
     from ssl import SSLContext
 
-    from pip._vendor.urllib3.poolmanager import PoolManager
-    from pip._vendor.urllib3.proxymanager import ProxyManager
+    # Vendored libraries with type stubs
+    import requests
+    import urllib3
+    from requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
+    from requests.adapters import HTTPAdapter as _BaseHTTPAdapter
+    from requests.models import PreparedRequest, Response
+    from requests.structures import CaseInsensitiveDict
+    from urllib3 import ProxyManager
+    from urllib3.connectionpool import ConnectionPool
+    from urllib3.exceptions import InsecureRequestWarning
+    from urllib3.poolmanager import PoolManager
+
+    from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
+
+else:
+    from pip._vendor import requests, urllib3
+    from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
+    from pip._vendor.requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
+    from pip._vendor.requests.adapters import HTTPAdapter as _BaseHTTPAdapter
+    from pip._vendor.requests.models import PreparedRequest, Response
+    from pip._vendor.requests.structures import CaseInsensitiveDict
+    from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 
 logger = logging.getLogger(__name__)

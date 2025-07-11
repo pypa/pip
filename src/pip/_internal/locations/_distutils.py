@@ -19,16 +19,27 @@ except (ImportError, AttributeError):
 import logging
 import os
 import sys
-from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
-from distutils.command.install import install as distutils_install_command
-from distutils.sysconfig import get_python_lib
+from typing import TYPE_CHECKING
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import get_major_minor_version
+
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    from setuptools._distutils.cmd import Command as DistutilsCommand
+    from setuptools._distutils.command.install import (
+        install as distutils_install_command,
+    )
+    from setuptools._distutils.dist import Distribution  # noqa: F401
+    from setuptools._distutils.sysconfig import get_python_lib
+else:
+    from distutils.command.install import install as distutils_install_command
+    from distutils.sysconfig import get_python_lib
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +57,8 @@ def distutils_scheme(
     """
     Return a distutils install scheme
     """
-    from distutils.dist import Distribution
+    if not TYPE_CHECKING:
+        from distutils.dist import Distribution
 
     dist_args: dict[str, str | list[str]] = {"name": dist_name}
     if isolated:
