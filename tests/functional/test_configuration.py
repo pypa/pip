@@ -210,7 +210,7 @@ class TestBasicLoading(ConfigurationMixin):
         assert re.search(
             (
                 rf"{re.escape(legacy_config_file)}, "
-                "exists: True\n(  {re.escape(new_config_file)}.+\n)+"
+                rf"exists: True\n(  {re.escape(new_config_file)}.+\n)+"
             ),
             result.stdout,
         )
