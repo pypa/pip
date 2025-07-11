@@ -20,7 +20,7 @@ import logging
 import os
 import sys
 from distutils.command.install import SCHEME_KEYS  # type: ignore
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -77,7 +77,7 @@ def distutils_scheme(
     obj: DistutilsCommand | None = None
     obj = d.get_command_obj("install", create=True)
     assert obj is not None
-    i: distutils_install_command = obj
+    i = cast(distutils_install_command, obj)
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.

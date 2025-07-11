@@ -24,6 +24,7 @@ from typing import (
     Any,
     Optional,
     Union,
+    cast,
 )
 
 from pip import __version__
@@ -223,15 +224,16 @@ class LocalFSAdapter(BaseAdapter):
         self,
         request: PreparedRequest,
         stream: bool = False,
-        timeout: float | tuple[float, float] | None = None,
+        timeout: float | tuple[float, float] | tuple[float, None] | None = None,
         verify: bool | str = True,
-        cert: str | tuple[str, str] | None = None,
+        cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
         proxies: Mapping[str, str] | None = None,
     ) -> Response:
         pathname = url_to_path(request.url)
 
         resp = Response()
         resp.status_code = 200
+        assert request.url is not None
         resp.url = request.url
 
         try:
@@ -361,7 +363,7 @@ class PipSession(requests.Session):
         self.headers["User-Agent"] = user_agent()
 
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth(index_urls=index_urls)
+        self.auth = MultiDomainBasicAuth(index_urls=index_urls)  # type: ignore[assignment]
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
@@ -395,14 +397,20 @@ class PipSession(requests.Session):
         # origin, and we don't want someone to be able to poison the cache and
         # require manual eviction from the cache to fix it.
         if cache:
-            secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache),
-                max_retries=retries,
-                ssl_context=ssl_context,
+            secure_adapter = cast(
+                HTTPAdapter,
+                CacheControlAdapter(
+                    cache=SafeFileCache(cache),
+                    max_retries=retries,
+                    ssl_context=ssl_context,
+                ),
             )
-            self._trusted_host_adapter = InsecureCacheControlAdapter(
-                cache=SafeFileCache(cache),
-                max_retries=retries,
+            self._trusted_host_adapter = cast(
+                HTTPAdapter,
+                InsecureCacheControlAdapter(
+                    cache=SafeFileCache(cache),
+                    max_retries=retries,
+                ),
             )
         else:
             secure_adapter = HTTPAdapter(max_retries=retries, ssl_context=ssl_context)
