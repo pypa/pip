@@ -3,7 +3,8 @@
 import logging
 import urllib.parse
 import xmlrpc.client
-from typing import TYPE_CHECKING
+from http.client import HTTPResponse
+from typing import TYPE_CHECKING, cast
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.network.session import PipSession
@@ -44,13 +45,13 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
             headers = {"Content-Type": "text/xml"}
             response = self._session.post(
                 url,
-                data=request_body,
+                data=cast(bytes, request_body),
                 headers=headers,
                 stream=True,
             )
             raise_for_status(response)
             self.verbose = verbose
-            return self.parse_response(response.raw)
+            return self.parse_response(cast(HTTPResponse, response.raw))
         except NetworkConnectionError as exc:
             assert exc.response
             logger.critical(
