@@ -78,6 +78,45 @@ test-common-wheels = [
     "coverage >= 4.4",
 ]
 
+docs = [
+  "sphinx ~= 7.0",
+  # currently incompatible with sphinxcontrib-towncrier
+  # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
+  "towncrier < 24",
+  "furo",
+  "myst_parser",
+  "sphinx-copybutton",
+  "sphinx-inline-tabs",
+  "sphinxcontrib-towncrier >= 0.2.0a0",
+  "sphinx-issues"
+]
+
+# Libraries that are not required for pip to run, 
+# but are used in some optional features.
+all-optional = ["keyring"]
+
+nox = ["nox"] # noxfile.py
+update-rtd-redirects = ["httpx", "rich"] # tools/update-rtd-redirects.py
+
+type-check = [
+  # Actual type checker:
+  "mypy",
+
+  # Stub libraries that contain type hints as a separate package:
+  "types-docutils", # via sphinx (test dependency)
+  "types-requests", # vendored
+  "types-urllib3", # vendored (can be removed when we upgrade to urllib3 >= 2.0)
+  "types-setuptools", # test dependency and used in distutils_hack
+  "types-six", # via python-dateutil via freezegun (test dependency)
+
+  # Everything else that could contain type hints:
+  {include-group = "test"},
+  {include-group = "docs"},
+  {include-group = "nox"},
+  {include-group = "all-optional"},
+  {include-group = "update-rtd-redirects"},
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 include-package-data = false
