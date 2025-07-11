@@ -2,22 +2,42 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import re
+import subprocess
+import sys
 import textwrap
-from collections.abc import Generator
-
-import pytest
-
-import pip._vendor.platformdirs.windows as platformdirs_windows
 
 from pip._internal.cli.status_codes import ERROR
-from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
+from pip._internal.configuration import CONFIG_BASENAME, Kind
+from pip._internal.configuration import (
+    get_configuration_files as _get_config_files,
+)
 from pip._internal.utils.compat import WINDOWS
 
 from tests.lib import PipTestEnvironment
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 from tests.lib.venv import VirtualEnvironment
+
+
+def get_configuration_files() -> dict[Kind, list[str]]:
+    """Wrapper over pip._internal.configuration.get_configuration_files()."""
+    if WINDOWS:
+        # The user configuration directory is updated in the isolate fixture using the
+        # APPDATA environment variable. This will only take effect in new subprocesses,
+        # however. To ensure that get_configuration_files() never returns stale data,
+        # call it in a subprocess on Windows.
+        code = (
+            "from pip._internal.configuration import get_configuration_files; "
+            "print(get_configuration_files())"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, encoding="utf-8"
+        )
+        return ast.literal_eval(proc.stdout)
+    else:
+        return _get_config_files()
 
 
 def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
@@ -26,16 +46,6 @@ def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
 
 
 class TestBasicLoading(ConfigurationMixin):
-    @pytest.fixture(autouse=True)
-    def clear_platformdirs_cache(self) -> Generator[None]:
-        # This is ugly, but platformdirs caches the user config directory on
-        # Windows which breaks our test assertions.
-        if WINDOWS:
-            platformdirs_windows.get_win_folder.cache_clear()
-        yield
-        if WINDOWS:
-            platformdirs_windows.get_win_folder.cache_clear()
-
     def test_basic_modification_pipeline(self, script: PipTestEnvironment) -> None:
         script.pip("config", "get", "test.blah", expect_error=True)
         script.pip("config", "set", "test.blah", "1")
@@ -198,6 +208,9 @@ class TestBasicLoading(ConfigurationMixin):
             f"{new_config_file}, exists: True\n    global.timeout: 60" in result.stdout
         )
         assert re.search(
-            rf"{legacy_config_file}, exists: True\n(  {new_config_file}.+\n)+",
+            (
+                rf"{re.escape(legacy_config_file)}, "
+                "exists: True\n(  {re.escape(new_config_file)}.+\n)+"
+            ),
             result.stdout,
         )
