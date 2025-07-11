@@ -1,9 +1,16 @@
+from typing import TYPE_CHECKING, cast
+
 import pytest
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.network.utils import raise_for_status
 
 from tests.lib.requests_mocks import MockResponse
+
+if TYPE_CHECKING:
+    from requests.models import Response
+else:
+    from pip._vendor.requests.models import Response
 
 
 @pytest.mark.parametrize(
@@ -20,7 +27,7 @@ def test_raise_for_status_raises_exception(status_code: int, error_type: str) ->
     resp.url = "http://www.example.com/whatever.tgz"
     resp.reason = "Network Error"
     with pytest.raises(NetworkConnectionError) as excinfo:
-        raise_for_status(resp)
+        raise_for_status(cast("Response", resp))
     assert str(excinfo.value) == (
         f"{status_code} {error_type}: Network Error for url:"
         " http://www.example.com/whatever.tgz"
@@ -33,4 +40,4 @@ def test_raise_for_status_does_not_raises_exception() -> None:
     resp.status_code = 201
     resp.url = "http://www.example.com/whatever.tgz"
     resp.reason = "No error"
-    raise_for_status(resp)
+    raise_for_status(cast("Response", resp))
