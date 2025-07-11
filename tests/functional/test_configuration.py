@@ -11,9 +11,7 @@ import textwrap
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, Kind
-from pip._internal.configuration import (
-    get_configuration_files as _get_config_files,
-)
+from pip._internal.configuration import get_configuration_files as _get_config_files
 from pip._internal.utils.compat import WINDOWS
 
 from tests.lib import PipTestEnvironment
