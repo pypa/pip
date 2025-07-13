@@ -13,7 +13,11 @@ class BadMetadata(ValueError):
         self.reason = reason
 
     def __str__(self) -> str:
-        return f"Bad metadata in {self.dist} ({self.reason})"
+        return (
+        f"Bad metadata in distribution '{self.dist}': {self.reason}. "
+        "This means pip couldn't read the package's METADATA file, which is required for proper package handling. "
+        "Consider reinstalling the package or checking its installation path."
+    )
 
 
 class BasePath(Protocol):
