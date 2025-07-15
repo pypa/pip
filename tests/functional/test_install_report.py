@@ -117,6 +117,7 @@ def test_skipped_yanked_version(
     assert simple_report["metadata"]["version"] == "2.0"
 
 
+@pytest.mark.network
 @pytest.mark.parametrize(
     "specifiers",
     [
@@ -127,7 +128,6 @@ def test_skipped_yanked_version(
         ("Paste[openid]==1.7.5.1", "Paste==1.7.5.1"),
     ],
 )
-@pytest.mark.network
 def test_install_report_index(
     script: PipTestEnvironment, tmp_path: Path, specifiers: tuple[str, ...]
 ) -> None:
@@ -178,7 +178,6 @@ def test_install_report_index_multiple_extras(
     assert install_dict["paste"]["requested_extras"] == ["openid", "subprocess"]
 
 
-@pytest.mark.network
 def test_install_report_direct_archive(
     script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
 ) -> None:
@@ -297,7 +296,6 @@ def test_install_report_vcs_editable(
     assert pip_test_package_report["download_info"]["dir_info"]["editable"] is True
 
 
-@pytest.mark.network
 def test_install_report_local_path_with_extras(
     script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
 ) -> None:
@@ -342,7 +340,6 @@ def test_install_report_local_path_with_extras(
     assert "requested_extras" not in simple_report
 
 
-@pytest.mark.network
 def test_install_report_editable_local_path_with_extras(
     script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
 ) -> None:
