@@ -1,0 +1,1 @@
+When PEP-658 metadata is available, full distribution download no longer occurs when using dry-run mode on install.

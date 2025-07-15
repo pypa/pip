@@ -413,6 +413,13 @@ class InstallCommand(RequirementCommand):
                     )
                 return SUCCESS
 
+            # If there is any more preparation to do for the actual installation, do
+            # so now. This includes actually downloading the files in the case that
+            # we have been using PEP-658 metadata so far.
+            preparer.prepare_linked_requirements_more(
+                requirement_set.requirements.values()
+            )
+
             try:
                 pip_req = requirement_set.get_requirement("pip")
             except KeyError:
