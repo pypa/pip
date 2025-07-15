@@ -102,6 +102,10 @@ def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) 
         if item.get_closest_marker("search") and not config.getoption("--run-search"):
             item.add_marker(pytest.mark.skip("pip search test skipped"))
 
+        # Exempt tests known to use the network from pytest-subket.
+        if item.get_closest_marker("network") is not None:
+            item.add_marker(pytest.mark.enable_socket)
+
         if "CI" in os.environ:
             # Mark network tests as flaky
             if item.get_closest_marker("network") is not None:
@@ -447,6 +451,18 @@ def coverage_install(
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "coverage")
 
 
+@pytest.fixture(scope="session")
+def socket_install(tmpdir_factory: pytest.TempPathFactory, common_wheels: Path) -> Path:
+    lib_dir = _common_wheel_editable_install(
+        tmpdir_factory, common_wheels, "pytest_subket"
+    )
+    # pytest-subket is only included so it can intercept and block unexpected
+    # network requests. It should NOT be visible to the pip under test.
+    dist_info = next(lib_dir.glob("*.dist-info"))
+    shutil.rmtree(dist_info)
+    return lib_dir
+
+
 def install_pth_link(
     venv: VirtualEnvironment, project_name: str, lib_dir: Path
 ) -> None:
@@ -464,6 +480,7 @@ def virtualenv_template(
     setuptools_install: Path,
     wheel_install: Path,
     coverage_install: Path,
+    socket_install: Path,
 ) -> VirtualEnvironment:
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
@@ -475,9 +492,13 @@ def virtualenv_template(
     tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
-    # Install setuptools, wheel and pip.
+    # Install setuptools, wheel, pytest-subket, and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
     install_pth_link(venv, "wheel", wheel_install)
+    install_pth_link(venv, "pytest_subket", socket_install)
+    # Also copy pytest-subket's .pth file so it can intercept socket calls.
+    with open(venv.site / "pytest_socket.pth", "w") as f:
+        f.write(socket_install.joinpath("pytest_socket.pth").read_text())
 
     pth, dist_info = pip_editable_parts
 
