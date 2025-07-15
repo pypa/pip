@@ -197,16 +197,11 @@ def test_validate_missing_pep517_backend_requirements(
     project_dir = make_project(
         tmpdir, requires=["test_backend", "simplewheel==1.0"], backend="test_backend"
     )
-    result = script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        data.backends,
-        "-f",
-        data.packages,
+    result = script.pip_install_local(
         "--no-build-isolation",
         "--check-build-dependencies",
         project_dir,
+        find_links=[data.backends, data.packages],
         expect_error=True,
     )
     msg = (
@@ -224,16 +219,11 @@ def test_validate_conflicting_pep517_backend_requirements(
         tmpdir, requires=["simplewheel==1.0"], backend="test_backend"
     )
     script.pip("install", "simplewheel==2.0", "--no-index", "-f", data.packages)
-    result = script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        data.backends,
-        "-f",
-        data.packages,
+    result = script.pip_install_local(
         "--no-build-isolation",
         "--check-build-dependencies",
         project_dir,
+        find_links=[data.backends, data.packages],
         expect_error=True,
     )
     msg = (
@@ -271,14 +261,8 @@ def test_pep517_backend_requirements_already_satisfied(
         tmpdir, requires=["test_backend", "simplewheel==1.0"], backend="test_backend"
     )
     project_dir.joinpath("backend_reqs.txt").write_text("simplewheel")
-    result = script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        data.backends,
-        "-f",
-        data.packages,
-        project_dir,
+    result = script.pip_install_local(
+        project_dir, find_links=[data.backends, data.packages]
     )
     assert "Installing backend dependencies:" not in result.stdout
 
@@ -290,13 +274,8 @@ def test_pep517_install_with_no_cache_dir(
     project_dir = make_project(
         tmpdir, requires=["test_backend"], backend="test_backend"
     )
-    result = script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "-f",
-        data.backends,
-        project_dir,
+    result = script.pip_install_local(
+        "--no-cache-dir", project_dir, find_links=data.backends
     )
     result.assert_installed("project", editable=False)
 
@@ -346,13 +325,8 @@ def test_no_build_system_section(
 ) -> None:
     """Check builds with setup.py, pyproject.toml, but no build-system section."""
     project_dir, name = make_pyproject_with_setup(tmpdir, build_system=False)
-    result = script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "-f",
-        common_wheels,
-        project_dir,
+    result = script.pip_install_local(
+        "--no-cache-dir", project_dir, find_links=common_wheels
     )
     result.assert_installed(name, editable=False)
 
@@ -362,13 +336,8 @@ def test_no_build_backend_entry(
 ) -> None:
     """Check builds with setup.py, pyproject.toml, but no build-backend entry."""
     project_dir, name = make_pyproject_with_setup(tmpdir, set_backend=False)
-    result = script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "-f",
-        common_wheels,
-        project_dir,
+    result = script.pip_install_local(
+        "--no-cache-dir", project_dir, find_links=common_wheels
     )
     result.assert_installed(name, editable=False)
 
@@ -378,13 +347,8 @@ def test_explicit_setuptools_backend(
 ) -> None:
     """Check builds with setup.py, pyproject.toml, and a build-backend entry."""
     project_dir, name = make_pyproject_with_setup(tmpdir)
-    result = script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "-f",
-        common_wheels,
-        project_dir,
+    result = script.pip_install_local(
+        "--no-cache-dir", project_dir, find_links=common_wheels
     )
     result.assert_installed(name, editable=False)
 
