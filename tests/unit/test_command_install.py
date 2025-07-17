@@ -121,7 +121,8 @@ class TestDecideUserInstall:
             "Consider checking your local proxy configuration"
             ' with "pip config debug".\n',
         ),
-        # Testing both long path error (ENOENT) and long file/folder name error (EINVAL) on Windows
+        # Testing both long path error (ENOENT)
+        # and long file/folder name error (EINVAL) on Windows
         pytest.param(
             OSError(errno.ENOENT, "No such file or directory", "C:/foo/" + "a" * 261),
             False,
