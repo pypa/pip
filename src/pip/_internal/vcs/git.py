@@ -236,7 +236,7 @@ class Git(VersionControl):
         # Do not show a warning for the common case of something that has
         # the form of a Git commit hash.
         if not looks_like_hash(rev):
-            logger.warning(
+            logger.info(
                 "Did not find branch or tag '%s', assuming revision or ref.",
                 rev,
             )

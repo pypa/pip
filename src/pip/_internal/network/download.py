@@ -11,15 +11,18 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import BinaryIO
 
+from pip._vendor.requests import PreparedRequest
 from pip._vendor.requests.models import Response
+from pip._vendor.urllib3 import HTTPResponse as URLlib3Response
+from pip._vendor.urllib3._collections import HTTPHeaderDict
 from pip._vendor.urllib3.exceptions import ReadTimeoutError
 
-from pip._internal.cli.progress_bars import get_download_progress_renderer
+from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
-from pip._internal.network.cache import is_from_cache
-from pip._internal.network.session import PipSession
+from pip._internal.network.cache import SafeFileCache, is_from_cache
+from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
 
@@ -44,7 +47,7 @@ def _get_http_response_etag_or_last_modified(resp: Response) -> str | None:
 def _log_download(
     resp: Response,
     link: Link,
-    progress_bar: str,
+    progress_bar: BarType,
     total_length: int | None,
     range_start: int | None = 0,
 ) -> Iterable[bytes]:
@@ -163,7 +166,7 @@ class Downloader:
     def __init__(
         self,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
         resume_retries: int,
     ) -> None:
         assert (
@@ -249,6 +252,67 @@ class Downloader:
         if download.is_incomplete():
             os.remove(download.output_file.name)
             raise IncompleteDownloadError(download)
+
+        # If we successfully completed the download via resume, manually cache it
+        # as a complete response to enable future caching
+        if download.reattempts > 0:
+            self._cache_resumed_download(download, first_resp)
+
+    def _cache_resumed_download(
+        self, download: _FileDownload, original_response: Response
+    ) -> None:
+        """
+        Manually cache a file that was successfully downloaded via resume retries.
+
+        cachecontrol doesn't cache 206 (Partial Content) responses, since they
+        are not complete files. This method manually adds the final file to the
+        cache as though it was downloaded in a single request, so that future
+        requests can use the cache.
+        """
+        url = download.link.url_without_fragment
+        adapter = self._session.get_adapter(url)
+
+        # Check if the adapter is the CacheControlAdapter (i.e. caching is enabled)
+        if not isinstance(adapter, CacheControlAdapter):
+            logger.debug(
+                "Skipping resume download caching: no cache controller for %s", url
+            )
+            return
+
+        # Check SafeFileCache is being used
+        assert isinstance(
+            adapter.cache, SafeFileCache
+        ), "separate body cache not in use!"
+
+        synthetic_request = PreparedRequest()
+        synthetic_request.prepare(method="GET", url=url, headers={})
+
+        synthetic_response_headers = HTTPHeaderDict()
+        for key, value in original_response.headers.items():
+            if key.lower() not in ["content-range", "content-length"]:
+                synthetic_response_headers[key] = value
+        synthetic_response_headers["content-length"] = str(download.size)
+
+        synthetic_response = URLlib3Response(
+            body="",
+            headers=synthetic_response_headers,
+            status=200,
+            preload_content=False,
+        )
+
+        # Save metadata and then stream the file contents to cache.
+        cache_url = adapter.controller.cache_url(url)
+        metadata_blob = adapter.controller.serializer.dumps(
+            synthetic_request, synthetic_response, b""
+        )
+        adapter.cache.set(cache_url, metadata_blob)
+        download.output_file.flush()
+        with open(download.output_file.name, "rb") as f:
+            adapter.cache.set_body_from_io(cache_url, f)
+
+        logger.debug(
+            "Cached resumed download as complete response for future use: %s", url
+        )
 
     def _http_get_resume(
         self, download: _FileDownload, should_match: Response

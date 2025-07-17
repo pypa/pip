@@ -10,6 +10,7 @@ import shutil
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -53,6 +54,9 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
+
+if TYPE_CHECKING:
+    from pip._internal.cli.progress_bars import BarType
 
 logger = getLogger(__name__)
 
@@ -229,7 +233,7 @@ class RequirementPreparer:
         check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
         finder: PackageFinder,
         require_hashes: bool,
         use_user_site: bool,
