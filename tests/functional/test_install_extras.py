@@ -188,10 +188,11 @@ def test_install_special_extra(
     ) in result.stderr, str(result)
 
 
+@pytest.mark.network
 def test_install_requirements_no_r_flag(script: PipTestEnvironment) -> None:
     """Beginners sometimes forget the -r and this leads to confusion"""
     result = script.pip("install", "requirements.txt", expect_error=True)
-    assert 'literally named "requirements.txt"' in result.stdout
+    assert 'literally named "requirements.txt"' in result.stdout, str(result)
 
 
 @pytest.mark.parametrize(

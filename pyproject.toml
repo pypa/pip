@@ -53,10 +53,12 @@ test = [
     "cryptography",
     "freezegun",
     "installer",
-    "pytest",
+    # pytest-subket requires 7.0+
+    "pytest >= 7.0",
     "pytest-cov",
     "pytest-rerunfailures",
     "pytest-xdist",
+    "pytest-subket",
     "scripttest",
     "setuptools",
     # macOS (darwin) arm64 always uses virtualenv >= 20.0
@@ -76,6 +78,7 @@ test-common-wheels = [
     "wheel",
     # As required by pytest-cov.
     "coverage >= 4.4",
+    "pytest-subket >= 0.8.1",
 ]
 
 [tool.setuptools]
@@ -296,7 +299,7 @@ follow_imports = "skip"
 #
 
 [tool.pytest.ini_options]
-addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes"
+addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes --disable-socket --allow-hosts=localhost"
 xfail_strict = true
 markers = [
     "network: tests that need network",
