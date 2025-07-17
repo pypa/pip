@@ -76,7 +76,7 @@ def test(session: nox.Session) -> None:
             session,
             "wheel",
             "-w", LOCATIONS["common-wheels"],
-            "--group", "test-common-wheels", "--no-deps",
+            "--group", "test-common-wheels",
         )
         # fmt: on
     else:

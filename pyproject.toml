@@ -77,7 +77,7 @@ test-common-wheels = [
     "wheel",
     # As required by pytest-cov.
     "coverage >= 4.4",
-    "pytest-subket >= 0.8.0",
+    "pytest-subket-minimal >= 0.8.0",
 ]
 
 [tool.setuptools]
