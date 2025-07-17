@@ -466,13 +466,15 @@ def test_completion_for_action_handler_handler_not_repeated(
 
 
 # Ensure data.temp exists or replace with correct attribute
-if 'data' not in locals():
+if "data" not in locals():
     raise NameError("'data' must be passed as a parameter to the test function")
 
-path = getattr(data, 'temp', None)
+path = getattr(data, "temp", None)
 if path is None:
     raise AttributeError("TestData object has no 'temp' attribute")
 
 # Ensure autocomplete_script.exe is a Path object
-if not hasattr(autocomplete_script, 'exe') or not isinstance(autocomplete_script.exe, Path):
+if not hasattr(autocomplete_script, "exe") or not isinstance(
+    autocomplete_script.exe, Path
+):
     raise ValueError("autocomplete_script.exe must be a valid Path object")
