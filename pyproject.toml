@@ -98,7 +98,7 @@ all-optional = ["keyring"]
 nox = ["nox"] # noxfile.py
 update-rtd-redirects = ["httpx", "rich", "PyYAML"] # tools/update-rtd-redirects.py
 
-type-check = [
+type-checking = [
   # Actual type checker:
   "mypy",
 
@@ -109,13 +109,15 @@ type-check = [
   "types-setuptools", # test dependency and used in distutils_hack
   "types-six", # via python-dateutil via freezegun (test dependency)
   "types-PyYAML", # update-rtd-redirects dependency
+]
 
-  # Everything else that could contain type hints:
+all = [
   {include-group = "test"},
   {include-group = "docs"},
   {include-group = "nox"},
   {include-group = "all-optional"},
   {include-group = "update-rtd-redirects"},
+  {include-group = "type-checking"},
 ]
 
 [tool.setuptools]

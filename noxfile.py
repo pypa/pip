@@ -178,7 +178,7 @@ def typecheck(session: nox.Session) -> None:
         session,
         "install",
         "--group",
-        "type-check",
+        "all",
     )
 
     session.run(
