@@ -53,7 +53,8 @@ test = [
     "cryptography",
     "freezegun",
     "installer",
-    "pytest",
+    # pytest-subket requires 7.0+
+    "pytest >= 7.0",
     "pytest-cov",
     "pytest-rerunfailures",
     "pytest-xdist",
@@ -77,7 +78,7 @@ test-common-wheels = [
     "wheel",
     # As required by pytest-cov.
     "coverage >= 4.4",
-    "pytest-subket-minimal >= 0.8.0",
+    "pytest-subket >= 0.8.1",
 ]
 
 [tool.setuptools]
