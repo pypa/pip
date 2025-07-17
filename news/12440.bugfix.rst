@@ -1,0 +1,1 @@
+Fix PowerShell completion for PowerShell 7.4+ by passing command line and cursor position to pip and splitting completions by newlines.
