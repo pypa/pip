@@ -539,3 +539,14 @@ def test_prompt_for_keyring_if_needed(
         assert function_name + " was called" in result.stderr
     else:
         assert function_name + " was called" not in result.stderr
+
+
+@pytest.mark.network
+def test_install_quiet_log(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test suppressing the progress bar with --quiet and --log.
+    """
+    logfile = script.scratch_path / "log"
+    result = script.pip("install", "-qqq", "setuptools==62.0.0", "--log", logfile)
+    assert result.stdout == ""
+    assert result.stderr == ""

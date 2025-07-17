@@ -28,7 +28,8 @@ class ConfigurationMixin:
         @functools.wraps(old)
         def overridden() -> None:
             # Manual Overload
-            self.configuration._config[variant].update(di)
+            self.configuration._config[variant].setdefault("fakefile", {})
+            self.configuration._config[variant]["fakefile"].update(di)
             # Configuration._parsers has type:
             # Dict[Kind, List[Tuple[str, RawConfigParser]]].
             # As a testing convenience, pass a special value.
