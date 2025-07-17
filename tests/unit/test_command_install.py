@@ -1,4 +1,5 @@
 import errno
+import sys
 from unittest import mock
 
 import pytest
@@ -120,18 +121,34 @@ class TestDecideUserInstall:
             "Consider checking your local proxy configuration"
             ' with "pip config debug".\n',
         ),
-        # Testing both long path error (ENOENT) and long file/folder name error (EINVAL)
-        (
+        # Testing both long path error (ENOENT) and long file/folder name error (EINVAL) on Windows
+        pytest.param(
             OSError(errno.ENOENT, "No such file or directory", "C:/foo/" + "a" * 261),
             False,
             False,
-            f"""Could not install packages due to an OSError: [Errno 2] No such file or directory: 'C:/foo/{"a"*261}'\n""",
+            "Could not install packages due to an OSError: "
+            f"[Errno 2] No such file or directory: 'C:/foo/{'a'*261}'\n"
+            "HINT: This error might have occurred since "
+            "this system does not have Windows Long Path "
+            "support enabled. You can find information on "
+            "how to enable this at "
+            "https://pip.pypa.io/warnings/enable-long-paths\n",
+            marks=pytest.mark.skipif(
+                sys.platform != "win32", reason="Windows-specific filename length test"
+            ),
         ),
-        (
+        pytest.param(
             OSError(errno.EINVAL, "No such file or directory", "C:/foo/" + "a" * 256),
             False,
             False,
-            f"""Could not install packages due to an OSError: [Errno 22] No such file or directory: 'C:/foo/{"a"*256}'\n""",
+            "Could not install packages due to an OSError: "
+            f"[Errno 22] No such file or directory: 'C:/foo/{'a'*256}'\n"
+            "HINT: This error might be caused by a file or folder name exceeding "
+            "255 characters, which is a Windows limitation even if long paths "
+            "are enabled.\n",
+            marks=pytest.mark.skipif(
+                sys.platform != "win32", reason="Windows-specific filename length test"
+            ),
         ),
     ],
 )
