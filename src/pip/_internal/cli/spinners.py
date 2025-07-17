@@ -152,7 +152,7 @@ def open_spinner(message: str) -> Generator[SpinnerInterface, None, None]:
         spinner.finish("done")
 
 
-class PipRichSpinner:
+class _PipRichSpinner:
     """
     Custom rich spinner that matches the style of the legacy spinners.
 
@@ -198,7 +198,7 @@ def open_rich_spinner(label: str, console: Console | None = None) -> Generator[N
         return
 
     console = console or get_console()
-    spinner = PipRichSpinner(label)
+    spinner = _PipRichSpinner(label)
     with Live(spinner, refresh_per_second=SPINS_PER_SECOND, console=console):
         try:
             yield
