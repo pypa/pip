@@ -229,11 +229,11 @@ class LocalFSAdapter(BaseAdapter):
         cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
         proxies: Mapping[str, str] | None = None,
     ) -> Response:
+        assert request.url is not None
         pathname = url_to_path(request.url)
 
         resp = Response()
         resp.status_code = 200
-        assert request.url is not None
         resp.url = request.url
 
         try:
@@ -250,13 +250,13 @@ class LocalFSAdapter(BaseAdapter):
             resp.headers = CaseInsensitiveDict(
                 {
                     "Content-Type": content_type,
-                    "Content-Length": stats.st_size,
+                    "Content-Length": str(stats.st_size),
                     "Last-Modified": modified,
                 }
             )
 
             resp.raw = open(pathname, "rb")
-            resp.close = resp.raw.close
+            resp.close = resp.raw.close  # type: ignore[method-assign]
 
         return resp
 
@@ -336,6 +336,9 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
 
 class PipSession(requests.Session):
+    # Let the type checker know that we are using a custom auth handler.
+    auth: MultiDomainBasicAuth
+
     timeout: int | None = None
 
     def __init__(
@@ -363,11 +366,11 @@ class PipSession(requests.Session):
         self.headers["User-Agent"] = user_agent()
 
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth(index_urls=index_urls)  # type: ignore[assignment]
+        self.auth = MultiDomainBasicAuth(index_urls=index_urls)
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
-        retries = urllib3.Retry(
+        retry = urllib3.Retry(
             # Set the total number of retries that a particular request can
             # have.
             total=retries,
@@ -382,14 +385,14 @@ class PipSession(requests.Session):
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
-        )  # type: ignore
+        )
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.
         # If caching is disabled, we will also use it for
         # https:// hosts that we've marked as ignoring
         # TLS errors for (trusted-hosts).
-        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        insecure_adapter = InsecureHTTPAdapter(max_retries=retry)
 
         # We want to _only_ cache responses on securely fetched origins or when
         # the host is specified as trusted. We do this because
@@ -401,7 +404,7 @@ class PipSession(requests.Session):
                 HTTPAdapter,
                 CacheControlAdapter(
                     cache=SafeFileCache(cache),
-                    max_retries=retries,
+                    max_retries=retry,
                     ssl_context=ssl_context,
                 ),
             )
@@ -409,11 +412,11 @@ class PipSession(requests.Session):
                 HTTPAdapter,
                 InsecureCacheControlAdapter(
                     cache=SafeFileCache(cache),
-                    max_retries=retries,
+                    max_retries=retry,
                 ),
             )
         else:
-            secure_adapter = HTTPAdapter(max_retries=retries, ssl_context=ssl_context)
+            secure_adapter = HTTPAdapter(max_retries=retry, ssl_context=ssl_context)
             self._trusted_host_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
@@ -537,7 +540,9 @@ class PipSession(requests.Session):
 
         return False
 
-    def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:
+    def request(  # type: ignore[override]
+        self, method: str, url: str, *args: Any, **kwargs: Any
+    ) -> Response:
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
         # Allow setting a default proxies on a session
