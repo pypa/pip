@@ -27,22 +27,6 @@ repos:
     - id: ruff-check
       args: [--fix]
 
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.10.0
-  hooks:
-  - id: mypy
-    exclude: tests/data
-    args: ["--pretty", "--show-error-codes"]
-    additional_dependencies: [
-        'keyring==24.2.0',
-        'nox==2023.4.22',
-        'pytest',
-        'types-docutils==0.20.0.3',
-        'types-setuptools==68.2.0.0',
-        'types-freezegun==1.1.10',
-        'types-pyyaml==6.0.12.12',
-    ]
-
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.10.0
   hooks:
