@@ -463,3 +463,13 @@ def test_completion_for_action_handler_handler_not_repeated(
     """
     res, env = autocomplete(words="pip cache dir ", cword="3")
     assert "dir" not in res.stdout
+
+
+# Ensure data.temp exists or replace with correct attribute
+path = getattr(data, 'temp', None)
+if path is None:
+    raise AttributeError("TestData object has no 'temp' attribute")
+
+# Ensure autocomplete_script.exe is a Path object
+if not isinstance(autocomplete_script.exe, Path):
+    raise ValueError("autocomplete_script.exe must be a Path object")

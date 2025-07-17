@@ -130,7 +130,7 @@ class CompletionCommand(Command):
                 replacement_line = f'$_pip_command_name_placeholder = "{prog_name}"'
                 script = script_template.replace(placeholder_to_find, replacement_line)
             else:
-                script = COMPLETION_SCRIPTS.get(options.shell)
+                script = COMPLETION_SCRIPTS.get(options.shell, "")
                 if not isinstance(script, str):
                     # This case should not be reached with current data.
                     logger.error(
