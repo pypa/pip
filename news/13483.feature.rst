@@ -1,0 +1,1 @@
+Show time taken to download instead of `eta 0:00:00` in Rich Progress.
