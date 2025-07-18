@@ -53,18 +53,19 @@ def _rich_download_progress_bar(
             BarColumn(),
             DownloadColumn(),
             TransferSpeedColumn(),
-            TextColumn("eta"),
-            TimeRemainingColumn(),
+            TextColumn("{task.fields[time_description]}"),
+            TimeRemainingColumn(elapsed_when_finished=True),
         )
 
     progress = Progress(*columns, refresh_per_second=5)
-    task_id = progress.add_task(" " * (get_indentation() + 2), total=total)
+    task_id = progress.add_task(" " * (get_indentation() + 2), total=total, time_description="eta")
     if initial_progress is not None:
         progress.update(task_id, advance=initial_progress)
     with progress:
         for chunk in iterable:
             yield chunk
             progress.update(task_id, advance=len(chunk))
+        progress.update(task_id, time_description="elapsed")
 
 
 def _rich_install_progress_bar(
