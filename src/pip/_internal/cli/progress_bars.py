@@ -65,7 +65,7 @@ def _rich_download_progress_bar(
         for chunk in iterable:
             yield chunk
             progress.update(task_id, advance=len(chunk))
-        progress.update(task_id, time_description="elapsed")
+        progress.update(task_id, time_description="")
 
 
 def _rich_install_progress_bar(
