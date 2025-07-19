@@ -148,6 +148,23 @@ To use linters locally, run:
     readability problems.
 
 
+Type Checking
+=============
+
+pip uses :pypi:`mypy` for static type checking to help catch type errors early.
+Type checking is configured to run across the entire codebase to ensure type safety.
+
+To run type checking locally:
+
+.. code-block:: console
+
+    $ nox -s typecheck
+
+This will run mypy on the ``src/pip``, ``tests``, and ``tools`` directories,
+as well as ``noxfile.py``. Type checking helps maintain code quality by
+catching type-related issues before they make it into the codebase.
+
+
 Running pip under a debugger
 ============================
 

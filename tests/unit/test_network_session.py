@@ -3,13 +3,11 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
 import pytest
-
-from pip._vendor import requests
 
 from pip import __version__
 from pip._internal.models.link import Link
@@ -19,12 +17,18 @@ from pip._internal.network.session import (
     user_agent,
 )
 
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    import requests
+else:
+    from pip._vendor import requests
+
 
 def get_user_agent() -> str:
     # These tests are testing the computation of the user agent, so we want to
     # avoid reusing cached values.
     user_agent.cache_clear()
-    return PipSession().headers["User-Agent"]
+    return str(PipSession().headers["User-Agent"])
 
 
 def test_user_agent() -> None:

@@ -24,16 +24,8 @@ from typing import (
     Any,
     Optional,
     Union,
+    cast,
 )
-
-from pip._vendor import requests, urllib3
-from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
-from pip._vendor.requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
-from pip._vendor.requests.adapters import HTTPAdapter as _BaseHTTPAdapter
-from pip._vendor.requests.models import PreparedRequest, Response
-from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.urllib3.connectionpool import ConnectionPool
-from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
 from pip._internal.metadata import get_default_environment
@@ -50,8 +42,28 @@ from pip._internal.utils.urls import url_to_path
 if TYPE_CHECKING:
     from ssl import SSLContext
 
-    from pip._vendor.urllib3.poolmanager import PoolManager
-    from pip._vendor.urllib3.proxymanager import ProxyManager
+    # Vendored libraries with type stubs
+    import requests
+    import urllib3
+    from requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
+    from requests.adapters import HTTPAdapter as _BaseHTTPAdapter
+    from requests.models import PreparedRequest, Response
+    from requests.structures import CaseInsensitiveDict
+    from urllib3 import ProxyManager
+    from urllib3.connectionpool import ConnectionPool
+    from urllib3.exceptions import InsecureRequestWarning
+    from urllib3.poolmanager import PoolManager
+
+    from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
+
+else:
+    from pip._vendor import requests, urllib3
+    from pip._vendor.cachecontrol import CacheControlAdapter as _BaseCacheControlAdapter
+    from pip._vendor.requests.adapters import DEFAULT_POOLBLOCK, BaseAdapter
+    from pip._vendor.requests.adapters import HTTPAdapter as _BaseHTTPAdapter
+    from pip._vendor.requests.models import PreparedRequest, Response
+    from pip._vendor.requests.structures import CaseInsensitiveDict
+    from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 
 logger = logging.getLogger(__name__)
@@ -212,11 +224,12 @@ class LocalFSAdapter(BaseAdapter):
         self,
         request: PreparedRequest,
         stream: bool = False,
-        timeout: float | tuple[float, float] | None = None,
+        timeout: float | tuple[float, float] | tuple[float, None] | None = None,
         verify: bool | str = True,
-        cert: str | tuple[str, str] | None = None,
+        cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
         proxies: Mapping[str, str] | None = None,
     ) -> Response:
+        assert request.url is not None
         pathname = url_to_path(request.url)
 
         resp = Response()
@@ -237,13 +250,13 @@ class LocalFSAdapter(BaseAdapter):
             resp.headers = CaseInsensitiveDict(
                 {
                     "Content-Type": content_type,
-                    "Content-Length": stats.st_size,
+                    "Content-Length": str(stats.st_size),
                     "Last-Modified": modified,
                 }
             )
 
             resp.raw = open(pathname, "rb")
-            resp.close = resp.raw.close
+            resp.close = resp.raw.close  # type: ignore[method-assign]
 
         return resp
 
@@ -323,6 +336,9 @@ class InsecureCacheControlAdapter(CacheControlAdapter):
 
 
 class PipSession(requests.Session):
+    # Let the type checker know that we are using a custom auth handler.
+    auth: MultiDomainBasicAuth
+
     timeout: int | None = None
 
     def __init__(
@@ -354,7 +370,7 @@ class PipSession(requests.Session):
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
-        retries = urllib3.Retry(
+        retry = urllib3.Retry(
             # Set the total number of retries that a particular request can
             # have.
             total=retries,
@@ -369,14 +385,14 @@ class PipSession(requests.Session):
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
-        )  # type: ignore
+        )
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.
         # If caching is disabled, we will also use it for
         # https:// hosts that we've marked as ignoring
         # TLS errors for (trusted-hosts).
-        insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        insecure_adapter = InsecureHTTPAdapter(max_retries=retry)
 
         # We want to _only_ cache responses on securely fetched origins or when
         # the host is specified as trusted. We do this because
@@ -384,17 +400,23 @@ class PipSession(requests.Session):
         # origin, and we don't want someone to be able to poison the cache and
         # require manual eviction from the cache to fix it.
         if cache:
-            secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache),
-                max_retries=retries,
-                ssl_context=ssl_context,
+            secure_adapter = cast(
+                HTTPAdapter,
+                CacheControlAdapter(
+                    cache=SafeFileCache(cache),
+                    max_retries=retry,
+                    ssl_context=ssl_context,
+                ),
             )
-            self._trusted_host_adapter = InsecureCacheControlAdapter(
-                cache=SafeFileCache(cache),
-                max_retries=retries,
+            self._trusted_host_adapter = cast(
+                HTTPAdapter,
+                InsecureCacheControlAdapter(
+                    cache=SafeFileCache(cache),
+                    max_retries=retry,
+                ),
             )
         else:
-            secure_adapter = HTTPAdapter(max_retries=retries, ssl_context=ssl_context)
+            secure_adapter = HTTPAdapter(max_retries=retry, ssl_context=ssl_context)
             self._trusted_host_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
@@ -518,7 +540,9 @@ class PipSession(requests.Session):
 
         return False
 
-    def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:
+    def request(  # type: ignore[override]
+        self, method: str, url: str, *args: Any, **kwargs: Any
+    ) -> Response:
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
         # Allow setting a default proxies on a session

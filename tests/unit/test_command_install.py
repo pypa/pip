@@ -1,12 +1,17 @@
 import errno
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
 
-from pip._vendor.requests.exceptions import InvalidProxyURL
-
 from pip._internal.commands import install
 from pip._internal.commands.install import create_os_error_message, decide_user_install
+
+if TYPE_CHECKING:
+    # Vendored libraries with type stubs
+    from requests.exceptions import InvalidProxyURL
+else:
+    from pip._vendor.requests.exceptions import InvalidProxyURL
 
 
 class TestDecideUserInstall:
