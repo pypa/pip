@@ -1,1 +1,0 @@
-Fix test_install_vcs_git.py hardcoded commit SHA error.
