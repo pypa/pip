@@ -139,11 +139,11 @@ class TestDecideUserInstall:
             ),
         ),
         pytest.param(
-            OSError(errno.EINVAL, "No such file or directory", f"C:/foo/{'a'*256}"),
+            OSError(errno.EINVAL, "No such file or directory", f"C:/{'a'*256}"),
             False,
             False,
             "Could not install packages due to an OSError: "
-            f"[Errno 22] No such file or directory: 'C:/foo/{'a'*256}'\n"
+            f"[Errno 22] No such file or directory: 'C:/{'a'*256}'\n"
             "HINT: This error might be caused by a file or folder name exceeding "
             "255 characters, which is a Windows limitation even if long paths "
             "are enabled.\n",
