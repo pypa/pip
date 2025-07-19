@@ -779,7 +779,7 @@ def create_os_error_message(
     # characters, even if long path support is enabled.
     if (
         WINDOWS
-        and error.errno in (errno.EINVAL,errno.ENOENT)
+        and error.errno in (errno.EINVAL, errno.ENOENT)
         and error.filename
         and any(len(part) > 255 for part in Path(error.filename).parts)
     ):
