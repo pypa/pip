@@ -775,8 +775,10 @@ def create_os_error_message(
         )
         parts.append(".\n")
 
-    # Windows raises EINVAL when a filename or path segment exceeds 255
-    # characters, even if long path support is enabled.
+    # On Windows, certain errors EINVAL or ENOENT can occur if a file or folder name
+    # exceeds 255 characters, which is a common limitation despite long path support.
+    # This condition checks for that case and adds a hint to the error output.
+
     if (
         WINDOWS
         and error.errno in (errno.EINVAL, errno.ENOENT)
