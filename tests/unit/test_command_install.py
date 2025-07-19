@@ -124,7 +124,7 @@ class TestDecideUserInstall:
         # Testing both long path error (ENOENT)
         # and long file/folder name error (EINVAL) on Windows
         pytest.param(
-            OSError(errno.ENOENT, "No such file or directory", f'C:/foo/{'/a/'*261}'),
+            OSError(errno.ENOENT, "No such file or directory", f"C:/foo/{'/a/'*261}"),
             False,
             False,
             "Could not install packages due to an OSError: "
@@ -139,7 +139,7 @@ class TestDecideUserInstall:
             ),
         ),
         pytest.param(
-            OSError(errno.EINVAL, "No such file or directory", f'C:/foo/{'a'*256}'),
+            OSError(errno.EINVAL, "No such file or directory", f"C:/foo/{'a'*256}"),
             False,
             False,
             "Could not install packages due to an OSError: "
