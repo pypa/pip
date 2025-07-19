@@ -57,8 +57,7 @@ def distutils_scheme(
     """
     Return a distutils install scheme
     """
-    if not TYPE_CHECKING:
-        from distutils.dist import Distribution
+    from distutils.dist import Distribution
 
     dist_args: dict[str, str | list[str]] = {"name": dist_name}
     if isolated:

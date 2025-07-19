@@ -134,8 +134,7 @@ class TestDistutilsScheme:
         f.parent.mkdir()
         f.write_text("[install]\ninstall-scripts=" + install_scripts)
 
-        if not TYPE_CHECKING:
-            from distutils.dist import Distribution
+        from distutils.dist import Distribution
 
         # patch the function that returns what config files are present
         monkeypatch.setattr(
@@ -161,8 +160,7 @@ class TestDistutilsScheme:
         f = tmpdir / "config" / "setup.cfg"
         f.parent.mkdir()
         f.write_text("[install]\ninstall-lib=" + install_lib)
-        if not TYPE_CHECKING:
-            from distutils.dist import Distribution
+        from distutils.dist import Distribution
 
         # patch the function that returns what config files are present
         monkeypatch.setattr(
