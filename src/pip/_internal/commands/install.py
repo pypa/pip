@@ -7,6 +7,7 @@ import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP, Values
+from pathlib import Path
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
@@ -774,9 +775,25 @@ def create_os_error_message(
         )
         parts.append(".\n")
 
+    # On Windows, certain errors EINVAL or ENOENT can occur if a file or folder name
+    # exceeds 255 characters, which is a common limitation despite long path support.
+    # This condition checks for that case and adds a hint to the error output.
+
+    if (
+        WINDOWS
+        and error.errno in (errno.EINVAL, errno.ENOENT)
+        and error.filename
+        and any(len(part) > 255 for part in Path(error.filename).parts)
+    ):
+        parts.append(
+            "HINT: This error might be caused by a file or folder name exceeding "
+            "255 characters, which is a Windows limitation even if long paths "
+            "are enabled.\n "
+        )
+
     # Suggest the user to enable Long Paths if path length is
     # more than 260
-    if (
+    elif (
         WINDOWS
         and error.errno == errno.ENOENT
         and error.filename
