@@ -1,0 +1,5 @@
+Suppress the progress bar, when running with ``--log`` and ``--quiet``.
+
+Consequently, a new ``auto`` mode for ``--progress-bar`` has been added.
+``auto`` will enable progress bars unless suppressed by ``--quiet``,
+while ``on`` will always enable progress bars.

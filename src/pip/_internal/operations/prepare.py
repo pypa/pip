@@ -10,9 +10,11 @@ import shutil
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.build_env import BuildEnvironmentInstaller
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -54,13 +56,16 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
+if TYPE_CHECKING:
+    from pip._internal.cli.progress_bars import BarType
+
 logger = getLogger(__name__)
 
 
 def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
-    finder: PackageFinder,
+    build_env_installer: BuildEnvironmentInstaller,
     build_isolation: bool,
     check_build_deps: bool,
 ) -> BaseDistribution:
@@ -70,7 +75,7 @@ def _get_prepared_distribution(
     if tracker_id is not None:
         with build_tracker.track(req, tracker_id):
             abstract_dist.prepare_distribution_metadata(
-                finder, build_isolation, check_build_deps
+                build_env_installer, build_isolation, check_build_deps
             )
     return abstract_dist.get_metadata_distribution()
 
@@ -220,16 +225,18 @@ def _check_download_dir(
 class RequirementPreparer:
     """Prepares a Requirement"""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 (too many parameters)
         self,
+        *,
         build_dir: str,
         download_dir: str | None,
         src_dir: str,
         build_isolation: bool,
+        build_isolation_installer: BuildEnvironmentInstaller,
         check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
         finder: PackageFinder,
         require_hashes: bool,
         use_user_site: bool,
@@ -253,6 +260,7 @@ class RequirementPreparer:
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
+        self.build_env_installer = build_isolation_installer
 
         # Should check build dependencies?
         self.check_build_deps = check_build_deps
@@ -644,7 +652,7 @@ class RequirementPreparer:
         dist = _get_prepared_distribution(
             req,
             self.build_tracker,
-            self.finder,
+            self.build_env_installer,
             self.build_isolation,
             self.check_build_deps,
         )
@@ -700,7 +708,7 @@ class RequirementPreparer:
             dist = _get_prepared_distribution(
                 req,
                 self.build_tracker,
-                self.finder,
+                self.build_env_installer,
                 self.build_isolation,
                 self.check_build_deps,
             )

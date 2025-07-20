@@ -1101,7 +1101,9 @@ def test_download_file_url_existing_ok_download(
     simple_pkg = shared_data.packages / "simple-1.0.tar.gz"
     url = f"{simple_pkg.as_uri()}#sha256={sha256(downloaded_path_bytes).hexdigest()}"
 
-    shared_script.pip("download", "-d", str(download_dir), url)
+    shared_script.pip(
+        "download", "-d", str(download_dir), url, "--disable-pip-version-check"
+    )
 
     assert downloaded_path_bytes == downloaded_path.read_bytes()
 

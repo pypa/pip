@@ -176,6 +176,9 @@ class Command(CommandContextMixIn):
         if options.debug_mode:
             self.verbosity = 2
 
+        if hasattr(options, "progress_bar") and options.progress_bar == "auto":
+            options.progress_bar = "on" if self.verbosity >= 0 else "off"
+
         reconfigure(no_color=options.no_color)
         level_number = setup_logging(
             verbosity=self.verbosity,

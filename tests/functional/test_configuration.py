@@ -1,14 +1,41 @@
 """Tests for the config command"""
 
+from __future__ import annotations
+
+import ast
+import os
 import re
+import subprocess
+import sys
 import textwrap
 
 from pip._internal.cli.status_codes import ERROR
-from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
+from pip._internal.configuration import CONFIG_BASENAME, Kind
+from pip._internal.configuration import get_configuration_files as _get_config_files
+from pip._internal.utils.compat import WINDOWS
 
 from tests.lib import PipTestEnvironment
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 from tests.lib.venv import VirtualEnvironment
+
+
+def get_configuration_files() -> dict[Kind, list[str]]:
+    """Wrapper over pip._internal.configuration.get_configuration_files()."""
+    if WINDOWS:
+        # The user configuration directory is updated in the isolate fixture using the
+        # APPDATA environment variable. This will only take effect in new subprocesses,
+        # however. To ensure that get_configuration_files() never returns stale data,
+        # call it in a subprocess on Windows.
+        code = (
+            "from pip._internal.configuration import get_configuration_files; "
+            "print(get_configuration_files())"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, encoding="utf-8"
+        )
+        return ast.literal_eval(proc.stdout)
+    else:
+        return _get_config_files()
 
 
 def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
@@ -148,3 +175,40 @@ class TestBasicLoading(ConfigurationMixin):
             "config", "edit", "--editor", "notrealeditor", expect_error=True
         )
         assert "notrealeditor" in result.stderr
+
+    def test_config_separated(
+        self, script: PipTestEnvironment, virtualenv: VirtualEnvironment
+    ) -> None:
+        """Test that the pip configuration values in the different config sections
+        are correctly assigned to their origin files.
+        """
+
+        # Use new config file
+        new_config_file = get_configuration_files()[kinds.USER][1]
+
+        # Get legacy config file and touch it for testing purposes
+        legacy_config_file = get_configuration_files()[kinds.USER][0]
+        os.makedirs(os.path.dirname(legacy_config_file))
+        open(legacy_config_file, "a").close()
+
+        # Site config file
+        site_config_file = virtualenv.location / CONFIG_BASENAME
+
+        script.pip("config", "--user", "set", "global.timeout", "60")
+        script.pip("config", "--site", "set", "freeze.timeout", "10")
+
+        result = script.pip("config", "debug")
+
+        assert (
+            f"{site_config_file}, exists: True\n    freeze.timeout: 10" in result.stdout
+        )
+        assert (
+            f"{new_config_file}, exists: True\n    global.timeout: 60" in result.stdout
+        )
+        assert re.search(
+            (
+                rf"{re.escape(legacy_config_file)}, "
+                rf"exists: True\n(  {re.escape(new_config_file)}.+\n)+"
+            ),
+            result.stdout,
+        )
