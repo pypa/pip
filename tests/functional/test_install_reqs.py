@@ -10,6 +10,7 @@ from tests.lib import (
     PipTestEnvironment,
     ResolverVariant,
     TestData,
+    _create_test_package,
     _create_test_package_with_subdirectory,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
@@ -941,3 +942,52 @@ raise ImportError("this 'setuptools' was intentionally poisoned")
     exc_message = "ImportError: this 'setuptools' was intentionally poisoned"
     assert nice_message in result.stderr
     assert exc_message in result.stderr
+
+
+class TestEditableDirectURL:
+    def test_install_local_project(
+        self, script: PipTestEnvironment, data: TestData, common_wheels: Path
+    ) -> None:
+        uri = (data.src / "simplewheel-2.0").as_uri()
+        script.pip(
+            "install", "--no-index", "-e", f"simplewheel @ {uri}", "-f", common_wheels
+        )
+        script.assert_installed(simplewheel="2.0")
+
+    def test_install_local_project_with_extra(
+        self, script: PipTestEnvironment, data: TestData, common_wheels: Path
+    ) -> None:
+        uri = (data.src / "requires_simple_extra").as_uri()
+        script.pip(
+            "install",
+            "--no-index",
+            "-e",
+            f"requires-simple-extra[extra] @ {uri}",
+            "-f",
+            common_wheels,
+            "-f",
+            data.packages,
+        )
+        script.assert_installed(requires_simple_extra="0.1")
+        script.assert_installed(simple="1.0")
+
+    def test_install_local_git_repo(
+        self, script: PipTestEnvironment, common_wheels: Path
+    ) -> None:
+        repo_path = _create_test_package(script.scratch_path, "simple")
+        url = "git+" + repo_path.as_uri()
+        script.pip(
+            "install", "--no-index", "-e", f"simple @ {url}", "-f", common_wheels
+        )
+        script.assert_installed(simple="0.1")
+
+    @pytest.mark.network
+    def test_install_remote_git_repo_with_extra(
+        self, script: PipTestEnvironment, data: TestData, common_wheels: Path
+    ) -> None:
+        req = "pip-test-package[extra] @ git+https://github.com/pypa/pip-test-package"
+        script.pip(
+            "install", "--no-index", "-e", req, "-f", common_wheels, "-f", data.packages
+        )
+        script.assert_installed(pip_test_package="0.1.1")
+        script.assert_installed(simple="3.0")
