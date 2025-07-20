@@ -30,21 +30,21 @@ from tests.lib.requests_mocks import MockResponse
             {},
             False,
             None,
-            "Downloading http://example.com/foo.tgz",
+            "Downloading foo.tgz",
         ),
         (
             "http://example.com/foo.tgz",
             {"content-length": "2"},
             False,
             None,
-            "Downloading http://example.com/foo.tgz (2 bytes)",
+            "Downloading foo.tgz (2 bytes)",
         ),
         (
             "http://example.com/foo.tgz",
             {"content-length": "2"},
             True,
             None,
-            "Using cached http://example.com/foo.tgz (2 bytes)",
+            "Using cached foo.tgz (2 bytes)",
         ),
         (
             "https://files.pythonhosted.org/foo.tgz",
@@ -72,7 +72,7 @@ from tests.lib.requests_mocks import MockResponse
             {"content-length": "200"},
             False,
             100,
-            "Resuming download http://example.com/foo.tgz (100 bytes/200 bytes)",
+            "Resuming download foo.tgz (100 bytes/200 bytes)",
         ),
     ],
 )
