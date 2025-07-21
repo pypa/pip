@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import itertools
 import logging
 import os
 import posixpath
@@ -19,12 +18,11 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
-    pairwise,
     redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
-from pip._internal.utils.urls import path_to_url, url_to_path
+from pip._internal.utils.urls import path_to_url, url_to_path, clean_url
 
 if TYPE_CHECKING:
     from pip._internal.index.collector import IndexContent
@@ -112,67 +110,6 @@ def supported_hashes(hashes: dict[str, str] | None) -> dict[str, str] | None:
         return None
     return hashes
 
-
-def _clean_url_path_part(part: str) -> str:
-    """
-    Clean a "part" of a URL path (i.e. after splitting on "@" characters).
-    """
-    # We unquote prior to quoting to make sure nothing is double quoted.
-    return urllib.parse.quote(urllib.parse.unquote(part))
-
-
-def _clean_file_url_path(part: str) -> str:
-    """
-    Clean the first part of a URL path that corresponds to a local
-    filesystem path (i.e. the first part after splitting on "@" characters).
-    """
-    # We unquote prior to quoting to make sure nothing is double quoted.
-    # Also, on Windows the path part might contain a drive letter which
-    # should not be quoted. On Linux where drive letters do not
-    # exist, the colon should be quoted. We rely on urllib.request
-    # to do the right thing here.
-    return urllib.request.pathname2url(urllib.request.url2pathname(part))
-
-
-# percent-encoded:                   /
-_reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
-
-
-def _clean_url_path(path: str, is_local_path: bool) -> str:
-    """
-    Clean the path portion of a URL.
-    """
-    if is_local_path:
-        clean_func = _clean_file_url_path
-    else:
-        clean_func = _clean_url_path_part
-
-    # Split on the reserved characters prior to cleaning so that
-    # revision strings in VCS URLs are properly preserved.
-    parts = _reserved_chars_re.split(path)
-
-    cleaned_parts = []
-    for to_clean, reserved in pairwise(itertools.chain(parts, [""])):
-        cleaned_parts.append(clean_func(to_clean))
-        # Normalize %xx escapes (e.g. %2f -> %2F)
-        cleaned_parts.append(reserved.upper())
-
-    return "".join(cleaned_parts)
-
-
-def _ensure_quoted_url(url: str) -> str:
-    """
-    Make sure a link is fully quoted.
-    For example, if ' ' occurs in the URL, it will be replaced with "%20",
-    and without double-quoting other characters.
-    """
-    # Split the URL into parts according to the general structure
-    # `scheme://netloc/path?query#fragment`.
-    result = urllib.parse.urlsplit(url)
-    # If the netloc is empty, then the URL refers to a local filesystem path.
-    is_local_path = not result.netloc
-    path = _clean_url_path(result.path, is_local_path=is_local_path)
-    return urllib.parse.urlunsplit(result._replace(path=path))
 
 
 def _absolute_link_url(base_url: str, url: str) -> str:
@@ -281,7 +218,7 @@ class Link:
         if file_url is None:
             return None
 
-        url = _ensure_quoted_url(_absolute_link_url(page_url, file_url))
+        url = clean_url(_absolute_link_url(page_url, file_url))
         pyrequire = file_data.get("requires-python")
         yanked_reason = file_data.get("yanked")
         hashes = file_data.get("hashes", {})
@@ -333,7 +270,7 @@ class Link:
         if not href:
             return None
 
-        url = _ensure_quoted_url(_absolute_link_url(base_url, href))
+        url = clean_url(_absolute_link_url(base_url, href))
         pyrequire = anchor_attribs.get("data-requires-python")
         yanked_reason = anchor_attribs.get("data-yanked")
 

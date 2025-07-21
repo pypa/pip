@@ -10,6 +10,7 @@ from typing import Any
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import HiddenText, display_path, hide_url
 from pip._internal.utils.subprocess import make_command
+from pip._internal.utils.urls import clean_url
 from pip._internal.vcs.versioncontrol import (
     AuthInfo,
     RemoteNotFoundError,
@@ -495,6 +496,10 @@ class Git(VersionControl):
         work with a ssh:// scheme (e.g. GitHub). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
+        # Works around an apparent Git bug
+        # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
+        url = clean_url(url)
+
         if "://" not in url:
             assert "file:" not in url
             url = url.replace("git+", "git+ssh://")
