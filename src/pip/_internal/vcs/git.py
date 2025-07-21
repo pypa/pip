@@ -4,8 +4,6 @@ import logging
 import os.path
 import pathlib
 import re
-import urllib.parse
-import urllib.request
 from dataclasses import replace
 from typing import Any
 
@@ -21,9 +19,6 @@ from pip._internal.vcs.versioncontrol import (
     find_path_to_project_root_from_repo_root,
     vcs,
 )
-
-urlsplit = urllib.parse.urlsplit
-urlunsplit = urllib.parse.urlunsplit
 
 
 logger = logging.getLogger(__name__)
@@ -500,19 +495,6 @@ class Git(VersionControl):
         work with a ssh:// scheme (e.g. GitHub). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
-        # Works around an apparent Git bug
-        # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
-        scheme, netloc, path, query, fragment = urlsplit(url)
-        if scheme.endswith("file"):
-            initial_slashes = path[: -len(path.lstrip("/"))]
-            newpath = initial_slashes + urllib.request.url2pathname(path).replace(
-                "\\", "/"
-            ).lstrip("/")
-            after_plus = scheme.find("+") + 1
-            url = scheme[:after_plus] + urlunsplit(
-                (scheme[after_plus:], netloc, newpath, query, fragment),
-            )
-
         if "://" not in url:
             assert "file:" not in url
             url = url.replace("git+", "git+ssh://")
