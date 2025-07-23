@@ -1,7 +1,6 @@
 import os
-import string
+import sys
 import urllib.parse
-import urllib.request
 
 from .compat import WINDOWS
 
@@ -12,8 +11,24 @@ def path_to_url(path: str) -> str:
     quoted path parts.
     """
     path = os.path.normpath(os.path.abspath(path))
-    url = urllib.parse.urljoin("file:", urllib.request.pathname2url(path))
-    return url
+    if WINDOWS:
+        path = path.replace("\\", "/")
+    encoding = sys.getfilesystemencoding()
+    errors = sys.getfilesystemencodeerrors()
+
+    drive, tail = os.path.splitdrive(path)
+    if drive:
+        if drive[:4] == "//?/":
+            drive = drive[4:]
+            if drive[:4].upper() == "UNC/":
+                drive = "//" + drive[4:]
+        if drive[1:] == ":":
+            drive = "///" + drive
+        drive = urllib.parse.quote(drive, "/:", encoding, errors)
+    elif tail.startswith("/"):
+        tail = "//" + tail
+    tail = urllib.parse.quote(tail, "/", encoding, errors)
+    return "file:" + drive + tail
 
 
 def url_to_path(url: str) -> str:
@@ -26,30 +41,22 @@ def url_to_path(url: str) -> str:
 
     _, netloc, path, _, _ = urllib.parse.urlsplit(url)
 
-    if not netloc or netloc == "localhost":
-        # According to RFC 8089, same as empty authority.
-        netloc = ""
-    elif WINDOWS:
-        # If we have a UNC path, prepend UNC share notation.
-        netloc = "\\\\" + netloc
-    else:
+    if WINDOWS:
+        if netloc and netloc != "localhost":
+            path = "//" + netloc + path
+        elif path[:3] == "///":
+            path = path[1:]
+        else:
+            if path[:1] == "/" and path[2:3] in (":", "|"):
+                path = path[1:]
+            if path[1:2] == "|":
+                path = path[:1] + ":" + path[2:]
+        path = path.replace("/", "\\")
+    elif netloc and netloc != "localhost":
         raise ValueError(
             f"non-local file URIs are not supported on this platform: {url!r}"
         )
 
-    path = urllib.request.url2pathname(netloc + path)
-
-    # On Windows, urlsplit parses the path as something like "/C:/Users/foo".
-    # This creates issues for path-related functions like io.open(), so we try
-    # to detect and strip the leading slash.
-    if (
-        WINDOWS
-        and not netloc  # Not UNC.
-        and len(path) >= 3
-        and path[0] == "/"  # Leading slash to strip.
-        and path[1] in string.ascii_letters  # Drive letter.
-        and path[2:4] in (":", ":/")  # Colon + end of string, or colon + absolute path.
-    ):
-        path = path[1:]
-
-    return path
+    encoding = sys.getfilesystemencoding()
+    errors = sys.getfilesystemencodeerrors()
+    return urllib.parse.unquote(path, encoding, errors)
