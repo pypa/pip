@@ -151,7 +151,7 @@ def _ensure_quoted_url(url: str) -> str:
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)
-    # If the netloc is empty, then the URL refers to a local filesystem path
+    # If the netloc is empty, then the URL refers to a local filesystem path.
     if not result.netloc:
         return clean_file_url(url)
     path = _clean_url_path(result.path)

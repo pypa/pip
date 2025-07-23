@@ -51,6 +51,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+from pip._internal.utils.urls import url_to_path
 
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
@@ -224,7 +225,7 @@ class TestRequirementSet:
         dir_path = data.packages.joinpath("FSPkg")
         reqset.add_unnamed_requirement(
             get_processed_req_from_line(
-                f"file://{dir_path}",
+                url_to_path(dir_path),
                 lineno=2,
             )
         )
