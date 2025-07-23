@@ -42,11 +42,10 @@ def url_to_path(url: str) -> str:
     ), f"You can only turn file: urls into filenames (not {url!r})"
 
     if WINDOWS:
-        if netloc:
-            if netloc[1:] == ":":
-                path = netloc + path
-            elif netloc != "localhost":
-                path = "//" + netloc + path
+        if netloc[1:2] == ":":
+            path = netloc + path
+        elif netloc and netloc != "localhost":
+            path = "//" + netloc + path
         elif path[:3] == "///":
             path = path[1:]
         else:
@@ -71,13 +70,13 @@ def clean_file_url(url: str) -> str:
 
     e.g. 'file:/c:/foo bar' --> 'file:///c:/foo%20bar'.
     """
-    tok = "-_-PIP_AT_SYMBOL_-_"
-    assert tok not in url
-    orig_url = url.replace("@", tok)
+    at_symbol_token = "-_-PIP_AT_SYMBOL_-_"
+    assert at_symbol_token not in url
+    orig_url = url.replace("@", at_symbol_token)
     tidy_url = path_to_url(url_to_path(orig_url), normalize_path=False)
-    tidy_parts = urllib.parse.urlsplit(tidy_url)
     orig_parts = urllib.parse.urlsplit(orig_url)
-    merged_url = urllib.parse.urlunsplit(tidy_parts[:3] + orig_parts[3:])
-    if orig_parts.scheme != "file":
-        merged_url = orig_parts.scheme + merged_url[4:]
-    return merged_url.replace(tok, "@")
+    tidy_parts = urllib.parse.urlsplit(tidy_url)
+    url = urllib.parse.urlunsplit(tidy_parts[:3] + orig_parts[3:])
+    url = url.replace(tidy_parts.scheme, orig_parts.scheme, 1)
+    url = url.replace(at_symbol_token, "@")
+    return url
