@@ -21,7 +21,6 @@ from pip._internal.vcs.versioncontrol import (
     vcs,
 )
 
-
 logger = logging.getLogger(__name__)
 
 

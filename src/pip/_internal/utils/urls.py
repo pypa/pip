@@ -1,12 +1,13 @@
 import itertools
 import os
-import string
 import re
+import string
 import urllib.parse
 import urllib.request
 
-from .compat import WINDOWS
 from pip._internal.utils.misc import pairwise
+
+from .compat import WINDOWS
 
 
 def path_to_url(path: str) -> str:
@@ -118,4 +119,3 @@ def clean_url(url: str) -> str:
     is_local_path = not result.netloc
     path = _clean_url_path(result.path, is_local_path=is_local_path)
     return urllib.parse.urlunsplit(result._replace(path=path))
-

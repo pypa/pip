@@ -22,7 +22,7 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
     splitext,
 )
-from pip._internal.utils.urls import path_to_url, url_to_path, clean_url
+from pip._internal.utils.urls import clean_url, path_to_url, url_to_path
 
 if TYPE_CHECKING:
     from pip._internal.index.collector import IndexContent
@@ -109,7 +109,6 @@ def supported_hashes(hashes: dict[str, str] | None) -> dict[str, str] | None:
     if not hashes:
         return None
     return hashes
-
 
 
 def _absolute_link_url(base_url: str, url: str) -> str:

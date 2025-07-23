@@ -5,10 +5,10 @@ import urllib.request
 import pytest
 
 from pip._internal.utils.urls import (
+    _clean_url_path,
+    clean_url,
     path_to_url,
     url_to_path,
-    clean_url,
-    _clean_url_path,
 )
 
 from tests.lib import (
@@ -87,6 +87,7 @@ def test_url_to_path_path_to_url_symmetry_win() -> None:
 
     unc_path = r"\\unc\share\path"
     assert url_to_path(path_to_url(unc_path)) == unc_path
+
 
 @pytest.mark.parametrize(
     "path, expected",
@@ -268,4 +269,3 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
 )
 def test_clean_url(url: str, expected_url: str) -> None:
     assert clean_url(url) == expected_url
-
