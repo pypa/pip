@@ -36,14 +36,7 @@ from pip._internal.models.link import (
 )
 from pip._internal.network.session import PipSession
 
-from tests.lib import (
-    TestData,
-    make_test_link_collector,
-    skip_needs_new_pathname2url_trailing_slash_behavior_win,
-    skip_needs_new_urlun_behavior_win,
-    skip_needs_old_pathname2url_trailing_slash_behavior_win,
-    skip_needs_old_urlun_behavior_win,
-)
+from tests.lib import TestData, make_test_link_collector
 
 ACCEPT = ", ".join(
     [
