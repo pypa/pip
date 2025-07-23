@@ -14,8 +14,6 @@ def path_to_url(path: str, normalize_path: bool = True) -> str:
         path = os.path.abspath(path)
     if WINDOWS:
         path = path.replace("\\", "/")
-    encoding = sys.getfilesystemencoding()
-    errors = sys.getfilesystemencodeerrors()
 
     drive, tail = os.path.splitdrive(path)
     if drive:
@@ -25,9 +23,12 @@ def path_to_url(path: str, normalize_path: bool = True) -> str:
                 drive = "//" + drive[4:]
         if drive[1:] == ":":
             drive = "///" + drive
-        drive = urllib.parse.quote(drive, "/:", encoding, errors)
     elif tail.startswith("/"):
         tail = "//" + tail
+
+    encoding = sys.getfilesystemencoding()
+    errors = sys.getfilesystemencodeerrors()
+    drive = urllib.parse.quote(drive, "/:", encoding, errors)
     tail = urllib.parse.quote(tail, "/", encoding, errors)
     return "file:" + drive + tail
 
@@ -42,17 +43,22 @@ def url_to_path(url: str) -> str:
     ), f"You can only turn file: urls into filenames (not {url!r})"
 
     if WINDOWS:
+        # e.g. file://c:/foo
         if netloc[1:2] == ":":
             path = netloc + path
+
+        # e.g. file://server/share/foo
         elif netloc and netloc != "localhost":
             path = "//" + netloc + path
+
+        # e.g. file://///server/share/foo
         elif path[:3] == "///":
             path = path[1:]
-        else:
-            if path[:1] == "/" and path[2:3] in (":", "|"):
-                path = path[1:]
-            if path[1:2] == "|":
-                path = path[:1] + ":" + path[2:]
+
+        # e.g. file:///c:/foo
+        elif path[:1] == "/" and path[2:3] == ":":
+            path = path[1:]
+
         path = path.replace("/", "\\")
     elif netloc and netloc != "localhost":
         raise ValueError(
@@ -70,13 +76,20 @@ def clean_file_url(url: str) -> str:
 
     e.g. 'file:/c:/foo bar' --> 'file:///c:/foo%20bar'.
     """
+    # Replace "@" characters to protect them from percent-encoding.
     at_symbol_token = "-_-PIP_AT_SYMBOL_-_"
     assert at_symbol_token not in url
-    orig_url = url.replace("@", at_symbol_token)
-    tidy_url = path_to_url(url_to_path(orig_url), normalize_path=False)
-    orig_parts = urllib.parse.urlsplit(orig_url)
+    url = url.replace("@", at_symbol_token)
+    parts = urllib.parse.urlsplit(url)
+
+    # Convert to a file path and back. This normalizes the URL, but removes
+    # the original scheme, query and fragment components.
+    tidy_url = path_to_url(url_to_path(url), normalize_path=False)
     tidy_parts = urllib.parse.urlsplit(tidy_url)
-    url = urllib.parse.urlunsplit(tidy_parts[:3] + orig_parts[3:])
-    url = url.replace(tidy_parts.scheme, orig_parts.scheme, 1)
-    url = url.replace(at_symbol_token, "@")
-    return url
+
+    # Restore the original scheme, query and fragment components.
+    url = urllib.parse.urlunsplit(tidy_parts[:3] + parts[3:])
+    url = url.replace(tidy_parts.scheme, parts.scheme, 1)
+
+    # Restore "@" characters that were replaced earlier.
+    return url.replace(at_symbol_token, "@")
