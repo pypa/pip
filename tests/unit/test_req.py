@@ -244,7 +244,7 @@ class TestRequirementSet:
                     r"file \(line 1\)\)\n"
                     r"Can't verify hashes for these file:// requirements because "
                     r"they point to directories:\n"
-                    rf"    file://.*{sep}data{sep}packages{sep}FSPkg "
+                    rf"    file:.*{sep}data{sep}packages{sep}FSPkg "
                     r"\(from -r file \(line 2\)\)"
                 ),
             ):
