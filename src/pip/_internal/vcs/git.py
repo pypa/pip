@@ -498,8 +498,8 @@ class Git(VersionControl):
         """
         # Works around an apparent Git bug
         # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
-        prefix, plus, url = url.partition("+")
-        url = prefix + plus + clean_url(url)
+        if url.startswith("git+file:"):
+            url = "git+" + clean_url(url[4:])
 
         if "://" not in url:
             assert "file:" not in url
