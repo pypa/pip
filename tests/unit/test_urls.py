@@ -4,7 +4,7 @@ import urllib.request
 
 import pytest
 
-from pip._internal.utils.urls import path_to_url, url_to_path
+from pip._internal.utils.urls import clean_file_url, path_to_url, url_to_path
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
@@ -18,8 +18,8 @@ def test_path_to_url_unix() -> None:
 @pytest.mark.parametrize(
     "path, url",
     [
-        pytest.param("c:/tmp/file", "file:///C:/tmp/file", id="posix-path"),
-        pytest.param("c:\\tmp\\file", "file:///C:/tmp/file", id="nt-path"),
+        pytest.param("c:/tmp/file", "file:///c:/tmp/file", id="posix-path"),
+        pytest.param("c:\\tmp\\file", "file:///c:/tmp/file", id="nt-path"),
     ],
 )
 def test_path_to_url_win(path: str, url: str) -> None:
@@ -46,13 +46,13 @@ def test_relative_path_to_url_win() -> None:
     "url,win_expected,non_win_expected",
     [
         ("file:tmp", "tmp", "tmp"),
-        ("file:c:/path/to/file", r"C:\path\to\file", "c:/path/to/file"),
+        ("file:c:/path/to/file", r"c:\path\to\file", "c:/path/to/file"),
         ("file:/path/to/file", r"\path\to\file", "/path/to/file"),
         ("file://localhost/tmp/file", r"\tmp\file", "/tmp/file"),
-        ("file://localhost/c:/tmp/file", r"C:\tmp\file", "/c:/tmp/file"),
+        ("file://localhost/c:/tmp/file", r"c:\tmp\file", "/c:/tmp/file"),
         ("file://somehost/tmp/file", r"\\somehost\tmp\file", None),
         ("file:///tmp/file", r"\tmp\file", "/tmp/file"),
-        ("file:///c:/tmp/file", r"C:\tmp\file", "/c:/tmp/file"),
+        ("file:///c:/tmp/file", r"c:\tmp\file", "/c:/tmp/file"),
     ],
 )
 def test_url_to_path(url: str, win_expected: str, non_win_expected: str) -> None:
@@ -75,3 +75,26 @@ def test_url_to_path_path_to_url_symmetry_win() -> None:
 
     unc_path = r"\\unc\share\path"
     assert url_to_path(path_to_url(unc_path)) == unc_path
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        # Test a VCS path with a Windows drive letter and revision.
+        pytest.param(
+            "file:/T:/with space/repo.git@1.0",
+            "file:///T:/with%20space/repo.git@1.0",
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS path with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            "file:/T:/with space/repo.git@1.0",
+            "file:///T%3A/with%20space/repo.git@1.0",
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
+    ],
+)
+def test_clean_file_url(url: str, expected: str) -> None:
+    actual = clean_file_url(url)
+    assert actual == expected

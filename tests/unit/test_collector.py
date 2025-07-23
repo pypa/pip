@@ -41,9 +41,7 @@ from pip._internal.network.session import PipSession
 from tests.lib import (
     TestData,
     make_test_link_collector,
-    skip_needs_new_pathname2url_trailing_slash_behavior_win,
     skip_needs_new_urlun_behavior_win,
-    skip_needs_old_pathname2url_trailing_slash_behavior_win,
     skip_needs_old_urlun_behavior_win,
 )
 
@@ -298,32 +296,8 @@ def test_get_simple_response_dont_log_clear_text_password(
         ("a %2f b", "a%20%2F%20b"),
     ],
 )
-@pytest.mark.parametrize("is_local_path", [True, False])
-def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
-    assert _clean_url_path(path, is_local_path=is_local_path) == expected
-
-
-@pytest.mark.parametrize(
-    "path, expected",
-    [
-        # Test a VCS path with a Windows drive letter and revision.
-        pytest.param(
-            "/T:/with space/repo.git@1.0",
-            "///T:/with%20space/repo.git@1.0",
-            marks=pytest.mark.skipif("sys.platform != 'win32'"),
-        ),
-        # Test a VCS path with a Windows drive letter and revision,
-        # running on non-windows platform.
-        pytest.param(
-            "/T:/with space/repo.git@1.0",
-            "/T%3A/with%20space/repo.git@1.0",
-            marks=pytest.mark.skipif("sys.platform == 'win32'"),
-        ),
-    ],
-)
-def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
-    actual = _clean_url_path(path, is_local_path=True)
-    assert actual == expected
+def test_clean_url_path(path: str, expected: str) -> None:
+    assert _clean_url_path(path) == expected
 
 
 @pytest.mark.parametrize(
@@ -392,18 +366,9 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         # removed.
         pytest.param(
             "file:///T:/path/with spaces/",
-            "file:///T:/path/with%20spaces",
+            "file:///T:/path/with%20spaces/",
             marks=[
                 skip_needs_old_urlun_behavior_win,
-                skip_needs_old_pathname2url_trailing_slash_behavior_win,
-            ],
-        ),
-        pytest.param(
-            "file:///T:/path/with spaces/",
-            "file://///T:/path/with%20spaces",
-            marks=[
-                skip_needs_new_urlun_behavior_win,
-                skip_needs_old_pathname2url_trailing_slash_behavior_win,
             ],
         ),
         pytest.param(
@@ -411,7 +376,6 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
             "file://///T:/path/with%20spaces/",
             marks=[
                 skip_needs_new_urlun_behavior_win,
-                skip_needs_new_pathname2url_trailing_slash_behavior_win,
             ],
         ),
         # URL with Windows drive letter, running on non-windows

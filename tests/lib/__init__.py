@@ -17,7 +17,6 @@ from io import BytesIO, StringIO
 from textwrap import dedent
 from typing import Any, AnyStr, Callable, Literal, Protocol, Union, cast
 from urllib.parse import urlparse, urlunparse
-from urllib.request import pathname2url
 from zipfile import ZipFile
 
 import pytest
@@ -1384,16 +1383,4 @@ skip_needs_new_urlun_behavior_win = pytest.mark.skipif(
 skip_needs_old_urlun_behavior_win = pytest.mark.skipif(
     sys.platform != "win32" or has_new_urlun_behavior,
     reason="testing windows behavior for older CPython",
-)
-
-# Trailing slashes are now preserved on Windows, matching POSIX behaviour.
-# BPO: https://github.com/python/cpython/issues/126212
-does_pathname2url_preserve_trailing_slash = pathname2url("C:/foo/").endswith("/")
-skip_needs_new_pathname2url_trailing_slash_behavior_win = pytest.mark.skipif(
-    sys.platform != "win32" or not does_pathname2url_preserve_trailing_slash,
-    reason="testing windows (pathname2url) behavior for newer CPython",
-)
-skip_needs_old_pathname2url_trailing_slash_behavior_win = pytest.mark.skipif(
-    sys.platform != "win32" or does_pathname2url_preserve_trailing_slash,
-    reason="testing windows (pathname2url) behavior for older CPython",
 )

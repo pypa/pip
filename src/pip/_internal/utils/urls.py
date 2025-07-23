@@ -5,12 +5,13 @@ import urllib.parse
 from .compat import WINDOWS
 
 
-def path_to_url(path: str) -> str:
+def path_to_url(path: str, normalize_path: bool = True) -> str:
     """
     Convert a path to a file: URL.  The path will be made absolute and have
     quoted path parts.
     """
-    path = os.path.normpath(os.path.abspath(path))
+    if normalize_path:
+        path = os.path.normpath(os.path.abspath(path))
     if WINDOWS:
         path = path.replace("\\", "/")
     encoding = sys.getfilesystemencoding()
@@ -60,3 +61,18 @@ def url_to_path(url: str) -> str:
     encoding = sys.getfilesystemencoding()
     errors = sys.getfilesystemencodeerrors()
     return urllib.parse.unquote(path, encoding, errors)
+
+
+def clean_file_url(url: str) -> str:
+    """
+    Fix up quoting and leading slashes in the given file: URL.
+
+    e.g. 'file:/c:/foo bar' --> 'file:///c:/foo%20bar'.
+    """
+    tok = "-_-PIP_AT_SYMBOL_-_"
+    orig_url = url.replace("@", tok)
+    tidy_url = path_to_url(url_to_path(orig_url), normalize_path=False)
+    orig_parts = urllib.parse.urlsplit(orig_url)
+    tidy_parts = urllib.parse.urlsplit(tidy_url)
+    merged_url = urllib.parse.urlunsplit(tidy_parts[:3] + orig_parts[3:])
+    return merged_url.replace(tok, "@")

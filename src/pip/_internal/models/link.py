@@ -24,7 +24,7 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
     splitext,
 )
-from pip._internal.utils.urls import path_to_url, url_to_path
+from pip._internal.utils.urls import clean_file_url, path_to_url, url_to_path
 
 if TYPE_CHECKING:
     from pip._internal.index.collector import IndexContent
@@ -121,39 +121,21 @@ def _clean_url_path_part(part: str) -> str:
     return urllib.parse.quote(urllib.parse.unquote(part))
 
 
-def _clean_file_url_path(part: str) -> str:
-    """
-    Clean the first part of a URL path that corresponds to a local
-    filesystem path (i.e. the first part after splitting on "@" characters).
-    """
-    # We unquote prior to quoting to make sure nothing is double quoted.
-    # Also, on Windows the path part might contain a drive letter which
-    # should not be quoted. On Linux where drive letters do not
-    # exist, the colon should be quoted. We rely on urllib.request
-    # to do the right thing here.
-    return urllib.request.pathname2url(urllib.request.url2pathname(part))
-
-
 # percent-encoded:                   /
 _reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
 
 
-def _clean_url_path(path: str, is_local_path: bool) -> str:
+def _clean_url_path(path: str) -> str:
     """
     Clean the path portion of a URL.
     """
-    if is_local_path:
-        clean_func = _clean_file_url_path
-    else:
-        clean_func = _clean_url_path_part
-
     # Split on the reserved characters prior to cleaning so that
     # revision strings in VCS URLs are properly preserved.
     parts = _reserved_chars_re.split(path)
 
     cleaned_parts = []
     for to_clean, reserved in pairwise(itertools.chain(parts, [""])):
-        cleaned_parts.append(clean_func(to_clean))
+        cleaned_parts.append(_clean_url_path_part(to_clean))
         # Normalize %xx escapes (e.g. %2f -> %2F)
         cleaned_parts.append(reserved.upper())
 
@@ -166,12 +148,12 @@ def _ensure_quoted_url(url: str) -> str:
     For example, if ' ' occurs in the URL, it will be replaced with "%20",
     and without double-quoting other characters.
     """
+    if url.startswith("file:"):
+        return clean_file_url(url)
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)
-    # If the netloc is empty, then the URL refers to a local filesystem path.
-    is_local_path = not result.netloc
-    path = _clean_url_path(result.path, is_local_path=is_local_path)
+    path = _clean_url_path(result.path)
     return urllib.parse.urlunsplit(result._replace(path=path))
 
 
