@@ -11,7 +11,7 @@ def path_to_url(path: str, normalize_path: bool = True) -> str:
     quoted path parts.
     """
     if normalize_path:
-        path = os.path.normpath(os.path.abspath(path))
+        path = os.path.abspath(path)
     if WINDOWS:
         path = path.replace("\\", "/")
     encoding = sys.getfilesystemencoding()
@@ -37,8 +37,9 @@ def url_to_path(url: str) -> str:
     Convert a file: URL to a path.
     """
     scheme, netloc, path, _, _ = urllib.parse.urlsplit(url)
-    if scheme != "file" and not scheme.endswith("+file"):
-        raise ValueError(f"You can only turn file: urls into filenames (not {url!r})")
+    assert scheme == "file" or scheme.endswith(
+        "+file"
+    ), f"You can only turn file: urls into filenames (not {url!r})"
 
     if WINDOWS:
         if netloc and netloc != "localhost":
