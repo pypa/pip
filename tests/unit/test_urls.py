@@ -38,9 +38,8 @@ def test_unc_path_to_url_win() -> None:
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_relative_path_to_url_win() -> None:
-    resolved_path = os.path.join(os.getcwd(), "file")
-    quoted_path = urllib.parse.quote(resolved_path.replace("\\", "/"), "/:")
-    assert path_to_url("file") == "file:///" + quoted_path
+    path = os.path.join(os.getcwd(), "file").replace("\\", "/")
+    assert path_to_url("file") == "file:///" + urllib.parse.quote(path, safe="/:")
 
 
 @pytest.mark.parametrize(
