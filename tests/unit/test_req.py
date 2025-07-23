@@ -224,7 +224,7 @@ class TestRequirementSet:
         dir_path = data.packages.joinpath("FSPkg")
         reqset.add_unnamed_requirement(
             get_processed_req_from_line(
-                f"file:{dir_path}",
+                f"file://{dir_path}",
                 lineno=2,
             )
         )
@@ -244,7 +244,7 @@ class TestRequirementSet:
                     r"file \(line 1\)\)\n"
                     r"Can't verify hashes for these file:// requirements because "
                     r"they point to directories:\n"
-                    rf"    file:.*{sep}data{sep}packages{sep}FSPkg "
+                    rf"    file://.*{sep}data{sep}packages{sep}FSPkg "
                     r"\(from -r file \(line 2\)\)"
                 ),
             ):

@@ -42,8 +42,11 @@ def url_to_path(url: str) -> str:
     ), f"You can only turn file: urls into filenames (not {url!r})"
 
     if WINDOWS:
-        if netloc and netloc != "localhost":
-            path = "//" + netloc + path
+        if netloc:
+            if netloc[1:] == ":":
+                path = netloc + path
+            elif netloc != "localhost":
+                path = "//" + netloc + path
         elif path[:3] == "///":
             path = path[1:]
         else:
