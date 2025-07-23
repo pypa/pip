@@ -36,11 +36,9 @@ def url_to_path(url: str) -> str:
     """
     Convert a file: URL to a path.
     """
-    assert url.startswith(
-        "file:"
-    ), f"You can only turn file: urls into filenames (not {url!r})"
-
-    _, netloc, path, _, _ = urllib.parse.urlsplit(url)
+    scheme, netloc, path, _, _ = urllib.parse.urlsplit(url)
+    if scheme != "file" and not scheme.endswith("+file"):
+        raise ValueError(f"You can only turn file: urls into filenames (not {url!r})")
 
     if WINDOWS:
         if netloc and netloc != "localhost":
@@ -70,9 +68,12 @@ def clean_file_url(url: str) -> str:
     e.g. 'file:/c:/foo bar' --> 'file:///c:/foo%20bar'.
     """
     tok = "-_-PIP_AT_SYMBOL_-_"
+    assert tok not in url
     orig_url = url.replace("@", tok)
     tidy_url = path_to_url(url_to_path(orig_url), normalize_path=False)
-    orig_parts = urllib.parse.urlsplit(orig_url)
     tidy_parts = urllib.parse.urlsplit(tidy_url)
+    orig_parts = urllib.parse.urlsplit(orig_url)
     merged_url = urllib.parse.urlunsplit(tidy_parts[:3] + orig_parts[3:])
+    if orig_parts.scheme != "file":
+        merged_url = orig_parts.scheme + merged_url[4:]
     return merged_url.replace(tok, "@")

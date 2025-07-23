@@ -148,11 +148,12 @@ def _ensure_quoted_url(url: str) -> str:
     For example, if ' ' occurs in the URL, it will be replaced with "%20",
     and without double-quoting other characters.
     """
-    if url.startswith("file:"):
-        return clean_file_url(url)
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)
+    # If the netloc is empty, then the URL refers to a local filesystem path
+    if not result.netloc:
+        return clean_file_url(url)
     path = _clean_url_path(result.path)
     return urllib.parse.urlunsplit(result._replace(path=path))
 
