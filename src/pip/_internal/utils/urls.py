@@ -7,8 +7,8 @@ from .compat import WINDOWS
 
 def path_to_url(path: str, normalize_path: bool = True) -> str:
     """
-    Convert a path to a file: URL.  The path will be made absolute and have
-    quoted path parts.
+    Convert a path to a file: URL with quoted path parts. The path will be
+    normalized and made absolute if *normalize_path* is true (the default.)
     """
     if normalize_path:
         path = os.path.abspath(path)
@@ -37,7 +37,7 @@ def url_to_path(url: str) -> str:
     """
     Convert a file: URL to a path.
     """
-    scheme, netloc, path, _, _ = urllib.parse.urlsplit(url)
+    scheme, netloc, path = urllib.parse.urlsplit(url)[:3]
     assert scheme == "file" or scheme.endswith(
         "+file"
     ), f"You can only turn file: urls into filenames (not {url!r})"
@@ -74,16 +74,16 @@ def clean_file_url(url: str) -> str:
     """
     Fix up quoting and leading slashes in the given file: URL.
 
-    e.g. 'file:/c:/foo bar' --> 'file:///c:/foo%20bar'.
+    e.g. 'file:/c:/foo bar@1.0' --> 'file:///c:/foo%20bar@1.0'.
     """
     # Replace "@" characters to protect them from percent-encoding.
-    at_symbol_token = "-_-PIP_AT_SYMBOL_-_"
+    at_symbol_token = "---PIP_AT_SYMBOL---"
     assert at_symbol_token not in url
     url = url.replace("@", at_symbol_token)
     parts = urllib.parse.urlsplit(url)
 
-    # Convert to a file path and back. This normalizes the URL, but removes
-    # the original scheme, query and fragment components.
+    # Convert URL to a file path and back. This normalizes the netloc and
+    # path, but resets the other URL components.
     tidy_url = path_to_url(url_to_path(url), normalize_path=False)
     tidy_parts = urllib.parse.urlsplit(tidy_url)
 

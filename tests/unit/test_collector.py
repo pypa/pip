@@ -358,7 +358,7 @@ def test_clean_url_path(path: str, expected: str) -> None:
         ),
         # URL with Windows drive letter. The `:` after the drive
         # letter should not be quoted. The trailing `/` should be
-        # removed.
+        # retained.
         pytest.param(
             "file:///T:/path/with spaces/",
             "file:///T:/path/with%20spaces/",
