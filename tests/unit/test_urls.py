@@ -18,8 +18,8 @@ def test_path_to_url_unix() -> None:
 @pytest.mark.parametrize(
     "path, url",
     [
-        pytest.param("c:/tmp/file", "file:///C:/tmp/file", id="posix-path"),
-        pytest.param("c:\\tmp\\file", "file:///C:/tmp/file", id="nt-path"),
+        pytest.param("C:/tmp/file", "file:///C:/tmp/file", id="posix-path"),
+        pytest.param("C:\\tmp\\file", "file:///C:/tmp/file", id="nt-path"),
     ],
 )
 def test_path_to_url_win(path: str, url: str) -> None:
@@ -46,13 +46,13 @@ def test_relative_path_to_url_win() -> None:
     "url,win_expected,non_win_expected",
     [
         ("file:tmp", "tmp", "tmp"),
-        ("file:c:/path/to/file", r"C:\path\to\file", "c:/path/to/file"),
+        ("file:C:/path/to/file", r"C:\path\to\file", "C:/path/to/file"),
         ("file:/path/to/file", r"\path\to\file", "/path/to/file"),
         ("file://localhost/tmp/file", r"\tmp\file", "/tmp/file"),
-        ("file://localhost/c:/tmp/file", r"C:\tmp\file", "/c:/tmp/file"),
+        ("file://localhost/C:/tmp/file", r"C:\tmp\file", "/C:/tmp/file"),
         ("file://somehost/tmp/file", r"\\somehost\tmp\file", None),
         ("file:///tmp/file", r"\tmp\file", "/tmp/file"),
-        ("file:///c:/tmp/file", r"C:\tmp\file", "/c:/tmp/file"),
+        ("file:///C:/tmp/file", r"C:\tmp\file", "/C:/tmp/file"),
     ],
 )
 def test_url_to_path(url: str, win_expected: str, non_win_expected: str) -> None:
