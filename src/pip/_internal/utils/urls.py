@@ -68,28 +68,3 @@ def url_to_path(url: str) -> str:
     encoding = sys.getfilesystemencoding()
     errors = sys.getfilesystemencodeerrors()
     return urllib.parse.unquote(path, encoding, errors)
-
-
-def clean_file_url(url: str) -> str:
-    """
-    Fix up quoting and leading slashes in the given file: URL.
-
-    e.g. 'file:/c:/foo bar@1.0' --> 'file:///c:/foo%20bar@1.0'.
-    """
-    # Replace "@" characters to protect them from percent-encoding.
-    at_symbol_token = "---PIP_AT_SYMBOL---"
-    assert at_symbol_token not in url
-    url = url.replace("@", at_symbol_token)
-    parts = urllib.parse.urlsplit(url)
-
-    # Convert URL to a file path and back. This normalizes the netloc and
-    # path, but resets the other URL components.
-    tidy_url = path_to_url(url_to_path(url), normalize_path=False)
-    tidy_parts = urllib.parse.urlsplit(tidy_url)
-
-    # Restore the original scheme, query and fragment components.
-    url = urllib.parse.urlunsplit(tidy_parts[:3] + parts[3:])
-    url = url.replace(tidy_parts.scheme, parts.scheme, 1)
-
-    # Restore "@" characters that were replaced earlier.
-    return url.replace(at_symbol_token, "@")

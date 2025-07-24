@@ -4,7 +4,7 @@ import urllib.request
 
 import pytest
 
-from pip._internal.utils.urls import clean_file_url, path_to_url, url_to_path
+from pip._internal.utils.urls import path_to_url, url_to_path
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
@@ -75,26 +75,3 @@ def test_url_to_path_path_to_url_symmetry_win() -> None:
 
     unc_path = r"\\unc\share\path"
     assert url_to_path(path_to_url(unc_path)) == unc_path
-
-
-@pytest.mark.parametrize(
-    "url, expected",
-    [
-        # Test a VCS path with a Windows drive letter and revision.
-        pytest.param(
-            "file:/T:/with space/repo.git@1.0",
-            "file:///T:/with%20space/repo.git@1.0",
-            marks=pytest.mark.skipif("sys.platform != 'win32'"),
-        ),
-        # Test a VCS path with a Windows drive letter and revision,
-        # running on non-windows platform.
-        pytest.param(
-            "file:/T:/with space/repo.git@1.0",
-            "file:///T%3A/with%20space/repo.git@1.0",
-            marks=pytest.mark.skipif("sys.platform == 'win32'"),
-        ),
-    ],
-)
-def test_clean_file_url(url: str, expected: str) -> None:
-    actual = clean_file_url(url)
-    assert actual == expected

@@ -24,7 +24,7 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
     splitext,
 )
-from pip._internal.utils.urls import clean_file_url, path_to_url, url_to_path
+from pip._internal.utils.urls import path_to_url, url_to_path
 
 if TYPE_CHECKING:
     from pip._internal.index.collector import IndexContent
@@ -121,6 +121,32 @@ def _clean_url_path_part(part: str) -> str:
     return urllib.parse.quote(urllib.parse.unquote(part))
 
 
+def _clean_file_url(url: str) -> str:
+    """
+    Clean a URL that corresponds to a local
+    filesystem path (i.e. the first part after splitting on "@" characters).
+    """
+    # Replace "@" characters to protect them from percent-encoding.
+    at_symbol_token = "---PIP_AT_SYMBOL---"
+    assert at_symbol_token not in url
+    url = url.replace("@", at_symbol_token)
+    parts = urllib.parse.urlsplit(url)
+
+    # We unquote prior to quoting to make sure nothing is double quoted.
+    # Also, on Windows the path part might contain a drive letter which
+    # should not be quoted. On Linux where drive letters do not
+    # exist, the colon should be quoted.
+    tidy_url = path_to_url(url_to_path(url), normalize_path=False)
+    tidy_parts = urllib.parse.urlsplit(tidy_url)
+
+    # Restore the original scheme, query and fragment components.
+    url = urllib.parse.urlunsplit(tidy_parts[:3] + parts[3:])
+    url = url.replace(tidy_parts.scheme, parts.scheme, 1)
+
+    # Restore "@" characters that were replaced earlier.
+    return url.replace(at_symbol_token, "@")
+
+
 # percent-encoded:                   /
 _reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
 
@@ -153,7 +179,7 @@ def _ensure_quoted_url(url: str) -> str:
     result = urllib.parse.urlsplit(url)
     # If the netloc is empty, then the URL refers to a local filesystem path.
     if not result.netloc:
-        return clean_file_url(url)
+        return _clean_file_url(url)
     path = _clean_url_path(result.path)
     return urllib.parse.urlunsplit(result._replace(path=path))
 

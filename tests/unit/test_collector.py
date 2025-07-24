@@ -33,6 +33,7 @@ from pip._internal.models.link import (
     Link,
     LinkHash,
     MetadataFile,
+    _clean_file_url,
     _clean_url_path,
     _ensure_quoted_url,
 )
@@ -293,6 +294,29 @@ def test_get_simple_response_dont_log_clear_text_password(
 )
 def test_clean_url_path(path: str, expected: str) -> None:
     assert _clean_url_path(path) == expected
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        # Test a VCS path with a Windows drive letter and revision.
+        pytest.param(
+            "file:/T:/with space/repo.git@1.0",
+            "file:///T:/with%20space/repo.git@1.0",
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS path with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            "file:/T:/with space/repo.git@1.0",
+            "file:///T%3A/with%20space/repo.git@1.0",
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
+    ],
+)
+def test_clean_file_url(url: str, expected: str) -> None:
+    actual = _clean_file_url(url)
+    assert actual == expected
 
 
 @pytest.mark.parametrize(
