@@ -121,39 +121,46 @@ def _clean_url_path_part(part: str) -> str:
     return urllib.parse.quote(urllib.parse.unquote(part))
 
 
-def _clean_file_url_path(part: str) -> str:
+def _clean_file_url(url: str) -> str:
     """
-    Clean the first part of a URL path that corresponds to a local
-    filesystem path (i.e. the first part after splitting on "@" characters).
+    Clean a URL that corresponds to a local filesystem path.
     """
+    # Replace "@" characters to protect them from percent-encoding.
+    at_symbol_token = "---PIP_AT_SYMBOL---"
+    assert at_symbol_token not in url
+    url = url.replace("@", at_symbol_token)
+    parts = urllib.parse.urlsplit(url)
+
     # We unquote prior to quoting to make sure nothing is double quoted.
     # Also, on Windows the path part might contain a drive letter which
     # should not be quoted. On Linux where drive letters do not
-    # exist, the colon should be quoted. We rely on urllib.request
-    # to do the right thing here.
-    return urllib.request.pathname2url(urllib.request.url2pathname(part))
+    # exist, the colon should be quoted.
+    tidy_url = path_to_url(url_to_path(url), normalize_path=False)
+    tidy_parts = urllib.parse.urlsplit(tidy_url)
+
+    # Restore the original scheme, query and fragment components.
+    url = urllib.parse.urlunsplit(tidy_parts[:3] + parts[3:])
+    url = url.replace(tidy_parts.scheme, parts.scheme, 1)
+
+    # Restore "@" characters that were replaced earlier.
+    return url.replace(at_symbol_token, "@")
 
 
 # percent-encoded:                   /
 _reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
 
 
-def _clean_url_path(path: str, is_local_path: bool) -> str:
+def _clean_url_path(path: str) -> str:
     """
     Clean the path portion of a URL.
     """
-    if is_local_path:
-        clean_func = _clean_file_url_path
-    else:
-        clean_func = _clean_url_path_part
-
     # Split on the reserved characters prior to cleaning so that
     # revision strings in VCS URLs are properly preserved.
     parts = _reserved_chars_re.split(path)
 
     cleaned_parts = []
     for to_clean, reserved in pairwise(itertools.chain(parts, [""])):
-        cleaned_parts.append(clean_func(to_clean))
+        cleaned_parts.append(_clean_url_path_part(to_clean))
         # Normalize %xx escapes (e.g. %2f -> %2F)
         cleaned_parts.append(reserved.upper())
 
@@ -170,8 +177,9 @@ def _ensure_quoted_url(url: str) -> str:
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)
     # If the netloc is empty, then the URL refers to a local filesystem path.
-    is_local_path = not result.netloc
-    path = _clean_url_path(result.path, is_local_path=is_local_path)
+    if not result.netloc:
+        return _clean_file_url(url)
+    path = _clean_url_path(result.path)
     return urllib.parse.urlunsplit(result._replace(path=path))
 
 

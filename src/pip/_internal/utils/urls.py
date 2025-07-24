@@ -6,13 +6,14 @@ import urllib.request
 from .compat import WINDOWS
 
 
-def path_to_url(path: str) -> str:
+def path_to_url(path: str, normalize_path=True) -> str:
     """
-    Convert a path to a file: URL.  The path will be made absolute and have
-    quoted path parts.
+    Convert a path to a file: URL with quoted path parts.  The path will be
+    normalized and made absolute if *normalize_path* is true (the default.)
     """
-    path = os.path.normpath(os.path.abspath(path))
-    url = urllib.parse.urljoin("file:", urllib.request.pathname2url(path))
+    if normalize_path:
+        path = os.path.abspath(path)
+    url = urllib.parse.urljoin("file://", urllib.request.pathname2url(path))
     return url
 
 
@@ -20,11 +21,10 @@ def url_to_path(url: str) -> str:
     """
     Convert a file: URL to a path.
     """
-    assert url.startswith(
-        "file:"
+    scheme, netloc, path = urllib.parse.urlsplit(url)[:3]
+    assert scheme == "file" or scheme.endswith(
+        "+file"
     ), f"You can only turn file: urls into filenames (not {url!r})"
-
-    _, netloc, path, _, _ = urllib.parse.urlsplit(url)
 
     if not netloc or netloc == "localhost":
         # According to RFC 8089, same as empty authority.

@@ -11,7 +11,11 @@ from pip._internal.utils.urls import path_to_url, url_to_path
 def test_path_to_url_unix() -> None:
     assert path_to_url("/tmp/file") == "file:///tmp/file"
     path = os.path.join(os.getcwd(), "file")
-    assert path_to_url("file") == "file://" + urllib.request.pathname2url(path)
+    expect = urllib.request.pathname2url(path)
+    if not expect.startswith("//"):
+        # Old versions of pathname2url can generate URLs lacking authorities.
+        expect = "//" + expect
+    assert path_to_url("file") == "file:" + expect
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
