@@ -131,7 +131,11 @@ def _clean_file_url_path(part: str) -> str:
     # should not be quoted. On Linux where drive letters do not
     # exist, the colon should be quoted. We rely on urllib.request
     # to do the right thing here.
-    return urllib.request.pathname2url(urllib.request.url2pathname(part))
+    new_part = urllib.request.pathname2url(urllib.request.url2pathname(part))
+    if part.endswith("/") and not new_part.endswith("/"):
+        # Older pathname2url() can strip trailing slashes
+        new_part += "/"
+    return new_part
 
 
 # percent-encoded:                   /

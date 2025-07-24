@@ -12,8 +12,11 @@ def path_to_url(path: str) -> str:
     quoted path parts.
     """
     path = os.path.normpath(os.path.abspath(path))
-    url = urllib.parse.urljoin("file:", urllib.request.pathname2url(path))
-    return url
+    url = urllib.request.pathname2url(path)
+    if not url.startswith("//"):
+        # Older pathname2url() can return URL without authority
+        url = "//" + url
+    return "file:" + url
 
 
 def url_to_path(url: str) -> str:
