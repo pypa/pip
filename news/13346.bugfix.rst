@@ -1,0 +1,1 @@
+Provide a hint if a system error is raised involving long filenames or path segments on Windows.
