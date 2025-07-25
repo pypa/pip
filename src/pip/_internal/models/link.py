@@ -6,6 +6,7 @@ import logging
 import os
 import posixpath
 import re
+import sys
 import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -478,7 +479,7 @@ class Link:
             deprecated(
                 reason=f"{self} contains an egg fragment with a non-PEP 508 name.",
                 replacement="to use the req @ url syntax, and remove the egg fragment",
-                gone_in="25.2",
+                gone_in="25.3",
                 issue=13157,
             )
 
