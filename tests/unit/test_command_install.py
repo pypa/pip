@@ -152,7 +152,9 @@ class TestDecideUserInstall:
             ),
         ),
         pytest.param(
-            OSError(errno.EINVAL, "No such file or directory", f"C:{'/a'*261}/{'b'*256}"),
+            OSError(
+                errno.EINVAL, "No such file or directory", f"C:{'/a'*261}/{'b'*256}"
+            ),
             False,
             False,
             "Could not install packages due to an OSError: "
