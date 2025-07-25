@@ -783,28 +783,19 @@ def create_os_error_message(
         WINDOWS
         and error.errno in (errno.EINVAL, errno.ENOENT)
         and error.filename
-        and any(len(part) > 255 for part in Path(error.filename).parts)
     ):
-        parts.append(
-            "HINT: This error might be caused by a file or folder name exceeding "
-            "255 characters, which is a Windows limitation even if long paths "
-            "are enabled.\n "
-        )
-
-    # Suggest the user to enable Long Paths if path length is
-    # more than 260
-    elif (
-        WINDOWS
-        and error.errno == errno.ENOENT
-        and error.filename
-        and len(error.filename) > 260
-    ):
-        parts.append(
-            "HINT: This error might have occurred since "
-            "this system does not have Windows Long Path "
-            "support enabled. You can find information on "
-            "how to enable this at "
-            "https://pip.pypa.io/warnings/enable-long-paths\n"
-        )
-
+        if any(len(part) > 255 for part in Path(error.filename).parts):
+            parts.append(
+                "HINT: This error might be caused by a file or folder name exceeding "
+                "255 characters, which is a Windows limitation even if long paths "
+                "are enabled.\n "
+            )
+        if len(error.filename) > 260:
+            parts.append(
+                "HINT: This error might have occurred since "
+                "this system does not have Windows Long Path "
+                "support enabled. You can find information on "
+                "how to enable this at "
+                "https://pip.pypa.io/warnings/enable-long-paths\n"
+            )
     return "".join(parts).strip() + "\n"
