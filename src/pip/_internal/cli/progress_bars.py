@@ -58,7 +58,9 @@ def _rich_download_progress_bar(
         )
 
     progress = Progress(*columns, refresh_per_second=5)
-    task_id = progress.add_task(" " * (get_indentation() + 2), total=total, time_description="eta")
+    task_id = progress.add_task(
+        " " * (get_indentation() + 2), total=total, time_description="eta"
+    )
     if initial_progress is not None:
         progress.update(task_id, advance=initial_progress)
     with progress:
