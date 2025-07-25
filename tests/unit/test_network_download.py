@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -20,6 +21,11 @@ from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS
 
 from tests.lib.requests_mocks import MockResponse
+
+if TYPE_CHECKING:
+    from requests.models import Response
+else:
+    from pip._vendor.requests.models import Response
 
 
 @pytest.mark.parametrize(
@@ -91,9 +97,9 @@ def test_log_download(
     if from_cache:
         resp.from_cache = from_cache
     link = Link(url)
-    total_length = _get_http_response_size(resp)
+    total_length = _get_http_response_size(cast("Response", resp))
     _log_download(
-        resp,
+        cast("Response", resp),
         link,
         progress_bar="on",
         total_length=total_length,

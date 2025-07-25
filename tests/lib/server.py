@@ -5,7 +5,7 @@ from base64 import b64encode
 from collections.abc import Iterable, Iterator
 from contextlib import ExitStack, contextmanager
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 from unittest.mock import Mock
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
@@ -99,7 +99,7 @@ def make_mock_server(**kwargs: Any) -> _MockServer:
 
     mock = Mock()
     app = _mock_wsgi_adapter(mock)
-    server = _make_server("localhost", 0, app=app, **kwargs)
+    server = cast(_MockServer, _make_server("localhost", 0, app=app, **kwargs))
     server.mock = mock
     return server
 
