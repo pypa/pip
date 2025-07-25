@@ -780,11 +780,7 @@ def create_os_error_message(
     # or if the full path exceeds 260 characters and long path support isn't enabled.
     # This condition checks for such cases and adds a hint to the error output.
 
-    if (
-        WINDOWS
-        and error.errno in (errno.EINVAL, errno.ENOENT)
-        and error.filename
-    ):
+    if WINDOWS and error.errno in (errno.EINVAL, errno.ENOENT) and error.filename:
         if any(len(part) > 255 for part in Path(error.filename).parts):
             parts.append(
                 "HINT: This error might be caused by a file or folder name exceeding "
