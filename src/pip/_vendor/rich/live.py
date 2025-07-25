@@ -16,7 +16,7 @@ from .text import Text
 
 if TYPE_CHECKING:
     # Can be replaced with `from typing import Self` in Python 3.11+
-    from pip._vendor.typing_extensions import Self  # pragma: no cover
+    from typing_extensions import Self  # pragma: no cover
 
 
 class _RefreshThread(Thread):
