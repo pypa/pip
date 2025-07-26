@@ -853,6 +853,25 @@ class TestInstallRequirement:
         assert extended.permit_editable_wheels == req.permit_editable_wheels
 
 
+@pytest.mark.parametrize(
+    "req_str, expected",
+    [
+        (
+            'foo[extra] @ svn+http://foo ; os_name == "nt"',
+            ('foo ; os_name == "nt"', "svn+http://foo", {"extra"}),
+        ),
+        (
+            "foo @ svn+http://foo",
+            ("foo", "svn+http://foo", set()),
+        ),
+    ],
+)
+def test_parse_editable_pep508(
+    req_str: str, expected: tuple[str, str, set[str]]
+) -> None:
+    assert parse_editable(req_str) == expected
+
+
 @mock.patch("pip._internal.req.req_install.os.path.abspath")
 @mock.patch("pip._internal.req.req_install.os.path.exists")
 @mock.patch("pip._internal.req.req_install.os.path.isdir")
