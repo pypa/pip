@@ -159,8 +159,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
-        self.dist = self._prepare()
         self._hash: int | None = None
+        # Cache for parsed dependencies to avoid multiple iterations
+        self._cached_dependencies: list[Requirement] | None = None
+        self._cached_extras: list[NormalizedName] | None = None
+        self.dist = self._prepare()
 
     def __str__(self) -> str:
         return f"{self.name} {self.version}"
@@ -207,6 +210,20 @@ class _InstallRequirementBackedCandidate(Candidate):
             f"(from {self._link.file_path if self._link.is_file else self._link})"
         )
 
+    def _get_cached_dependencies(self) -> list[Requirement]:
+        """Get cached dependencies, parsing them only once."""
+        if self._cached_dependencies is None:
+            if self._cached_extras is None:
+                self._cached_extras = list(self.dist.iter_provided_extras())
+            self._cached_dependencies = list(self.dist.iter_dependencies(self._cached_extras))
+        return self._cached_dependencies
+
+    def _get_cached_extras(self) -> list[NormalizedName]:
+        """Get cached extras, parsing them only once."""
+        if self._cached_extras is None:
+            self._cached_extras = list(self.dist.iter_provided_extras())
+        return self._cached_extras
+
     def _prepare_distribution(self) -> BaseDistribution:
         raise NotImplementedError("Override in subclass")
 
@@ -227,10 +244,12 @@ class _InstallRequirementBackedCandidate(Candidate):
                 str(dist.version),
             )
         # check dependencies are valid
-        # TODO performance: this means we iterate the dependencies at least twice,
-        # we may want to cache parsed Requires-Dist
+        # Parse and cache dependencies during validation to avoid re-parsing later
         try:
-            list(dist.iter_dependencies(list(dist.iter_provided_extras())))
+            if self._cached_extras is None:
+                self._cached_extras = list(dist.iter_provided_extras())
+            if self._cached_dependencies is None:
+                self._cached_dependencies = list(dist.iter_dependencies(self._cached_extras))
         except InvalidRequirement as e:
             raise MetadataInvalid(self._ireq, str(e))
 
@@ -255,9 +274,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         # Emit the Requires-Python requirement first to fail fast on
         # unsupported candidates and avoid pointless downloads/preparation.
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
-        requires = self.dist.iter_dependencies() if with_requires else ()
-        for r in requires:
-            yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
+        if with_requires:
+            # Use cached dependencies to avoid re-parsing
+            requires = self._get_cached_dependencies()
+            for r in requires:
+                yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self) -> InstallRequirement | None:
         return self._ireq
@@ -515,8 +536,10 @@ class ExtrasCandidate(Candidate):
 
         # The user may have specified extras that the candidate doesn't
         # support. We ignore any unsupported extras here.
-        valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
-        invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
+        # Cache provided_extras to avoid multiple iterations
+        provided_extras = set(self.base.dist.iter_provided_extras())
+        valid_extras = self.extras.intersection(provided_extras)
+        invalid_extras = self.extras.difference(provided_extras)
         for extra in sorted(invalid_extras):
             logger.warning(
                 "%s %s does not provide the extra '%s'",
