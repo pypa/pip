@@ -1,0 +1,2 @@
+Configured verbosity is consistently forwarded while calling Git during
+VCS operations.
