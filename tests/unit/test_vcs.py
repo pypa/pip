@@ -52,6 +52,11 @@ def test_ensure_svn_available() -> None:
             ("git+https://example.com/pkg", "dev", "zope-interface"),
             "git+https://example.com/pkg@dev#egg=zope_interface",
         ),
+        # Test a revision with special characters.
+        (
+            ("git+https://example.com/pkg", "dev@1#2", "myproj"),
+            "git+https://example.com/pkg@dev%401%232#egg=myproj",
+        ),
     ],
 )
 def test_make_vcs_requirement_url(args: tuple[Any, ...], expected: str) -> None:
@@ -393,6 +398,11 @@ def test_git__get_url_rev__idempotent() -> None:
         (
             "svn+https://svn.example.com/My+Project",
             ("https://svn.example.com/My+Project", None, (None, None)),
+        ),
+        # Test percent-encoded characters in revision.
+        (
+            "svn+https://svn.example.com/MyProject@dev%401%232",
+            ("https://svn.example.com/MyProject", "dev@1#2", (None, None)),
         ),
     ],
 )
