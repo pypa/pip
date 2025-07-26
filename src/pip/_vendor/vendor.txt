@@ -9,9 +9,8 @@ requests==2.32.4
     certifi==2025.7.14
     idna==3.10
     urllib3==1.26.20
-rich==14.0.0
+rich==14.1.0
     pygments==2.19.2
-    typing_extensions==4.14.1
 resolvelib==1.2.0
 setuptools==70.3.0
 tomli==2.2.1

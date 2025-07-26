@@ -45,7 +45,7 @@ from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 
 if TYPE_CHECKING:
-    from pip._vendor.typing_extensions import TypeGuard
+    from typing_extensions import TypeGuard
 
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
