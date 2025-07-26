@@ -514,6 +514,23 @@ class Link:
         return posixpath.basename(self._url.split("#", 1)[0].split("?", 1)[0])
 
     @property
+    def size(self) -> int | None:
+        """Fetch the size of the file from HTTP headers if available."""
+        from pip._internal.network.session import PipSession
+
+        try:
+            session = PipSession()
+            response = session.head(self.url, allow_redirects=True)
+            response.raise_for_status()
+            # Check if the 'Content-Length' header is present
+            size = response.headers.get("Content-Length")
+            if size:
+                return int(size)
+        except ValueError as e:
+            logger.warning("Could not fetch size for %s: %s", self.url, e)
+        return None
+
+    @property
     def is_file(self) -> bool:
         return self.scheme == "file"
 
