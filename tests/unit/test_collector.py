@@ -436,7 +436,7 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         # running on non-windows platform.
         pytest.param(
             "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
-            "git+file:/T%3A/with%20space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:///T%3A/with%20space/repo.git@1.0#egg=my-package-1.0",
             marks=pytest.mark.skipif("sys.platform == 'win32'"),
         ),
     ],
