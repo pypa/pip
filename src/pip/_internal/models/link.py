@@ -133,7 +133,7 @@ def _clean_file_url_path(part: str) -> str:
     # to do the right thing here.
     ret = urllib.request.pathname2url(urllib.request.url2pathname(part))
     if ret.startswith("///"):
-        # Remove authority section from URL.
+        # Remove any URL authority section, leaving only the URL path.
         ret = ret.removeprefix("//")
     return ret
 
