@@ -42,9 +42,7 @@ from tests.lib import (
     TestData,
     make_test_link_collector,
     skip_needs_new_pathname2url_trailing_slash_behavior_win,
-    skip_needs_new_urlun_behavior_win,
     skip_needs_old_pathname2url_trailing_slash_behavior_win,
-    skip_needs_old_urlun_behavior_win,
 )
 
 ACCEPT = ", ".join(
@@ -309,7 +307,7 @@ def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
         # Test a VCS path with a Windows drive letter and revision.
         pytest.param(
             "/T:/with space/repo.git@1.0",
-            "///T:/with%20space/repo.git@1.0",
+            "/T:/with%20space/repo.git@1.0",
             marks=pytest.mark.skipif("sys.platform != 'win32'"),
         ),
         # Test a VCS path with a Windows drive letter and revision,
@@ -393,26 +391,12 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "file:///T:/path/with spaces/",
             "file:///T:/path/with%20spaces",
-            marks=[
-                skip_needs_old_urlun_behavior_win,
-                skip_needs_old_pathname2url_trailing_slash_behavior_win,
-            ],
+            marks=skip_needs_old_pathname2url_trailing_slash_behavior_win,
         ),
         pytest.param(
             "file:///T:/path/with spaces/",
-            "file://///T:/path/with%20spaces",
-            marks=[
-                skip_needs_new_urlun_behavior_win,
-                skip_needs_old_pathname2url_trailing_slash_behavior_win,
-            ],
-        ),
-        pytest.param(
-            "file:///T:/path/with spaces/",
-            "file://///T:/path/with%20spaces/",
-            marks=[
-                skip_needs_new_urlun_behavior_win,
-                skip_needs_new_pathname2url_trailing_slash_behavior_win,
-            ],
+            "file:///T:/path/with%20spaces/",
+            marks=skip_needs_new_pathname2url_trailing_slash_behavior_win,
         ),
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.
@@ -425,12 +409,7 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
             "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
-            marks=skip_needs_old_urlun_behavior_win,
-        ),
-        pytest.param(
-            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
-            "git+file://///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
-            marks=skip_needs_new_urlun_behavior_win,
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
         ),
         # Test a VCS URL with a Windows drive letter and revision,
         # running on non-windows platform.
