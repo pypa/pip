@@ -133,7 +133,7 @@ def _clean_file_url_path(part: str) -> str:
     # exist, the colon should be quoted. We rely on urllib.request
     # to do the right thing here.
     ret = urllib.request.pathname2url(urllib.request.url2pathname(part))
-    if sys.version_info >= (3, 14):
+    if ret.startswith("//"):
         # https://discuss.python.org/t/pathname2url-changes-in-python-3-14-breaking-pip-tests/97091
         ret = ret.removeprefix("//")
     return ret
@@ -177,7 +177,9 @@ def _ensure_quoted_url(url: str) -> str:
     # If the netloc is empty, then the URL refers to a local filesystem path.
     is_local_path = not result.netloc
     path = _clean_url_path(result.path, is_local_path=is_local_path)
-    return urllib.parse.urlunsplit(result._replace(path=path))
+    ret = urllib.parse.urlunsplit(result._replace(scheme="file", path=path))
+    ret = result.scheme + ret[4:]
+    return ret
 
 
 def _absolute_link_url(base_url: str, url: str) -> str:
