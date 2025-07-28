@@ -23,6 +23,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -299,7 +300,15 @@ follow_imports = "skip"
 #
 
 [tool.pytest.ini_options]
-addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes --disable-socket --allow-hosts=localhost"
+addopts = [
+    "-r=aR",
+    "--color=yes",
+    "--ignore=src/pip/_vendor",
+    "--ignore=tests/tests_cache",
+    "--disable-socket",
+    "--allow-unix-socket",
+    "--allow-hosts=localhost",
+]
 xfail_strict = true
 markers = [
     "network: tests that need network",
