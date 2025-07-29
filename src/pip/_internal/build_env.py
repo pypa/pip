@@ -13,7 +13,6 @@ from collections.abc import Iterable
 from contextlib import AbstractContextManager, nullcontext
 from functools import partial
 from io import StringIO
-from optparse import Values
 from types import TracebackType
 from typing import TYPE_CHECKING, Protocol, TypedDict
 
@@ -268,8 +267,6 @@ class InprocessBuildEnvironmentInstaller:
     Options are inherited from the parent install command unless
     they don't make sense for build dependencies (in which case, they
     are hard-coded, see comments below).
-
-    NOTE: This can only be used with the resolvelib resolver.
     """
 
     def __init__(
@@ -277,15 +274,18 @@ class InprocessBuildEnvironmentInstaller:
         finder: PackageFinder,
         session: PipSession,
         build_tracker: BuildTracker,
+        # TODO: maybe inheriting this is not the best idea?
         build_dir: str,
         verbosity: int,
-        options: Values,
+        resume_retries: int,
+        cache_dir: str,
+        ignore_requires_python: bool,
     ) -> None:
         from pip._internal.cache import WheelCache
         from pip._internal.operations.prepare import RequirementPreparer
 
         self.finder = finder
-        self.options = options
+        self._ignore_requires_python = ignore_requires_python
 
         self._preparer = RequirementPreparer(
             build_isolation_installer=self,
@@ -295,11 +295,10 @@ class InprocessBuildEnvironmentInstaller:
             build_dir=build_dir,
             build_tracker=build_tracker,
             verbosity=verbosity,
-            resume_retries=options.resume_retries,
-            # This probably shouldn't be inherited, but it won't be used
-            # anyway as it only applies to editable requirements.
-            src_dir=options.src_dir,
-            # Hard-coded options (they should NOT be inherited).
+            resume_retries=resume_retries,
+            # This is irrelevant as it only applies to editable requirements.
+            src_dir="",
+            # Hard-coded options (that should NOT be inherited).
             download_dir=None,
             build_isolation=True,
             check_build_deps=False,
@@ -311,7 +310,7 @@ class InprocessBuildEnvironmentInstaller:
             lazy_wheel=False,
             legacy_resolver=False,
         )
-        self._wheel_cache = WheelCache(options.cache_dir)
+        self._wheel_cache = WheelCache(cache_dir)
 
     def install(
         self,
@@ -362,16 +361,8 @@ class InprocessBuildEnvironmentInstaller:
 
         ireqs = []
         for req in requirements:
-            ireq = install_req_from_line(
-                req,
-                # I have no idea whether inheriting this is useful, but whatever.
-                isolated=self.options.isolated_mode,
-                # Hard-coded options (they should NOT be inherited).
-                comes_from=None,
-                use_pep517=True,
-                user_supplied=True,
-                config_settings={},
-            )
+            # TODO: maybe don't enforce PEP 517 for nested builds?
+            ireq = install_req_from_line(req, use_pep517=True, user_supplied=True)
             ireqs.append(ireq)
 
         resolver = self._make_resolver()
@@ -386,7 +377,7 @@ class InprocessBuildEnvironmentInstaller:
             reqs_to_build,
             wheel_cache=self._wheel_cache,
             verify=True,
-            # Hard-coded options (they should NOT be inherited).
+            # Hard-coded options (that should NOT be inherited).
             build_options=[],
             global_options=[],
         )
@@ -397,7 +388,7 @@ class InprocessBuildEnvironmentInstaller:
         installed = install_given_reqs(
             to_install,
             prefix=prefix.path,
-            # Hard-coded options (they should NOT be inherited).
+            # Hard-coded options (that should NOT be inherited).
             global_options=[],
             root=None,
             home=None,
@@ -410,7 +401,7 @@ class InprocessBuildEnvironmentInstaller:
             progress_bar="off",
         )
 
-        env = get_environment(prefix.lib_dirs)
+        env = get_environment(list(prefix.lib_dirs))
         if summary := installed_packages_summary(installed, env):
             logger.info(summary)
 
@@ -421,19 +412,14 @@ class InprocessBuildEnvironmentInstaller:
         from pip._internal.req.constructors import install_req_from_req_string
         from pip._internal.resolution.resolvelib.resolver import Resolver
 
-        make_install_req = partial(
-            install_req_from_req_string,
-            isolated=self.options.isolated_mode,
-            use_pep517=True,
-        )
         return Resolver(
-            make_install_req=make_install_req,
+            make_install_req=partial(install_req_from_req_string, use_pep517=True),
             # Inherited state.
             preparer=self._preparer,
             finder=self.finder,
             wheel_cache=self._wheel_cache,
-            ignore_requires_python=self.options.ignore_requires_python,
-            # Hard-coded options (they should NOT be inherited).
+            ignore_requires_python=self._ignore_requires_python,
+            # Hard-coded options (that should NOT be inherited).
             use_user_site=False,
             ignore_dependencies=False,
             ignore_installed=True,
