@@ -173,9 +173,7 @@ class Distribution(BaseDistribution):
             )
             return parse_version(version)
         except TypeError:
-            raise BadMetadata(
-                self._dist.files[3], reason="invalid metadata entry `version`"
-            )
+            raise BadMetadata(self._dist, reason="invalid metadata entry `version`")
 
     @property
     def raw_version(self) -> str:
