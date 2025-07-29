@@ -10,24 +10,35 @@ import sys
 import textwrap
 from collections import OrderedDict
 from collections.abc import Iterable
+from contextlib import AbstractContextManager, nullcontext
+from functools import partial
+from io import StringIO
+from optparse import Values
 from types import TracebackType
 from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from pip._vendor.packaging.version import Version
 
 from pip import __file__ as pip_location
-from pip._internal.cli.spinners import open_spinner
+from pip._internal.cli.spinners import open_rich_spinner, open_spinner
+from pip._internal.exceptions import (
+    BuildDependencyInstallError,
+    DiagnosticPipError,
+    InstallWheelBuildError,
+)
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
-from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.logging import VERBOSE
+from pip._internal.utils.logging import VERBOSE, capture_logging
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.network.session import PipSession
+    from pip._internal.operations.build.build_tracker import BuildTracker
     from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.resolution.base import BaseResolver
 
     class ExtraEnviron(TypedDict, total=False):
         extra_environ: dict[str, str]
@@ -243,6 +254,193 @@ class SubprocessBuildEnvironmentInstaller:
                 spinner=spinner,
                 **extra_environ,
             )
+
+
+class InprocessBuildEnvironmentInstaller:
+    """
+    Build dependency installer that runs in the same pip process.
+
+    This contains a stripped down version of the install command with
+    only the logic necessary for installing build dependencies. The
+    finder, session, and build tracker are reused, but new instances
+    of everything else are created as needed.
+
+    Options are inherited from the parent install command unless
+    they don't make sense for build dependencies (in which case, they
+    are hard-coded, see comments below).
+
+    NOTE: This can only be used with the resolvelib resolver.
+    """
+
+    def __init__(
+        self,
+        finder: PackageFinder,
+        session: PipSession,
+        build_tracker: BuildTracker,
+        build_dir: str,
+        verbosity: int,
+        options: Values,
+    ) -> None:
+        from pip._internal.cache import WheelCache
+        from pip._internal.operations.prepare import RequirementPreparer
+
+        self.finder = finder
+        self.options = options
+
+        self._preparer = RequirementPreparer(
+            build_isolation_installer=self,
+            # Inherited options or state.
+            finder=finder,
+            session=session,
+            build_dir=build_dir,
+            build_tracker=build_tracker,
+            verbosity=verbosity,
+            resume_retries=options.resume_retries,
+            # This probably shouldn't be inherited, but it won't be used
+            # anyway as it only applies to editable requirements.
+            src_dir=options.src_dir,
+            # Hard-coded options (they should NOT be inherited).
+            download_dir=None,
+            build_isolation=True,
+            check_build_deps=False,
+            progress_bar="off",
+            # TODO: hash-checking should be extended to build deps, but that is
+            # deferred for later as it'd be a breaking change.
+            require_hashes=False,
+            use_user_site=False,
+            lazy_wheel=False,
+            legacy_resolver=False,
+        )
+        self._wheel_cache = WheelCache(options.cache_dir)
+
+    def install(
+        self,
+        requirements: Iterable[str],
+        prefix: _Prefix,
+        *,
+        kind: str,
+        for_req: InstallRequirement | None,
+    ) -> None:
+        """Install entrypoint. Manages output capturing and error handling."""
+        capture_ctx: AbstractContextManager[StringIO]
+        spinner: AbstractContextManager[None]
+        should_capture = not logger.isEnabledFor(VERBOSE)
+        if should_capture:
+            # Hide the logs from the installation of build dependencies.
+            # They will be shown only if an error occurs.
+            capture_ctx = capture_logging()
+            spinner = open_rich_spinner(f"Installing {kind}")
+        else:
+            # Otherwise, pass-through all logs (with a header).
+            capture_ctx = nullcontext(StringIO())
+            spinner = nullcontext()
+            logger.info("Installing %s ...", kind)
+
+        try:
+            with spinner, capture_ctx as stream:
+                self._install_impl(requirements, prefix)
+        except Exception as exc:
+            if isinstance(exc, DiagnosticPipError):
+                # Format similar to a nested subprocess error, where the
+                # causing error is shown first, followed by the build error.
+                logger.error("%s", exc, extra={"rich": True})
+                logger.info("")
+
+            raise BuildDependencyInstallError(
+                for_req,
+                requirements,
+                cause=exc,
+                log_lines=textwrap.dedent(stream.getvalue()).splitlines(),
+            )
+
+    def _install_impl(self, requirements: Iterable[str], prefix: _Prefix) -> None:
+        """Core build dependency install logic."""
+        from pip._internal.commands.install import installed_packages_summary
+        from pip._internal.req import install_given_reqs
+        from pip._internal.req.constructors import install_req_from_line
+        from pip._internal.wheel_builder import build, should_build_for_install_command
+
+        ireqs = []
+        for req in requirements:
+            ireq = install_req_from_line(
+                req,
+                # I have no idea whether inheriting this is useful, but whatever.
+                isolated=self.options.isolated_mode,
+                # Hard-coded options (they should NOT be inherited).
+                comes_from=None,
+                use_pep517=True,
+                user_supplied=True,
+                config_settings={},
+            )
+            ireqs.append(ireq)
+
+        resolver = self._make_resolver()
+        requirement_set = resolver.resolve(ireqs, check_supported_wheels=True)
+
+        reqs_to_build = [
+            r
+            for r in requirement_set.requirements_to_install
+            if should_build_for_install_command(r)
+        ]
+        _, build_failures = build(
+            reqs_to_build,
+            wheel_cache=self._wheel_cache,
+            verify=True,
+            # Hard-coded options (they should NOT be inherited).
+            build_options=[],
+            global_options=[],
+        )
+        if build_failures:
+            raise InstallWheelBuildError(build_failures)
+
+        to_install = resolver.get_installation_order(requirement_set)
+        installed = install_given_reqs(
+            to_install,
+            prefix=prefix.path,
+            # Hard-coded options (they should NOT be inherited).
+            global_options=[],
+            root=None,
+            home=None,
+            warn_script_location=False,
+            use_user_site=False,
+            # As the build environment is ephemeral, it's wasteful to
+            # pre-compile everything, especially as not every Python
+            # module will be used/compiled in most cases.
+            pycompile=False,
+            progress_bar="off",
+        )
+
+        env = get_environment(prefix.lib_dirs)
+        if summary := installed_packages_summary(installed, env):
+            logger.info(summary)
+
+    def _make_resolver(self) -> BaseResolver:
+        """Create a new resolver for one time use."""
+        # Legacy installer never used the legacy resolver so create a
+        # resolvelib resolver directly. Yuck.
+        from pip._internal.req.constructors import install_req_from_req_string
+        from pip._internal.resolution.resolvelib.resolver import Resolver
+
+        make_install_req = partial(
+            install_req_from_req_string,
+            isolated=self.options.isolated_mode,
+            use_pep517=True,
+        )
+        return Resolver(
+            make_install_req=make_install_req,
+            # Inherited state.
+            preparer=self._preparer,
+            finder=self.finder,
+            wheel_cache=self._wheel_cache,
+            ignore_requires_python=self.options.ignore_requires_python,
+            # Hard-coded options (they should NOT be inherited).
+            use_user_site=False,
+            ignore_dependencies=False,
+            ignore_installed=True,
+            force_reinstall=False,
+            upgrade_strategy="to-satisfy-only",
+            py_version_info=None,
+        )
 
 
 class BuildEnvironment:

@@ -13,7 +13,11 @@ from functools import partial
 from optparse import Values
 from typing import Any, Callable, TypeVar
 
-from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
+from pip._internal.build_env import (
+    BuildEnvironmentInstaller,
+    InprocessBuildEnvironmentInstaller,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -159,16 +163,24 @@ class RequirementCommand(IndexGroupCommand):
             "build-constraint" in options.features_enabled
         )
 
+        env_installer: BuildEnvironmentInstaller
+        if "inprocess-build-deps" in options.features_enabled:
+            env_installer = InprocessBuildEnvironmentInstaller(
+                finder, session, build_tracker, temp_build_dir_path, verbosity, options
+            )
+        else:
+            env_installer = SubprocessBuildEnvironmentInstaller(
+                finder,
+                build_constraints=build_constraints,
+                build_constraint_feature_enabled=build_constraint_feature_enabled,
+            )
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
-            build_isolation_installer=SubprocessBuildEnvironmentInstaller(
-                finder,
-                build_constraints=build_constraints,
-                build_constraint_feature_enabled=build_constraint_feature_enabled,
-            ),
+            build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
