@@ -33,8 +33,8 @@ from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:
+    from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.network.session import PipSession
     from pip._internal.operations.build.build_tracker import BuildTracker
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import BaseResolver
@@ -261,8 +261,8 @@ class InprocessBuildEnvironmentInstaller:
 
     This contains a stripped down version of the install command with
     only the logic necessary for installing build dependencies. The
-    finder, session, and build tracker are reused, but new instances
-    of everything else are created as needed.
+    finder, session, build tracker, and wheel cache are reused, but new
+    instances of everything else are created as needed.
 
     Options are inherited from the parent install command unless
     they don't make sense for build dependencies (in which case, they
@@ -271,28 +271,25 @@ class InprocessBuildEnvironmentInstaller:
 
     def __init__(
         self,
+        *,
         finder: PackageFinder,
-        session: PipSession,
         build_tracker: BuildTracker,
-        # TODO: maybe inheriting this is not the best idea?
-        build_dir: str,
-        verbosity: int,
-        resume_retries: int,
-        cache_dir: str,
-        ignore_requires_python: bool,
+        wheel_cache: WheelCache,
+        resume_retries: int = 0,
+        verbosity: int = 0,
     ) -> None:
-        from pip._internal.cache import WheelCache
         from pip._internal.operations.prepare import RequirementPreparer
 
         self.finder = finder
-        self._ignore_requires_python = ignore_requires_python
 
+        # TODO: I don't think this is right
+        build_dir = TempDirectory(kind="build-env-install", globally_managed=True)
         self._preparer = RequirementPreparer(
             build_isolation_installer=self,
             # Inherited options or state.
             finder=finder,
-            session=session,
-            build_dir=build_dir,
+            session=finder._link_collector.session,
+            build_dir=build_dir.path,
             build_tracker=build_tracker,
             verbosity=verbosity,
             resume_retries=resume_retries,
@@ -310,7 +307,7 @@ class InprocessBuildEnvironmentInstaller:
             lazy_wheel=False,
             legacy_resolver=False,
         )
-        self._wheel_cache = WheelCache(cache_dir)
+        self._wheel_cache = wheel_cache
 
     def install(
         self,
@@ -418,8 +415,8 @@ class InprocessBuildEnvironmentInstaller:
             preparer=self._preparer,
             finder=self.finder,
             wheel_cache=self._wheel_cache,
-            ignore_requires_python=self._ignore_requires_python,
             # Hard-coded options (that should NOT be inherited).
+            ignore_requires_python=False,
             use_user_site=False,
             ignore_dependencies=False,
             ignore_installed=True,

@@ -167,13 +167,10 @@ class RequirementCommand(IndexGroupCommand):
         if "inprocess-build-deps" in options.features_enabled:
             env_installer = InprocessBuildEnvironmentInstaller(
                 finder=finder,
-                session=session,
                 build_tracker=build_tracker,
-                build_dir=temp_build_dir_path,
                 verbosity=verbosity,
                 resume_retries=options.resume_retries,
-                cache_dir=options.cache_dir,
-                ignore_requires_python=options.ignore_requires_python,
+                wheel_cache=WheelCache(options.cache_dir),
             )
         else:
             env_installer = SubprocessBuildEnvironmentInstaller(
