@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import itertools
 import logging
 import os
 import posixpath
@@ -19,7 +18,6 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
-    pairwise,
     redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
@@ -113,12 +111,12 @@ def supported_hashes(hashes: dict[str, str] | None) -> dict[str, str] | None:
     return hashes
 
 
-def _clean_url_path_part(part: str) -> str:
+def _clean_url_path_part(part: str, safe: str = "/") -> str:
     """
     Clean a "part" of a URL path (i.e. after splitting on "@" characters).
     """
     # We unquote prior to quoting to make sure nothing is double quoted.
-    return urllib.parse.quote(urllib.parse.unquote(part))
+    return urllib.parse.quote(urllib.parse.unquote(part), safe)
 
 
 def _clean_file_url_path(part: str) -> str:
@@ -140,6 +138,7 @@ def _clean_file_url_path(part: str) -> str:
 
 # percent-encoded:                   /
 _reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
+_escaped_chars_re = re.compile("---PIP-(%40|/)-PIP---")
 
 
 def _clean_url_path(path: str, is_local_path: bool) -> str:
@@ -151,17 +150,13 @@ def _clean_url_path(path: str, is_local_path: bool) -> str:
     else:
         clean_func = _clean_url_path_part
 
-    # Split on the reserved characters prior to cleaning so that
+    # Tag the reserved characters prior to cleaning so that
     # revision strings in VCS URLs are properly preserved.
-    parts = _reserved_chars_re.split(path)
-
-    cleaned_parts = []
-    for to_clean, reserved in pairwise(itertools.chain(parts, [""])):
-        cleaned_parts.append(clean_func(to_clean))
-        # Normalize %xx escapes (e.g. %2f -> %2F)
-        cleaned_parts.append(reserved.upper())
-
-    return "".join(cleaned_parts)
+    path = _reserved_chars_re.sub(r"---PIP-\1-PIP---", path)
+    path = clean_func(path)
+    # Untag and restore the reserved characters.
+    path = _escaped_chars_re.sub(lambda m: _clean_url_path_part(m[1], safe="@"), path)
+    return path
 
 
 def _ensure_quoted_url(url: str) -> str:
