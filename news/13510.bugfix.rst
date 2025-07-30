@@ -1,1 +1,0 @@
-Fix normalization of local file URLs on Windows in newer Python versions.

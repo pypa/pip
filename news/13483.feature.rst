@@ -1,1 +1,0 @@
-Show time taken instead of ``eta 0:00:00`` at download completion.
