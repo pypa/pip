@@ -1,1 +1,0 @@
-Requires-Python error message displays version clauses in numerical order.

@@ -1,2 +1,0 @@
-Speed up small CLI tools by removing ``import re`` from the console
-script executable template.
