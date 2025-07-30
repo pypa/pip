@@ -333,14 +333,7 @@ def test_check_unsupported(
     script.scratch_path.joinpath("base-0.1.0-py2.py3-none-any.whl").write_bytes(
         create_really_basic_wheel("base", "0.1.0")
     )
-    script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        script.scratch_path,
-        "base==0.1.0",
-    )
+    script.pip_install_local("base==0.1.0", find_links=script.scratch_path)
     with open(
         script.site_packages_path.joinpath("base-0.1.0.dist-info/WHEEL"), "a"
     ) as f:
