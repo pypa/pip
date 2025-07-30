@@ -1,1 +1,1 @@
-Fix normalization of local links with non-``file`` schemes.
+Fix normalization of local URLs with non-``file`` schemes.
