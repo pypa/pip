@@ -70,10 +70,14 @@ def capture_logging() -> Generator[StringIO, None, None]:
             # restored on context exit.
             handlers[handler] = handler.console
 
+    fake_stream = StreamWrapper.from_stream(sys.stdout)
+    if not handlers:
+        yield fake_stream
+        return
+
     # HACK: grab no_color attribute from a random handler console since
     # it's a global option anyway.
     no_color = next(iter(handlers.values())).no_color
-    fake_stream = StreamWrapper.from_stream(sys.stdout)
     fake_console = PipConsole(file=fake_stream, no_color=no_color, soft_wrap=True)
     try:
         for handler in handlers:

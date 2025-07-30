@@ -2,15 +2,22 @@ from __future__ import annotations
 
 import os
 import sys
+from contextlib import contextmanager
 from textwrap import dedent
+from typing import Generator, Literal
 
 import pytest
 
 from pip._internal.build_env import (
     BuildEnvironment,
+    BuildEnvironmentInstaller,
+    InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
     _get_system_sitepackages,
 )
+from pip._internal.cache import WheelCache
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.operations.build.build_tracker import get_build_tracker
 
 from tests.lib import (
     PipTestEnvironment,
@@ -19,15 +26,36 @@ from tests.lib import (
     make_test_finder,
 )
 
+InstallMethod = Literal["subprocess", "inprocess"]
+with_both_installers = pytest.mark.parametrize(
+    "install_method", ["subprocess", "inprocess"]
+)
+
 
 def indent(text: str, prefix: str) -> str:
     return "\n".join((prefix if line else "") + line for line in text.split("\n"))
+
+
+@contextmanager
+def make_test_build_env_installer(
+    method: InstallMethod, finder: PackageFinder
+) -> Generator[BuildEnvironmentInstaller]:
+    if method == "subprocess":
+        yield SubprocessBuildEnvironmentInstaller(finder)
+    else:
+        with get_build_tracker() as tracker:
+            yield InprocessBuildEnvironmentInstaller(
+                finder=finder,
+                build_tracker=tracker,
+                wheel_cache=WheelCache(None),
+            )
 
 
 def run_with_build_env(
     script: PipTestEnvironment,
     setup_script_contents: str,
     test_script_contents: str | None = None,
+    install_method: InstallMethod = "subprocess",
 ) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
     scratch_path = str(script.scratch_path)
@@ -39,14 +67,17 @@ def run_with_build_env(
 
             from pip._internal.build_env import (
                 BuildEnvironment,
+                InprocessBuildEnvironmentInstaller,
                 SubprocessBuildEnvironmentInstaller,
             )
+            from pip._internal.cache import WheelCache
             from pip._internal.index.collector import LinkCollector
             from pip._internal.index.package_finder import PackageFinder
             from pip._internal.models.search_scope import SearchScope
             from pip._internal.models.selection_prefs import (
                 SelectionPreferences
             )
+            from pip._internal.operations.build.build_tracker import get_build_tracker
             from pip._internal.network.session import PipSession
             from pip._internal.utils.temp_dir import global_tempdir_manager
 
@@ -62,10 +93,16 @@ def run_with_build_env(
                 selection_prefs=selection_prefs,
             )
 
-            with global_tempdir_manager():
-                build_env = BuildEnvironment(
-                    SubprocessBuildEnvironmentInstaller(finder)
-                )
+            with global_tempdir_manager(), get_build_tracker() as tracker:
+                if "{install_method}" == "subprocess":
+                    installer = SubprocessBuildEnvironmentInstaller(finder)
+                else:
+                    installer = InprocessBuildEnvironmentInstaller(
+                        finder=finder,
+                        build_tracker=tracker,
+                        wheel_cache=WheelCache(None),
+                    )
+                build_env = BuildEnvironment(installer)
             """
         )
         + indent(dedent(setup_script_contents), "    ")
@@ -88,28 +125,40 @@ def run_with_build_env(
     return script.run(*args)
 
 
-def test_build_env_allow_empty_requirements_install() -> None:
+@with_both_installers
+def test_build_env_allow_empty_requirements_install(
+    install_method: InstallMethod,
+) -> None:
     finder = make_test_finder()
-    build_env = BuildEnvironment(SubprocessBuildEnvironmentInstaller(finder))
-    for prefix in ("normal", "overlay"):
-        build_env.install_requirements([], prefix, kind="Installing build dependencies")
+    with make_test_build_env_installer(install_method, finder) as installer:
+        build_env = BuildEnvironment(installer)
+        for prefix in ("normal", "overlay"):
+            build_env.install_requirements(
+                [], prefix, kind="Installing build dependencies"
+            )
 
 
-def test_build_env_allow_only_one_install(script: PipTestEnvironment) -> None:
+@with_both_installers
+def test_build_env_allow_only_one_install(
+    script: PipTestEnvironment, install_method: InstallMethod
+) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
-    build_env = BuildEnvironment(SubprocessBuildEnvironmentInstaller(finder))
-    for prefix in ("normal", "overlay"):
-        build_env.install_requirements(
-            ["foo"], prefix, kind=f"installing foo in {prefix}"
-        )
-        with pytest.raises(AssertionError):
+    with make_test_build_env_installer(install_method, finder) as installer:
+        build_env = BuildEnvironment(installer)
+        for prefix in ("normal", "overlay"):
             build_env.install_requirements(
-                ["bar"], prefix, kind=f"installing bar in {prefix}"
+                ["foo"], prefix, kind=f"installing foo in {prefix}"
             )
-        with pytest.raises(AssertionError):
-            build_env.install_requirements([], prefix, kind=f"installing in {prefix}")
+            with pytest.raises(AssertionError):
+                build_env.install_requirements(
+                    ["bar"], prefix, kind=f"installing bar in {prefix}"
+                )
+            with pytest.raises(AssertionError):
+                build_env.install_requirements(
+                    [], prefix, kind=f"installing in {prefix}"
+                )
 
 
 def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
@@ -191,7 +240,10 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
     )
 
 
-def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> None:
+@with_both_installers
+def test_build_env_overlay_prefix_has_priority(
+    script: PipTestEnvironment, install_method: InstallMethod
+) -> None:
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "4.3")
     result = run_with_build_env(
@@ -205,6 +257,7 @@ def test_build_env_overlay_prefix_has_priority(script: PipTestEnvironment) -> No
         """
         print(__import__('pkg').__version__)
         """,
+        install_method=install_method,
     )
     assert result.stdout.strip() == "2.0", str(result)
 
@@ -234,8 +287,11 @@ else:
     """
 
 
+@with_both_installers
 @pytest.mark.usefixtures("enable_user_site")
-def test_build_env_isolation(script: PipTestEnvironment) -> None:
+def test_build_env_isolation(
+    script: PipTestEnvironment, install_method: InstallMethod
+) -> None:
     # Create dummy `pkg` wheel.
     pkg_whl = create_basic_wheel_for_package(script, "pkg", "1.0")
 
@@ -281,4 +337,5 @@ def test_build_env_isolation(script: PipTestEnvironment) -> None:
             assert system_path not in normalized_path, \
             f"{{system_path}} found in {{normalized_path}}"
         """,
+        install_method=install_method,
     )

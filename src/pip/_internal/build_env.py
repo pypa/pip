@@ -281,6 +281,7 @@ class InprocessBuildEnvironmentInstaller:
         from pip._internal.operations.prepare import RequirementPreparer
 
         self.finder = finder
+        self._level = 0
 
         # TODO: I don't think this is right
         build_dir = TempDirectory(kind="build-env-install", globally_managed=True)
@@ -320,7 +321,7 @@ class InprocessBuildEnvironmentInstaller:
         """Install entrypoint. Manages output capturing and error handling."""
         capture_ctx: AbstractContextManager[StringIO]
         spinner: AbstractContextManager[None]
-        should_capture = not logger.isEnabledFor(VERBOSE)
+        should_capture = not logger.isEnabledFor(VERBOSE) and self._level == 0
         if should_capture:
             # Hide the logs from the installation of build dependencies.
             # They will be shown only if an error occurs.
@@ -333,21 +334,27 @@ class InprocessBuildEnvironmentInstaller:
             logger.info("Installing %s ...", kind)
 
         try:
+            self._level += 1
             with spinner, capture_ctx as stream:
                 self._install_impl(requirements, prefix)
         except Exception as exc:
+            log_lines = textwrap.dedent(stream.getvalue()).splitlines()
             if isinstance(exc, DiagnosticPipError):
                 # Format similar to a nested subprocess error, where the
                 # causing error is shown first, followed by the build error.
+                for l in log_lines:
+                    logger.info(l)
+                log_lines = []
                 logger.error("%s", exc, extra={"rich": True})
                 logger.info("")
+            elif not should_capture:
+                logger.error("%s", exc)
 
             raise BuildDependencyInstallError(
-                for_req,
-                requirements,
-                cause=exc,
-                log_lines=textwrap.dedent(stream.getvalue()).splitlines(),
+                for_req, requirements, cause=exc, log_lines=log_lines
             )
+        finally:
+            self._level -= 1
 
     def _install_impl(self, requirements: Iterable[str], prefix: _Prefix) -> None:
         """Core build dependency install logic."""
@@ -378,6 +385,7 @@ class InprocessBuildEnvironmentInstaller:
             build_options=[],
             global_options=[],
         )
+        # build_failures = ireqs
         if build_failures:
             raise InstallWheelBuildError(build_failures)
 

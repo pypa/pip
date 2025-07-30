@@ -283,6 +283,8 @@ class RequirementCommand(IndexGroupCommand):
                     requirements.append(req_to_add)
 
         for req in args:
+            if not req.strip():
+                continue
             req_to_add = install_req_from_line(
                 req,
                 comes_from=None,

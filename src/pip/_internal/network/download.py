@@ -152,6 +152,8 @@ class _FileDownload:
         return bool(self.size is not None and self.bytes_received < self.size)
 
     def write_chunk(self, data: bytes) -> None:
+        # import random
+        # if random.random() > 0.5:
         self.bytes_received += len(data)
         self.output_file.write(data)
 
