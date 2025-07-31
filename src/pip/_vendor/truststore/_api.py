@@ -67,7 +67,7 @@ def extract_from_ssl() -> None:
     try:
         import pip._vendor.urllib3.util.ssl_ as urllib3_ssl
 
-        urllib3_ssl.SSLContext = _original_SSLContext  # type: ignore[assignment]
+        urllib3_ssl.SSLContext = _original_SSLContext
     except ImportError:
         pass
 
@@ -300,7 +300,7 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
 if sys.version_info >= (3, 13):
 
     def _get_unverified_chain_bytes(sslobj: ssl.SSLObject) -> list[bytes]:
-        unverified_chain = sslobj.get_unverified_chain() or ()  # type: ignore[attr-defined]
+        unverified_chain = sslobj.get_unverified_chain() or ()
         return [
             cert if isinstance(cert, bytes) else cert.public_bytes(_ssl.ENCODING_DER)
             for cert in unverified_chain
