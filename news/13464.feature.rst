@@ -1,1 +1,0 @@
-Automatic download resumption and retrying is enabled by default.
