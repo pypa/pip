@@ -28,10 +28,10 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
 from ._compat import (
+    BadMetadata,
     BasePath,
     get_dist_canonical_name,
     parse_name_and_version_from_info_directory,
-    BadMetadata,
 )
 
 
