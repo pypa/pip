@@ -68,8 +68,6 @@ class _DistributionFinder:
             info_location = get_info_location(dist)
             try:
                 name = get_dist_canonical_name(dist)
-                distribution = Distribution(dist, info_location, None)
-                getattr(distribution, "version")
             except BadMetadata as e:
                 logger.warning("Skipping %s due to %s", info_location, e.reason)
                 continue
