@@ -136,10 +136,9 @@ class UpgradePrompt:
     new: str
 
     def __rich__(self) -> Group:
-        if WINDOWS:
-            pip_cmd = f"{get_best_invocation_for_this_python()} -m pip"
-        else:
-            pip_cmd = get_best_invocation_for_this_pip()
+        # Use consistent module-based invocation across all platforms
+        # This is more reliable than direct pip commands
+        pip_cmd = f"{get_best_invocation_for_this_python()} -m pip"
 
         notice = "[bold][[reset][blue]notice[reset][bold]][reset]"
         return Group(
