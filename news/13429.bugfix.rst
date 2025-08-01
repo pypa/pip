@@ -1,0 +1,1 @@
+Use consistent ``python -m pip`` syntax across all platforms for upgrade recommendations instead of platform-specific commands.
