@@ -5,7 +5,12 @@ import sys
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Union, cast
 
-from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.requirements import (
+    InvalidRequirement,
+)
+from pip._vendor.packaging.requirements import (
+    Requirement as PackagingRequirement,
+)
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 
@@ -161,7 +166,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._version = version
         self._hash: int | None = None
         # Cache for parsed dependencies to avoid multiple iterations
-        self._cached_dependencies: list[Requirement] | None = None
+        self._cached_dependencies: list[PackagingRequirement] | None = None
         self._cached_extras: list[NormalizedName] | None = None
         self.dist = self._prepare()
 
@@ -210,12 +215,14 @@ class _InstallRequirementBackedCandidate(Candidate):
             f"(from {self._link.file_path if self._link.is_file else self._link})"
         )
 
-    def _get_cached_dependencies(self) -> list[Requirement]:
+    def _get_cached_dependencies(self) -> list[PackagingRequirement]:
         """Get cached dependencies, parsing them only once."""
         if self._cached_dependencies is None:
             if self._cached_extras is None:
                 self._cached_extras = list(self.dist.iter_provided_extras())
-            self._cached_dependencies = list(self.dist.iter_dependencies(self._cached_extras))
+            self._cached_dependencies = list(
+                self.dist.iter_dependencies(self._cached_extras)
+            )
         return self._cached_dependencies
 
     def _get_cached_extras(self) -> list[NormalizedName]:
@@ -249,7 +256,9 @@ class _InstallRequirementBackedCandidate(Candidate):
             if self._cached_extras is None:
                 self._cached_extras = list(dist.iter_provided_extras())
             if self._cached_dependencies is None:
-                self._cached_dependencies = list(dist.iter_dependencies(self._cached_extras))
+                self._cached_dependencies = list(
+                    dist.iter_dependencies(self._cached_extras)
+                )
         except InvalidRequirement as e:
             raise MetadataInvalid(self._ireq, str(e))
 
