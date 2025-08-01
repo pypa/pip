@@ -1,2 +1,2 @@
-Handle malformed version metadata entries and ignore packages
-with invalid ``Version`` instead of crashing.
+Handle malformed ``Version`` metadata entries and
+show a sensible error message instead of crashing.
