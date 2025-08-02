@@ -8,6 +8,9 @@ def test_self_update_editable(script: Any, pip_src: Any) -> None:
     # mode, that pip can safely update itself to an editable install.
     # See https://github.com/pypa/pip/issues/12666 for details.
 
+    # Install flit-core (build backend) since we use --no-build-isolation
+    script.pip("install", "flit-core")
+
     # Step 1. Install pip as non-editable. This is expected to succeed as
     # the existing pip in the environment is installed in editable mode, so
     # it only places a .pth file in the environment.
