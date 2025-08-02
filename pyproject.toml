@@ -1,6 +1,5 @@
 [project]
 dynamic = ["version"]
-
 name = "pip"
 description = "The PyPA recommended tool for installing Python packages."
 readme = "README.rst"
@@ -46,12 +45,13 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+requires = ["flit-core >=3.11,<4"]
+build-backend = "flit_core.buildapi"
 
 [dependency-groups]
 test = [
     "cryptography",
+    "flit-core >= 3.11, < 4",
     "freezegun",
     "installer",
     # pytest-subket requires 7.0+
@@ -73,37 +73,35 @@ test = [
 ]
 
 test-common-wheels = [
+    "flit-core >= 3.11, < 4",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
     "setuptools >= 40.8.0, != 60.6.0, <80",
     "wheel",
+    "flit-core",
     # As required by pytest-cov.
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-include-package-data = false
-
-[tool.setuptools.dynamic]
-version = {attr = "pip.__version__"}
-
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["contrib", "docs", "tests*", "tasks"]
-
-[tool.setuptools.package-data]
-"pip" = ["py.typed"]
-"pip._vendor" = ["vendor.txt"]
-"pip._vendor.certifi" = ["*.pem"]
-"pip._vendor.distlib" = [
-    "t32.exe",
-    "t64.exe",
-    "t64-arm.exe",
-    "w32.exe",
-    "w64.exe",
-    "w64-arm.exe",
+[tool.flit.sdist]
+include = [
+    "NEWS.rst",
+    "SECURITY.md",
+    "build-project/.python-version",
+    "build-project/build-project.py",
+    "build-project/build-requirements.in",
+    "build-project/build-requirements.txt",
+    "docs/requirements.txt",
+    "docs/**/*.css",
+    "docs/**/*.dot",
+    "docs/**/*.md",
+    "docs/**/*.png",
+    "docs/**/*.py",
+    "docs/**/*.rst",
+]
+exclude = [
+    "src/pip/_vendor/**/*.pyi",
 ]
 
 ######################################################################################
@@ -361,4 +359,16 @@ source0 = [
 exclude_also = [
     # This excludes typing-specific code, which will be validated by mypy anyway.
     "if TYPE_CHECKING",
+]
+
+[tool.check-sdist]
+git-only = [
+  "tests/**",
+  "tools/**",
+  "news/.gitignore",
+  ".gitattributes",
+  ".gitignore",
+  ".git-blame-ignore-revs",
+  ".mailmap",
+  ".readthedocs-custom-redirects.yml"
 ]
