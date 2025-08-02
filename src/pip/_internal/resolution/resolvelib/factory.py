@@ -281,9 +281,13 @@ class Factory:
             try:
                 # Don't use the installed distribution if its version
                 # does not fit the current dependency graph.
-                if not specifier.contains(installed_dist.version, prereleases=True):
+                version_check = specifier.contains(installed_dist.version, prereleases=True)
+                print(f"DEBUG: specifier {specifier} contains {installed_dist.version} = {version_check}")
+                if not version_check:
+                    print(f"DEBUG: Returning None due to version specifier mismatch")
                     return None
             except InvalidVersion as e:
+                print(f"DEBUG: InvalidVersion error: {e}")
                 raise InvalidInstalledPackage(dist=installed_dist, invalid_exc=e)
 
             candidate = self._make_candidate_from_dist(
@@ -291,9 +295,12 @@ class Factory:
                 extras=extras,
                 template=template,
             )
+            print(f"DEBUG: Created candidate = {candidate}")
             # The candidate is a known incompatibility. Don't use it.
             if id(candidate) in incompatible_ids:
+                print(f"DEBUG: Returning None due to incompatible candidate")
                 return None
+            print(f"DEBUG: Returning candidate = {candidate}")
             return candidate
 
         def iter_index_candidate_infos() -> Iterator[IndexCandidateInfo]:
