@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 
 import pytest
@@ -362,6 +363,139 @@ def test_filter_unallowed_hashes__log_message_with_no_match(
         "(0 matches, 1 no digest): discarding no candidates"
     )
     check_caplog(caplog, "DEBUG", expected_message)
+
+
+class TestLinkEvaluatorExcludeNewerThan:
+    """Test the exclude_newer_than functionality in LinkEvaluator."""
+
+    def make_test_link_evaluator(
+        self, exclude_newer_than: datetime.datetime | None = None
+    ) -> LinkEvaluator:
+        """Create a LinkEvaluator for testing."""
+        target_python = TargetPython()
+        return LinkEvaluator(
+            project_name="myproject",
+            canonical_name="myproject",
+            formats=frozenset(["source", "binary"]),
+            target_python=target_python,
+            allow_yanked=True,
+            exclude_newer_than=exclude_newer_than,
+        )
+
+    @pytest.mark.parametrize(
+        "upload_time, exclude_newer_than, expected_result",
+        [
+            # Test case: upload time is before the cutoff (should be accepted)
+            (
+                datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (LinkType.candidate, "1.0"),
+            ),
+            # Test case: upload time is after the cutoff (should be rejected)
+            (
+                datetime.datetime(2023, 8, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (
+                    LinkType.upload_too_late,
+                    "Upload time 2023-08-01 12:00:00+00:00 after "
+                    "2023-06-01 00:00:00+00:00",
+                ),
+            ),
+            # Test case: upload time equals the cutoff (should be accepted)
+            (
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (LinkType.candidate, "1.0"),
+            ),
+            # Test case: no exclude_newer_than set (should be accepted)
+            (
+                datetime.datetime(2023, 8, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                None,
+                (LinkType.candidate, "1.0"),
+            ),
+        ],
+    )
+    def test_evaluate_link_exclude_newer_than(
+        self,
+        upload_time: datetime.datetime,
+        exclude_newer_than: datetime.datetime | None,
+        expected_result: tuple[LinkType, str],
+    ) -> None:
+        """Test that links are properly filtered by upload time."""
+        evaluator = self.make_test_link_evaluator(exclude_newer_than)
+        link = Link(
+            "https://example.com/myproject-1.0.tar.gz",
+            upload_time=upload_time,
+        )
+
+        actual = evaluator.evaluate_link(link)
+        assert actual == expected_result
+
+    def test_evaluate_link_no_upload_time(self) -> None:
+        """Test that links with no upload time are not filtered."""
+        exclude_newer_than = datetime.datetime(
+            2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
+        )
+        evaluator = self.make_test_link_evaluator(exclude_newer_than)
+
+        # Link with no upload_time should not be filtered
+        link = Link("https://example.com/myproject-1.0.tar.gz")
+        actual = evaluator.evaluate_link(link)
+
+        # Should be accepted as candidate (assuming no other issues)
+        assert actual[0] == LinkType.candidate
+        assert actual[1] == "1.0"
+
+    def test_evaluate_link_timezone_handling(self) -> None:
+        """Test that timezone-aware datetimes are handled correctly."""
+        # Set cutoff time in UTC
+        exclude_newer_than = datetime.datetime(
+            2023, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
+        )
+        evaluator = self.make_test_link_evaluator(exclude_newer_than)
+
+        # Test upload time in different timezone (earlier in UTC)
+        upload_time_est = datetime.datetime(
+            *(2023, 6, 1, 10, 0, 0),
+            tzinfo=datetime.timezone(datetime.timedelta(hours=-5)),  # EST
+        )
+        link = Link(
+            "https://example.com/myproject-1.0.tar.gz",
+            upload_time=upload_time_est,
+        )
+
+        actual = evaluator.evaluate_link(link)
+        # 10:00 EST = 15:00 UTC, which is after 12:00 UTC cutoff
+        assert actual[0] == LinkType.upload_too_late
+
+    @pytest.mark.parametrize(
+        "exclude_newer_than",
+        [
+            datetime.datetime(2023, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+            datetime.datetime(
+                *(2023, 6, 1, 12, 0, 0),
+                tzinfo=datetime.timezone(datetime.timedelta(hours=2)),
+            ),
+        ],
+    )
+    def test_exclude_newer_than_different_timezone_formats(
+        self, exclude_newer_than: datetime.datetime
+    ) -> None:
+        """Test that different timezone formats for exclude_newer_than work."""
+        evaluator = self.make_test_link_evaluator(exclude_newer_than)
+
+        # Create a link with upload time clearly after the cutoff
+        upload_time = datetime.datetime(
+            2023, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc
+        )
+        link = Link(
+            "https://example.com/myproject-1.0.tar.gz",
+            upload_time=upload_time,
+        )
+
+        actual = evaluator.evaluate_link(link)
+        # Should be rejected regardless of timezone format
+        assert actual[0] == LinkType.upload_too_late
 
 
 class TestCandidateEvaluator:
