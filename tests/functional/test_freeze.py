@@ -99,38 +99,33 @@ def test_freeze_with_pip(script: PipTestEnvironment) -> None:
 
 def test_freeze_with_setuptools(script: PipTestEnvironment) -> None:
     """
-    Test that pip shows setuptools only when --all is used
-    or _should_suppress_build_backends() returns false
+    Test that pip shows setuptools only when --all is used on Python < 3.12,
+    otherwise it should be shown in default freeze output.
     """
 
     result = script.pip("freeze", "--all")
     assert "setuptools==" in result.stdout
 
-    (script.site_packages_path / "mock.pth").write_text("import mock\n")
-
-    (script.site_packages_path / "mock.py").write_text(
-        textwrap.dedent(
-            """\
-                import pip._internal.commands.freeze as freeze
-                freeze._should_suppress_build_backends = lambda: False
-            """
-        )
-    )
-
+    # Test the default behavior (without --all)
     result = script.pip("freeze")
-    assert "setuptools==" in result.stdout
 
-    (script.site_packages_path / "mock.py").write_text(
-        textwrap.dedent(
-            """\
-                import pip._internal.commands.freeze as freeze
-                freeze._should_suppress_build_backends = lambda: True
-            """
+    should_suppress = sys.version_info < (3, 12)
+    if should_suppress:
+        # setuptools should be hidden in default freeze output
+        assert "setuptools==" not in result.stdout, (
+            f"setuptools should be suppressed in Python {sys.version_info[:2]} "
+            f"but was found in freeze output: {result.stdout}"
         )
-    )
+    else:
+        # setuptools should be shown in default freeze output
+        assert "setuptools==" in result.stdout, (
+            f"setuptools should be shown in Python {sys.version_info[:2]} "
+            f"but was not found in freeze output: {result.stdout}"
+        )
 
-    result = script.pip("freeze")
-    assert "setuptools==" not in result.stdout
+    # --all should always show setuptools regardless of version
+    result_all = script.pip("freeze", "--all")
+    assert "setuptools==" in result_all.stdout
 
 
 def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> None:
