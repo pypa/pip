@@ -2582,8 +2582,16 @@ def test_install_existing_memory_distribution(script: PipTestEnvironment) -> Non
         sys.meta_path.append(CustomFinder())
         """
     )
-    with open(script.site_packages_path / "sitecustomize.py", "w") as sitecustomize:
-        sitecustomize.write(sitecustomize_text)
+    # Create a custom module and add to site-packages
+    custom_module_path = script.site_packages_path / "setup_custom_finder.py"
+    with open(custom_module_path, "w") as f:
+        f.write(sitecustomize_text)
+    
+    # Create a .pth file that imports our module
+    pth_content = "import setup_custom_finder"
+    pth_file = script.site_packages_path / "setup_custom_finder.pth"
+    with open(pth_file, "w") as f:
+        f.write(pth_content)
 
     result = script.pip("install", "example")
 

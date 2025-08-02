@@ -76,6 +76,28 @@ class _DistributionFinder:
             self._found_names.add(name)
             yield dist, info_location
 
+    def find_meta_path_distributions(self) -> Iterator[FoundResult]:
+        """Find distributions from sys.meta_path finders (e.g., in-memory distributions)."""
+        try:
+            # Get all distributions without specifying a path, which includes
+            # distributions from sys.meta_path finders
+            for dist in importlib.metadata.distributions():
+                info_location = get_info_location(dist)
+                try:
+                    name = get_dist_canonical_name(dist)
+                except BadMetadata as e:
+                    logger.warning("Skipping %s due to %s", info_location, e.reason)
+                    continue
+                # Only yield if we haven't seen this name before
+                if name in self._found_names:
+                    continue
+                self._found_names.add(name)
+                yield dist, info_location
+        except Exception:
+            # If there's any issue with finding meta_path distributions,
+            # don't break the entire discovery process - backwards compatibility
+            pass
+
     def find(self, location: str) -> Iterator[BaseDistribution]:
         """Find distributions in a location.
 
@@ -132,6 +154,19 @@ class Environment(BaseEnvironment):
         for location in self._paths:
             yield from finder.find(location)
             yield from finder.find_legacy_editables(location)
+        
+        # Also check for distributions from sys.meta_path finders (e.g., in-memory distributions)
+        # This is backwards compatible - if no custom finders exist, this does nothing
+        yield from self._iter_meta_path_distributions(finder)
+
+    def _iter_meta_path_distributions(self, finder: _DistributionFinder) -> None:
+        """Yield distributions from sys.meta_path finders (e.g., in-memory distributions)."""
+        for dist, info_location in finder.find_meta_path_distributions():
+            if info_location is None:
+                installed_location: BasePath | None = None
+            else:
+                installed_location = info_location.parent
+            yield Distribution(dist, info_location, installed_location)
 
     def get_distribution(self, name: str) -> BaseDistribution | None:
         canonical_name = canonicalize_name(name)
