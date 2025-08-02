@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import functools
 import itertools
@@ -111,6 +112,7 @@ class LinkType(enum.Enum):
     format_invalid = enum.auto()
     platform_mismatch = enum.auto()
     requires_python_mismatch = enum.auto()
+    upload_too_late = enum.auto()
 
 
 class LinkEvaluator:
@@ -132,6 +134,7 @@ class LinkEvaluator:
         target_python: TargetPython,
         allow_yanked: bool,
         ignore_requires_python: bool | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -149,6 +152,9 @@ class LinkEvaluator:
         :param ignore_requires_python: Whether to ignore incompatible
             PEP 503 "data-requires-python" values in HTML links. Defaults
             to False.
+        :param exclude_newer_than: If set, only allow links prior to the given date.
+            This should be a timezone-aware datetime. If a timezone-naive datetime
+            is provided to the command line option, UTC is assumed.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -158,6 +164,7 @@ class LinkEvaluator:
         self._ignore_requires_python = ignore_requires_python
         self._formats = formats
         self._target_python = target_python
+        self._exclude_newer_than = exclude_newer_than
 
         self.project_name = project_name
 
@@ -175,6 +182,18 @@ class LinkEvaluator:
         if link.is_yanked and not self._allow_yanked:
             reason = link.yanked_reason or "<none given>"
             return (LinkType.yanked, f"yanked for reason: {reason}")
+
+        if link.upload_time is not None and self._exclude_newer_than is not None:
+            upload_time = link.upload_time
+            assert upload_time.tzinfo is not None
+            exclude_cutoff = self._exclude_newer_than
+            assert exclude_cutoff.tzinfo is not None
+
+            if upload_time > exclude_cutoff:
+                reason = (
+                    f"Upload time {link.upload_time} after {self._exclude_newer_than}"
+                )
+                return (LinkType.upload_too_late, reason)
 
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -593,6 +612,7 @@ class PackageFinder:
         format_control: FormatControl | None = None,
         candidate_prefs: CandidatePreferences | None = None,
         ignore_requires_python: bool | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -614,6 +634,7 @@ class PackageFinder:
         self._ignore_requires_python = ignore_requires_python
         self._link_collector = link_collector
         self._target_python = target_python
+        self._exclude_newer_than = exclude_newer_than
 
         self.format_control = format_control
 
@@ -637,6 +658,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: TargetPython | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> PackageFinder:
         """Create a PackageFinder.
 
@@ -645,6 +667,7 @@ class PackageFinder:
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
+        :param exclude_newer_than: If set, only find links prior to the given date.
         """
         if target_python is None:
             target_python = TargetPython()
@@ -661,6 +684,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            exclude_newer_than=exclude_newer_than,
         )
 
     @property
@@ -739,6 +763,7 @@ class PackageFinder:
             target_python=self._target_python,
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
+            exclude_newer_than=self._exclude_newer_than,
         )
 
     def _sort_links(self, links: Iterable[Link]) -> list[Link]:
