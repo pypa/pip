@@ -5,6 +5,8 @@ need PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+from __future__ import annotations
+
 import datetime
 import logging
 from functools import partial

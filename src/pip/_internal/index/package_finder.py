@@ -1,4 +1,5 @@
 """Routines related to PyPI, indexes"""
+
 from __future__ import annotations
 
 import datetime
@@ -132,8 +133,8 @@ class LinkEvaluator:
         formats: frozenset[str],
         target_python: TargetPython,
         allow_yanked: bool,
-        ignore_requires_python: Optional[bool] = None,
-        exclude_newer_than: Optional[datetime.datetime] = None,
+        ignore_requires_python: bool | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -152,6 +153,8 @@ class LinkEvaluator:
             PEP 503 "data-requires-python" values in HTML links. Defaults
             to False.
         :param exclude_newer_than: If set, only allow links prior to the given date.
+            This should be a timezone-aware datetime. If a timezone-naive datetime
+            is provided to the command line option, UTC is assumed.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -181,8 +184,15 @@ class LinkEvaluator:
             return (LinkType.yanked, f"yanked for reason: {reason}")
 
         if link.upload_time is not None and self._exclude_newer_than is not None:
-            if link.upload_time > self._exclude_newer_than:
-                reason = f"Upload time {link.upload_time} after {self._exclude_newer_than}"
+            upload_time = link.upload_time
+            assert upload_time.tzinfo is not None
+            exclude_cutoff = self._exclude_newer_than
+            assert exclude_cutoff.tzinfo is not None
+
+            if upload_time > exclude_cutoff:
+                reason = (
+                    f"Upload time {link.upload_time} after {self._exclude_newer_than}"
+                )
                 return (LinkType.upload_too_late, reason)
 
         if link.egg_fragment:
@@ -599,10 +609,10 @@ class PackageFinder:
         link_collector: LinkCollector,
         target_python: TargetPython,
         allow_yanked: bool,
-        format_control: Optional[FormatControl] = None,
-        candidate_prefs: Optional[CandidatePreferences] = None,
-        ignore_requires_python: Optional[bool] = None,
-        exclude_newer_than: Optional[datetime.datetime] = None,
+        format_control: FormatControl | None = None,
+        candidate_prefs: CandidatePreferences | None = None,
+        ignore_requires_python: bool | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -647,9 +657,9 @@ class PackageFinder:
         cls,
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
-        target_python: Optional[TargetPython] = None,
-        exclude_newer_than: Optional[datetime.datetime] = None,
-    ) -> "PackageFinder":
+        target_python: TargetPython | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
+    ) -> PackageFinder:
         """Create a PackageFinder.
 
         :param selection_prefs: The candidate selection preferences, as a

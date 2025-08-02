@@ -145,8 +145,8 @@ class ListCommand(IndexGroupCommand):
     def _build_package_finder(
         self,
         options: Values,
-        session: "PipSession",
-    ) -> "PackageFinder":
+        session: PipSession,
+    ) -> PackageFinder:
         """
         Create a package finder appropriate to this list command.
         """

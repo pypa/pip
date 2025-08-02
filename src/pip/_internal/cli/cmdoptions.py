@@ -805,13 +805,16 @@ def _handle_exclude_newer_than(
     Process a value provided for the --exclude-newer-than option.
 
     This is an optparse.Option callback for the --exclude-newer-than option.
+
+    Parses an ISO 8601 datetime string. If no timezone is specified in the string,
+    UTC timezone is applied automatically for consistency with PyPI upload times.
     """
     if value is None:
         return None
     exclude_newer_than = datetime.datetime.fromisoformat(value)
-    # Assume local timezone if no offset is given in the ISO string.
+    # Assume UTC timezone if no offset is given in the ISO string.
     if exclude_newer_than.tzinfo is None:
-        exclude_newer_than = exclude_newer_than.astimezone()
+        exclude_newer_than = exclude_newer_than.replace(tzinfo=datetime.timezone.utc)
     parser.values.exclude_newer_than = exclude_newer_than
 
 
@@ -823,7 +826,11 @@ exclude_newer_than: Callable[..., Option] = partial(
     action="callback",
     callback=_handle_exclude_newer_than,
     type="str",
-    help="Exclude packages newer than given time. This should be an ISO 8601 string.",
+    help=(
+        "Exclude packages newer than given time. "
+        "This should be an ISO 8601 string. "
+        "If no timezone is specified, UTC is assumed."
+    ),
 )
 
 no_build_isolation: Callable[..., Option] = partial(

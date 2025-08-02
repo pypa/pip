@@ -10,11 +10,7 @@ import re
 import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    NamedTuple,
-)
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
@@ -216,11 +212,11 @@ class Link:
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[str, "IndexContent"]] = None,
-        requires_python: Optional[str] = None,
-        yanked_reason: Optional[str] = None,
-        metadata_file_data: Optional[MetadataFile] = None,
-        upload_time: Optional[datetime.datetime] = None,
+        comes_from: str | IndexContent | None = None,
+        requires_python: str | None = None,
+        yanked_reason: str | None = None,
+        metadata_file_data: MetadataFile | None = None,
+        upload_time: datetime.datetime | None = None,
         cache_link_parsing: bool = True,
         hashes: Mapping[str, str] | None = None,
     ) -> None:
@@ -306,7 +302,7 @@ class Link:
         if metadata_info is None:
             metadata_info = file_data.get("dist-info-metadata")
 
-        upload_time: Optional[datetime.datetime]
+        upload_time: datetime.datetime | None
         if upload_time_data := file_data.get("upload-time"):
             upload_time = datetime.datetime.fromisoformat(upload_time_data)
         else:
