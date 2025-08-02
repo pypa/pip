@@ -7,6 +7,7 @@ import logging
 import os
 import posixpath
 import re
+import sys
 import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -304,6 +305,10 @@ class Link:
 
         upload_time: datetime.datetime | None
         if upload_time_data := file_data.get("upload-time"):
+            # Handle 'Z' suffix for UTC timezone (added in Python 3.11)
+            # For Python < 3.11, convert 'Z' to '+00:00' for compatibility
+            if sys.version_info < (3, 11) and upload_time_data.endswith("Z"):
+                upload_time_data = upload_time_data[:-1] + "+00:00"
             upload_time = datetime.datetime.fromisoformat(upload_time_data)
         else:
             upload_time = None
