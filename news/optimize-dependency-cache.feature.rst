@@ -1,1 +1,1 @@
-Optimize dependency resolution performance by caching parsed dependencies and extras to avoid redundant parsing operations during candidate evaluation.
+Optimize dependency resolution performance by caching parsed dependencies and extras to avoid redundant parsing operations during candidate evaluation. Also add support for discovering distributions from sys.meta_path finders to enable in-memory package installations.
