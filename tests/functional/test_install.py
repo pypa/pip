@@ -1880,7 +1880,7 @@ def test_install_editable_with_wrong_egg_name(
     result = script.pip(
         "install",
         "--editable",
-        f"file://{pkga_path}#egg=pkgb",
+        path_to_url(str(pkga_path)) + "#egg=pkgb",
         expect_error=(resolver_variant == "resolvelib"),
     )
     assert (

@@ -41,6 +41,7 @@ repos:
         'types-setuptools==68.2.0.0',
         'types-freezegun==1.1.10',
         'types-pyyaml==6.0.12.12',
+        'typing-extensions',
     ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks

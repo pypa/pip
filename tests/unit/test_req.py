@@ -51,6 +51,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
@@ -224,15 +225,11 @@ class TestRequirementSet:
         dir_path = data.packages.joinpath("FSPkg")
         reqset.add_unnamed_requirement(
             get_processed_req_from_line(
-                f"file://{dir_path}",
+                path_to_url(str(dir_path)),
                 lineno=2,
             )
         )
         finder = make_test_finder(find_links=[data.find_links])
-
-        sep = os.path.sep
-        if sep == "\\":
-            sep = "\\\\"  # This needs to be escaped for the regex
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
             with pytest.raises(
@@ -244,7 +241,7 @@ class TestRequirementSet:
                     r"file \(line 1\)\)\n"
                     r"Can't verify hashes for these file:// requirements because "
                     r"they point to directories:\n"
-                    rf"    file://.*{sep}data{sep}packages{sep}FSPkg "
+                    r"    file://.*/data/packages/FSPkg "
                     r"\(from -r file \(line 2\)\)"
                 ),
             ):

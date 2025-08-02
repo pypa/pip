@@ -22,7 +22,7 @@ else:
     from ._openssl import _configure_context, _verify_peercerts_impl
 
 if typing.TYPE_CHECKING:
-    from pip._vendor.typing_extensions import Buffer
+    from typing_extensions import Buffer
 
 # From typeshed/stdlib/ssl.pyi
 _StrOrBytesPath: typing.TypeAlias = str | bytes | os.PathLike[str] | os.PathLike[bytes]

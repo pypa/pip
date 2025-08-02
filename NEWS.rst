@@ -9,6 +9,66 @@
 
 .. towncrier release notes start
 
+25.2 (2025-07-30)
+=================
+
+Features
+--------
+
+- Declare support for Python 3.14 (`#13506 <https://github.com/pypa/pip/issues/13506>`_)
+- Automatic download resumption and retrying is enabled by default. (`#13464 <https://github.com/pypa/pip/issues/13464>`_)
+- Requires-Python error message displays version clauses in numerical order. (`#13367 <https://github.com/pypa/pip/issues/13367>`_)
+- Minor performance improvement getting the order to install a very large number of interdependent packages. (`#13424 <https://github.com/pypa/pip/issues/13424>`_)
+- Show time taken instead of ``eta 0:00:00`` at download completion. (`#13483 <https://github.com/pypa/pip/issues/13483>`_)
+- Speed up small CLI tools by removing ``import re`` from the console
+  script executable template. (`#13165 <https://github.com/pypa/pip/issues/13165>`_)
+- Remove warning when cloning from a Git reference that does not look like a commit hash. (`#12283 <https://github.com/pypa/pip/issues/12283>`_)
+
+Bug Fixes
+---------
+
+- ``pip config debug`` now correctly separates options as set by the different files
+  at the same level. (`#12099 <https://github.com/pypa/pip/issues/12099>`_)
+- Ensure truststore feature remains active even when a proxy is also in use. (`#13343 <https://github.com/pypa/pip/issues/13343>`_)
+- Include sub-commands in tab completion. (`#13140 <https://github.com/pypa/pip/issues/13140>`_)
+- ``pip list`` with the ``json`` or ``freeze`` format enabled will no longer
+  crash when encountering a package with an invalid version. (`#13345 <https://github.com/pypa/pip/issues/13345>`_)
+- Provide a hint if a system error is raised involving long filenames or path segments on Windows. (`#13346 <https://github.com/pypa/pip/issues/13346>`_)
+- Resumed downloads are saved to the HTTP cache like any other normal download. (`#13441 <https://github.com/pypa/pip/issues/13441>`_)
+- Configured verbosity is consistently forwarded while calling Git during
+  VCS operations. (`#13329 <https://github.com/pypa/pip/issues/13329>`_)
+- Suppress the progress bar, when running with ``--log`` and ``--quiet``.
+
+  Consequently, a new ``auto`` mode for ``--progress-bar`` has been added.
+  ``auto`` will enable progress bars unless suppressed by ``--quiet``,
+  while ``on`` will always enable progress bars. (`#10915 <https://github.com/pypa/pip/issues/10915>`_)
+- Fix normalization of local URLs with non-``file`` schemes. (`#13509 <https://github.com/pypa/pip/issues/13509>`_)
+- Fix normalization of local file URLs on Windows in newer Python versions. (`#13510 <https://github.com/pypa/pip/issues/13510>`_)
+- Fix remaining test failures in Python 3.14 by adjusting ``path_to_url`` and similar functions. (`#13423 <https://github.com/pypa/pip/issues/13423>`_)
+- Fix missing ``network`` test markings, making the suite pass in offline
+  environments again. (`#13378 <https://github.com/pypa/pip/issues/13378>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.14.3
+- Upgrade certifi to 2025.7.14
+- Upgrade distlib to 0.4.0
+- Upgrade msgpack to 1.1.1
+- Upgrade platformdirs to 4.3.8
+- Upgrade pygments to 2.19.2
+- Upgrade requests to 2.32.4
+- Upgrade resolvelib to 1.2.0
+- Upgrade rich to 14.1.0
+- Remove vendored typing-extensions.
+
+Process
+-------
+
+- pip's own licensing metadata now follows :pep:`639`.
+  In addition, the licenses of pip's vendored dependencies are now included
+  in the ``License-File`` metadata field and in the wheel.
+
 25.1.1 (2025-05-02)
 ===================
 
