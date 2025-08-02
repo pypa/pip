@@ -77,7 +77,7 @@ class _DistributionFinder:
             yield dist, info_location
 
     def find_meta_path_distributions(self) -> Iterator[FoundResult]:
-        """Find distributions from sys.meta_path finders (e.g., in-memory distributions)."""
+        """Find distributions from sys.meta_path finders."""
         try:
             # Get all distributions without specifying a path, which includes
             # distributions from sys.meta_path finders
@@ -154,13 +154,15 @@ class Environment(BaseEnvironment):
         for location in self._paths:
             yield from finder.find(location)
             yield from finder.find_legacy_editables(location)
-        
-        # Also check for distributions from sys.meta_path finders (e.g., in-memory distributions)
+
+        # Also check for distributions from sys.meta_path finders
         # This is backwards compatible - if no custom finders exist, this does nothing
         yield from self._iter_meta_path_distributions(finder)
 
-    def _iter_meta_path_distributions(self, finder: _DistributionFinder) -> None:
-        """Yield distributions from sys.meta_path finders (e.g., in-memory distributions)."""
+    def _iter_meta_path_distributions(
+        self, finder: _DistributionFinder
+    ) -> Iterator[Distribution]:
+        """Yield distributions from sys.meta_path finders."""
         for dist, info_location in finder.find_meta_path_distributions():
             if info_location is None:
                 installed_location: BasePath | None = None
