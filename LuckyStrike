@@ -1,0 +1,80 @@
+from flask import Flask, render_template, request
+import random
+
+app = Flask(__name__)
+
+# Base weights (same as before)
+main_number_weights = {i: 70 for i in range(1, 36)}
+powerball_weights = {i: 10 for i in range(1, 21)}
+
+def weighted_choice(choices):
+    total = sum(choices.values())
+    if total == 0:
+        raise ValueError("All weights are zero. Adjust your settings.")
+    r = random.uniform(0, total)
+    upto = 0
+    for num, weight in choices.items():
+        upto += weight
+        if upto >= r:
+            return num
+
+def generate_custom_powerball(lucky_numbers, unlucky_numbers, odd_even_balance, high_low_balance):
+    # Adjust weights
+    adjusted_weights = main_number_weights.copy()
+    for num in lucky_numbers:
+        if num in adjusted_weights:
+            adjusted_weights[num] *= 2
+    for num in unlucky_numbers:
+        if num in adjusted_weights:
+            adjusted_weights[num] = 0
+
+    low_number_range = range(1, 18)
+    
+    while True:
+        main_numbers = set()
+        while len(main_numbers) < 7:
+            choice = weighted_choice(adjusted_weights)
+            main_numbers.add(choice)
+        main_list = sorted(list(main_numbers))
+
+        # Odd/even balance check
+        if odd_even_balance:
+            odd_count = sum(1 for n in main_list if n % 2 == 1)
+            if odd_count not in (3, 4):
+                continue
+
+        # High/low balance check
+        if high_low_balance:
+            low_count = sum(1 for n in main_list if n in low_number_range)
+            if low_count < 2 or low_count > 5:
+                continue
+
+        powerball = weighted_choice(powerball_weights)
+        return main_list, powerball
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = None
+    if request.method == "POST":
+        # Get form inputs
+        lucky_nums_raw = request.form.get("lucky_numbers", "")
+        unlucky_nums_raw = request.form.get("unlucky_numbers", "")
+        odd_even_balance = request.form.get("odd_even_balance") == "on"
+        high_low_balance = request.form.get("high_low_balance") == "on"
+
+        # Parse numbers from comma-separated inputs
+        def parse_numbers(s):
+            return [int(x.strip()) for x in s.split(",") if x.strip().isdigit()]
+        
+        lucky_numbers = parse_numbers(lucky_nums_raw)
+        unlucky_numbers = parse_numbers(unlucky_nums_raw)
+
+        main_nums, powerball = generate_custom_powerball(
+            lucky_numbers, unlucky_numbers, odd_even_balance, high_low_balance
+        )
+        result = {"main": main_nums, "powerball": powerball}
+
+    return render_template("index.html", result=result)
+
+if __name__ == "__main__":
+    app.run(debug=True)
