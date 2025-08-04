@@ -1,0 +1,1 @@
+Fix command parsing for ``pip install <path_to_whl_file> [<extras>]`` with whitespace between file path and extras section.
