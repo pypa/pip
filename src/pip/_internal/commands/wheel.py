@@ -65,7 +65,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        self.cmd_opts.add_option(cmdoptions.upload_before())
+        self.cmd_opts.add_option(cmdoptions.exclude_newer_than())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
@@ -110,7 +110,7 @@ class WheelCommand(RequirementCommand):
         finder = self._build_package_finder(
             options=options,
             session=session,
-            upload_before=options.upload_before,
+            exclude_newer_than=options.exclude_newer_than,
         )
 
         options.wheel_dir = normalize_path(options.wheel_dir)
