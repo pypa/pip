@@ -1,0 +1,1 @@
+Add ``--exclude-newer-than`` option to exclude packages uploaded after a given date.
