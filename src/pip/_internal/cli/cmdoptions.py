@@ -798,31 +798,32 @@ ignore_requires_python: Callable[..., Option] = partial(
 )
 
 
-def _handle_upload_before(
+def _handle_exclude_newer_than(
     option: Option, opt: str, value: str, parser: OptionParser
 ) -> None:
     """
-    Process a value provided for the --upload-before option.
+    Process a value provided for the --exclude-newer-than option.
 
-    This is an optparse.Option callback for the --upload-before option.
+    This is an optparse.Option callback for the --exclude-newer-than option.
     """
     if value is None:
         return None
-    upload_before = datetime.datetime.fromisoformat(value)
+    exclude_newer_than = datetime.datetime.fromisoformat(value)
     # Assume local timezone if no offset is given in the ISO string.
-    if upload_before.tzinfo is None:
-        upload_before = upload_before.astimezone()
-    parser.values.upload_before = upload_before
+    if exclude_newer_than.tzinfo is None:
+        exclude_newer_than = exclude_newer_than.astimezone()
+    parser.values.exclude_newer_than = exclude_newer_than
 
 
-upload_before: Callable[..., Option] = partial(
+exclude_newer_than: Callable[..., Option] = partial(
     Option,
-    "--upload-before",
-    dest="upload_before",
+    "--exclude-newer-than",
+    dest="exclude_newer_than",
     metavar="datetime",
     action="callback",
-    callback=_handle_upload_before,
-    help="Skip uploads after given time. This should be an ISO 8601 string.",
+    callback=_handle_exclude_newer_than,
+    type="str",
+    help="Exclude packages newer than given time. This should be an ISO 8601 string.",
 )
 
 no_build_isolation: Callable[..., Option] = partial(

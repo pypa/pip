@@ -5,6 +5,9 @@ need PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+from __future__ import annotations
+
+import datetime
 import logging
 from functools import partial
 from optparse import Values
@@ -326,7 +329,7 @@ class RequirementCommand(IndexGroupCommand):
         session: PipSession,
         target_python: TargetPython | None = None,
         ignore_requires_python: bool | None = None,
-        upload_before: datetime.datetime | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to this requirement command.
@@ -347,5 +350,5 @@ class RequirementCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
-            upload_before=upload_before,
+            exclude_newer_than=exclude_newer_than,
         )
