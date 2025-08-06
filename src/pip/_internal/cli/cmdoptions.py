@@ -843,6 +843,9 @@ def _handle_exclude_newer_than(
     Process a value provided for the --exclude-newer-than option.
 
     This is an optparse.Option callback for the --exclude-newer-than option.
+
+    Parses an ISO 8601 datetime string. If no timezone is specified in the string,
+    local timezone is used.
     """
     if value is None:
         return None
@@ -861,7 +864,12 @@ exclude_newer_than: Callable[..., Option] = partial(
     action="callback",
     callback=_handle_exclude_newer_than,
     type="str",
-    help="Exclude packages newer than given time. This should be an ISO 8601 string.",
+    help=(
+        "Exclude packages newer than given time. This should be an ISO 8601 string. "
+        "If no timezone is specified, local time is used. "
+        "For consistency across environments, specify the timezone explicitly "
+        "e.g., '2023-01-01T00:00:00Z' for UTC or '2023-01-01T00:00:00-05:00' for UTC-5."
+    ),
 )
 
 no_build_isolation: Callable[..., Option] = partial(
