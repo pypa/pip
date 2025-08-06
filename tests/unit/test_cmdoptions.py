@@ -138,7 +138,7 @@ def test_handle_exclude_newer_than_naive_dates(
 
     # Check that local timezone was applied (result should not be timezone-naive)
     assert result.tzinfo is not None
-    
+
     # Verify it's equivalent to creating the same datetime and applying local timezone
     naive_dt = datetime.datetime(*expected_date_time)
     expected_with_local_tz = naive_dt.astimezone()

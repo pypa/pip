@@ -1,4 +1,5 @@
 """Routines related to PyPI, indexes"""
+
 from __future__ import annotations
 
 import datetime
@@ -132,8 +133,8 @@ class LinkEvaluator:
         formats: frozenset[str],
         target_python: TargetPython,
         allow_yanked: bool,
-        ignore_requires_python: Optional[bool] = None,
-        exclude_newer_than: Optional[datetime.datetime] = None,
+        ignore_requires_python: bool | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -182,7 +183,9 @@ class LinkEvaluator:
 
         if link.upload_time is not None and self._exclude_newer_than is not None:
             if link.upload_time > self._exclude_newer_than:
-                reason = f"Upload time {link.upload_time} after {self._exclude_newer_than}"
+                reason = (
+                    f"Upload time {link.upload_time} after {self._exclude_newer_than}"
+                )
                 return (LinkType.upload_too_late, reason)
 
         if link.egg_fragment:
@@ -599,10 +602,10 @@ class PackageFinder:
         link_collector: LinkCollector,
         target_python: TargetPython,
         allow_yanked: bool,
-        format_control: Optional[FormatControl] = None,
-        candidate_prefs: Optional[CandidatePreferences] = None,
-        ignore_requires_python: Optional[bool] = None,
-        exclude_newer_than: Optional[datetime.datetime] = None,
+        format_control: FormatControl | None = None,
+        candidate_prefs: CandidatePreferences | None = None,
+        ignore_requires_python: bool | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -647,9 +650,9 @@ class PackageFinder:
         cls,
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
-        target_python: Optional[TargetPython] = None,
-        exclude_newer_than: Optional[datetime.datetime] = None,
-    ) -> "PackageFinder":
+        target_python: TargetPython | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
+    ) -> PackageFinder:
         """Create a PackageFinder.
 
         :param selection_prefs: The candidate selection preferences, as a
