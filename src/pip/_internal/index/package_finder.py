@@ -734,6 +734,10 @@ class PackageFinder:
     def set_prefer_binary(self) -> None:
         self._candidate_prefs.prefer_binary = True
 
+    @property
+    def exclude_newer_than(self) -> datetime.datetime | None:
+        return self._exclude_newer_than
+
     def requires_python_skipped_reasons(self) -> list[str]:
         reasons = {
             detail
