@@ -6,7 +6,8 @@ build:
     python: "3.11"
   jobs:
     install:
-      - pip install --group docs .
+      - pip install .
+      - pip install --group docs
 
 sphinx:
   builder: dirhtml
