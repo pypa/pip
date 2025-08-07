@@ -78,7 +78,6 @@ test-common-wheels = [
     # depends on setup.py develop to generate egg-link files.
     "setuptools >= 40.8.0, != 60.6.0, <80",
     "wheel",
-    "flit-core",
     # As required by pytest-cov.
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
