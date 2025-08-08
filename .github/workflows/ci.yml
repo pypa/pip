@@ -82,7 +82,7 @@ jobs:
       - run: pip install nox
       - run: nox -s prepare-release -- 99.9
       - run: nox -s build-release -- 99.9
-      - run: pipx run check-manifest
+      - run: pipx run check-sdist
 
   vendoring:
     name: vendoring
