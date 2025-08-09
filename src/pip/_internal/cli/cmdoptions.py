@@ -11,7 +11,6 @@ pass on state. To be consistent, all options will follow this design.
 # mypy: strict-optional=False
 from __future__ import annotations
 
-import datetime
 import importlib.util
 import logging
 import os
@@ -30,6 +29,7 @@ from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
+from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
 
@@ -811,11 +811,20 @@ def _handle_exclude_newer_than(
     """
     if value is None:
         return None
-    exclude_newer_than = datetime.datetime.fromisoformat(value)
-    # Assume local timezone if no offset is given in the ISO string.
-    if exclude_newer_than.tzinfo is None:
-        exclude_newer_than = exclude_newer_than.astimezone()
-    parser.values.exclude_newer_than = exclude_newer_than
+
+    try:
+        exclude_newer_than = parse_iso_datetime(value)
+        # Use local timezone if no offset is given in the ISO string.
+        if exclude_newer_than.tzinfo is None:
+            exclude_newer_than = exclude_newer_than.astimezone()
+        parser.values.exclude_newer_than = exclude_newer_than
+    except ValueError as exc:
+        msg = (
+            f"invalid --exclude-newer-than value: {value!r}: {exc}. "
+            f"Expected an ISO 8601 datetime string, "
+            f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
+        )
+        raise_option_error(parser, option=option, msg=msg)
 
 
 exclude_newer_than: Callable[..., Option] = partial(
