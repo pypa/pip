@@ -1,0 +1,4 @@
+Add experimental build constraints support via ``--use-feature=build-constraint``.
+This allows constraining the versions of packages used during the build process
+(e.g., setuptools). Build constraints can be specified via ``PIP_BUILD_CONSTRAINT``
+environment variable or ``--build-constraint`` flag.
