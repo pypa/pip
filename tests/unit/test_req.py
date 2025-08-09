@@ -768,6 +768,7 @@ class TestInstallRequirement:
             ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
             ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
             ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
+            ("simple-0.1-py2.py3-none-any.whl [ext]", "simple==0.1"),
         ],
     )
     def test_install_req_drop_extras(self, inp: str, out: str) -> None:
