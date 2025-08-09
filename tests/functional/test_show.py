@@ -52,8 +52,7 @@ def test_show_with_files_from_wheel(script: PipTestEnvironment, data: TestData) 
     """
     Test that a wheel's files can be listed.
     """
-    wheel_file = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("show", "-f", "simple.dist")
     lines = result.stdout.splitlines()
     assert "Name: simple.dist" in lines
@@ -181,8 +180,7 @@ def test_show_verbose_installer(script: PipTestEnvironment, data: TestData) -> N
     """
     Test that the installer is shown (this currently needs a wheel install)
     """
-    wheel_file = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("show", "--verbose", "simple.dist")
     lines = result.stdout.splitlines()
     assert "Name: simple.dist" in lines
@@ -260,20 +258,18 @@ def test_pip_show_is_short(script: PipTestEnvironment) -> None:
     assert len(lines) <= 11
 
 
-def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:
+def test_pip_show_divider(script: PipTestEnvironment) -> None:
     """
     Expect a divider between packages
     """
-    script.pip("install", "pip-test-package", "--no-index", "-f", data.packages)
+    script.pip_install_local("pip-test-package")
     result = script.pip("show", "pip", "pip-test-package")
     lines = result.stdout.splitlines()
     assert "---" in lines
 
 
-def test_package_name_is_canonicalized(
-    script: PipTestEnvironment, data: TestData
-) -> None:
-    script.pip("install", "pip-test-package", "--no-index", "-f", data.packages)
+def test_package_name_is_canonicalized(script: PipTestEnvironment) -> None:
+    script.pip_install_local("pip-test-package")
 
     dash_show_result = script.pip("show", "pip-test-package")
     underscore_upper_show_result = script.pip("show", "pip-test_Package")
@@ -288,8 +284,7 @@ def test_show_required_by_packages_basic(
     """
     Test that installed packages that depend on this package are shown
     """
-    editable_path = os.path.join(data.src, "requires_simple")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip_install_local(data.src / "requires_simple")
 
     result = script.pip("show", "simple")
     lines = result.stdout.splitlines()
@@ -308,8 +303,7 @@ def test_show_required_by_packages_capitalized(
     Test that the installed packages which depend on a package are shown
     where the package has a capital letter
     """
-    editable_path = os.path.join(data.src, "requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip_install_local(data.src / "requires_capitalized")
 
     result = script.pip("show", "simple")
     lines = result.stdout.splitlines()
@@ -329,10 +323,8 @@ def test_show_required_by_packages_requiring_capitalized(
     where the package has a name with a mix of
     lower and upper case letters
     """
-    required_package_path = os.path.join(data.src, "requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, required_package_path)
-    editable_path = os.path.join(data.src, "requires_requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip_install_local(data.src / "requires_capitalized")
+    script.pip_install_local(data.src / "requires_requires_capitalized")
 
     result = script.pip("show", "Requires_Capitalized")
     lines = result.stdout.splitlines()
@@ -432,8 +424,7 @@ def test_show_license_expression(script: PipTestEnvironment, data: TestData) -> 
     """
     Show License-Expression if present in metadata >= 2.4.
     """
-    wheel_file = data.packages.joinpath("license.dist-0.1-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "license.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("show", "license.dist")
     lines = result.stdout.splitlines()
     assert "License-Expression: MIT AND MIT-0" in lines
@@ -446,8 +437,7 @@ def test_show_license_for_metadata_24(
     """
     Show License if License-Expression is not there for metadata >= 2.4.
     """
-    wheel_file = data.packages.joinpath("license.dist-0.2-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "license.dist-0.2-py2.py3-none-any.whl")
     result = script.pip("show", "license.dist")
     lines = result.stdout.splitlines()
     assert "License-Expression: " not in lines
