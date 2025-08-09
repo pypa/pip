@@ -262,20 +262,16 @@ serve them in a centralized place.
 Build Constraints
 -----------------
 
-.. versionadded:: 25.2
-.. note::
+.. versionadded:: 25.3
 
-   Build constraints are currently an **experimental feature** and must be
-   enabled  using ``--use-feature=build-constraint``.
-
-Build constraints are a specialized type of constraints file that apply only
-to the build environment when building packages from source. Unlike regular
-constraints which affect the installed packages in your environment, build
+Build constraints are a type of constraints file that applies only to isolated
+build environments used for building packages from source. Unlike regular
+constraints, which affect the packages installed in your environment, build
 constraints only influence the versions of packages available during the
 build process.
 
-This is particularly useful when you need to constrain build dependencies
-(like ``setuptools``, ``cython``, etc.) without affecting the
+This is useful when you need to constrain build dependencies
+(such as ``setuptools``, ``cython``, etc.) without affecting the
 final installed environment.
 
 Use build constraints like so:
@@ -284,21 +280,21 @@ Use build constraints like so:
 
    .. code-block:: shell
 
-      python -m pip install --build-constraint build-constraints.txt --use-feature=build-constraint SomePackage
+      python -m pip install --build-constraint build-constraints.txt SomePackage
 
 .. tab:: Windows
 
    .. code-block:: shell
 
-      py -m pip install --build-constraint build-constraints.txt --use-feature=build-constraint SomePackage
+      py -m pip install --build-constraint build-constraints.txt SomePackage
 
 Example build constraints file (``build-constraints.txt``):
 
 .. code-block:: text
 
    # Constrain setuptools version during build
-   setuptools>=45.0.0,<60.0.0
-   # Pin Cython for packages that use it
+   setuptools>=45,<80
+   # Pin Cython for packages that use it to build
    cython==0.29.24
 
 
