@@ -156,11 +156,11 @@ def test_handle_exclude_newer_than_naive_dates(
     ],
 )
 def test_handle_exclude_newer_than_invalid_dates(invalid_value: str) -> None:
-    """Test that invalid date strings raise ValueError."""
+    """Test that invalid date strings raise SystemExit via raise_option_error."""
     option = Option("--exclude-newer-than", dest="exclude_newer_than")
     opt = "--exclude-newer-than"
     parser = OptionParser()
     parser.values = Values()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(SystemExit):
         _handle_exclude_newer_than(option, opt, invalid_value, parser)
