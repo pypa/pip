@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 from collections.abc import Iterable
@@ -40,6 +41,7 @@ class IndexCommand(IndexGroupCommand):
         cmdoptions.add_target_python_options(self.cmd_opts)
 
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.exclude_newer_than())
         self.cmd_opts.add_option(cmdoptions.pre())
         self.cmd_opts.add_option(cmdoptions.json())
         self.cmd_opts.add_option(cmdoptions.no_binary())
@@ -86,6 +88,7 @@ class IndexCommand(IndexGroupCommand):
         session: PipSession,
         target_python: TargetPython | None = None,
         ignore_requires_python: bool | None = None,
+        exclude_newer_than: datetime.datetime | None = None,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to the index command.
@@ -103,6 +106,7 @@ class IndexCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            exclude_newer_than=exclude_newer_than,
         )
 
     def get_available_package_versions(self, options: Values, args: list[Any]) -> None:
@@ -118,6 +122,7 @@ class IndexCommand(IndexGroupCommand):
                 session=session,
                 target_python=target_python,
                 ignore_requires_python=options.ignore_requires_python,
+                exclude_newer_than=options.exclude_newer_than,
             )
 
             versions: Iterable[Version] = (

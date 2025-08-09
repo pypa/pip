@@ -29,6 +29,7 @@ from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
+from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
 
@@ -794,6 +795,52 @@ ignore_requires_python: Callable[..., Option] = partial(
     dest="ignore_requires_python",
     action="store_true",
     help="Ignore the Requires-Python information.",
+)
+
+
+def _handle_exclude_newer_than(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    Process a value provided for the --exclude-newer-than option.
+
+    This is an optparse.Option callback for the --exclude-newer-than option.
+
+    Parses an ISO 8601 datetime string. If no timezone is specified in the string,
+    local timezone is used.
+    """
+    if value is None:
+        return None
+
+    try:
+        exclude_newer_than = parse_iso_datetime(value)
+        # Use local timezone if no offset is given in the ISO string.
+        if exclude_newer_than.tzinfo is None:
+            exclude_newer_than = exclude_newer_than.astimezone()
+        parser.values.exclude_newer_than = exclude_newer_than
+    except ValueError as exc:
+        msg = (
+            f"invalid --exclude-newer-than value: {value!r}: {exc}. "
+            f"Expected an ISO 8601 datetime string, "
+            f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
+        )
+        raise_option_error(parser, option=option, msg=msg)
+
+
+exclude_newer_than: Callable[..., Option] = partial(
+    Option,
+    "--exclude-newer-than",
+    dest="exclude_newer_than",
+    metavar="datetime",
+    action="callback",
+    callback=_handle_exclude_newer_than,
+    type="str",
+    help=(
+        "Exclude packages newer than given time. This should be an ISO 8601 string. "
+        "If no timezone is specified, local time is used. "
+        "For consistency across environments, specify the timezone explicitly "
+        "e.g., '2023-01-01T00:00:00Z' for UTC or '2023-01-01T00:00:00-05:00' for UTC-5."
+    ),
 )
 
 no_build_isolation: Callable[..., Option] = partial(

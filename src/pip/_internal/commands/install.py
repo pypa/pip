@@ -207,6 +207,7 @@ class InstallCommand(RequirementCommand):
             ),
         )
 
+        self.cmd_opts.add_option(cmdoptions.exclude_newer_than())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
@@ -344,6 +345,7 @@ class InstallCommand(RequirementCommand):
             session=session,
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
+            exclude_newer_than=options.exclude_newer_than,
         )
         build_tracker = self.enter_context(get_build_tracker())
 
