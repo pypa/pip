@@ -128,6 +128,9 @@ class SubprocessBuildEnvironmentInstaller:
         if self._build_constraint_feature_enabled:
             return
 
+        if self._build_constraints:
+            return
+
         if not self._constraints:
             return
 
@@ -135,16 +138,19 @@ class SubprocessBuildEnvironmentInstaller:
             return
 
         pip_constraint_files = [
-            f.strip() for f in os.environ["PIP_CONSTRAINT"].split() if f.strip()
+            f for f in os.environ["PIP_CONSTRAINT"].split() if f.strip()
         ]
-        if pip_constraint_files and set(pip_constraint_files) == set(self._constraints):
+        if pip_constraint_files and pip_constraint_files == self._constraints:
             deprecated(
                 reason=(
                     "Setting PIP_CONSTRAINT will not affect "
                     "build constraints in the future,"
                 ),
                 replacement=(
-                    'PIP_BUILD_CONSTRAINT with PIP_USE_FEATURE="build-constraint"'
+                    "to specify build constraints use --build-constraint or "
+                    "PIP_BUILD_CONSTRAINT, to disable this warning without "
+                    "any build constraints set --use-feature=build-constraint or "
+                    'PIP_USE_FEATURE="build-constraint"'
                 ),
                 gone_in="26.2",
                 issue=None,
@@ -219,19 +225,21 @@ class SubprocessBuildEnvironmentInstaller:
         # Handle build constraints
         extra_environ: ExtraEnviron = {}
         if self._build_constraint_feature_enabled:
+            args.extend(["--use-feature", "build-constraint"])
+
+        if self._build_constraints:
             # Build constraints must be passed as both constraints
-            # and build constraints to the subprocess
+            # and build constraints, so that nested builds receive
+            # build constraints
             for constraint_file in self._build_constraints:
                 args.extend(["--constraint", constraint_file])
                 args.extend(["--build-constraint", constraint_file])
-                args.extend(["--use-feature", "build-constraint"])
 
+        if self._build_constraint_feature_enabled and not self._build_constraints:
             # If there are no build constraints but the build constraint
-            # process is enabled then we must ignore regular constraints
-            if not self._build_constraints:
-                extra_environ = {
-                    "extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}
-                }
+            # feature is enabled then we must ignore regular constraints
+            # in the isolated build environment
+            extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
 
         args.append("--")
         args.extend(requirements)

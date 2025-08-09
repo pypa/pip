@@ -81,7 +81,10 @@ class TestSubprocessBuildEnvironmentInstaller:
             "Setting PIP_CONSTRAINT will not affect build constraints in the future"
             in message
         )
-        assert 'PIP_BUILD_CONSTRAINT with PIP_USE_FEATURE="build-constraint"' in message
+        assert (
+            "to specify build constraints use "
+            "--build-constraint or PIP_BUILD_CONSTRAINT" in message
+        )
 
     @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraint1.txt constraint2.txt"})
     def test_deprecation_check_multiple_constraints(self) -> None:
@@ -90,19 +93,6 @@ class TestSubprocessBuildEnvironmentInstaller:
         installer = SubprocessBuildEnvironmentInstaller(
             finder,
             constraints=["constraint1.txt", "constraint2.txt"],
-            build_constraint_feature_enabled=False,
-        )
-
-        with pytest.warns(PipDeprecationWarning):
-            installer._deprecation_constraint_check()
-
-    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraint1.txt constraint2.txt"})
-    def test_deprecation_check_multiple_constraints_different_order(self) -> None:
-        """Test deprecation warning works when constraints are in different order."""
-        finder = make_test_finder()
-        installer = SubprocessBuildEnvironmentInstaller(
-            finder,
-            constraints=["constraint2.txt", "constraint1.txt"],
             build_constraint_feature_enabled=False,
         )
 

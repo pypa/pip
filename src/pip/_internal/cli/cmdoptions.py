@@ -107,11 +107,6 @@ def check_build_constraints(options: Values) -> None:
     :param options: The OptionParser options.
     """
     if hasattr(options, "build_constraints") and options.build_constraints:
-        if "build-constraint" not in options.features_enabled:
-            raise CommandError(
-                "To use --build-constraint, you must enable this feature with "
-                "--use-feature=build-constraint."
-            )
         if not options.build_isolation:
             raise CommandError(
                 "--build-constraint cannot be used with --no-build-isolation."
@@ -457,8 +452,7 @@ def build_constraint() -> Option:
         metavar="file",
         help=(
             "Constrain build dependencies using the given constraints file. "
-            "This option can be used multiple times. "
-            "Requires --use-feature=build-constraint."
+            "This option can be used multiple times."
         ),
     )
 

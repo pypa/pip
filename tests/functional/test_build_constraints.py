@@ -69,7 +69,6 @@ def _run_pip_install_with_build_constraints_no_feature_flag(
         "--build-constraint",
         str(constraints_file),
         str(project_dir),
-        expect_error=True,
     )
 
 
@@ -164,7 +163,7 @@ def test_build_constraints_file_not_found(
 def test_build_constraints_without_feature_flag(
     script: PipTestEnvironment, tmpdir: Path
 ) -> None:
-    """Test that --build-constraint requires the feature flag."""
+    """Test that --build-constraint automatically enables the feature."""
     project_dir = _create_simple_test_package(script=script, name="test_no_feature")
     constraints_file = _create_constraints_file(
         script=script, filename="constraints.txt", content="setuptools==45.0.0\n"
@@ -172,5 +171,6 @@ def test_build_constraints_without_feature_flag(
     result = _run_pip_install_with_build_constraints_no_feature_flag(
         script=script, project_dir=project_dir, constraints_file=constraints_file
     )
-    assert result.returncode != 0
-    assert "build-constraint" in result.stderr.lower()
+    # Should succeed now that --build-constraint auto-enables the feature
+    assert result.returncode == 0
+    _assert_successful_installation(result=result, package_name="test_no_feature")
