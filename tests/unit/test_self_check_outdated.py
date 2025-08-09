@@ -190,6 +190,10 @@ class TestSelfCheckState:
             "pypi_version": "1.0.0",
         }
 
+        statefile_permissions = os.stat(expected_path).st_mode & 0o666
+        selfcheckdir_permissions = os.stat(cache_dir / "selfcheck").st_mode & 0o666
+        assert statefile_permissions == selfcheckdir_permissions
+
 
 @patch("pip._internal.self_outdated_check._self_version_check_logic")
 def test_suppressed_by_externally_managed(mocked_function: Mock, tmpdir: Path) -> None:

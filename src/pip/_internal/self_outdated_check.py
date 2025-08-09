@@ -27,7 +27,12 @@ from pip._internal.utils.entrypoints import (
     get_best_invocation_for_this_pip,
     get_best_invocation_for_this_python,
 )
-from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
+from pip._internal.utils.filesystem import (
+    adjacent_tmp_file,
+    check_path_owner,
+    copy_directory_permissions,
+    replace,
+)
 from pip._internal.utils.misc import (
     ExternallyManagedEnvironment,
     check_externally_managed,
@@ -100,13 +105,15 @@ class SelfCheckState:
         if not self._statefile_path:
             return
 
+        statefile_directory = os.path.dirname(self._statefile_path)
+
         # Check to make sure that we own the directory
-        if not check_path_owner(os.path.dirname(self._statefile_path)):
+        if not check_path_owner(statefile_directory):
             return
 
         # Now that we've ensured the directory is owned by this user, we'll go
         # ahead and make sure that all our directories are created.
-        ensure_dir(os.path.dirname(self._statefile_path))
+        ensure_dir(statefile_directory)
 
         state = {
             # Include the key so it's easy to tell which pip wrote the
@@ -120,6 +127,7 @@ class SelfCheckState:
 
         with adjacent_tmp_file(self._statefile_path) as f:
             f.write(text.encode())
+            copy_directory_permissions(statefile_directory, f)
 
         try:
             # Since we have a prefix-specific state file, we can just
