@@ -102,6 +102,23 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             )
 
 
+def check_build_constraints(options: Values) -> None:
+    """Function for validating build constraint options.
+
+    :param options: The OptionParser options.
+    """
+    if hasattr(options, "build_constraints") and options.build_constraints:
+        if "build-constraint" not in options.features_enabled:
+            raise CommandError(
+                "To use --build-constraint, you must enable this feature with "
+                "--use-feature=build-constraint."
+            )
+        if not options.build_isolation:
+            raise CommandError(
+                "--build-constraint cannot be used with --no-build-isolation."
+            )
+
+
 def _path_option_check(option: Option, opt: str, value: str) -> str:
     return os.path.expanduser(value)
 
@@ -428,6 +445,22 @@ def constraints() -> Option:
         metavar="file",
         help="Constrain versions using the given constraints file. "
         "This option can be used multiple times.",
+    )
+
+
+def build_constraint() -> Option:
+    return Option(
+        "--build-constraint",
+        dest="build_constraints",
+        action="append",
+        type="str",
+        default=[],
+        metavar="file",
+        help=(
+            "Constrain build dependencies using the given constraints file. "
+            "This option can be used multiple times. "
+            "Requires --use-feature=build-constraint."
+        ),
     )
 
 
@@ -1121,6 +1154,7 @@ use_new_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "fast-deps",
+        "build-constraint",
     ]
     + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",

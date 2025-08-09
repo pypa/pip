@@ -60,6 +60,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraint())
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.src())
@@ -102,6 +103,8 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:
+        cmdoptions.check_build_constraints(options)
+
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)

@@ -36,6 +36,7 @@ class DownloadCommand(RequirementCommand):
 
     def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraint())
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.global_options())
@@ -82,6 +83,7 @@ class DownloadCommand(RequirementCommand):
         options.editables = []
 
         cmdoptions.check_dist_restriction(options)
+        cmdoptions.check_build_constraints(options)
 
         options.download_dir = normalize_path(options.download_dir)
         ensure_dir(options.download_dir)
