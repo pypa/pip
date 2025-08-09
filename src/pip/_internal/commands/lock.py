@@ -59,6 +59,7 @@ class LockCommand(RequirementCommand):
         )
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraint())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.pre())
 
@@ -97,6 +98,8 @@ class LockCommand(RequirementCommand):
             "It may be removed/changed in a future release "
             "without prior warning."
         )
+
+        cmdoptions.check_build_constraints(options)
 
         session = self.get_default_session(options)
 

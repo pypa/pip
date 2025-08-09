@@ -8,6 +8,7 @@ PackageFinder machinery and all its vendored dependencies, etc.
 from __future__ import annotations
 
 import logging
+import os
 from functools import partial
 from optparse import Values
 from typing import Any
@@ -42,6 +43,16 @@ from pip._internal.utils.temp_dir import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def should_ignore_regular_constraints(options: Values) -> bool:
+    """
+    Check if regular constraints should be ignored because
+    we are in a isolated build process and build constraints
+    feature is enabled but no build constraints were passed.
+    """
+
+    return os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1"
 
 
 KEEPABLE_TEMPDIR_TYPES = [
@@ -132,12 +143,26 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        # Handle build constraints
+        build_constraints = getattr(options, "build_constraints", [])
+        constraints = getattr(options, "constraints", [])
+        build_constraint_feature_enabled = (
+            hasattr(options, "features_enabled")
+            and options.features_enabled
+            and "build-constraint" in options.features_enabled
+        )
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
-            build_isolation_installer=SubprocessBuildEnvironmentInstaller(finder),
+            build_isolation_installer=SubprocessBuildEnvironmentInstaller(
+                finder,
+                build_constraints=build_constraints,
+                build_constraint_feature_enabled=build_constraint_feature_enabled,
+                constraints=constraints,
+            ),
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
@@ -221,20 +246,22 @@ class RequirementCommand(IndexGroupCommand):
         Parse command-line arguments into the corresponding requirements.
         """
         requirements: list[InstallRequirement] = []
-        for filename in options.constraints:
-            for parsed_req in parse_requirements(
-                filename,
-                constraint=True,
-                finder=finder,
-                options=options,
-                session=session,
-            ):
-                req_to_add = install_req_from_parsed_requirement(
-                    parsed_req,
-                    isolated=options.isolated_mode,
-                    user_supplied=False,
-                )
-                requirements.append(req_to_add)
+
+        if not should_ignore_regular_constraints(options):
+            for filename in options.constraints:
+                for parsed_req in parse_requirements(
+                    filename,
+                    constraint=True,
+                    finder=finder,
+                    options=options,
+                    session=session,
+                ):
+                    req_to_add = install_req_from_parsed_requirement(
+                        parsed_req,
+                        isolated=options.isolated_mode,
+                        user_supplied=False,
+                    )
+                    requirements.append(req_to_add)
 
         for req in args:
             req_to_add = install_req_from_line(
