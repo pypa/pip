@@ -1,1 +1,1 @@
-Fixed fatal error when using `PIP_CONFIG_FILE` environment variable with `pip config set` 
+Fixed fatal error when using `PIP_CONFIG_FILE` environment variable with `pip config set`
