@@ -1,1 +1,0 @@
-Fix normalization of local links with non-``file`` schemes.

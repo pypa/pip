@@ -53,8 +53,7 @@ logger = getLogger(__name__)
 def _normalize_name(name: str) -> str:
     """Make a name consistent regardless of source (environment or file)"""
     name = name.lower().replace("_", "-")
-    if name.startswith("--"):
-        name = name[2:]  # only prefer long opts
+    name = name.removeprefix("--")  # only prefer long opts
     return name
 
 
