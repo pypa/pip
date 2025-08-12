@@ -189,7 +189,7 @@ def _build_one_inside_env(
     global_options: list[str],
     editable: bool,
 ) -> str | None:
-    with TempDirectory(kind="wheel") as temp_dir:
+    with TempDirectory(kind="wheel") as wheel_directory:
         assert req.name
         if req.use_pep517:
             assert req.metadata_directory
@@ -207,14 +207,14 @@ def _build_one_inside_env(
                     name=req.name,
                     backend=req.pep517_backend,
                     metadata_directory=req.metadata_directory,
-                    tempd=temp_dir.path,
+                    wheel_directory=wheel_directory.path,
                 )
             else:
                 wheel_path = build_wheel_pep517(
                     name=req.name,
                     backend=req.pep517_backend,
                     metadata_directory=req.metadata_directory,
-                    tempd=temp_dir.path,
+                    wheel_directory=wheel_directory.path,
                 )
         else:
             wheel_path = build_wheel_legacy(
@@ -223,7 +223,7 @@ def _build_one_inside_env(
                 source_dir=req.unpacked_source_directory,
                 global_options=global_options,
                 build_options=build_options,
-                tempd=temp_dir.path,
+                wheel_directory=wheel_directory.path,
             )
 
         if wheel_path is not None:
