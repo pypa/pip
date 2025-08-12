@@ -1,0 +1,3 @@
+Avoid concurrency issues and improve performance when storing wheels into the
+cache of locally built wheels, when the temporary build directory is on a
+different filesystem than the cache directory.

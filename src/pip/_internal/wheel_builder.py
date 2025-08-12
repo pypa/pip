@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 import os.path
 import re
-import shutil
 from collections.abc import Iterable
+from tempfile import TemporaryDirectory
 
 from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
 from pip._vendor.packaging.version import InvalidVersion, Version
@@ -24,7 +24,6 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
@@ -189,7 +188,7 @@ def _build_one_inside_env(
     global_options: list[str],
     editable: bool,
 ) -> str | None:
-    with TempDirectory(kind="wheel") as wheel_directory:
+    with TemporaryDirectory(dir=output_dir) as wheel_directory:
         assert req.name
         if req.use_pep517:
             assert req.metadata_directory
@@ -207,14 +206,14 @@ def _build_one_inside_env(
                     name=req.name,
                     backend=req.pep517_backend,
                     metadata_directory=req.metadata_directory,
-                    wheel_directory=wheel_directory.path,
+                    wheel_directory=wheel_directory,
                 )
             else:
                 wheel_path = build_wheel_pep517(
                     name=req.name,
                     backend=req.pep517_backend,
                     metadata_directory=req.metadata_directory,
-                    wheel_directory=wheel_directory.path,
+                    wheel_directory=wheel_directory,
                 )
         else:
             wheel_path = build_wheel_legacy(
@@ -223,7 +222,7 @@ def _build_one_inside_env(
                 source_dir=req.unpacked_source_directory,
                 global_options=global_options,
                 build_options=build_options,
-                wheel_directory=wheel_directory.path,
+                wheel_directory=wheel_directory,
             )
 
         if wheel_path is not None:
@@ -231,7 +230,10 @@ def _build_one_inside_env(
             dest_path = os.path.join(output_dir, wheel_name)
             try:
                 wheel_hash, length = hash_file(wheel_path)
-                shutil.move(wheel_path, dest_path)
+                # We can do a rename here because wheel_path is guaranteed to be
+                # in the same filesystem as output_dir. An atomic is rename
+                # to avoid concurrency issues when populating the cache.
+                os.rename(wheel_path, dest_path)
                 logger.info(
                     "Created wheel for %s: filename=%s size=%d sha256=%s",
                     req.name,
