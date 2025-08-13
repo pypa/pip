@@ -270,6 +270,7 @@ def _untar_without_filter(
             ensure_dir(path)
         elif member.issym():
             try:
+                tar._find_link_target(member)  # type: ignore[attr-defined]
                 tar._extract_member(member, path)
             except Exception as exc:
                 # Some corrupt tar files seem to produce this

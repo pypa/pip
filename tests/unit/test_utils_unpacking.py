@@ -238,6 +238,130 @@ class TestUnpackArchives:
         with open(os.path.join(unpack_dir, "symlink.txt"), "rb") as f:
             assert f.read() == content
 
+    @pytest.mark.skipif(
+        not hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) not available",
+    )
+    def test_unpack_tar_data_filter_bad_links_outside_dir(self) -> None:
+        """
+        Test unpacking a *.tar with symlinks outside the directory.
+        """
+        evil_path = os.path.join(tempfile.gettempdir(), "evil")
+        test_tar = os.path.join(self.tempdir, "test_tar_bad_abs_links.tar")
+        with tarfile.open(test_tar, "w") as tar:
+            file_data = io.BytesIO(b"normal\n")
+            normal_tarinfo = tarfile.TarInfo(name="normal.txt")
+            normal_tarinfo.size = len(file_data.getbuffer())
+            tar.addfile(normal_tarinfo, fileobj=file_data)
+
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.SYMTYPE
+            info.linkpath = evil_path
+            tar.addfile(info)
+
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.REGTYPE
+            data = io.BytesIO(b"evil\n")
+            info.size = len(data.getbuffer())
+            tar.addfile(info, fileobj=data)
+
+        # Errors due to data_filter
+        with pytest.raises(InstallationError) as e:
+            untar_file(test_tar, self.tempdir)
+        assert "'symbol_link' is a link to an absolute path" in str(e.value)
+
+    @pytest.mark.skipif(
+        hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) must be absent",
+    )
+    def test_unpack_tar_no_data_filter_bad_links_outside_dir(self) -> None:
+        """
+        Test unpacking a *.tar with symlinks outside the directory.
+        """
+        evil_path = os.path.join(tempfile.gettempdir(), "evil")
+        test_tar = os.path.join(self.tempdir, "test_tar_bad_abs_links.tar")
+        with tarfile.open(test_tar, "w") as tar:
+            file_data = io.BytesIO(b"normal\n")
+            normal_tarinfo = tarfile.TarInfo(name="normal.txt")
+            normal_tarinfo.size = len(file_data.getbuffer())
+            tar.addfile(normal_tarinfo, fileobj=file_data)
+
+            assert not os.path.isfile(evil_path)
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.SYMTYPE
+            info.linkpath = evil_path
+            tar.addfile(info)
+
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.REGTYPE
+            data = io.BytesIO(b"evil\n")
+            info.size = len(data.getbuffer())
+            tar.addfile(info, fileobj=data)
+
+        # Does not error, but the file also shouldn't exist.
+        untar_file(test_tar, self.tempdir)
+        assert not os.path.isfile(evil_path)
+
+    @pytest.mark.skipif(
+        not hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) must be absent",
+    )
+    def test_unpack_tar_data_filter_bad_links_parent_dir(self) -> None:
+        evil_link = "../../../evil"
+        evil_path = os.path.realpath(os.path.join(self.tempdir, evil_link))
+        test_tar = os.path.join(self.tempdir, "test_tar_bad_rel_links.tar")
+        with tarfile.open(test_tar, "w") as tar:
+            file_data = io.BytesIO(b"normal\n")
+            normal_tarinfo = tarfile.TarInfo(name="normal.txt")
+            normal_tarinfo.size = len(file_data.getbuffer())
+            tar.addfile(normal_tarinfo, fileobj=file_data)
+
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.SYMTYPE
+            info.linkpath = evil_link
+            tar.addfile(info)
+
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.REGTYPE
+            data = io.BytesIO(b"evil\n")
+            info.size = len(data.getbuffer())
+            tar.addfile(info, fileobj=data)
+
+        with pytest.raises(InstallationError) as e:
+            untar_file(test_tar, self.tempdir)
+        assert "'symbol_link' would link to" in str(e.value)
+        assert "which is outside the destination" in str(e.value)
+        assert not os.path.exists(evil_path)
+
+    @pytest.mark.skipif(
+        hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) not available",
+    )
+    def test_unpack_tar_no_data_filter_bad_links_parent_dir(self) -> None:
+        evil_link = "../../../evil"
+        evil_path = os.path.realpath(os.path.join(self.tempdir, evil_link))
+        test_tar = os.path.join(self.tempdir, "test_tar_bad_rel_links.tar")
+        with tarfile.open(test_tar, "w") as tar:
+            file_data = io.BytesIO(b"normal\n")
+            normal_tarinfo = tarfile.TarInfo(name="normal.txt")
+            normal_tarinfo.size = len(file_data.getbuffer())
+            tar.addfile(normal_tarinfo, fileobj=file_data)
+
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.SYMTYPE
+            info.linkpath = evil_link
+            tar.addfile(info)
+
+            info = tarfile.TarInfo("symbol_link")
+            info.type = tarfile.REGTYPE
+            data = io.BytesIO(b"evil\n")
+            info.size = len(data.getbuffer())
+            tar.addfile(info, fileobj=data)
+
+        # Does not error, but the file also shouldn't exist.
+        untar_file(test_tar, self.tempdir)
+        assert not os.path.exists(evil_path)
+
 
 def test_unpack_tar_unicode(tmpdir: Path) -> None:
     test_tar = tmpdir / "test.tar"
