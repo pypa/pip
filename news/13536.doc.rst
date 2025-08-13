@@ -1,0 +1,1 @@
+Add `pip completion` documentation.
