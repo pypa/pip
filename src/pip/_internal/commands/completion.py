@@ -81,6 +81,8 @@ class CompletionCommand(Command):
     """A helper command to be used for command completion."""
 
     ignore_require_venv = True
+    usage = """
+      %prog [options]"""
 
     def add_options(self) -> None:
         self.cmd_opts.add_option(
