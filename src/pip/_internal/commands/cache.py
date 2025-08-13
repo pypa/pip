@@ -202,7 +202,7 @@ class CacheCommand(Command):
                     file.unlink(missing_ok=True)
                 subdir.rmdir()
             except FileNotFoundError:
-                # If the file is already gone, that's fine.
+                # If the directory is already gone, that's fine.
                 pass
             logger.verbose("Removed %s", subdir)
 
