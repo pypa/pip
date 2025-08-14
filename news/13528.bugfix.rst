@@ -1,1 +1,1 @@
-selfcheck file in cache directory has same permissions as the rest of the cache.
+Ensure the self-check files in the cache has same permissions as the rest of the cache.

@@ -189,10 +189,11 @@ class TestSelfCheckState:
             "last_check": "2000-01-01T00:00:00+00:00",
             "pypi_version": "1.0.0",
         }
-
+		# Check that the self-check cache entries inherit the root cache permissions.
         statefile_permissions = os.stat(expected_path).st_mode & 0o666
         selfcheckdir_permissions = os.stat(cache_dir / "selfcheck").st_mode & 0o666
-        assert statefile_permissions == selfcheckdir_permissions
+        cache_permissions = os.stat(cache_dir).st_mode & 0o666
+        assert statefile_permissions == selfcheckdir_permissions == cache_permissions
 
 
 @patch("pip._internal.self_outdated_check._self_version_check_logic")
