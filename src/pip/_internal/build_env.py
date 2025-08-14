@@ -147,8 +147,8 @@ class SubprocessBuildEnvironmentInstaller:
                     "build constraints in the future,"
                 ),
                 replacement=(
-                    "to specify build constraints use --build-constraint or "
-                    "PIP_BUILD_CONSTRAINT, to disable this warning without "
+                    "to specify build constraints using --build-constraint or "
+                    "PIP_BUILD_CONSTRAINT. To disable this warning without "
                     "any build constraints set --use-feature=build-constraint or "
                     'PIP_USE_FEATURE="build-constraint"'
                 ),
