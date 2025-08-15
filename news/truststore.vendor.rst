@@ -1,1 +1,1 @@
-Upgrade truststore to 0.10.3
+Upgrade truststore to 0.10.4
