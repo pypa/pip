@@ -14,14 +14,8 @@ class TestExcludeNewer:
         self, script: PipTestEnvironment, data: TestData
     ) -> None:
         """Test that --exclude-newer-than fails with invalid date format."""
-        result = script.pip(
-            "install",
-            "--no-index",
-            "-f",
-            data.packages,
-            "--exclude-newer-than=invalid-date",
-            "simple",
-            expect_error=True,
+        result = script.pip_install_local(
+            "--exclude-newer-than=invalid-date", "simple", expect_error=True
         )
 
         # Should fail with date parsing error
