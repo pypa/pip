@@ -270,7 +270,15 @@ def _untar_without_filter(
             ensure_dir(path)
         elif member.issym():
             try:
-                tar._find_link_target(member)  # type: ignore[attr-defined]
+                # Try to verify that the link points to
+                # a file that exists within the tar file.
+                try:
+                    tar._find_link_target(member)  # type: ignore[attr-defined]
+                except AttributeError:
+                    logger.warning(
+                        "Could not verify link %s in tar file %s", member.name, filename
+                    )
+
                 tar._extract_member(member, path)
             except Exception as exc:
                 # Some corrupt tar files seem to produce this
