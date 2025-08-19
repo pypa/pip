@@ -47,6 +47,7 @@ class TestExcludeNewer:
         result = script.pip(
             "install",
             "--dry-run",
+            "--no-deps",
             "--exclude-newer-than=2010-01-01T00:00:00",
             "requests==2.0.0",
             expect_error=True,
@@ -58,6 +59,7 @@ class TestExcludeNewer:
         result = script.pip(
             "install",
             "--dry-run",
+            "--no-deps",
             "--exclude-newer-than=2030-01-01T00:00:00",
             "requests==2.0.0",
             expect_error=False,
@@ -79,6 +81,7 @@ class TestExcludeNewer:
             result = script.pip(
                 "install",
                 "--dry-run",
+                "--no-deps",
                 f"--exclude-newer-than={date_format}",
                 "requests==2.0.0",
                 expect_error=False,
