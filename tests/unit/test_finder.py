@@ -11,19 +11,14 @@ from pip._vendor.packaging.version import parse as parse_version
 
 import pip._internal.utils.compatibility_tags
 from pip._internal.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
-from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
     Link,
     LinkEvaluator,
     LinkType,
-    PackageFinder,
 )
-from pip._internal.models.search_scope import SearchScope
-from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
-from pip._internal.network.session import PipSession
 from pip._internal.req.constructors import install_req_from_line
 
 from tests.lib import TestData, make_test_finder
@@ -587,63 +582,28 @@ class TestPackageFinderExcludeNewerThan:
 
     def test_package_finder_create_with_exclude_newer_than(self) -> None:
         """Test that PackageFinder.create() accepts exclude_newer_than parameter."""
-        session = PipSession()
-        search_scope = SearchScope([], [], no_index=False)
-        link_collector = LinkCollector(session, search_scope)
-        selection_prefs = SelectionPreferences(
-            allow_yanked=False,
-            allow_all_prereleases=False,
-        )
         exclude_newer_than = datetime.datetime(
             2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
         )
 
-        finder = PackageFinder.create(
-            link_collector=link_collector,
-            selection_prefs=selection_prefs,
-            exclude_newer_than=exclude_newer_than,
-        )
+        finder = make_test_finder(exclude_newer_than=exclude_newer_than)
 
         assert finder._exclude_newer_than == exclude_newer_than
 
     def test_package_finder_make_link_evaluator_with_exclude_newer_than(self) -> None:
         """Test that PackageFinder creates LinkEvaluator with exclude_newer_than."""
-
-        session = PipSession()
-        search_scope = SearchScope([], [], no_index=False)
-        link_collector = LinkCollector(session, search_scope)
-        selection_prefs = SelectionPreferences(
-            allow_yanked=False,
-            allow_all_prereleases=False,
-        )
         exclude_newer_than = datetime.datetime(
             2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
         )
 
-        finder = PackageFinder.create(
-            link_collector=link_collector,
-            selection_prefs=selection_prefs,
-            exclude_newer_than=exclude_newer_than,
-        )
+        finder = make_test_finder(exclude_newer_than=exclude_newer_than)
 
         link_evaluator = finder.make_link_evaluator("test-package")
         assert link_evaluator._exclude_newer_than == exclude_newer_than
 
     def test_package_finder_exclude_newer_than_none(self) -> None:
         """Test that PackageFinder works correctly when exclude_newer_than is None."""
-        session = PipSession()
-        search_scope = SearchScope([], [], no_index=False)
-        link_collector = LinkCollector(session, search_scope)
-        selection_prefs = SelectionPreferences(
-            allow_yanked=False,
-            allow_all_prereleases=False,
-        )
-
-        finder = PackageFinder.create(
-            link_collector=link_collector,
-            selection_prefs=selection_prefs,
-            exclude_newer_than=None,
-        )
+        finder = make_test_finder(exclude_newer_than=None)
 
         assert finder._exclude_newer_than is None
 
