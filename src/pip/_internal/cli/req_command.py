@@ -146,7 +146,9 @@ class RequirementCommand(IndexGroupCommand):
         # Handle build constraints
         build_constraints = getattr(options, "build_constraints", [])
         constraints = getattr(options, "constraints", [])
-        build_constraint_feature_enabled = "build-constraint" in options.features_enabled
+        build_constraint_feature_enabled = (
+            "build-constraint" in options.features_enabled
+        )
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
