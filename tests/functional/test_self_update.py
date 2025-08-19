@@ -1,12 +1,16 @@
 # Check that pip can update itself correctly
 
+from pathlib import Path
 from typing import Any
 
 
-def test_self_update_editable(script: Any, pip_src: Any) -> None:
+def test_self_update_editable(script: Any, pip_src: Any, common_wheels: Path) -> None:
     # Test that if we have an environment with pip installed in non-editable
     # mode, that pip can safely update itself to an editable install.
     # See https://github.com/pypa/pip/issues/12666 for details.
+
+    # Install flit-core (build backend) since we use --no-build-isolation
+    script.pip("install", "--no-index", "-f", common_wheels, "flit-core")
 
     # Step 1. Install pip as non-editable. This is expected to succeed as
     # the existing pip in the environment is installed in editable mode, so

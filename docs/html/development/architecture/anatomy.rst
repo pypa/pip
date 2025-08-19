@@ -18,7 +18,6 @@ The ``README``, license, ``pyproject.toml``, and so on are in the top level.
 
 * ``AUTHORS.txt``
 * ``LICENSE.txt``
-* ``MANIFEST.in``
 * ``NEWS.rst``
 * ``pyproject.toml``
 * ``README.rst``
