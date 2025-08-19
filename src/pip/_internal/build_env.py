@@ -236,7 +236,7 @@ class SubprocessBuildEnvironmentInstaller:
                 args.extend(["--build-constraint", constraint_file])
 
         if self._build_constraint_feature_enabled and not self._build_constraints:
-            # If there are no build constraints but the build constraint
+            # If there are no build constraints but the build constraints
             # feature is enabled then we must ignore regular constraints
             # in the isolated build environment
             extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
