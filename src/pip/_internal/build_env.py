@@ -31,6 +31,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Global flag to track if deprecation warning has been shown
+_DEPRECATION_WARNING_SHOWN = False
+
 
 class ExtraEnviron(TypedDict, total=False):
     extra_environ: dict[str, str]
@@ -123,15 +126,25 @@ class SubprocessBuildEnvironmentInstaller:
         Check for deprecation warning: PIP_CONSTRAINT affecting build environments.
 
         This warns when build-constraint feature is NOT enabled and PIP_CONSTRAINT
-        is not empty.
+        is not empty, but only shows the warning once per process.
         """
+        global _DEPRECATION_WARNING_SHOWN
+
         if self._build_constraint_feature_enabled:
+            return
+
+        if _DEPRECATION_WARNING_SHOWN:
             return
 
         pip_constraint = os.environ.get("PIP_CONSTRAINT")
         if not pip_constraint or not pip_constraint.strip():
             return
 
+        # Don't warn if we're in a build environment that ignores constraints
+        if os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1":
+            return
+
+        _DEPRECATION_WARNING_SHOWN = True
         deprecated(
             reason=(
                 "Setting PIP_CONSTRAINT will not affect "
