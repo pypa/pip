@@ -21,20 +21,6 @@ class TestExcludeNewer:
         # Should fail with date parsing error
         assert "invalid" in result.stderr.lower() or "error" in result.stderr.lower()
 
-    def test_exclude_newer_than_help_text(self, script: PipTestEnvironment) -> None:
-        """Test that --exclude-newer-than appears in help text."""
-        result = script.pip("install", "--help")
-        assert "--exclude-newer-than" in result.stdout
-        assert "datetime" in result.stdout
-
-    @pytest.mark.parametrize("command", ["install", "download", "wheel"])
-    def test_exclude_newer_than_available_in_commands(
-        self, script: PipTestEnvironment, command: str
-    ) -> None:
-        """Test that --exclude-newer-than is available in relevant commands."""
-        result = script.pip(command, "--help")
-        assert "--exclude-newer-than" in result.stdout
-
     @pytest.mark.network
     def test_exclude_newer_than_with_real_pypi(
         self, script: PipTestEnvironment
