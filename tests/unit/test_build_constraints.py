@@ -82,7 +82,7 @@ class TestSubprocessBuildEnvironmentInstaller:
             in message
         )
         assert (
-            "to specify build constraints use "
+            "to specify build constraints using "
             "--build-constraint or PIP_BUILD_CONSTRAINT" in message
         )
 
