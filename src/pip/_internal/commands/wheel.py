@@ -107,10 +107,7 @@ class WheelCommand(RequirementCommand):
 
         session = self.get_default_session(options)
 
-        finder = self._build_package_finder(
-            options=options,
-            session=session,
-        )
+        finder = self._build_package_finder(options, session)
 
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)

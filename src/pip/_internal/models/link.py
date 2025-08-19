@@ -11,7 +11,11 @@ import urllib.parse
 import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    NamedTuple,
+)
 
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.deprecation import deprecated
