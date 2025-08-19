@@ -29,14 +29,14 @@ if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.req.req_install import InstallRequirement
 
+    class ExtraEnviron(TypedDict, total=False):
+        extra_environ: dict[str, str]
+
+
 logger = logging.getLogger(__name__)
 
 # Global flag to track if deprecation warning has been shown
 _DEPRECATION_WARNING_SHOWN = False
-
-
-class ExtraEnviron(TypedDict, total=False):
-    extra_environ: dict[str, str]
 
 
 def _dedup(a: str, b: str) -> tuple[str] | tuple[str, str]:
@@ -227,7 +227,6 @@ class SubprocessBuildEnvironmentInstaller:
             args.append("--prefer-binary")
 
         # Handle build constraints
-        extra_environ: ExtraEnviron = {}
         if self._build_constraint_feature_enabled:
             args.extend(["--use-feature", "build-constraint"])
 
@@ -239,6 +238,7 @@ class SubprocessBuildEnvironmentInstaller:
                 args.extend(["--constraint", constraint_file])
                 args.extend(["--build-constraint", constraint_file])
 
+        extra_environ: ExtraEnviron = {}
         if self._build_constraint_feature_enabled and not self._build_constraints:
             # If there are no build constraints but the build constraints
             # feature is enabled then we must ignore regular constraints
