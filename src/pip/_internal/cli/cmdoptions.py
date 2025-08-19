@@ -103,7 +103,7 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
 
 
 def check_build_constraints(options: Values) -> None:
-    """Function for validating build constraint options.
+    """Function for validating build constraints options.
 
     :param options: The OptionParser options.
     """
@@ -443,7 +443,7 @@ def constraints() -> Option:
     )
 
 
-def build_constraint() -> Option:
+def build_constraints() -> Option:
     return Option(
         "--build-constraint",
         dest="build_constraints",
