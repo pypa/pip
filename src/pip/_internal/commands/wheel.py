@@ -107,7 +107,6 @@ class WheelCommand(RequirementCommand):
         finder = self._build_package_finder(
             options=options,
             session=session,
-            exclude_newer_than=options.exclude_newer_than,
         )
 
         options.wheel_dir = normalize_path(options.wheel_dir)
