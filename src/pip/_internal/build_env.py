@@ -122,39 +122,30 @@ class SubprocessBuildEnvironmentInstaller:
         """
         Check for deprecation warning: PIP_CONSTRAINT affecting build environments.
 
-        This warns when build-constraint feature is NOT enabled but regular constraints
-        match what PIP_CONSTRAINT environment variable points to.
+        This warns when build-constraint feature is NOT enabled and PIP_CONSTRAINT
+        is not empty.
         """
         if self._build_constraint_feature_enabled:
             return
 
-        if self._build_constraints:
+        pip_constraint = os.environ.get("PIP_CONSTRAINT")
+        if not pip_constraint or not pip_constraint.strip():
             return
 
-        if not self._constraints:
-            return
-
-        if not os.environ.get("PIP_CONSTRAINT"):
-            return
-
-        pip_constraint_files = [
-            f for f in os.environ["PIP_CONSTRAINT"].split() if f.strip()
-        ]
-        if pip_constraint_files and pip_constraint_files == self._constraints:
-            deprecated(
-                reason=(
-                    "Setting PIP_CONSTRAINT will not affect "
-                    "build constraints in the future,"
-                ),
-                replacement=(
-                    "to specify build constraints using --build-constraint or "
-                    "PIP_BUILD_CONSTRAINT. To disable this warning without "
-                    "any build constraints set --use-feature=build-constraint or "
-                    'PIP_USE_FEATURE="build-constraint"'
-                ),
-                gone_in="26.2",
-                issue=None,
-            )
+        deprecated(
+            reason=(
+                "Setting PIP_CONSTRAINT will not affect "
+                "build constraints in the future,"
+            ),
+            replacement=(
+                "to specify build constraints using --build-constraint or "
+                "PIP_BUILD_CONSTRAINT. To disable this warning without "
+                "any build constraints set --use-feature=build-constraint or "
+                'PIP_USE_FEATURE="build-constraint"'
+            ),
+            gone_in="26.2",
+            issue=None,
+        )
 
     def install(
         self,

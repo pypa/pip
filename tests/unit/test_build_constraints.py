@@ -19,27 +19,46 @@ class TestSubprocessBuildEnvironmentInstaller:
 
     @mock.patch.dict(os.environ, {}, clear=True)
     def test_deprecation_check_no_pip_constraint(self) -> None:
-        """Test no deprecation warning is shown when PIP_CONSTRAINT is not set."""
+        """Test no deprecation warning when PIP_CONSTRAINT is not set."""
         finder = make_test_finder()
         installer = SubprocessBuildEnvironmentInstaller(
             finder,
-            constraints=["constraints.txt"],
             build_constraint_feature_enabled=False,
         )
 
         # Should not raise any warning
         installer._deprecation_constraint_check()
 
-    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
-    def test_deprecation_check_feature_enabled(self) -> None:
-        """
-        Test no deprecation warning is shown when
-        build-constraint feature is enabled
-        """
+    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": ""})
+    def test_deprecation_check_empty_pip_constraint(self) -> None:
+        """Test no deprecation warning for empty PIP_CONSTRAINT."""
         finder = make_test_finder()
         installer = SubprocessBuildEnvironmentInstaller(
             finder,
-            constraints=["constraints.txt"],
+            build_constraint_feature_enabled=False,
+        )
+
+        # Should not raise any warning since PIP_CONSTRAINT is empty
+        installer._deprecation_constraint_check()
+
+    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "   "})
+    def test_deprecation_check_whitespace_pip_constraint(self) -> None:
+        """Test no deprecation warning for whitespace-only PIP_CONSTRAINT."""
+        finder = make_test_finder()
+        installer = SubprocessBuildEnvironmentInstaller(
+            finder,
+            build_constraint_feature_enabled=False,
+        )
+
+        # Should not raise any warning since PIP_CONSTRAINT is only whitespace
+        installer._deprecation_constraint_check()
+
+    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
+    def test_deprecation_check_feature_enabled(self) -> None:
+        """Test no deprecation warning when build-constraint feature is enabled."""
+        finder = make_test_finder()
+        installer = SubprocessBuildEnvironmentInstaller(
+            finder,
             build_constraint_feature_enabled=True,
         )
 
@@ -47,28 +66,12 @@ class TestSubprocessBuildEnvironmentInstaller:
         installer._deprecation_constraint_check()
 
     @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
-    def test_deprecation_check_constraint_mismatch(self) -> None:
-        """
-        Test no deprecation warning is shown when
-        PIP_CONSTRAINT doesn't match regular constraints.
-        """
-        finder = make_test_finder()
-        installer = SubprocessBuildEnvironmentInstaller(
-            finder,
-            constraints=["different.txt"],
-            build_constraint_feature_enabled=False,
-        )
-
-        # Should not raise any warning
-        installer._deprecation_constraint_check()
-
-    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
     def test_deprecation_check_warning_shown(self) -> None:
-        """Test deprecation warning is shown when conditions are met."""
+        """Test deprecation warning emitted when PIP_CONSTRAINT is set
+        and build-constraint is not enabled."""
         finder = make_test_finder()
         installer = SubprocessBuildEnvironmentInstaller(
             finder,
-            constraints=["constraints.txt"],
             build_constraint_feature_enabled=False,
         )
 
@@ -86,44 +89,15 @@ class TestSubprocessBuildEnvironmentInstaller:
             "--build-constraint or PIP_BUILD_CONSTRAINT" in message
         )
 
-    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraint1.txt constraint2.txt"})
-    def test_deprecation_check_multiple_constraints(self) -> None:
-        """Test deprecation warning works with multiple constraints."""
-        finder = make_test_finder()
-        installer = SubprocessBuildEnvironmentInstaller(
-            finder,
-            constraints=["constraint1.txt", "constraint2.txt"],
-            build_constraint_feature_enabled=False,
-        )
-
-        with pytest.warns(PipDeprecationWarning):
-            installer._deprecation_constraint_check()
-
-    @mock.patch.dict(
-        os.environ, {"PIP_CONSTRAINT": "constraint1.txt constraint2.txt extra.txt"}
-    )
-    def test_deprecation_check_partial_match_no_warning(self) -> None:
-        """Test no deprecation warning is shown when only partial match."""
-        finder = make_test_finder()
-        installer = SubprocessBuildEnvironmentInstaller(
-            finder,
-            constraints=["constraint1.txt", "constraint2.txt"],
-            build_constraint_feature_enabled=False,
-        )
-
-        # Should not raise any warning since PIP_CONSTRAINT has extra file
-        installer._deprecation_constraint_check()
-
     @mock.patch("pip._internal.build_env.call_subprocess")
     @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
     def test_install_calls_deprecation_check(
         self, mock_call_subprocess: mock.Mock, tmp_path: Path
     ) -> None:
-        """Test install method calls deprecation check."""
+        """Test install method calls deprecation check and proceeds with warning."""
         finder = make_test_finder()
         installer = SubprocessBuildEnvironmentInstaller(
             finder,
-            constraints=["constraints.txt"],
             build_constraint_feature_enabled=False,
         )
         prefix = _Prefix(str(tmp_path))
