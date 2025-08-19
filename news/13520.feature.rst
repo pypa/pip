@@ -1,1 +1,2 @@
-Add ``--exclude-newer-than`` option to exclude packages uploaded after a given date.
+Add ``--exclude-newer-than`` option to exclude packages uploaded after a given date,
+only effective with indexes that provide upload-time metadata.

@@ -578,7 +578,10 @@ def test_find_all_candidates_find_links_and_index(data: TestData) -> None:
 
 
 class TestPackageFinderExcludeNewerThan:
-    """Test PackageFinder integration with exclude_newer_than functionality."""
+    """Test PackageFinder integration with exclude_newer_than functionality.
+
+    Only effective with indexes that provide upload-time metadata.
+    """
 
     def test_package_finder_create_with_exclude_newer_than(self) -> None:
         """Test that PackageFinder.create() accepts exclude_newer_than parameter."""

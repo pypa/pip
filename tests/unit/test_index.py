@@ -366,7 +366,10 @@ def test_filter_unallowed_hashes__log_message_with_no_match(
 
 
 class TestLinkEvaluatorExcludeNewerThan:
-    """Test the exclude_newer_than functionality in LinkEvaluator."""
+    """Test the exclude_newer_than functionality in LinkEvaluator.
+
+    Only effective with indexes that provide upload-time metadata.
+    """
 
     def make_test_link_evaluator(
         self, exclude_newer_than: datetime.datetime | None = None

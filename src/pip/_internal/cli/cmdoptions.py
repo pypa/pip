@@ -808,6 +808,10 @@ def _handle_exclude_newer_than(
 
     Parses an ISO 8601 datetime string. If no timezone is specified in the string,
     local timezone is used.
+
+    Note: This option only works with indexes that provide upload-time metadata
+    as specified in the simple repository API:
+    https://packaging.python.org/en/latest/specifications/simple-repository-api/
     """
     if value is None:
         return None
@@ -836,10 +840,9 @@ exclude_newer_than: Callable[..., Option] = partial(
     callback=_handle_exclude_newer_than,
     type="str",
     help=(
-        "Exclude packages newer than given time. This should be an ISO 8601 string. "
-        "If no timezone is specified, local time is used. "
-        "For consistency across environments, specify the timezone explicitly "
-        "e.g., '2023-01-01T00:00:00Z' for UTC or '2023-01-01T00:00:00-05:00' for UTC-5."
+        "Exclude packages newer than given time. Accepts ISO 8601 strings "
+        "(e.g., '2023-01-01T00:00:00Z'). Uses local timezone if none specified. "
+        "Only effective when installing from indexes that provide upload-time metadata."
     ),
 )
 
