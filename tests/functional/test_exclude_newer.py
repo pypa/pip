@@ -1,4 +1,7 @@
-"""Tests for pip install --exclude-newer-than."""
+"""Tests for pip install --exclude-newer-than.
+
+Only effective with indexes that provide upload-time metadata.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +11,10 @@ from tests.lib import PipTestEnvironment, TestData
 
 
 class TestExcludeNewer:
-    """Test --exclude-newer-than functionality."""
+    """Test --exclude-newer-than functionality.
+
+    Only effective with indexes that provide upload-time metadata.
+    """
 
     def test_exclude_newer_than_invalid_date(
         self, script: PipTestEnvironment, data: TestData
