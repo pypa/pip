@@ -121,20 +121,7 @@ def test_handle_exclude_newer_than_naive_dates(
     assert isinstance(result, datetime.datetime)
 
     # Check that the date/time components match
-    (
-        expected_year,
-        expected_month,
-        expected_day,
-        expected_hour,
-        expected_minute,
-        expected_second,
-    ) = expected_date_time
-    assert result.year == expected_year
-    assert result.month == expected_month
-    assert result.day == expected_day
-    assert result.hour == expected_hour
-    assert result.minute == expected_minute
-    assert result.second == expected_second
+    assert result.timetuple()[:6] == expected_date_time
 
     # Check that local timezone was applied (result should not be timezone-naive)
     assert result.tzinfo is not None
