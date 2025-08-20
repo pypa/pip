@@ -1,8 +1,3 @@
 Add support for build constraints via the ``--build-constraint`` option. This
 allows constraining the versions of packages used during the build process
-(e.g., setuptools).
-
-When using ``--build-constraint``, you can no longer pass constraints to
-isolated build environments via the ``PIP_CONSTRAINT`` environment variable.
-To opt in to this behavior without specifying any build constraints, use
-``--use-feature=build-constraint``.
+(e.g., setuptools) without affecting the final installation.
