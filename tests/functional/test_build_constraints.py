@@ -53,11 +53,6 @@ def _run_pip_install_with_build_constraints(
     return script.pip(*args, expect_error=expect_error)
 
 
-def _assert_successful_installation(result: TestPipResult, package_name: str) -> None:
-    """Assert that the package was successfully installed."""
-    assert f"Successfully installed {package_name}" in result.stdout
-
-
 def _run_pip_install_with_build_constraints_no_feature_flag(
     script: PipTestEnvironment,
     project_dir: Path,
@@ -85,8 +80,8 @@ def test_build_constraints_basic_functionality_simple(
     result = _run_pip_install_with_build_constraints(
         script=script, project_dir=project_dir, build_constraints_file=constraints_file
     )
-    _assert_successful_installation(
-        result=result, package_name="test_build_constraints"
+    result.assert_installed(
+        "test-build-constraints", editable=False, without_files=["."]
     )
 
 
@@ -139,7 +134,7 @@ def test_build_constraints_environment_isolation_simple(
         build_constraints_file=constraints_file,
         extra_args=["--isolated"],
     )
-    _assert_successful_installation(result=result, package_name="test_env_isolation")
+    result.assert_installed("test-env-isolation", editable=False, without_files=["."])
 
 
 def test_build_constraints_file_not_found(
@@ -155,8 +150,8 @@ def test_build_constraints_file_not_found(
         project_dir=project_dir,
         build_constraints_file=missing_constraints,
     )
-    _assert_successful_installation(
-        result=result, package_name="test_missing_constraints"
+    result.assert_installed(
+        "test-missing-constraints", editable=False, without_files=["."]
     )
 
 
@@ -173,4 +168,4 @@ def test_build_constraints_without_feature_flag(
     )
     # Should succeed now that --build-constraint auto-enables the feature
     assert result.returncode == 0
-    _assert_successful_installation(result=result, package_name="test_no_feature")
+    result.assert_installed("test-no-feature", editable=False, without_files=["."])
