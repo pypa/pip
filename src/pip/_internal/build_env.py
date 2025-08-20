@@ -130,7 +130,7 @@ class SubprocessBuildEnvironmentInstaller:
         """
         global _DEPRECATION_WARNING_SHOWN
 
-        if self._build_constraint_feature_enabled:
+        if self._build_constraint_feature_enabled or self._build_constraints:
             return
 
         if _DEPRECATION_WARNING_SHOWN:
