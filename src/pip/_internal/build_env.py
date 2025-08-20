@@ -140,10 +140,6 @@ class SubprocessBuildEnvironmentInstaller:
         if not pip_constraint or not pip_constraint.strip():
             return
 
-        # Don't warn if we're in a build environment that ignores constraints
-        if os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1":
-            return
-
         _DEPRECATION_WARNING_SHOWN = True
         deprecated(
             reason=(

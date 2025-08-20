@@ -136,20 +136,3 @@ class TestSubprocessBuildEnvironmentInstaller:
             warnings.simplefilter("always")
             installer._deprecation_constraint_check()
         assert len(warning_list) == 0
-
-    @mock.patch.dict(
-        os.environ,
-        {"PIP_CONSTRAINT": "constraints.txt", "_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"},
-    )
-    def test_deprecation_check_no_warning_when_ignoring_constraints(self) -> None:
-        """Test no deprecation warning when _PIP_IN_BUILD_IGNORE_CONSTRAINTS is set."""
-        finder = make_test_finder()
-        installer = SubprocessBuildEnvironmentInstaller(
-            finder,
-            build_constraint_feature_enabled=False,
-        )
-
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            installer._deprecation_constraint_check()
-        assert len(warning_list) == 0
