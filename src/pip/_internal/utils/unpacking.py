@@ -275,7 +275,8 @@ def _untar_without_filter(
                     tar.getmember(linkname)
                 except KeyError:
                     raise KeyError(linkname)
-            raise KeyError(linkname)
+            else:
+                raise KeyError(linkname)
 
     for member in tar.getmembers():
         fn = member.name
