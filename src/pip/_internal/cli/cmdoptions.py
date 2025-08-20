@@ -113,6 +113,20 @@ def check_build_constraints(options: Values) -> None:
                 "--build-constraint cannot be used with --no-build-isolation."
             )
 
+        # Import here to avoid circular imports
+        from pip._internal.network.session import PipSession
+        from pip._internal.req.req_file import get_file_content
+
+        session = PipSession()
+        try:
+            # Eagerly check build constraints file contents
+            # is valid so that we don't fail in when trying
+            # to check constraints in isolated build process
+            for constraint_file in options.build_constraints:
+                get_file_content(constraint_file, session)
+        finally:
+            session.close()
+
 
 def _path_option_check(option: Option, opt: str, value: str) -> str:
     return os.path.expanduser(value)

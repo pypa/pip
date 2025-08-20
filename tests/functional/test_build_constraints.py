@@ -149,10 +149,10 @@ def test_build_constraints_file_not_found(
         script=script,
         project_dir=project_dir,
         build_constraints_file=missing_constraints,
+        expect_error=True,
     )
-    result.assert_installed(
-        "test-missing-constraints", editable=False, without_files=["."]
-    )
+    assert "Could not open requirements file" in result.stderr
+    assert "No such file or directory" in result.stderr
 
 
 def test_build_constraints_without_feature_flag(
