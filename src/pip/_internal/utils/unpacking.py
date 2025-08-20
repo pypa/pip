@@ -266,6 +266,15 @@ def _untar_without_filter(
         try:
             tar.getmember(linkname)
         except KeyError:
+            if "\\" in linkname or "/" in linkname:
+                if "\\" in linkname:
+                    linkname = linkname.replace("\\", "/")
+                else:
+                    linkname = linkname.replace("/", "\\")
+                try:
+                    tar.getmember(linkname)
+                except KeyError:
+                    raise KeyError(linkname)
             raise KeyError(linkname)
 
     for member in tar.getmembers():
