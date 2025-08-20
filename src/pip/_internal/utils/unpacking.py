@@ -255,6 +255,17 @@ def _untar_without_filter(
     leading: bool,
 ) -> None:
     """Fallback for Python without tarfile.data_filter"""
+
+    def _check_link_target(tar: tarfile.TarFile, tarinfo: tarfile.TarInfo) -> None:
+        linkname = "/".join(
+            filter(None, (os.path.dirname(tarinfo.name), tarinfo.linkname))
+        )
+
+        try:
+            tar.getmember(linkname)
+        except KeyError:
+            raise KeyError(linkname)
+
     for member in tar.getmembers():
         fn = member.name
         if leading:
@@ -269,6 +280,14 @@ def _untar_without_filter(
         if member.isdir():
             ensure_dir(path)
         elif member.issym():
+            try:
+                _check_link_target(tar, member)
+            except KeyError as exc:
+                message = (
+                    "The tar file ({}) has a file ({}) trying to install "
+                    "outside target directory ({})"
+                )
+                raise InstallationError(message.format(filename, member.name, exc))
             try:
                 tar._extract_member(member, path)
             except Exception as exc:
