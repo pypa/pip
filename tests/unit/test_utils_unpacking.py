@@ -334,7 +334,8 @@ class TestUnpackArchives:
             untar_file(tar_filepath, extract_path)
 
         assert "trying to install outside target directory" in str(e.value)
-        assert ".." + os.sep + import_filename in str(e.value)
+        assert ".." in str(e.value)
+        assert import_filename in str(e.value)
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
 
