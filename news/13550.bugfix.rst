@@ -1,2 +1,2 @@
-Add the _check_link_targetfunction to validate the file pointed to by a symlink. If path traversal 
+Add the _check_link_targetfunction to validate the file pointed to by a symlink. If path traversal
 is detected, it should raise an InstallationErrorexception, similar to is_within_directory.

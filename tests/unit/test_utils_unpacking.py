@@ -239,7 +239,7 @@ class TestUnpackArchives:
         with open(os.path.join(unpack_dir, "symlink.txt"), "rb") as f:
             assert f.read() == content
 
-    def test_unpack_normal_tar_links_no_data_filter(
+    def test_unpack_normal_tar_link1_no_data_filter(
         self, monkeypatch: MonkeyPatch
     ) -> None:
         """
@@ -272,6 +272,41 @@ class TestUnpackArchives:
         assert link_path == "normal_file"
 
         with open(os.path.join(extract_path, "normal_symlink"), "rb") as f:
+            assert f.read() == b"normal\n"
+
+    def test_unpack_normal_tar_link2_no_data_filter(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        """
+        Test unpacking a normal tar with file containing soft links, but no data_filter
+        """
+        if hasattr(tarfile, "data_filter"):
+            monkeypatch.delattr("tarfile.data_filter")
+
+        tar_filename = "test_tar_links_no_data_filter.tar"
+        tar_filepath = os.path.join(self.tempdir, tar_filename)
+
+        extract_path = os.path.join(self.tempdir, "extract_path")
+
+        with tarfile.open(tar_filepath, "w") as tar:
+            file_data = io.BytesIO(b"normal\n")
+            normal_file_tarinfo = tarfile.TarInfo(name="normal_file")
+            normal_file_tarinfo.size = len(file_data.getbuffer())
+            tar.addfile(normal_file_tarinfo, fileobj=file_data)
+
+            info = tarfile.TarInfo("sub/normal_symlink")
+            info.type = tarfile.SYMTYPE
+            info.linkpath = ".." + os.path.sep + "normal_file"
+            tar.addfile(info)
+
+        untar_file(tar_filepath, extract_path)
+
+        assert os.path.islink(os.path.join(extract_path, "sub", "normal_symlink"))
+
+        link_path = os.readlink(os.path.join(extract_path, "sub", "normal_symlink"))
+        assert link_path == ".." + os.path.sep + "normal_file"
+
+        with open(os.path.join(extract_path, "sub", "normal_symlink"), "rb") as f:
             assert f.read() == b"normal\n"
 
     def test_unpack_evil_tar_link1_no_data_filter(

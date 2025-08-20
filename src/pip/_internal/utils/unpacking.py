@@ -261,6 +261,8 @@ def _untar_without_filter(
             filter(None, (os.path.dirname(tarinfo.name), tarinfo.linkname))
         )
 
+        linkname = os.path.normpath(linkname)
+
         try:
             tar.getmember(linkname)
         except KeyError:
