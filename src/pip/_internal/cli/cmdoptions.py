@@ -230,13 +230,13 @@ progress_bar: Callable[..., Option] = partial(
     dest="progress_bar",
     type="choice",
     choices=ProgressBarType.choices(),
-    default=ProgressBarType.ON.value,
+    default=ProgressBarType.AUTO.value,
     help=(
-        "Specify whether the progress bar should be used"
+        "Specify whether the progress bar should be used. In 'auto'"
+        " mode, --quiet will suppress all progress bars."
         f" {ProgressBarType.help_choices()} (default: %default)"
     ),
 )
-
 
 log: Callable[..., Option] = partial(
     PipOption,

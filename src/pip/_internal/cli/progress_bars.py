@@ -184,6 +184,7 @@ class ProgressBarType(Enum):
 
     The values of this enum are used as the choices for the --progress-var CLI flag."""
 
+    AUTO = "auto"
     ON = "on"
     OFF = "off"
     RAW = "raw"
@@ -212,6 +213,12 @@ def get_download_progress_renderer(
     """
     if size is not None:
         assert size >= 0
+
+    if bar_type == ProgressBarType.AUTO:
+        if quiet:
+            bar_type = ProgressBarType.OFF
+        else:
+            bar_type = ProgressBarType.ON
 
     # TODO: use 3.10+ match statement!
     if bar_type == ProgressBarType.ON:
