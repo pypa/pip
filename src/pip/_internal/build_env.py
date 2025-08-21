@@ -167,8 +167,8 @@ class SubprocessBuildEnvironmentInstaller:
             args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
-        if finder.exclude_newer_than:
-            args.extend(["--exclude-newer-than", finder.exclude_newer_than.isoformat()])
+        if finder.uploaded_prior_to:
+            args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
         args.append("--")
         args.extend(requirements)
         with open_spinner(f"Installing {kind}") as spinner:

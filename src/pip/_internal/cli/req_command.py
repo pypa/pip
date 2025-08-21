@@ -348,5 +348,5 @@ class RequirementCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
-            exclude_newer_than=options.exclude_newer_than,
+            uploaded_prior_to=options.uploaded_prior_to,
         )

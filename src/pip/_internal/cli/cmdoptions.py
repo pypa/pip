@@ -798,13 +798,11 @@ ignore_requires_python: Callable[..., Option] = partial(
 )
 
 
-def _handle_exclude_newer_than(
+def _handle_uploaded_prior_to(
     option: Option, opt: str, value: str, parser: OptionParser
 ) -> None:
     """
-    Process a value provided for the --exclude-newer-than option.
-
-    This is an optparse.Option callback for the --exclude-newer-than option.
+    This is an optparse.Option callback for the --uploaded-prior-to option.
 
     Parses an ISO 8601 datetime string. If no timezone is specified in the string,
     local timezone is used.
@@ -817,32 +815,33 @@ def _handle_exclude_newer_than(
         return None
 
     try:
-        exclude_newer_than = parse_iso_datetime(value)
+        uploaded_prior_to = parse_iso_datetime(value)
         # Use local timezone if no offset is given in the ISO string.
-        if exclude_newer_than.tzinfo is None:
-            exclude_newer_than = exclude_newer_than.astimezone()
-        parser.values.exclude_newer_than = exclude_newer_than
+        if uploaded_prior_to.tzinfo is None:
+            uploaded_prior_to = uploaded_prior_to.astimezone()
+        parser.values.uploaded_prior_to = uploaded_prior_to
     except ValueError as exc:
         msg = (
-            f"invalid --exclude-newer-than value: {value!r}: {exc}. "
+            f"invalid --uploaded-prior-to value: {value!r}: {exc}. "
             f"Expected an ISO 8601 datetime string, "
             f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
         )
         raise_option_error(parser, option=option, msg=msg)
 
 
-exclude_newer_than: Callable[..., Option] = partial(
+uploaded_prior_to: Callable[..., Option] = partial(
     Option,
-    "--exclude-newer-than",
-    dest="exclude_newer_than",
+    "--uploaded-prior-to",
+    dest="uploaded_prior_to",
     metavar="datetime",
     action="callback",
-    callback=_handle_exclude_newer_than,
+    callback=_handle_uploaded_prior_to,
     type="str",
     help=(
-        "Exclude packages newer than given time. Accepts ISO 8601 strings "
-        "(e.g., '2023-01-01T00:00:00Z'). Uses local timezone if none specified. "
-        "Only effective when installing from indexes that provide upload-time metadata."
+        "Only consider packages uploaded prior to the given date time. "
+        "Accepts ISO 8601 strings (e.g., '2023-01-01T00:00:00Z'). "
+        "Uses local timezone if none specified. Only effective when "
+        "installing from indexes that provide upload-time metadata."
     ),
 )
 

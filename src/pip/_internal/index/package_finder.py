@@ -134,7 +134,7 @@ class LinkEvaluator:
         target_python: TargetPython,
         allow_yanked: bool,
         ignore_requires_python: bool | None = None,
-        exclude_newer_than: datetime.datetime | None = None,
+        uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -152,7 +152,8 @@ class LinkEvaluator:
         :param ignore_requires_python: Whether to ignore incompatible
             PEP 503 "data-requires-python" values in HTML links. Defaults
             to False.
-        :param exclude_newer_than: If set, only allow links prior to the given date.
+        :param uploaded_prior_to: If set, only allow links uploaded prior to
+            the given datetime.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -162,7 +163,7 @@ class LinkEvaluator:
         self._ignore_requires_python = ignore_requires_python
         self._formats = formats
         self._target_python = target_python
-        self._exclude_newer_than = exclude_newer_than
+        self._uploaded_prior_to = uploaded_prior_to
 
         self.project_name = project_name
 
@@ -181,10 +182,11 @@ class LinkEvaluator:
             reason = link.yanked_reason or "<none given>"
             return (LinkType.yanked, f"yanked for reason: {reason}")
 
-        if link.upload_time is not None and self._exclude_newer_than is not None:
-            if link.upload_time > self._exclude_newer_than:
+        if link.upload_time is not None and self._uploaded_prior_to is not None:
+            if link.upload_time >= self._uploaded_prior_to:
                 reason = (
-                    f"Upload time {link.upload_time} after {self._exclude_newer_than}"
+                    f"Upload time {link.upload_time} not "
+                    f"prior to {self._uploaded_prior_to}"
                 )
                 return (LinkType.upload_too_late, reason)
 
@@ -605,7 +607,7 @@ class PackageFinder:
         format_control: FormatControl | None = None,
         candidate_prefs: CandidatePreferences | None = None,
         ignore_requires_python: bool | None = None,
-        exclude_newer_than: datetime.datetime | None = None,
+        uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -627,7 +629,7 @@ class PackageFinder:
         self._ignore_requires_python = ignore_requires_python
         self._link_collector = link_collector
         self._target_python = target_python
-        self._exclude_newer_than = exclude_newer_than
+        self._uploaded_prior_to = uploaded_prior_to
 
         self.format_control = format_control
 
@@ -651,7 +653,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: TargetPython | None = None,
-        exclude_newer_than: datetime.datetime | None = None,
+        uploaded_prior_to: datetime.datetime | None = None,
     ) -> PackageFinder:
         """Create a PackageFinder.
 
@@ -660,7 +662,8 @@ class PackageFinder:
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
-        :param exclude_newer_than: If set, only find links prior to the given date.
+        :param uploaded_prior_to: If set, only find links uploaded prior
+            to the given datetime.
         """
         if target_python is None:
             target_python = TargetPython()
@@ -677,7 +680,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
-            exclude_newer_than=exclude_newer_than,
+            uploaded_prior_to=uploaded_prior_to,
         )
 
     @property
@@ -738,8 +741,8 @@ class PackageFinder:
         self._candidate_prefs.prefer_binary = True
 
     @property
-    def exclude_newer_than(self) -> datetime.datetime | None:
-        return self._exclude_newer_than
+    def uploaded_prior_to(self) -> datetime.datetime | None:
+        return self._uploaded_prior_to
 
     def requires_python_skipped_reasons(self) -> list[str]:
         reasons = {
@@ -760,7 +763,7 @@ class PackageFinder:
             target_python=self._target_python,
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
-            exclude_newer_than=self._exclude_newer_than,
+            uploaded_prior_to=self._uploaded_prior_to,
         )
 
     def _sort_links(self, links: Iterable[Link]) -> list[Link]:
