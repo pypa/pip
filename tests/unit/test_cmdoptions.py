@@ -10,7 +10,7 @@ import pytest
 
 from pip._internal.cli.cmdoptions import (
     _convert_python_version,
-    _handle_exclude_newer_than,
+    _handle_uploaded_prior_to,
 )
 from pip._internal.cli.main_parser import identify_python_interpreter
 
@@ -74,18 +74,18 @@ def test_identify_python_interpreter_venv(tmpdir: Path) -> None:
         ),
     ],
 )
-def test_handle_exclude_newer_than_with_timezone(
+def test_handle_uploaded_prior_to_with_timezone(
     value: str, expected_datetime: datetime.datetime
 ) -> None:
     """Test that timezone-aware ISO 8601 date strings are parsed correctly."""
-    option = Option("--exclude-newer-than", dest="exclude_newer_than")
-    opt = "--exclude-newer-than"
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
     parser = OptionParser()
     parser.values = Values()
 
-    _handle_exclude_newer_than(option, opt, value, parser)
+    _handle_uploaded_prior_to(option, opt, value, parser)
 
-    result = parser.values.exclude_newer_than
+    result = parser.values.uploaded_prior_to
     assert isinstance(result, datetime.datetime)
     assert result == expected_datetime
 
@@ -100,18 +100,18 @@ def test_handle_exclude_newer_than_with_timezone(
         ("2023-01-01", (2023, 1, 1, 0, 0, 0)),
     ],
 )
-def test_handle_exclude_newer_than_naive_dates(
+def test_handle_uploaded_prior_to_naive_dates(
     value: str, expected_date_time: tuple[int, int, int, int, int, int]
 ) -> None:
     """Test that timezone-naive ISO 8601 date strings get local timezone applied."""
-    option = Option("--exclude-newer-than", dest="exclude_newer_than")
-    opt = "--exclude-newer-than"
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
     parser = OptionParser()
     parser.values = Values()
 
-    _handle_exclude_newer_than(option, opt, value, parser)
+    _handle_uploaded_prior_to(option, opt, value, parser)
 
-    result = parser.values.exclude_newer_than
+    result = parser.values.uploaded_prior_to
     assert isinstance(result, datetime.datetime)
 
     # Check that the date/time components match
@@ -136,12 +136,12 @@ def test_handle_exclude_newer_than_naive_dates(
         "",  # Empty string
     ],
 )
-def test_handle_exclude_newer_than_invalid_dates(invalid_value: str) -> None:
+def test_handle_uploaded_prior_to_invalid_dates(invalid_value: str) -> None:
     """Test that invalid date strings raise SystemExit via raise_option_error."""
-    option = Option("--exclude-newer-than", dest="exclude_newer_than")
-    opt = "--exclude-newer-than"
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
     parser = OptionParser()
     parser.values = Values()
 
     with pytest.raises(SystemExit):
-        _handle_exclude_newer_than(option, opt, invalid_value, parser)
+        _handle_uploaded_prior_to(option, opt, invalid_value, parser)

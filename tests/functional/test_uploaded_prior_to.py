@@ -1,7 +1,4 @@
-"""Tests for pip install --exclude-newer-than.
-
-Only effective with indexes that provide upload-time metadata.
-"""
+"""Tests for pip install --uploaded-prior-to."""
 
 from __future__ import annotations
 
@@ -10,28 +7,26 @@ import pytest
 from tests.lib import PipTestEnvironment, TestData
 
 
-class TestExcludeNewer:
-    """Test --exclude-newer-than functionality.
+class TestUploadedPriorTo:
+    """Test --uploaded-prior-to functionality.
 
     Only effective with indexes that provide upload-time metadata.
     """
 
-    def test_exclude_newer_than_invalid_date(
+    def test_uploaded_prior_to_invalid_date(
         self, script: PipTestEnvironment, data: TestData
     ) -> None:
-        """Test that --exclude-newer-than fails with invalid date format."""
+        """Test that --uploaded-prior-to fails with invalid date format."""
         result = script.pip_install_local(
-            "--exclude-newer-than=invalid-date", "simple", expect_error=True
+            "--uploaded-prior-to=invalid-date", "simple", expect_error=True
         )
 
         # Should fail with date parsing error
         assert "invalid" in result.stderr.lower() or "error" in result.stderr.lower()
 
     @pytest.mark.network
-    def test_exclude_newer_than_with_real_pypi(
-        self, script: PipTestEnvironment
-    ) -> None:
-        """Test exclude-newer functionality against real PyPI with upload times."""
+    def test_uploaded_prior_to_with_real_pypi(self, script: PipTestEnvironment) -> None:
+        """Test uploaded-prior-to functionality against real PyPI with upload times."""
         # Use a small package with known old versions for testing
         # requests 2.0.0 was released in 2013
 
@@ -40,7 +35,7 @@ class TestExcludeNewer:
             "install",
             "--dry-run",
             "--no-deps",
-            "--exclude-newer-than=2010-01-01T00:00:00",
+            "--uploaded-prior-to=2010-01-01T00:00:00",
             "requests==2.0.0",
             expect_error=True,
         )
@@ -52,14 +47,14 @@ class TestExcludeNewer:
             "install",
             "--dry-run",
             "--no-deps",
-            "--exclude-newer-than=2030-01-01T00:00:00",
+            "--uploaded-prior-to=2030-01-01T00:00:00",
             "requests==2.0.0",
             expect_error=False,
         )
         assert "Would install requests-2.0.0" in result.stdout
 
     @pytest.mark.network
-    def test_exclude_newer_than_date_formats(self, script: PipTestEnvironment) -> None:
+    def test_uploaded_prior_to_date_formats(self, script: PipTestEnvironment) -> None:
         """Test different date formats work with real PyPI."""
         # Test various date formats with a well known small package
         formats = [
@@ -74,7 +69,7 @@ class TestExcludeNewer:
                 "install",
                 "--dry-run",
                 "--no-deps",
-                f"--exclude-newer-than={date_format}",
+                f"--uploaded-prior-to={date_format}",
                 "requests==2.0.0",
                 expect_error=False,
             )

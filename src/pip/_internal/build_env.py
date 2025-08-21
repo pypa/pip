@@ -230,8 +230,8 @@ class SubprocessBuildEnvironmentInstaller:
             # in the isolated build environment
             extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
 
-        if finder.exclude_newer_than:
-            args.extend(["--exclude-newer-than", finder.exclude_newer_than.isoformat()])
+        if finder.uploaded_prior_to:
+            args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
         args.append("--")
         args.extend(requirements)
 
