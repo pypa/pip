@@ -323,6 +323,7 @@ def test_downloader(
     responses = []
     for headers, status_code, body in mock_responses:
         resp = MockResponse(body)
+        resp.url = link.url
         resp.headers = headers
         resp.status_code = status_code
         responses.append(resp)
@@ -362,10 +363,12 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
 
     # Mock an incomplete download followed by a successful resume
     incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    incomplete_resp.url = link.url
     incomplete_resp.headers = {"content-length": "36"}
     incomplete_resp.status_code = 200
 
     resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.url = link.url
     resume_resp.headers = {"content-length": "12"}
     resume_resp.status_code = 206
 

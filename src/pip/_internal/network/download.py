@@ -430,7 +430,7 @@ class Downloader:
         download_size = _get_http_response_size(resp)
 
         filepath = os.path.join(
-            location, _get_http_response_filename(resp.headers, resp, link)
+            location, _get_http_response_filename(resp.headers, resp.url, link)
         )
         with open(filepath, "wb") as content_file:
             download = _FileDownload(link, content_file, download_size)
@@ -491,7 +491,7 @@ class BatchDownloader:
             resp = self._cache_semantics.http_get(link)
             download_size = _get_http_response_size(resp)
 
-            assert filename == _get_http_response_filename(resp.headers, resp, link)
+            assert filename == _get_http_response_filename(resp.headers, resp.url, link)
             filepath = location / filename
             content_file = filepath.open("wb")
             download = _FileDownload(link, content_file, download_size)
