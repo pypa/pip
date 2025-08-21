@@ -114,12 +114,10 @@ class SubprocessBuildEnvironmentInstaller:
         finder: PackageFinder,
         build_constraints: list[str] | None = None,
         build_constraint_feature_enabled: bool = False,
-        constraints: list[str] | None = None,
     ) -> None:
         self.finder = finder
         self._build_constraints = build_constraints or []
         self._build_constraint_feature_enabled = build_constraint_feature_enabled
-        self._constraints = constraints or []
 
     def _deprecation_constraint_check(self) -> None:
         """
