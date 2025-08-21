@@ -91,6 +91,12 @@ def load_pyproject_toml(
             )
         use_pep517 = True
 
+    # Don't use PEP517 if no build system or backend is specified.
+    # This prevents the mere existence of pyproject.toml to change
+    # how a project gets built.
+    elif build_system is None or "build-backend" not in build_system:
+        use_pep517 = False
+
     # If we haven't worked out whether to use PEP 517 yet,
     # and the user hasn't explicitly stated a preference,
     # we do so if the project has a pyproject.toml file

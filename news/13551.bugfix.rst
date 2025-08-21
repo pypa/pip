@@ -1,0 +1,2 @@
+No longer uses the PEP517 build pipeline if pyproject.toml doesn’t specify a build system and backend.
+This stops pip from suddenly changing behaviour if a project decides to move tooling configuration from setup.cfg or tool specific files to [tool.*] entries in pyproject.toml.

@@ -14,6 +14,8 @@ from tests.lib import TestData
     "source, expected",
     [
         ("pep517_setup_and_pyproject", True),
+        ("pep517_setup_and_pyproject_no_build", False),
+        ("pep517_pyproject_no_build_only", False),
         ("pep517_setup_only", False),
         ("pep517_pyproject_only", True),
     ],
