@@ -139,7 +139,9 @@ class LinkEvaluator(SerializableEntry):
             "canonical_name": self._canonical_name,
             # Sort these for determinism.
             "formats": sorted(self._formats),
-            "target_python": self._target_python.format_given(),
+            "target_python": sorted(
+                str(tag) for tag in self._target_python.get_sorted_tags()
+            ),
             "allow_yanked": self._allow_yanked,
             "ignore_requires_python": self._ignore_requires_python,
         }
