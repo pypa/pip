@@ -326,9 +326,9 @@ def test_downloader(
         resp.headers = headers
         resp.status_code = status_code
         responses.append(resp)
-    _http_get_mock = MagicMock(side_effect=responses)
+    http_get_mock = MagicMock(side_effect=responses)
 
-    with patch.object(Downloader, "_http_get", _http_get_mock):
+    with patch.object(downloader._cache_semantics, "http_get", http_get_mock):
         if expected_bytes is None:
             remove = MagicMock(return_value=None)
             with patch("os.remove", remove):
@@ -350,7 +350,7 @@ def test_downloader(
         calls.append(call(link, headers))
 
     # Make sure that the downloader makes additional requests for resumption
-    _http_get_mock.assert_has_calls(calls)
+    http_get_mock.assert_has_calls(calls)
 
 
 def test_resumed_download_caching(tmpdir: Path) -> None:
@@ -370,9 +370,9 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
     resume_resp.status_code = 206
 
     responses = [incomplete_resp, resume_resp]
-    _http_get_mock = MagicMock(side_effect=responses)
+    http_get_mock = MagicMock(side_effect=responses)
 
-    with patch.object(Downloader, "_http_get", _http_get_mock):
+    with patch.object(downloader._cache_semantics, "http_get", http_get_mock):
         # Perform the download (incomplete then resumed)
         filepath, _ = downloader(link, str(tmpdir))
 
