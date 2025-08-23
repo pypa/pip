@@ -104,7 +104,6 @@ include = [
     "build-project/build-project.py",
     "build-project/build-requirements.in",
     "build-project/build-requirements.txt",
-    "docs/requirements.txt",
     "docs/**/*.css",
     "docs/**/*.dot",
     "docs/**/*.md",
