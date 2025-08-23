@@ -1198,7 +1198,6 @@ class PackageFinder:
         return package_links
 
     @_canonicalize_arg
-    @functools.cache
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
 
