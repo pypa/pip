@@ -1,0 +1,1 @@
+Fix bash completion when the ``$IFS`` variable has been modified from its default.
