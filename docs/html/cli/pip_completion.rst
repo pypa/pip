@@ -70,5 +70,3 @@ Enable PowerShell completion:
             _pip_completeBackup $line $lastWord
         }}
     }}
-
-
