@@ -30,7 +30,6 @@ The ``README``, license, ``pyproject.toml``, and so on are in the top level.
   * ``html/`` *[sources to HTML documentation avail. online]*
   * ``man/`` has man pages the distros can use by running ``man pip``
   * ``pip_sphinxext.py`` *[an extension -- pip-specific plugins to Sphinx that do not apply to other packages]*
-  * ``requirements.txt``
 
 * ``news/`` *[pip stores news fragments… Every time pip makes a user-facing change, a file is added to this directory (usually a short note referring to a GitHub issue) with the right extension & name so it gets included in changelog…. So every release the maintainers will be deleting old files in this directory? Yes - we use the towncrier automation to generate a NEWS file, and auto-delete old stuff. There’s more about this in the contributor documentation!]*
 
