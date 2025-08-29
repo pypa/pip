@@ -115,7 +115,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-latest]
+        os: [ubuntu-22.04, macos-latest]
         python:
           - "3.9"
           - "3.10"
