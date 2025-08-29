@@ -104,7 +104,6 @@ include = [
     "build-project/build-project.py",
     "build-project/build-requirements.in",
     "build-project/build-requirements.txt",
-    "docs/requirements.txt",
     "docs/**/*.css",
     "docs/**/*.dot",
     "docs/**/*.md",
@@ -271,6 +270,11 @@ max-args = 15  # default is 5
 max-branches = 28  # default is 12
 max-returns = 14  # default is 6
 max-statements = 134  # default is 50
+
+[tool.ruff.per-file-target-version]
+# `__pip-runner__.py` should be Python 2.7 compatible but the
+# earliest version of Python ruff will check is 3.7
+"src/pip/__pip-runner__.py" = "py37"
 
 ######################################################################################
 # mypy
