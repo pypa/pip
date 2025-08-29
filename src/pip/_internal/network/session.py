@@ -12,16 +12,14 @@ import json
 import logging
 import mimetypes
 import os
-import platform
-import shutil
-import subprocess
-import sys
 import urllib.parse
 import warnings
 from collections.abc import Generator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
+    ClassVar,
     Optional,
     Union,
 )
@@ -35,20 +33,16 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.urllib3.connectionpool import ConnectionPool
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
-from pip import __version__
-from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
-
-# Import ssl from compat so the initial import occurs in only one place.
-from pip._internal.utils.compat import has_tls
-from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import build_url_from_netloc, parse_netloc
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
+    from collections.abc import Set
     from ssl import SSLContext
+    from types import ModuleType
 
     from pip._vendor.urllib3.poolmanager import PoolManager
     from pip._vendor.urllib3.proxymanager import ProxyManager
@@ -76,135 +70,245 @@ SECURE_ORIGINS: list[SecureOrigin] = [
 ]
 
 
-# These are environment variables present when running under various
-# CI systems.  For each variable, some CI systems that use the variable
-# are indicated.  The collection was chosen so that for each of a number
-# of popular systems, at least one of the environment variables is used.
-# This list is used to provide some indication of and lower bound for
-# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
-# For more background, see: https://github.com/pypa/pip/issues/5499
-CI_ENVIRONMENT_VARIABLES = (
-    # Azure Pipelines
-    "BUILD_BUILDID",
-    # Jenkins
-    "BUILD_ID",
-    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
-    "CI",
-    # Explicit environment variable.
-    "PIP_IS_CI",
-)
+class Telemetry:
+    """Return a string representing the user agent.
 
+    FIXME: This string is currently propagated as a header into every single HTTP
+           request pip makes.  It should really be subject to a formal PEP process
+           in order to ensure user consent around telemetry is respected.
 
-def looks_like_ci() -> bool:
+    The current implementation looks very much like the spec for *environment
+    markers*: (https://packaging.python.org/en/latest/specifications/dependency-specifiers/#environment-markers).
+
+    Environment markers were developed to provide a rich semantic structure for the
+    build environment of a dependency. Dependency resolvers like pip can then
+    manipulate these logical operators to calculate compatibility relationships,
+    *without* executing arbitrary code. This idea extends to version strings
+    themselves as well: the '===' or "arbitrary" operator was
+    specifically intended as an "escape hatch", for version strings that cannot be
+    made to conform to standard Python version strings
+    (https://packaging.python.org/en/latest/specifications/version-specifiers/#arbitrary-equality).
+
+    Environment markers can therefore be viewed as a language for codebases to
+    communicate their build process and requirements
+    (https://packaging.python.org/en/latest/flow/#the-packaging-flow) to a generic
+    resolver. Spack specs
+    (https://spack.readthedocs.io/en/latest/spec_syntax.html#sec-specs)
+    are very similar in spirit, and arose precisely to codify the recursive
+    and conditional relationships across multi-language software stacks.
+
+    Extending this concept, we could consider the *user agent id* as a language for
+    resolvers to communicate their requirements to external services and
+    execution environments. For example, clients for the GNU Make Jobserver protocol use
+    an environment variable to indicate how the jobserver should communicate to them,
+    and to indicate the maximum bandwidth they can tolerate for parallel execution:
+    (https://www.gnu.org/software/make/manual/html_node/Job-Slots.html).
+
+    The pants build tool specifically highlights the risk of exposing proprietary
+    information through thoughtless telemetry (https://www.pantsbuild.org/stable/docs/using-pants/anonymous-telemetry).
+    As a result, not only do they explicitly specify the information being recorded
+    (https://www.pantsbuild.org/stable/docs/using-pants/anonymous-telemetry#what-data-is-sent),
+    but they additionally incorporate anonymity as an explicit design goal
+    (https://www.pantsbuild.org/stable/docs/using-pants/anonymous-telemetry#how-we-ensure-anonymity).
+
+    Negotiating standards around useful telemetry data for PyPI began here
+    (https://github.com/pypa/pip/issues/5499), but never became a full PEP. This commit
+    (https://github.com/pypa/pip/commit/f787788a65cf7a8af8b7ef9dc13c0681d94fff5f) added
+    the output of an arbitrary subprocess execution into the string pip attaches to
+    every single HTTP request.
+
+    `PIP_USER_AGENT_USER_DATA` is mentioned in the docs once to *add* identifying info
+    to the output, in the context of a proxy server
+    (https://pip.pypa.io/en/stable/user_guide/#using-a-proxy-server).
+
+    We now introduce `PIP_TELEMETRY_USER_AGENT_ID`, which will completely overwrite the
+    string transmitted to remote hosts that pip communicates it. To maintain backwards
+    compatibility, it is disabled by default, but can be set to the empty string or any
+    other value.
     """
-    Return whether it looks like pip is running under CI.
-    """
-    # We don't use the method of checking for a tty (e.g. using isatty())
-    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
-    # method doesn't provide definitive information in either direction.
-    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
+    @staticmethod
+    @functools.cache
+    def user_agent_id() -> str:
+        return Telemetry.calculate_user_agent_id(os.environ)
 
-@functools.lru_cache(maxsize=1)
-def user_agent() -> str:
-    """
-    Return a string representing the user agent.
-    """
-    data: dict[str, Any] = {
-        "installer": {"name": "pip", "version": __version__},
-        "python": platform.python_version(),
-        "implementation": {
-            "name": platform.python_implementation(),
-        },
-    }
+    CLOBBER_USER_AGENT_ENV_VAR: ClassVar[str] = "PIP_TELEMETRY_USER_AGENT_ID"
 
-    if data["implementation"]["name"] == "CPython":
-        data["implementation"]["version"] = platform.python_version()
-    elif data["implementation"]["name"] == "PyPy":
-        pypy_version_info = sys.pypy_version_info  # type: ignore
-        if pypy_version_info.releaselevel == "final":
-            pypy_version_info = pypy_version_info[:3]
-        data["implementation"]["version"] = ".".join(
-            [str(x) for x in pypy_version_info]
+    @staticmethod
+    def calculate_user_agent_id(env: Mapping[str, str]) -> str:
+        # If the clobber variable is set, that's the only thing anyone sees.
+        if Telemetry.CLOBBER_USER_AGENT_ENV_VAR in env:
+            return env[Telemetry.CLOBBER_USER_AGENT_ENV_VAR]
+
+        # Otherwise, muster all the imports and identifying info necessary to construct
+        # the legacy unspecified user-agent format.
+        import platform
+        import sys
+
+        return Telemetry.calculate_legacy_user_agent_id(
+            sys,
+            platform,
+            json,
+            Telemetry.pip_version,
+            Telemetry.linux_distribution,
+            Telemetry.libc_ver,
+            Telemetry.openssl_version,
+            Telemetry.setuptools_version,
+            env,
         )
-    elif data["implementation"]["name"] == "Jython":
-        # Complete Guess
-        data["implementation"]["version"] = platform.python_version()
-    elif data["implementation"]["name"] == "IronPython":
-        # Complete Guess
-        data["implementation"]["version"] = platform.python_version()
 
-    if sys.platform.startswith("linux"):
-        from pip._vendor import distro
+    @staticmethod
+    def libc_ver() -> tuple[str, str]:
+        from pip._internal.utils.glibc import libc_ver
 
-        linux_distribution = distro.name(), distro.version(), distro.codename()
-        distro_infos: dict[str, Any] = dict(
-            filter(
-                lambda x: x[1],
-                zip(["name", "version", "id"], linux_distribution),
-            )
-        )
-        libc = dict(
-            filter(
-                lambda x: x[1],
-                zip(["lib", "version"], libc_ver()),
-            )
-        )
-        if libc:
-            distro_infos["libc"] = libc
-        if distro_infos:
-            data["distro"] = distro_infos
+        return libc_ver()
 
-    if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
-        data["distro"] = {"name": "macOS", "version": platform.mac_ver()[0]}
+    @staticmethod
+    def openssl_version() -> str | None:
+        from pip._internal.utils.compat import has_tls
 
-    if platform.system():
-        data.setdefault("system", {})["name"] = platform.system()
-
-    if platform.release():
-        data.setdefault("system", {})["release"] = platform.release()
-
-    if platform.machine():
-        data["cpu"] = platform.machine()
-
-    if has_tls():
+        if not has_tls():
+            return None
         import _ssl as ssl
 
-        data["openssl_version"] = ssl.OPENSSL_VERSION
+        return ssl.OPENSSL_VERSION
 
-    setuptools_dist = get_default_environment().get_distribution("setuptools")
-    if setuptools_dist is not None:
-        data["setuptools_version"] = str(setuptools_dist.version)
+    @staticmethod
+    def setuptools_version() -> str | None:
+        from pip._internal.metadata import get_default_environment
 
-    if shutil.which("rustc") is not None:
-        # If for any reason `rustc --version` fails, silently ignore it
-        try:
-            rustc_output = subprocess.check_output(
-                ["rustc", "--version"], stderr=subprocess.STDOUT, timeout=0.5
+        setuptools_dist = get_default_environment().get_distribution("setuptools")
+        if setuptools_dist is None:
+            return None
+        return str(setuptools_dist.version)
+
+    @staticmethod
+    def linux_distribution() -> tuple[str, str, str]:
+        from pip._vendor import distro
+
+        return distro.name(), distro.version(), distro.codename()
+
+    @staticmethod
+    def pip_version() -> str:
+        from pip import __version__
+
+        return __version__
+
+    @staticmethod
+    def calculate_legacy_user_agent_id(
+        sys: ModuleType,
+        platform: ModuleType,
+        json: ModuleType,
+        pip_version: Callable[[], str],
+        linux_distribution: Callable[[], tuple[str, str, str]],
+        libc_ver: Callable[[], tuple[str, str]],
+        openssl_version: Callable[[], str | None],
+        setuptools_version: Callable[[], str | None],
+        env: Mapping[str, str],
+    ) -> str:
+        data: dict[str, Any] = {
+            "installer": {"name": "pip", "version": pip_version()},
+            "python": platform.python_version(),
+            "implementation": {
+                "name": platform.python_implementation(),
+            },
+        }
+
+        if data["implementation"]["name"] == "CPython":
+            data["implementation"]["version"] = platform.python_version()
+        elif data["implementation"]["name"] == "PyPy":
+            pypy_version_info = sys.pypy_version_info
+            if pypy_version_info.releaselevel == "final":
+                pypy_version_info = pypy_version_info[:3]
+            data["implementation"]["version"] = ".".join(
+                [str(x) for x in pypy_version_info]
             )
-        except Exception:
-            pass
-        else:
-            if rustc_output.startswith(b"rustc "):
-                # The format of `rustc --version` is:
-                # `b'rustc 1.52.1 (9bc8c42bb 2021-05-09)\n'`
-                # We extract just the middle (1.52.1) part
-                data["rustc_version"] = rustc_output.split(b" ")[1].decode()
+        elif data["implementation"]["name"] == "Jython":
+            # Complete Guess
+            data["implementation"]["version"] = platform.python_version()
+        elif data["implementation"]["name"] == "IronPython":
+            # Complete Guess
+            data["implementation"]["version"] = platform.python_version()
 
-    # Use None rather than False so as not to give the impression that
-    # pip knows it is not being run under CI.  Rather, it is a null or
-    # inconclusive result.  Also, we include some value rather than no
-    # value to make it easier to know that the check has been run.
-    data["ci"] = True if looks_like_ci() else None
+        if sys.platform.startswith("linux"):
+            distro_infos: dict[str, Any] = dict(
+                filter(
+                    lambda x: x[1],
+                    zip(["name", "version", "id"], linux_distribution()),
+                )
+            )
+            libc = dict(
+                filter(
+                    lambda x: x[1],
+                    zip(["lib", "version"], libc_ver()),
+                )
+            )
+            if libc:
+                distro_infos["libc"] = libc
+            if distro_infos:
+                data["distro"] = distro_infos
 
-    user_data = os.environ.get("PIP_USER_AGENT_USER_DATA")
-    if user_data is not None:
-        data["user_data"] = user_data
+        if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
+            data["distro"] = {"name": "macOS", "version": platform.mac_ver()[0]}
 
-    return "{data[installer][name]}/{data[installer][version]} {json}".format(
-        data=data,
-        json=json.dumps(data, separators=(",", ":"), sort_keys=True),
+        if platform.system():
+            data.setdefault("system", {})["name"] = platform.system()
+
+        if platform.release():
+            data.setdefault("system", {})["release"] = platform.release()
+
+        if platform.machine():
+            data["cpu"] = platform.machine()
+
+        if (ssl_ver := openssl_version()) is not None:
+            data["openssl_version"] = ssl_ver
+
+        if (setuptools_ver := setuptools_version()) is not None:
+            data["setuptools_version"] = setuptools_ver
+
+        # Use None rather than False so as not to give the impression that
+        # pip knows it is not being run under CI.  Rather, it is a null or
+        # inconclusive result.  Also, we include some value rather than no
+        # value to make it easier to know that the check has been run.
+        data["ci"] = (
+            True if Telemetry.has_known_ci_sentinel(frozenset(env.keys())) else None
+        )
+
+        if (user_data := env.get("PIP_USER_AGENT_USER_DATA")) is not None:
+            data["user_data"] = user_data
+
+        return "{data[installer][name]}/{data[installer][version]} {json}".format(
+            data=data,
+            json=json.dumps(data, separators=(",", ":"), sort_keys=True),
+        )
+
+    # These are environment variables present when running under various
+    # CI systems.  For each variable, some CI systems that use the variable
+    # are indicated.  The collection was chosen so that for each of a number
+    # of popular systems, at least one of the environment variables is used.
+    # This list is used to provide some indication of and lower bound for
+    # CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
+    # For more background, see: https://github.com/pypa/pip/issues/5499
+    KNOWN_CI_SENTINEL_VARIABLES: ClassVar[tuple[str, ...]] = (
+        # Azure Pipelines
+        "BUILD_BUILDID",
+        # Jenkins
+        "BUILD_ID",
+        # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
+        "CI",
+        # Explicit environment variable.
+        "PIP_IS_CI",
     )
+
+    @staticmethod
+    def has_known_ci_sentinel(env: Set[str]) -> bool:
+        """
+        Return whether it looks like pip is running under CI.
+        """
+        # We don't use the method of checking for a tty (e.g. using isatty())
+        # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
+        # method doesn't provide definitive information in either direction.
+        return any(name in env for name in Telemetry.KNOWN_CI_SENTINEL_VARIABLES)
 
 
 class LocalFSAdapter(BaseAdapter):
@@ -347,7 +451,7 @@ class PipSession(requests.Session):
         self.pip_proxy = None
 
         # Attach our User Agent to the request
-        self.headers["User-Agent"] = user_agent()
+        self.headers["User-Agent"] = Telemetry.user_agent_id()
 
         # Attach our Authentication handler to the session
         self.auth = MultiDomainBasicAuth(index_urls=index_urls)
