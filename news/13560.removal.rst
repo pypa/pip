@@ -1,0 +1,1 @@
+Reverts commit ``f787788`` due to the security risk of an unsanitized ``PATH`` traversal which is subsequently sent directly over the wire. ``rustc --version`` is no longer invoked upon every pip process invocation, and its output no longer appears in the ``User-Agent`` string.
