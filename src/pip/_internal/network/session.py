@@ -8,10 +8,10 @@ import email.utils
 import functools
 import io
 import ipaddress
-import json
 import logging
 import mimetypes
 import os
+import re
 import urllib.parse
 import warnings
 from collections.abc import Generator, Mapping, Sequence
@@ -142,6 +142,7 @@ class Telemetry:
 
         # Otherwise, muster all the imports and identifying info necessary to construct
         # the legacy unspecified user-agent format.
+        import json
         import platform
         import sys
 
@@ -154,8 +155,32 @@ class Telemetry:
             Telemetry.libc_ver,
             Telemetry.openssl_version,
             Telemetry.setuptools_version,
+            Telemetry.rustc_process_execution,
             env,
         )
+
+    _rustc_output_regex: ClassVar[re.Pattern[str]] = re.compile(r"^rustc ([^\s]+)")
+
+    @staticmethod
+    def rustc_process_execution() -> str | None:
+        import shutil
+        import subprocess
+
+        if rustc := shutil.which("rustc"):
+            try:
+                rustc_output = subprocess.check_output(
+                    [rustc, "--version"],
+                    stderr=subprocess.STDOUT,
+                    timeout=0.1,
+                    encoding="utf-8",
+                )
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                return None
+            else:
+                if m := Telemetry._rustc_output_regex.match(rustc_output):
+                    return m.group(1)
+                return None
+        return None
 
     @staticmethod
     def libc_ver() -> tuple[str, str]:
@@ -204,6 +229,7 @@ class Telemetry:
         libc_ver: Callable[[], tuple[str, str]],
         openssl_version: Callable[[], str | None],
         setuptools_version: Callable[[], str | None],
+        rustc_version: Callable[[], str | None],
         env: Mapping[str, str],
     ) -> str:
         data: dict[str, Any] = {
@@ -265,6 +291,9 @@ class Telemetry:
 
         if (setuptools_ver := setuptools_version()) is not None:
             data["setuptools_version"] = setuptools_ver
+
+        if (rustc_ver := rustc_version()) is not None:
+            data["rustc_version"] = rustc_ver
 
         # Use None rather than False so as not to give the impression that
         # pip knows it is not being run under CI.  Rather, it is a null or
