@@ -25,7 +25,7 @@ class FreezeCommand(Command):
     """
     Output installed packages in requirements format.
 
-    Packages are listed in a case-insensitive sorted order.
+    packages are listed in a case-insensitive sorted order.
     """
 
     ignore_require_venv = True
@@ -70,17 +70,15 @@ class FreezeCommand(Command):
             dest="freeze_all",
             action="store_true",
             help=(
-                "Do not skip certain development-related packages in the output. "
-                "On Python 3.12 and later, only `pip` is skipped by default. "
-                "On Python 3.11 and earlier, the following packages are also "
-                "skipped by default: `setuptools`, `wheel`, and `distribute`."
+                "Do not skip these packages in the output:"
+                " {}".format(", ".join(_dev_pkgs()))
             ),
         )
         self.cmd_opts.add_option(
             "--exclude-editable",
             dest="exclude_editable",
             action="store_true",
-            help="Exclude editable packages from output.",
+            help="Exclude editable package from output.",
         )
         self.cmd_opts.add_option(cmdoptions.list_exclude())
 
