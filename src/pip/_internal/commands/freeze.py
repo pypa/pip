@@ -70,8 +70,10 @@ class FreezeCommand(Command):
             dest="freeze_all",
             action="store_true",
             help=(
-                "Do not skip these packages in the output:"
-                " {}".format(", ".join(_dev_pkgs()))
+                "Do not skip these packages in the output. "
+                "On Python 3.12 and later, only `pip` is skipped by default. "
+                "On Python 3.11 and earlier, the following are also skipped: "
+                "`setuptools`, `wheel`, and `distribute`."
             ),
         )
         self.cmd_opts.add_option(
