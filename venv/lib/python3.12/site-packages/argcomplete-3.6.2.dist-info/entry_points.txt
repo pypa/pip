@@ -1,4 +1,0 @@
-[console_scripts]
-activate-global-python-argcomplete = argcomplete.scripts.activate_global_python_argcomplete:main
-python-argcomplete-check-easy-install-script = argcomplete.scripts.python_argcomplete_check_easy_install_script:main
-register-python-argcomplete = argcomplete.scripts.register_python_argcomplete:main
