@@ -1,0 +1,33 @@
+import nox
+
+{% for envname, envconfig in config.items()|sort: %}
+@nox.session({%- if envconfig.base_python %}python='{{envconfig.base_python}}'{%- endif %})
+def {{fixname(envname)}}(session):
+    {%- if envconfig.description != '' %}
+    """{{envconfig.description}}"""
+    {%- endif %}
+    {%- set envs = envconfig.get('set_env', {}) -%}
+    {%- for key, value in envs.items()|sort: %}
+    session.env['{{key}}'] = '{{value}}'
+    {%- endfor %}
+
+    {%- if envconfig.deps %}
+    session.install({{envconfig.deps}})
+    {%- endif %}
+
+    {%- if not envconfig.skip_install %}
+    {%- if envconfig.use_develop %}
+    session.install('-e', '.')
+    {%- else %}
+    session.install('.')
+    {%- endif -%}
+    {%- endif %}
+
+    {%- if envconfig.change_dir %}
+    session.chdir('{{envconfig.change_dir}}')
+    {%- endif %}
+
+    {%- for command in envconfig.commands %}
+    session.run({{command}})
+    {%- endfor %}
+{% endfor %}
