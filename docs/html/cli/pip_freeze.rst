@@ -31,11 +31,12 @@ Options
 
 .. note::
 
-   By default, ``pip freeze`` omits pip's own bootstrap tools (``pip``,
-   ``setuptools``, and ``wheel``) to keep the output focused on project
-   dependencies. Use ``--all`` to include these as well, which is helpful when
-   capturing a full environment snapshot. Remember that ``pip freeze`` only
-   reports what is currently installed; it is not a lockfile or solver result.
+   By default, ``pip freeze`` omits some bootstrap tooling so the output focuses on
+   your project’s dependencies. In Python **3.11 and earlier**, this means ``pip``,
+   ``setuptools`` and ``wheel`` are skipped by default; in Python **3.12 and later**,
+   only ``pip`` is skipped. Use ``--all`` to include those entries as well when you
+   need a complete environment snapshot. Note that ``pip freeze`` reports what is
+   installed—it does **not** compute a lockfile or a solver result.
 
 
 Examples
@@ -82,6 +83,9 @@ Examples
          env2\bin\python -m pip install -r requirements.txt
 
 #. Compare default output with ``--all``.
+
+   The exact entries vary by Python version; on Python 3.12 and later only
+   ``pip`` is omitted by default.
 
    .. tab:: Unix/macOS
 
