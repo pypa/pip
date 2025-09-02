@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import binascii
+import datetime
 import enum
 import functools
 import itertools
 import logging
+import os
 import re
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
+from hashlib import sha256
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Union,
 )
 
 from pip._vendor.packaging import specifiers
@@ -21,13 +25,14 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
+from pip._internal.cache import FetchResolveCache
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.index.collector import IndexContent, LinkCollector, parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -47,13 +52,13 @@ from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 if TYPE_CHECKING:
     from typing_extensions import TypeGuard
 
+    BuildTag = tuple[()] | tuple[int, str]
+    CandidateSortingKey = tuple[int, int, int, _BaseVersion, int | None, BuildTag]
+
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
 
 logger = getLogger(__name__)
-
-BuildTag = Union[tuple[()], tuple[int, str]]
-CandidateSortingKey = tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
 
 
 def _check_link_requires_python(
@@ -593,6 +598,7 @@ class PackageFinder:
         format_control: FormatControl | None = None,
         candidate_prefs: CandidatePreferences | None = None,
         ignore_requires_python: bool | None = None,
+        fetch_resolve_cache: FetchResolveCache | None = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -627,6 +633,8 @@ class PackageFinder:
             BestCandidateResult,
         ] = {}
 
+        self._fetch_resolve_cache = fetch_resolve_cache
+
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
     # that decision to be made explicit in the calling code, which helps
@@ -637,6 +645,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: TargetPython | None = None,
+        fetch_resolve_cache: FetchResolveCache | None = None,
     ) -> PackageFinder:
         """Create a PackageFinder.
 
@@ -661,6 +670,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            fetch_resolve_cache=fetch_resolve_cache,
         )
 
     @property
@@ -800,18 +810,235 @@ class PackageFinder:
 
         return candidates
 
-    def process_project_url(
+    _HTTP_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
+
+    @classmethod
+    def _try_load_http_cache_headers(
+        cls,
+        etag_path: Path,
+        date_path: Path,
+        checksum_path: Path,
+        project_url: Link,
+        headers: dict[str, str],
+    ) -> tuple[str | None, datetime.datetime | None, bytes | None]:
+        etag: str | None = None
+        try:
+            etag = etag_path.read_text()
+            etag = f'"{etag}"'
+            logger.debug(
+                "found cached etag for url %s at %s: %s",
+                project_url,
+                etag_path,
+                etag,
+            )
+            headers["If-None-Match"] = etag
+        except OSError as e:
+            logger.debug("no etag found for url %s (%s)", project_url, str(e))
+
+        date: datetime.datetime | None = None
+        try:
+            date_bytes = date_path.read_bytes()
+            date_int = int.from_bytes(date_bytes, byteorder="big", signed=False)
+            date = datetime.datetime.fromtimestamp(date_int, tz=datetime.timezone.utc)
+            logger.debug(
+                "found cached date for url %s at %s: '%s'",
+                project_url,
+                date_path,
+                date,
+            )
+            headers["If-Modified-Since"] = date.strftime(cls._HTTP_DATE_FORMAT)
+        except OSError as e:
+            logger.debug("no date found for url %s (%s)", project_url, str(e))
+
+        checksum: bytes | None = None
+        try:
+            checksum = checksum_path.read_bytes()
+            logger.debug(
+                "found checksum for url %s at %s: '%s'",
+                project_url,
+                checksum_path,
+                binascii.b2a_base64(checksum, newline=False).decode("ascii"),
+            )
+        except OSError as e:
+            logger.debug("no checksum found for url %s (%s)", project_url, str(e))
+
+        return (etag, date, checksum)
+
+    _quoted_value = re.compile(r'^"([^"]*)"$')
+
+    @classmethod
+    def _strip_quoted_value(cls, value: str) -> str:
+        return cls._quoted_value.sub(r"\1", value)
+
+    _now_local = datetime.datetime.now().astimezone()
+    _local_tz = _now_local.tzinfo
+    assert _local_tz is not None
+    _local_tz_name = _local_tz.tzname(_now_local)
+
+    @classmethod
+    def _write_http_cache_info(
+        cls,
+        etag_path: Path,
+        date_path: Path,
+        checksum_path: Path,
+        project_url: Link,
+        index_response: IndexContent,
+        prev_etag: str | None,
+        prev_checksum: bytes | None,
+    ) -> tuple[str | None, datetime.datetime | None, bytes, bool]:
+        hasher = sha256()
+        hasher.update(index_response.content)
+        new_checksum = hasher.digest()
+        checksum_path.write_bytes(new_checksum)
+        page_unmodified = new_checksum == prev_checksum
+
+        new_etag: str | None = index_response.etag
+        if new_etag is None:
+            logger.debug("no etag returned from fetch for url %s", project_url.url)
+            try:
+                etag_path.unlink()
+            except OSError:
+                pass
+        else:
+            new_etag = cls._strip_quoted_value(new_etag)
+            if new_etag != prev_etag:
+                logger.debug(
+                    "etag for url %s updated from %s -> %s",
+                    project_url.url,
+                    prev_etag,
+                    new_etag,
+                )
+                etag_path.write_text(new_etag)
+            else:
+                logger.debug(
+                    "etag was unmodified for url %s (%s)", project_url.url, prev_etag
+                )
+                assert page_unmodified
+
+        new_date: datetime.datetime | None = None
+        date_str: str | None = index_response.date
+        if date_str is None:
+            logger.debug(
+                "no date header was provided in response for url %s", project_url
+            )
+        else:
+            date_str = date_str.strip()
+            new_time = time.strptime(date_str, cls._HTTP_DATE_FORMAT)
+            new_date = datetime.datetime.strptime(date_str, cls._HTTP_DATE_FORMAT)
+            # strptime() doesn't set the timezone according to the parsed %Z arg, which
+            # may be any of "UTC", "GMT", or any element of `time.tzname`.
+            if new_time.tm_zone in ["UTC", "GMT"]:
+                logger.debug(
+                    "a UTC timezone was found in response for url %s", project_url
+                )
+                new_date = new_date.replace(tzinfo=datetime.timezone.utc)
+            else:
+                assert new_time.tm_zone in time.tzname, new_time
+                logger.debug(
+                    "a local timezone %s was found in response for url %s",
+                    new_time.tm_zone,
+                    project_url,
+                )
+                if new_time.tm_zone == cls._local_tz_name:
+                    new_date = new_date.replace(tzinfo=cls._local_tz)
+                else:
+                    logger.debug(
+                        "a local timezone %s had to be discarded in response %s",
+                        new_time.tm_zone,
+                        project_url,
+                    )
+                    new_date = None
+
+            if new_date is not None:
+                timestamp = new_date.timestamp()
+                # The timestamp will only have second resolution according to the parse
+                # format string _HTTP_DATE_FORMAT.
+                assert not (timestamp % 1), (new_date, timestamp)
+                epoch = int(timestamp)
+                assert epoch >= 0, (new_date, timestamp, epoch)
+                date_bytes = epoch.to_bytes(length=4, byteorder="big", signed=False)
+                date_path.write_bytes(date_bytes)
+
+                logger.debug('date "%s" written for url %s', new_date, project_url)
+        if new_date is None:
+            try:
+                date_path.unlink()
+            except OSError:
+                pass
+
+        return (new_etag, new_date, new_checksum, page_unmodified)
+
+    def _process_project_url_uncached(
         self, project_url: Link, link_evaluator: LinkEvaluator
     ) -> list[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
             project_url,
         )
+
         index_response = self._link_collector.fetch_response(project_url)
         if index_response is None:
             return []
 
-        page_links = list(parse_links(index_response))
+        page_links = parse_links(index_response)
+
+        with indent_log():
+            package_links = self.evaluate_links(link_evaluator, links=page_links)
+        return package_links
+
+    def process_project_url(
+        self, project_url: Link, link_evaluator: LinkEvaluator
+    ) -> list[InstallationCandidate]:
+        if self._fetch_resolve_cache is None:
+            return self._process_project_url_uncached(project_url, link_evaluator)
+
+        cached_path = self._fetch_resolve_cache.cache_path(project_url)
+        os.makedirs(str(cached_path), exist_ok=True)
+
+        etag_path = cached_path / "etag"
+        date_path = cached_path / "modified-since-date"
+        checksum_path = cached_path / "checksum"
+
+        headers: dict[str, str] = {
+            # Wipe any other Cache-Control headers away--we are explicitly managing the
+            # caching here.
+            "Cache-Control": "",
+        }
+        # NB: mutates headers!
+        prev_etag, _prev_date, prev_checksum = self._try_load_http_cache_headers(
+            etag_path, date_path, checksum_path, project_url, headers
+        )
+
+        logger.debug(
+            "Fetching project page and analyzing links: %s",
+            project_url,
+        )
+
+        # A 304 Not Modified is implicitly converted into a reused cached response from
+        # the Cache-Control library, so we won't explicitly check for a 304.
+        index_response = self._link_collector.fetch_response(
+            project_url,
+            headers=headers,
+        )
+        if index_response is None:
+            return []
+
+        (
+            _new_etag,
+            _new_date,
+            _new_checksum,
+            page_unmodified,
+        ) = self._write_http_cache_info(
+            etag_path,
+            date_path,
+            checksum_path,
+            project_url,
+            index_response,
+            prev_etag=prev_etag,
+            prev_checksum=prev_checksum,
+        )
+
+        page_links = parse_links(index_response)
 
         with indent_log():
             package_links = self.evaluate_links(

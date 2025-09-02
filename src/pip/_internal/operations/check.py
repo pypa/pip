@@ -17,7 +17,6 @@ from pip._vendor.packaging.tags import Tag, parse_tag
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.metadata import get_default_environment
 from pip._internal.metadata.base import BaseDistribution
 from pip._internal.req.req_install import InstallRequirement
@@ -148,8 +147,8 @@ def _simulate_installation_of(
 
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
-        abstract_dist = make_distribution_for_install_requirement(inst_req)
-        dist = abstract_dist.get_metadata_distribution()
+        assert inst_req.is_concrete
+        dist = inst_req.get_dist()
         name = dist.canonical_name
         package_set[name] = PackageDetails(dist.version, list(dist.iter_dependencies()))
 

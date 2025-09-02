@@ -9,7 +9,14 @@ from typing import Literal, Protocol, cast
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import strtobool
 
-from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
+from .base import (
+    BaseDistribution,
+    BaseEnvironment,
+    FilesystemWheel,
+    MemoryWheel,
+    Wheel,
+    serialize_metadata,
+)
 
 __all__ = [
     "BaseDistribution",
@@ -21,6 +28,7 @@ __all__ = [
     "get_environment",
     "get_wheel_distribution",
     "select_backend",
+    "serialize_metadata",
 ]
 
 

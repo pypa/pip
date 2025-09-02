@@ -281,6 +281,7 @@ class Link:
         cls,
         file_data: dict[str, Any],
         page_url: str,
+        page_content: IndexContent | None = None,
     ) -> Link | None:
         """
         Convert an pypi json document from a simple repository page into a Link.
@@ -320,7 +321,7 @@ class Link:
 
         return cls(
             url,
-            comes_from=page_url,
+            comes_from=page_content or page_url,
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             hashes=hashes,
@@ -333,6 +334,7 @@ class Link:
         anchor_attribs: dict[str, str | None],
         page_url: str,
         base_url: str,
+        page_content: IndexContent | None = None,
     ) -> Link | None:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
@@ -373,7 +375,7 @@ class Link:
 
         return cls(
             url,
-            comes_from=page_url,
+            comes_from=page_content or page_url,
             requires_python=pyrequire,
             yanked_reason=yanked_reason,
             metadata_file_data=metadata_file_data,
