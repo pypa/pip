@@ -30,49 +30,61 @@ Options
 .. pip-command-options:: freeze
 
 
+
+
+.. note::
+
+   By default, ``pip freeze`` omits pip's own bootstrap tools (``pip``,
+   ``setuptools``, and ``wheel``) to keep the output focused on project
+   dependencies. Use ``--all`` to include these as well, which is helpful when
+   capturing a full environment snapshot. Remember that ``pip freeze`` only
+   reports what is currently installed; it is not a lockfile or solver result.
+
+
 Examples
 ========
+         env1\bin\python -m pip freeze > requirements.txt
+         env2\bin\python -m pip install -r requirements.txt
 
-#. Generate output suitable for a requirements file.
+#. Compare default output with ``--all``.
 
    .. tab:: Unix/macOS
 
       .. code-block:: console
 
          $ python -m pip freeze
-         docutils==0.11
-         Jinja2==2.7.2
-         MarkupSafe==0.19
-         Pygments==1.6
-         Sphinx==1.2.2
+         certifi==...
+         idna==...
+         requests==...
+         urllib3==...
+
+         $ python -m pip freeze --all
+         certifi==...
+         idna==...
+         requests==...
+         urllib3==...
+         pip==...
+         setuptools==...
+         wheel==...
 
    .. tab:: Windows
 
       .. code-block:: console
 
          C:\> py -m pip freeze
-         docutils==0.11
-         Jinja2==2.7.2
-         MarkupSafe==0.19
-         Pygments==1.6
-         Sphinx==1.2.2
+         certifi==...
+         idna==...
+         requests==...
+         urllib3==...
 
-#. Generate a requirements file and then install from it in another environment.
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: shell
-
-         env1/bin/python -m pip freeze > requirements.txt
-         env2/bin/python -m pip install -r requirements.txt
-
-   .. tab:: Windows
-
-      .. code-block:: shell
-
-         env1\bin\python -m pip freeze > requirements.txt
-         env2\bin\python -m pip install -r requirements.txt
-
+         C:\> py -m pip freeze --all
+         certifi==...
+         idna==...
+         requests==...
+         urllib3==...
+         pip==...
+         setuptools==...
+         wheel==...
 
 Fixing "Permission denied:" errors
 ==================================
