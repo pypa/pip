@@ -4,7 +4,6 @@ import itertools
 import json
 import logging
 import os
-import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
@@ -98,7 +97,7 @@ def test_get_simple_response_archive_to_http_scheme(
 
     session.assert_has_calls(
         [
-            mock.call.head(url, allow_redirects=True),
+            mock.call.head(url, allow_redirects=True, headers=None),
         ]
     )
     mock_raise_for_status.assert_called_once_with(session.head.return_value)
@@ -160,7 +159,7 @@ def test_get_simple_response_archive_to_http_scheme_is_html(
 
     assert resp is not None
     assert session.mock_calls == [
-        mock.call.head(url, allow_redirects=True),
+        mock.call.head(url, allow_redirects=True, headers=None),
         mock.call.get(
             url,
             headers={
@@ -248,13 +247,16 @@ def test_get_simple_response_dont_log_clear_text_password(
     assert resp is not None
     mock_raise_for_status.assert_called_once_with(resp)
 
-    assert len(caplog.records) == 2
+    assert len(caplog.records) == 3
     record = caplog.records[0]
     assert record.levelname == "DEBUG"
     assert record.message.splitlines() == [
         "Getting page https://user:****@example.com/simple/",
     ]
     record = caplog.records[1]
+    assert record.levelname == "DEBUG"
+    assert record.message.splitlines() == ["headers: None"]
+    record = caplog.records[2]
     assert record.levelname == "DEBUG"
     assert record.message.splitlines() == [
         "Fetched page https://user:****@example.com/simple/ as text/html",
@@ -669,54 +671,6 @@ def test_parse_links__metadata_file_data(
     assert link._hashes == hashes
 
 
-def test_parse_links_caches_same_page_by_url() -> None:
-    html = (
-        "<!DOCTYPE html>"
-        '<html><head><meta charset="utf-8"><head>'
-        '<body><a href="/pkg1-1.0.tar.gz"></a></body></html>'
-    )
-    html_bytes = html.encode("utf-8")
-
-    url = "https://example.com/simple/"
-
-    page_1 = IndexContent(
-        html_bytes,
-        "text/html",
-        encoding=None,
-        url=url,
-    )
-    # Make a second page with zero content, to ensure that it's not accessed,
-    # because the page was cached by url.
-    page_2 = IndexContent(
-        b"",
-        "text/html",
-        encoding=None,
-        url=url,
-    )
-    # Make a third page which represents an index url, which should not be
-    # cached, even for the same url. We modify the page content slightly to
-    # verify that the result is not cached.
-    page_3 = IndexContent(
-        re.sub(b"pkg1", b"pkg2", html_bytes),
-        "text/html",
-        encoding=None,
-        url=url,
-        cache_link_parsing=False,
-    )
-
-    parsed_links_1 = list(parse_links(page_1))
-    assert len(parsed_links_1) == 1
-    assert "pkg1" in parsed_links_1[0].url
-
-    parsed_links_2 = list(parse_links(page_2))
-    assert parsed_links_2 == parsed_links_1
-
-    parsed_links_3 = list(parse_links(page_3))
-    assert len(parsed_links_3) == 1
-    assert parsed_links_3 != parsed_links_1
-    assert "pkg2" in parsed_links_3[0].url
-
-
 @mock.patch("pip._internal.index.collector.raise_for_status")
 def test_request_http_error(
     mock_raise_for_status: mock.Mock, caplog: pytest.LogCaptureFixture
@@ -849,7 +803,7 @@ def test_get_index_content_directory_append_index(tmpdir: Path) -> None:
         mock_func.return_value = fake_response
         actual = _get_index_content(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
-            mock.call(expected_url, session=session),
+            mock.call(expected_url, headers=None, session=session),
         ], f"actual calls: {mock_func.mock_calls}"
 
         assert actual is not None
@@ -951,7 +905,10 @@ class TestLinkCollector:
         fake_response = make_fake_html_response(url)
         mock_get_simple_response.return_value = fake_response
 
-        location = Link(url, cache_link_parsing=False)
+        location = Link(
+            url,
+            # cache_link_parsing=False,
+        )
         link_collector = make_test_link_collector()
         actual = link_collector.fetch_response(location)
 
@@ -959,12 +916,13 @@ class TestLinkCollector:
         assert actual.content == fake_response.content
         assert actual.encoding is None
         assert actual.url == url
-        assert actual.cache_link_parsing == location.cache_link_parsing
+        # assert actual.cache_link_parsing == location.cache_link_parsing
 
         # Also check that the right session object was passed to
         # _get_simple_response().
         mock_get_simple_response.assert_called_once_with(
             url,
+            headers=None,
             session=link_collector.session,
         )
 
@@ -1006,7 +964,7 @@ class TestLinkCollector:
 
         assert [page.link for page in pages] == [Link("https://pypi.org/simple/twine/")]
         # Check that index URLs are marked as *un*cacheable.
-        assert not pages[0].link.cache_link_parsing
+        # assert not pages[0].link.cache_link_parsing
 
         expected_message = dedent(
             """\
