@@ -1,0 +1,1 @@
+Do not break with FileNotFoundError when loading site-config-dir location from windows registry (CSIDL_COMMON_APPDATA).
