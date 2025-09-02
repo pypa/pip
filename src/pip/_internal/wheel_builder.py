@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os.path
-import re
 import shutil
 from collections.abc import Iterable
 
@@ -26,21 +25,10 @@ from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.urls import path_to_url
-from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
 
-_egg_info_re = re.compile(r"([a-z0-9_.]+)-([a-z0-9_.!+-]+)", re.IGNORECASE)
-
 BuildResult = tuple[list[InstallRequirement], list[InstallRequirement]]
-
-
-def _contains_egg_info(s: str) -> bool:
-    """Determine whether the string looks like an egg_info.
-
-    :param s: The string to parse. E.g. foo-2.1
-    """
-    return bool(_egg_info_re.search(s))
 
 
 def _should_build(
@@ -65,54 +53,6 @@ def should_build_for_install_command(
     req: InstallRequirement,
 ) -> bool:
     return _should_build(req)
-
-
-def _should_cache(
-    req: InstallRequirement,
-) -> bool | None:
-    """
-    Return whether a built InstallRequirement can be stored in the persistent
-    wheel cache, assuming the wheel cache is available, and _should_build()
-    has determined a wheel needs to be built.
-    """
-    if req.editable or not req.source_dir:
-        # never cache editable requirements
-        return False
-
-    if req.link and req.link.is_vcs:
-        # VCS checkout. Do not cache
-        # unless it points to an immutable commit hash.
-        assert not req.editable
-        assert req.source_dir
-        vcs_backend = vcs.get_backend_for_scheme(req.link.scheme)
-        assert vcs_backend
-        if vcs_backend.is_immutable_rev_checkout(req.link.url, req.source_dir):
-            return True
-        return False
-
-    assert req.link
-    base, ext = req.link.splitext()
-    if _contains_egg_info(base):
-        return True
-
-    # Otherwise, do not cache.
-    return False
-
-
-def _get_cache_dir(
-    req: InstallRequirement,
-    wheel_cache: WheelCache,
-) -> str:
-    """Return the persistent or temporary cache directory where the built
-    wheel need to be stored.
-    """
-    cache_available = bool(wheel_cache.cache_dir)
-    assert req.link
-    if cache_available and _should_cache(req):
-        cache_dir = wheel_cache.get_path_for_link(req.link)
-    else:
-        cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
-    return cache_dir
 
 
 def _verify_one(req: InstallRequirement, wheel_path: str) -> None:
@@ -295,7 +235,7 @@ def build(
         build_successes, build_failures = [], []
         for req in requirements:
             assert req.name
-            cache_dir = _get_cache_dir(req, wheel_cache)
+            cache_dir = wheel_cache.resolve_cache_dir(req)
             wheel_file = _build_one(
                 req,
                 cache_dir,

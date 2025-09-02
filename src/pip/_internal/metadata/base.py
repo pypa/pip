@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import csv
+import email.generator
 import email.message
+import email.policy
+import email.utils
 import functools
 import json
 import logging
@@ -11,10 +14,10 @@ import zipfile
 from collections.abc import Collection, Container, Iterable, Iterator
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     NamedTuple,
     Protocol,
-    Union,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -36,7 +39,8 @@ from pip._internal.utils.urls import url_to_path
 
 from ._json import msg_to_json
 
-InfoPath = Union[str, pathlib.PurePath]
+if TYPE_CHECKING:
+    InfoPath = str | pathlib.PurePath
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +89,20 @@ def _convert_installed_files_path(
     return str(pathlib.Path(*info, *entry))
 
 
+def serialize_metadata(msg: email.message.Message) -> str:
+    """Write a dist's metadata to a string.
+
+    Calling ``str(dist.metadata)`` may raise an error by misinterpreting RST directives
+    as email headers. This method uses the more robust ``email.policy.EmailPolicy`` to
+    avoid those parsing errors."""
+    # Packages such as google_pasta-0.2.0 trigger a particular encoding behavior that
+    # required an upstream fix (https://github.com/python/cpython/pull/117369):
+    #
+    # > email.errors.HeaderWriteError: folded header
+    # > contains newline: 'Description: UNKNOWN\n\n\n'
+    return msg.as_string(policy=email.policy.HTTP.clone(refold_source="all"))
+
+
 class RequiresEntry(NamedTuple):
     requirement: str
     extra: str
@@ -92,6 +110,15 @@ class RequiresEntry(NamedTuple):
 
 
 class BaseDistribution(Protocol):
+    @property
+    def is_concrete(self) -> bool:
+        """Whether the distribution really exists somewhere on disk.
+
+        If this is false, it has been synthesized from metadata, e.g. via
+        ``.from_metadata_file_contents()``, or ``.from_wheel()`` against
+        a ``MemoryWheel``."""
+        raise NotImplementedError()
+
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
         """Load the distribution from a metadata directory.
@@ -664,6 +691,10 @@ class BaseEnvironment:
 class Wheel(Protocol):
     location: str
 
+    @property
+    def is_concrete(self) -> bool:
+        raise NotImplementedError()
+
     def as_zipfile(self) -> zipfile.ZipFile:
         raise NotImplementedError()
 
@@ -671,6 +702,10 @@ class Wheel(Protocol):
 class FilesystemWheel(Wheel):
     def __init__(self, location: str) -> None:
         self.location = location
+
+    @property
+    def is_concrete(self) -> bool:
+        return True
 
     def as_zipfile(self) -> zipfile.ZipFile:
         return zipfile.ZipFile(self.location, allowZip64=True)
@@ -680,6 +715,10 @@ class MemoryWheel(Wheel):
     def __init__(self, location: str, stream: IO[bytes]) -> None:
         self.location = location
         self.stream = stream
+
+    @property
+    def is_concrete(self) -> bool:
+        return False
 
     def as_zipfile(self) -> zipfile.ZipFile:
         return zipfile.ZipFile(self.stream, allowZip64=True)

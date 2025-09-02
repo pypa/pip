@@ -86,7 +86,7 @@ class _DistributionFinder:
                 installed_location: BasePath | None = None
             else:
                 installed_location = info_location.parent
-            yield Distribution(dist, info_location, installed_location)
+            yield Distribution(dist, info_location, installed_location, concrete=True)
 
     def find_legacy_editables(self, location: str) -> Iterator[BaseDistribution]:
         """Read location in egg-link files and return distributions in there.
@@ -110,7 +110,7 @@ class _DistributionFinder:
                 continue
             target_location = str(path.joinpath(target_rel))
             for dist, info_location in self._find_impl(target_location):
-                yield Distribution(dist, info_location, path)
+                yield Distribution(dist, info_location, path, concrete=True)
 
 
 class Environment(BaseEnvironment):
