@@ -45,7 +45,7 @@ def call_get_legacy_build_wheel_path(
 ) -> str | None:
     wheel_path = get_legacy_build_wheel_path(
         names=names,
-        temp_dir="/tmp/abcd",
+        wheel_directory="/tmp/abcd",
         name="pendulum",
         command_args=["arg1", "arg2"],
         command_output="output line 1\noutput line 2\n",
