@@ -86,17 +86,25 @@ def _set_requirement_extras(req: Requirement, new_extras: set[str]) -> Requireme
     return get_requirement(f"{pre}{extras}{post}")
 
 
-def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
-    """Parses an editable requirement into:
-        - a requirement name
-        - an URL
-        - extras
-        - editable options
-    Accepted requirements:
-        svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
-        .[some_extra]
-    """
+def _parse_direct_url_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
+    try:
+        req = Requirement(editable_req)
+    except InvalidRequirement:
+        pass
+    else:
+        if req.url:
+            # Join the marker back into the name part. This will be parsed out
+            # later into a Requirement again.
+            if req.marker:
+                name = f"{req.name} ; {req.marker}"
+            else:
+                name = req.name
+            return (name, req.url, req.extras)
 
+    raise ValueError
+
+
+def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
     url = editable_req
 
     # If a file path is specified with extras, strip off the extras.
@@ -122,9 +130,27 @@ def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
             url = f"{version_control}+{url}"
             break
 
+    return Link(url).egg_fragment, url, set()
+
+
+def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
+    """Parses an editable requirement into:
+        - a requirement name
+        - an URL
+        - extras
+    Accepted requirements:
+        - svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
+        - local_path[some_extra]
+        - Foobar[extra] @ svn+http://blahblah@rev#subdirectory=subdir ; markers
+    """
+    try:
+        package_name, url, extras = _parse_direct_url_editable(editable_req)
+    except ValueError:
+        package_name, url, extras = _parse_pip_syntax_editable(editable_req)
+
     link = Link(url)
 
-    if not link.is_vcs:
+    if not link.is_vcs and not link.url.startswith("file:"):
         backends = ", ".join(vcs.all_schemes)
         raise InstallationError(
             f"{editable_req} is not a valid editable requirement. "
@@ -132,13 +158,13 @@ def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
             f"(beginning with {backends})."
         )
 
-    package_name = link.egg_fragment
-    if not package_name:
+    # The project name can be inferred from local file URIs easily.
+    if not package_name and not link.url.startswith("file:"):
         raise InstallationError(
             f"Could not detect requirement name for '{editable_req}', "
-            "please specify one with #egg=your_package_name"
+            "please specify one with your_package_name @ URL"
         )
-    return package_name, url, set()
+    return package_name, url, extras
 
 
 def check_first_requirement_in_file(filename: str) -> None:
