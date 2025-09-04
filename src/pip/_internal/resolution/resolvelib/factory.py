@@ -281,7 +281,10 @@ class Factory:
             try:
                 # Don't use the installed distribution if its version
                 # does not fit the current dependency graph.
-                if not specifier.contains(installed_dist.version, prereleases=True):
+                version_check = specifier.contains(
+                    installed_dist.version, prereleases=True
+                )
+                if not version_check:
                     return None
             except InvalidVersion as e:
                 raise InvalidInstalledPackage(dist=installed_dist, invalid_exc=e)
