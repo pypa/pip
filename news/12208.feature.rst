@@ -1,0 +1,2 @@
+Implement lazier lazy_wheel that avoids the HEAD request, fetching the metadata
+for many wheels in 1 request.

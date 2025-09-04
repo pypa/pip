@@ -195,22 +195,19 @@ def record_file_maker_wrapper(
     version: str,
     files: Iterable[File],
     record: Defaulted[AnyStr | None],
-) -> Iterable[File]:
-    records: list[Record] = []
-    for file in files:
-        records.append(
-            Record(file.name, digest(file.contents), str(len(file.contents)))
-        )
-        yield file
+) -> File | None:
+    records: list[Record] = [
+        Record(file.name, digest(file.contents), str(len(file.contents)))
+        for file in files
+    ]
 
     if record is None:
-        return
+        return None
 
     record_path = dist_info_path(name, version, "RECORD")
 
     if record is not _default:
-        yield File(record_path, ensure_binary(record))
-        return
+        return File(record_path, ensure_binary(record))
 
     records.append(Record(record_path, "", ""))
 
@@ -220,7 +217,7 @@ def record_file_maker_wrapper(
             writer.writerow(r)
         contents = buf.getvalue().encode("utf-8")
 
-    yield File(record_path, contents)
+    return File(record_path, contents)
 
 
 def wheel_name(
@@ -298,6 +295,7 @@ def make_wheel(
     console_scripts: Defaulted[list[str]] = _default,
     entry_points: Defaulted[dict[str, list[str]]] = _default,
     record: Defaulted[AnyStr | None] = _default,
+    metadata_first: bool = True,
 ) -> WheelBuilder:
     """
     Helper function for generating test wheels which are compliant by default.
@@ -358,13 +356,15 @@ def make_wheel(
     :param entry_points:
     :param record: if provided and None, then no RECORD file is generated;
         else if a string then sets the content of the RECORD file
+    :param metadata_first: Put the .dist-info metadata at the front of the zip file.
+        This is against the wheel spec, but is seen in several uploads on PyPI.
     """
     pythons = ["py2", "py3"]
     abis = ["none"]
     platforms = ["any"]
     tags = list(itertools.product(pythons, abis, platforms))
 
-    possible_files = [
+    metadata_files = [
         make_metadata_file(name, version, metadata, metadata_updates, metadata_body),
         make_wheel_metadata_file(
             name, version, wheel_metadata, tags, wheel_metadata_updates
@@ -372,20 +372,31 @@ def make_wheel(
         make_entry_points_file(name, version, entry_points, console_scripts),
     ]
 
+    non_metadata_files = []
+
     if extra_files is not _default:
-        possible_files.extend(make_files(extra_files))
+        non_metadata_files.extend(make_files(extra_files))
 
     if extra_metadata_files is not _default:
-        possible_files.extend(make_metadata_files(name, version, extra_metadata_files))
+        metadata_files.extend(make_metadata_files(name, version, extra_metadata_files))
 
     if extra_data_files is not _default:
-        possible_files.extend(make_data_files(name, version, extra_data_files))
+        non_metadata_files.extend(make_data_files(name, version, extra_data_files))
 
-    actual_files = filter(None, possible_files)
+    actual_metadata_files = list(filter(None, metadata_files))
 
-    files_and_record_file = record_file_maker_wrapper(
-        name, version, actual_files, record
-    )
+    if metadata_first:
+        actual_files = actual_metadata_files + non_metadata_files
+    else:
+        actual_files = non_metadata_files + actual_metadata_files
+
+    record_file = record_file_maker_wrapper(name, version, actual_files, record)
+    if record_file:
+        if metadata_first:
+            actual_files.insert(0, record_file)
+        else:
+            actual_files.append(record_file)
+
     wheel_file_name = wheel_name(name, version, pythons, abis, platforms)
 
-    return WheelBuilder(wheel_file_name, files_and_record_file)
+    return WheelBuilder(wheel_file_name, actual_files)
