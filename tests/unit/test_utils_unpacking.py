@@ -336,7 +336,10 @@ class TestUnpackArchives:
         with pytest.raises(InstallationError) as e:
             untar_file(tar_filepath, extract_path)
 
-        msg = "The tar file ({}) has a file ({}) trying to install outside target directory ({})"
+        msg = (
+            "The tar file ({}) has a file ({}) trying to install outside "
+            "target directory ({})"
+        )
         assert msg.format(tar_filepath, "evil_symlink", import_filepath) in str(e.value)
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
@@ -370,7 +373,10 @@ class TestUnpackArchives:
         with pytest.raises(InstallationError) as e:
             untar_file(tar_filepath, extract_path)
 
-        msg = "The tar file ({}) has a file ({}) trying to install outside target directory ({})"
+        msg = (
+            "The tar file ({}) has a file ({}) trying to install outside "
+            "target directory ({})"
+        )
         assert msg.format(tar_filepath, "evil_symlink", link_path) in str(e.value)
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
