@@ -1,0 +1,1 @@
+Clarified dependency resolution docs: added note on imaginary packages, fixed version mismatch, and added introduction line.
