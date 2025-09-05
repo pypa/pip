@@ -253,8 +253,7 @@ def is_symlink_target_in_tar(tar: tarfile.TarFile, tarinfo: tarfile.TarInfo) -> 
     linkname = os.path.join(os.path.dirname(tarinfo.name), tarinfo.linkname)
 
     linkname = os.path.normpath(linkname)
-    if "\\" in linkname:
-        linkname = linkname.replace("\\", "/")
+    linkname = linkname.replace("\\", "/")
 
     try:
         tar.getmember(linkname)
