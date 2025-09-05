@@ -257,6 +257,61 @@ e.g. http://example.com/constraints.txt, so that your organization can store and
 serve them in a centralized place.
 
 
+.. _`Filtering by Upload Time`:
+
+
+Filtering by Upload Time
+=========================
+
+The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
+to an index, only considering packages that were uploaded before a specified datetime.
+This can be useful for creating reproducible builds by ensuring you only install
+packages that were available at a known point in time.
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+
+The option accepts ISO 8601 datetime strings in several formats:
+
+* ``2025-03-16`` - Date in local timezone
+* ``2025-03-16 12:30:00`` - Datetime in local timezone
+* ``2025-03-16T12:30:00Z`` - Datetime in UTC
+* ``2025-03-16T12:30:00+05:00`` - Datetime in UTC offset
+
+For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
+format (with timezone offset like '+05:00'). Local timezone formats may produce different
+results on different machines.
+
+.. note::
+
+    This option only works with package indexes that provide upload-time metadata
+    (such as PyPI). When upload-time information is not available, packages are not
+    filtered and installation continues normally.
+
+You can combine this option with other filtering mechanisms like constraints files:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
+
+
 .. _`Dependency Groups`:
 
 

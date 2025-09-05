@@ -207,6 +207,7 @@ class InstallCommand(RequirementCommand):
             ),
         )
 
+        self.cmd_opts.add_option(cmdoptions.uploaded_prior_to())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
