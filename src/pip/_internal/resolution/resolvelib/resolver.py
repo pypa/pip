@@ -87,8 +87,7 @@ class Resolver(BaseResolver):
         if "PIP_RESOLVER_DEBUG" in os.environ:
             reporter: BaseReporter[Requirement, Candidate, str] = PipDebuggingReporter()
         else:
-            reporter = PipReporter()
-            reporter._provider = provider  # Give reporter access to provider
+            reporter = PipReporter(constraints=provider._constraints)
 
         resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
             provider,

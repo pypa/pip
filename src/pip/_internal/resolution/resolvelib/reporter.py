@@ -1,23 +1,24 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 from logging import getLogger
 from typing import TYPE_CHECKING, Any
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
-from .base import Candidate, Requirement
+from .base import Candidate, Constraint, Requirement
 
 if TYPE_CHECKING:
-    from .provider import PipProvider
+    pass
 
 logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter[Requirement, Candidate, str]):
-    def __init__(self) -> None:
+    def __init__(self, constraints: Mapping[str, Constraint] | None = None) -> None:
         self.reject_count_by_package: defaultdict[str, int] = defaultdict(int)
-        self._provider: PipProvider | None = None
+        self._constraints = constraints or {}
 
         self._messages_at_reject_count = {
             1: (
@@ -62,9 +63,9 @@ class PipReporter(BaseReporter[Requirement, Candidate, str]):
             msg += req.format_for_error()
 
         # Add any relevant constraints
-        if self._provider and self._provider._constraints:
+        if self._constraints:
             name = candidate.name
-            constraint = self._provider._constraints.get(name)
+            constraint = self._constraints.get(name)
             if constraint and constraint.specifier:
                 constraint_text = f"{name}{constraint.specifier}"
                 msg += f"\n    The user requested (constraint) {constraint_text}"
