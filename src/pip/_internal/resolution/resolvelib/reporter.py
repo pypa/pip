@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from logging import getLogger
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
 from .base import Candidate, Requirement
+
+if TYPE_CHECKING:
+    from .provider import PipProvider
 
 logger = getLogger(__name__)
 
@@ -14,7 +17,7 @@ logger = getLogger(__name__)
 class PipReporter(BaseReporter[Requirement, Candidate, str]):
     def __init__(self) -> None:
         self.reject_count_by_package: defaultdict[str, int] = defaultdict(int)
-        self._provider = None
+        self._provider: PipProvider | None = None
 
         self._messages_at_reject_count = {
             1: (
@@ -37,7 +40,7 @@ class PipReporter(BaseReporter[Requirement, Candidate, str]):
 
     def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:
         """Report a candidate being rejected.
-        
+
         Logs both the rejection count message (if applicable) and details about
         the requirements and constraints that caused the rejection.
         """
@@ -63,7 +66,8 @@ class PipReporter(BaseReporter[Requirement, Candidate, str]):
             name = candidate.name
             constraint = self._provider._constraints.get(name)
             if constraint and constraint.specifier:
-                msg += f"\n    The user requested (constraint) {name}{constraint.specifier}"
+                constraint_text = f"{name}{constraint.specifier}"
+                msg += f"\n    The user requested (constraint) {constraint_text}"
 
         logger.debug(msg)
 
@@ -79,7 +83,9 @@ class PipReporter(BaseReporter[Requirement, Candidate, str]):
     def ending(self, state: Any) -> None:
         """Called when resolution ends, nothing to do."""
 
-    def adding_requirement(self, requirement: Requirement, parent: Candidate | None) -> None:
+    def adding_requirement(
+        self, requirement: Requirement, parent: Candidate | None
+    ) -> None:
         """Called when adding a new requirement, nothing to do."""
 
     def pinning(self, candidate: Candidate) -> None:
