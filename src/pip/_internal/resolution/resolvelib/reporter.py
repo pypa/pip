@@ -14,6 +14,7 @@ logger = getLogger(__name__)
 class PipReporter(BaseReporter[Requirement, Candidate, str]):
     def __init__(self) -> None:
         self.reject_count_by_package: defaultdict[str, int] = defaultdict(int)
+        self._provider = None
 
         self._messages_at_reject_count = {
             1: (
@@ -35,26 +36,54 @@ class PipReporter(BaseReporter[Requirement, Candidate, str]):
         }
 
     def rejecting_candidate(self, criterion: Any, candidate: Candidate) -> None:
+        """Report a candidate being rejected.
+        
+        Logs both the rejection count message (if applicable) and details about
+        the requirements and constraints that caused the rejection.
+        """
         self.reject_count_by_package[candidate.name] += 1
 
         count = self.reject_count_by_package[candidate.name]
-        if count not in self._messages_at_reject_count:
-            return
-
-        message = self._messages_at_reject_count[count]
-        logger.info("INFO: %s", message.format(package_name=candidate.name))
+        if count in self._messages_at_reject_count:
+            message = self._messages_at_reject_count[count]
+            logger.info("INFO: %s", message.format(package_name=candidate.name))
 
         msg = "Will try a different candidate, due to conflict:"
         for req_info in criterion.information:
             req, parent = req_info.requirement, req_info.parent
-            # Inspired by Factory.get_installation_error
             msg += "\n    "
             if parent:
                 msg += f"{parent.name} {parent.version} depends on "
             else:
                 msg += "The user requested "
             msg += req.format_for_error()
+
+        # Add any relevant constraints
+        if self._provider and self._provider._constraints:
+            name = candidate.name
+            constraint = self._provider._constraints.get(name)
+            if constraint and constraint.specifier:
+                msg += f"\n    The user requested (constraint) {name}{constraint.specifier}"
+
         logger.debug(msg)
+
+    def starting(self) -> None:
+        """Called when resolution starts, nothing to do."""
+
+    def starting_round(self, index: int) -> None:
+        """Called when a resolution round starts, nothing to do."""
+
+    def ending_round(self, index: int, state: Any) -> None:
+        """Called when a resolution round ends, nothing to do."""
+
+    def ending(self, state: Any) -> None:
+        """Called when resolution ends, nothing to do."""
+
+    def adding_requirement(self, requirement: Requirement, parent: Candidate | None) -> None:
+        """Called when adding a new requirement, nothing to do."""
+
+    def pinning(self, candidate: Candidate) -> None:
+        """Called when pinning a candidate, nothing to do."""
 
 
 class PipDebuggingReporter(BaseReporter[Requirement, Candidate, str]):
