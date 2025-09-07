@@ -89,7 +89,7 @@ class Resolver(BaseResolver):
         else:
             reporter = PipReporter()
             reporter._provider = provider  # Give reporter access to provider
-            
+
         resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
             provider,
             reporter,
