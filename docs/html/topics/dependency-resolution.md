@@ -165,7 +165,7 @@ will avoid performing dependency resolution during deployment.
 
 ## Dealing with dependency conflicts
 
-This section uses imaginary packages (`package_coffee`, `package_tea`, and
+This section uses hypothetical packages (`package_coffee`, `package_tea`, and
 `package_water`) to explain how pip resolves conflicts.
 
 This section provides practical suggestions to pip users who encounter
@@ -197,7 +197,7 @@ because they each depend on different versions of the same package
 - ``package_tea`` version ``4.3.0`` depends on version ``2.3.1`` of
   ``package_water``
 
-Note: `package_coffee`, `package_tea`, and `package_water` are imaginary
+Note: `package_coffee`, `package_tea`, and `package_water` are hypothetical
 packages used only to illustrate dependency conflicts. They are not real
 projects you can install.
 
