@@ -132,7 +132,7 @@ jobs:
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'ubuntu-22.04'
+        if: startsWith(matrix.os, 'ubuntu-')
         run: |
           sudo apt-get update
           sudo apt-get install bzr
