@@ -194,7 +194,23 @@ class VirtualEnvironment:
         if self._sitecustomize is not None:
             contents += "\n" + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
+        
+        # Ensure the site directory exists before writing files
+        sitecustomize.parent.mkdir(parents=True, exist_ok=True)
+        
         sitecustomize.write_text(contents)
+        
+        # Ubuntu 24.04 compatibility: Also create a .pth file that imports our customizations
+        # This ensures our customizations run even if system sitecustomize is loaded first
+        if self._sitecustomize is not None:
+            # Create a separate module for our customizations
+            customizations_module = self.site / "_venv_customizations.py"
+            customizations_module.write_text(self._sitecustomize)
+            
+            # Create a .pth file that imports this module
+            pth_file = self.site / "venv_customizations.pth"
+            pth_file.write_text("import _venv_customizations")
+        
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
