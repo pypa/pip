@@ -207,7 +207,10 @@ class VirtualEnvironment:
             pth_file = self.site / "zz_venv_customizations.pth"
             # Use the special .pth file syntax that allows inline code execution
             # The 'import sys; exec(...)' pattern works in .pth files
-            import_statement = f"import sys; exec(compile({self._sitecustomize!r}, '<venv_customizations>', 'exec'))"
+            import_statement = (
+                f"import sys; exec(compile("
+                f"{self._sitecustomize!r}, '<venv_customizations>', 'exec'))"
+            )
             pth_file.write_text(import_statement)
 
         # Make sure bytecode is up-to-date too.
