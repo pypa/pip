@@ -135,7 +135,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu-')
         run: |
           sudo apt-get update
-          sudo apt-get install bzr subversion
+          sudo apt-get install brz subversion
 
       - name: Install MacOS dependencies
         if: runner.os == 'macOS'
