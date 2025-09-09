@@ -200,16 +200,15 @@ class VirtualEnvironment:
 
         sitecustomize.write_text(contents)
 
-        # Ubuntu 24.04 compatibility: Also create a .pth file that imports our
-        # customizations. This ensures they run even if system sitecustomize loads first
+        # Ubuntu 24.04 compatibility: sitecustomize.py files in virtual environments
+        # are not being loaded. Use a .pth file as a workaround to ensure our
+        # customizations run during site initialization.
         if self._sitecustomize is not None:
-            # Create a separate module for our customizations
-            customizations_module = self.site / "_venv_customizations.py"
-            customizations_module.write_text(self._sitecustomize)
-
-            # Create a .pth file that imports this module
-            pth_file = self.site / "venv_customizations.pth"
-            pth_file.write_text("import _venv_customizations")
+            pth_file = self.site / "zz_venv_customizations.pth"
+            # Use the special .pth file syntax that allows inline code execution
+            # The 'import sys; exec(...)' pattern works in .pth files
+            import_statement = f"import sys; exec(compile({self._sitecustomize!r}, '<venv_customizations>', 'exec'))"
+            pth_file.write_text(import_statement)
 
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
