@@ -204,20 +204,13 @@ class VirtualEnvironment:
         # are not being loaded. Use a .pth file as a workaround to ensure our
         # customizations run during site initialization.
         if self._sitecustomize is not None:
-            pth_file = self.site / "zz_venv_customizations.pth"
-            # Use the special .pth file syntax that allows inline code execution
-            # The 'import sys; exec(...)' pattern works in .pth files
-            # We need to properly escape the sitecustomize content for the exec call
-            import base64
+            # Create a separate module file for our customizations
+            custom_module = self.site / "venv_customizations.py"
+            custom_module.write_text(self._sitecustomize)
 
-            encoded_content = base64.b64encode(
-                self._sitecustomize.encode("utf-8")
-            ).decode("ascii")
-            import_statement = (
-                f"import sys, base64; "
-                f"exec(base64.b64decode({encoded_content!r}).decode('utf-8'))"
-            )
-            pth_file.write_text(import_statement)
+            # Create .pth file that imports our module
+            pth_file = self.site / "zz_venv_customizations.pth"
+            pth_file.write_text("import venv_customizations")
 
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
