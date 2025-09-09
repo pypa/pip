@@ -209,7 +209,10 @@ class VirtualEnvironment:
             # The 'import sys; exec(...)' pattern works in .pth files
             # We need to properly escape the sitecustomize content for the exec call
             import base64
-            encoded_content = base64.b64encode(self._sitecustomize.encode('utf-8')).decode('ascii')
+
+            encoded_content = base64.b64encode(
+                self._sitecustomize.encode("utf-8")
+            ).decode("ascii")
             import_statement = (
                 f"import sys, base64; "
                 f"exec(base64.b64decode({encoded_content!r}).decode('utf-8'))"
