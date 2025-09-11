@@ -37,7 +37,7 @@ class DownloadCommand(RequirementCommand):
     def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.requirements())
-        self.cmd_opts.add_option(cmdoptions.scripts())
+        self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.global_options())
         self.cmd_opts.add_option(cmdoptions.no_binary())

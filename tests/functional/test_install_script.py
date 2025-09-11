@@ -30,7 +30,7 @@ def test_script_file(script: PipTestEnvironment) -> None:
             """
         )
     )
-    result = script.pip("install", "--script", script_path)
+    result = script.pip("install", "--requirements-from-script", script_path)
 
     # NOTE:2024-10-05:snoopj:assertions same as in test_requirements_file
     result.did_create(script.site_packages / "INITools-0.2.dist-info")

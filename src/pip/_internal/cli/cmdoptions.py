@@ -443,17 +443,16 @@ def requirements() -> Option:
     )
 
 
-# NOTE:2024-10-05:snoopj:it's simplest to allow exactly one file for a first pass
-# https://github.com/pypa/pip/issues/12891
-def scripts() -> Option:
+def requirements_from_scripts() -> Option:
     return Option(
         "-s",
-        "--script",
+        "--requirements-from-script",
         action="append",
         default=[],
-        dest="scripts",
+        dest="requirements_from_scripts",
         metavar="file",
-        help="Install PEP 723 inline dependencies of the given script file. ",
+        help="Install dependencies of the given script file"
+        "as defined by PEP 723 inline metadata. ",
     )
 
 

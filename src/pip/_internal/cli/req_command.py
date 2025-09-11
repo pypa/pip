@@ -12,6 +12,8 @@ from functools import partial
 from optparse import Values
 from typing import Any
 
+from pip._vendor.packaging.requirements import Requirement
+
 from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -47,7 +49,6 @@ from pip._internal.utils.temp_dir import (
     TempDirectoryTypeRegistry,
     tempdir_kinds,
 )
-from pip._vendor.packaging.requirements import Requirement
 
 logger = logging.getLogger(__name__)
 
@@ -293,11 +294,11 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
-        if options.scripts:
-            if len(options.scripts) > 1:
-                raise CommandError("--script can only be given once")
+        if options.requirements_from_scripts:
+            if len(options.requirements_from_scripts) > 1:
+                raise CommandError("--requirements-from-script can only be given once")
 
-            script = options.scripts[0]
+            script = options.requirements_from_scripts[0]
             script_metadata = pep723_metadata(script)
 
             script_requires_python = script_metadata.get("requires-python", "")
@@ -315,7 +316,7 @@ class RequirementCommand(IndexGroupCommand):
                     )
 
             for req in script_metadata.get("dependencies", []):
-                requirements.append(
+                requirements.append(  # noqa: PERF401
                     InstallRequirement(Requirement(req), comes_from=None)
                 )
 
@@ -328,7 +329,7 @@ class RequirementCommand(IndexGroupCommand):
             or options.editables
             or options.requirements
             or options.dependency_groups
-            or options.scripts
+            or options.requirements_from_scripts
         ):
             opts = {"name": self.name}
             if options.find_links:
