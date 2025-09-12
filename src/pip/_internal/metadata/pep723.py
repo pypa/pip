@@ -1,12 +1,12 @@
 import re
-from typing import Any, Dict
+from typing import Any
 
 from pip._vendor import tomli as tomllib
 
 REGEX = r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
 
 
-def pep723_metadata(scriptfile: str) -> Dict[str, Any]:
+def pep723_metadata(scriptfile: str) -> dict[str, Any]:
     with open(scriptfile) as f:
         script = f.read()
 
