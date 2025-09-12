@@ -61,25 +61,28 @@ COMPLETION_SCRIPTS = {
                 for ($i = 1; $i -lt $commandElements.Count; $i++) {{
                     $element = $commandElements[$i]
                     if ($element -isnot [StringConstantExpressionAst] -or
-                        $element.StringConstantType -ne [StringConstantType]::BareWord -or
+                        $element.StringConstantType -ne`
+                            [StringConstantType]::BareWord -or
                         $element.Value.StartsWith('-')) {{
                         break
                     }}
                     $element.Value
                 }}
             ) -join ' '
-            
+
             $Env:COMP_WORDS = $command
             $Env:COMP_CWORD = $commandElements.Count - 1
             $Env:PIP_AUTO_COMPLETE = 1
             $completions = & {prog} 2>$null
             Remove-Item Env:COMP_WORDS
-            Remove-Item Env:COMP_CWORD  
+            Remove-Item Env:COMP_CWORD
             Remove-Item Env:PIP_AUTO_COMPLETE
-            
+
             if ($completions) {{
                 $completions.Split() | ForEach-Object {{
-                    [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+                    [System.Management.Automation.CompletionResult]::new(
+                        $_, $_, 'ParameterValue', $_
+                    )
                 }}
             }}
         }}

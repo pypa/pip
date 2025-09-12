@@ -81,12 +81,14 @@ Register-ArgumentCompleter -Native -CommandName 'pip' -ScriptBlock {
     $Env:PIP_AUTO_COMPLETE = 1
     $completions = & pip 2>$null
     Remove-Item Env:COMP_WORDS
-    Remove-Item Env:COMP_CWORD  
+    Remove-Item Env:COMP_CWORD
     Remove-Item Env:PIP_AUTO_COMPLETE
 
     if ($completions) {
         $completions.Split() | ForEach-Object {
-            [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+            [System.Management.Automation.CompletionResult]::new(
+                $_, $_, 'ParameterValue', $_
+            )
         }
     }
 }""",
