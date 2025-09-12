@@ -60,24 +60,34 @@ fi""",
     (
         "powershell",
         """\
-if ((Test-Path Function:\\TabExpansion) -and -not `
-    (Test-Path Function:\\_pip_completeBackup)) {
-    Rename-Item Function:\\TabExpansion _pip_completeBackup
-}
-function TabExpansion($line, $lastWord) {
-    $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
-    if ($lastBlock.StartsWith("pip ")) {
-        $Env:COMP_WORDS=$lastBlock
-        $Env:COMP_CWORD=$lastBlock.Split().Length - 1
-        $Env:PIP_AUTO_COMPLETE=1
-        (& pip).Split()
-        Remove-Item Env:COMP_WORDS
-        Remove-Item Env:COMP_CWORD
-        Remove-Item Env:PIP_AUTO_COMPLETE
-    }
-    elseif (Test-Path Function:\\_pip_completeBackup) {
-        # Fall back on existing tab expansion
-        _pip_completeBackup $line $lastWord
+Register-ArgumentCompleter -Native -CommandName 'pip' -ScriptBlock {
+    param($commandName, $commandAst, $cursorPosition)
+    $commandElements = $commandAst.CommandElements
+    $command = @(
+        'pip'
+        for ($i = 1; $i -lt $commandElements.Count; $i++) {
+            $element = $commandElements[$i]
+            if ($element -isnot [StringConstantExpressionAst] -or
+                $element.StringConstantType -ne [StringConstantType]::BareWord -or
+                $element.Value.StartsWith('-')) {
+                break
+            }
+            $element.Value
+        }
+    ) -join ' '
+
+    $Env:COMP_WORDS = $command
+    $Env:COMP_CWORD = $commandElements.Count - 1
+    $Env:PIP_AUTO_COMPLETE = 1
+    $completions = & pip 2>$null
+    Remove-Item Env:COMP_WORDS
+    Remove-Item Env:COMP_CWORD  
+    Remove-Item Env:PIP_AUTO_COMPLETE
+
+    if ($completions) {
+        $completions.Split() | ForEach-Object {
+            [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+        }
     }
 }""",
     ),
