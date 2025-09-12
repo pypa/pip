@@ -89,6 +89,7 @@ COMPLETION_SCRIPTS = {
     """,
 }
 
+
 class CompletionCommand(Command):
     """A helper command to be used for command completion."""
 
