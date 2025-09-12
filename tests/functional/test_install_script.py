@@ -33,7 +33,7 @@ def test_script_file(script: PipTestEnvironment) -> None:
     result = script.pip("install", "--requirements-from-script", script_path)
 
     # NOTE:2024-10-05:snoopj:assertions same as in test_requirements_file
-    result.did_create(script.site_packages / "INITools-0.2.dist-info")
+    result.did_create(script.site_packages / "initools-0.2.dist-info")
     result.did_create(script.site_packages / "initools")
     assert result.files_created[script.site_packages / other_lib_name].dir
     fn = f"{other_lib_name}-{other_lib_version}.dist-info"
@@ -42,21 +42,21 @@ def test_script_file(script: PipTestEnvironment) -> None:
 
 def test_multiple_scripts(script: PipTestEnvironment) -> None:
     """
-    Test that --script can only be given once in an install command.
+    Test that --requirements-from-script can only be given once in an install command.
     """
     result = script.pip(
         "install",
-        "--script",
+        "--requirements-from-script",
         "does_not_exist.py",
-        "--script",
+        "--requirements-from-script",
         "also_does_not_exist.py",
         allow_stderr_error=True,
         expect_error=True,
     )
 
-    assert "ERROR: --script can only be given once" in result.stderr, (
-        "multiple script did not fail as expected -- " + result.stderr
-    )
+    assert (
+        "ERROR: --requirements-from-script can only be given once" in result.stderr
+    ), ("multiple script did not fail as expected -- " + result.stderr)
 
 
 @pytest.mark.network
@@ -85,7 +85,11 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
     )
 
     result = script.pip(
-        "install", "--script", script_path, expect_stderr=True, expect_error=True
+        "install",
+        "--requirements-from-script",
+        script_path,
+        expect_stderr=True,
+        expect_error=True,
     )
     assert (
         f"ERROR: Script '{script_path}' requires a different Python" in result.stderr
