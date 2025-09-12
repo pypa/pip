@@ -1,4 +1,0 @@
-argcomplete is a free open source library that integrates Python applications with Bash and Zsh shell completion.
-The argcomplete project is staffed by volunteers. If you are using this library in a for-profit project, please
-contribute to argcomplete development and maintenance using the "Sponsor" button on the argcomplete GitHub project page,
-https://github.com/kislyuk/argcomplete.
