@@ -86,9 +86,7 @@ Register-ArgumentCompleter -Native -CommandName 'pip' -ScriptBlock {
 
     if ($completions) {
         $completions.Split() | ForEach-Object {
-            [System.Management.Automation.CompletionResult]::new(
-                $_, $_, 'ParameterValue', $_
-            )
+            [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
         }
     }
 }""",

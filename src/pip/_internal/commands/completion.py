@@ -61,8 +61,7 @@ COMPLETION_SCRIPTS = {
                 for ($i = 1; $i -lt $commandElements.Count; $i++) {{
                     $element = $commandElements[$i]
                     if ($element -isnot [StringConstantExpressionAst] -or
-                        $element.StringConstantType -ne`
-                            [StringConstantType]::BareWord -or
+                        $element.StringConstantType -ne [StringConstantType]::BareWord -or
                         $element.Value.StartsWith('-')) {{
                         break
                     }}
@@ -80,15 +79,12 @@ COMPLETION_SCRIPTS = {
 
             if ($completions) {{
                 $completions.Split() | ForEach-Object {{
-                    [System.Management.Automation.CompletionResult]::new(
-                        $_, $_, 'ParameterValue', $_
-                    )
+                    [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
                 }}
             }}
         }}
     """,
 }
-
 
 class CompletionCommand(Command):
     """A helper command to be used for command completion."""
