@@ -6,8 +6,6 @@ import pytest
 from tests.lib import PipTestEnvironment
 
 
-# TODO:2024-10-05:snoopj:need a test for requires-python support, too.
-# Implement in terms of sys.version_info ?
 @pytest.mark.network
 def test_script_file(script: PipTestEnvironment) -> None:
     """
