@@ -65,12 +65,12 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
 
     other_lib_name, other_lib_version = "peppercorn", "0.6"
     script_path = script.scratch_path.joinpath("script.py")
-    target_python_ver = f"{sys.version_info.major}.{sys.version_info.minor + 1}"
+
     script_path.write_text(
         textwrap.dedent(
             f"""\
             # /// script
-            # requires-python = ">={target_python_ver}"
+            # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
             # dependencies = [
             #   "INITools==0.2",
             #   "{other_lib_name}<={other_lib_version}",
