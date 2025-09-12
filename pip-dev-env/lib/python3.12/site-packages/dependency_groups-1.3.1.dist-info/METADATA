@@ -1,0 +1,64 @@
+Metadata-Version: 2.4
+Name: dependency-groups
+Version: 1.3.1
+Summary: A tool for resolving PEP 735 Dependency Group data
+Keywords: 
+Author-email: Stephen Rosen <sirosen0@gmail.com>
+Requires-Python: >=3.8
+Description-Content-Type: text/x-rst
+License-Expression: MIT
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+License-File: LICENSE.txt
+Requires-Dist: packaging
+Requires-Dist: tomli;python_version<'3.11'
+Requires-Dist: tomli ; extra == "cli" and ( python_version<'3.11')
+Project-URL: changelog, https://github.com/pypa/dependency-groups/blob/main/CHANGELOG.rst
+Project-URL: documentation, https://dependency-groups.readthedocs.io/
+Project-URL: source, https://github.com/pypa/dependency-groups
+Provides-Extra: cli
+
+Dependency Groups
+=================
+
+An implementation of Dependency Groups (`PEP 735 <https://peps.python.org/pep-0735/>`_).
+
+This is a library which is able to parse dependency groups, following includes, and provide that data as output.
+
+Interfaces
+----------
+
+``dependency-groups`` provides the following:
+
+- A ``DependencyGroupResolver`` which implements efficient resolution of
+  dependency groups
+
+- A ``resolve()`` function which converts a dependency group name to a list of
+  strings (powered by the resolver)
+
+- Three CLI commands:
+
+  - ``python -m dependency_groups GROUPNAME`` prints a dependency group's
+    contents
+
+  - ``lint-dependency-groups`` loads all dependency groups to check for
+    correctness
+
+  - ``pip-install-dependency-groups GROUPNAME...`` wraps a ``pip`` invocation
+    to install the contents of a dependency group
+
+- A pre-commit hooks which runs ``lint-dependency-groups``
+
+Documentation
+-------------
+
+Full documentation is available on `the Dependency Groups doc site <https://dependency-groups.readthedocs.io/>`_.
+

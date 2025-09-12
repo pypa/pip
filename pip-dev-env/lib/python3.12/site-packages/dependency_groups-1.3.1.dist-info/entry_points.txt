@@ -1,0 +1,5 @@
+[console_scripts]
+dependency-groups=dependency_groups.__main__:main
+lint-dependency-groups=dependency_groups._lint_dependency_groups:main
+pip-install-dependency-groups=dependency_groups._pip_wrapper:main
+

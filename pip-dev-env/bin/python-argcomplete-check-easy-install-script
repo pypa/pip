@@ -1,0 +1,7 @@
+#!/Users/meet/Pictures/pip/pip-dev-env/bin/python
+import sys
+from argcomplete.scripts.python_argcomplete_check_easy_install_script import main
+if __name__ == '__main__':
+    if sys.argv[0].endswith('.exe'):
+        sys.argv[0] = sys.argv[0][:-4]
+    sys.exit(main())

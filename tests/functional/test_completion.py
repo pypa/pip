@@ -60,6 +60,7 @@ fi""",
     (
         "powershell",
         """\
+# pip powershell completion start
 Register-ArgumentCompleter -Native -CommandName 'pip' -ScriptBlock {
     param($commandName, $commandAst, $cursorPosition)
     $commandElements = $commandAst.CommandElements
@@ -68,7 +69,8 @@ Register-ArgumentCompleter -Native -CommandName 'pip' -ScriptBlock {
         for ($i = 1; $i -lt $commandElements.Count; $i++) {
             $element = $commandElements[$i]
             if ($element -isnot [StringConstantExpressionAst] -or
-                $element.StringConstantType -ne [StringConstantType]::BareWord -or
+                $element.StringConstantType -ne`
+                    [StringConstantType]::BareWord -or
                 $element.Value.StartsWith('-')) {
                 break
             }
@@ -91,7 +93,9 @@ Register-ArgumentCompleter -Native -CommandName 'pip' -ScriptBlock {
             )
         }
     }
-}""",
+}
+# pip powershell completion end
+""",
     ),
 )
 

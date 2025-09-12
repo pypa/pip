@@ -1,0 +1,3 @@
+[console_scripts]
+nox = nox.__main__:main
+tox-to-nox = nox.tox_to_nox:main
