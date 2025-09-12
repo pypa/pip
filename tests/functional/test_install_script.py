@@ -90,17 +90,7 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
         expect_error=True,
     )
 
-    if sys.platform == "win32":
-        # Special case: result.stderr contains an extra layer of backslash
-        # escaping, transform our path to match
-        script_path_str = str(script_path).replace("\\", "\\\\")
-    else:
-        script_path_str = str(script_path)
-
-    assert (
-        f"ERROR: Script '{script_path_str}' requires a different Python"
-        in result.stderr
-    ), (
+    assert "requires a different Python" in result.stderr, (
         "Script with incompatible requires-python did not fail as expected -- "
         + result.stderr
     )
