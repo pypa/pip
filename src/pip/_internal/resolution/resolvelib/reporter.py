@@ -72,26 +72,6 @@ class PipReporter(BaseReporter[Requirement, Candidate, str]):
 
         logger.debug(msg)
 
-    def starting(self) -> None:
-        """Called when resolution starts, nothing to do."""
-
-    def starting_round(self, index: int) -> None:
-        """Called when a resolution round starts, nothing to do."""
-
-    def ending_round(self, index: int, state: Any) -> None:
-        """Called when a resolution round ends, nothing to do."""
-
-    def ending(self, state: Any) -> None:
-        """Called when resolution ends, nothing to do."""
-
-    def adding_requirement(
-        self, requirement: Requirement, parent: Candidate | None
-    ) -> None:
-        """Called when adding a new requirement, nothing to do."""
-
-    def pinning(self, candidate: Candidate) -> None:
-        """Called when pinning a candidate, nothing to do."""
-
 
 class PipDebuggingReporter(BaseReporter[Requirement, Candidate, str]):
     """A reporter that does an info log for every event it sees."""
