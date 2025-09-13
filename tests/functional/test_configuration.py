@@ -9,12 +9,14 @@ import subprocess
 import sys
 import textwrap
 
+import pytest
+
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, Kind
 from pip._internal.configuration import get_configuration_files as _get_config_files
 from pip._internal.utils.compat import WINDOWS
 
-from tests.lib import PipTestEnvironment
+from tests.lib import PipTestEnvironment, TestData
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 from tests.lib.venv import VirtualEnvironment
 
@@ -211,4 +213,22 @@ class TestBasicLoading(ConfigurationMixin):
                 rf"exists: True\n(  {re.escape(new_config_file)}.+\n)+"
             ),
             result.stdout,
+        )
+
+    @pytest.mark.network
+    def test_editable_mode_default_config(
+        self, script: PipTestEnvironment, data: TestData
+    ) -> None:
+        """Test that setting default editable mode through configuration works
+        as expected.
+        """
+        script.pip(
+            "config", "--site", "set", "install.config-settings", "editable_mode=strict"
+        )
+        to_install = data.src.joinpath("simplewheel-1.0")
+        script.pip("install", "-e", to_install)
+        assert os.path.isdir(
+            os.path.join(
+                to_install, "build", "__editable__.simplewheel-1.0-py3-none-any"
+            )
         )
