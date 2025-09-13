@@ -1,6 +1,5 @@
 [project]
 dynamic = ["version"]
-
 name = "pip"
 description = "The PyPA recommended tool for installing Python packages."
 readme = "README.rst"
@@ -23,6 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -45,18 +45,21 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+requires = ["flit-core >=3.11,<4"]
+build-backend = "flit_core.buildapi"
 
 [dependency-groups]
 test = [
     "cryptography",
+    "flit-core >= 3.11, < 4",
     "freezegun",
     "installer",
-    "pytest",
+    # pytest-subket requires 7.0+
+    "pytest >= 7.0",
     "pytest-cov",
     "pytest-rerunfailures",
     "pytest-xdist",
+    "pytest-subket",
     "scripttest",
     "setuptools",
     # macOS (darwin) arm64 always uses virtualenv >= 20.0
@@ -70,36 +73,46 @@ test = [
 ]
 
 test-common-wheels = [
+    "flit-core >= 3.11, < 4",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
     "setuptools >= 40.8.0, != 60.6.0, <80",
     "wheel",
     # As required by pytest-cov.
     "coverage >= 4.4",
+    "pytest-subket >= 0.8.1",
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-include-package-data = false
+docs = [
+    "sphinx ~= 7.0",
+    # currently incompatible with sphinxcontrib-towncrier
+    # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
+    "towncrier < 24",
+    "furo",
+    "myst_parser",
+    "sphinx-copybutton",
+    "sphinx-inline-tabs",
+    "sphinxcontrib-towncrier >= 0.2.0a0",
+    "sphinx-issues",
+]
 
-[tool.setuptools.dynamic]
-version = {attr = "pip.__version__"}
-
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["contrib", "docs", "tests*", "tasks"]
-
-[tool.setuptools.package-data]
-"pip" = ["py.typed"]
-"pip._vendor" = ["vendor.txt"]
-"pip._vendor.certifi" = ["*.pem"]
-"pip._vendor.distlib" = [
-    "t32.exe",
-    "t64.exe",
-    "t64-arm.exe",
-    "w32.exe",
-    "w64.exe",
-    "w64-arm.exe",
+[tool.flit.sdist]
+include = [
+    "NEWS.rst",
+    "SECURITY.md",
+    "build-project/.python-version",
+    "build-project/build-project.py",
+    "build-project/build-requirements.in",
+    "build-project/build-requirements.txt",
+    "docs/**/*.css",
+    "docs/**/*.dot",
+    "docs/**/*.md",
+    "docs/**/*.png",
+    "docs/**/*.py",
+    "docs/**/*.rst",
+]
+exclude = [
+    "src/pip/_vendor/**/*.pyi",
 ]
 
 ######################################################################################
@@ -258,6 +271,11 @@ max-branches = 28  # default is 12
 max-returns = 13  # default is 6
 max-statements = 134  # default is 50
 
+[tool.ruff.per-file-target-version]
+# `__pip-runner__.py` should be Python 2.7 compatible but the
+# earliest version of Python ruff will check is 3.7
+"src/pip/__pip-runner__.py" = "py37"
+
 ######################################################################################
 # mypy
 #
@@ -296,7 +314,15 @@ follow_imports = "skip"
 #
 
 [tool.pytest.ini_options]
-addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes"
+addopts = [
+    "-r=aR",
+    "--color=yes",
+    "--ignore=src/pip/_vendor",
+    "--ignore=tests/tests_cache",
+    "--disable-socket",
+    "--allow-unix-socket",
+    "--allow-hosts=localhost",
+]
 xfail_strict = true
 markers = [
     "network: tests that need network",
@@ -349,4 +375,16 @@ source0 = [
 exclude_also = [
     # This excludes typing-specific code, which will be validated by mypy anyway.
     "if TYPE_CHECKING",
+]
+
+[tool.check-sdist]
+git-only = [
+  "tests/**",
+  "tools/**",
+  "news/.gitignore",
+  ".gitattributes",
+  ".gitignore",
+  ".git-blame-ignore-revs",
+  ".mailmap",
+  ".readthedocs-custom-redirects.yml"
 ]

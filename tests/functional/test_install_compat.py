@@ -6,8 +6,6 @@ Tests for compatibility workarounds.
 import os
 from pathlib import Path
 
-import pytest
-
 from tests.lib import (
     PipTestEnvironment,
     TestData,
@@ -16,7 +14,6 @@ from tests.lib import (
 )
 
 
-@pytest.mark.network
 def test_debian_egg_name_workaround(
     script: PipTestEnvironment,
     shared_data: TestData,

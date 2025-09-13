@@ -28,8 +28,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
       - run: pip install nox
@@ -70,8 +70,8 @@ jobs:
         os: [ubuntu-22.04, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
       - name: Set up git credentials
@@ -82,7 +82,7 @@ jobs:
       - run: pip install nox
       - run: nox -s prepare-release -- 99.9
       - run: nox -s build-release -- 99.9
-      - run: pipx run check-manifest
+      - run: pipx run check-sdist
 
   vendoring:
     name: vendoring
@@ -94,8 +94,8 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
@@ -115,17 +115,18 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-latest]
+        os: [ubuntu-22.04, macos-latest]
         python:
           - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
@@ -181,6 +182,7 @@ jobs:
           # - "3.11"
           # - "3.12"
           - "3.13"
+          - "3.14"
         group:
           - { number: 1, pytest-filter: "not test_install" }
           - { number: 2, pytest-filter: "test_install" }
@@ -193,8 +195,8 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
 
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
@@ -228,8 +230,8 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 

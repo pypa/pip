@@ -155,6 +155,7 @@ def test_pep518_refuses_invalid_build_system(
     assert "pyproject.toml" in result.stderr
 
 
+@pytest.mark.network
 def test_pep518_allows_missing_requires(
     script: PipTestEnvironment, data: TestData, common_wheels: Path
 ) -> None:
@@ -175,6 +176,7 @@ def test_pep518_allows_missing_requires(
     assert result.files_created
 
 
+@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_pep518_with_user_pip(
     script: PipTestEnvironment, pip_src: Path, data: TestData, common_wheels: Path
@@ -1878,7 +1880,7 @@ def test_install_editable_with_wrong_egg_name(
     result = script.pip(
         "install",
         "--editable",
-        f"file://{pkga_path}#egg=pkgb",
+        path_to_url(str(pkga_path)) + "#egg=pkgb",
         expect_error=(resolver_variant == "resolvelib"),
     )
     assert (
@@ -2424,6 +2426,7 @@ def test_install_sends_certs_for_pep518_deps(
         assert environ.get("SSL_CLIENT_CERT", "")
 
 
+@pytest.mark.network
 def test_install_skip_work_dir_pkg(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test that install of a package in working directory

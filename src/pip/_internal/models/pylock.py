@@ -5,15 +5,17 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pip._vendor import tomli_w
-from pip._vendor.typing_extensions import Self
 
 from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.urls import url_to_path
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 PYLOCK_FILE_NAME_RE = re.compile(r"^pylock\.([^.]+)\.toml$")
 

@@ -17,6 +17,7 @@ import pytest
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
@@ -50,6 +51,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
 
@@ -97,11 +99,13 @@ class TestRequirementSet:
         session = PipSession()
 
         with get_build_tracker() as tracker:
+            installer = SubprocessBuildEnvironmentInstaller(finder)
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, "build"),
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
                 build_isolation=True,
+                build_isolation_installer=installer,
                 check_build_deps=False,
                 build_tracker=tracker,
                 session=session,
@@ -221,15 +225,11 @@ class TestRequirementSet:
         dir_path = data.packages.joinpath("FSPkg")
         reqset.add_unnamed_requirement(
             get_processed_req_from_line(
-                f"file://{dir_path}",
+                path_to_url(str(dir_path)),
                 lineno=2,
             )
         )
         finder = make_test_finder(find_links=[data.find_links])
-
-        sep = os.path.sep
-        if sep == "\\":
-            sep = "\\\\"  # This needs to be escaped for the regex
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
             with pytest.raises(
@@ -241,7 +241,7 @@ class TestRequirementSet:
                     r"file \(line 1\)\)\n"
                     r"Can't verify hashes for these file:// requirements because "
                     r"they point to directories:\n"
-                    rf"    file://.*{sep}data{sep}packages{sep}FSPkg "
+                    r"    file://.*/data/packages/FSPkg "
                     r"\(from -r file \(line 2\)\)"
                 ),
             ):
@@ -768,6 +768,7 @@ class TestInstallRequirement:
             ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
             ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
             ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
+            ("simple-0.1-py2.py3-none-any.whl [ext]", "simple==0.1"),
         ],
     )
     def test_install_req_drop_extras(self, inp: str, out: str) -> None:
