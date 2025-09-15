@@ -728,7 +728,7 @@ def test_install_distribution_full_union(
     result = script.pip_install_local(
         to_install, f"{to_install}[bar]", f"{to_install}[baz]"
     )
-    assert "Building wheel for LocalExtras" in result.stdout
+    assert "Building wheel for localextras" in result.stdout
     result.did_create(script.site_packages / "simple")
     result.did_create(script.site_packages / "singlemodule.py")
 

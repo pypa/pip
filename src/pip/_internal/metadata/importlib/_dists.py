@@ -7,6 +7,7 @@ import zipfile
 from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from os import PathLike
 from typing import (
+    TYPE_CHECKING,
     cast,
 )
 
@@ -19,7 +20,6 @@ from pip._internal.exceptions import InvalidWheel, UnsupportedWheel
 from pip._internal.metadata.base import (
     BaseDistribution,
     BaseEntryPoint,
-    InfoPath,
     Wheel,
 )
 from pip._internal.utils.misc import normalize_path
@@ -33,6 +33,9 @@ from ._compat import (
     get_dist_canonical_name,
     parse_name_and_version_from_info_directory,
 )
+
+if TYPE_CHECKING:
+    from pip._internal.metadata.base import InfoPath
 
 
 class WheelDistribution(importlib.metadata.Distribution):
@@ -105,16 +108,22 @@ class Distribution(BaseDistribution):
         dist: importlib.metadata.Distribution,
         info_location: BasePath | None,
         installed_location: BasePath | None,
+        concrete: bool,
     ) -> None:
         self._dist = dist
         self._info_location = info_location
         self._installed_location = installed_location
+        self._concrete = concrete
+
+    @property
+    def is_concrete(self) -> bool:
+        return self._concrete
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
         info_location = pathlib.Path(directory)
         dist = importlib.metadata.Distribution.at(info_location)
-        return cls(dist, info_location, info_location.parent)
+        return cls(dist, info_location, info_location.parent, concrete=True)
 
     @classmethod
     def from_metadata_file_contents(
@@ -131,7 +140,7 @@ class Distribution(BaseDistribution):
         metadata_path.write_bytes(metadata_contents)
         # Construct dist pointing to the newly created directory.
         dist = importlib.metadata.Distribution.at(metadata_path.parent)
-        return cls(dist, metadata_path.parent, None)
+        return cls(dist, metadata_path.parent, None, concrete=False)
 
     @classmethod
     def from_wheel(cls, wheel: Wheel, name: str) -> BaseDistribution:
@@ -140,7 +149,14 @@ class Distribution(BaseDistribution):
                 dist = WheelDistribution.from_zipfile(zf, name, wheel.location)
         except zipfile.BadZipFile as e:
             raise InvalidWheel(wheel.location, name) from e
-        return cls(dist, dist.info_location, pathlib.PurePosixPath(wheel.location))
+        except UnsupportedWheel as e:
+            raise UnsupportedWheel(f"{name} has an invalid wheel, {e}")
+        return cls(
+            dist,
+            dist.info_location,
+            pathlib.PurePosixPath(wheel.location),
+            concrete=wheel.is_concrete,
+        )
 
     @property
     def location(self) -> str | None:
