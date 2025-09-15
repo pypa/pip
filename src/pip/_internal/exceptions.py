@@ -252,6 +252,25 @@ class NoneMetadataError(PipError):
         return f"None {self.metadata_name} metadata found for distribution: {self.dist}"
 
 
+class CacheMetadataError(PipError):
+    """Raised when de/serializing a requirement into the metadata cache."""
+
+    def __init__(
+        self,
+        req: InstallRequirement,
+        reason: str,
+    ) -> None:
+        """
+        :param req: The requirement we attempted to cache.
+        :param reason: Context about the precise error that occurred.
+        """
+        self.req = req
+        self.reason = reason
+
+    def __str__(self) -> str:
+        return f"{self.reason} for {self.req} from {self.req.link}"
+
+
 class UserInstallationInvalid(InstallationError):
     """A --user install is requested on an environment without user site."""
 
