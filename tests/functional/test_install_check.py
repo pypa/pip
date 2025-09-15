@@ -28,7 +28,7 @@ def test_check_install_canonicalization(script: PipTestEnvironment) -> None:
 
     # Let's install pkgA without its dependency
     result = script.pip("install", "--no-index", pkga_path, "--no-deps")
-    assert "Successfully installed pkgA-1.0" in result.stdout, str(result)
+    assert "Successfully installed pkga-1.0" in result.stdout, str(result)
 
     # Install the first missing dependency. Only an error for the
     # second dependency should remain.

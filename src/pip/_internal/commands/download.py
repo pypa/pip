@@ -129,6 +129,9 @@ class DownloadCommand(RequirementCommand):
         self.trace_basic_info(finder)
 
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
+        preparer.finalize_linked_requirements(
+            requirement_set.requirements.values(), require_dist_files=True
+        )
 
         downloaded: list[str] = []
         for req in requirement_set.requirements.values():
@@ -136,8 +139,6 @@ class DownloadCommand(RequirementCommand):
                 assert req.name is not None
                 preparer.save_linked_requirement(req)
                 downloaded.append(req.name)
-
-        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
 
         if downloaded:
             write_output("Successfully downloaded %s", " ".join(downloaded))
