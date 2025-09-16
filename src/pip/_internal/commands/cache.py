@@ -9,6 +9,8 @@ from pip._internal.exceptions import CommandError, PipError
 from pip._internal.utils import filesystem
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import format_size
+from pip._vendor.cachecontrol.serialize import Serializer
+from pip._vendor.requests import Request
 
 logger = getLogger(__name__)
 
@@ -32,7 +34,7 @@ class CacheCommand(Command):
     usage = """
         %prog dir
         %prog info
-        %prog list [<pattern>] [--format=[human, abspath]]
+        %prog list [<pattern>] [--format=[human, abspath]] [--cache-type=[all, wheels, http]]
         %prog remove <pattern>
         %prog purge
     """
@@ -45,6 +47,15 @@ class CacheCommand(Command):
             default="human",
             choices=("human", "abspath"),
             help="Select the output format among: human (default) or abspath",
+        )
+        
+        self.cmd_opts.add_option(
+            "--cache-type",
+            action="store",
+            dest="cache_type",
+            default="all",
+            choices=("all", "wheels", "http"),
+            help="Select which cache to list: all (default), wheels (locally built), or http (downloaded packages)",
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -141,11 +152,20 @@ class CacheCommand(Command):
         else:
             pattern = "*"
 
-        files = self._find_wheels(options, pattern)
+        # Collect wheel files and HTTP cached packages based on cache_type option
+        wheel_files = []
+        http_packages = []
+        
+        if options.cache_type in ("all", "wheels"):
+            wheel_files = self._find_wheels(options, pattern)
+            
+        if options.cache_type in ("all", "http"):
+            http_packages = self._get_http_cached_packages(options, pattern)
+
         if options.list_format == "human":
-            self.format_for_human(files)
+            self.format_for_human_combined(wheel_files, http_packages)
         else:
-            self.format_for_abspath(files)
+            self.format_for_abspath_combined(wheel_files, http_packages)
 
     def format_for_human(self, files: list[str]) -> None:
         if not files:
@@ -163,6 +183,55 @@ class CacheCommand(Command):
     def format_for_abspath(self, files: list[str]) -> None:
         if files:
             logger.info("\n".join(sorted(files)))
+    
+    def format_for_human_combined(self, wheel_files: list[str], http_packages: list[tuple[str, str, str]]) -> None:
+        """Format both wheel files and HTTP cached packages for human readable output."""
+        if not wheel_files and not http_packages:
+            logger.info("No cached packages.")
+            return
+
+        results = []
+        
+        # Add wheel files
+        for filename in wheel_files:
+            wheel = os.path.basename(filename)
+            size = filesystem.format_file_size(filename)
+            results.append(f" - {wheel} ({size})")
+        
+        # Add HTTP cached packages
+        for project, version, file_path in http_packages:
+            # Create a wheel-like name for display
+            wheel_name = f"{project}-{version}-py3-none-any.whl"
+            
+            # Calculate size of both header and body files
+            size = 0
+            try:
+                size += os.path.getsize(file_path)
+                body_path = file_path + '.body'
+                if os.path.exists(body_path):
+                    size += os.path.getsize(body_path)
+            except OSError:
+                pass
+            
+            size_str = filesystem.format_size(size)
+            results.append(f" - {wheel_name} ({size_str}) [HTTP cached]")
+        
+        logger.info("Cache contents:\n")
+        logger.info("\n".join(sorted(results)))
+
+    def format_for_abspath_combined(self, wheel_files: list[str], http_packages: list[tuple[str, str, str]]) -> None:
+        """Format both wheel files and HTTP cached packages for absolute path output."""
+        all_paths = []
+        
+        # Add wheel file paths
+        all_paths.extend(wheel_files)
+        
+        # Add HTTP cache file paths
+        for _, _, file_path in http_packages:
+            all_paths.append(file_path)
+        
+        if all_paths:
+            logger.info("\n".join(sorted(all_paths)))
 
     def remove_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
@@ -229,3 +298,70 @@ class CacheCommand(Command):
         pattern = pattern + ("*.whl" if "-" in pattern else "-*.whl")
 
         return filesystem.find_files(wheel_dir, pattern)
+    
+    def _get_http_cached_packages(self, options: Values, pattern: str = "*") -> list[tuple[str, str, str]]:
+        """Extract package information from HTTP cached responses.
+        
+        Returns a list of tuples: (package_name, version, file_path)
+        """
+        packages = []
+        http_files = self._find_http_files(options)
+        serializer = Serializer()
+        
+        for file_path in http_files:
+            # Skip body files
+            if file_path.endswith('.body'):
+                continue
+                
+            try:
+                with open(file_path, 'rb') as f:
+                    data = f.read()
+                
+                # Try to deserialize the cached response
+                dummy_request = Request('GET', 'https://dummy.com').prepare()
+                body_file_path = file_path + '.body'
+                body_file = None
+                
+                if os.path.exists(body_file_path):
+                    body_file = open(body_file_path, 'rb')
+                
+                try:
+                    response = serializer.loads(dummy_request, data, body_file)
+                    if response:
+                        # Check for PyPI headers that indicate this is a wheel
+                        package_type = response.headers.get('x-pypi-file-package-type')
+                        if package_type == 'bdist_wheel':
+                            project = response.headers.get('x-pypi-file-project')
+                            version = response.headers.get('x-pypi-file-version')
+                            python_version = response.headers.get('x-pypi-file-python-version', 'py3')
+                            
+                            if project and version:
+                                # Create a wheel-like filename for consistency
+                                wheel_name = f"{project}-{version}-{python_version}-none-any.whl"
+                                
+                                # Apply pattern matching similar to wheel files
+                                if pattern == "*" or self._matches_pattern(wheel_name, pattern):
+                                    packages.append((project, version, file_path))
+                finally:
+                    if body_file:
+                        body_file.close()
+                        
+            except Exception:
+                # Silently skip files that can't be processed
+                continue
+        
+        return packages
+    
+    def _matches_pattern(self, filename: str, pattern: str) -> bool:
+        """Check if a filename matches the given pattern."""
+        import fnmatch
+        
+        # Extract just the package name-version part for matching
+        base_name = filename.split('-')[0] if '-' in filename else filename
+        
+        # If pattern contains hyphen, match against full filename
+        if '-' in pattern:
+            return fnmatch.fnmatch(filename, pattern + "*")
+        else:
+            # Otherwise match against package name only
+            return fnmatch.fnmatch(base_name, pattern)
