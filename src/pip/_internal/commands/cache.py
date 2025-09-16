@@ -17,13 +17,13 @@ logger = getLogger(__name__)
 
 class CacheCommand(Command):
     """
-    Inspect and manage pip's wheel cache.
+    Inspect and manage pip's wheel and HTTP cache.
 
     Subcommands:
 
     - dir: Show the cache directory.
     - info: Show information about the cache.
-    - list: List filenames of packages stored in the cache.
+    - list: List cached packages (wheels and HTTP cached packages).
     - remove: Remove one or more package from the cache.
     - purge: Remove all items from the cache.
 
