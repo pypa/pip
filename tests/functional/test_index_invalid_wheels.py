@@ -43,7 +43,7 @@ def _create_test_index_with_invalid_wheels(
     ]
     invalid_wheels = [
         (f"{package_name}-3.0_1-py3-none-any.whl", "3.0"),  # underscore in version
-        (f"{package_name}-_bad_-py3-none-any.wh", "1.0.0"),  # no version
+        (f"{package_name}-_bad_-py3-none-any.wh", "0.0.0"),  # no version
         (
             f"{package_name}-5.0.0_build1-py3-none-any.whl",
             "5.0.0",
