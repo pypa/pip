@@ -676,26 +676,34 @@ class TestProcessLine:
         assert result[0].name == req_name
         assert not result[0].constraint
 
-    @pytest.mark.parametrize('use_pep517_cmd_line, line, expected', [
-        # Test passing use_pep517=None.
-        (None, '', None),
-        (None, '--use-pep517', True),
-        (None, '--no-use-pep517', False),
-        # Test passing use_pep517=True.
-        (True, '', True),
-        (True, '--use-pep517', True),
-        (True, '--no-use-pep517', False),
-        # Test passing use_pep517=False.
-        (False, '', False),
-        (False, '--use-pep517', True),
-        (False, '--no-use-pep517', False),
-    ])
+    @pytest.mark.parametrize(
+        "use_pep517_cmd_line, line, expected",
+        [
+            # Test passing use_pep517=None.
+            (None, "", None),
+            (None, "--use-pep517", True),
+            (None, "--no-use-pep517", False),
+            # Test passing use_pep517=True.
+            (True, "", True),
+            (True, "--use-pep517", True),
+            (True, "--no-use-pep517", False),
+            # Test passing use_pep517=False.
+            (False, "", False),
+            (False, "--use-pep517", True),
+            (False, "--no-use-pep517", False),
+        ],
+    )
     def test_set_pep517_option_in_req_file(
-        self, use_pep517_cmd_line, line, expected, line_processor: LineProcessor, options: mock.Mock
+        self,
+        use_pep517_cmd_line: bool | None,
+        line: str,
+        expected: bool | None,
+        line_processor: LineProcessor,
+        options: mock.Mock,
     ) -> None:
         """
-        Test that using --use-pep517 or --no-use-pep517 in a requirements file is both accepted
-        and overrides the command line choices for that pep.
+        Test that using --use-pep517 or --no-use-pep517 in a requirements file
+        is both accepted and overrides the command line choices for that pep.
         """
         filename = "filename"
         options.use_pep517 = use_pep517_cmd_line
