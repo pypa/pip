@@ -1166,6 +1166,7 @@ def create_basic_wheel_for_package(
     extras: dict[str, list[str]] | None = None,
     requires_python: str | None = None,
     extra_files: dict[str, bytes | str] | None = None,
+    metadata_first: bool = True,
 ) -> pathlib.Path:
     if depends is None:
         depends = []
@@ -1212,6 +1213,7 @@ def create_basic_wheel_for_package(
         extra_files=extra_files,
         # Have an empty RECORD because we don't want to be checking hashes.
         record="",
+        metadata_first=metadata_first,
     )
     wheel_builder.save_to(archive_path)
 
