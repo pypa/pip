@@ -34,7 +34,6 @@ except ImportError:
     logger.debug("bz2 module is not available")
 
 try:
-    # Only for Python 3.3+
     import lzma  # noqa
 
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
@@ -325,8 +324,7 @@ def unpack_file(
     ):
         untar_file(filename, location)
     else:
-        # FIXME: handle?
-        # FIXME: magic signatures?
+        # Cannot determine archive format from file extension, content-type, or file contents
         logger.critical(
             "Cannot unpack file %s (downloaded from %s, content-type: %s); "
             "cannot detect archive format",
@@ -334,4 +332,4 @@ def unpack_file(
             location,
             content_type,
         )
-        raise InstallationError(f"Cannot determine archive format of {location}")
+        raise InstallationError(f"Cannot determine archive format of {filename}")
