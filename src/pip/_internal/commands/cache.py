@@ -1,10 +1,7 @@
 import os
 import textwrap
 from optparse import Values
-from typing import Callable
-
-from pip._vendor.cachecontrol.serialize import Serializer
-from pip._vendor.requests import Request
+from typing import TYPE_CHECKING, Callable
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -13,8 +10,12 @@ from pip._internal.utils import filesystem
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import format_size
 
-logger = getLogger(__name__)
+if TYPE_CHECKING:
+    # Only for type checking; avoids importing network-related modules at runtime
+    from pip._vendor.cachecontrol.serialize import Serializer  # noqa: F401
+    from pip._vendor.requests import Request  # noqa: F401
 
+logger = getLogger(__name__)
 
 class CacheCommand(Command):
     """
@@ -150,14 +151,11 @@ class CacheCommand(Command):
         if len(args) > 1:
             raise CommandError("Too many arguments")
 
-        if args:
-            pattern = args[0]
-        else:
-            pattern = "*"
+        pattern = args[0] if args else "*"
 
         # Collect wheel files and HTTP cached packages based on cache_type option
-        wheel_files = []
-        http_packages = []
+        wheel_files: list[str] = []
+        http_packages: list[tuple[str, str, str]] = []
 
         if options.cache_type in ("all", "wheels"):
             wheel_files = self._find_wheels(options, pattern)
@@ -172,7 +170,7 @@ class CacheCommand(Command):
 
     def format_for_human(self, files: list[str]) -> None:
         if not files:
-            logger.info("No locally built wheels cached.")
+            logger.info("No cached packages.")
             return
 
         results = []
@@ -196,7 +194,7 @@ class CacheCommand(Command):
             logger.info("No cached packages.")
             return
 
-        results = []
+        results: list[str] = []
 
         # Add wheel files
         for filename in wheel_files:
@@ -312,9 +310,16 @@ class CacheCommand(Command):
     ) -> list[tuple[str, str, str]]:
         """Extract package information from HTTP cached responses.
 
+        We import Serializer and Request lazily to avoid pulling in
+        network-related modules when users just invoke `pip cache --help`.
+        This is required to keep test_no_network_imports passing.
+
         Returns a list of tuples: (package_name, version, file_path)
         """
-        packages = []
+        from pip._vendor.cachecontrol.serialize import Serializer
+        from pip._vendor.requests import Request
+
+        packages: list[tuple[str, str, str]] = []
         http_files = self._find_http_files(options)
         serializer = Serializer()
 
@@ -327,7 +332,7 @@ class CacheCommand(Command):
                 with open(file_path, "rb") as f:
                     data = f.read()
 
-                # Try to deserialize the cached response
+                # Dummy PreparedRequest needed by Serializer API; no network call.
                 dummy_request = Request("GET", "https://dummy.com").prepare()
                 body_file_path = file_path + ".body"
                 body_file = None
@@ -337,26 +342,23 @@ class CacheCommand(Command):
 
                 try:
                     response = serializer.loads(dummy_request, data, body_file)
-                    if response:
+                    if not response:
+                        continue
                         # Check for PyPI headers that indicate this is a wheel
-                        package_type = response.headers.get("x-pypi-file-package-type")
-                        if package_type == "bdist_wheel":
-                            project = response.headers.get("x-pypi-file-project")
-                            version = response.headers.get("x-pypi-file-version")
-                            python_version = response.headers.get(
-                                "x-pypi-file-python-version", "py3"
-                            )
-
-                            if project and version:
-                                # Create a wheel-like filename for consistency
-                                wheel_name = (
-                                    f"{project}-{version}-{python_version}-none-any.whl"
-                                )
-
-                                # Apply pattern matching similar to wheel files
-                                if pattern == "*" or self._matches_pattern(
-                                    wheel_name, pattern
-                                ):
+                    package_type = response.headers.get("x-pypi-file-package-type")
+                    if package_type != "bdist_wheel":
+                        continue
+                    project = response.headers.get("x-pypi-file-project")
+                    version = response.headers.get("x-pypi-file-version")
+                    python_version = response.headers.get(
+                        "x-pypi-file-python-version", "py3"
+                    )
+                    if not (project and version):
+                        continue
+                    # Create a wheel-like filename for consistency
+                    wheel_name = f"{project}-{version}-{python_version}-none-any.whl"
+                    # Apply pattern matching similar to wheel files
+                    if pattern == "*" or self._matches_pattern(wheel_name, pattern):
                                     packages.append((project, version, file_path))
                 finally:
                     if body_file:

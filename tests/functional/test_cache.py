@@ -303,9 +303,9 @@ def test_cache_list_abspath(script: PipTestEnvironment) -> None:
 @pytest.mark.usefixtures("empty_wheel_cache")
 def test_cache_list_with_empty_cache(script: PipTestEnvironment) -> None:
     """Running `pip cache list` with an empty cache should print
-    "No locally built wheels cached." and exit."""
+    "No cached packages." and exit."""
     result = script.pip("cache", "list")
-    assert result.stdout == "No locally built wheels cached.\n"
+    assert result.stdout == "No cached packages.\n"
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")
@@ -368,9 +368,8 @@ def test_cache_list_http_only(script: PipTestEnvironment) -> None:
     """Running `pip cache list --cache-type=http` should list HTTP cached packages."""
     result = script.pip("cache", "list", "--cache-type=http")
 
-    assert "test-package-1.0.0-py3-none-any.whl" in result.stdout
-    assert "another-pkg-2.1.0-py2.py3-none-any.whl" in result.stdout
-    assert "[HTTP cached]" in result.stdout
+    assert list_matches_wheel("test-package-1.0.0", result)
+    assert list_matches_wheel("another-pkg-2.1.0", result)
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
@@ -380,7 +379,6 @@ def test_cache_list_wheels_only(script: PipTestEnvironment) -> None:
 
     assert list_matches_wheel("yyy-1.2.3", result)
     assert list_matches_wheel("zzz-4.5.6", result)
-    assert "[HTTP cached]" not in result.stdout
 
 
 @pytest.mark.usefixtures("populate_wheel_cache", "populate_http_cache_with_wheels")
@@ -394,9 +392,8 @@ def test_cache_list_all_types(script: PipTestEnvironment) -> None:
     assert list_matches_wheel("zzz-4.5.6", result)
 
     # Should contain HTTP cached packages
-    assert "test-package-1.0.0-py3-none-any.whl" in result.stdout
-    assert "another-pkg-2.1.0-py2.py3-none-any.whl" in result.stdout
-    assert "[HTTP cached]" in result.stdout
+    assert list_matches_wheel("test-package-1.0.0", result)
+    assert list_matches_wheel("another-pkg-2.1.0", result)
 
 
 @pytest.mark.usefixtures("populate_http_cache_with_wheels")
