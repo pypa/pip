@@ -1,0 +1,1 @@
+Add support for listing HTTP-cached packages in ``pip cache list``, including a ``--cache-type`` selector and pattern matching for HTTP entries.
