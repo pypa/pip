@@ -283,7 +283,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         assert ireq.link == link
         if ireq.link.is_wheel and not ireq.link.is_file:
             wheel = Wheel(ireq.link.filename)
-            wheel_name = canonicalize_name(wheel.name)
+            wheel_name = wheel.name
             assert name == wheel_name, f"{name!r} != {wheel_name!r} for wheel"
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
