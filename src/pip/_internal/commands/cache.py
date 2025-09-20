@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+
 class CacheCommand(Command):
     """
     Inspect and manage pip's wheel and HTTP cache.
@@ -359,7 +360,7 @@ class CacheCommand(Command):
                     wheel_name = f"{project}-{version}-{python_version}-none-any.whl"
                     # Apply pattern matching similar to wheel files
                     if pattern == "*" or self._matches_pattern(wheel_name, pattern):
-                                    packages.append((project, version, file_path))
+                        packages.append((project, version, file_path))
                 finally:
                     if body_file:
                         body_file.close()
