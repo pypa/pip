@@ -429,7 +429,7 @@ class InstallationSubprocessError(DiagnosticPipError, InstallationError):
         return f"{self.command_description} exited with {self.exit_code}"
 
 
-class MetadataGenerationFailed(InstallationSubprocessError, InstallationError):
+class MetadataGenerationFailed(DiagnosticPipError, InstallationError):
     reference = "metadata-generation-failed"
 
     def __init__(
@@ -437,7 +437,7 @@ class MetadataGenerationFailed(InstallationSubprocessError, InstallationError):
         *,
         package_details: str,
     ) -> None:
-        super(InstallationSubprocessError, self).__init__(
+        super().__init__(
             message="Encountered error while generating package metadata.",
             context=escape(package_details),
             hint_stmt="See above for details.",
