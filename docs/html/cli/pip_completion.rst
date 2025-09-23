@@ -62,3 +62,11 @@ Enable pip tab completion in your shell:
       python -m pip completion --powershell | Out-String | Invoke-Expression
 
    Restart your PowerShell session for the changes to take effect.
+
+   .. note::
+
+      On Windows, ``pip.exe`` may point to a specific Python installation
+      (e.g. ``C:\Users\<user>\AppData\Local\Programs\Python\Python313\python.exe -m pip``).
+      In this case, tab completion works for that exact command. To enable
+      completion for the ``pip`` command itself in PowerShell, you can use
+      ``Register-ArgumentCompleter`` with ``CommandName pip``.
