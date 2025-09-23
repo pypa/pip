@@ -715,8 +715,7 @@ class Factory:
         """
         Check if there are any candidates available for the project name.
         """
-        candidates = self._finder.find_all_candidates(project_name)
-        return any(not c.link.is_yanked for c in candidates)
+        return any(self._finder.find_all_candidates(project_name))
 
     def get_installation_error(
         self,
