@@ -812,8 +812,8 @@ class Factory:
             msg = (
                 msg
                 + "\n\n"
-                + "Additionally, some conflict causes have no "
-                + "available versions for your environment:"
+                + "Additionally, some projects in these conflicts have no "
+                + "matching distributions available for your environment:"
                 + "\n    "
                 + "\n    ".join(sorted(no_candidates))
             )
