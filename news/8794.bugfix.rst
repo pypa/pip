@@ -1,0 +1,1 @@
+Prevent --user installs if site.ENABLE_USER_SITE is set to False.
