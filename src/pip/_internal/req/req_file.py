@@ -53,6 +53,8 @@ SUPPORTED_OPTIONS: list[Callable[..., optparse.Option]] = [
     cmdoptions.constraints,
     cmdoptions.requirements,
     cmdoptions.editable,
+    cmdoptions.use_pep517,
+    cmdoptions.no_use_pep517,
     cmdoptions.find_links,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
@@ -239,6 +241,8 @@ def handle_option_line(
             options.features_enabled.extend(
                 f for f in opts.features_enabled if f not in options.features_enabled
             )
+        if opts.use_pep517 is not None:
+            options.use_pep517 = opts.use_pep517
 
     # set finder options
     if finder:
