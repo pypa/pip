@@ -18,7 +18,7 @@ from typing import (
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -129,7 +129,7 @@ class LinkEvaluator:
     def __init__(
         self,
         project_name: str,
-        canonical_name: str,
+        canonical_name: NormalizedName,
         formats: frozenset[str],
         target_python: TargetPython,
         allow_yanked: bool,
@@ -215,7 +215,7 @@ class LinkEvaluator:
                         LinkType.format_invalid,
                         "invalid wheel filename",
                     )
-                if canonicalize_name(wheel.name) != self._canonical_name:
+                if wheel.name != self._canonical_name:
                     reason = f"wrong project name (not {self.project_name})"
                     return (LinkType.different_project, reason)
 

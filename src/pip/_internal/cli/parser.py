@@ -203,9 +203,9 @@ class ConfigOptionParser(CustomOptionParser):
                 if section in override_order:
                     section_items[section].append((key, val))
 
-            # Yield each group in their override order
-            for section in override_order:
-                yield from section_items[section]
+        # Yield each group in their override order
+        for section in override_order:
+            yield from section_items[section]
 
     def _update_defaults(self, defaults: dict[str, Any]) -> dict[str, Any]:
         """Updates the given defaults with values from the config files and
