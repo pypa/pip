@@ -205,6 +205,7 @@ jobs:
         shell: pwsh
         run: |
           choco install svn -y --no-progress
+          echo "C:\Program Files (x86)\Subversion\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox
 
