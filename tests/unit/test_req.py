@@ -28,6 +28,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.metadata import get_metadata_distribution
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
@@ -154,7 +155,11 @@ class TestRequirementSet:
             ):
                 resolver.resolve(reqset.all_requirements, True)
 
-    def test_environment_marker_extras(self, data: TestData) -> None:
+    def test_environment_marker_extras(
+        self,
+        data: TestData,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """
         Test that the environment marker extras are used with
         non-wheel installs.
@@ -164,6 +169,13 @@ class TestRequirementSet:
             os.fspath(data.packages.joinpath("LocalEnvironMarker")),
         )
         req.user_supplied = True
+
+        def cache_concrete_dist(self, dist):  # type: ignore[no-untyped-def]
+            self._dist = dist
+
+        monkeypatch.setattr(
+            req, "cache_concrete_dist", partial(cache_concrete_dist, req)
+        )
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
@@ -505,12 +517,23 @@ class TestRequirementSet:
             assert req.download_info.url.startswith("file://")
             assert isinstance(req.download_info.info, DirInfo)
 
-    def test_download_info_local_editable_dir(self, data: TestData) -> None:
+    def test_download_info_local_editable_dir(
+        self,
+        data: TestData,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """Test that download_info is set for requirements from a local editable dir."""
         finder = make_test_finder()
         with self._basic_resolver(finder) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
+
+            def cache_concrete_dist(self, dist):  # type: ignore[no-untyped-def]
+                self._dist = dist
+
+            monkeypatch.setattr(
+                ireq, "cache_concrete_dist", partial(cache_concrete_dist, ireq)
+            )
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
@@ -916,7 +939,9 @@ def test_mismatched_versions(caplog: pytest.LogCaptureFixture) -> None:
     metadata = email.message.Message()
     metadata["name"] = "simplewheel"
     metadata["version"] = "1.0"
-    req._metadata = metadata
+    req._dist = get_metadata_distribution(
+        bytes(metadata), "simplewheel-1.0.whl", "simplewheel"
+    )
 
     req.assert_source_matches_version()
     assert caplog.records[-1].message == (
