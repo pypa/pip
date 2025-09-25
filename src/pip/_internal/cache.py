@@ -143,7 +143,7 @@ class SimpleWheelCache(Cache):
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
                 continue
-            if canonicalize_name(wheel.name) != canonical_package_name:
+            if wheel.name != canonical_package_name:
                 logger.debug(
                     "Ignoring cached wheel %s for %s as it "
                     "does not match the expected distribution name %s.",

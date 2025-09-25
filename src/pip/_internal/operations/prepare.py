@@ -444,7 +444,7 @@ class RequirementPreparer:
             return None
 
         wheel = Wheel(link.filename)
-        name = canonicalize_name(wheel.name)
+        name = wheel.name
         logger.info(
             "Obtaining dependency information from %s %s",
             name,

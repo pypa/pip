@@ -113,7 +113,6 @@ class VirtualEnvironment:
                 _virtualenv.cli_run(
                     [
                         "--no-pip",
-                        "--no-wheel",
                         "--no-setuptools",
                         os.fspath(self.location),
                     ],
