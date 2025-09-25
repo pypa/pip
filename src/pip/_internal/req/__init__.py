@@ -5,7 +5,10 @@ import logging
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 
-from pip._internal.cli.progress_bars import BarType, get_install_progress_renderer
+from pip._internal.cli.progress_bars import (
+    ProgressBarType,
+    get_install_progress_renderer,
+)
 from pip._internal.utils.logging import indent_log
 
 from .req_file import parse_requirements
@@ -44,7 +47,7 @@ def install_given_reqs(
     warn_script_location: bool,
     use_user_site: bool,
     pycompile: bool,
-    progress_bar: BarType,
+    progress_bar: ProgressBarType,
 ) -> list[InstallationResult]:
     """
     Install everything in the given list.
