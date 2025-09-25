@@ -201,6 +201,11 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
+      - name: Install SVN via Chocolatey
+        shell: pwsh
+        run: |
+          choco install svn -y --no-progress
+
       - run: pip install nox
 
       # Main check
