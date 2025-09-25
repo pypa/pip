@@ -1,0 +1,1 @@
+Clarified ``pip freeze --all`` documentation and added a concise before/after example.
