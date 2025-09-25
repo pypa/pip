@@ -23,6 +23,7 @@ nox.needs_version = ">=2024.03.02"  # for session.run_install()
 LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
     "protected-pip": "tools/protected_pip.py",
+    "untracked-vendored-type-stubs": "tests/typing/untracked-vendored-stubs",
 }
 
 AUTHORS_FILE = "AUTHORS.txt"
@@ -125,6 +126,119 @@ def test(session: nox.Session) -> None:
             "LC_CTYPE": "en_US.UTF-8",
         },
     )
+
+
+@nox.session
+def typecheck(session: nox.Session) -> None:
+    runtime_typing_deps = [
+        "freezegun",
+        "installer",
+        "keyring",  # An optional runtime dependency.
+        "nox",
+        "packaging",
+        "proxy.py",
+        "pytest",
+        "httpx",
+        "rich",
+        "ScriptTest",
+        "tomli-w",
+        "types-PyYAML",  # Used in noxfile (needs to be part of the mypy environment)
+        "werkzeug",
+    ]
+    # Install test and test-types dependency groups
+    run_with_protected_pip(
+        session,
+        "install",
+        "mypy",
+        *runtime_typing_deps,
+    )
+
+    stubs_dir = Path(LOCATIONS["untracked-vendored-type-stubs"])
+    if stubs_dir.exists():
+        shutil.rmtree(stubs_dir)
+
+    # TODO: Let's have a single place where these are defined, as we should
+    #  have the exact versions that we are vendoring.
+    #  The versions could be taken from src/pip/_vendor/vendor.txt.
+    vendored_and_needing_stubs = [
+        # Stub libraries that contain type hints as a separate package:
+        "types-docutils",  # via sphinx (test dependency)
+        "types-requests",  # vendored
+        # vendored (can be removed when we upgrade to urllib3 >= 2.0)
+        "types-urllib3==1.*",
+        "types-setuptools",  # test dependency and used in distutils_hack
+        "types-six",  # via python-dateutil via freezegun (test dependency)
+        "types-PyYAML",  # update-rtd-redirects dependency
+    ]
+
+    run_with_protected_pip(
+        session,
+        "install",
+        f"--target={stubs_dir}",
+        *vendored_and_needing_stubs,
+    )
+
+    # Generate real pip/__init__.pyi and pip/_vendor/__init__.pyi files. We are
+    # obliged to have these files so that mypy understands that this is the pip
+    # package, and that it should take these stubs into account.
+    # We use stubgen, as the __init__.pyi files must be representative of what is
+    # in the real pip source.
+    real_pip_init = Path("src") / "pip" / "__init__.py"
+    real_pip_vendor_init = Path("src/pip/_vendor/__init__.py")
+
+    # stubgen has a problem generating for pip/_vendored/__init__.py, so we
+    # trick it by copying it to a different path and generating from there
+    tmp_pip_vendor_init = stubs_dir / "pip_vendor.py"
+    shutil.copy(real_pip_vendor_init, tmp_pip_vendor_init)
+
+    session.run(
+        "stubgen",
+        str(real_pip_init),
+        str(tmp_pip_vendor_init),
+        "--output",
+        str(stubs_dir),
+    )
+
+    # We now make a fake pip package in the stubs dir. When mypy finds this
+    # directory it will use any file it finds, but continue to find files from the
+    # real pip directory. Using a `pip-stubs` directory doesn't work for mypy.
+    pip_stubs_dir = stubs_dir / "pip"
+    pip_vendor_dir = pip_stubs_dir / "_vendor"
+    pip_vendor_dir.mkdir()
+
+    tmp_pip_vendor_init.unlink()
+    shutil.move(stubs_dir / "pip_vendor.pyi", pip_vendor_dir / "__init__.pyi")
+
+    # Move the vendored stub files into the pip vendored stubpackage.
+    for stubs_directory in stubs_dir.glob("*-stubs"):
+        stubs_directory.rename(pip_vendor_dir / stubs_directory.name.split("-stubs")[0])
+
+    # Clean up anything that is left over.
+    for item in stubs_dir.iterdir():
+        if item != pip_stubs_dir and item.is_dir():
+            shutil.rmtree(item)
+
+    # Don't track the generated stubs, so git ignore the directory.
+    (stubs_dir / ".gitignore").write_text("*")
+
+    mypy_cmd = [
+        "mypy",
+        "--config-file=tests/typing/pyproject.toml",
+    ]
+    if session.posargs:
+        # Allow passing specific files/directories to be checked.
+        mypy_cmd.extend(session.posargs)
+    else:
+        # Otherwise, run against all important files.
+        mypy_cmd.extend(
+            [
+                "src/pip",
+                "tests",
+                "tools",
+                "noxfile.py",
+            ]
+        )
+    session.run(*mypy_cmd)
 
 
 @nox.session
