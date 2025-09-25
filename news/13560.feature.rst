@@ -1,0 +1,1 @@
+Introduces ``PIP_TELEMETRY_USER_AGENT_ID``, an environment variable which completely overrides the value used to form pip's ``User-Agent`` header.
