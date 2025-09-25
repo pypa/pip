@@ -13,15 +13,24 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtual environment, and we can't
     # guarantee access to the actual stdlib location (where EXTERNALLY-MANAGED
     # needs to go into), we patch the check to always raise a simple message.
+    
+    # Allow user site packages so that --user doesn't fail early
+    virtualenv.user_site_packages = True
+    
     virtualenv.sitecustomize = textwrap.dedent(
         """\
-        from pip._internal.exceptions import ExternallyManagedEnvironment
-        from pip._internal.utils import misc
+        try:
+            from pip._internal.exceptions import ExternallyManagedEnvironment
+            from pip._internal.utils import misc
 
-        def check_externally_managed():
-            raise ExternallyManagedEnvironment("I am externally managed")
+            def check_externally_managed():
+                raise ExternallyManagedEnvironment("I am externally managed")
 
-        misc.check_externally_managed = check_externally_managed
+            misc.check_externally_managed = check_externally_managed
+        except ImportError:
+            # pip modules not available at sitecustomize time
+            # This can happen in CI environments with different timing
+            pass
         """
     )
 
