@@ -113,7 +113,11 @@ class TestSiteConfigDirs:
     def test_site_config_dirs_osx_homebrew(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(sys, "prefix", "/opt/homebrew/")
+        monkeypatch.setattr(
+            sys,
+            "prefix",
+            "/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13",
+        )
 
         assert appdirs.site_config_dirs("pip") == [
             "/opt/homebrew/share/pip",
