@@ -437,7 +437,7 @@ def _test_uninstall_editable_with_source_outside_venv(
         temp_pkg_dir,
         expect_stderr=True,
     )
-    result2 = script.pip("install", "-e", temp_pkg_dir)
+    result2 = script.run("python", "setup.py", "develop", cwd=temp_pkg_dir)
     result2.did_create(join(script.site_packages, "pip-test-package.egg-link"))
     result3 = script.pip("uninstall", "-y", "pip-test-package")
     assert_all_changes(
@@ -665,7 +665,7 @@ def test_uninstall_editable_and_pip_install(
     script.environ["SETUPTOOLS_SYS_PATH_TECHNIQUE"] = "raw"
 
     pkg_path = data.packages.joinpath("FSPkg")
-    script.pip("install", "-e", ".", expect_stderr=True, cwd=pkg_path)
+    script.run("python", "setup.py", "develop", expect_stderr=True, cwd=pkg_path)
     # ensure both are installed with --ignore-installed:
     script.pip("install", "--ignore-installed", ".", expect_stderr=True, cwd=pkg_path)
     script.assert_installed(FSPkg="0.1.dev0")
@@ -702,7 +702,7 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
 
     # Install FSPkg
     pkg_path = data.packages.joinpath("FSPkg")
-    script.pip("install", "-e", ".", expect_stderr=True, cwd=pkg_path)
+    script.run("python", "setup.py", "develop", expect_stderr=True, cwd=pkg_path)
 
     # Rename easy-install.pth to pip-test-fspkg.pth
     easy_install_pth = join(script.site_packages_path, "easy-install.pth")
