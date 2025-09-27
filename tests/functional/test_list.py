@@ -22,6 +22,7 @@ def simple_script(
     tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
     shared_data: TestData,
+    common_wheels: Path,
 ) -> PipTestEnvironment:
     tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
@@ -29,6 +30,8 @@ def simple_script(
         "install",
         "-f",
         shared_data.find_links,
+        "-f",
+        common_wheels,
         "--no-index",
         "simple==1.0",
         "simple2==3.0",
@@ -334,10 +337,19 @@ def pip_test_package_script(
     tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
     shared_data: TestData,
+    common_wheels: Path,
 ) -> PipTestEnvironment:
     tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
-    script.pip("install", "-f", shared_data.find_links, "--no-index", "simple==1.0")
+    script.pip(
+        "install",
+        "-f",
+        shared_data.find_links,
+        "-f",
+        common_wheels,
+        "--no-index",
+        "simple==1.0",
+    )
     script.pip(
         "install",
         "-e",
