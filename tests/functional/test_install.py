@@ -474,12 +474,8 @@ def test_install_editable_uninstalls_existing_from_path(
     result.assert_installed("simplewheel", editable=False)
     result.did_create(simple_folder)
 
-    result = script.pip(
-        "install",
-        "-e",
-        to_install,
-    )
-    result.assert_installed("simplewheel", editable=True)
+    result = script.pip_install_local("-e", to_install, "-v")
+    script.assert_installed_editable("simplewheel")
     assert "Found existing installation: simplewheel 1.0" in result.stdout
     assert "Uninstalling simplewheel-" in result.stdout
     assert "Successfully uninstalled simplewheel" in result.stdout
@@ -675,8 +671,7 @@ def test_link_hash_pass_require_hashes(
     considered valid for --require-hashes."""
     url = path_to_url(str(shared_data.packages.joinpath("simple-1.0.tar.gz")))
     url = (
-        f"{url}#sha256="
-        "393043e672415891885c9a2a0929b1af95fb866d6ca016b42d2e6ce53619b653"
+        f"{url}#sha256=393043e672415891885c9a2a0929b1af95fb866d6ca016b42d2e6ce53619b653"
     )
     script.pip_install_local("--no-deps", "--require-hashes", url)
 
