@@ -15,7 +15,6 @@ from tests.lib import (
     make_wheel,
     wheel,
 )
-from tests.lib.direct_url import get_created_direct_url_path
 
 
 @pytest.fixture(scope="session")
@@ -23,6 +22,7 @@ def simple_script(
     tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
     shared_data: TestData,
+    common_wheels: Path,
 ) -> PipTestEnvironment:
     tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
@@ -30,6 +30,8 @@ def simple_script(
         "install",
         "-f",
         shared_data.find_links,
+        "-f",
+        common_wheels,
         "--no-index",
         "simple==1.0",
         "simple2==3.0",
@@ -335,10 +337,19 @@ def pip_test_package_script(
     tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
     shared_data: TestData,
+    common_wheels: Path,
 ) -> PipTestEnvironment:
     tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
-    script.pip("install", "-f", shared_data.find_links, "--no-index", "simple==1.0")
+    script.pip(
+        "install",
+        "-f",
+        shared_data.find_links,
+        "-f",
+        common_wheels,
+        "--no-index",
+        "simple==1.0",
+    )
     script.pip(
         "install",
         "-e",
@@ -736,7 +747,7 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     """
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", pkg_path)
-    direct_url_path = get_created_direct_url_path(result, "testpkg")
+    direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:

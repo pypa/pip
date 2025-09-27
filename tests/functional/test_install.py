@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
@@ -437,7 +438,9 @@ def test_install_editable_uninstalls_existing(
     to_install = data.packages.joinpath("pip_test_package-0.1.tar.gz")
     result = script.pip_install_local(to_install)
     assert "Successfully installed pip-test-package" in result.stdout
-    result.assert_installed("piptestpackage", editable=False)
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", editable=False
+    )
 
     result = script.pip(
         "install",
@@ -449,7 +452,9 @@ def test_install_editable_uninstalls_existing(
             )
         ),
     )
-    result.assert_installed("pip-test-package", with_files=[".git"])
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", with_files=[".git"]
+    )
     assert "Found existing installation: pip-test-package 0.1" in result.stdout
     assert "Uninstalling pip-test-package-" in result.stdout
     assert "Successfully uninstalled pip-test-package" in result.stdout
@@ -469,13 +474,8 @@ def test_install_editable_uninstalls_existing_from_path(
     result.assert_installed("simplewheel", editable=False)
     result.did_create(simple_folder)
 
-    result = script.pip(
-        "install",
-        "-e",
-        to_install,
-    )
-    install_path = script.site_packages / "simplewheel.egg-link"
-    result.did_create(install_path)
+    result = script.pip_install_local("-e", to_install, "-v")
+    script.assert_installed_editable("simplewheel")
     assert "Found existing installation: simplewheel 1.0" in result.stdout
     assert "Uninstalling simplewheel-" in result.stdout
     assert "Successfully uninstalled simplewheel" in result.stdout
@@ -571,7 +571,6 @@ def test_basic_install_relative_directory(
     Test installing a requirement using a relative path.
     """
     dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
-    egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
     # Compute relative install path to FSPkg from scratch path.
@@ -595,7 +594,9 @@ def test_basic_install_relative_directory(
     else:
         # Editable install.
         result = script.pip("install", "-e", req_path, cwd=script.scratch_path)
-        result.did_create(egg_link_file)
+        direct_url = result.get_created_direct_url("fspkg")
+        assert direct_url
+        assert direct_url.is_local_editable()
 
 
 def test_install_quiet(script: PipTestEnvironment, data: TestData) -> None:
@@ -670,8 +671,7 @@ def test_link_hash_pass_require_hashes(
     considered valid for --require-hashes."""
     url = path_to_url(str(shared_data.packages.joinpath("simple-1.0.tar.gz")))
     url = (
-        f"{url}#sha256="
-        "393043e672415891885c9a2a0929b1af95fb866d6ca016b42d2e6ce53619b653"
+        f"{url}#sha256=393043e672415891885c9a2a0929b1af95fb866d6ca016b42d2e6ce53619b653"
     )
     script.pip_install_local("--no-deps", "--require-hashes", url)
 
@@ -893,41 +893,6 @@ def test_editable_install__local_dir_no_setup_py(
         "does not appear to be a Python project: "
         "neither 'setup.py' nor 'pyproject.toml' found" in result.stderr
     )
-
-
-@pytest.mark.skipif(
-    sys.version_info >= (3, 12),
-    reason="Setuptools<64 does not support Python 3.12+",
-)
-@pytest.mark.network
-def test_editable_install_legacy__local_dir_no_setup_py_with_pyproject(
-    script: PipTestEnvironment,
-) -> None:
-    """
-    Test installing in legacy editable mode from a local directory with no
-    setup.py but that does have pyproject.toml with a build backend that does
-    not support the build_editable hook.
-    """
-    local_dir = script.scratch_path.joinpath("temp")
-    local_dir.mkdir()
-    pyproject_path = local_dir.joinpath("pyproject.toml")
-    pyproject_path.write_text(
-        textwrap.dedent(
-            """
-                [build-system]
-                requires = ["setuptools<64"]
-                build-backend = "setuptools.build_meta"
-            """
-        )
-    )
-
-    result = script.pip("install", "-e", local_dir, expect_error=True)
-    assert not result.files_created
-
-    msg = result.stderr
-    assert "has a 'pyproject.toml'" in msg
-    assert "does not have a 'setup.py' nor a 'setup.cfg'" in msg
-    assert "cannot be installed in editable mode" in msg
 
 
 def test_editable_install__local_dir_setup_requires_with_pyproject(
@@ -1405,7 +1370,9 @@ def _test_install_editable_with_prefix(
     result = script.pip("install", "--editable", pkga_path, "--prefix", prefix_path)
 
     # assert pkga is installed at correct location
-    install_path = script.scratch / site_packages / "pkga.egg-link"
+    install_path = (
+        script.scratch / site_packages / "pkga-0.1.dist-info" / "direct_url.json"
+    )
     result.did_create(install_path)
 
     return result
@@ -1417,13 +1384,13 @@ def test_install_editable_with_target(script: PipTestEnvironment) -> None:
     pkg_path.mkdir()
     pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
+            """\
+            from setuptools import setup
+            setup(
+                name='pkg',
+                install_requires=['watching_testrunner']
+            )
             """
-        from setuptools import setup
-        setup(
-            name='pkg',
-            install_requires=['watching_testrunner']
-        )
-    """
         )
     )
 
@@ -1431,7 +1398,11 @@ def test_install_editable_with_target(script: PipTestEnvironment) -> None:
     target.mkdir()
     result = script.pip("install", "--editable", pkg_path, "--target", target)
 
-    result.did_create(script.scratch / "target" / "pkg.egg-link")
+    direct_url_path = result.get_created_direct_url_path("pkg")
+    assert direct_url_path
+    assert direct_url_path.parent.parent == target
+    direct_url = DirectUrl.from_json(direct_url_path.read_text())
+    assert direct_url.is_local_editable()
     result.did_create(script.scratch / "target" / "watching_testrunner.py")
 
 
@@ -1441,28 +1412,6 @@ from setuptools import setup
 setup(name='pkga', version='0.1')
 """
     _test_install_editable_with_prefix(script, {"setup.py": setup_py})
-
-
-@pytest.mark.skipif(
-    sys.version_info >= (3, 12),
-    reason="Setuptools<64 does not support Python 3.12+",
-)
-@pytest.mark.network
-def test_install_editable_legacy_with_prefix_setup_cfg(
-    script: PipTestEnvironment,
-) -> None:
-    setup_cfg = """[metadata]
-name = pkga
-version = 0.1
-"""
-    pyproject_toml = """[build-system]
-requires = ["setuptools<64", "wheel"]
-build-backend = "setuptools.build_meta"
-"""
-    result = _test_install_editable_with_prefix(
-        script, {"setup.cfg": setup_cfg, "pyproject.toml": pyproject_toml}
-    )
-    assert "(setup.py develop) is deprecated" in result.stderr
 
 
 def test_install_package_conflict_prefix_and_user(

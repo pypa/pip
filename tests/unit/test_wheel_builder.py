@@ -50,43 +50,6 @@ class ReqMock:
 @pytest.mark.parametrize(
     "req, expected",
     [
-        # We build, whether pep 517 is enabled or not.
-        (ReqMock(use_pep517=True), True),
-        (ReqMock(use_pep517=False), True),
-        # We don't build reqs that are already wheels.
-        (ReqMock(is_wheel=True), False),
-        # We build editables if the backend supports PEP 660.
-        (ReqMock(editable=True, use_pep517=False), False),
-        (
-            ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=True),
-            True,
-        ),
-        (
-            ReqMock(editable=True, use_pep517=True, supports_pyproject_editable=False),
-            False,
-        ),
-        # By default (i.e. when binaries are allowed), VCS requirements
-        # should be built in install mode.
-        (
-            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=True),
-            True,
-        ),
-        (
-            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=False),
-            True,
-        ),
-    ],
-)
-def test_should_build_for_install_command(req: ReqMock, expected: bool) -> None:
-    should_build = wheel_builder.should_build_for_install_command(
-        cast(InstallRequirement, req),
-    )
-    assert should_build is expected
-
-
-@pytest.mark.parametrize(
-    "req, expected",
-    [
         (ReqMock(editable=True, use_pep517=False), False),
         (ReqMock(editable=True, use_pep517=True), False),
         (ReqMock(source_dir=None), False),

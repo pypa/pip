@@ -5,7 +5,6 @@ import textwrap
 from typing import TYPE_CHECKING, Callable, Protocol
 
 import pytest
-from packaging.utils import canonicalize_name
 
 from tests.conftest import ScriptFactory
 from tests.lib import (
@@ -14,25 +13,10 @@ from tests.lib import (
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
-from tests.lib.direct_url import get_created_direct_url
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
 MakeFakeWheel = Callable[[str, str, str], pathlib.Path]
-
-
-def assert_editable(script: PipTestEnvironment, *args: str) -> None:
-    # This simply checks whether all of the listed packages have a
-    # corresponding .egg-link file installed.
-    # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = {f"{canonicalize_name(arg)}.egg-link" for arg in args}
-    actual_egg_links = {
-        f"{canonicalize_name(p.stem)}.egg-link"
-        for p in script.site_packages_path.glob("*.egg-link")
-    }
-    assert (
-        egg_links <= actual_egg_links
-    ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
 @pytest.fixture
@@ -340,7 +324,7 @@ def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
         source_dir,
     )
     script.assert_installed(base="0.1.0", dep="0.1.0")
-    assert_editable(script, "dep")
+    script.assert_installed_editable("dep")
 
 
 @pytest.mark.parametrize(
@@ -1872,7 +1856,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.assert_installed(test_pkg="0.1.0")
     if editable:
-        assert_editable(script, "test_pkg")
+        script.assert_installed_editable("test_pkg")
 
 
 def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) -> None:
@@ -2155,9 +2139,9 @@ def test_new_resolver_direct_url_with_extras(
     )
 
     script.assert_installed(pkg1="1", pkg2="1", pkg3="1")
-    assert not get_created_direct_url(result, "pkg1")
-    assert get_created_direct_url(result, "pkg2")
-    assert not get_created_direct_url(result, "pkg3")
+    assert not result.get_created_direct_url("pkg1")
+    assert result.get_created_direct_url("pkg2")
+    assert not result.get_created_direct_url("pkg3")
 
 
 def test_new_resolver_modifies_installed_incompatible(
