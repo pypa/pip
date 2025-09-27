@@ -27,6 +27,7 @@ def simple_script(
     script = script_factory(tmpdir.joinpath("workspace"))
     script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         shared_data.find_links,
         "--no-index",
@@ -337,7 +338,14 @@ def pip_test_package_script(
 ) -> PipTestEnvironment:
     tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
-    script.pip("install", "-f", shared_data.find_links, "--no-index", "simple==1.0")
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        shared_data.find_links,
+        "--no-index",
+        "simple==1.0",
+    )
     script.pip(
         "install",
         "-e",
