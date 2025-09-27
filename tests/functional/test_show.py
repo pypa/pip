@@ -36,7 +36,7 @@ def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -
     installed-files.txt not found.
     """
     editable = data.packages.joinpath("SetupPyUTF8")
-    script.pip("install", "-e", editable)
+    script.run("python", "setup.py", "develop", cwd=editable)
     result = script.pip("show", "-f", "SetupPyUTF8")
     lines = result.stdout.splitlines()
     assert len(lines) == 13
