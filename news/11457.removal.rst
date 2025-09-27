@@ -1,0 +1,2 @@
+Remove support for the legacy ``setup.py develop`` editable method. Pip now
+requires setuptools >= 64.
