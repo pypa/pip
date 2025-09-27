@@ -169,10 +169,14 @@ class SubprocessBuildEnvironmentInstaller:
             args.append("--prefer-binary")
         args.append("--")
         args.extend(requirements)
+
+        identify_requirement = (
+            f" for {for_req.name}" if for_req and for_req.name else ""
+        )
         with open_spinner(f"Installing {kind}") as spinner:
             call_subprocess(
                 args,
-                command_desc=f"pip subprocess to install {kind}",
+                command_desc=f"installing {kind}{identify_requirement}",
                 spinner=spinner,
             )
 
