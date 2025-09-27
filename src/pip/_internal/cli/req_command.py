@@ -17,6 +17,7 @@ from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.index_command import SessionCommandMixin as SessionCommandMixin
+from pip._internal.cli.progress_bars import ProgressBarType
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
@@ -105,6 +106,7 @@ class RequirementCommand(IndexGroupCommand):
         use_user_site: bool,
         download_dir: str | None = None,
         verbosity: int = 0,
+        batch_download_parallelism: int | None = None,
     ) -> RequirementPreparer:
         """
         Create a RequirementPreparer instance for the given parameters.
@@ -141,12 +143,15 @@ class RequirementCommand(IndexGroupCommand):
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
-            progress_bar=options.progress_bar,
+            progress_bar=ProgressBarType(options.progress_bar),
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
+            quietness=options.quiet,
+            color=not options.no_color,
+            batch_download_parallelism=batch_download_parallelism,
             legacy_resolver=legacy_resolver,
             resume_retries=options.resume_retries,
         )
