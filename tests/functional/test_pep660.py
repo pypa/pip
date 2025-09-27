@@ -164,13 +164,11 @@ def test_install_pep660_from_reqs_file(
     ), "a .egg-link file should not have been created"
 
 
-def test_install_no_pep660_setup_py_fallback(
-    tmpdir: Path, script: PipTestEnvironment
-) -> None:
+def test_install_no_pep660(tmpdir: Path, script: PipTestEnvironment) -> None:
     """
-    Test that we fall back to setuptools develop when using a backend that
-    does not support build_editable. Since there is a pyproject.toml,
-    the prepare_metadata_for_build_wheel hook is called.
+    Test the error message when the build backend does not support PEP 660.
+    Since there is a pyproject.toml, the prepare_metadata_for_build_wheel hook
+    is called.
     """
     project_dir = _make_project(tmpdir, BACKEND_WITHOUT_PEP660, with_setup_py=True)
     result = script.pip(
@@ -179,38 +177,14 @@ def test_install_no_pep660_setup_py_fallback(
         "--no-build-isolation",
         "--editable",
         project_dir,
-        allow_stderr_warning=False,
+        allow_error=True,
     )
+    assert result.returncode != 0
     _assert_hook_called(project_dir, "prepare_metadata_for_build_wheel")
     assert (
-        result.test_env.site_packages.joinpath("project.egg-link")
-        in result.files_created
-    ), "a .egg-link file should have been created"
-
-
-def test_install_no_pep660_setup_cfg_fallback(
-    tmpdir: Path, script: PipTestEnvironment
-) -> None:
-    """
-    Test that we fall back to setuptools develop when using a backend that
-    does not support build_editable. Since there is a pyproject.toml,
-    the prepare_metadata_for_build_wheel hook is called.
-    """
-    project_dir = _make_project(tmpdir, BACKEND_WITHOUT_PEP660, with_setup_py=False)
-    result = script.pip(
-        "install",
-        "--no-index",
-        "--no-build-isolation",
-        "--editable",
-        project_dir,
-        allow_stderr_warning=False,
+        "Cannot build editable project because "
+        "the build backend does not have the build_editable hook" in result.stderr
     )
-    print(result.stdout, result.stderr)
-    _assert_hook_called(project_dir, "prepare_metadata_for_build_wheel")
-    assert (
-        result.test_env.site_packages.joinpath("project.egg-link")
-        in result.files_created
-    ), ".egg-link file should have been created"
 
 
 def test_wheel_editable_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
