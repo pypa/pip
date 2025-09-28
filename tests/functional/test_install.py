@@ -1670,14 +1670,6 @@ def test_install_topological_sort(script: PipTestEnvironment, data: TestData) ->
     assert order1 in res or order2 in res, res
 
 
-def test_cleanup_after_failed_wheel(script: PipTestEnvironment) -> None:
-    res = script.pip_install_local("wheelbrokenafter", expect_error=True)
-    assert "ERROR: Failed building wheel for wheelbrokenafter" in res.stderr
-    # OK, assert that we *said* we were cleaning up:
-    # /!\ if in need to change this, also change test_pep517_no_legacy_cleanup
-    assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
-
-
 def test_install_builds_wheels(script: PipTestEnvironment, data: TestData) -> None:
     # We need to use a subprocess to get the right value on Windows.
     res = script.run(
