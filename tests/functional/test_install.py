@@ -1618,7 +1618,12 @@ def test_install_upgrade_editable_depending_on_other_editable(
 def test_install_subprocess_output_handling(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    args = ["install", os.fspath(data.src.joinpath("chattymodule"))]
+    args = [
+        "install",
+        "--no-build-isolation",
+        "--no-cache",
+        os.fspath(data.src.joinpath("chattymodule")),
+    ]
 
     # Regular install should not show output from the chatty setup.py
     result = script.pip(*args)
@@ -1629,21 +1634,23 @@ def test_install_subprocess_output_handling(
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
     result = script.pip(*(args + ["--verbose"]), expect_stderr=True)
-    assert 1 == result.stderr.count("HELLO FROM CHATTYMODULE egg_info")
+    assert 1 == result.stderr.count(
+        "HELLO FROM CHATTYMODULE prepare_metadata_for_build_wheel"
+    )
+    assert 1 == result.stderr.count("HELLO FROM CHATTYMODULE build_wheel")
     script.pip("uninstall", "-y", "chattymodule")
 
     # If the install fails, then we *should* show the output... but only once,
     # even if --verbose is given.
-    result = script.pip(*(args + ["--global-option=--fail"]), expect_error=True)
-    # This error is emitted 3 times:
-    # - by setup.py bdist_wheel
-    # - by setup.py clean
-    assert 2 == result.stderr.count("I DIE, I DIE")
+    result = script.pip(*(args + ["--config-setting=fail=1"]), expect_error=True)
+    assert 1 == result.stderr.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE in prepare_metadata_for_build_wheel")
 
     result = script.pip(
-        *(args + ["--global-option=--fail", "--verbose"]), expect_error=True
+        *(args + ["--config-setting=fail=1", "--verbose"]), expect_error=True
     )
-    assert 2 == result.stderr.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE in prepare_metadata_for_build_wheel")
 
 
 def test_install_log(script: PipTestEnvironment, data: TestData, tmpdir: Path) -> None:
