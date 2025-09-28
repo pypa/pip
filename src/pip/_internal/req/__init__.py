@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 import logging
-from collections.abc import Generator, Sequence
+from collections.abc import Generator
 from dataclasses import dataclass
 
 from pip._internal.cli.progress_bars import BarType, get_install_progress_renderer
@@ -37,7 +37,6 @@ def _validate_requirements(
 
 def install_given_reqs(
     requirements: list[InstallRequirement],
-    global_options: Sequence[str],
     root: str | None,
     home: str | None,
     prefix: str | None,
@@ -83,7 +82,6 @@ def install_given_reqs(
 
             try:
                 requirement.install(
-                    global_options,
                     root=root,
                     home=home,
                     prefix=prefix,

@@ -20,7 +20,7 @@ class SourceDistribution(AbstractDistribution):
     """Represents a source distribution.
 
     The preparation step for these needs metadata for the packages to be
-    generated, either using PEP 517 or using the legacy `setup.py egg_info`.
+    generated.
     """
 
     @property
@@ -38,12 +38,11 @@ class SourceDistribution(AbstractDistribution):
         build_isolation: bool,
         check_build_deps: bool,
     ) -> None:
-        # Load pyproject.toml, to determine whether PEP 517 is to be used
+        # Load pyproject.toml
         self.req.load_pyproject_toml()
 
         # Set up the build isolation, if this requirement should be isolated
-        should_isolate = self.req.use_pep517 and build_isolation
-        if should_isolate:
+        if build_isolation:
             # Setup an isolated environment and install the build backend static
             # requirements in it.
             self._prepare_build_backend(build_env_installer)
@@ -58,8 +57,7 @@ class SourceDistribution(AbstractDistribution):
             # Install the dynamic build requirements.
             self._install_build_reqs(build_env_installer)
         # Check if the current environment provides build dependencies
-        should_check_deps = self.req.use_pep517 and check_build_deps
-        if should_check_deps:
+        if check_build_deps:
             pyproject_requires = self.req.pyproject_requires
             assert pyproject_requires is not None
             conflicting, missing = self.req.build_env.check_requirements(

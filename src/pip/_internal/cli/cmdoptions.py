@@ -11,7 +11,6 @@ pass on state. To be consistent, all options will follow this design.
 # mypy: strict-optional=False
 from __future__ import annotations
 
-import importlib.util
 import logging
 import os
 import pathlib
@@ -184,8 +183,7 @@ require_virtualenv: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help=(
-        "Allow pip to only run in a virtual environment; "
-        "exit with an error otherwise."
+        "Allow pip to only run in a virtual environment; exit with an error otherwise."
     ),
 )
 
@@ -851,43 +849,8 @@ check_build_deps: Callable[..., Option] = partial(
     dest="check_build_deps",
     action="store_true",
     default=False,
-    help="Check the build dependencies when PEP517 is used.",
+    help="Check the build dependencies.",
 )
-
-
-def _handle_no_use_pep517(
-    option: Option, opt: str, value: str, parser: OptionParser
-) -> None:
-    """
-    Process a value provided for the --no-use-pep517 option.
-
-    This is an optparse.Option callback for the no_use_pep517 option.
-    """
-    # Since --no-use-pep517 doesn't accept arguments, the value argument
-    # will be None if --no-use-pep517 is passed via the command-line.
-    # However, the value can be non-None if the option is triggered e.g.
-    # by an environment variable, for example "PIP_NO_USE_PEP517=true".
-    if value is not None:
-        msg = """A value was passed for --no-use-pep517,
-        probably using either the PIP_NO_USE_PEP517 environment variable
-        or the "no-use-pep517" config file option. Use an appropriate value
-        of the PIP_USE_PEP517 environment variable or the "use-pep517"
-        config file option instead.
-        """
-        raise_option_error(parser, option=option, msg=msg)
-
-    # If user doesn't wish to use pep517, we check if setuptools is installed
-    # and raise error if it is not.
-    packages = ("setuptools",)
-    if not all(importlib.util.find_spec(package) for package in packages):
-        msg = (
-            f"It is not possible to use --no-use-pep517 "
-            f"without {' and '.join(packages)} installed."
-        )
-        raise_option_error(parser, option=option, msg=msg)
-
-    # Otherwise, --no-use-pep517 was passed via the command-line.
-    parser.values.use_pep517 = False
 
 
 use_pep517: Any = partial(
@@ -895,18 +858,7 @@ use_pep517: Any = partial(
     "--use-pep517",
     dest="use_pep517",
     action="store_true",
-    default=None,
-    help="Use PEP 517 for building source distributions "
-    "(use --no-use-pep517 to force legacy behaviour).",
-)
-
-no_use_pep517: Any = partial(
-    Option,
-    "--no-use-pep517",
-    dest="use_pep517",
-    action="callback",
-    callback=_handle_no_use_pep517,
-    default=None,
+    default=True,
     help=SUPPRESS_HELP,
 )
 
@@ -939,28 +891,9 @@ config_settings: Callable[..., Option] = partial(
     action="callback",
     callback=_handle_config_settings,
     metavar="settings",
-    help="Configuration settings to be passed to the PEP 517 build backend. "
+    help="Configuration settings to be passed to the build backend. "
     "Settings take the form KEY=VALUE. Use multiple --config-settings options "
     "to pass multiple keys to the backend.",
-)
-
-build_options: Callable[..., Option] = partial(
-    Option,
-    "--build-option",
-    dest="build_options",
-    metavar="options",
-    action="append",
-    help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
-)
-
-global_options: Callable[..., Option] = partial(
-    Option,
-    "--global-option",
-    dest="global_options",
-    action="append",
-    metavar="options",
-    help="Extra global options to be supplied to the setup.py "
-    "call before the install or bdist_wheel command.",
 )
 
 no_clean: Callable[..., Option] = partial(
