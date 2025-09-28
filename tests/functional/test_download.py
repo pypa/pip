@@ -54,8 +54,18 @@ def test_download_wheel(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test using "pip download" to download a *.whl archive.
     """
+    # This test needs --no-build-isolation because `meta` depends on `simple`
+    # which is a source distribution for which it needs to prepare metadata
+    # to look for transitive dependencies.
     result = script.pip(
-        "download", "--no-index", "-f", data.packages, "-d", ".", "meta"
+        "download",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.packages,
+        "-d",
+        ".",
+        "meta",
     )
     result.did_create(Path("scratch") / "meta-1.0-py2.py3-none-any.whl")
     result.did_not_create(script.site_packages / "piptestpackage")
@@ -122,7 +132,14 @@ def test_download_should_download_wheel_deps(
     dep_filename = "translationstring-1.1.tar.gz"
     wheel_path = "/".join((data.find_links, wheel_filename))
     result = script.pip(
-        "download", wheel_path, "-d", ".", "--find-links", data.find_links, "--no-index"
+        "download",
+        "--no-build-isolation",
+        wheel_path,
+        "-d",
+        ".",
+        "--find-links",
+        data.find_links,
+        "--no-index",
     )
     result.did_create(Path("scratch") / wheel_filename)
     result.did_create(Path("scratch") / dep_filename)
@@ -687,8 +704,7 @@ def test_download__python_version_used_for_python_requires(
     args = make_args("33")
     result = script.pip(*args, expect_error=True)
     expected_err = (
-        "ERROR: Package 'mypackage' requires a different Python: "
-        "3.3.0 not in '==3.2'"
+        "ERROR: Package 'mypackage' requires a different Python: 3.3.0 not in '==3.2'"
     )
     assert expected_err in result.stderr, f"stderr: {result.stderr}"
 
@@ -978,6 +994,7 @@ def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(
 
     result = script.pip(
         "download",
+        "--no-build-isolation",
         "--prefer-binary",
         "--no-index",
         "-f",
@@ -1006,6 +1023,7 @@ def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(
 
     result = script.pip(
         "download",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.packages,
@@ -1023,6 +1041,7 @@ def test_download_prefer_binary_when_only_tarball_exists(
 ) -> None:
     result = script.pip(
         "download",
+        "--no-build-isolation",
         "--prefer-binary",
         "--no-index",
         "-f",
@@ -1047,6 +1066,7 @@ def test_prefer_binary_when_only_tarball_exists_req_file(
     )
     result = script.pip(
         "download",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.packages,
@@ -1078,6 +1098,7 @@ def test_download_file_url(
 
     shared_script.pip(
         "download",
+        "--no-build-isolation",
         "-d",
         str(download_dir),
         "--no-index",
@@ -1102,7 +1123,12 @@ def test_download_file_url_existing_ok_download(
     url = f"{simple_pkg.as_uri()}#sha256={sha256(downloaded_path_bytes).hexdigest()}"
 
     shared_script.pip(
-        "download", "-d", str(download_dir), url, "--disable-pip-version-check"
+        "download",
+        "--no-build-isolation",
+        "-d",
+        str(download_dir),
+        url,
+        "--disable-pip-version-check",
     )
 
     assert downloaded_path_bytes == downloaded_path.read_bytes()
@@ -1123,6 +1149,7 @@ def test_download_file_url_existing_bad_download(
 
     result = shared_script.pip(
         "download",
+        "--no-build-isolation",
         "-d",
         str(download_dir),
         url,
@@ -1159,6 +1186,7 @@ def test_download_http_url_bad_hash(
 
     result = shared_script.pip(
         "download",
+        "--no-build-isolation",
         "-d",
         str(download_dir),
         url,
@@ -1187,7 +1215,13 @@ def test_download_editable(
     requirements_path.write_text("-e " + editable_path + "\n")
     download_dir = tmpdir / "download_dir"
     script.pip(
-        "download", "--no-deps", "-r", str(requirements_path), "-d", str(download_dir)
+        "download",
+        "--no-build-isolation",
+        "--no-deps",
+        "-r",
+        str(requirements_path),
+        "-d",
+        str(download_dir),
     )
     downloads = os.listdir(download_dir)
     assert len(downloads) == 1
@@ -1256,6 +1290,7 @@ def download_local_html_index(
         """
         pip_args = [
             "download",
+            "--no-build-isolation",
             "-d",
             str(download_dir),
             "-i",
@@ -1287,6 +1322,7 @@ def download_server_html_index(
         """
         pip_args = [
             "download",
+            "--no-build-isolation",
             "-d",
             str(download_dir),
             "-i",

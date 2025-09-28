@@ -199,6 +199,7 @@ def test_config_file_override_stack(
     script.pip("install", "-vvv", "INITools", expect_error=True)
     script.pip(
         "install",
+        "--no-build-isolation",
         "-vvv",
         "--index-url",
         f"{base_address}/simple3",
@@ -250,7 +251,13 @@ def test_install_no_binary_via_config_disables_cached_wheels(
         )
         config_file.close()
         res = script.pip(
-            "install", "--no-index", "-f", data.find_links, "upper", expect_stderr=True
+            "install",
+            "--no-build-isolation",
+            "--no-index",
+            "-f",
+            data.find_links,
+            "upper",
+            expect_stderr=True,
         )
     finally:
         os.unlink(config_file.name)
@@ -520,6 +527,7 @@ def test_prompt_for_keyring_if_needed(
     with server_running(server):
         result = script.pip(
             "install",
+            "--no-build-isolation",
             "--index-url",
             url,
             "--cert",

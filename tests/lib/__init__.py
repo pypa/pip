@@ -706,6 +706,7 @@ class PipTestEnvironment(TestFileEnvironment):
     ) -> TestPipResult:
         return self.pip(
             "install",
+            "--no-build-isolation",
             "--no-index",
             "--find-links",
             pathlib.Path(DATA_DIR, "packages").as_uri(),
