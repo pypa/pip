@@ -209,7 +209,7 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     # Rename the .git directory so the directory is no longer recognized
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, ".git"), os.path.join(pkg_path, ".bak"))
-    script.pip("install", "-e", pkg_path)
+    script.pip("install", "--no-build-isolation", "-e", pkg_path)
     result = script.pip("freeze")
 
     # We need to apply os.path.normcase() to the path since that is what
@@ -231,7 +231,7 @@ def test_freeze_editable_git_with_no_remote(
     Test an editable Git install with no remote url.
     """
     pkg_path = _create_test_package(script.scratch_path)
-    script.pip("install", "-e", pkg_path)
+    script.pip("install", "--no-build-isolation", "-e", pkg_path)
     result = script.pip("freeze")
 
     if not deprecated_python:
@@ -595,7 +595,7 @@ def test_freeze_nested_vcs(
         os.fspath(src_path),
         expect_stderr=True,
     )
-    script.pip("install", "-e", src_path, expect_stderr=True)
+    script.pip("install", "--no-build-isolation", "-e", src_path, expect_stderr=True)
 
     # Check the freeze output recognizes the inner VCS.
     result = script.pip("freeze", expect_stderr=True)
@@ -993,7 +993,7 @@ def test_freeze_direct_url_archive(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
     req = "simple @ " + shared_data.packages.joinpath("simple-2.0.tar.gz").as_uri()
-    script.pip("install", req)
+    script.pip("install", "--no-build-isolation", req)
     result = script.pip("freeze")
     assert req in result.stdout
 
@@ -1037,7 +1037,7 @@ def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     is correctly frozeon as editable.
     """
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
-    result = script.pip("install", pkg_path)
+    result = script.pip("install", "--no-build-isolation", pkg_path)
     direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path
     # patch direct_url.json to simulate an editable install

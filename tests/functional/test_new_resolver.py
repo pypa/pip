@@ -315,6 +315,7 @@ def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
     )
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -364,6 +365,7 @@ def test_new_resolver_requires_python(
 
     args = [
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -520,6 +522,7 @@ def test_new_resolver_only_builds_sdists_when_needed(
     # We only ever need to check dep 0.2.0 as it's the latest version
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -791,6 +794,7 @@ def test_new_resolver_constraint_on_path_empty(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "-c",
@@ -1029,6 +1033,7 @@ class TestExtraMerge:
 
         script.pip(
             "install",
+            "--no-build-isolation",
             "--no-cache-dir",
             "--no-index",
             "--find-links",
@@ -1073,6 +1078,7 @@ def test_new_resolver_build_directory_error_zazo_19(script: PipTestEnvironment) 
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -1168,6 +1174,7 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(
     # Install the version that's not on the index.
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         local_pkg,
@@ -1176,6 +1183,7 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(
     # Now --upgrade should still pick the local version because it's "better".
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -1287,6 +1295,7 @@ def test_new_resolver_does_reinstall_local_sdists(script: PipTestEnvironment) ->
     )
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         archive_path,
@@ -1295,6 +1304,7 @@ def test_new_resolver_does_reinstall_local_sdists(script: PipTestEnvironment) ->
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         archive_path,
@@ -1308,6 +1318,7 @@ def test_new_resolver_does_reinstall_local_paths(script: PipTestEnvironment) -> 
     pkg = create_test_package_with_setup(script, name="pkg", version="1.0")
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         pkg,
@@ -1316,6 +1327,7 @@ def test_new_resolver_does_reinstall_local_paths(script: PipTestEnvironment) -> 
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         pkg,
@@ -1334,6 +1346,7 @@ def test_new_resolver_does_not_reinstall_when_from_a_local_index(
     )
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -1847,6 +1860,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "-c",
@@ -2199,6 +2213,7 @@ def test_new_resolver_transitively_depends_on_unnamed_local(
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -2252,6 +2267,7 @@ def test_new_resolver_file_url_normalize(
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         format_input(lib_a),
