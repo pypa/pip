@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+import pytest
 import tomli_w
 
 from tests.lib import PipTestEnvironment
@@ -164,27 +165,31 @@ def test_install_pep660_from_reqs_file(
     ), "a .egg-link file should not have been created"
 
 
-def test_install_no_pep660(tmpdir: Path, script: PipTestEnvironment) -> None:
+@pytest.mark.parametrize("isolation_arg", [[], ["--no-build-isolation"]])
+def test_install_no_pep660(
+    isolation_arg: list[str],
+    tmpdir: Path,
+    script: PipTestEnvironment,
+    common_wheels: Path,
+) -> None:
     """
     Test the error message when the build backend does not support PEP 660.
-    Since there is a pyproject.toml, the prepare_metadata_for_build_wheel hook
-    is called.
+
+    The error is the same with and without build isolation.
     """
     project_dir = _make_project(tmpdir, BACKEND_WITHOUT_PEP660, with_setup_py=True)
     result = script.pip(
         "install",
         "--no-index",
-        "--no-build-isolation",
+        "-f",
+        common_wheels,
+        *isolation_arg,
         "--editable",
         project_dir,
         allow_error=True,
     )
     assert result.returncode != 0
-    _assert_hook_called(project_dir, "prepare_metadata_for_build_wheel")
-    assert (
-        "Cannot build editable project because "
-        "the build backend does not have the build_editable hook" in result.stderr
-    )
+    assert "missing the 'build_editable' hook" in result.stderr
 
 
 def test_wheel_editable_pep660_basic(tmpdir: Path, script: PipTestEnvironment) -> None:
