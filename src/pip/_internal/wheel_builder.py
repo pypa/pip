@@ -18,12 +18,9 @@ from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_editable import build_wheel_editable
-from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file
-from pip._internal.utils.setuptools_build import make_setuptools_clean_args
-from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
@@ -122,8 +119,6 @@ def _build_one(
     req: InstallRequirement,
     output_dir: str,
     verify: bool,
-    build_options: list[str],
-    global_options: list[str],
     editable: bool,
 ) -> str | None:
     """Build one wheel.
@@ -144,9 +139,7 @@ def _build_one(
 
     # Install build deps into temporary directory (PEP 518)
     with req.build_env:
-        wheel_path = _build_one_inside_env(
-            req, output_dir, build_options, global_options, editable
-        )
+        wheel_path = _build_one_inside_env(req, output_dir, editable)
     if wheel_path and verify:
         try:
             _verify_one(req, wheel_path)
@@ -159,44 +152,24 @@ def _build_one(
 def _build_one_inside_env(
     req: InstallRequirement,
     output_dir: str,
-    build_options: list[str],
-    global_options: list[str],
     editable: bool,
 ) -> str | None:
     with TemporaryDirectory(dir=output_dir) as wheel_directory:
         assert req.name
-        if req.use_pep517:
-            assert req.metadata_directory
-            assert req.pep517_backend
-            if global_options:
-                logger.warning(
-                    "Ignoring --global-option when building %s using PEP 517", req.name
-                )
-            if build_options:
-                logger.warning(
-                    "Ignoring --build-option when building %s using PEP 517", req.name
-                )
-            if editable:
-                wheel_path = build_wheel_editable(
-                    name=req.name,
-                    backend=req.pep517_backend,
-                    metadata_directory=req.metadata_directory,
-                    wheel_directory=wheel_directory,
-                )
-            else:
-                wheel_path = build_wheel_pep517(
-                    name=req.name,
-                    backend=req.pep517_backend,
-                    metadata_directory=req.metadata_directory,
-                    wheel_directory=wheel_directory,
-                )
-        else:
-            wheel_path = build_wheel_legacy(
+        assert req.metadata_directory
+        assert req.pep517_backend
+        if editable:
+            wheel_path = build_wheel_editable(
                 name=req.name,
-                setup_py_path=req.setup_py_path,
-                source_dir=req.unpacked_source_directory,
-                global_options=global_options,
-                build_options=build_options,
+                backend=req.pep517_backend,
+                metadata_directory=req.metadata_directory,
+                wheel_directory=wheel_directory,
+            )
+        else:
+            wheel_path = build_wheel_pep517(
+                name=req.name,
+                backend=req.pep517_backend,
+                metadata_directory=req.metadata_directory,
                 wheel_directory=wheel_directory,
             )
 
@@ -225,35 +198,13 @@ def _build_one_inside_env(
                     req.name,
                     e,
                 )
-        # Ignore return, we can't do anything else useful.
-        if not req.use_pep517:
-            _clean_one_legacy(req, global_options)
         return None
-
-
-def _clean_one_legacy(req: InstallRequirement, global_options: list[str]) -> bool:
-    clean_args = make_setuptools_clean_args(
-        req.setup_py_path,
-        global_options=global_options,
-    )
-
-    logger.info("Running setup.py clean for %s", req.name)
-    try:
-        call_subprocess(
-            clean_args, command_desc="python setup.py clean", cwd=req.source_dir
-        )
-        return True
-    except Exception:
-        logger.error("Failed cleaning build dir for %s", req.name)
-        return False
 
 
 def build(
     requirements: Iterable[InstallRequirement],
     wheel_cache: WheelCache,
     verify: bool,
-    build_options: list[str],
-    global_options: list[str],
 ) -> BuildResult:
     """Build wheels.
 
@@ -278,8 +229,6 @@ def build(
                 req,
                 cache_dir,
                 verify,
-                build_options,
-                global_options,
                 req.editable and req.permit_editable_wheels,
             )
             if wheel_file:

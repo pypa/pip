@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import logging
 import os
 import pathlib
 import sys
@@ -26,7 +25,6 @@ from pip._internal.models.direct_url import (
     DirectUrl,
 )
 from pip._internal.models.scheme import Scheme
-from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
 from pip._internal.operations.install.wheel import (
     InstalledCSVRow,
@@ -37,66 +35,8 @@ from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 
-from tests.lib import DATA_DIR, TestData, assert_paths_equal
+from tests.lib import DATA_DIR, TestData
 from tests.lib.wheel import make_wheel
-
-
-def call_get_legacy_build_wheel_path(
-    caplog: pytest.LogCaptureFixture, names: list[str]
-) -> str | None:
-    wheel_path = get_legacy_build_wheel_path(
-        names=names,
-        wheel_directory="/tmp/abcd",
-        name="pendulum",
-        command_args=["arg1", "arg2"],
-        command_output="output line 1\noutput line 2\n",
-    )
-    return wheel_path
-
-
-def test_get_legacy_build_wheel_path(caplog: pytest.LogCaptureFixture) -> None:
-    actual = call_get_legacy_build_wheel_path(caplog, names=["name"])
-    assert actual is not None
-    assert_paths_equal(actual, "/tmp/abcd/name")
-    assert not caplog.records
-
-
-def test_get_legacy_build_wheel_path__no_names(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    caplog.set_level(logging.INFO)
-    actual = call_get_legacy_build_wheel_path(caplog, names=[])
-    assert actual is None
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == "WARNING"
-    assert record.message.splitlines() == [
-        "Legacy build of wheel for 'pendulum' created no files.",
-        "Command arguments: arg1 arg2",
-        "Command output: [use --verbose to show]",
-    ]
-
-
-def test_get_legacy_build_wheel_path__multiple_names(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    caplog.set_level(logging.INFO)
-    # Deliberately pass the names in non-sorted order.
-    actual = call_get_legacy_build_wheel_path(
-        caplog,
-        names=["name2", "name1"],
-    )
-    assert actual is not None
-    assert_paths_equal(actual, "/tmp/abcd/name1")
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == "WARNING"
-    assert record.message.splitlines() == [
-        "Legacy build of wheel for 'pendulum' created more than one file.",
-        "Filenames (choosing first): ['name1', 'name2']",
-        "Command arguments: arg1 arg2",
-        "Command output: [use --verbose to show]",
-    ]
 
 
 @pytest.mark.parametrize(

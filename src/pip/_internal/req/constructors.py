@@ -225,9 +225,7 @@ def install_req_from_editable(
     editable_req: str,
     comes_from: InstallRequirement | str | None = None,
     *,
-    use_pep517: bool | None = None,
     isolated: bool = False,
-    global_options: list[str] | None = None,
     hash_options: dict[str, list[str]] | None = None,
     constraint: bool = False,
     user_supplied: bool = False,
@@ -244,9 +242,7 @@ def install_req_from_editable(
         permit_editable_wheels=permit_editable_wheels,
         link=parts.link,
         constraint=constraint,
-        use_pep517=use_pep517,
         isolated=isolated,
-        global_options=global_options,
         hash_options=hash_options,
         config_settings=config_settings,
         extras=parts.extras,
@@ -389,9 +385,7 @@ def install_req_from_line(
     name: str,
     comes_from: str | InstallRequirement | None = None,
     *,
-    use_pep517: bool | None = None,
     isolated: bool = False,
-    global_options: list[str] | None = None,
     hash_options: dict[str, list[str]] | None = None,
     constraint: bool = False,
     line_source: str | None = None,
@@ -411,9 +405,7 @@ def install_req_from_line(
         comes_from,
         link=parts.link,
         markers=parts.markers,
-        use_pep517=use_pep517,
         isolated=isolated,
-        global_options=global_options,
         hash_options=hash_options,
         config_settings=config_settings,
         constraint=constraint,
@@ -426,7 +418,6 @@ def install_req_from_req_string(
     req_string: str,
     comes_from: InstallRequirement | None = None,
     isolated: bool = False,
-    use_pep517: bool | None = None,
     user_supplied: bool = False,
 ) -> InstallRequirement:
     try:
@@ -455,7 +446,6 @@ def install_req_from_req_string(
         req,
         comes_from,
         isolated=isolated,
-        use_pep517=use_pep517,
         user_supplied=user_supplied,
     )
 
@@ -463,7 +453,6 @@ def install_req_from_req_string(
 def install_req_from_parsed_requirement(
     parsed_req: ParsedRequirement,
     isolated: bool = False,
-    use_pep517: bool | None = None,
     user_supplied: bool = False,
     config_settings: dict[str, str | list[str]] | None = None,
 ) -> InstallRequirement:
@@ -471,7 +460,6 @@ def install_req_from_parsed_requirement(
         req = install_req_from_editable(
             parsed_req.requirement,
             comes_from=parsed_req.comes_from,
-            use_pep517=use_pep517,
             constraint=parsed_req.constraint,
             isolated=isolated,
             user_supplied=user_supplied,
@@ -482,13 +470,7 @@ def install_req_from_parsed_requirement(
         req = install_req_from_line(
             parsed_req.requirement,
             comes_from=parsed_req.comes_from,
-            use_pep517=use_pep517,
             isolated=isolated,
-            global_options=(
-                parsed_req.options.get("global_options", [])
-                if parsed_req.options
-                else []
-            ),
             hash_options=(
                 parsed_req.options.get("hashes", {}) if parsed_req.options else {}
             ),
@@ -509,9 +491,7 @@ def install_req_from_link_and_ireq(
         editable=ireq.editable,
         link=link,
         markers=ireq.markers,
-        use_pep517=ireq.use_pep517,
         isolated=ireq.isolated,
-        global_options=ireq.global_options,
         hash_options=ireq.hash_options,
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
@@ -532,9 +512,7 @@ def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
         editable=ireq.editable,
         link=ireq.link,
         markers=ireq.markers,
-        use_pep517=ireq.use_pep517,
         isolated=ireq.isolated,
-        global_options=ireq.global_options,
         hash_options=ireq.hash_options,
         constraint=ireq.constraint,
         extras=[],

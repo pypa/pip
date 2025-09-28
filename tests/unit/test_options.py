@@ -225,13 +225,6 @@ class TestUsePEP517Options:
         options = self.parse_args(["--use-pep517"])
         assert options.use_pep517 is True
 
-    def test_no_use_pep517(self) -> None:
-        """
-        Test passing --no-use-pep517.
-        """
-        options = self.parse_args(["--no-use-pep517"])
-        assert options.use_pep517 is False
-
     def test_PIP_USE_PEP517_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Test setting PIP_USE_PEP517 to "true".
@@ -261,26 +254,6 @@ class TestUsePEP517Options:
         monkeypatch.setenv("PIP_USE_PEP517", "false")
         options = self.parse_args(["--use-pep517"])
         assert options.use_pep517 is True
-
-    def test_no_use_pep517_and_PIP_USE_PEP517_true(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """
-        Test passing --no-use-pep517 and setting PIP_USE_PEP517 to "true".
-        """
-        monkeypatch.setenv("PIP_USE_PEP517", "true")
-        options = self.parse_args(["--no-use-pep517"])
-        assert options.use_pep517 is False
-
-    def test_PIP_NO_USE_PEP517(
-        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        """
-        Test setting PIP_NO_USE_PEP517, which isn't allowed.
-        """
-        monkeypatch.setenv("PIP_NO_USE_PEP517", "true")
-        with assert_option_error(capsys, expected="--no-use-pep517 error"):
-            self.parse_args([])
 
 
 class TestOptionsInterspersed(AddFakeCommandMixin):

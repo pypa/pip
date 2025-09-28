@@ -51,10 +51,6 @@ _Test = Callable[..., None]
 _FilesState = dict[str, Union[FoundDir, FoundFile]]
 
 
-def assert_paths_equal(actual: str, expected: str) -> None:
-    assert os.path.normpath(actual) == os.path.normpath(expected)
-
-
 def create_file(path: str, contents: str | None = None) -> None:
     """Create a file on the path, with the given contents"""
     from pip._internal.utils.misc import ensure_dir

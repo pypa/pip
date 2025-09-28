@@ -41,7 +41,6 @@ from pip._internal.operations.check import ConflictDetails, check_install_confli
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_install import (
     InstallRequirement,
-    check_legacy_setup_py_options,
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import test_writable_dir
@@ -211,12 +210,10 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
-        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.override_externally_managed())
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
-        self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
             "--compile",
@@ -336,8 +333,6 @@ class InstallCommand(RequirementCommand):
             target_temp_dir_path = target_temp_dir.path
             self.enter_context(target_temp_dir)
 
-        global_options = options.global_options or []
-
         session = self.get_default_session(options)
 
         target_python = make_target_python(options)
@@ -357,7 +352,6 @@ class InstallCommand(RequirementCommand):
 
         try:
             reqs = self.get_requirements(args, options, finder, session)
-            check_legacy_setup_py_options(options, reqs)
 
             wheel_cache = WheelCache(options.cache_dir)
 
@@ -386,7 +380,6 @@ class InstallCommand(RequirementCommand):
                 ignore_requires_python=options.ignore_requires_python,
                 force_reinstall=options.force_reinstall,
                 upgrade_strategy=upgrade_strategy,
-                use_pep517=options.use_pep517,
                 py_version_info=options.python_version,
             )
 
@@ -441,8 +434,6 @@ class InstallCommand(RequirementCommand):
                 reqs_to_build,
                 wheel_cache=wheel_cache,
                 verify=True,
-                build_options=[],
-                global_options=global_options,
             )
 
             if build_failures:
@@ -466,7 +457,6 @@ class InstallCommand(RequirementCommand):
 
             installed = install_given_reqs(
                 to_install,
-                global_options,
                 root=options.root_path,
                 home=target_temp_dir_path,
                 prefix=options.prefix_path,

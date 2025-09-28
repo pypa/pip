@@ -94,7 +94,6 @@ class TestRequirementSet:
         make_install_req = partial(
             install_req_from_req_string,
             isolated=False,
-            use_pep517=None,
         )
         session = PipSession()
 
@@ -792,9 +791,7 @@ class TestInstallRequirement:
         # all else should be the same
         assert without_extras.link == req.link
         assert without_extras.markers == req.markers
-        assert without_extras.use_pep517 == req.use_pep517
         assert without_extras.isolated == req.isolated
-        assert without_extras.global_options == req.global_options
         assert without_extras.hash_options == req.hash_options
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
@@ -841,9 +838,7 @@ class TestInstallRequirement:
         # all else should be the same
         assert extended.link == req.link
         assert extended.markers == req.markers
-        assert extended.use_pep517 == req.use_pep517
         assert extended.isolated == req.isolated
-        assert extended.global_options == req.global_options
         assert extended.hash_options == req.hash_options
         assert extended.constraint == req.constraint
         assert extended.config_settings == req.config_settings
