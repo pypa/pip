@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,7 +9,6 @@ import pytest
 
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
-from pip._internal.operations.build.wheel_legacy import format_command_result
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.vcs.git import Git
 
@@ -75,56 +73,3 @@ def test_should_cache_git_sha(tmpdir: Path) -> None:
     url = "git+https://g.c/o/r@master#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
     assert not wheel_builder._should_cache(cast(InstallRequirement, req))
-
-
-def test_format_command_result__INFO(caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.INFO)
-    actual = format_command_result(
-        # Include an argument with a space to test argument quoting.
-        command_args=["arg1", "second arg"],
-        command_output="output line 1\noutput line 2\n",
-    )
-    assert actual.splitlines() == [
-        "Command arguments: arg1 'second arg'",
-        "Command output: [use --verbose to show]",
-    ]
-
-
-@pytest.mark.parametrize(
-    "command_output",
-    [
-        # Test trailing newline.
-        "output line 1\noutput line 2\n",
-        # Test no trailing newline.
-        "output line 1\noutput line 2",
-    ],
-)
-def test_format_command_result__DEBUG(
-    caplog: pytest.LogCaptureFixture, command_output: str
-) -> None:
-    caplog.set_level(logging.DEBUG)
-    actual = format_command_result(
-        command_args=["arg1", "arg2"],
-        command_output=command_output,
-    )
-    assert actual.splitlines() == [
-        "Command arguments: arg1 arg2",
-        "Command output:",
-        "output line 1",
-        "output line 2",
-    ]
-
-
-@pytest.mark.parametrize("log_level", ["DEBUG", "INFO"])
-def test_format_command_result__empty_output(
-    caplog: pytest.LogCaptureFixture, log_level: str
-) -> None:
-    caplog.set_level(log_level)
-    actual = format_command_result(
-        command_args=["arg1", "arg2"],
-        command_output="",
-    )
-    assert actual.splitlines() == [
-        "Command arguments: arg1 arg2",
-        "Command output: None",
-    ]
