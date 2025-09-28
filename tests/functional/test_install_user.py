@@ -86,6 +86,7 @@ class Tests_UserSite:
         run_from = data.packages.joinpath("FSPkg")
         result = script.pip(
             "install",
+            "--no-build-isolation",
             "-vvv",
             "--user",
             curdir,

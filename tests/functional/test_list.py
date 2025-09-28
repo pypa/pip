@@ -27,6 +27,7 @@ def simple_script(
     script = script_factory(tmpdir.joinpath("workspace"))
     script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         shared_data.find_links,
         "--no-index",
@@ -169,6 +170,7 @@ def test_uptodate_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         data.find_links,
         "--no-index",
@@ -209,6 +211,7 @@ def test_uptodate_columns_flag(script: PipTestEnvironment, data: TestData) -> No
     """
     script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         data.find_links,
         "--no-index",
@@ -244,6 +247,7 @@ def test_outdated_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         data.find_links,
         "--no-index",
@@ -298,6 +302,7 @@ def test_outdated_columns_flag(script: PipTestEnvironment, data: TestData) -> No
     """
     script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         data.find_links,
         "--no-index",
@@ -337,9 +342,17 @@ def pip_test_package_script(
 ) -> PipTestEnvironment:
     tmpdir = tmpdir_factory.mktemp("pip_test_package")
     script = script_factory(tmpdir.joinpath("workspace"))
-    script.pip("install", "-f", shared_data.find_links, "--no-index", "simple==1.0")
     script.pip(
         "install",
+        "--no-build-isolation",
+        "-f",
+        shared_data.find_links,
+        "--no-index",
+        "simple==1.0",
+    )
+    script.pip(
+        "install",
+        "--no-build-isolation",
         "-e",
         "git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package",
     )
@@ -426,9 +439,17 @@ def test_outdated_editables_flag(script: PipTestEnvironment, data: TestData) -> 
     """
     test the behavior of --editable --outdated flag in the list command
     """
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "simple==1.0",
+    )
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "-e",
         "git+https://github.com/pypa/pip-test-package.git@0.1#egg=pip-test-package",
     )
@@ -451,9 +472,17 @@ def test_outdated_editables_columns_flag(
     """
     test the behavior of --editable --outdated flag in the list command
     """
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "simple==1.0",
+    )
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "-e",
         "git+https://github.com/pypa/pip-test-package.git@0.1#egg=pip-test-package",
     )
@@ -478,6 +507,7 @@ def test_outdated_not_required_flag(script: PipTestEnvironment, data: TestData) 
     """
     script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         data.find_links,
         "--no-index",
@@ -497,7 +527,14 @@ def test_outdated_not_required_flag(script: PipTestEnvironment, data: TestData) 
 
 
 def test_outdated_pre(script: PipTestEnvironment, data: TestData) -> None:
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "simple==1.0",
+    )
 
     # Let's build a fake wheelhouse
     script.scratch_path.joinpath("wheelhouse").mkdir()
@@ -545,7 +582,14 @@ def test_outdated_pre(script: PipTestEnvironment, data: TestData) -> None:
 
 def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
     """Test of different outdated formats"""
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "simple==1.0",
+    )
 
     # Let's build a fake wheelhouse
     script.scratch_path.joinpath("wheelhouse").mkdir()
@@ -607,7 +651,14 @@ def test_outdated_formats(script: PipTestEnvironment, data: TestData) -> None:
 
 
 def test_not_required_flag(script: PipTestEnvironment, data: TestData) -> None:
-    script.pip("install", "-f", data.find_links, "--no-index", "TopoRequires4")
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "TopoRequires4",
+    )
     result = script.pip("list", "--not-required", expect_stderr=True)
     assert "TopoRequires4 " in result.stdout, str(result)
     assert "TopoRequires " not in result.stdout
@@ -734,7 +785,7 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     is correctly listed as editable.
     """
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
-    result = script.pip("install", pkg_path)
+    result = script.pip("install", "--no-build-isolation", pkg_path)
     direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path
     # patch direct_url.json to simulate an editable install

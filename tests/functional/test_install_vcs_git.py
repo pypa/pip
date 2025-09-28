@@ -108,7 +108,11 @@ def _install_version_pkg_only(
     """
     version_pkg_url = _make_version_pkg_url(path, rev=rev)
     script.pip(
-        "install", "-e", version_pkg_url, allow_stderr_warning=allow_stderr_warning
+        "install",
+        "--no-build-isolation",
+        "-e",
+        version_pkg_url,
+        allow_stderr_warning=allow_stderr_warning,
     )
 
 
@@ -425,7 +429,7 @@ def test_git_with_ambiguous_revs(script: PipTestEnvironment) -> None:
     version_pkg_path = _create_test_package(script.scratch_path)
     version_pkg_url = _make_version_pkg_url(version_pkg_path, rev="0.1")
     script.run("git", "tag", "0.1", cwd=version_pkg_path)
-    result = script.pip("install", "-e", version_pkg_url)
+    result = script.pip("install", "--no-build-isolation", "-e", version_pkg_url)
     assert "Could not find a tag or branch" not in result.stdout
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module
@@ -566,11 +570,11 @@ def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     PKG = "gitbranchnotcached"
     repo_dir = _create_test_package(script.scratch_path, name=PKG)
     url = _make_version_pkg_url(repo_dir, rev="master", name=PKG)
-    result = script.pip("install", url, "--only-binary=:all:")
+    result = script.pip("install", "--no-build-isolation", url, "--only-binary=:all:")
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
     script.pip("uninstall", "-y", PKG)
     # build occurs on the second install too because it is not cached
-    result = script.pip("install", url)
+    result = script.pip("install", "--no-build-isolation", url)
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
 
 
@@ -582,9 +586,9 @@ def test_install_git_sha_cached(script: PipTestEnvironment) -> None:
     repo_dir = _create_test_package(script.scratch_path, name=PKG)
     commit = script.run("git", "rev-parse", "HEAD", cwd=repo_dir).stdout.strip()
     url = _make_version_pkg_url(repo_dir, rev=commit, name=PKG)
-    result = script.pip("install", url)
+    result = script.pip("install", "--no-build-isolation", url)
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
     script.pip("uninstall", "-y", PKG)
     # build does not occur on the second install because it is cached
-    result = script.pip("install", url)
+    result = script.pip("install", "--no-build-isolation", url)
     assert f"Successfully built {PKG}" not in result.stdout, result.stdout

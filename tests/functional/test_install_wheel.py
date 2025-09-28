@@ -299,6 +299,7 @@ def test_install_from_wheel_installs_deps(
     shutil.copy(data.packages / "source-1.0.tar.gz", tmpdir)
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "--find-links",
         tmpdir,

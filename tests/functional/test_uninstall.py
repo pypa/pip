@@ -210,9 +210,9 @@ def test_uninstall_overlapping_package(
     parent_pkg = data.packages.joinpath("parent-0.1.tar.gz")
     child_pkg = data.packages.joinpath("child-0.1.tar.gz")
 
-    result1 = script.pip("install", parent_pkg)
+    result1 = script.pip("install", "--no-build-isolation", parent_pkg)
     result1.did_create(join(script.site_packages, "parent"))
-    result2 = script.pip("install", child_pkg)
+    result2 = script.pip("install", "--no-build-isolation", child_pkg)
     result2.did_create(join(script.site_packages, "child"))
     result2.did_create(
         normpath(join(script.site_packages, "parent/plugins/child_plugin.py"))
@@ -269,7 +269,7 @@ def test_uninstall_entry_point_colon_in_name(
     script_name = script.bin_path.joinpath(console_scripts.split("=")[0].strip())
     if sys.platform == "win32":
         script_name = script_name.with_suffix(".exe")
-    script.pip("install", pkg_path)
+    script.pip("install", "--no-build-isolation", pkg_path)
     assert script_name.exists()
     script.assert_installed(ep_install="0.1")
 
@@ -296,7 +296,7 @@ def test_uninstall_gui_scripts(script: PipTestEnvironment) -> None:
     script_name = script.bin_path.joinpath("test_")
     if sys.platform == "win32":
         script_name = script_name.with_suffix(".exe")
-    script.pip("install", pkg_path)
+    script.pip("install", "--no-build-isolation", pkg_path)
     assert script_name.exists()
     script.pip("uninstall", pkg_name, "-y")
     assert not script_name.exists()
@@ -313,7 +313,7 @@ def test_uninstall_console_scripts(script: PipTestEnvironment) -> None:
         version="0.1",
         entry_points={"console_scripts": ["discover = discover:main"]},
     )
-    result = script.pip("install", pkg_path)
+    result = script.pip("install", "--no-build-isolation", pkg_path)
     result.did_create(script.bin / f"discover{script.exe}")
     result2 = script.pip("uninstall", "discover", "-y")
     assert_all_changes(
@@ -344,7 +344,7 @@ def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) ->
     )
     script_name = script.bin_path.joinpath("Test" + script.exe)
 
-    script.pip("install", pkg_path)
+    script.pip("install", "--no-build-isolation", pkg_path)
     assert script_name.exists()
 
     script.pip("uninstall", "ep_install", "-y")
@@ -667,7 +667,14 @@ def test_uninstall_editable_and_pip_install(
     pkg_path = data.packages.joinpath("FSPkg")
     script.run("python", "setup.py", "develop", expect_stderr=True, cwd=pkg_path)
     # ensure both are installed with --ignore-installed:
-    script.pip("install", "--ignore-installed", ".", expect_stderr=True, cwd=pkg_path)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--ignore-installed",
+        ".",
+        expect_stderr=True,
+        cwd=pkg_path,
+    )
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
