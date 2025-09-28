@@ -90,6 +90,7 @@ class TestRequirementSet:
         finder: PackageFinder,
         require_hashes: bool = False,
         wheel_cache: WheelCache | None = None,
+        build_isolation: bool = True,
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
@@ -103,7 +104,7 @@ class TestRequirementSet:
                 build_dir=os.path.join(self.tempdir, "build"),
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
-                build_isolation=True,
+                build_isolation=build_isolation,
                 build_isolation_installer=installer,
                 check_build_deps=False,
                 build_tracker=tracker,
@@ -165,7 +166,7 @@ class TestRequirementSet:
         req.user_supplied = True
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             reqset = resolver.resolve(reqset.all_requirements, True)
         assert not reqset.has_requirement("simple")
 
@@ -318,7 +319,9 @@ class TestRequirementSet:
             )
         )
 
-        with self._basic_resolver(finder, require_hashes=True) as resolver:
+        with self._basic_resolver(
+            finder, require_hashes=True, build_isolation=False
+        ) as resolver:
             with pytest.raises(
                 HashErrors,
                 match=(
@@ -359,7 +362,7 @@ class TestRequirementSet:
     def test_download_info_find_links(self, data: TestData) -> None:
         """Test that download_info is set for requirements via find_links."""
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line("simple")
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
@@ -384,7 +387,7 @@ class TestRequirementSet:
     def test_download_info_web_archive(self) -> None:
         """Test that download_info is set for requirements from a web archive."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ "
                 "https://github.com/pypa/pip-test-package/tarball/0.1.1"
@@ -494,7 +497,7 @@ class TestRequirementSet:
     def test_download_info_local_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
             reqset = resolver.resolve([ireq], True)
@@ -507,7 +510,7 @@ class TestRequirementSet:
     def test_download_info_local_editable_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local editable dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
             reqset = resolver.resolve([ireq], True)
@@ -522,7 +525,7 @@ class TestRequirementSet:
     def test_download_info_vcs(self) -> None:
         """Test that download_info is set for requirements from git."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ git+https://github.com/pypa/pip-test-package"
             )
