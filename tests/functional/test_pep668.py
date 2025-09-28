@@ -8,22 +8,6 @@ from tests.lib import PipTestEnvironment, create_basic_wheel_for_package
 from tests.lib.venv import VirtualEnvironment
 
 
-def _has_system_sitecustomize() -> bool:
-    """Check if there's a system sitecustomize.py that would override venv's."""
-    import os
-    import sys
-
-    # Look for sitecustomize.py in system Python paths (not site-packages)
-    for path in sys.path:
-        if "site-packages" not in path and path.endswith(
-            f"python{sys.version_info.major}.{sys.version_info.minor}"
-        ):
-            sitecustomize_path = os.path.join(path, "sitecustomize.py")
-            if os.path.exists(sitecustomize_path):
-                return True
-    return False
-
-
 @pytest.fixture
 def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtual environment, and we can't
@@ -43,12 +27,8 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
         """
     )
 
-    if not _has_system_sitecustomize():
-        return
-
-    # On systems with system sitecustomize.py (like Ubuntu 24.04+), the system file
-    # takes intefers with this test. So we create a custom pip wrapper that applies
-    # patches directly when this situation is detected.
+    # Pip wrapper that applies patches directly when this situation is detected.
+    # for systems that interfere with sitecustomize.py precedence.
     pip_wrapper = virtualenv.bin / "pip"
     pip_wrapper.write_text(
         textwrap.dedent(
@@ -99,11 +79,7 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
 )
 @pytest.mark.usefixtures("patch_check_externally_managed")
 def test_fails(script: PipTestEnvironment, arguments: list[str]) -> None:
-    # Use custom pip wrapper only when system sitecustomize.py
-    use_wrapper = _has_system_sitecustomize()
-    result = script.pip(
-        *arguments, "pip", expect_error=True, use_module=not use_wrapper
-    )
+    result = script.pip(*arguments, "pip", expect_error=True, use_module=False)
     assert "I am externally managed" in result.stderr
 
 
