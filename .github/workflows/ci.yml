@@ -25,7 +25,7 @@ concurrency:
 jobs:
   docs:
     name: docs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
@@ -36,7 +36,7 @@ jobs:
       - run: nox -s docs
 
   determine-changes:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     outputs:
       tests: ${{ steps.filter.outputs.tests }}
       vendoring: ${{ steps.filter.outputs.vendoring }}
@@ -67,7 +67,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v5
@@ -86,7 +86,7 @@ jobs:
 
   vendoring:
     name: vendoring
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     needs: [determine-changes]
     if: >-
@@ -115,7 +115,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         python:
           - "3.9"
           - "3.10"
@@ -132,10 +132,10 @@ jobs:
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install bzr
+          sudo apt-get install bzr subversion
 
       - name: Install MacOS dependencies
         if: runner.os == 'macOS'
@@ -267,7 +267,7 @@ jobs:
       - tests-zipapp
       - vendoring
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
