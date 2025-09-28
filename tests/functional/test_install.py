@@ -291,7 +291,7 @@ def test_pip_second_command_line_interface_works(
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
     # Re-install pip so we get the launchers.
-    script.pip_install_local("-f", common_wheels, pip_src)
+    script.pip("install", "--no-index", "-f", common_wheels, pip_src)
     args = [f"pip{pyversion}"]
     args.extend(["install", "INITools==0.2"])
     args.extend(["-f", os.fspath(data.packages)])
