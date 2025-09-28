@@ -2463,7 +2463,7 @@ def test_new_resolver_constraint_on_link_with_extra_indirect(
 def test_new_resolver_do_not_backtrack_on_build_failure(
     script: PipTestEnvironment,
 ) -> None:
-    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_build=True)
     create_basic_wheel_for_package(script, "pkg1", "1.0")
 
     result = script.pip(
@@ -2476,14 +2476,14 @@ def test_new_resolver_do_not_backtrack_on_build_failure(
         expect_error=True,
     )
 
-    assert "egg_info" in result.stderr
+    assert "Failed to build 'pkg1'" in result.stderr
 
 
 def test_new_resolver_works_when_failing_package_builds_are_disallowed(
     script: PipTestEnvironment,
 ) -> None:
     create_basic_wheel_for_package(script, "pkg2", "1.0", depends=["pkg1"])
-    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_build=True)
     create_basic_wheel_for_package(script, "pkg1", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text("pkg1 != 2.0")
