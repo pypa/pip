@@ -469,13 +469,6 @@ class InstallRequirement:
         return setup_py
 
     @property
-    def setup_cfg_path(self) -> str:
-        assert self.source_dir, f"No source dir for {self}"
-        setup_cfg = os.path.join(self.unpacked_source_directory, "setup.cfg")
-
-        return setup_cfg
-
-    @property
     def pyproject_toml_path(self) -> str:
         assert self.source_dir, f"No source dir for {self}"
         return make_pyproject_path(self.unpacked_source_directory)
@@ -500,21 +493,15 @@ class InstallRequirement:
             backend_path=backend_path,
         )
 
-    def isolated_editable_sanity_check(self) -> None:
+    def editable_sanity_check(self) -> None:
         """Check that an editable requirement if valid for use with PEP 517/518.
 
-        This verifies that an editable that has a pyproject.toml either supports PEP 660
-        or as a setup.py or a setup.cfg
+        This verifies that an editable has a build backend that supports PEP 660.
         """
-        if (
-            self.editable
-            and not self.supports_pyproject_editable
-            and not os.path.isfile(self.setup_py_path)
-            and not os.path.isfile(self.setup_cfg_path)
-        ):
+        if self.editable and not self.supports_pyproject_editable:
             raise InstallationError(
-                f"Project {self} has a 'pyproject.toml' and its build "
-                f"backend is missing the 'build_editable' hook, so "
+                f"Project {self} uses a build backend "
+                f"that is missing the 'build_editable' hook, so "
                 f"it cannot be installed in editable mode. "
                 f"Consider using a build backend that supports PEP 660."
             )
