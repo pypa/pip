@@ -804,12 +804,12 @@ def test_hashed_install_from_cache(
         tmpdir,
     ) as reqs_file:
         result = script.pip_install_local(
-            "--use-pep517", "--no-build-isolation", "-r", reqs_file.resolve()
+            "--no-build-isolation", "-r", reqs_file.resolve()
         )
         assert "Created wheel for simple2" in result.stdout
         script.pip("uninstall", "simple2", "-y")
         result = script.pip_install_local(
-            "--use-pep517", "--no-build-isolation", "-r", reqs_file.resolve()
+            "--no-build-isolation", "-r", reqs_file.resolve()
         )
         assert "Using cached simple2" in result.stdout
     # now try with an invalid hash
@@ -819,7 +819,6 @@ def test_hashed_install_from_cache(
     ) as reqs_file:
         script.pip("uninstall", "simple2", "-y")
         result = script.pip_install_local(
-            "--use-pep517",
             "--no-build-isolation",
             "-r",
             reqs_file.resolve(),

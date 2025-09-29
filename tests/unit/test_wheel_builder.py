@@ -41,15 +41,13 @@ class ReqMock:
     link: Link | None = None
     constraint: bool = False
     source_dir: str | None = "/tmp/pip-install-123/pendulum"
-    use_pep517: bool = True
     supports_pyproject_editable: bool = False
 
 
 @pytest.mark.parametrize(
     "req, expected",
     [
-        (ReqMock(editable=True, use_pep517=False), False),
-        (ReqMock(editable=True, use_pep517=True), False),
+        (ReqMock(editable=True), False),
         (ReqMock(source_dir=None), False),
         (ReqMock(link=Link("git+https://g.c/org/repo")), False),
         (ReqMock(link=Link("https://g.c/dist.tgz")), False),

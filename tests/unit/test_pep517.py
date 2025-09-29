@@ -4,26 +4,8 @@ from textwrap import dedent
 
 import pytest
 
-from pip._internal.exceptions import InstallationError, InvalidPyProjectBuildRequires
+from pip._internal.exceptions import InvalidPyProjectBuildRequires
 from pip._internal.req import InstallRequirement
-
-from tests.lib import TestData
-
-
-def test_use_pep517_rejects_setup_cfg_only(shared_data: TestData) -> None:
-    """
-    Test that projects with setup.cfg but no pyproject.toml are rejected.
-    """
-    src = shared_data.src.joinpath("pep517_setup_cfg_only")
-    req = InstallRequirement(None, None)
-    req.source_dir = os.fspath(src)  # make req believe it has been unpacked
-    with pytest.raises(InstallationError) as e:
-        req.load_pyproject_toml()
-    err_msg = e.value.args[0]
-    assert (
-        "does not appear to be a Python project: "
-        "neither 'setup.py' nor 'pyproject.toml' found" in err_msg
-    )
 
 
 @pytest.mark.parametrize(
