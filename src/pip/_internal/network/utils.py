@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Generator
+from typing import Optional
 
 from pip._vendor.requests.models import Response
 
@@ -28,6 +31,27 @@ HEADERS: dict[str, str] = {"Accept-Encoding": "identity"}
 DOWNLOAD_CHUNK_SIZE = 256 * 1024
 
 
+def _extract_custom_error_message(response: Response) -> Optional[str]:
+    """
+    Extract custom error message from response headers.
+
+    Checks for the X-Error-Message header which might be used by various
+    package registries to provide more detailed error messages beyond
+    the standard HTTP reason phrase.
+
+    Args:
+        response: The HTTP response object
+
+    Returns:
+        Custom error message if found, None otherwise
+    """
+    header_name = "X-Error-Message"
+    if header_name in response.headers:
+        error_msg = response.headers[header_name].strip()
+        if error_msg:
+            return error_msg
+    return None
+
 def raise_for_status(resp: Response) -> None:
     http_error_msg = ""
     if isinstance(resp.reason, bytes):
@@ -43,8 +67,10 @@ def raise_for_status(resp: Response) -> None:
         reason = resp.reason
 
     if 400 <= resp.status_code < 500:
+        custom_error_msg = _extract_custom_error_message(resp)
+        error_reason = custom_error_msg if custom_error_msg else reason
         http_error_msg = (
-            f"{resp.status_code} Client Error: {reason} for url: {resp.url}"
+            f"{resp.status_code} Client Error: {error_reason} for url: {resp.url}"
         )
 
     elif 500 <= resp.status_code < 600:
