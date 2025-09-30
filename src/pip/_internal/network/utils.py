@@ -31,7 +31,7 @@ HEADERS: dict[str, str] = {"Accept-Encoding": "identity"}
 DOWNLOAD_CHUNK_SIZE = 256 * 1024
 
 
-def _extract_custom_error_message(response: Response) -> Optional[str]:
+def _extract_custom_error_message(response: Response) -> str | None:
     """
     Extract custom error message from response headers.
 
