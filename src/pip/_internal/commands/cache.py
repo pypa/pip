@@ -189,9 +189,9 @@ class CacheCommand(Command):
             if unified:
                 self.format_for_human_unified_all(wheel_files, http_files)
             else:
-                    self.format_for_human_separated(
-                        wheel_files, http_files, show_http, show_wheels
-                    )
+                self.format_for_human_separated(
+                    wheel_files, http_files, show_http, show_wheels
+                )
         else:
             self.format_for_abspath_unified(wheel_files, http_files)
 
@@ -285,7 +285,7 @@ class CacheCommand(Command):
 
         # Add HTTP cache files (only those with extracted filenames)
         for cache_file, _filename in http_files:
-                all_files.append(cache_file)
+            all_files.append(cache_file)
 
         if all_files:
             logger.info("\n".join(sorted(all_files)))
