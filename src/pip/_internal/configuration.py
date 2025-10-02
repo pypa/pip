@@ -378,7 +378,22 @@ class Configuration:
         assert self.load_only
         parsers = self._parsers[self.load_only]
         if not parsers:
-            # This should not happen if everything works correctly.
+            env_config_file = os.environ.get("PIP_CONFIG_FILE")
+            if env_config_file and self.load_only in (kinds.USER, kinds.GLOBAL):
+                parser = self._construct_parser(env_config_file)
+                self._parsers[kinds.ENV].append((env_config_file, parser))
+                logger.warning(
+                    "PIP_CONFIG_FILE is set to '{}'. "
+                    "Applying changes to this file instead of '{}' config. "
+                    "Note that some commands may not reflect these changes "
+                    "as this config file is outside pip's normal config scopes. "
+                    "Please inspect the file manually or unset "
+                    "PIP_CONFIG_FILE for typical behavior.".format(
+                        env_config_file, self.load_only
+                    )
+                )
+                return env_config_file, parser
+
             raise ConfigurationError(
                 "Fatal Internal error [id=2]. Please report as a bug."
             )
