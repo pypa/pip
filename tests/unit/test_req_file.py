@@ -33,7 +33,7 @@ from pip._internal.req.req_file import (
 )
 from pip._internal.req.req_install import InstallRequirement
 
-from tests.lib import TestData, make_test_finder, requirements_file
+from tests.lib import TestData, make_test_finder
 
 
 @pytest.fixture
@@ -422,13 +422,9 @@ class TestProcessLine:
             list(parse_requirements(filename=str(root_req_file), session=session))
 
     def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
-        line = (
-            'SomeProject --global-option="yo3" --global-option "yo4" '
-            '--config-settings="yo3=yo4" --config-settings "yo1=yo2"'
-        )
+        line = 'SomeProject --config-settings="yo3=yo4" --config-settings "yo1=yo2"'
         filename = "filename"
         req = line_processor(line, filename, 1)[0]
-        assert req.global_options == ["yo3", "yo4"]
         assert req.config_settings == {"yo3": "yo4", "yo1": "yo2"}
 
     def test_hash_options(self, line_processor: LineProcessor) -> None:
@@ -936,29 +932,6 @@ class TestParseRequirements:
             )
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
-
-    def test_install_requirements_with_options(
-        self,
-        tmpdir: Path,
-        finder: PackageFinder,
-        session: PipSession,
-        options: mock.Mock,
-    ) -> None:
-        global_option = "--dry-run"
-
-        content = f"""
-        --only-binary :all:
-        INITools==2.0 --global-option="{global_option}"
-        """
-
-        with requirements_file(content, tmpdir) as reqs_file:
-            req = next(
-                parse_reqfile(
-                    reqs_file.resolve(), finder=finder, options=options, session=session
-                )
-            )
-
-        assert req.global_options == [global_option]
 
     @pytest.mark.parametrize(
         "raw_req_file,expected_name,expected_spec",
