@@ -1,0 +1,1 @@
+Add support for X-Error-Message header in HTTP error responses.
