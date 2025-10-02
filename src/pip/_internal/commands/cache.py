@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import os
 import textwrap
 from optparse import Values
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -10,23 +12,18 @@ from pip._internal.utils import filesystem
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import format_size
 
-if TYPE_CHECKING:
-    # Only for type checking; avoids importing network-related modules at runtime
-    from pip._vendor.cachecontrol.serialize import Serializer  # noqa: F401
-    from pip._vendor.requests import Request  # noqa: F401
-
 logger = getLogger(__name__)
 
 
 class CacheCommand(Command):
     """
-    Inspect and manage pip's wheel and HTTP cache.
+    Inspect and manage pip's wheel cache.
 
     Subcommands:
 
     - dir: Show the cache directory.
     - info: Show information about the cache.
-    - list: List cached packages (wheels and HTTP cached packages).
+    - list: List filenames of stored cache (wheels and HTTP cached packages).
     - remove: Remove one or more package from the cache.
     - purge: Remove all items from the cache.
 
@@ -37,8 +34,7 @@ class CacheCommand(Command):
     usage = """
         %prog dir
         %prog info
-        %prog list [<pattern>] [--format=[human, abspath]]
-            [--cache-type=[all, wheels, http]]
+        %prog list [<pattern>] [--format=[human, abspath]] [--http] [--all]
         %prog remove <pattern>
         %prog purge
     """
@@ -54,13 +50,19 @@ class CacheCommand(Command):
         )
 
         self.cmd_opts.add_option(
-            "--cache-type",
-            action="store",
-            dest="cache_type",
-            default="all",
-            choices=("all", "wheels", "http"),
-            help="Select which cache to list: all (default), wheels (locally built), "
-            "or http (downloaded packages)",
+            "--http",
+            action="store_true",
+            dest="list_http",
+            default=False,
+            help="List HTTP cached package files",
+        )
+
+        self.cmd_opts.add_option(
+            "--all",
+            action="store_true",
+            dest="list_all",
+            default=False,
+            help="List both HTTP cached and locally built package files",
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -152,93 +154,141 @@ class CacheCommand(Command):
         if len(args) > 1:
             raise CommandError("Too many arguments")
 
-        pattern = args[0] if args else "*"
+        if args:
+            pattern = args[0]
+        else:
+            pattern = "*"
 
-        # Collect wheel files and HTTP cached packages based on cache_type option
-        wheel_files: list[str] = []
-        http_packages: list[tuple[str, str, str]] = []
+        # Determine what to show based on flags
+        # Default: show only wheels (backward compatible)
+        # --http: show only HTTP cache
+        # --all: show both wheels and HTTP cache (unified)
+        if options.list_all:
+            show_wheels = True
+            show_http = True
+            unified = True
+        elif options.list_http:
+            show_wheels = False
+            show_http = True
+            unified = False
+        else:
+            # Default behavior
+            show_wheels = True
+            show_http = False
+            unified = False
 
-        if options.cache_type in ("all", "wheels"):
+        wheel_files = []
+        if show_wheels:
             wheel_files = self._find_wheels(options, pattern)
 
-        if options.cache_type in ("all", "http"):
-            http_packages = self._get_http_cached_packages(options, pattern)
+        http_files = []
+        if show_http:
+            http_files = self._get_http_cache_files_with_metadata(options)
 
         if options.list_format == "human":
-            self.format_for_human_combined(wheel_files, http_packages)
+            if unified:
+                self.format_for_human_unified_all(wheel_files, http_files)
+            else:
+                    self.format_for_human_separated(
+                        wheel_files, http_files, show_http, show_wheels
+                    )
         else:
-            self.format_for_abspath_combined(wheel_files, http_packages)
+            self.format_for_abspath_unified(wheel_files, http_files)
 
-    def format_for_human(self, files: list[str]) -> None:
-        if not files:
-            logger.info("No cached packages.")
-            return
-
-        results = []
-        for filename in files:
-            wheel = os.path.basename(filename)
-            size = filesystem.format_file_size(filename)
-            results.append(f" - {wheel} ({size})")
-        logger.info("Cache contents:\n")
-        logger.info("\n".join(sorted(results)))
-
-    def format_for_abspath(self, files: list[str]) -> None:
-        if files:
-            logger.info("\n".join(sorted(files)))
-
-    def format_for_human_combined(
-        self, wheel_files: list[str], http_packages: list[tuple[str, str, str]]
+    def format_for_human_separated(
+        self,
+        wheel_files: list[str],
+        http_files: list[tuple[str, str]],
+        show_http: bool,
+        show_wheels: bool,
     ) -> None:
-        """Format both wheel files and HTTP cached packages
-        for human readable output."""
-        if not wheel_files and not http_packages:
-            logger.info("No cached packages.")
+        """Format wheel and HTTP cache files in separate sections."""
+        if not wheel_files and not http_files:
+            if show_http:
+                logger.info("No cached files.")
+            else:
+                logger.info("No locally built wheels cached.")
             return
 
-        results: list[str] = []
+        # When showing HTTP files only, use a separate section
+        if show_http and http_files:
+            logger.info("HTTP cache files:")
+            formatted = []
+            for cache_file, filename in http_files:
+                # Use body file size if available
+                body_file = cache_file + ".body"
+                if os.path.exists(body_file):
+                    size = filesystem.format_file_size(body_file)
+                else:
+                    size = filesystem.format_file_size(cache_file)
 
-        # Add wheel files
+                # Only show files where we extracted a filename
+                # (filename should always be present since we filter in
+                # _get_http_cache_files_with_metadata)
+                formatted.append(f" - {filename} ({size})")
+
+            logger.info("\n".join(sorted(formatted)))
+
+        # When showing wheels, list them
+        if show_wheels and wheel_files:
+            if show_http and http_files:
+                logger.info("")  # Add spacing between sections
+            formatted = []
+            for filename in wheel_files:
+                wheel = os.path.basename(filename)
+                size = filesystem.format_file_size(filename)
+                formatted.append(f" - {wheel} ({size})")
+
+            logger.info("\n".join(sorted(formatted)))
+
+    def format_for_human_unified_all(
+        self,
+        wheel_files: list[str],
+        http_files: list[tuple[str, str]],
+    ) -> None:
+        """Format wheel and HTTP cache files in a unified list with
+        [HTTP cached] suffix.
+        """
+        if not wheel_files and not http_files:
+            logger.info("No cached files.")
+            return
+
+        formatted = []
+
+        # Add HTTP files with suffix
+        for cache_file, filename in http_files:
+            # Use body file size if available
+            body_file = cache_file + ".body"
+            if os.path.exists(body_file):
+                size = filesystem.format_file_size(body_file)
+            else:
+                size = filesystem.format_file_size(cache_file)
+
+            formatted.append(f" - {filename} ({size}) [HTTP cached]")
+
+        # Add wheel files without suffix
         for filename in wheel_files:
             wheel = os.path.basename(filename)
-            size_str = filesystem.format_file_size(filename)
-            results.append(f" - {wheel} ({size_str})")
+            size = filesystem.format_file_size(filename)
+            formatted.append(f" - {wheel} ({size})")
 
-        # Add HTTP cached packages
-        for project, version, file_path in http_packages:
-            # Create a wheel-like name for display
-            wheel_name = f"{project}-{version}-py3-none-any.whl"
+        logger.info("\n".join(sorted(formatted)))
 
-            # Calculate size of both header and body files
-            size = 0
-            try:
-                size += os.path.getsize(file_path)
-                body_path = file_path + ".body"
-                if os.path.exists(body_path):
-                    size += os.path.getsize(body_path)
-            except OSError:
-                pass
-
-            size_str = filesystem.format_size(size)
-            results.append(f" - {wheel_name} ({size_str}) [HTTP cached]")
-
-        logger.info("Cache contents:\n")
-        logger.info("\n".join(sorted(results)))
-
-    def format_for_abspath_combined(
-        self, wheel_files: list[str], http_packages: list[tuple[str, str, str]]
+    def format_for_abspath_unified(
+        self, wheel_files: list[str], http_files: list[tuple[str, str]]
     ) -> None:
-        """Format both wheel files and HTTP cached packages for absolute path output."""
-        all_paths = []
+        """Format wheel and HTTP cache files as absolute paths."""
+        all_files = []
 
-        # Add wheel file paths
-        all_paths.extend(wheel_files)
+        # Add wheel files
+        all_files.extend(wheel_files)
 
-        # Add HTTP cache file paths
-        for _, _, file_path in http_packages:
-            all_paths.append(file_path)
+        # Add HTTP cache files (only those with extracted filenames)
+        for cache_file, _filename in http_files:
+                all_files.append(cache_file)
 
-        if all_paths:
-            logger.info("\n".join(sorted(all_paths)))
+        if all_files:
+            logger.info("\n".join(sorted(all_files)))
 
     def remove_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
@@ -306,81 +356,129 @@ class CacheCommand(Command):
 
         return filesystem.find_files(wheel_dir, pattern)
 
-    def _get_http_cached_packages(
-        self, options: Values, pattern: str = "*"
-    ) -> list[tuple[str, str, str]]:
-        """Extract package information from HTTP cached responses.
+    def _get_http_cache_files_with_metadata(
+        self, options: Values
+    ) -> list[tuple[str, str]]:
+        """Get HTTP cache files with filenames from package content inspection.
 
-        We import Serializer and Request lazily to avoid pulling in
-        network-related modules when users just invoke `pip cache --help`.
-        This is required to keep test_no_network_imports passing.
+        Extracts filenames by reading the cached package structure:
+        - Wheel files: Reads .dist-info/WHEEL metadata for complete filename with tags
+        - Tarball files: Reads tar structure to extract package name from root directory
 
-        Returns a list of tuples: (package_name, version, file_path)
+        Returns a list of tuples: (cache_file_path, filename)
+        Only returns files where a filename could be successfully extracted.
         """
         from pip._vendor.cachecontrol.serialize import Serializer
-        from pip._vendor.requests import Request
 
-        packages: list[tuple[str, str, str]] = []
         http_files = self._find_http_files(options)
+        result = []
+
         serializer = Serializer()
 
-        for file_path in http_files:
-            # Skip body files
-            if file_path.endswith(".body"):
+        for cache_file in http_files:
+            # Skip .body files as we only want metadata files
+            if cache_file.endswith(".body"):
                 continue
 
+            filename = None
             try:
-                with open(file_path, "rb") as f:
-                    data = f.read()
+                # Read the cached metadata
+                with open(cache_file, "rb") as f:
+                    cached_data = f.read()
 
-                # Dummy PreparedRequest needed by Serializer API; no network call.
-                dummy_request = Request("GET", "https://dummy.com").prepare()
-                body_file_path = file_path + ".body"
-                body_file = None
+                # Try to parse it
+                if cached_data.startswith(f"cc={serializer.serde_version},".encode()):
+                    # Extract the msgpack data
+                    from pip._vendor import msgpack
 
-                if os.path.exists(body_file_path):
-                    body_file = open(body_file_path, "rb")
+                    data = cached_data[5:]  # Skip "cc=4,"
+                    cached = msgpack.loads(data, raw=False)
+
+                    headers = cached.get("response", {}).get("headers", {})
+                    content_type = headers.get("content-type", "")
+
+                    # Extract filename from body content
+                    body_file = cache_file + ".body"
+                    if os.path.exists(body_file):
+                        filename = self._extract_filename_from_body(
+                            body_file, content_type
+                        )
+            except Exception:
+                # If we can't read/parse the file, just skip trying to extract name
+                pass
+
+            # Only include files where we successfully extracted a filename
+            if filename:
+                result.append((cache_file, filename))
+
+        return result
+
+    def _extract_filename_from_body(
+        self, body_file: str, content_type: str
+    ) -> str | None:
+        """Extract filename by inspecting the body content.
+
+        This works offline by examining the downloaded file structure.
+        """
+        try:
+            # Check if it's a wheel file (ZIP format)
+            if "application/octet-stream" in content_type or not content_type:
+                # Try to read as a wheel (ZIP file)
+                import zipfile
 
                 try:
-                    response = serializer.loads(dummy_request, data, body_file)
-                    if not response:
-                        continue
-                        # Check for PyPI headers that indicate this is a wheel
-                    package_type = response.headers.get("x-pypi-file-package-type")
-                    if package_type != "bdist_wheel":
-                        continue
-                    project = response.headers.get("x-pypi-file-project")
-                    version = response.headers.get("x-pypi-file-version")
-                    python_version = response.headers.get(
-                        "x-pypi-file-python-version", "py3"
-                    )
-                    if not (project and version):
-                        continue
-                    # Create a wheel-like filename for consistency
-                    wheel_name = f"{project}-{version}-{python_version}-none-any.whl"
-                    # Apply pattern matching similar to wheel files
-                    if pattern == "*" or self._matches_pattern(wheel_name, pattern):
-                        packages.append((project, version, file_path))
-                finally:
-                    if body_file:
-                        body_file.close()
+                    with zipfile.ZipFile(body_file, "r") as zf:
+                        # Wheel files contain a .dist-info directory
+                        names = zf.namelist()
+                        dist_info_dir = None
+                        for name in names:
+                            if ".dist-info/" in name:
+                                dist_info_dir = name.split("/")[0]
+                                break
 
-            except Exception:
-                # Silently skip files that can't be processed
-                continue
+                        if dist_info_dir and dist_info_dir.endswith(".dist-info"):
+                            # Read WHEEL metadata to get the full wheel name
+                            wheel_file = f"{dist_info_dir}/WHEEL"
+                            if wheel_file in names:
+                                wheel_content = zf.read(wheel_file).decode("utf-8")
+                                # Parse WHEEL file for Root-Is-Purelib and Tag
+                                tags = []
+                                for line in wheel_content.split("\n"):
+                                    if line.startswith("Tag:"):
+                                        tag = line.split(":", 1)[1].strip()
+                                        tags.append(tag)
 
-        return packages
+                                if tags:
+                                    # Use first tag to construct filename
+                                    # Format: {name}-{version}.dist-info
+                                    pkg_info = dist_info_dir[: -len(".dist-info")]
+                                    # Tags format: py3-none-any
+                                    tag = tags[0]
+                                    return f"{pkg_info}-{tag}.whl"
 
-    def _matches_pattern(self, filename: str, pattern: str) -> bool:
-        """Check if a filename matches the given pattern."""
-        import fnmatch
+                            # Fallback: just use name-version.whl
+                            pkg_info = dist_info_dir[: -len(".dist-info")]
+                            return f"{pkg_info}.whl"
+                except (zipfile.BadZipFile, KeyError, UnicodeDecodeError):
+                    pass
 
-        # Extract just the package name-version part for matching
-        base_name = filename.split("-")[0] if "-" in filename else filename
+                # Try to read as a tarball
+                import tarfile
 
-        # If pattern contains hyphen, match against full filename
-        if "-" in pattern:
-            return fnmatch.fnmatch(filename, pattern + "*")
-        else:
-            # Otherwise match against package name only
-            return fnmatch.fnmatch(base_name, pattern)
+                try:
+                    with tarfile.open(body_file, "r:*") as tf:
+                        # Get the first member to determine the package name
+                        members = tf.getmembers()
+                        if members:
+                            # Tarball usually has format: package-version/...
+                            first_name = members[0].name
+                            pkg_dir = first_name.split("/")[0]
+                            if pkg_dir and "-" in pkg_dir:
+                                return f"{pkg_dir}.tar.gz"
+                except (tarfile.TarError, KeyError):
+                    pass
+
+        except Exception:
+            pass
+
+        return None
