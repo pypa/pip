@@ -168,6 +168,10 @@ class InstallRequirement:
         # details).
         self.metadata_directory: str | None = None
 
+        # The cached metadata distribution that this requirement represents.
+        # See get_dist / set_dist.
+        self._distribution: BaseDistribution | None = None
+
         # The static build requirements (from pyproject.toml)
         self.pyproject_requires: list[str] | None = None
 
@@ -604,8 +608,13 @@ class InstallRequirement:
 
         return self._metadata
 
+    def set_dist(self, distribution: BaseDistribution) -> None:
+        self._distribution = distribution
+
     def get_dist(self) -> BaseDistribution:
-        if self.metadata_directory:
+        if self._distribution is not None:
+            return self._distribution
+        elif self.metadata_directory:
             return get_directory_distribution(self.metadata_directory)
         elif self.local_file_path and self.is_wheel:
             assert self.req is not None
