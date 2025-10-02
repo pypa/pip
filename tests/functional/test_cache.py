@@ -52,84 +52,56 @@ def wheel_cache_files(wheel_cache_dir: str) -> list[str]:
 
 @pytest.fixture
 def populate_http_cache(http_cache_dir: str) -> list[tuple[str, str]]:
-    destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
-    os.makedirs(destination)
+    import zipfile
 
-    files = [
-        ("aaaaaaaaa", os.path.join(destination, "aaaaaaaaa")),
-        ("bbbbbbbbb", os.path.join(destination, "bbbbbbbbb")),
-        ("ccccccccc", os.path.join(destination, "ccccccccc")),
-    ]
-
-    for _name, filename in files:
-        with open(filename, "w"):
-            pass
-
-    return files
-
-
-@pytest.fixture
-def populate_http_cache_with_wheels(http_cache_dir: str) -> list[tuple[str, str]]:
-    """Populate HTTP cache with realistic wheel response data."""
-    import io
-
-    from pip._vendor.cachecontrol.serialize import Serializer
-    from pip._vendor.requests import Request
-    from pip._vendor.urllib3 import HTTPResponse
+    from pip._vendor import msgpack
 
     destination = os.path.join(http_cache_dir, "arbitrary", "pathname")
     os.makedirs(destination)
-
-    # Create mock wheel responses with PyPI headers
-    packages = [
-        ("test-package", "1.0.0", "py3"),
-        ("another-pkg", "2.1.0", "py2.py3"),
-    ]
 
     files = []
-    serializer = Serializer()
 
-    for package_name, version, python_version in packages:
-        # Create a mock HTTP response with PyPI headers
-        headers = {
-            "content-type": "application/octet-stream",
-            "content-length": "1000",
-            "x-pypi-file-project": package_name,
-            "x-pypi-file-version": version,
-            "x-pypi-file-package-type": "bdist_wheel",
-            "x-pypi-file-python-version": python_version,
-        }
+    # Create a few cache entries with proper wheel body files
+    wheel_entries = [
+        ("test_package-1.0.0-py3-none-any.whl", "test_package", "1.0.0"),
+        ("another-2.3.4-py3-none-any.whl", "another", "2.3.4"),
+    ]
 
-        # Create an HTTPResponse object
-        response = HTTPResponse(
-            body=io.BytesIO(b"fake wheel content"),
-            headers=headers,
-            status=200,
-            version=11,
-            reason="OK",
-            decode_content=False,
-        )
-
-        # Create a dummy request
-        request = Request(
-            "GET",
-            f"https://files.pythonhosted.org/packages/source/{package_name[0]}/{package_name}/{package_name}-{version}-{python_version}-none-any.whl",
-        ).prepare()
-
-        # Serialize the response
-        data = serializer.dumps(request, response)
-
-        # Write to cache files
-        cache_file = os.path.join(destination, f"cache_{package_name}_{version}")
+    for wheel_filename, pkg_name, version in wheel_entries:
+        cache_file = os.path.join(destination, "cached_" + wheel_filename)
         body_file = cache_file + ".body"
 
+        # Create the .body file as a minimal wheel
+        with zipfile.ZipFile(body_file, "w") as zf:
+            dist_info = f"{pkg_name}-{version}.dist-info"
+            # Add WHEEL file
+            wheel_content = "Wheel-Version: 1.0\nTag: py3-none-any\n"
+            zf.writestr(f"{dist_info}/WHEEL", wheel_content)
+            # Add METADATA file
+            metadata_content = (
+                f"Metadata-Version: 2.1\nName: {pkg_name}\nVersion: {version}\n"
+            )
+            zf.writestr(f"{dist_info}/METADATA", metadata_content)
+
+        # Create the cache metadata file
+        cached_data = {
+            "response": {
+                "body": b"",
+                "headers": {
+                    "content-type": "application/octet-stream",
+                },
+                "status": 200,
+                "version": 11,
+                "reason": "OK",
+                "decode_content": True,
+            }
+        }
+
         with open(cache_file, "wb") as f:
-            f.write(data)
+            f.write(b"cc=4,")
+            f.write(msgpack.dumps(cached_data, use_bin_type=True))
 
-        with open(body_file, "wb") as f:
-            f.write(b"fake wheel content")
-
-        files.append((package_name, cache_file))
+        files.append((pkg_name, cache_file))
 
     return files
 
@@ -303,9 +275,9 @@ def test_cache_list_abspath(script: PipTestEnvironment) -> None:
 @pytest.mark.usefixtures("empty_wheel_cache")
 def test_cache_list_with_empty_cache(script: PipTestEnvironment) -> None:
     """Running `pip cache list` with an empty cache should print
-    "No cached packages." and exit."""
+    "No locally built wheels cached." and exit."""
     result = script.pip("cache", "list")
-    assert result.stdout == "No cached packages.\n"
+    assert result.stdout == "No locally built wheels cached.\n"
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")
@@ -361,76 +333,6 @@ def test_cache_list_name_match_abspath(script: PipTestEnvironment) -> None:
     assert list_matches_wheel_abspath("zzz-4.5.6", result)
     assert list_matches_wheel_abspath("zzz-4.5.7", result)
     assert list_matches_wheel_abspath("zzz-7.8.9", result)
-
-
-@pytest.mark.usefixtures("populate_http_cache_with_wheels")
-def test_cache_list_http_only(script: PipTestEnvironment) -> None:
-    """Running `pip cache list --cache-type=http` should list HTTP cached packages."""
-    result = script.pip("cache", "list", "--cache-type=http")
-
-    assert list_matches_wheel("test-package-1.0.0", result)
-    assert list_matches_wheel("another-pkg-2.1.0", result)
-
-
-@pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_list_wheels_only(script: PipTestEnvironment) -> None:
-    """Running `pip cache list --cache-type=wheels` should list only wheel files."""
-    result = script.pip("cache", "list", "--cache-type=wheels")
-
-    assert list_matches_wheel("yyy-1.2.3", result)
-    assert list_matches_wheel("zzz-4.5.6", result)
-
-
-@pytest.mark.usefixtures("populate_wheel_cache", "populate_http_cache_with_wheels")
-def test_cache_list_all_types(script: PipTestEnvironment) -> None:
-    """Running `pip cache list` should list both wheel files
-    and HTTP cached packages."""
-    result = script.pip("cache", "list")
-
-    # Should contain wheel files
-    assert list_matches_wheel("yyy-1.2.3", result)
-    assert list_matches_wheel("zzz-4.5.6", result)
-
-    # Should contain HTTP cached packages
-    assert list_matches_wheel("test-package-1.0.0", result)
-    assert list_matches_wheel("another-pkg-2.1.0", result)
-
-
-@pytest.mark.usefixtures("populate_http_cache_with_wheels")
-def test_cache_list_http_abspath(script: PipTestEnvironment) -> None:
-    """Running `pip cache list --cache-type=http --format=abspath`
-    should list HTTP cache file paths."""
-    result = script.pip("cache", "list", "--cache-type=http", "--format=abspath")
-
-    lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 2  # Should have at least 2 cache files
-    for line in lines:
-        assert os.path.exists(line), f"Cache file {line} should exist"
-
-
-@pytest.mark.usefixtures("populate_http_cache_with_wheels")
-def test_cache_list_http_pattern_match(script: PipTestEnvironment) -> None:
-    """Running `pip cache list test-package --cache-type=http`
-    should match only test-package."""
-    result = script.pip("cache", "list", "test-package", "--cache-type=http")
-
-    assert "test-package-1.0.0-py3-none-any.whl" in result.stdout
-    assert "another-pkg-2.1.0-py2.py3-none-any.whl" not in result.stdout
-
-
-@pytest.mark.usefixtures("empty_wheel_cache")
-def test_cache_list_http_with_empty_cache(script: PipTestEnvironment) -> None:
-    """Running `pip cache list --cache-type=http` with an empty HTTP cache
-    should print 'No cached packages.'"""
-    result = script.pip("cache", "list", "--cache-type=http")
-    assert "No cached packages." in result.stdout
-
-
-@pytest.mark.usefixtures("empty_wheel_cache")
-def test_cache_list_all_with_empty_cache(script: PipTestEnvironment) -> None:
-    """Running `pip cache list` with empty caches should print 'No cached packages.'"""
-    result = script.pip("cache", "list")
-    assert "No cached packages." in result.stdout
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
@@ -506,9 +408,8 @@ def test_cache_purge(
     wheels."""
     result = script.pip("cache", "purge", "--verbose")
 
-    assert remove_matches_http("aaaaaaaaa", result)
-    assert remove_matches_http("bbbbbbbbb", result)
-    assert remove_matches_http("ccccccccc", result)
+    assert remove_matches_http("cached_test_package-1.0.0-py3-none-any.whl", result)
+    assert remove_matches_http("cached_another-2.3.4-py3-none-any.whl", result)
 
     assert remove_matches_wheel("yyy-1.2.3", result)
     assert remove_matches_wheel("zzz-4.5.6", result)
@@ -534,6 +435,41 @@ def test_cache_purge_too_many_args(
     # Make sure nothing was deleted.
     for filename in http_cache_files + wheel_cache_files:
         assert os.path.exists(filename)
+
+
+@pytest.mark.usefixtures("populate_http_cache")
+def test_cache_list_with_http_flag(script: PipTestEnvironment) -> None:
+    """Running `pip cache list --http` should list HTTP cache files."""
+    result = script.pip("cache", "list", "--http")
+
+    # Should show HTTP cache files section
+    assert "HTTP cache files:" in result.stdout
+
+    # Should list cache files with extracted wheel names
+    assert "test_package-1.0.0-py3-none-any.whl" in result.stdout
+    assert "another-2.3.4-py3-none-any.whl" in result.stdout
+
+
+@pytest.mark.usefixtures("populate_http_cache")
+def test_cache_list_with_http_flag_abspath(script: PipTestEnvironment) -> None:
+    """Running `pip cache list --http --format=abspath` should list full paths."""
+    result = script.pip("cache", "list", "--http", "--format=abspath")
+
+    # Should have some output with paths
+    lines = result.stdout.strip().split("\n")
+    assert len(lines) > 0
+    # Each line should be a path
+    for line in lines:
+        assert os.path.isabs(line)
+
+
+@pytest.mark.usefixtures("empty_wheel_cache")
+def test_cache_list_with_http_flag_empty(script: PipTestEnvironment) -> None:
+    """Test `pip cache list --http` with empty cache."""
+    result = script.pip("cache", "list", "--http")
+
+    # Should show no cached files message
+    assert "No cached files." in result.stdout
 
 
 @pytest.mark.parametrize("command", ["info", "list", "remove", "purge"])
