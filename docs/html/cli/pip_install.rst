@@ -479,12 +479,11 @@ Examples
 
    .. warning::
 
-       Using this option to search for packages which are not in the main
-       repository (such as private packages) is unsafe, per a security
-       vulnerability called
-       `dependency confusion <https://azure.microsoft.com/en-us/resources/3-ways-to-mitigate-risk-using-private-package-feeds/>`_:
-       an attacker can claim the package on the public repository in a way that
-       will ensure it gets chosen over the private package.
+       Using the ``--extra-index-url`` option to search for packages which are
+       not in the main repository (for example, private packages) is unsafe.
+       This is a class of security issue known as `dependency confusion <https://azure.microsoft.com/en-us/resources/3-ways-to-mitigate-risk-using-private-package-feeds/>`_: an
+       attacker can publish a package with the same name to a public index,
+       which may then be chosen instead of your private package.
 
    .. tab:: Unix/macOS
 
