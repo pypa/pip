@@ -379,7 +379,7 @@ class TestLinkEvaluatorUploadedPriorTo:
         target_python = TargetPython()
         return LinkEvaluator(
             project_name="myproject",
-            canonical_name="myproject",
+            canonical_name=canonicalize_name("myproject"),
             formats=frozenset(["source", "binary"]),
             target_python=target_python,
             allow_yanked=True,
