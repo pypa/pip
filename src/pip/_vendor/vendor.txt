@@ -3,10 +3,10 @@ distlib==0.4.0
 distro==1.9.0
 msgpack==1.1.1
 packaging==25.0
-platformdirs==4.3.8
+platformdirs==4.4.0
 pyproject-hooks==1.2.0
-requests==2.32.4
-    certifi==2025.7.14
+requests==2.32.5
+    certifi==2025.8.3
     idna==3.10
     urllib3==1.26.20
 rich==14.1.0
