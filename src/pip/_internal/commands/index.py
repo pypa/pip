@@ -40,6 +40,7 @@ class IndexCommand(IndexGroupCommand):
         cmdoptions.add_target_python_options(self.cmd_opts)
 
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.uploaded_prior_to())
         self.cmd_opts.add_option(cmdoptions.pre())
         self.cmd_opts.add_option(cmdoptions.json())
         self.cmd_opts.add_option(cmdoptions.no_binary())
@@ -103,6 +104,7 @@ class IndexCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            uploaded_prior_to=options.uploaded_prior_to,
         )
 
     def get_available_package_versions(self, options: Values, args: list[Any]) -> None:
