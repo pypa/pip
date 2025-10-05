@@ -6,6 +6,7 @@ import pytest
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import (
@@ -154,7 +155,7 @@ class TestLinkEvaluator:
         target_python = TargetPython(py_version_info=py_version_info)
         evaluator = LinkEvaluator(
             project_name="twine",
-            canonical_name="twine",
+            canonical_name=canonicalize_name("twine"),
             formats=frozenset(["source"]),
             target_python=target_python,
             allow_yanked=True,
@@ -205,7 +206,7 @@ class TestLinkEvaluator:
         target_python = TargetPython(py_version_info=(3, 6, 4))
         evaluator = LinkEvaluator(
             project_name="twine",
-            canonical_name="twine",
+            canonical_name=canonicalize_name("twine"),
             formats=frozenset(["source"]),
             target_python=target_python,
             allow_yanked=allow_yanked,
@@ -226,7 +227,7 @@ class TestLinkEvaluator:
         target_python._valid_tags = []
         evaluator = LinkEvaluator(
             project_name="sample",
-            canonical_name="sample",
+            canonical_name=canonicalize_name("sample"),
             formats=frozenset(["binary"]),
             target_python=target_python,
             allow_yanked=True,

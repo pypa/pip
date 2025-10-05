@@ -10,6 +10,7 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import (
+    FailedToPrepareCandidate,
     HashError,
     InstallationSubprocessError,
     InvalidInstalledPackage,
@@ -244,9 +245,19 @@ class _InstallRequirementBackedCandidate(Candidate):
             e.req = self._ireq
             raise
         except InstallationSubprocessError as exc:
-            # The output has been presented already, so don't duplicate it.
-            exc.context = "See above for output."
-            raise
+            if isinstance(self._ireq.comes_from, InstallRequirement):
+                request_chain = self._ireq.comes_from.from_path()
+            else:
+                request_chain = self._ireq.comes_from
+
+            if request_chain is None:
+                request_chain = "directly requested"
+
+            raise FailedToPrepareCandidate(
+                package_name=self._ireq.name or str(self._link),
+                requirement_chain=request_chain,
+                failed_step=exc.command_description,
+            )
 
         self._check_metadata_consistency(dist)
         return dist
@@ -283,7 +294,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         assert ireq.link == link
         if ireq.link.is_wheel and not ireq.link.is_file:
             wheel = Wheel(ireq.link.filename)
-            wheel_name = canonicalize_name(wheel.name)
+            wheel_name = wheel.name
             assert name == wheel_name, f"{name!r} != {wheel_name!r} for wheel"
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
