@@ -33,7 +33,7 @@ def format_command_result(
 
 def get_legacy_build_wheel_path(
     names: list[str],
-    temp_dir: str,
+    wheel_directory: str,
     name: str,
     command_args: list[str],
     command_output: str,
@@ -55,7 +55,7 @@ def get_legacy_build_wheel_path(
         msg += format_command_result(command_args, command_output)
         logger.warning(msg)
 
-    return os.path.join(temp_dir, names[0])
+    return os.path.join(wheel_directory, names[0])
 
 
 def build_wheel_legacy(
@@ -64,7 +64,7 @@ def build_wheel_legacy(
     source_dir: str,
     global_options: list[str],
     build_options: list[str],
-    tempd: str,
+    wheel_directory: str,
 ) -> str | None:
     """Build one unpacked package using the "legacy" build process.
 
@@ -89,12 +89,12 @@ def build_wheel_legacy(
         setup_py_path,
         global_options=global_options,
         build_options=build_options,
-        destination_dir=tempd,
+        destination_dir=wheel_directory,
     )
 
     spin_message = f"Building wheel for {name} (setup.py)"
     with open_spinner(spin_message) as spinner:
-        logger.debug("Destination directory: %s", tempd)
+        logger.debug("Destination directory: %s", wheel_directory)
 
         try:
             output = call_subprocess(
@@ -108,10 +108,10 @@ def build_wheel_legacy(
             logger.error("Failed building wheel for %s", name)
             return None
 
-        names = os.listdir(tempd)
+        names = os.listdir(wheel_directory)
         wheel_path = get_legacy_build_wheel_path(
             names=names,
-            temp_dir=tempd,
+            wheel_directory=wheel_directory,
             name=name,
             command_args=wheel_args,
             command_output=output,
