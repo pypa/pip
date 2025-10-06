@@ -49,7 +49,7 @@ class PackageDirectory:
 class PackageArchive:
     url: str | None
     # (not supported) path: Optional[str]
-    # (not supported) size: Optional[int]
+    # (not supported) size: int | None
     # (not supported) upload_time: Optional[datetime]
     hashes: dict[str, str]
     subdirectory: str | None
@@ -61,7 +61,7 @@ class PackageSdist:
     # (not supported) upload_time: Optional[datetime]
     url: str | None
     # (not supported) path: Optional[str]
-    # (not supported) size: Optional[int]
+    size: int | None
     hashes: dict[str, str]
 
 
@@ -71,7 +71,7 @@ class PackageWheel:
     # (not supported) upload_time: Optional[datetime]
     url: str | None
     # (not supported) path: Optional[str]
-    # (not supported) size: Optional[int]
+    size: int | None
     hashes: dict[str, str]
 
 
@@ -127,6 +127,7 @@ class Package:
                     raise NotImplementedError()
                 package.archive = PackageArchive(
                     url=download_info.url,
+                    # size=link.size,
                     hashes=download_info.info.hashes,
                     subdirectory=download_info.subdirectory,
                 )
@@ -144,6 +145,7 @@ class Package:
                         PackageWheel(
                             name=link.filename,
                             url=download_info.url,
+                            size=link.size,
                             hashes=download_info.info.hashes,
                         )
                     ]
@@ -151,6 +153,7 @@ class Package:
                     package.sdist = PackageSdist(
                         name=link.filename,
                         url=download_info.url,
+                        size=link.size,
                         hashes=download_info.info.hashes,
                     )
             else:
