@@ -711,6 +711,12 @@ class Factory:
 
         return DistributionNotFound(f"No matching distribution found for {req}")
 
+    def _has_any_candidates(self, project_name: str) -> bool:
+        """
+        Check if there are any candidates available for the project name.
+        """
+        return any(self._finder.find_all_candidates(project_name))
+
     def get_installation_error(
         self,
         e: ResolutionImpossible[Requirement, Candidate],
@@ -795,6 +801,22 @@ class Factory:
         for key in relevant_constraints:
             spec = constraints[key].specifier
             msg += f"\n    The user requested (constraint) {key}{spec}"
+
+        # Check for causes that had no candidates
+        causes = set()
+        for req, _ in e.causes:
+            causes.add(req.name)
+
+        no_candidates = {c for c in causes if not self._has_any_candidates(c)}
+        if no_candidates:
+            msg = (
+                msg
+                + "\n\n"
+                + "Additionally, some projects in these conflicts have no "
+                + "matching distributions available for your environment:"
+                + "\n    "
+                + "\n    ".join(sorted(no_candidates))
+            )
 
         msg = (
             msg
