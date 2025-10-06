@@ -35,7 +35,7 @@ def finder(data: TestData) -> PackageFinder:
 def preparer(finder: PackageFinder) -> Iterator[RequirementPreparer]:
     session = PipSession()
     rc = InstallCommand("x", "y")
-    o = rc.parse_args([])
+    o = rc.parse_args(["--no-build-isolation"])
 
     with global_tempdir_manager():
         with TempDirectory() as tmp:

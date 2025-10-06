@@ -65,7 +65,6 @@ SUPPORTED_OPTIONS: list[Callable[..., optparse.Option]] = [
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ: list[Callable[..., optparse.Option]] = [
-    cmdoptions.global_options,
     cmdoptions.hash,
     cmdoptions.config_settings,
 ]

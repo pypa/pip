@@ -7,7 +7,6 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.operations.build.build_tracker import get_build_tracker
-from pip._internal.req.req_install import check_legacy_setup_py_options
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -38,7 +37,6 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.no_deps())
-        self.cmd_opts.add_option(cmdoptions.global_options())
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
@@ -48,7 +46,6 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
-        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
@@ -104,7 +101,6 @@ class DownloadCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
-        check_legacy_setup_py_options(options, reqs)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,
@@ -122,7 +118,6 @@ class DownloadCommand(RequirementCommand):
             finder=finder,
             options=options,
             ignore_requires_python=options.ignore_requires_python,
-            use_pep517=options.use_pep517,
             py_version_info=options.python_version,
         )
 
