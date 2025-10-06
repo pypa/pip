@@ -167,6 +167,8 @@ class SubprocessBuildEnvironmentInstaller:
             args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
+        if finder.uploaded_prior_to:
+            args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
         args.append("--")
         args.extend(requirements)
 
