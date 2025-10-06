@@ -99,7 +99,8 @@ class InstallCommand(RequirementCommand):
             help=(
                 "Don't actually install anything, just print what would be. "
                 "Can be used in combination with --ignore-installed "
-                "to 'resolve' the requirements."
+                "to 'resolve' the requirements. If package metadata is available "
+                "or cached, --dry-run also avoids downloading the dependency at all."
             ),
         )
         self.cmd_opts.add_option(
@@ -392,6 +393,10 @@ class InstallCommand(RequirementCommand):
 
             requirement_set = resolver.resolve(
                 reqs, check_supported_wheels=not options.target_dir
+            )
+            preparer.finalize_linked_requirements(
+                requirement_set.requirements.values(),
+                require_dist_files=not options.dry_run,
             )
 
             if options.json_report_file:

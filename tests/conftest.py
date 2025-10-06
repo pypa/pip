@@ -753,6 +753,9 @@ class FakePackage:
     requires_dist: tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
     metadata_name: str | None = None
+    # Whether to delete the file this points to, which causes any attempt to fetch this
+    # package to fail unless it is processed as a metadata-only dist.
+    delete_linked_file: bool = False
 
     def metadata_filename(self) -> str:
         """This is specified by PEP 658."""
@@ -842,6 +845,27 @@ def fake_packages() -> dict[str, list[FakePackage]]:
                 ("simple==1.0",),
             ),
         ],
+        "complex-dist": [
+            FakePackage(
+                "complex-dist",
+                "0.1",
+                "complex_dist-0.1-py2.py3-none-any.whl",
+                MetadataKind.Unhashed,
+                # Validate that the wheel isn't fetched if metadata is available and
+                # --dry-run is on, when the metadata presents no hash itself.
+                delete_linked_file=True,
+            ),
+        ],
+        "corruptwheel": [
+            FakePackage(
+                "corruptwheel",
+                "1.0",
+                "corruptwheel-1.0-py2.py3-none-any.whl",
+                # Validate that the wheel isn't fetched if metadata is available and
+                # --dry-run is on, when the metadata *does* present a hash.
+                MetadataKind.Sha256,
+            ),
+        ],
         "has-script": [
             # Ensure we check PEP 658 metadata hashing errors for wheel files.
             FakePackage(
@@ -927,10 +951,10 @@ def html_index_for_packages(
                 f'    <a href="{package_link.filename}" {package_link.generate_additional_tag()}>{package_link.filename}</a><br/>'  # noqa: E501
             )
             # (3.2) Copy over the corresponding file in `shared_data.packages`.
-            shutil.copy(
-                shared_data.packages / package_link.filename,
-                pkg_subdir / package_link.filename,
-            )
+            cached_file = shared_data.packages / package_link.filename
+            new_file = pkg_subdir / package_link.filename
+            if not package_link.delete_linked_file:
+                shutil.copy(cached_file, new_file)
             # (3.3) Write a metadata file, if applicable.
             if package_link.metadata != MetadataKind.NoFile:
                 with open(pkg_subdir / package_link.metadata_filename(), "wb") as f:
@@ -985,7 +1009,8 @@ def html_index_with_onetime_server(
     """Serve files from a generated pypi index, erroring if a file is downloaded more
     than once.
 
-    Provide `-i http://localhost:8000` to pip invocations to point them at this server.
+    Provide `-i http://localhost:<port>` to pip invocations to point them at
+    this server.
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
@@ -1000,7 +1025,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[set[str]] = set()
 
-    with InDirectoryServer(("", 8000), Handler) as httpd:
+    with InDirectoryServer(("", 0), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 
