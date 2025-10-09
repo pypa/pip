@@ -1,11 +1,13 @@
-from collections.abc import Generator
+from __future__ import annotations
+
 import optparse
+from collections.abc import Generator
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.req.req_file import ParsedRequirement
-from pip._internal.utils.compat import tomllib
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.network.session import PipSession
+from pip._internal.req.req_file import ParsedRequirement
+from pip._internal.utils.compat import tomllib
 
 
 def parse_pyproject_requirements(
@@ -24,7 +26,10 @@ def parse_pyproject_requirements(
     dynamic = project.get("dynamic", [])
 
     if "dependencies" in dynamic:
-        raise InstallationError(f"Installing dynamic dependencies is not supported (dynamic dependencies {filename})")
+        raise InstallationError(
+            "Installing dynamic dependencies is not supported "
+            "(dynamic dependencies in {filename})"
+        )
 
     for dependency_line in project.get("dependencies", []):
         yield ParsedRequirement(
@@ -32,6 +37,6 @@ def parse_pyproject_requirements(
             is_editable=False,
             comes_from=f"-r {filename}",
             constraint=False,
-            options={}, # TODO
+            options={},  # TODO
             line_source=filename,
         )

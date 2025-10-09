@@ -31,8 +31,8 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
     install_req_from_req_string,
 )
+from pip._internal.req.dependencies_file import parse_dependencies, parse_requirements
 from pip._internal.req.req_dependency_group import parse_dependency_groups
-from pip._internal.req.dependencies_file import parse_dependencies
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.temp_dir import (
