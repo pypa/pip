@@ -2,7 +2,8 @@ from collections.abc import Generator
 
 from pip._vendor.requests.models import Response
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import HTTPProblemDetailsError, NetworkConnectionError
+from pip._internal.network.rfc9457 import parse_problem_details
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -29,6 +30,14 @@ DOWNLOAD_CHUNK_SIZE = 256 * 1024
 
 
 def raise_for_status(resp: Response) -> None:
+    problem_details = parse_problem_details(resp)
+    if problem_details:
+        raise HTTPProblemDetailsError(
+            problem_details=problem_details,
+            response=resp,
+        )
+
+    # Fallback to standard error handling for non-RFC 9457 responses
     http_error_msg = ""
     if isinstance(resp.reason, bytes):
         # We attempt to decode utf-8 first because some servers
