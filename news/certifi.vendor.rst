@@ -1,1 +1,1 @@
-Upgrade certifi to 2025.8.3
+Upgrade certifi to 2025.10.5
