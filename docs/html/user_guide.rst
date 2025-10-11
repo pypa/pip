@@ -257,6 +257,47 @@ e.g. http://example.com/constraints.txt, so that your organization can store and
 serve them in a centralized place.
 
 
+.. _`Build Constraints`:
+
+Build Constraints
+-----------------
+
+.. versionadded:: 25.3
+
+Build constraints are a type of constraints file that applies only to isolated
+build environments used for building packages from source. Unlike regular
+constraints, which affect the packages installed in your environment, build
+constraints only influence the versions of packages available during the
+build process.
+
+This is useful when you need to constrain build dependencies
+(such as ``setuptools``, ``cython``, etc.) without affecting the
+final installed environment.
+
+Use build constraints like so:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --build-constraint build-constraints.txt SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --build-constraint build-constraints.txt SomePackage
+
+Example build constraints file (``build-constraints.txt``):
+
+.. code-block:: text
+
+   # Constrain setuptools version during build
+   setuptools>=45,<80
+   # Pin Cython for packages that use it to build
+   cython==0.29.24
+
+
 .. _`Dependency Groups`:
 
 
