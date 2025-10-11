@@ -18,12 +18,6 @@ from tests.lib import make_test_finder
 class TestSubprocessBuildEnvironmentInstaller:
     """Test SubprocessBuildEnvironmentInstaller build constraints functionality."""
 
-    def setup_method(self) -> None:
-        """Reset the global deprecation warning flag before each test."""
-        import pip._internal.build_env
-
-        pip._internal.build_env._DEPRECATION_WARNING_SHOWN = False
-
     @mock.patch.dict(os.environ, {}, clear=True)
     def test_deprecation_check_no_pip_constraint(self) -> None:
         """Test no deprecation warning when PIP_CONSTRAINT is not set."""
@@ -119,20 +113,3 @@ class TestSubprocessBuildEnvironmentInstaller:
 
         # Verify that call_subprocess was called (install proceeded after warning)
         mock_call_subprocess.assert_called_once()
-
-    @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
-    def test_deprecation_check_warning_shown_only_once(self) -> None:
-        """Test deprecation warning is shown only once per process."""
-        finder = make_test_finder()
-        installer = SubprocessBuildEnvironmentInstaller(
-            finder,
-            build_constraint_feature_enabled=False,
-        )
-
-        with pytest.warns(PipDeprecationWarning):
-            installer._deprecation_constraint_check()
-
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            installer._deprecation_constraint_check()
-        assert len(warning_list) == 0

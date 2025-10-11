@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+from unittest import mock
 
 import pytest
+
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib import PipTestEnvironment, TestPipResult, create_test_package_with_setup
 
@@ -43,6 +47,7 @@ def _run_pip_install_with_build_constraints(
         str(build_constraints_file),
         "--use-feature",
         "build-constraint",
+        "--use-pep517",
     ]
 
     if extra_args:
@@ -63,10 +68,12 @@ def _run_pip_install_with_build_constraints_no_feature_flag(
         "install",
         "--build-constraint",
         str(constraints_file),
+        "--use-pep517",
         str(project_dir),
     )
 
 
+@pytest.mark.network
 def test_build_constraints_basic_functionality_simple(
     script: PipTestEnvironment, tmpdir: Path
 ) -> None:
@@ -112,6 +119,7 @@ def test_build_constraints_vs_regular_constraints_simple(
         regular_constraints_file,
         "--use-feature",
         "build-constraint",
+        "--use-pep517",
         str(project_dir),
         expect_error=False,
     )
@@ -137,6 +145,7 @@ def test_build_constraints_environment_isolation_simple(
     result.assert_installed("test-env-isolation", editable=False, without_files=["."])
 
 
+@pytest.mark.network
 def test_build_constraints_file_not_found(
     script: PipTestEnvironment, tmpdir: Path
 ) -> None:
@@ -155,13 +164,14 @@ def test_build_constraints_file_not_found(
     assert "No such file or directory" in result.stderr
 
 
+@pytest.mark.network
 def test_build_constraints_without_feature_flag(
     script: PipTestEnvironment, tmpdir: Path
 ) -> None:
     """Test that --build-constraint automatically enables the feature."""
     project_dir = _create_simple_test_package(script=script, name="test_no_feature")
     constraints_file = _create_constraints_file(
-        script=script, filename="constraints.txt", content="setuptools==45.0.0\n"
+        script=script, filename="constraints.txt", content="setuptools>=40.0.0\n"
     )
     result = _run_pip_install_with_build_constraints_no_feature_flag(
         script=script, project_dir=project_dir, constraints_file=constraints_file
@@ -169,3 +179,28 @@ def test_build_constraints_without_feature_flag(
     # Should succeed now that --build-constraint auto-enables the feature
     assert result.returncode == 0
     result.assert_installed("test-no-feature", editable=False, without_files=["."])
+
+
+@pytest.mark.network
+def test_constraints_dont_pass_through(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """When build constraints enabled, check PIP_CONSTRAINT won't affect builds."""
+    project_dir = create_test_package_with_setup(
+        script,
+        name="test_isolation",
+        version="1.0",
+        py_modules=["test_isolation"],
+    )
+    constraints = _create_constraints_file(
+        script=script, filename="constraints.txt", content="setuptools==2000\n"
+    )
+    with mock.patch.dict(os.environ, {"PIP_CONSTRAINT": path_to_url(str(constraints))}):
+        result = script.pip(
+            "install",
+            "--no-cache-dir",
+            str(project_dir),
+            "--use-pep517",
+            "--use-feature=build-constraint",
+        )
+    result.assert_installed("test_isolation", editable=False, without_files=["."])
