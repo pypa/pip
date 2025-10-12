@@ -1,1 +1,0 @@
-Clarify dependency-confusion warning applies to --extra-index-url
