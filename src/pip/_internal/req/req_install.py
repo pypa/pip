@@ -10,7 +10,7 @@ import zipfile
 from collections.abc import Collection, Iterable, Sequence
 from optparse import Values
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -26,10 +26,7 @@ from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
     get_default_environment,
-    get_directory_distribution,
-    get_wheel_distribution,
 )
-from pip._internal.metadata.base import FilesystemWheel
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
@@ -61,6 +58,9 @@ from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
+
+if TYPE_CHECKING:
+    import email.message
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +153,7 @@ class InstallRequirement:
         self.hash_options = hash_options if hash_options else {}
         self.config_settings = config_settings
         # Set to True after successful preparation of this requirement
+        # TODO: this is only used in the legacy resolver: remove this!
         self.prepared = False
         # User supplied requirement are explicitly requested for installation
         # by the user via CLI arguments or requirements files, as opposed to,
@@ -194,8 +195,11 @@ class InstallRequirement:
                 )
             self.use_pep517 = True
 
-        # This requirement needs more preparation before it can be built
-        self.needs_more_preparation = False
+        # When a dist is computed for this requirement, cache it here so it's visible
+        # everywhere within pip and isn't computed more than once. This may be
+        # a "virtual" dist without a physical location on the filesystem, or
+        # a "concrete" dist which has been fully downloaded.
+        self._dist: BaseDistribution | None = None
 
         # This requirement needs to be unpacked before it can be installed.
         self._archive_source: Path | None = None
@@ -553,11 +557,11 @@ class InstallRequirement:
                 f"Consider using a build backend that supports PEP 660."
             )
 
-    def prepare_metadata(self) -> None:
+    def prepare_metadata_directory(self) -> None:
         """Ensure that project metadata is available.
 
-        Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
-        Under legacy processing, call setup.py egg-info.
+        Under PEP 517 and PEP 660, call the backend hook to prepare the metadata
+        directory.  Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir, f"No source dir for {self}"
         details = self.name or f"from {self.link}"
@@ -589,6 +593,8 @@ class InstallRequirement:
                 details=details,
             )
 
+    def validate_sdist_metadata(self) -> None:
+        """Ensure that we have a dist, and ensure it corresponds to expectations."""
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
             self._set_requirement()
@@ -598,25 +604,51 @@ class InstallRequirement:
         self.assert_source_matches_version()
 
     @property
-    def metadata(self) -> Any:
-        if not hasattr(self, "_metadata"):
-            self._metadata = self.get_dist().metadata
-
-        return self._metadata
+    def metadata(self) -> email.message.Message:
+        return self.get_dist().metadata
 
     def get_dist(self) -> BaseDistribution:
-        if self.metadata_directory:
-            return get_directory_distribution(self.metadata_directory)
-        elif self.local_file_path and self.is_wheel:
-            assert self.req is not None
-            return get_wheel_distribution(
-                FilesystemWheel(self.local_file_path),
-                canonicalize_name(self.req.name),
-            )
-        raise AssertionError(
-            f"InstallRequirement {self} has no metadata directory and no wheel: "
-            f"can't make a distribution."
-        )
+        """Retrieve the dist resolved from this requirement.
+
+        :raises AssertionError: if the resolver has not yet been executed.
+        """
+        if self._dist is None:
+            raise AssertionError(f"{self!r} has no dist associated.")
+        return self._dist
+
+    def cache_virtual_metadata_only_dist(self, dist: BaseDistribution) -> None:
+        """Associate a "virtual" metadata-only dist to this requirement.
+
+        This dist cannot be installed, but it can be used to complete the resolve
+        process.
+
+        :raises AssertionError: if a dist has already been associated.
+        :raises AssertionError: if the provided dist is "concrete", i.e. exists
+                                somewhere on the filesystem.
+        """
+        assert self._dist is None, self
+        assert not dist.is_concrete, dist
+        self._dist = dist
+
+    def cache_concrete_dist(self, dist: BaseDistribution) -> None:
+        """Associate a "concrete" dist to this requirement.
+
+        A concrete dist exists somewhere on the filesystem and can be installed.
+
+        :raises AssertionError: if a concrete dist has already been associated.
+        :raises AssertionError: if the provided dist is not concrete.
+        """
+        if self._dist is not None:
+            # If we set a dist twice for the same requirement, we must be hydrating
+            # a concrete dist for what was previously virtual. This will occur in the
+            # case of `install --dry-run` when PEP 658 metadata is available.
+            assert not self._dist.is_concrete
+        assert dist.is_concrete
+        self._dist = dist
+
+    @property
+    def is_concrete(self) -> bool:
+        return self._dist is not None and self._dist.is_concrete
 
     def assert_source_matches_version(self) -> None:
         assert self.source_dir, f"No source dir for {self}"
