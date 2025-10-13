@@ -187,7 +187,7 @@ def test_new_resolver_no_versions_available_hint(script: PipTestEnvironment) -> 
 
     # Check that the new hint message is present
     assert (
-        "Additionally, some projects in these conflicts have no "
+        "Additionally, some packages in these conflicts have no "
         "matching distributions available for your environment:\n"
         "    incompatible-dep\n" in result.stdout
     ), str(result)
