@@ -715,7 +715,16 @@ class Factory:
         """
         Check if there are any candidates available for the project name.
         """
-        return any(self._finder.find_all_candidates(project_name))
+        return any(
+            self.find_candidates(
+                project_name,
+                requirements={project_name: []},
+                incompatibilities={},
+                constraint=Constraint.empty(),
+                prefers_installed=True,
+                is_satisfied_by=lambda r, c: True,
+            )
+        )
 
     def get_installation_error(
         self,
