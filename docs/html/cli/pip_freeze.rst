@@ -23,20 +23,20 @@ Description
 
 .. pip-command-description:: freeze
 
+.. note::
+   By default, ``pip freeze`` omits bootstrap packaging tools so the output
+   focuses on your project’s dependencies. On Python **3.11 and earlier**
+   this excludes ``pip``, ``setuptools``, ``wheel`` and ``distribute``; on
+   Python **3.12 and later** only ``pip`` is excluded. Use ``--all`` to
+   include those packages when you need a complete environment snapshot.
+   ``pip freeze`` reports what is installed; it does **not** compute a
+   lockfile or a solver result.
+
 
 Options
 =======
 
 .. pip-command-options:: freeze
-
-.. note::
-
-   By default, ``pip freeze`` omits some bootstrap tooling so the output focuses on
-   your project’s dependencies. In Python **3.11 and earlier**, this means ``pip``,
-   ``setuptools`` and ``wheel`` are skipped by default; in Python **3.12 and later**,
-   only ``pip`` is skipped. Use ``--all`` to include those entries as well when you
-   need a complete environment snapshot. Note that ``pip freeze`` reports what is
-   installed—it does **not** compute a lockfile or a solver result.
 
 
 Examples
@@ -81,49 +81,6 @@ Examples
 
          env1\bin\python -m pip freeze > requirements.txt
          env2\bin\python -m pip install -r requirements.txt
-
-#. Compare default output with ``--all``.
-
-   The exact entries vary by Python version; on Python 3.12 and later only
-   ``pip`` is omitted by default.
-
-   .. tab:: Unix/macOS
-
-      .. code-block:: console
-
-         $ python -m pip freeze
-         certifi==...
-         idna==...
-         requests==...
-         urllib3==...
-
-         $ python -m pip freeze --all
-         certifi==...
-         idna==...
-         requests==...
-         urllib3==...
-         pip==...
-         setuptools==...
-         wheel==...
-
-   .. tab:: Windows
-
-      .. code-block:: console
-
-         C:\> py -m pip freeze
-         certifi==...
-         idna==...
-         requests==...
-         urllib3==...
-
-         C:\> py -m pip freeze --all
-         certifi==...
-         idna==...
-         requests==...
-         urllib3==...
-         pip==...
-         setuptools==...
-         wheel==...
 
 
 Fixing "Permission denied:" errors
