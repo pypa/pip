@@ -230,10 +230,11 @@ def _build_one_inside_env(
             dest_path = os.path.join(output_dir, wheel_name)
             try:
                 wheel_hash, length = hash_file(wheel_path)
-                # We can do a rename here because wheel_path is guaranteed to be
-                # in the same filesystem as output_dir. An atomic is rename
-                # to avoid concurrency issues when populating the cache.
-                os.rename(wheel_path, dest_path)
+                # We can do a replace here because wheel_path is guaranteed to
+                # be in the same filesystem as output_dir. This will perform an
+                # atomic rename, which is necessary to avoid concurrency issues
+                # when populating the cache.
+                os.replace(wheel_path, dest_path)
                 logger.info(
                     "Created wheel for %s: filename=%s size=%d sha256=%s",
                     req.name,
