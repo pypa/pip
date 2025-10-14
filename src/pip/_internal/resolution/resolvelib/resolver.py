@@ -184,7 +184,7 @@ class Resolver(BaseResolver):
         self.factory.preparer.prepare_linked_requirements_more(reqs)
         for req in reqs:
             req.prepared = True
-            req.needs_more_preparation = False
+            assert req.is_concrete
         return req_set
 
     def get_installation_order(
