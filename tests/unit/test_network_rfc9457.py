@@ -11,6 +11,7 @@ from pip._internal.network.rfc9457 import (
     parse_problem_details,
 )
 from pip._internal.network.utils import raise_for_status
+
 from tests.lib.requests_mocks import MockResponse
 
 
@@ -28,11 +29,13 @@ class TestProblemDetails:
         assert problem.detail == "Resource not found"
 
     def test_from_json(self) -> None:
-        json_str = json.dumps({
-            "status": 404,
-            "title": "Not Found",
-            "detail": "Resource not found",
-        })
+        json_str = json.dumps(
+            {
+                "status": 404,
+                "title": "Not Found",
+                "detail": "Resource not found",
+            }
+        )
 
         problem = ProblemDetails.from_json(json_str)
         assert problem.status == 404
@@ -50,6 +53,7 @@ class TestProblemDetails:
         assert "Access Denied" in str_repr
         assert "403" in str_repr
         assert "API token" in str_repr
+
 
 class TestIsProblemDetailsResponse:
     def test_detects_problem_json_content_type(self) -> None:
@@ -76,6 +80,7 @@ class TestIsProblemDetailsResponse:
 
         assert is_problem_details_response(resp) is False
 
+
 class TestParseProblemDetails:
     def test_parses_valid_problem_details(self) -> None:
         problem_data = {
@@ -94,7 +99,6 @@ class TestParseProblemDetails:
         assert problem.detail is not None
         assert "test-package" in problem.detail
 
-
     def test_returns_none_for_non_problem_details(self) -> None:
         resp = MockResponse(b"<html>Error</html>")
         resp.headers = {"Content-Type": "text/html"}
@@ -109,6 +113,7 @@ class TestParseProblemDetails:
         problem = parse_problem_details(resp)
         assert problem is None
 
+
 @pytest.mark.parametrize(
     "status_code, title, detail",
     [
@@ -117,7 +122,6 @@ class TestParseProblemDetails:
         (403, "Forbidden", "Access denied to this resource"),
     ],
 )
-
 class TestRaiseForStatusWithProblemDetails:
     def test_raises_http_problem_details_error(
         self, status_code: int, title: str, detail: str
@@ -148,7 +152,6 @@ class TestRaiseForStatusWithProblemDetails:
         (403, "Client Error"),
     ],
 )
-
 class TestRaiseForStatusBackwardCompatibility:
     def test_raises_network_connection_error(
         self, status_code: int, error_type: str

@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 RFC9457_CONTENT_TYPE = "application/problem+json"
 
+
 @dataclass
 class ProblemDetails:
     """Represents an RFC 9457 Problem Details object.
@@ -81,7 +82,9 @@ def parse_problem_details(response: Response) -> ProblemDetails | None:
         if problem.status is None:
             problem.status = response.status_code
 
-        logger.debug("Parsed problem details: status=%s, title=%s", problem.status, problem.title)
+        logger.debug(
+            "Parsed problem details: status=%s, title=%s", problem.status, problem.title
+        )
         return problem
 
     except (json.JSONDecodeError, ValueError):
