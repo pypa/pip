@@ -91,7 +91,9 @@ class TestParseProblemDetails:
         assert problem is not None
         assert problem.status == 404
         assert problem.title == "Not Found"
+        assert problem.detail is not None
         assert "test-package" in problem.detail
+
 
     def test_returns_none_for_non_problem_details(self) -> None:
         resp = MockResponse(b"<html>Error</html>")
