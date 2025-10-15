@@ -164,7 +164,8 @@ def typecheck(session: nox.Session) -> None:
         # Stub libraries that contain type hints as a separate package:
         "types-docutils",  # via sphinx (test dependency)
         "types-requests",  # vendored
-        # vendored (can be removed when we upgrade to urllib3 >= 2.0)
+        # vendored (can be removed when we upgrade to urllib3 >= 2.0). Note that
+        # we also tweak the stubs for urllib3 in later on.
         "types-urllib3==1.*",
         "types-setuptools",  # test dependency and used in distutils_hack
         "types-six",  # via python-dateutil via freezegun (test dependency)
@@ -212,6 +213,12 @@ def typecheck(session: nox.Session) -> None:
     # Move the vendored stub files into the pip vendored stubpackage.
     for stubs_directory in stubs_dir.glob("*-stubs"):
         stubs_directory.rename(pip_vendor_dir / stubs_directory.name.split("-stubs")[0])
+
+    # Tweak the urllib3 stubs, which missed the urllib3.util.IS_PYOPENSSL attribute.
+    with (pip_vendor_dir / "urllib3" / "util" / "__init__.pyi").open(
+        "at", encoding="utf-8"
+    ) as f:
+        f.write("\n".join(["", "# pip tweak", "IS_PYOPENSSL: bool"]))
 
     # Clean up anything that is left over.
     for item in stubs_dir.iterdir():
