@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from functools import partial
 from optparse import Values
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
@@ -51,7 +51,9 @@ KEEPABLE_TEMPDIR_TYPES = [
 ]
 
 
-def with_cleanup(func: Any) -> Any:
+def with_cleanup(
+    func: Callable[[_CommandT, Values, list[str]], int],
+) -> Callable[[_CommandT, Values, list[str]], int]:
     """Decorator for common logic related to managing temporary
     directories.
     """
@@ -61,8 +63,10 @@ def with_cleanup(func: Any) -> Any:
             registry.set_delete(t, False)
 
     def wrapper(
-        self: RequirementCommand, options: Values, args: list[Any]
-    ) -> int | None:
+        self: _CommandT,
+        options: Values,
+        args: list[str],
+    ) -> int:
         assert self.tempdir_registry is not None
         if options.no_clean:
             configure_tempdir_registry(self.tempdir_registry)
@@ -349,3 +353,6 @@ class RequirementCommand(IndexGroupCommand):
             selection_prefs=selection_prefs,
             target_python=target_python,
         )
+
+
+_CommandT = TypeVar("_CommandT", bound=RequirementCommand)
