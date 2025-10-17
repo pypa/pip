@@ -443,6 +443,19 @@ def requirements() -> Option:
     )
 
 
+def requirements_from_scripts() -> Option:
+    return Option(
+        "-s",
+        "--requirements-from-script",
+        action="append",
+        default=[],
+        dest="requirements_from_scripts",
+        metavar="file",
+        help="Install dependencies of the given script file"
+        "as defined by PEP 723 inline metadata. ",
+    )
+
+
 def editable() -> Option:
     return Option(
         "-e",
