@@ -3,14 +3,11 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping
 from logging import getLogger
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
 from .base import Candidate, Constraint, Requirement
-
-if TYPE_CHECKING:
-    pass
 
 logger = getLogger(__name__)
 
