@@ -65,11 +65,7 @@ def with_cleanup(
         for t in KEEPABLE_TEMPDIR_TYPES:
             registry.set_delete(t, False)
 
-    def wrapper(
-        self: _CommandT,
-        options: Values,
-        args: list[str],
-    ) -> int:
+    def wrapper(self: _CommandT, options: Values, args: list[str]) -> int:
         assert self.tempdir_registry is not None
         if options.no_clean:
             configure_tempdir_registry(self.tempdir_registry)
