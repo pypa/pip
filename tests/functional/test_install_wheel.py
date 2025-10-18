@@ -38,7 +38,7 @@ def test_install_from_future_wheel_version(
 
     result = script.pip("install", package, "--no-index", expect_error=True)
     with pytest.raises(TestFailure):
-        result.assert_installed("futurewheel", without_egg_link=True, editable=False)
+        result.assert_installed("futurewheel", editable=False)
 
     package = make_wheel_with_file(
         name="futurewheel",
@@ -46,7 +46,7 @@ def test_install_from_future_wheel_version(
         wheel_metadata_updates={"Wheel-Version": "1.9"},
     ).save_to_dir(tmpdir)
     result = script.pip("install", package, "--no-index", expect_stderr=True)
-    result.assert_installed("futurewheel", without_egg_link=True, editable=False)
+    result.assert_installed("futurewheel", editable=False)
 
 
 @pytest.mark.parametrize(
@@ -67,7 +67,7 @@ def test_install_from_broken_wheel(
     package = data.packages.joinpath(wheel_name)
     result = script.pip("install", package, "--no-index", expect_error=True)
     with pytest.raises(TestFailure):
-        result.assert_installed("futurewheel", without_egg_link=True, editable=False)
+        result.assert_installed("futurewheel", editable=False)
 
 
 def test_basic_install_from_wheel(
@@ -299,6 +299,7 @@ def test_install_from_wheel_installs_deps(
     shutil.copy(data.packages / "source-1.0.tar.gz", tmpdir)
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "--find-links",
         tmpdir,

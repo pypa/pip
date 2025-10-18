@@ -59,6 +59,7 @@ def test_lock_sdist_from_findlinks(
     """Test locking a simple wheel package, to the default pylock.toml."""
     result = script.pip(
         "lock",
+        "--no-build-isolation",
         "simple==2.0",
         "--no-binary=simple",
         "--quiet",

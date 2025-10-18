@@ -109,7 +109,6 @@ and two {ref}`--find-links <install_--find-links>` locations:
 
 The options which can be applied to individual requirements are:
 
-- {ref}`--global-option <install_--global-option>`
 - {ref}`--config-settings <install_--config-settings>`
 - `--hash` (for {ref}`Hash-checking mode`)
 
@@ -150,30 +149,3 @@ You can now store sensitive data (tokens, keys, etc.) in environment variables
 and only specify the variable name for your requirements, letting pip lookup
 the value at runtime. This approach aligns with the commonly used
 [12-factor configuration pattern](https://12factor.net/config).
-
-
-## Influencing the build system
-
-```{danger}
-This disables the use of wheels (cached or otherwise). This could mean that builds will be slower, less deterministic, less reliable and may not behave correctly upon installation.
-
-This mechanism is only preserved for backwards compatibility and should be considered deprecated. A future release of pip may drop these options.
-```
-
-The `--global-option` option is used to pass options to `setup.py`.
-
-```{attention}
-These options are highly coupled with how pip invokes setuptools using the {doc}`../reference/build-system/setup-py` build system interface. It is not compatible with newer {doc}`../reference/build-system/pyproject-toml` build system interface.
-
-This is will not work with other build-backends or newer setup.cfg-only projects.
-```
-
-If you have a declaration like:
-
-    FooProject >= 1.2 --global-option="--no-user-cfg"
-
-The above translates roughly into running FooProject's `setup.py` script as:
-
-    python setup.py --no-user-cfg install
-
-Note that the only way of giving more than one option to `setup.py` is through multiple `--global-option` options.

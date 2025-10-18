@@ -187,7 +187,6 @@ class RequirementCommand(IndexGroupCommand):
         ignore_requires_python: bool = False,
         force_reinstall: bool = False,
         upgrade_strategy: str = "to-satisfy-only",
-        use_pep517: bool | None = None,
         py_version_info: tuple[int, ...] | None = None,
     ) -> BaseResolver:
         """
@@ -196,7 +195,6 @@ class RequirementCommand(IndexGroupCommand):
         make_install_req = partial(
             install_req_from_req_string,
             isolated=options.isolated_mode,
-            use_pep517=use_pep517,
         )
         resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
@@ -267,7 +265,6 @@ class RequirementCommand(IndexGroupCommand):
                 req,
                 comes_from=None,
                 isolated=options.isolated_mode,
-                use_pep517=options.use_pep517,
                 user_supplied=True,
                 config_settings=getattr(options, "config_settings", None),
             )
@@ -278,7 +275,6 @@ class RequirementCommand(IndexGroupCommand):
                 req_to_add = install_req_from_req_string(
                     req,
                     isolated=options.isolated_mode,
-                    use_pep517=options.use_pep517,
                     user_supplied=True,
                 )
                 requirements.append(req_to_add)
@@ -288,7 +284,6 @@ class RequirementCommand(IndexGroupCommand):
                 req,
                 user_supplied=True,
                 isolated=options.isolated_mode,
-                use_pep517=options.use_pep517,
                 config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
@@ -301,7 +296,6 @@ class RequirementCommand(IndexGroupCommand):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
-                    use_pep517=options.use_pep517,
                     user_supplied=True,
                     config_settings=(
                         parsed_req.options.get("config_settings")

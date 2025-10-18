@@ -13,7 +13,6 @@ from tests.lib import (
     _create_test_package_with_subdirectory,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
-    make_wheel,
     need_svn,
     requirements_file,
 )
@@ -188,8 +187,7 @@ def test_schema_check_in_requirements_file(script: PipTestEnvironment) -> None:
     """
     script.scratch_path.joinpath("file-egg-req.txt").write_text(
         "\n{}\n".format(
-            "git://github.com/alex/django-fixture-generator.git"
-            "#egg=fixture_generator"
+            "git://github.com/alex/django-fixture-generator.git#egg=fixture_generator"
         )
     )
 
@@ -217,7 +215,6 @@ def test_relative_requirements_file(
 
     """
     dist_info_folder = script.site_packages / "fspkg-0.1.dev0.dist-info"
-    egg_link_file = script.site_packages / "FSPkg.egg-link"
     package_folder = script.site_packages / "fspkg"
 
     # Compute relative install path to FSPkg from scratch path.
@@ -238,7 +235,12 @@ def test_relative_requirements_file(
     if not editable:
         with requirements_file(req_path + "\n", script.scratch_path) as reqs_file:
             result = script.pip(
-                "install", "-vvv", "-r", reqs_file.name, cwd=script.scratch_path
+                "install",
+                "--no-build-isolation",
+                "-vvv",
+                "-r",
+                reqs_file.name,
+                cwd=script.scratch_path,
             )
             result.did_create(dist_info_folder)
             result.did_create(package_folder)
@@ -247,9 +249,16 @@ def test_relative_requirements_file(
             "-e " + req_path + "\n", script.scratch_path
         ) as reqs_file:
             result = script.pip(
-                "install", "-vvv", "-r", reqs_file.name, cwd=script.scratch_path
+                "install",
+                "--no-build-isolation",
+                "-vvv",
+                "-r",
+                reqs_file.name,
+                cwd=script.scratch_path,
             )
-            result.did_create(egg_link_file)
+            direct_url = result.get_created_direct_url("fspkg")
+            assert direct_url
+            assert direct_url.is_local_editable()
 
 
 @pytest.mark.xfail
@@ -290,6 +299,7 @@ def test_package_in_constraints_and_dependencies(
     )
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -315,6 +325,7 @@ def test_constraints_apply_to_dependency_groups(
     )
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -331,6 +342,7 @@ def test_multiple_constraints_files(script: PipTestEnvironment, data: TestData) 
     script.scratch_path.joinpath("inner.txt").write_text("Upper==1.0")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -357,6 +369,7 @@ def test_respect_order_in_requirements_file(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -384,9 +397,8 @@ def test_install_local_editable_with_extras(
     res = script.pip_install_local(
         "-e", f"{to_install}[bar]", allow_stderr_warning=True
     )
-    res.did_update(script.site_packages / "easy-install.pth")
-    res.did_create(script.site_packages / "LocalExtras.egg-link")
-    res.did_create(script.site_packages / "simple")
+    res.assert_installed("LocalExtras", editable=True, editable_vcs=False)
+    res.assert_installed("simple", editable=False)
 
 
 def test_install_collected_dependencies_first(script: PipTestEnvironment) -> None:
@@ -444,7 +456,13 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
         )
 
     result = script.pip(
-        "install", "--user", "--no-index", "-f", data.find_links, "requiresupper"
+        "install",
+        "--no-build-isolation",
+        "--user",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "requiresupper",
     )
     # Check that we are really installing a wheel
     assert "installed requiresupper" in result.stdout
@@ -456,6 +474,7 @@ def test_constraints_not_installed_by_default(
     script.scratch_path.joinpath("c.txt").write_text("requiresupper")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -491,6 +510,7 @@ def test_constraints_local_editable_install_causes_error(
     to_install = data.src.joinpath("singlemodule")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -523,6 +543,7 @@ def test_constraints_local_install_causes_error(
     to_install = data.src.joinpath("singlemodule")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -570,6 +591,7 @@ def test_constraints_constrain_to_local(
     )
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -589,6 +611,7 @@ def test_constrained_to_url_install_same_url(
     script.scratch_path.joinpath("constraints.txt").write_text(constraints)
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -817,8 +840,7 @@ def test_install_unsupported_wheel_link_with_marker(script: PipTestEnvironment) 
     result = script.pip("install", "-r", script.scratch_path / "with-marker.txt")
 
     assert (
-        "Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match "
-        "your environment"
+        "Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match your environment"
     ) in result.stdout
     assert len(result.files_created) == 0
 
@@ -918,26 +940,3 @@ def test_config_settings_local_to_package(
     assert "--verbose" not in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
-
-
-def test_nonpep517_setuptools_import_failure(script: PipTestEnvironment) -> None:
-    """Any import failures of `setuptools` should inform the user both that it's
-    not pip's fault, but also exactly what went wrong in the import."""
-    # Install a poisoned version of 'setuptools' that fails to import.
-    name = "setuptools_poisoned"
-    module = """\
-raise ImportError("this 'setuptools' was intentionally poisoned")
-"""
-    path = make_wheel(name, "0.1.0", extra_files={"setuptools.py": module}).save_to_dir(
-        script.scratch_path
-    )
-    script.pip("install", "--no-index", path)
-
-    result = script.pip_install_local("--no-use-pep517", "simple", expect_error=True)
-    nice_message = (
-        "ERROR: Can not execute `setup.py`"
-        " since setuptools failed to import in the build environment"
-    )
-    exc_message = "ImportError: this 'setuptools' was intentionally poisoned"
-    assert nice_message in result.stderr
-    assert exc_message in result.stderr

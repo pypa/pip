@@ -94,7 +94,7 @@ def script_with_launchers(
     tmpdir = tmpdir_factory.mktemp("script_with_launchers")
     script = script_factory(tmpdir.joinpath("workspace"))
     # Re-install pip so we get the launchers.
-    script.pip_install_local("-f", common_wheels, pip_src)
+    script.pip("install", "--no-index", "-f", common_wheels, pip_src)
     return script
 
 

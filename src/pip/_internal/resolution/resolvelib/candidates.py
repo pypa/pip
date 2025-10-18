@@ -69,10 +69,8 @@ def make_install_req_from_link(
         line,
         user_supplied=template.user_supplied,
         comes_from=template.comes_from,
-        use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
-        global_options=template.global_options,
         hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
@@ -90,11 +88,9 @@ def make_install_req_from_editable(
         link.url,
         user_supplied=template.user_supplied,
         comes_from=template.comes_from,
-        use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
         permit_editable_wheels=template.permit_editable_wheels,
-        global_options=template.global_options,
         hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
@@ -115,10 +111,8 @@ def _make_install_req_from_dist(
         line,
         user_supplied=template.user_supplied,
         comes_from=template.comes_from,
-        use_pep517=template.use_pep517,
         isolated=template.isolated,
         constraint=template.constraint,
-        global_options=template.global_options,
         hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
