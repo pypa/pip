@@ -327,3 +327,51 @@ class Tests_UserSite:
             f"Will not install to the user site because it will lack sys.path "
             f"precedence to pkg in {dist_location}"
         ) in result2.stderr
+
+    def test_install_user_nositepkgs_fails(
+        self,
+        script: PipTestEnvironment,
+        data: TestData,
+    ) -> None:
+        """
+        Test that --user install fails when user site-packages are disabled.
+        """
+        create_basic_wheel_for_package(script, "pkg", "0.1")
+
+        # Create a custom Python script that disables user site and runs pip via exec
+        test_script = script.scratch_path / "test_disable_user_site.py"
+        test_script.write_text(
+            textwrap.dedent(
+                f"""
+            import site
+            import sys
+
+            # Make sys.base_prefix equal to sys.prefix to simulate not being in a venv
+            # This ensures virtualenv_no_global() returns False, so we test the
+            # site.ENABLE_USER_SITE path
+            sys.base_prefix = sys.prefix
+            site.ENABLE_USER_SITE = False
+
+            # Set up sys.argv to simulate running pip install --user
+            sys.argv = [
+                "pip", "install",
+                "--no-cache-dir",
+                "--no-index",
+                "--find-links",
+                r"{script.scratch_path}",
+                "pkg",
+                "--user"
+            ]
+
+            # Import and run pip's main
+            from pip._internal.cli.main import main
+            sys.exit(main())
+            """
+            )
+        )
+
+        result = script.run("python", str(test_script), expect_error=True)
+        assert (
+            "Can not perform a '--user' install. User site-packages are "
+            "disabled for this Python." in result.stderr
+        )
