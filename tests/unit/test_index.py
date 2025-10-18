@@ -440,13 +440,26 @@ class TestLinkEvaluatorUploadedPriorTo:
         assert actual == expected_result
 
     def test_evaluate_link_no_upload_time(self) -> None:
-        """Test that links with no upload time are not filtered."""
+        """Test that links with no upload time cause an error when filter is set."""
         uploaded_prior_to = datetime.datetime(
             2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
         )
         evaluator = self.make_test_link_evaluator(uploaded_prior_to)
 
-        # Link with no upload_time should not be filtered
+        # Link with no upload_time should be rejected when uploaded_prior_to is set
+        link = Link("https://example.com/myproject-1.0.tar.gz")
+        actual = evaluator.evaluate_link(link)
+
+        # Should be rejected because index doesn't provide upload-time
+        assert actual[0] == LinkType.upload_time_missing
+        assert "Index does not provide upload-time metadata" in actual[1]
+
+    def test_evaluate_link_no_upload_time_no_filter(self) -> None:
+        """Test that links with no upload time are accepted when no filter is set."""
+        # No uploaded_prior_to filter set
+        evaluator = self.make_test_link_evaluator(uploaded_prior_to=None)
+
+        # Link with no upload_time should be accepted when no filter is set
         link = Link("https://example.com/myproject-1.0.tar.gz")
         actual = evaluator.evaluate_link(link)
 
