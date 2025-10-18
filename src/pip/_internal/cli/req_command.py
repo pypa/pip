@@ -51,6 +51,9 @@ KEEPABLE_TEMPDIR_TYPES = [
 ]
 
 
+_CommandT = TypeVar("_CommandT", bound="RequirementCommand")
+
+
 def with_cleanup(
     func: Callable[[_CommandT, Values, list[str]], int],
 ) -> Callable[[_CommandT, Values, list[str]], int]:
@@ -353,6 +356,3 @@ class RequirementCommand(IndexGroupCommand):
             selection_prefs=selection_prefs,
             target_python=target_python,
         )
-
-
-_CommandT = TypeVar("_CommandT", bound=RequirementCommand)
