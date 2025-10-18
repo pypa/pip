@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from pip._internal.models.link import Link, links_equivalent
@@ -187,6 +189,12 @@ class TestLink:
     def test_is_vcs(self, url: str, expected: bool) -> None:
         link = Link(url)
         assert link.is_vcs is expected
+
+    def test_link_size(self) -> None:
+        with patch("pip._internal.network.session.PipSession.head") as mock_head:
+            mock_head.return_value.headers = {"Content-Length": "12345"}
+            link = Link(url="https://example.com/package.tar.gz")
+            assert link.size == 12345
 
 
 @pytest.mark.parametrize(
