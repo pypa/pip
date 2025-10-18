@@ -333,9 +333,15 @@ results on different machines.
 
 .. note::
 
-    This option only works with package indexes that provide upload-time metadata
-    (such as PyPI). When upload-time information is not available, packages are not
-    filtered and installation continues normally.
+    This option only applies to packages from indexes, not local files. Local
+    package files are allowed regardless of the ``--uploaded-prior-to`` setting.
+    e.g., ``pip install /path/to/package.whl`` or packages from
+    ``--find-links`` directories.
+
+    This option requires package indexes that provide upload-time metadata
+    (such as PyPI). If the index does not provide upload-time metadata for a
+    package file, pip will fail immediately with an error message indicating
+    that upload-time metadata is required when using ``--uploaded-prior-to``.
 
 You can combine this option with other filtering mechanisms like constraints files:
 
@@ -350,7 +356,6 @@ You can combine this option with other filtering mechanisms like constraints fil
    .. code-block:: shell
 
       py -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
->>>>>>> e592e95e9 (Add `--uploaded-prior-to` to the user guide)
 
 
 .. _`Dependency Groups`:
