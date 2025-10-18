@@ -1,0 +1,1 @@
+Use very rich progress output for batch downloading. Use ``ProgressBarType`` enum class for ``--progress-bar`` choices.
