@@ -120,7 +120,7 @@ def test_handle_uploaded_prior_to_naive_dates(
     # Check that local timezone was applied (result should not be timezone-naive)
     assert result.tzinfo is not None
 
-    # Verify it's equivalent to creating the same datetime and applying local timezone
+    # Verify it's equivalent to what .astimezone() produces on a naive datetime
     naive_dt = datetime.datetime(*expected_date_time)
     expected_with_local_tz = naive_dt.astimezone()
     assert result == expected_with_local_tz
@@ -145,3 +145,33 @@ def test_handle_uploaded_prior_to_invalid_dates(invalid_value: str) -> None:
 
     with pytest.raises(SystemExit):
         _handle_uploaded_prior_to(option, opt, invalid_value, parser)
+
+
+def test_handle_uploaded_prior_to_naive() -> None:
+    """
+    Test that a naive datetime is interpreted as local time.
+    """
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    # Parse a naive datetime
+    naive_input = "2023-06-15T14:30:00"
+    _handle_uploaded_prior_to(option, opt, naive_input, parser)
+    result = parser.values.uploaded_prior_to
+
+    assert result.hour == 14, (
+        f"Expected hour=14 (from input), got hour={result.hour}. "
+        "This suggests the naive datetime was incorrectly interpreted as UTC "
+        "and converted to local timezone."
+    )
+    assert result.minute == 30
+    assert result.year == 2023
+    assert result.month == 6
+    assert result.day == 15
+
+    # Verify by creating the same datetime with explicit local timezone
+    local_tz = datetime.datetime.now().astimezone().tzinfo
+    expected = datetime.datetime(2023, 6, 15, 14, 30, 0, tzinfo=local_tz)
+    assert result == expected

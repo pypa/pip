@@ -33,7 +33,7 @@ class TestUploadedPriorTo:
             "install",
             "--index-url",
             data.index_url("simple"),
-            "--uploaded-prior-to=3030-01-01T00:00:00",
+            "--uploaded-prior-to=2100-01-01T00:00:00",
             "simple",
             expect_error=False,
         )
@@ -55,7 +55,7 @@ class TestUploadedPriorTo:
                 "install",
                 "--index-url",
                 f"http://{server.host}:{server.port}",
-                "--uploaded-prior-to=3030-01-01T00:00:00",
+                "--uploaded-prior-to=2100-01-01T00:00:00",
                 "simple",
                 expect_error=True,
             )
