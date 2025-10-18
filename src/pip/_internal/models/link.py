@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import functools
 import itertools
 import logging
@@ -7,6 +8,7 @@ import os
 import posixpath
 import re
 import urllib.parse
+import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
@@ -15,6 +17,7 @@ from typing import (
     NamedTuple,
 )
 
+from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
@@ -207,6 +210,7 @@ class Link:
         "requires_python",
         "yanked_reason",
         "metadata_file_data",
+        "upload_time",
         "cache_link_parsing",
         "egg_fragment",
     ]
@@ -218,6 +222,7 @@ class Link:
         requires_python: str | None = None,
         yanked_reason: str | None = None,
         metadata_file_data: MetadataFile | None = None,
+        upload_time: datetime.datetime | None = None,
         cache_link_parsing: bool = True,
         hashes: Mapping[str, str] | None = None,
     ) -> None:
@@ -239,6 +244,8 @@ class Link:
             no such metadata is provided. This argument, if not None, indicates
             that a separate metadata file exists, and also optionally supplies
             hashes for that file.
+        :param upload_time: upload time of the file, or None if the information
+            is not available from the server.
         :param cache_link_parsing: A flag that is used elsewhere to determine
             whether resources retrieved from this link should be cached. PyPI
             URLs should generally have this set to False, for example.
@@ -272,6 +279,7 @@ class Link:
         self.requires_python = requires_python if requires_python else None
         self.yanked_reason = yanked_reason
         self.metadata_file_data = metadata_file_data
+        self.upload_time = upload_time
 
         self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
@@ -300,6 +308,12 @@ class Link:
         if metadata_info is None:
             metadata_info = file_data.get("dist-info-metadata")
 
+        upload_time: datetime.datetime | None
+        if upload_time_data := file_data.get("upload-time"):
+            upload_time = parse_iso_datetime(upload_time_data)
+        else:
+            upload_time = None
+
         # The metadata info value may be a boolean, or a dict of hashes.
         if isinstance(metadata_info, dict):
             # The file exists, and hashes have been supplied
@@ -325,6 +339,7 @@ class Link:
             yanked_reason=yanked_reason,
             hashes=hashes,
             metadata_file_data=metadata_file_data,
+            upload_time=upload_time,
         )
 
     @classmethod
