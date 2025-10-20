@@ -135,7 +135,7 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
 
 def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
     """Parses an editable requirement into:
-        - a requirement name
+        - a requirement name with environment markers
         - an URL
         - extras
     Accepted requirements:

@@ -1,1 +1,1 @@
-Add support installing an editable requirement written as a Direct URL.
+Add support installing an editable requirement written as a Direct URL (``PackageName @ URL``).
