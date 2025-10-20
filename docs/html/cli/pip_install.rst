@@ -66,8 +66,8 @@ for the name and project version (this is in theory slightly less reliable
 than using the ``egg_info`` command, but avoids downloading and processing
 unnecessary numbers of files).
 
-The :pep:`508` requirement syntax can be used to explicitly state the project
-name (see :doc:`../topics/vcs-support`).
+The :ref:`Direct URL requirement syntax <pypug:dependency-specifiers>` can be used
+to explicitly state the project name (see :doc:`../topics/vcs-support`).
 
 Satisfying Requirements
 -----------------------

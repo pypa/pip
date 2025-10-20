@@ -17,8 +17,9 @@ MyProject @ git+https://git.example.com/MyProject
 MyProject[extra] @ git+https:/git.example.com/MyProject
 ```
 
-This is the Direct URL ({pep}`508`) requirement syntax. It is also permissible
-to remove `MyProject @` portion is removed and provide a bare VCS URL.
+This is the {ref}`Direct URL <pypug:dependency-specifiers>` requirement syntax.
+It is also permissible to remove `MyProject @` portion is removed and provide
+a bare VCS URL.
 
 ```none
 git+https://git.example.com/MyProject
@@ -159,7 +160,8 @@ Python package, when it is not in the root of the VCS directory.
 
 ```{note}
 pip also supports an `egg` fragment to specify the "project name". This is a legacy
-feature and its use is discouraged in favour of the Direct URL ({pep}`508`) form.
+feature and its use is discouraged in favour of the
+{ref}`Direct URL <pypug:dependency-specifiers>` form.
 
 The `egg` fragment **should** be a bare {ref}`project name <pypug:name-normalization>`.
 Anything else is not guaranteed to work.
