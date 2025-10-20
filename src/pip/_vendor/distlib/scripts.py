@@ -42,8 +42,8 @@ FIRST_LINE_RE = re.compile(b'^#!.*pythonw?[0-9.]*([ \t].*)?$')
 SCRIPT_TEMPLATE = r'''# -*- coding: utf-8 -*-
 import re
 import sys
-from %(module)s import %(import_name)s
 if __name__ == '__main__':
+    from %(module)s import %(import_name)s
     sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
     sys.exit(%(func)s())
 '''

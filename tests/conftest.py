@@ -51,7 +51,7 @@ from tests.lib.server import MockServer, make_mock_server
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
-    from pip._vendor.typing_extensions import Self
+    from typing_extensions import Self
 
 
 def pytest_addoption(parser: Parser) -> None:

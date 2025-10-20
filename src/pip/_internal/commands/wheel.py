@@ -60,6 +60,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.src())
@@ -101,6 +102,8 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:
+        cmdoptions.check_build_constraints(options)
+
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
@@ -145,14 +148,14 @@ class WheelCommand(RequirementCommand):
 
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
+        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
+
         reqs_to_build: list[InstallRequirement] = []
         for req in requirement_set.requirements.values():
             if req.is_wheel:
                 preparer.save_linked_requirement(req)
             else:
                 reqs_to_build.append(req)
-
-        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
 
         # build wheels
         build_successes, build_failures = build(

@@ -16,7 +16,6 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from textwrap import dedent
 from typing import Any, AnyStr, Callable, Literal, Protocol, Union, cast
-from urllib.parse import urlparse, urlunparse
 from urllib.request import pathname2url
 from zipfile import ZipFile
 
@@ -1370,25 +1369,9 @@ CertFactory = Callable[[], str]
 # Accommodations for Windows path and URL changes in recent Python releases
 # -------------------------------------------------------------------------
 
-# versions containing fix/backport from https://github.com/python/cpython/pull/113563
-# which changed the behavior of `urllib.parse.urlun{parse,split}`
-url = "////path/to/file"
-has_new_urlun_behavior = url == urlunparse(urlparse(url))
-
-# the above change seems to only impact tests on Windows, so just add skips for that
-skip_needs_new_urlun_behavior_win = pytest.mark.skipif(
-    sys.platform != "win32" or not has_new_urlun_behavior,
-    reason="testing windows behavior for newer CPython",
-)
-
-skip_needs_old_urlun_behavior_win = pytest.mark.skipif(
-    sys.platform != "win32" or has_new_urlun_behavior,
-    reason="testing windows behavior for older CPython",
-)
-
 # Trailing slashes are now preserved on Windows, matching POSIX behaviour.
 # BPO: https://github.com/python/cpython/issues/126212
-does_pathname2url_preserve_trailing_slash = pathname2url("C:/foo/").endswith("/")
+does_pathname2url_preserve_trailing_slash = pathname2url("C:\\foo\\").endswith("/")
 skip_needs_new_pathname2url_trailing_slash_behavior_win = pytest.mark.skipif(
     sys.platform != "win32" or not does_pathname2url_preserve_trailing_slash,
     reason="testing windows (pathname2url) behavior for newer CPython",

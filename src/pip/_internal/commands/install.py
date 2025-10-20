@@ -7,6 +7,7 @@ import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP, Values
+from pathlib import Path
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
@@ -86,6 +87,7 @@ class InstallCommand(RequirementCommand):
     def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.pre())
 
@@ -302,6 +304,7 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
+        cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
 
         logger.verbose("Using %s", get_pip_version())
@@ -412,6 +415,13 @@ class InstallCommand(RequirementCommand):
                         " ".join("-".join(item) for item in would_install_items),
                     )
                 return SUCCESS
+
+            # If there is any more preparation to do for the actual installation, do
+            # so now. This includes actually downloading the files in the case that
+            # we have been using PEP-658 metadata so far.
+            preparer.prepare_linked_requirements_more(
+                requirement_set.requirements.values()
+            )
 
             try:
                 pip_req = requirement_set.get_requirement("pip")
@@ -774,20 +784,24 @@ def create_os_error_message(
         )
         parts.append(".\n")
 
-    # Suggest the user to enable Long Paths if path length is
-    # more than 260
-    if (
-        WINDOWS
-        and error.errno == errno.ENOENT
-        and error.filename
-        and len(error.filename) > 260
-    ):
-        parts.append(
-            "HINT: This error might have occurred since "
-            "this system does not have Windows Long Path "
-            "support enabled. You can find information on "
-            "how to enable this at "
-            "https://pip.pypa.io/warnings/enable-long-paths\n"
-        )
+    # On Windows, errors like EINVAL or ENOENT may occur
+    # if a file or folder name exceeds 255 characters,
+    # or if the full path exceeds 260 characters and long path support isn't enabled.
+    # This condition checks for such cases and adds a hint to the error output.
 
+    if WINDOWS and error.errno in (errno.EINVAL, errno.ENOENT) and error.filename:
+        if any(len(part) > 255 for part in Path(error.filename).parts):
+            parts.append(
+                "HINT: This error might be caused by a file or folder name exceeding "
+                "255 characters, which is a Windows limitation even if long paths "
+                "are enabled.\n "
+            )
+        if len(error.filename) > 260:
+            parts.append(
+                "HINT: This error might have occurred since "
+                "this system does not have Windows Long Path "
+                "support enabled. You can find information on "
+                "how to enable this at "
+                "https://pip.pypa.io/warnings/enable-long-paths\n"
+            )
     return "".join(parts).strip() + "\n"

@@ -16,6 +16,7 @@ from unittest.mock import patch
 import pytest
 
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
@@ -266,7 +267,9 @@ def test_dist_from_broken_wheel_fails(data: TestData) -> None:
 
     package = data.packages.joinpath("corruptwheel-1.0-py2.py3-none-any.whl")
     with pytest.raises(InvalidWheel):
-        get_wheel_distribution(FilesystemWheel(os.fspath(package)), "brokenwheel")
+        get_wheel_distribution(
+            FilesystemWheel(os.fspath(package)), canonicalize_name("brokenwheel")
+        )
 
 
 class TestWheelFile:

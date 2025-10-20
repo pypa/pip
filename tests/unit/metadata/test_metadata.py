@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from pip._vendor.packaging.utils import NormalizedName
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata import (
     BaseDistribution,
@@ -102,7 +102,7 @@ def test_metadata_dict(tmp_path: Path) -> None:
     """
     wheel_path = make_wheel(name="pkga", version="1.0.1").save_to_dir(tmp_path)
     wheel = FilesystemWheel(wheel_path)
-    dist = get_wheel_distribution(wheel, "pkga")
+    dist = get_wheel_distribution(wheel, canonicalize_name("pkga"))
     metadata_dict = dist.metadata_dict
     assert metadata_dict["name"] == "pkga"
     assert metadata_dict["version"] == "1.0.1"

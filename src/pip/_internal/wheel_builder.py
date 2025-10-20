@@ -118,7 +118,7 @@ def _get_cache_dir(
 def _verify_one(req: InstallRequirement, wheel_path: str) -> None:
     canonical_name = canonicalize_name(req.name or "")
     w = Wheel(os.path.basename(wheel_path))
-    if canonicalize_name(w.name) != canonical_name:
+    if w.name != canonical_name:
         raise InvalidWheelFilename(
             f"Wheel has unexpected file name: expected {canonical_name!r}, "
             f"got {w.name!r}",

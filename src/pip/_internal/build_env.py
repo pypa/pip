@@ -11,7 +11,7 @@ import textwrap
 from collections import OrderedDict
 from collections.abc import Iterable
 from types import TracebackType
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from pip._vendor.packaging.version import Version
 
@@ -19,6 +19,7 @@ from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
@@ -27,6 +28,10 @@ from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.req.req_install import InstallRequirement
+
+    class ExtraEnviron(TypedDict, total=False):
+        extra_environ: dict[str, str]
+
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +106,44 @@ class SubprocessBuildEnvironmentInstaller:
     Install build dependencies by calling pip in a subprocess.
     """
 
-    def __init__(self, finder: PackageFinder) -> None:
+    def __init__(
+        self,
+        finder: PackageFinder,
+        build_constraints: list[str] | None = None,
+        build_constraint_feature_enabled: bool = False,
+    ) -> None:
         self.finder = finder
+        self._build_constraints = build_constraints or []
+        self._build_constraint_feature_enabled = build_constraint_feature_enabled
+
+    def _deprecation_constraint_check(self) -> None:
+        """
+        Check for deprecation warning: PIP_CONSTRAINT affecting build environments.
+
+        This warns when build-constraint feature is NOT enabled and PIP_CONSTRAINT
+        is not empty.
+        """
+        if self._build_constraint_feature_enabled or self._build_constraints:
+            return
+
+        pip_constraint = os.environ.get("PIP_CONSTRAINT")
+        if not pip_constraint or not pip_constraint.strip():
+            return
+
+        deprecated(
+            reason=(
+                "Setting PIP_CONSTRAINT will not affect "
+                "build constraints in the future,"
+            ),
+            replacement=(
+                "to specify build constraints using --build-constraint or "
+                "PIP_BUILD_CONSTRAINT. To disable this warning without "
+                "any build constraints set --use-feature=build-constraint or "
+                'PIP_USE_FEATURE="build-constraint"'
+            ),
+            gone_in="26.2",
+            issue=None,
+        )
 
     def install(
         self,
@@ -112,6 +153,8 @@ class SubprocessBuildEnvironmentInstaller:
         kind: str,
         for_req: InstallRequirement | None,
     ) -> None:
+        self._deprecation_constraint_check()
+
         finder = self.finder
         args: list[str] = [
             sys.executable,
@@ -167,13 +210,38 @@ class SubprocessBuildEnvironmentInstaller:
             args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
+
+        # Handle build constraints
+        if self._build_constraint_feature_enabled:
+            args.extend(["--use-feature", "build-constraint"])
+
+        if self._build_constraints:
+            # Build constraints must be passed as both constraints
+            # and build constraints, so that nested builds receive
+            # build constraints
+            for constraint_file in self._build_constraints:
+                args.extend(["--constraint", constraint_file])
+                args.extend(["--build-constraint", constraint_file])
+
+        extra_environ: ExtraEnviron = {}
+        if self._build_constraint_feature_enabled and not self._build_constraints:
+            # If there are no build constraints but the build constraints
+            # feature is enabled then we must ignore regular constraints
+            # in the isolated build environment
+            extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
+
         args.append("--")
         args.extend(requirements)
+
+        identify_requirement = (
+            f" for {for_req.name}" if for_req and for_req.name else ""
+        )
         with open_spinner(f"Installing {kind}") as spinner:
             call_subprocess(
                 args,
-                command_desc=f"pip subprocess to install {kind}",
+                command_desc=f"installing {kind}{identify_requirement}",
                 spinner=spinner,
+                **extra_environ,
             )
 
 

@@ -1,1 +1,1 @@
-Upgrade msgpack to 1.1.1
+Upgrade msgpack to 1.1.2

@@ -36,6 +36,7 @@ class DownloadCommand(RequirementCommand):
 
     def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.global_options())
@@ -81,6 +82,7 @@ class DownloadCommand(RequirementCommand):
         options.editables = []
 
         cmdoptions.check_dist_restriction(options)
+        cmdoptions.check_build_constraints(options)
 
         options.download_dir = normalize_path(options.download_dir)
         ensure_dir(options.download_dir)
@@ -130,14 +132,14 @@ class DownloadCommand(RequirementCommand):
 
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
+        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
+
         downloaded: list[str] = []
         for req in requirement_set.requirements.values():
             if req.satisfied_by is None:
                 assert req.name is not None
                 preparer.save_linked_requirement(req)
                 downloaded.append(req.name)
-
-        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
 
         if downloaded:
             write_output("Successfully downloaded %s", " ".join(downloaded))

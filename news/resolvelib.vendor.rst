@@ -1,1 +1,1 @@
-Upgrade resolvelib to 1.2.0
+Upgrade resolvelib to 1.2.1

@@ -8,9 +8,10 @@ PackageFinder machinery and all its vendored dependencies, etc.
 from __future__ import annotations
 
 import logging
+import os
 from functools import partial
 from optparse import Values
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
@@ -44,6 +45,16 @@ from pip._internal.utils.temp_dir import (
 logger = logging.getLogger(__name__)
 
 
+def should_ignore_regular_constraints(options: Values) -> bool:
+    """
+    Check if regular constraints should be ignored because
+    we are in a isolated build process and build constraints
+    feature is enabled but no build constraints were passed.
+    """
+
+    return os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1"
+
+
 KEEPABLE_TEMPDIR_TYPES = [
     tempdir_kinds.BUILD_ENV,
     tempdir_kinds.EPHEM_WHEEL_CACHE,
@@ -51,7 +62,12 @@ KEEPABLE_TEMPDIR_TYPES = [
 ]
 
 
-def with_cleanup(func: Any) -> Any:
+_CommandT = TypeVar("_CommandT", bound="RequirementCommand")
+
+
+def with_cleanup(
+    func: Callable[[_CommandT, Values, list[str]], int],
+) -> Callable[[_CommandT, Values, list[str]], int]:
     """Decorator for common logic related to managing temporary
     directories.
     """
@@ -60,9 +76,7 @@ def with_cleanup(func: Any) -> Any:
         for t in KEEPABLE_TEMPDIR_TYPES:
             registry.set_delete(t, False)
 
-    def wrapper(
-        self: RequirementCommand, options: Values, args: list[Any]
-    ) -> int | None:
+    def wrapper(self: _CommandT, options: Values, args: list[str]) -> int:
         assert self.tempdir_registry is not None
         if options.no_clean:
             configure_tempdir_registry(self.tempdir_registry)
@@ -132,12 +146,22 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        # Handle build constraints
+        build_constraints = getattr(options, "build_constraints", [])
+        build_constraint_feature_enabled = (
+            "build-constraint" in options.features_enabled
+        )
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
-            build_isolation_installer=SubprocessBuildEnvironmentInstaller(finder),
+            build_isolation_installer=SubprocessBuildEnvironmentInstaller(
+                finder,
+                build_constraints=build_constraints,
+                build_constraint_feature_enabled=build_constraint_feature_enabled,
+            ),
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
@@ -221,20 +245,22 @@ class RequirementCommand(IndexGroupCommand):
         Parse command-line arguments into the corresponding requirements.
         """
         requirements: list[InstallRequirement] = []
-        for filename in options.constraints:
-            for parsed_req in parse_requirements(
-                filename,
-                constraint=True,
-                finder=finder,
-                options=options,
-                session=session,
-            ):
-                req_to_add = install_req_from_parsed_requirement(
-                    parsed_req,
-                    isolated=options.isolated_mode,
-                    user_supplied=False,
-                )
-                requirements.append(req_to_add)
+
+        if not should_ignore_regular_constraints(options):
+            for filename in options.constraints:
+                for parsed_req in parse_requirements(
+                    filename,
+                    constraint=True,
+                    finder=finder,
+                    options=options,
+                    session=session,
+                ):
+                    req_to_add = install_req_from_parsed_requirement(
+                        parsed_req,
+                        isolated=options.isolated_mode,
+                        user_supplied=False,
+                    )
+                    requirements.append(req_to_add)
 
         for req in args:
             req_to_add = install_req_from_line(

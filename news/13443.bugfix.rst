@@ -1,0 +1,2 @@
+Handle malformed ``Version`` metadata entries and
+show a sensible error message instead of crashing.

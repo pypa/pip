@@ -101,6 +101,29 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             )
 
 
+def check_build_constraints(options: Values) -> None:
+    """Function for validating build constraints options.
+
+    :param options: The OptionParser options.
+    """
+    if hasattr(options, "build_constraints") and options.build_constraints:
+        if not options.build_isolation:
+            raise CommandError(
+                "--build-constraint cannot be used with --no-build-isolation."
+            )
+
+        # Import here to avoid circular imports
+        from pip._internal.network.session import PipSession
+        from pip._internal.req.req_file import get_file_content
+
+        # Eagerly check build constraints file contents
+        # is valid so that we don't fail in when trying
+        # to check constraints in isolated build process
+        with PipSession() as session:
+            for constraint_file in options.build_constraints:
+                get_file_content(constraint_file, session)
+
+
 def _path_option_check(option: Option, opt: str, value: str) -> str:
     return os.path.expanduser(value)
 
@@ -427,6 +450,21 @@ def constraints() -> Option:
         metavar="file",
         help="Constrain versions using the given constraints file. "
         "This option can be used multiple times.",
+    )
+
+
+def build_constraints() -> Option:
+    return Option(
+        "--build-constraint",
+        dest="build_constraints",
+        action="append",
+        type="str",
+        default=[],
+        metavar="file",
+        help=(
+            "Constrain build dependencies using the given constraints file. "
+            "This option can be used multiple times."
+        ),
     )
 
 
@@ -1072,6 +1110,7 @@ use_new_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "fast-deps",
+        "build-constraint",
     ]
     + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",

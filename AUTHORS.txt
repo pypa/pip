@@ -220,11 +220,13 @@ Davidovich
 ddelange
 Deepak Sharma
 Deepyaman Datta
+Denis Roussel (ACSONE)
 Denise Yu
 dependabot[bot]
 derwolfe
 Desetude
 developer
+Devesh Kumar
 Devesh Kumar Singh
 devsagul
 Diego Caraballo
@@ -295,6 +297,7 @@ Gabriel de Perthuis
 Garry Polley
 gavin
 gdanielson
+Gene Wood
 Geoffrey Sneddon
 George Margaritis
 George Song
@@ -333,6 +336,7 @@ Hugo Lopes Tavares
 Hugo van Kemenade
 Hugues Bruant
 Hynek Schlawack
+iamsrp-deshaw
 Ian Bicking
 Ian Cordasco
 Ian Lee
@@ -640,6 +644,7 @@ Pulkit Goyal
 q0w
 Qiangning Hong
 Qiming Xu
+qraqras
 Quentin Lee
 Quentin Pradet
 R. David Murray
@@ -665,6 +670,7 @@ Robert McGibbon
 Robert Pollak
 Robert T. McGibbon
 robin elisha robinson
+Rodney, Tiara
 Roey Berman
 Rohan Jain
 Roman Bogorodskiy
@@ -680,6 +686,7 @@ Russell Keith-Magee
 Ryan Shepherd
 Ryan Wooden
 ryneeverett
+Ryuma Asai
 S. Guliaev
 Sachi King
 Salvatore Rinchiera
@@ -694,6 +701,8 @@ Sebastian Jordan
 Sebastian Schaetz
 Segev Finer
 SeongSoo Cho
+Sepehr Rasouli
+sepehrrasooli
 Sergey Vasilyev
 Seth Michael Larson
 Seth Woodworth
@@ -719,6 +728,7 @@ Stavros Korokithakis
 Stefan Scherfke
 Stefano Rivera
 Stephan Erb
+Stephen Payne
 Stephen Rosen
 stepshal
 Steve (Gadget) Barnes
@@ -811,7 +821,9 @@ Yeray Diaz Diaz
 Yoval P
 Yu Jian
 Yuan Jing Vincent Yan
+Yuki Kobayashi
 Yusuke Hayashi
+zackzack38
 Zearin
 Zhiping Deng
 ziebam
