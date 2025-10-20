@@ -100,6 +100,15 @@ class PipProvider(_ProviderBase):
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
 
+    @property
+    def constraints(self) -> dict[str, Constraint]:
+        """Public view of user-specified constraints.
+
+        Exposes the provider's constraints mapping without encouraging
+        external callers to reach into private attributes.
+        """
+        return self._constraints
+
     def identify(self, requirement_or_candidate: Requirement | Candidate) -> str:
         return requirement_or_candidate.name
 
