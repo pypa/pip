@@ -1,0 +1,1 @@
+Add bullet point mentioning "pip_proxy" env variable to proxy section
