@@ -16,7 +16,7 @@ from typing import (
 )
 
 from pip._internal.cli.spinners import SpinnerInterface
-from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.exceptions import BadCommand, InstallationError, TypoInFragmentsError
 from pip._internal.utils.misc import (
     HiddenText,
     ask_path_exists,
@@ -397,6 +397,19 @@ class VersionControl:
                     "which is not supported. Include a revision after @ "
                     "or remove @ from the URL."
                 )
+        # check for typos in frag
+        unknown_param_names = {
+            key
+            for key in urllib.parse.parse_qs(frag)
+            if key not in ("egg", "subdirectory")
+        }
+        unknown_param_str = ", ".join(sorted(unknown_param_names))
+        if unknown_param_names:
+            raise TypoInFragmentsError(
+                message="Not all fragments in the URL {!r} "
+                "are valid".format(unknown_param_str),
+            )
+
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
         return url, rev, user_pass
 
