@@ -17,6 +17,7 @@ from pip._vendor.rich import traceback as rich_traceback
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip._internal.cli.progress_bars import ProgressBarType
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
@@ -176,8 +177,11 @@ class Command(CommandContextMixIn):
         if options.debug_mode:
             self.verbosity = 2
 
-        if hasattr(options, "progress_bar") and options.progress_bar == "auto":
-            options.progress_bar = "on" if self.verbosity >= 0 else "off"
+        if getattr(options, "progress_bar", None) == ProgressBarType.AUTO.value:
+            if self.verbosity >= 0:
+                options.progress_bar = ProgressBarType.ON.value
+            else:
+                options.progress_bar = ProgressBarType.OFF.value
 
         reconfigure(no_color=options.no_color)
         level_number = setup_logging(
