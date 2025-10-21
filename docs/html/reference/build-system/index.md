@@ -17,7 +17,7 @@ setup-py
 ```
 
 <!-- prettier-ignore-start -->
-[`pyproject.toml` based](pyproject-toml)
+[*Backend API* based](pyproject-toml)
 : Standards-backed interface, that has explicit declaration and management of
   build dependencies.
 
@@ -33,36 +33,50 @@ the build system interfaces that pip may use.
 
 ## Determining which build system interface is used
 
-Currently, pip uses the `pyproject.toml` based build system interface, if a
-`pyproject.toml` file exists. If not, the legacy build system interface is used.
-The intention is to switch to using the `pyproject.toml` build system interface
+Currently, pip uses the *backend API* based build system interface, in the
+following scenarios:
+
+- if a `pyproject.toml` file exists, or
+- if {pypi}`setuptools` or {pypi}`wheel` is not installed.
+
+Otherwise, the legacy build system interface is used.
+The intention is to switch to using the *backend API* build system interface
 unconditionally and to drop support for the legacy build system interface at
 some point in the future.
 
 When performing a build, pip will mention which build system interface it is
-using. Typically, this will take the form of a message like:
+using. For the *backend API* based build system interface,
+typically this will take the form of a message like[^2]:
 
 ```none
-Building wheel for pip (pyproject.toml)... done
+Building wheel for pip (<build backend identification>)... done
 ```
+
+[^2]: Here `<build backend identification>` is replaced with the actual value for
+      the given package, e.g. `Building wheel for pip (setuptools.build_meta)... done`
+
+For the `setup.py` based build system interface, typically this will look like
+the following:
 
 ```none
 Building wheel for pip (setup.py)... done
 ```
 
-The content in the brackets, refers to which build system interface is being
-used.
-
 ```{versionchanged} 21.3
 The output uses "pyproject.toml" instead of "PEP 517" to refer to be
-`pyproject.toml` based build system interface.
+*backend API* based build system interface.
+```
+
+```{versionchanged} 23.X
+The output uses the backend specification instead of "pyproject.toml"
+to refer to be *backend API* based build system interface.
 ```
 
 ## Controlling which build system interface is used
 
 The [`--use-pep517`](install_--use-pep517) flag (and corresponding environment
 variable: `PIP_USE_PEP517`) can be used to force all packages to build using
-the `pyproject.toml` based build system interface. There is no way to force
+the *backend API* based build system interface. There is no way to force
 the use of the legacy build system interface.
 
 (controlling-setup_requires)=

@@ -25,7 +25,7 @@ def build_wheel_pep517(
         logger.debug("Destination directory: %s", wheel_directory)
 
         runner = runner_with_spinner_message(
-            f"Building wheel for {name} (pyproject.toml)"
+            f"Building wheel for {name} ({backend.build_backend})"
         )
         with backend.subprocess_runner(runner):
             wheel_name = backend.build_wheel(
