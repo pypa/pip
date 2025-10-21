@@ -20,7 +20,7 @@ class SourceDistribution(AbstractDistribution):
     """Represents a source distribution.
 
     The preparation step for these needs metadata for the packages to be
-    generated, either using PEP 517 or using the legacy `setup.py egg_info`.
+    generated.
     """
 
     @property
@@ -38,28 +38,27 @@ class SourceDistribution(AbstractDistribution):
         build_isolation: bool,
         check_build_deps: bool,
     ) -> None:
-        # Load pyproject.toml, to determine whether PEP 517 is to be used
+        # Load pyproject.toml
         self.req.load_pyproject_toml()
 
         # Set up the build isolation, if this requirement should be isolated
-        should_isolate = self.req.use_pep517 and build_isolation
-        if should_isolate:
+        if build_isolation:
             # Setup an isolated environment and install the build backend static
             # requirements in it.
             self._prepare_build_backend(build_env_installer)
-            # Check that if the requirement is editable, it either supports PEP 660 or
-            # has a setup.py or a setup.cfg. This cannot be done earlier because we need
-            # to setup the build backend to verify it supports build_editable, nor can
-            # it be done later, because we want to avoid installing build requirements
-            # needlessly. Doing it here also works around setuptools generating
-            # UNKNOWN.egg-info when running get_requires_for_build_wheel on a directory
-            # without setup.py nor setup.cfg.
-            self.req.isolated_editable_sanity_check()
+            # Check that the build backend supports PEP 660. This cannot be done
+            # earlier because we need to setup the build backend to verify it
+            # supports build_editable, nor can it be done later, because we want
+            # to avoid installing build requirements needlessly.
+            self.req.editable_sanity_check()
             # Install the dynamic build requirements.
             self._install_build_reqs(build_env_installer)
+        else:
+            # When not using build isolation, we still need to check that
+            # the build backend supports PEP 660.
+            self.req.editable_sanity_check()
         # Check if the current environment provides build dependencies
-        should_check_deps = self.req.use_pep517 and check_build_deps
-        if should_check_deps:
+        if check_build_deps:
             pyproject_requires = self.req.pyproject_requires
             assert pyproject_requires is not None
             conflicting, missing = self.req.build_env.check_requirements(

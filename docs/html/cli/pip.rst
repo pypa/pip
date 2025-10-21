@@ -77,7 +77,7 @@ when decision is needed.
 .. _`2-build-system-interface`:
 .. rubric:: Build System Interface
 
-This is now covered in :doc:`../reference/build-system/index`.
+This is now covered in :doc:`../reference/build-system`.
 
 .. _`General Options`:
 

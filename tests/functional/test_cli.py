@@ -45,7 +45,9 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
     )
 
     # expect_temp because pip install will generate fake_pkg.egg-info
-    script.pip("install", "-vvv", str(fake_pkg), expect_temp=True)
+    script.pip(
+        "install", "--no-build-isolation", "-vvv", str(fake_pkg), expect_temp=True
+    )
     result = script.pip("-V")
     result2 = script.run("fake_pip", "-V", allow_stderr_warning=True)
     assert result.stdout == result2.stdout

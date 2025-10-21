@@ -11,7 +11,6 @@ from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import (
     InstallRequirement,
-    check_legacy_setup_py_options,
 )
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
@@ -57,7 +56,6 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
-        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.build_constraints())
@@ -77,8 +75,6 @@ class WheelCommand(RequirementCommand):
         )
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
-        self.cmd_opts.add_option(cmdoptions.build_options())
-        self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
             "--pre",
@@ -120,7 +116,6 @@ class WheelCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
-        check_legacy_setup_py_options(options, reqs)
 
         wheel_cache = WheelCache(options.cache_dir)
 
@@ -141,7 +136,6 @@ class WheelCommand(RequirementCommand):
             options=options,
             wheel_cache=wheel_cache,
             ignore_requires_python=options.ignore_requires_python,
-            use_pep517=options.use_pep517,
         )
 
         self.trace_basic_info(finder)
@@ -162,8 +156,6 @@ class WheelCommand(RequirementCommand):
             reqs_to_build,
             wheel_cache=wheel_cache,
             verify=(not options.no_verify),
-            build_options=options.build_options or [],
-            global_options=options.global_options or [],
         )
         for req in build_successes:
             assert req.link and req.link.is_wheel

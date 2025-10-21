@@ -255,7 +255,7 @@ This is now covered in :doc:`../topics/local-project-installs`.
 .. _`0-build-system-interface`:
 .. rubric:: Build System Interface
 
-This is now covered in :doc:`../reference/build-system/index`.
+This is now covered in :doc:`../reference/build-system`.
 
 .. _`pip install Options`:
 

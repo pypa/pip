@@ -167,9 +167,22 @@ def test_upgrade_with_newest_already_installed(
     If the newest version of a package is already installed, the package should
     not be reinstalled and the user should be informed.
     """
-    script.pip("install", "-f", data.find_links, "--no-index", "simple")
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "simple",
+    )
     result = script.pip(
-        "install", "--upgrade", "-f", data.find_links, "--no-index", "simple"
+        "install",
+        "--no-build-isolation",
+        "--upgrade",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "simple",
     )
     assert not result.files_created, "simple upgraded when it should not have"
     if resolver_variant == "resolvelib":
@@ -217,8 +230,7 @@ def test_uninstall_before_upgrade_from_url(script: PipTestEnvironment) -> None:
     result.did_create(script.site_packages / "initools")
     result2 = script.pip(
         "install",
-        "https://files.pythonhosted.org/packages/source/I/INITools/INITools-"
-        "0.3.tar.gz",
+        "https://files.pythonhosted.org/packages/source/I/INITools/INITools-0.3.tar.gz",
     )
     assert result2.files_created, "upgrade to INITools 0.3 failed"
     result3 = script.pip("uninstall", "initools", "-y")
@@ -236,8 +248,7 @@ def test_upgrade_to_same_version_from_url(script: PipTestEnvironment) -> None:
     result.did_create(script.site_packages / "initools")
     result2 = script.pip(
         "install",
-        "https://files.pythonhosted.org/packages/source/I/INITools/INITools-"
-        "0.3.tar.gz",
+        "https://files.pythonhosted.org/packages/source/I/INITools/INITools-0.3.tar.gz",
     )
     assert (
         script.site_packages / "initools" not in result2.files_updated
@@ -288,10 +299,18 @@ def test_uninstall_rollback(script: PipTestEnvironment, data: TestData) -> None:
     crafted to fail on install).
 
     """
-    result = script.pip("install", "-f", data.find_links, "--no-index", "broken==0.1")
+    result = script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "broken==0.1",
+    )
     result.did_create(script.site_packages / "broken.py")
     result2 = script.pip(
         "install",
+        "--no-build-isolation",
         "-f",
         data.find_links,
         "--no-index",
