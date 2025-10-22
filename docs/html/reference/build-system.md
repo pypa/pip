@@ -182,11 +182,11 @@ earlier.
 ```{versionchanged} 23.1
 The legacy interface where pip could invoke `setup.py install`
 in some circumstances was removed,
-in favor of the fallback behavior described below.
+in favor of the fallback behavior described above.
 ```
 
 ```{versionchanged} 25.3
 The legacy interface where pip could invoke `setup.py build_wheel` or
 `setup.py develop` in some circumstances was removed,
-in favor of the fallback behavior described below.
+in favor of the fallback behavior described above.
 ```
