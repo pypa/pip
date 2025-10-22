@@ -25,6 +25,7 @@ from typing import (
 
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
+from pip._internal.models.index import PyPI
 from pip._internal.models.search_scope import SearchScope
 
 if TYPE_CHECKING:
@@ -248,7 +249,9 @@ def handle_option_line(
             no_index = True
             index_urls = []
         if opts.index_url and not no_index:
-            index_urls = [opts.index_url]
+            if PyPI.simple_url in index_urls:
+                index_urls.remove(PyPI.simple_url)
+            index_urls.append(opts.index_url)
         if opts.extra_index_urls and not no_index:
             index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
