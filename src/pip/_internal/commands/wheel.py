@@ -11,7 +11,6 @@ from pip._internal.exceptions import CommandError
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import (
     InstallRequirement,
-    check_legacy_setup_py_options,
 )
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
@@ -57,9 +56,9 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
-        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.src())
@@ -76,8 +75,6 @@ class WheelCommand(RequirementCommand):
         )
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
-        self.cmd_opts.add_option(cmdoptions.build_options())
-        self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
             "--pre",
@@ -101,6 +98,8 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:
+        cmdoptions.check_build_constraints(options)
+
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
@@ -117,7 +116,6 @@ class WheelCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
-        check_legacy_setup_py_options(options, reqs)
 
         wheel_cache = WheelCache(options.cache_dir)
 
@@ -138,12 +136,13 @@ class WheelCommand(RequirementCommand):
             options=options,
             wheel_cache=wheel_cache,
             ignore_requires_python=options.ignore_requires_python,
-            use_pep517=options.use_pep517,
         )
 
         self.trace_basic_info(finder)
 
         requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
+
+        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
 
         reqs_to_build: list[InstallRequirement] = []
         for req in requirement_set.requirements.values():
@@ -152,15 +151,11 @@ class WheelCommand(RequirementCommand):
             else:
                 reqs_to_build.append(req)
 
-        preparer.prepare_linked_requirements_more(requirement_set.requirements.values())
-
         # build wheels
         build_successes, build_failures = build(
             reqs_to_build,
             wheel_cache=wheel_cache,
             verify=(not options.no_verify),
-            build_options=options.build_options or [],
-            global_options=options.global_options or [],
         )
         for req in build_successes:
             assert req.link and req.link.is_wheel

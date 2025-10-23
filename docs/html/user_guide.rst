@@ -191,8 +191,7 @@ In practice, there are 4 common uses of Requirements files:
 
 
 It's important to be clear that pip determines package dependencies using
-`install_requires metadata
-<https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html>`_,
+the project metadata (typically in ``pyproject.toml`` or ``setup.py``),
 not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
@@ -255,6 +254,47 @@ global (version) limits for packages.
 Same as requirements files, constraints files can also be served via a URL,
 e.g. http://example.com/constraints.txt, so that your organization can store and
 serve them in a centralized place.
+
+
+.. _`Build Constraints`:
+
+Build Constraints
+-----------------
+
+.. versionadded:: 25.3
+
+Build constraints are a type of constraints file that applies only to isolated
+build environments used for building packages from source. Unlike regular
+constraints, which affect the packages installed in your environment, build
+constraints only influence the versions of packages available during the
+build process.
+
+This is useful when you need to constrain build dependencies
+(such as ``setuptools``, ``cython``, etc.) without affecting the
+final installed environment.
+
+Use build constraints like so:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --build-constraint build-constraints.txt SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --build-constraint build-constraints.txt SomePackage
+
+Example build constraints file (``build-constraints.txt``):
+
+.. code-block:: text
+
+   # Constrain setuptools version during build
+   setuptools>=45,<80
+   # Pin Cython for packages that use it to build
+   cython==0.29.24
 
 
 .. _`Dependency Groups`:
@@ -403,10 +443,6 @@ name:
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
-
-:ref:`pip wheel` requires the `wheel package
-<https://pypi.org/project/wheel/>`_ to be installed, which provides the
-"bdist_wheel" setuptools extension that it uses.
 
 To build wheels for your requirements and all their dependencies to a local
 directory:
@@ -962,7 +998,7 @@ of ability. Some examples that you could consider include:
 * ``packaging`` - Utilities to work with standard package metadata (versions,
   requirements, etc.)
 
-* ``setuptools`` (specifically ``pkg_resources``) - Functions for querying what
+* ``importlib.metadata`` in the Python stdlib - Functions for querying what
   packages the user has installed on their system.
 
 * ``distlib`` - Packaging and distribution utilities (including functions for

@@ -51,7 +51,6 @@ from pip._internal.utils.misc import (
     split_auth_netloc_from_url,
     tabulate,
 )
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 
 
 class Tests_EgglinkPath:
@@ -930,59 +929,6 @@ def test_deprecated_message_reads_well_future() -> None:
         "You can use the flag --use-feature=crisis to test the upcoming behaviour. "
         "Discussion can be found at https://github.com/pypa/pip/issues/100000"
     )
-
-
-def test_make_setuptools_shim_args() -> None:
-    # Test all arguments at once, including the overall ordering.
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        global_options=["--some", "--option"],
-        no_user_config=True,
-        unbuffered_output=True,
-    )
-
-    assert args[1:3] == ["-u", "-c"]
-    assert args[4:] == ["--some", "--option", "--no-user-cfg"]
-
-    shim = args[3]
-    # Spot-check key aspects of the command string.
-    assert "import setuptools" in shim
-    assert "'/dir/path/setup.py'" in args[3]
-    assert "sys.argv[0] = __file__" in args[3]
-
-
-@pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])
-def test_make_setuptools_shim_args__global_options(
-    global_options: list[str] | None,
-) -> None:
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        global_options=global_options,
-    )
-
-    if global_options:
-        assert len(args) == 5
-        for option in global_options:
-            assert option in args
-    else:
-        assert len(args) == 3
-
-
-@pytest.mark.parametrize("no_user_config", [False, True])
-def test_make_setuptools_shim_args__no_user_config(no_user_config: bool) -> None:
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        no_user_config=no_user_config,
-    )
-    assert ("--no-user-cfg" in args) == no_user_config
-
-
-@pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output: bool) -> None:
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py", unbuffered_output=unbuffered_output
-    )
-    assert ("-u" in args) == unbuffered_output
 
 
 @pytest.mark.parametrize(
