@@ -36,7 +36,7 @@ def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -
     installed-files.txt not found.
     """
     editable = data.packages.joinpath("SetupPyUTF8")
-    script.pip("install", "-e", editable)
+    script.run("python", "setup.py", "develop", cwd=editable)
     result = script.pip("show", "-f", "SetupPyUTF8")
     lines = result.stdout.splitlines()
     assert len(lines) == 13
@@ -264,7 +264,14 @@ def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:
     """
     Expect a divider between packages
     """
-    script.pip("install", "pip-test-package", "--no-index", "-f", data.packages)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "pip-test-package",
+        "--no-index",
+        "-f",
+        data.packages,
+    )
     result = script.pip("show", "pip", "pip-test-package")
     lines = result.stdout.splitlines()
     assert "---" in lines
@@ -273,7 +280,14 @@ def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:
 def test_package_name_is_canonicalized(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    script.pip("install", "pip-test-package", "--no-index", "-f", data.packages)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "pip-test-package",
+        "--no-index",
+        "-f",
+        data.packages,
+    )
 
     dash_show_result = script.pip("show", "pip-test-package")
     underscore_upper_show_result = script.pip("show", "pip-test_Package")
@@ -289,7 +303,14 @@ def test_show_required_by_packages_basic(
     Test that installed packages that depend on this package are shown
     """
     editable_path = os.path.join(data.src, "requires_simple")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        editable_path,
+    )
 
     result = script.pip("show", "simple")
     lines = result.stdout.splitlines()
@@ -309,7 +330,14 @@ def test_show_required_by_packages_capitalized(
     where the package has a capital letter
     """
     editable_path = os.path.join(data.src, "requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        editable_path,
+    )
 
     result = script.pip("show", "simple")
     lines = result.stdout.splitlines()
@@ -330,9 +358,23 @@ def test_show_required_by_packages_requiring_capitalized(
     lower and upper case letters
     """
     required_package_path = os.path.join(data.src, "requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, required_package_path)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        required_package_path,
+    )
     editable_path = os.path.join(data.src, "requires_requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        editable_path,
+    )
 
     result = script.pip("show", "Requires_Capitalized")
     lines = result.stdout.splitlines()

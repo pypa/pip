@@ -11,9 +11,6 @@ from pip._internal.cli.req_command import (
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.models.pylock import Pylock, is_valid_pylock_file_name
 from pip._internal.operations.build.build_tracker import get_build_tracker
-from pip._internal.req.req_install import (
-    check_legacy_setup_py_options,
-)
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     get_pip_version,
@@ -59,6 +56,7 @@ class LockCommand(RequirementCommand):
         )
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.pre())
 
@@ -69,7 +67,6 @@ class LockCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
-        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
@@ -98,6 +95,8 @@ class LockCommand(RequirementCommand):
             "without prior warning."
         )
 
+        cmdoptions.check_build_constraints(options)
+
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(
@@ -114,7 +113,6 @@ class LockCommand(RequirementCommand):
         )
 
         reqs = self.get_requirements(args, options, finder, session)
-        check_legacy_setup_py_options(options, reqs)
 
         wheel_cache = WheelCache(options.cache_dir)
 
@@ -142,7 +140,6 @@ class LockCommand(RequirementCommand):
             ignore_installed=True,
             ignore_requires_python=options.ignore_requires_python,
             upgrade_strategy="to-satisfy-only",
-            use_pep517=options.use_pep517,
         )
 
         self.trace_basic_info(finder)

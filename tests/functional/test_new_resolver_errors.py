@@ -88,7 +88,9 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
     )
 
     # This always fails because pkgb can never be satisfied.
-    result = script.pip("install", "--no-index", pkga, pkgb, expect_error=True)
+    result = script.pip(
+        "install", "--no-build-isolation", "--no-index", pkga, pkgb, expect_error=True
+    )
 
     # The error message should mention the Requires-Python: value causing the
     # conflict, not the compatible one.
