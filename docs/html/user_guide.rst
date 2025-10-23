@@ -191,8 +191,7 @@ In practice, there are 4 common uses of Requirements files:
 
 
 It's important to be clear that pip determines package dependencies using
-`install_requires metadata
-<https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html>`_,
+the project metadata (typically in ``pyproject.toml`` or ``setup.py``),
 not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
@@ -444,10 +443,6 @@ name:
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
-
-:ref:`pip wheel` requires the `wheel package
-<https://pypi.org/project/wheel/>`_ to be installed, which provides the
-"bdist_wheel" setuptools extension that it uses.
 
 To build wheels for your requirements and all their dependencies to a local
 directory:
@@ -1003,7 +998,7 @@ of ability. Some examples that you could consider include:
 * ``packaging`` - Utilities to work with standard package metadata (versions,
   requirements, etc.)
 
-* ``setuptools`` (specifically ``pkg_resources``) - Functions for querying what
+* ``importlib.metadata`` in the Python stdlib - Functions for querying what
   packages the user has installed on their system.
 
 * ``distlib`` - Packaging and distribution utilities (including functions for

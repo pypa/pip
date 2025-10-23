@@ -53,6 +53,7 @@ def test_pip_wheel_success(script: PipTestEnvironment, data: TestData) -> None:
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -87,6 +88,7 @@ def test_pip_wheel_success_with_dependency_group(
     )
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -111,6 +113,7 @@ def test_pip_wheel_build_cache(script: PipTestEnvironment, data: TestData) -> No
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -162,6 +165,7 @@ def test_pip_wheel_build_relative_cachedir(
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -179,6 +183,7 @@ def test_pip_wheel_builds_when_no_binary_set(
     # Check that the wheel package is ignored
     res = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "--no-binary",
         ":all:",
@@ -199,6 +204,7 @@ def test_pip_wheel_readonly_cache(
     # Check that the wheel package is ignored
     res = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -219,7 +225,13 @@ def test_pip_wheel_builds_editable_deps(
     """
     editable_path = os.path.join(data.src, "requires_simple")
     result = script.pip(
-        "wheel", "--no-index", "-f", data.find_links, "-e", editable_path
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-e",
+        editable_path,
     )
     wheel_file_name = f"simple-1.0-py{pyversion[0]}-none-any.whl"
     wheel_file_path = script.scratch / wheel_file_name
@@ -232,7 +244,13 @@ def test_pip_wheel_builds_editable(script: PipTestEnvironment, data: TestData) -
     """
     editable_path = os.path.join(data.src, "simplewheel-1.0")
     result = script.pip(
-        "wheel", "--no-index", "-f", data.find_links, "-e", editable_path
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-e",
+        editable_path,
     )
     wheel_file_name = f"simplewheel-1.0-py{pyversion[0]}-none-any.whl"
     wheel_file_path = script.scratch / wheel_file_name
@@ -248,6 +266,7 @@ def test_pip_wheel_git_editable_keeps_clone(
     """
     script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-deps",
         "-e",
         "git+https://github.com/pypa/pip-test-package#egg=pip-test-package",
@@ -270,7 +289,15 @@ def test_pip_wheel_builds_editable_does_not_create_zip(
     wheel_dir = tmpdir / "wheel_dir"
     wheel_dir.mkdir()
     editable_path = os.path.join(data.src, "simplewheel-1.0")
-    script.pip("wheel", "--no-deps", "-e", editable_path, "-w", wheel_dir)
+    script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-deps",
+        "-e",
+        editable_path,
+        "-w",
+        wheel_dir,
+    )
     wheels = os.listdir(wheel_dir)
     assert len(wheels) == 1
     assert wheels[0].endswith(".whl")
@@ -282,6 +309,7 @@ def test_pip_wheel_fail(script: PipTestEnvironment, data: TestData) -> None:
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -304,6 +332,7 @@ def test_pip_wheel_source_deps(script: PipTestEnvironment, data: TestData) -> No
     # 'requires_source' is a wheel that depends on the 'source' project
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -321,7 +350,7 @@ def test_wheel_package_with_latin1_setup(
     """Create a wheel from a package with latin-1 encoded setup.py."""
 
     pkg_to_wheel = data.packages.joinpath("SetupPyLatin1")
-    result = script.pip("wheel", pkg_to_wheel)
+    result = script.pip("wheel", "--no-build-isolation", pkg_to_wheel)
     assert "Successfully built SetupPyUTF8" in result.stdout
 
 
@@ -419,7 +448,9 @@ def test_legacy_wheels_are_not_confused_with_other_files(
     pkg_to_wheel = data.src / "simplewheel-1.0"
     add_files_to_dist_directory(pkg_to_wheel)
 
-    result = script.pip("wheel", pkg_to_wheel, "-w", script.scratch_path)
+    result = script.pip(
+        "wheel", "--no-build-isolation", pkg_to_wheel, "-w", script.scratch_path
+    )
     assert "Installing build dependencies" not in result.stdout, result.stdout
 
     wheel_file_name = f"simplewheel-1.0-py{pyversion[0]}-none-any.whl"

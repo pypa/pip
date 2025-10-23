@@ -72,6 +72,7 @@ def test_new_resolver_hash_intersect(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
@@ -102,6 +103,7 @@ def test_new_resolver_hash_intersect_from_constraint(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
@@ -163,6 +165,7 @@ def test_new_resolver_hash_intersect_empty(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-deps",
         "--no-index",

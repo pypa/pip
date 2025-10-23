@@ -23,7 +23,12 @@ def _assert_requested_absent(
 
 def test_install_requested_basic(script: PipTestEnvironment, data: TestData) -> None:
     result = script.pip(
-        "install", "--no-index", "-f", data.find_links, "require_simple"
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "require_simple",
     )
     _assert_requested_present(script, result, "require_simple", "1.0")
     # dependency is not REQUESTED
@@ -36,6 +41,7 @@ def test_install_requested_requirements(
     script.scratch_path.joinpath("requirements.txt").write_text("require_simple\n")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -54,6 +60,7 @@ def test_install_requested_dep_in_requirements(
     )
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -72,6 +79,7 @@ def test_install_requested_reqs_and_constraints(
     script.scratch_path.joinpath("constraints.txt").write_text("simple<3\n")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -94,6 +102,7 @@ def test_install_requested_in_reqs_and_constraints(
     script.scratch_path.joinpath("constraints.txt").write_text("simple<3\n")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -113,6 +122,7 @@ def test_install_requested_from_cli_with_constraint(
     script.scratch_path.joinpath("constraints.txt").write_text("simple<3\n")
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -133,6 +143,7 @@ def test_install_requested_from_cli_with_url_constraint(
     )
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         "-c",
         script.scratch_path / "constraints.txt",
