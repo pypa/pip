@@ -532,8 +532,7 @@ mayeut
 mbaluna
 Md Sujauddin Sekh
 mdebi
-meet-vasita
-Meet_Vasita
+Meet Vasita
 memoselyk
 meowmeowcat
 Michael
@@ -795,7 +794,6 @@ toxinu
 Travis Swicegood
 Tushar Sadhwani
 Tzu-ping Chung
-user
 Valentin Haenel
 Victor Stinner
 victorvpaulo
