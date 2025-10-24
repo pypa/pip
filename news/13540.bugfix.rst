@@ -1,5 +1,0 @@
-Avoid concurrency issues and improve performance when storing wheels into the
-cache of locally built wheels, when the temporary build directory is on a
-different filesystem than the cache directory. To this end, the wheel directory
-passed to the build backend is now a temporary subdirectory inside the cache
-directory.

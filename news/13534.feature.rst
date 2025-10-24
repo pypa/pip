@@ -1,3 +1,0 @@
-Add support for build constraints via the ``--build-constraint`` option. This
-allows constraining the versions of packages used during the build process
-(e.g., setuptools) without affecting the final installation.
