@@ -73,11 +73,6 @@ Vendored Libraries
 - Upgrade tomli to 2.3.0
 - Upgrade truststore to 0.10.4
 
-Improved Documentation
-----------------------
-
-- Clarified dependency resolution docs: added note on hypothetical packages, fixed version mismatch, and added introduction line. (`#13561 <https://github.com/pypa/pip/issues/13561>`_)
-
 25.2 (2025-07-30)
 =================
 
