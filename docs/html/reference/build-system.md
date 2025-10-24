@@ -1,21 +1,5 @@
 (build-interface)=
 
-```{versionadded} 10.0
-
-```
-
-```{versionchanged} 23.1
-The legacy interface where pip could invoke `setup.py install`
-in some circumstances was removed,
-in favor of the fallback behavior described below.
-```
-
-```{versionchanged} 25.3
-The legacy interface where pip could invoke `setup.py build_wheel` or
-`setup.py develop` in some circumstances was removed,
-in favor of the fallback behavior described below..
-```
-
 # Build System Interface
 
 When dealing with installable source distributions of a package, pip does not
@@ -173,14 +157,36 @@ passed.
 
 ## Historical notes
 
+```{versionadded} 10.0
+
+```
+
 As this feature was incrementally rolled out, there have been various notable
 changes and improvements in it.
 
-- setuptools 40.8.0 is the first version of setuptools that offers a
-  {pep}`517` backend that closely mimics directly executing `setup.py`.
-- Prior to pip 18.0, pip only supports installing build requirements from
-  wheels, and does not support the use of environment markers and extras (only
-  version specifiers are respected).
-- Prior to pip 18.1, build dependencies using `.pth` files are not properly
-  supported; as a result namespace packages do not work under Python 3.2 and
-  earlier.
+Setuptools 40.8.0 is the first version of setuptools that offers a
+{pep}`517` backend that closely mimics directly executing `setup.py`.
+
+```{versionadded} 18.0
+Prior to pip 18.0, pip only supports installing build requirements from
+wheels, and does not support the use of environment markers and extras (only
+version specifiers are respected).
+```
+
+```{versionadded} 18.1
+Prior to pip 18.1, build dependencies using `.pth` files are not properly
+supported; as a result namespace packages do not work under Python 3.2 and
+earlier.
+```
+
+```{versionchanged} 23.1
+The legacy interface where pip could invoke `setup.py install`
+in some circumstances was removed,
+in favor of the fallback behavior described above.
+```
+
+```{versionchanged} 25.3
+The legacy interface where pip could invoke `setup.py build_wheel` or
+`setup.py develop` in some circumstances was removed,
+in favor of the fallback behavior described above.
+```
