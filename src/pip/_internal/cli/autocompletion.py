@@ -111,7 +111,6 @@ def autocomplete() -> None:
                     print(handler_name)
     else:
         # show main parser options only when necessary
-
         opts = [i.option_list for i in parser.option_groups]
         opts.append(parser.option_list)
         flattened_opts = chain.from_iterable(opts)
@@ -182,3 +181,42 @@ def auto_complete_paths(current: str, completion_type: str) -> Iterable[str]:
             yield comp_file
         elif os.path.isdir(opt):
             yield os.path.join(comp_file, "")
+
+
+# ---------------------------------------------------------------------------
+# PowerShell 7.4+ completion support using Register-ArgumentCompleter
+# Issue: https://github.com/pypa/pip/issues/12440
+# ---------------------------------------------------------------------------
+
+POWERSHELL_COMPLETION_SCRIPT = r'''
+if (Get-Command Register-ArgumentCompleter -ErrorAction SilentlyContinue) {
+    Register-ArgumentCompleter -Native -CommandName 'pip' -ScriptBlock {
+        param(
+            [string]$wordToComplete,
+            [System.Management.Automation.Language.CommandAst]$commandAst,
+            $cursorPosition
+        )
+        $Env:COMP_WORDS = $commandAst.ToString()
+        $Env:COMP_CWORD = $commandAst.ToString().Split().Length - 1
+        $Env:PIP_AUTO_COMPLETE = 1
+        (& pip).Split() | ForEach-Object {
+            [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+        }
+        Remove-Item Env:COMP_WORDS -ErrorAction SilentlyContinue
+        Remove-Item Env:COMP_CWORD -ErrorAction SilentlyContinue
+        Remove-Item Env:PIP_AUTO_COMPLETE -ErrorAction SilentlyContinue
+    }
+}
+else {
+    # Fallback for legacy PowerShell versions
+    function TabExpansion($line, $lastWord) {
+        $Env:COMP_WORDS = $line
+        $Env:COMP_CWORD = $line.Split().Length - 1
+        $Env:PIP_AUTO_COMPLETE = 1
+        (& pip).Split()
+        Remove-Item Env:COMP_WORDS -ErrorAction SilentlyContinue
+        Remove-Item Env:COMP_CWORD -ErrorAction SilentlyContinue
+        Remove-Item Env:PIP_AUTO_COMPLETE -ErrorAction SilentlyContinue
+    }
+}
+'''
