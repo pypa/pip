@@ -1,2 +1,0 @@
-Remove the deprecated ``--global-option`` and ``--build-option``.
-``--config-setting`` is now the only way to pass options to the build backend.
