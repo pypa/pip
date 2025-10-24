@@ -1,1 +1,0 @@
-Clarified dependency resolution docs: added note on hypothetical packages, fixed version mismatch, and added introduction line.

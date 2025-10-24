@@ -1,8 +1,0 @@
-Deprecate the ``PIP_CONSTRAINT`` environment variable for specifying build
-constraints.
-
-Build constraints should now be specified using the ``--build-constraint``
-option or the ``PIP_BUILD_CONSTRAINT`` environment variable. When using build
-constraints, ``PIP_CONSTRAINT`` no longer affects isolated build environments.
-To opt in to this behavior without specifying any build constraints, use
-``--use-feature=build-constraint``.

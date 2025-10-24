@@ -1,2 +1,0 @@
-Remove support for the legacy setup.py develop editable method in setuptools
-editable installs; setuptools >= 64 is now required.

@@ -1,2 +1,0 @@
-For Python versions that do not support PEP 706, pip will now raise an installation error for a
-source distribution when it includes a symlink that points outside the source distribution archive.

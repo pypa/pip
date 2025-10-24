@@ -1,2 +1,0 @@
-Remove support for the deprecated ``setup.py bdist_wheel`` mechanism. Consequently,
-``--use-pep517`` is now always on, and ``--no-use-pep517`` has been removed.
