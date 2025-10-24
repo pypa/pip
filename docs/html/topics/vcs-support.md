@@ -10,6 +10,26 @@ control system being used). It is used through URL prefixes:
 - Subversion -- `svn+`
 - Bazaar -- `bzr+`
 
+The general form of a VCS requirement is `ProjectName @ VCS_URL`, e.g.
+
+```none
+MyProject @ git+https://git.example.com/MyProject
+MyProject[extra] @ git+https:/git.example.com/MyProject
+```
+
+This is the {ref}`Direct URL <pypug:dependency-specifiers>` requirement syntax.
+It is also permissible to remove `MyProject @` portion is removed and provide
+a bare VCS URL.
+
+```none
+git+https://git.example.com/MyProject
+```
+
+This is a pip specific extension. This form can be used as long as pip does
+not need to know the project name in advance. pip is generally able to infer
+the project name except in the case of {ref}`editable-vcs-installs`. In
+addition, extras cannot be requested using a bare VCS URL.
+
 ## Supported VCS
 
 ### Git
@@ -81,8 +101,8 @@ MyProject @ svn+ssh://user@svn.example.com/MyProject
 You can also give specific revisions to an SVN URL, like so:
 
 ```none
--e svn+http://svn.example.com/svn/MyProject/trunk@2019#egg=MyProject
--e svn+http://svn.example.com/svn/MyProject/trunk@{20080101}#egg=MyProject
+-e MyProject @ svn+http://svn.example.com/svn/MyProject/trunk@2019
+-e MyProject @ svn+http://svn.example.com/svn/MyProject/trunk@{20080101}
 ```
 
 Note that you need to use [Editable VCS installs](#editable-vcs-installs) for
@@ -115,6 +135,9 @@ MyProject @ bzr+http://bzr.example.com/MyProject/trunk@v1.0
 VCS projects can be installed in {ref}`editable mode <editable-installs>` (using
 the {ref}`--editable <install_--editable>` option) or not.
 
+In editable mode, the project name must be provided upfront using the Direct URL
+(`MyProject @ URL`) form so pip can determine the VCS clone location.
+
 - The default clone location (for editable installs) is:
 
   - `<venv path>/src/SomeProject` in virtual environments
@@ -133,15 +156,16 @@ take on the VCS requirement (not the commit itself).
 ## URL fragments
 
 pip looks at the `subdirectory` fragments of VCS URLs for specifying the path to the
-Python package, when it is not in the root of the VCS directory. eg: `pkg_dir`.
+Python package, when it is not in the root of the VCS directory.
 
-pip also looks at the `egg` fragment specifying the "project name". In practice the
-`egg` fragment is only required to help pip determine the VCS clone location in editable
-mode. In all other circumstances, the `egg` fragment is not necessary and its use is
-discouraged.
+```{note}
+pip also supports an `egg` fragment to specify the "project name". This is a legacy
+feature and its use is discouraged in favour of the
+{ref}`Direct URL <pypug:dependency-specifiers>` form.
 
 The `egg` fragment **should** be a bare {ref}`project name <pypug:name-normalization>`.
 Anything else is not guaranteed to work.
+```
 
 ````{admonition} Example
 If your repository layout is:
@@ -164,6 +188,6 @@ $ pip install "pkg @ vcs+protocol://repo_url/#subdirectory=pkg_dir"
 or:
 
 ```{pip-cli}
-$ pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
+$ pip install -e "pkg @ vcs+protocol://repo_url/#subdirectory=pkg_dir"
 ```
 ````
