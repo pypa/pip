@@ -44,9 +44,15 @@ def site_config_dirs(appname: str) -> list[str]:
         dirval = _appdirs.site_data_dir(appname, appauthor=False, multipath=True)
         return dirval.split(os.pathsep)
 
-    dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
     if sys.platform == "win32":
-        return [dirval]
+        try:
+            # Causes FileNotFoundError on attempt to access a registry key that does
+            # not exist. This should not break apart pip configuration loading.
+            dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
+            return [dirval]
+        except FileNotFoundError:
+            return []
 
     # Unix-y system. Look in /etc as well.
+    dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
     return dirval.split(os.pathsep) + ["/etc"]
