@@ -542,10 +542,9 @@ class HiddenText:
         return self.redacted
 
     # This is useful for testing.
-    def __eq__(self, other: Any) -> bool:
-        if type(self) is not type(other):
+    def __eq__(self, other: object) -> bool:
+        if type(self) is not type(other) or not isinstance(other, HiddenText):
             return False
-
         # The string being used for redaction doesn't also have to match,
         # just the raw, original string.
         return self.secret == other.secret
