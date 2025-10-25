@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import functools
 import itertools
@@ -24,10 +25,11 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
+    InstallationError,
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.index.collector import IndexContent, LinkCollector, parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -111,6 +113,8 @@ class LinkType(enum.Enum):
     format_invalid = enum.auto()
     platform_mismatch = enum.auto()
     requires_python_mismatch = enum.auto()
+    upload_too_late = enum.auto()
+    upload_time_missing = enum.auto()
 
 
 class LinkEvaluator:
@@ -132,6 +136,7 @@ class LinkEvaluator:
         target_python: TargetPython,
         allow_yanked: bool,
         ignore_requires_python: bool | None = None,
+        uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
         :param project_name: The user supplied package name.
@@ -149,6 +154,8 @@ class LinkEvaluator:
         :param ignore_requires_python: Whether to ignore incompatible
             PEP 503 "data-requires-python" values in HTML links. Defaults
             to False.
+        :param uploaded_prior_to: If set, only allow links uploaded prior to
+            the given datetime.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -158,6 +165,7 @@ class LinkEvaluator:
         self._ignore_requires_python = ignore_requires_python
         self._formats = formats
         self._target_python = target_python
+        self._uploaded_prior_to = uploaded_prior_to
 
         self.project_name = project_name
 
@@ -217,6 +225,30 @@ class LinkEvaluator:
                     return (LinkType.platform_mismatch, reason)
 
                 version = wheel.version
+
+        # Check upload-time filter after verifying the link is a package file.
+        # Skip this check for local files, as --uploaded-prior-to only applies
+        # to packages from indexes.
+        if self._uploaded_prior_to is not None and not link.is_file:
+            if link.upload_time is None:
+                if isinstance(link.comes_from, IndexContent):
+                    index_info = f"Index {link.comes_from.url}"
+                elif link.comes_from:
+                    index_info = f"Index {link.comes_from}"
+                else:
+                    index_info = "Index"
+
+                return (
+                    LinkType.upload_time_missing,
+                    f"{index_info} does not provide upload-time metadata. "
+                    "Cannot use --uploaded-prior-to with this index.",
+                )
+            elif link.upload_time >= self._uploaded_prior_to:
+                return (
+                    LinkType.upload_too_late,
+                    f"Upload time {link.upload_time} not "
+                    f"prior to {self._uploaded_prior_to}",
+                )
 
         # This should be up by the self.ok_binary check, but see issue 2700.
         if "source" not in self._formats and ext != WHEEL_EXTENSION:
@@ -593,6 +625,7 @@ class PackageFinder:
         format_control: FormatControl | None = None,
         candidate_prefs: CandidatePreferences | None = None,
         ignore_requires_python: bool | None = None,
+        uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -614,6 +647,7 @@ class PackageFinder:
         self._ignore_requires_python = ignore_requires_python
         self._link_collector = link_collector
         self._target_python = target_python
+        self._uploaded_prior_to = uploaded_prior_to
 
         self.format_control = format_control
 
@@ -637,6 +671,7 @@ class PackageFinder:
         link_collector: LinkCollector,
         selection_prefs: SelectionPreferences,
         target_python: TargetPython | None = None,
+        uploaded_prior_to: datetime.datetime | None = None,
     ) -> PackageFinder:
         """Create a PackageFinder.
 
@@ -645,6 +680,8 @@ class PackageFinder:
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
+        :param uploaded_prior_to: If set, only find links uploaded prior
+            to the given datetime.
         """
         if target_python is None:
             target_python = TargetPython()
@@ -661,6 +698,7 @@ class PackageFinder:
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            uploaded_prior_to=uploaded_prior_to,
         )
 
     @property
@@ -720,6 +758,10 @@ class PackageFinder:
     def set_prefer_binary(self) -> None:
         self._candidate_prefs.prefer_binary = True
 
+    @property
+    def uploaded_prior_to(self) -> datetime.datetime | None:
+        return self._uploaded_prior_to
+
     def requires_python_skipped_reasons(self) -> list[str]:
         reasons = {
             detail
@@ -739,6 +781,7 @@ class PackageFinder:
             target_python=self._target_python,
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
+            uploaded_prior_to=self._uploaded_prior_to,
         )
 
     def _sort_links(self, links: Iterable[Link]) -> list[Link]:
@@ -773,6 +816,10 @@ class PackageFinder:
         InstallationCandidate and return it. Otherwise, return None.
         """
         result, detail = link_evaluator.evaluate_link(link)
+        if result == LinkType.upload_time_missing:
+            # Fail immediately if the index doesn't provide upload-time
+            # when --uploaded-prior-to is specified
+            raise InstallationError(detail)
         if result != LinkType.candidate:
             self._log_skipped_link(link, result, detail)
             return None
