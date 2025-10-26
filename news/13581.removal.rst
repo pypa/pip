@@ -1,1 +1,0 @@
-Remove support for non-standard legacy wheel filenames.

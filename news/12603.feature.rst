@@ -1,1 +1,0 @@
-When PEP-658 metadata is available, full distribution files are no longer downloaded when using ``pip lock`` or ``pip install --dry-run``.

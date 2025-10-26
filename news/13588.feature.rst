@@ -1,1 +1,0 @@
-On ``ResolutionImpossible`` errors, include a note about causes with no candidates.
