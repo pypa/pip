@@ -33,6 +33,7 @@ def test_lock_wheel_from_findlinks(
                 "wheels": [
                     {
                         "name": "simplewheel-2.0-1-py2.py3-none-any.whl",
+                        "size": 2156,
                         "url": path_to_url(
                             str(
                                 shared_data.root
@@ -81,6 +82,7 @@ def test_lock_sdist_from_findlinks(
                     ),
                 },
                 "name": "simple-2.0.tar.gz",
+                "size": 673,
                 "url": path_to_url(
                     str(shared_data.root / "packages" / "simple-2.0.tar.gz")
                 ),
@@ -172,6 +174,7 @@ def test_lock_local_editable_with_dep(
                             / "simplewheel-2.0-1-py2.py3-none-any.whl"
                         )
                     ),
+                    "size": 2156,
                     "hashes": {
                         "sha256": (
                             "71e1ca6b16ae3382a698c284013f6650"
@@ -235,3 +238,17 @@ def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None
             },
         },
     ]
+
+
+def test_lock_includes_size(script: PipTestEnvironment, shared_data: TestData) -> None:
+    script.pip(
+        "lock",
+        "simplewheel==2.0",
+        "--no-index",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        expect_stderr=True,  # for the experimental warning
+    )
+    pylock = tomllib.loads(script.scratch_path.joinpath("pylock.toml").read_text())
+    assert "size" in pylock["packages"][0]["wheels"][0]
+    assert pylock["packages"][0]["wheels"][0]["size"] > 0
