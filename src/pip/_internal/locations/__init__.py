@@ -133,7 +133,7 @@ def _looks_like_red_hat_scheme() -> bool:
     from distutils.command.install import install
     from distutils.dist import Distribution
 
-    cmd: install = install(Distribution())
+    cmd = install(Distribution())
     cmd.finalize_options()
     return (
         cmd.exec_prefix == f"{os.path.normpath(sys.exec_prefix)}/local"
