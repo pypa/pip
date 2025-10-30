@@ -543,12 +543,16 @@ class HiddenText:
 
     def __eq__(self, other: object) -> bool:
         # Equality is particularly useful for testing.
-
         if type(self) is type(other):
             # The string being used for redaction doesn't also have to match,
             # just the raw, original string.
             return self.secret == cast(HiddenText, other).secret
         return NotImplemented
+
+    # Disable hashing, since we have a custom __eq__ and don't need hash-ability
+    # (yet). The only required property of hashing is that objects which compare
+    # equal have the same hash value.
+    __hash__ = None  # type: ignore[assignment]
 
 
 def hide_value(value: str) -> HiddenText:
