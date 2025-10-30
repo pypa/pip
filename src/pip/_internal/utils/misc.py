@@ -541,13 +541,14 @@ class HiddenText:
     def __str__(self) -> str:
         return self.redacted
 
-    # This is useful for testing.
     def __eq__(self, other: object) -> bool:
-        if type(self) is not type(other) or not isinstance(other, HiddenText):
-            return False
-        # The string being used for redaction doesn't also have to match,
-        # just the raw, original string.
-        return self.secret == other.secret
+        # Equality is particularly useful for testing.
+
+        if type(self) is type(other):
+            # The string being used for redaction doesn't also have to match,
+            # just the raw, original string.
+            return self.secret == cast(HiddenText, other).secret
+        return NotImplemented
 
 
 def hide_value(value: str) -> HiddenText:
