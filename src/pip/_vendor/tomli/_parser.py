@@ -4,12 +4,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-import string
 import sys
 from types import MappingProxyType
-from typing import IO, Any, Final, NamedTuple
-import warnings
 
 from ._re import (
     RE_DATETIME,
@@ -19,7 +15,13 @@ from ._re import (
     match_to_localtime,
     match_to_number,
 )
-from ._types import Key, ParseFloat, Pos
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import IO, Any, Final
+
+    from ._types import Key, ParseFloat, Pos
 
 # Inline tables/arrays are implemented using recursion. Pathologically
 # nested documents cause pure Python to raise RecursionError (which is OK),
@@ -46,19 +48,21 @@ ILLEGAL_COMMENT_CHARS: Final = ILLEGAL_BASIC_STR_CHARS
 
 TOML_WS: Final = frozenset(" \t")
 TOML_WS_AND_NEWLINE: Final = TOML_WS | frozenset("\n")
-BARE_KEY_CHARS: Final = frozenset(string.ascii_letters + string.digits + "-_")
+BARE_KEY_CHARS: Final = frozenset(
+    "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789" "-_"
+)
 KEY_INITIAL_CHARS: Final = BARE_KEY_CHARS | frozenset("\"'")
-HEXDIGIT_CHARS: Final = frozenset(string.hexdigits)
+HEXDIGIT_CHARS: Final = frozenset("abcdef" "ABCDEF" "0123456789")
 
 BASIC_STR_ESCAPE_REPLACEMENTS: Final = MappingProxyType(
     {
         "\\b": "\u0008",  # backspace
         "\\t": "\u0009",  # tab
-        "\\n": "\u000A",  # linefeed
-        "\\f": "\u000C",  # form feed
-        "\\r": "\u000D",  # carriage return
+        "\\n": "\u000a",  # linefeed
+        "\\f": "\u000c",  # form feed
+        "\\r": "\u000d",  # carriage return
         '\\"': "\u0022",  # quote
-        "\\\\": "\u005C",  # backslash
+        "\\\\": "\u005c",  # backslash
     }
 )
 
@@ -92,6 +96,8 @@ class TOMLDecodeError(ValueError):
             or not isinstance(doc, str)
             or not isinstance(pos, int)
         ):
+            import warnings
+
             warnings.warn(
                 "Free-form arguments for TOMLDecodeError are deprecated. "
                 "Please set 'msg' (str), 'doc' (str) and 'pos' (int) arguments only.",
@@ -151,7 +157,7 @@ def loads(__s: str, *, parse_float: ParseFloat = float) -> dict[str, Any]:  # no
             f"Expected str object, not '{type(__s).__qualname__}'"
         ) from None
     pos = 0
-    out = Output(NestedDict(), Flags())
+    out = Output()
     header: Key = ()
     parse_float = make_safe_parse_float(parse_float)
 
@@ -220,7 +226,7 @@ class Flags:
     EXPLICIT_NEST: Final = 1
 
     def __init__(self) -> None:
-        self._flags: dict[str, dict] = {}
+        self._flags: dict[str, dict[Any, Any]] = {}
         self._pending_flags: set[tuple[Key, int]] = set()
 
     def add_pending(self, key: Key, flag: int) -> None:
@@ -278,7 +284,7 @@ class NestedDict:
         key: Key,
         *,
         access_lists: bool = True,
-    ) -> dict:
+    ) -> dict[str, Any]:
         cont: Any = self.dict
         for k in key:
             if k not in cont:
@@ -288,7 +294,7 @@ class NestedDict:
                 cont = cont[-1]
             if not isinstance(cont, dict):
                 raise KeyError("There is no nest behind this key")
-        return cont
+        return cont  # type: ignore[no-any-return]
 
     def append_nest_to_list(self, key: Key) -> None:
         cont = self.get_or_create_nest(key[:-1])
@@ -302,9 +308,10 @@ class NestedDict:
             cont[last_key] = [{}]
 
 
-class Output(NamedTuple):
-    data: NestedDict
-    flags: Flags
+class Output:
+    def __init__(self) -> None:
+        self.data = NestedDict()
+        self.flags = Flags()
 
 
 def skip_chars(src: str, pos: Pos, chars: Iterable[str]) -> Pos:
@@ -493,9 +500,9 @@ def parse_one_line_basic_str(src: str, pos: Pos) -> tuple[Pos, str]:
 
 def parse_array(
     src: str, pos: Pos, parse_float: ParseFloat, nest_lvl: int
-) -> tuple[Pos, list]:
+) -> tuple[Pos, list[Any]]:
     pos += 1
-    array: list = []
+    array: list[Any] = []
 
     pos = skip_comments_and_array_ws(src, pos)
     if src.startswith("]", pos):
@@ -519,7 +526,7 @@ def parse_array(
 
 def parse_inline_table(
     src: str, pos: Pos, parse_float: ParseFloat, nest_lvl: int
-) -> tuple[Pos, dict]:
+) -> tuple[Pos, dict[str, Any]]:
     pos += 1
     nested_dict = NestedDict()
     flags = Flags()

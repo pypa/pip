@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-import pytest
 import tomli_w
 
 from pip._internal.build_env import (
@@ -127,25 +126,6 @@ def test_pep517_install_with_reqs(
         "install", "--no-index", "-f", data.backends, "-f", data.packages, project_dir
     )
     result.assert_installed("project", editable=False)
-
-
-def test_no_use_pep517_without_setup_py(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData
-) -> None:
-    """Using --no-use-pep517 requires setup.py"""
-    project_dir = make_project(
-        tmpdir, requires=["test_backend"], backend="test_backend"
-    )
-    result = script.pip(
-        "install",
-        "--no-index",
-        "--no-use-pep517",
-        "-f",
-        data.backends,
-        project_dir,
-        expect_error=True,
-    )
-    assert "project does not have a setup.py" in result.stderr
 
 
 def test_conflicting_pep517_backend_requirements(
@@ -390,45 +370,3 @@ def test_explicit_setuptools_backend(
         project_dir,
     )
     result.assert_installed(name, editable=False)
-
-
-@pytest.mark.network
-def test_pep517_and_build_options(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
-) -> None:
-    """Backend generated requirements are installed in the build env"""
-    project_dir, name = make_pyproject_with_setup(tmpdir)
-    result = script.pip(
-        "wheel",
-        "--wheel-dir",
-        tmpdir,
-        "--build-option",
-        "foo",
-        "-f",
-        common_wheels,
-        project_dir,
-        allow_stderr_warning=True,
-    )
-    assert "Ignoring --build-option when building" in result.stderr
-    assert "using PEP 517" in result.stderr
-
-
-@pytest.mark.network
-def test_pep517_and_global_options(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData, common_wheels: Path
-) -> None:
-    """Backend generated requirements are installed in the build env"""
-    project_dir, name = make_pyproject_with_setup(tmpdir)
-    result = script.pip(
-        "wheel",
-        "--wheel-dir",
-        tmpdir,
-        "--global-option",
-        "foo",
-        "-f",
-        common_wheels,
-        project_dir,
-        allow_stderr_warning=True,
-    )
-    assert "Ignoring --global-option when building" in result.stderr
-    assert "using PEP 517" in result.stderr

@@ -165,6 +165,9 @@ will avoid performing dependency resolution during deployment.
 
 ## Dealing with dependency conflicts
 
+This section uses hypothetical packages (`package_coffee`, `package_tea`, and
+`package_water`) to explain how pip resolves conflicts.
+
 This section provides practical suggestions to pip users who encounter
 a `ResolutionImpossible` error, where pip cannot install their specified
 packages due to conflicting dependencies.
@@ -193,6 +196,11 @@ because they each depend on different versions of the same package
   ``2.4.2``
 - ``package_tea`` version ``4.3.0`` depends on version ``2.3.1`` of
   ``package_water``
+
+Note: `package_coffee`, `package_tea`, and `package_water` are hypothetical
+packages used only to illustrate dependency conflicts. They are not real
+projects you can install.
+
 
 Sometimes these messages are straightforward to read, because they use
 commonly understood comparison operators to specify the required version
@@ -252,10 +260,10 @@ the same version of `package_water`, you might consider:
 
 In the second case, pip will automatically find a version of both
 `package_coffee` and `package_tea` that depend on the same version of
-`package_water`, installing:
+`package_water`, for example:
 
 - `package_coffee 0.44.1`, which depends on `package_water 2.6.1`
-- `package_tea 4.4.3` which _also_ depends on `package_water 2.6.1`
+- `package_tea 4.4.3`, which also depends on `package_water 2.6.1`
 
 If you want to prioritize one package over another, you can add version
 specifiers to _only_ the more important package:
