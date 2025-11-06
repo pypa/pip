@@ -22,7 +22,7 @@ Please take a look at our documentation for how to install and use pip:
 * `Installation`_
 * `Usage`_
 
-We release updates regularly, with a new version every 3 months. You can find more details in our documentation:
+We release updates regularly, with a new version every 3 months. Find more details in our documentation:
 
 * `Release notes`_
 * `Release process`_
