@@ -27,13 +27,16 @@ def test_check_install_canonicalization(script: PipTestEnvironment) -> None:
     )
 
     # Let's install pkgA without its dependency
-    result = script.pip("install", "--no-index", pkga_path, "--no-deps")
+    result = script.pip(
+        "install", "--no-build-isolation", "--no-index", pkga_path, "--no-deps"
+    )
     assert "Successfully installed pkgA-1.0" in result.stdout, str(result)
 
     # Install the first missing dependency. Only an error for the
     # second dependency should remain.
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         normal_path,
         "--quiet",
@@ -51,6 +54,7 @@ def test_check_install_canonicalization(script: PipTestEnvironment) -> None:
     # name normalization (as in https://github.com/pypa/pip/issues/5134)
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         special_path,
         "--quiet",
@@ -88,12 +92,15 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(
     )
 
     # Install a package without it's dependencies
-    result = script.pip("install", "--no-index", pkg_broken_path, "--no-deps")
+    result = script.pip(
+        "install", "--no-build-isolation", "--no-index", pkg_broken_path, "--no-deps"
+    )
     assert "requires" not in result.stderr
 
     # Install conflict package
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         pkg_conflict_path,
         allow_stderr_error=True,
@@ -110,6 +117,7 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(
     # Install unrelated package
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-index",
         pkg_unrelated_path,
         "--quiet",

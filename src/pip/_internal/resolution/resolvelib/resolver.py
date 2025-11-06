@@ -87,7 +87,8 @@ class Resolver(BaseResolver):
         if "PIP_RESOLVER_DEBUG" in os.environ:
             reporter: BaseReporter[Requirement, Candidate, str] = PipDebuggingReporter()
         else:
-            reporter = PipReporter()
+            reporter = PipReporter(constraints=provider.constraints)
+
         resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
             provider,
             reporter,
@@ -180,11 +181,6 @@ class Resolver(BaseResolver):
 
             req_set.add_named_requirement(ireq)
 
-        reqs = req_set.all_requirements
-        self.factory.preparer.prepare_linked_requirements_more(reqs)
-        for req in reqs:
-            req.prepared = True
-            req.needs_more_preparation = False
         return req_set
 
     def get_installation_order(

@@ -6,6 +6,7 @@ import pytest
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 import pip._internal.utils.compatibility_tags
@@ -481,7 +482,7 @@ class TestLinkEvaluator:
         target_python = TargetPython()
         return LinkEvaluator(
             project_name="pytest",
-            canonical_name="pytest",
+            canonical_name=canonicalize_name("pytest"),
             formats=frozenset(formats),
             target_python=target_python,
             allow_yanked=True,

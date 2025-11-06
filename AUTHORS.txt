@@ -24,6 +24,7 @@ albertg
 Alberto Sottile
 Aleks Bunin
 Ales Erjavec
+Alessandro Molina
 Alethea Flowers
 Alex Gaynor
 Alex Grönholm
@@ -37,6 +38,7 @@ Alexandre Conrad
 Alexey Popravka
 Aleš Erjavec
 Alli
+Aman
 Ami Fischman
 Ananya Maiti
 Anatoly Techtonik
@@ -56,6 +58,7 @@ Aniruddha Basak
 Anish Tambe
 Anrs Hu
 Anthony Sottile
+Antoine Lambert
 Antoine Musso
 Anton Ovchinnikov
 Anton Patrushev
@@ -220,11 +223,13 @@ Davidovich
 ddelange
 Deepak Sharma
 Deepyaman Datta
+Denis Roussel (ACSONE)
 Denise Yu
 dependabot[bot]
 derwolfe
 Desetude
 developer
+Devesh Kumar
 Devesh Kumar Singh
 devsagul
 Diego Caraballo
@@ -234,6 +239,7 @@ Dimitri Merejkowsky
 Dimitri Papadopoulos
 Dimitri Papadopoulos Orfanos
 Dirk Stolle
+dkjsone
 Dmitry Gladkov
 Dmitry Volodin
 Domen Kožar
@@ -295,6 +301,7 @@ Gabriel de Perthuis
 Garry Polley
 gavin
 gdanielson
+Gene Wood
 Geoffrey Sneddon
 George Margaritis
 George Song
@@ -333,6 +340,7 @@ Hugo Lopes Tavares
 Hugo van Kemenade
 Hugues Bruant
 Hynek Schlawack
+iamsrp-deshaw
 Ian Bicking
 Ian Cordasco
 Ian Lee
@@ -343,6 +351,7 @@ Igor Sobreira
 Ikko Ashimine
 Ilan Schnell
 Illia Volochii
+Ilya Abdolmanafi
 Ilya Baryshev
 Inada Naoki
 Ionel Cristian Mărieș
@@ -478,6 +487,7 @@ luojiebin
 luz.paz
 László Kiss Kollár
 M00nL1ght
+MajorTanya
 Malcolm Smith
 Marc Abramowitz
 Marc Tamlyn
@@ -494,6 +504,7 @@ Martin Pavlasek
 Masaki
 Masklinn
 Matej Stuchlik
+Mateusz Sokół
 Mathew Jennings
 Mathieu Bridon
 Mathieu Kniewallner
@@ -521,6 +532,7 @@ mayeut
 mbaluna
 Md Sujauddin Sekh
 mdebi
+Meet Vasita
 memoselyk
 meowmeowcat
 Michael
@@ -640,6 +652,7 @@ Pulkit Goyal
 q0w
 Qiangning Hong
 Qiming Xu
+qraqras
 Quentin Lee
 Quentin Pradet
 R. David Murray
@@ -665,6 +678,7 @@ Robert McGibbon
 Robert Pollak
 Robert T. McGibbon
 robin elisha robinson
+Rodney, Tiara
 Roey Berman
 Rohan Jain
 Roman Bogorodskiy
@@ -680,6 +694,7 @@ Russell Keith-Magee
 Ryan Shepherd
 Ryan Wooden
 ryneeverett
+Ryuma Asai
 S. Guliaev
 Sachi King
 Salvatore Rinchiera
@@ -694,6 +709,8 @@ Sebastian Jordan
 Sebastian Schaetz
 Segev Finer
 SeongSoo Cho
+Sepehr Rasouli
+sepehrrasooli
 Sergey Vasilyev
 Seth Michael Larson
 Seth Woodworth
@@ -705,6 +722,7 @@ Shivansh-007
 Shixian Sheng
 Shlomi Fish
 Shovan Maity
+Shubham Nagure
 Simeon Visser
 Simon Cross
 Simon Pichugin
@@ -719,6 +737,7 @@ Stavros Korokithakis
 Stefan Scherfke
 Stefano Rivera
 Stephan Erb
+Stephen Payne
 Stephen Rosen
 stepshal
 Steve (Gadget) Barnes
@@ -811,7 +830,9 @@ Yeray Diaz Diaz
 Yoval P
 Yu Jian
 Yuan Jing Vincent Yan
+Yuki Kobayashi
 Yusuke Hayashi
+zackzack38
 Zearin
 Zhiping Deng
 ziebam
