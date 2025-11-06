@@ -4,11 +4,11 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
+  jobs:
+    install:
+      - pip install .
+      - pip install --group docs
 
 sphinx:
   builder: dirhtml
   configuration: docs/html/conf.py
-
-python:
-  install:
-    - requirements: docs/requirements.txt

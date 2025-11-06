@@ -77,6 +77,7 @@ def test_proxy_does_not_override_netrc(
         script.environ["NETRC"] = netrc
         script.pip(
             "install",
+            "--no-build-isolation",
             "--proxy",
             f"http://127.0.0.1:{proxy1.flags.port}",
             "--trusted-host",

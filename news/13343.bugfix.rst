@@ -1,1 +1,0 @@
-Ensure truststore feature remains active even when a proxy is also in use.

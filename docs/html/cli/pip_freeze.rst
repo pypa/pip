@@ -23,6 +23,15 @@ Description
 
 .. pip-command-description:: freeze
 
+.. note::
+   By default, ``pip freeze`` omits bootstrap packaging tools so the output
+   focuses on your project’s dependencies. On Python **3.11 and earlier**
+   this excludes ``pip``, ``setuptools``, ``wheel`` and ``distribute``; on
+   Python **3.12 and later** only ``pip`` is excluded. Use ``--all`` to
+   include those packages when you need a complete environment snapshot.
+   ``pip freeze`` reports what is installed; it does **not** compute a
+   lockfile or a solver result.
+
 
 Options
 =======

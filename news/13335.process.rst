@@ -1,3 +1,0 @@
-pip's own licensing metadata now follows PEP 639.
-In addition, the licenses of pip's vendored dependencies are now included
-in the ``License-File`` metadata field and in the wheel.

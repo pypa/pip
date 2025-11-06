@@ -4,12 +4,15 @@ import contextlib
 import functools
 import os
 import sys
-from typing import Literal, Protocol, cast
+from typing import TYPE_CHECKING, Literal, Protocol, cast
 
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import strtobool
 
 from .base import BaseDistribution, BaseEnvironment, FilesystemWheel, MemoryWheel, Wheel
+
+if TYPE_CHECKING:
+    from pip._vendor.packaging.utils import NormalizedName
 
 __all__ = [
     "BaseDistribution",
@@ -131,7 +134,9 @@ def get_directory_distribution(directory: str) -> BaseDistribution:
     return select_backend().Distribution.from_directory(directory)
 
 
-def get_wheel_distribution(wheel: Wheel, canonical_name: str) -> BaseDistribution:
+def get_wheel_distribution(
+    wheel: Wheel, canonical_name: NormalizedName
+) -> BaseDistribution:
     """Get the representation of the specified wheel's distribution metadata.
 
     This returns a Distribution instance from the chosen backend based on

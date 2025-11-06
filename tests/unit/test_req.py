@@ -90,11 +90,11 @@ class TestRequirementSet:
         finder: PackageFinder,
         require_hashes: bool = False,
         wheel_cache: WheelCache | None = None,
+        build_isolation: bool = True,
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
             isolated=False,
-            use_pep517=None,
         )
         session = PipSession()
 
@@ -104,7 +104,7 @@ class TestRequirementSet:
                 build_dir=os.path.join(self.tempdir, "build"),
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
-                build_isolation=True,
+                build_isolation=build_isolation,
                 build_isolation_installer=installer,
                 check_build_deps=False,
                 build_tracker=tracker,
@@ -166,7 +166,7 @@ class TestRequirementSet:
         req.user_supplied = True
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             reqset = resolver.resolve(reqset.all_requirements, True)
         assert not reqset.has_requirement("simple")
 
@@ -319,7 +319,9 @@ class TestRequirementSet:
             )
         )
 
-        with self._basic_resolver(finder, require_hashes=True) as resolver:
+        with self._basic_resolver(
+            finder, require_hashes=True, build_isolation=False
+        ) as resolver:
             with pytest.raises(
                 HashErrors,
                 match=(
@@ -360,7 +362,7 @@ class TestRequirementSet:
     def test_download_info_find_links(self, data: TestData) -> None:
         """Test that download_info is set for requirements via find_links."""
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line("simple")
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
@@ -385,7 +387,7 @@ class TestRequirementSet:
     def test_download_info_web_archive(self) -> None:
         """Test that download_info is set for requirements from a web archive."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ "
                 "https://github.com/pypa/pip-test-package/tarball/0.1.1"
@@ -495,7 +497,7 @@ class TestRequirementSet:
     def test_download_info_local_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
             reqset = resolver.resolve([ireq], True)
@@ -508,7 +510,7 @@ class TestRequirementSet:
     def test_download_info_local_editable_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local editable dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
             reqset = resolver.resolve([ireq], True)
@@ -523,7 +525,7 @@ class TestRequirementSet:
     def test_download_info_vcs(self) -> None:
         """Test that download_info is set for requirements from git."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ git+https://github.com/pypa/pip-test-package"
             )
@@ -768,6 +770,7 @@ class TestInstallRequirement:
             ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
             ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
             ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
+            ("simple-0.1-py2.py3-none-any.whl [ext]", "simple==0.1"),
         ],
     )
     def test_install_req_drop_extras(self, inp: str, out: str) -> None:
@@ -791,9 +794,7 @@ class TestInstallRequirement:
         # all else should be the same
         assert without_extras.link == req.link
         assert without_extras.markers == req.markers
-        assert without_extras.use_pep517 == req.use_pep517
         assert without_extras.isolated == req.isolated
-        assert without_extras.global_options == req.global_options
         assert without_extras.hash_options == req.hash_options
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
@@ -840,14 +841,31 @@ class TestInstallRequirement:
         # all else should be the same
         assert extended.link == req.link
         assert extended.markers == req.markers
-        assert extended.use_pep517 == req.use_pep517
         assert extended.isolated == req.isolated
-        assert extended.global_options == req.global_options
         assert extended.hash_options == req.hash_options
         assert extended.constraint == req.constraint
         assert extended.config_settings == req.config_settings
         assert extended.user_supplied == req.user_supplied
         assert extended.permit_editable_wheels == req.permit_editable_wheels
+
+
+@pytest.mark.parametrize(
+    "req_str, expected",
+    [
+        (
+            'foo[extra] @ svn+http://foo ; os_name == "nt"',
+            ('foo ; os_name == "nt"', "svn+http://foo", {"extra"}),
+        ),
+        (
+            "foo @ svn+http://foo",
+            ("foo", "svn+http://foo", set()),
+        ),
+    ],
+)
+def test_parse_editable_pep508(
+    req_str: str, expected: tuple[str, str, set[str]]
+) -> None:
+    assert parse_editable(req_str) == expected
 
 
 @mock.patch("pip._internal.req.req_install.os.path.abspath")
