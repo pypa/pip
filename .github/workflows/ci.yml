@@ -201,6 +201,12 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
+      - name: Install SVN via Chocolatey
+        shell: pwsh
+        run: |
+          choco install svn -y --no-progress
+          echo "C:\Program Files (x86)\Subversion\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - run: pip install nox
 
       # Main check

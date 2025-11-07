@@ -77,10 +77,6 @@ Other hash algorithms that have guaranteed support from `hashlib` are also suppo
 
 Hash-checking mode also works with {ref}`pip download` and {ref}`pip wheel`. See {doc}`../topics/repeatable-installs` for a comparison of hash-checking mode with other repeatability strategies.
 
-```{warning}
-Beware of the `setup_requires` keyword arg in {file}`setup.py`. The (rare) packages that use it will cause those dependencies to be downloaded by setuptools directly, skipping pip's hash-checking. If you need to use such a package, see {ref}`controlling setup_requires <controlling-setup_requires>`.
-```
-
 ## Do not use setuptools directly
 
 Be careful not to nullify all your security work by installing your actual project by using setuptools' deprecated interfaces directly: for example, by calling `python setup.py install`, `python setup.py develop`, or `easy_install`.
