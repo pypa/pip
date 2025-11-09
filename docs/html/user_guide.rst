@@ -332,10 +332,11 @@ results on different machines.
 
 .. note::
 
-    This option only applies to packages from indexes, not local files. Local
-    package files are allowed regardless of the ``--uploaded-prior-to`` setting.
-    e.g., ``pip install /path/to/package.whl`` or packages from
-    ``--find-links`` directories.
+    This option only applies to packages from remote indexes, not local files or VCS
+    requirements. Local package files are allowed regardless of the
+    ``--uploaded-prior-to`` setting, e.g. ``pip install /path/to/package.whl``,
+    packages from ``--find-links`` directories, or VCS requirements like
+    ``git+https://...``.
 
     This option requires package indexes that provide upload-time metadata
     (such as PyPI). If the index does not provide upload-time metadata for a
