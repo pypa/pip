@@ -205,6 +205,7 @@ jobs:
         shell: pwsh
         run: |
           winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+          echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox
 
