@@ -37,17 +37,6 @@ With an editable install, you only need to perform a re-installation if you chan
 It is possible to see behaviour differences between regular installs vs editable installs. These differences depend on the build-backend, and you should check the build-backend documentation for the details. In case you distribute the project as a "distribution package", users will see the behaviour of regular installs -- thus, it is important to ensure that regular installs work correctly.
 ```
 
-```{note}
-This is functionally the same as [setuptools' develop mode], and that's precisely the mechanism used for setuptools-based projects.
-
-There are two advantages over using `setup.py develop` directly:
-
-- This works with non-setuptools build-backends as well.
-- The ".egg-info" directory is created relative to the project path, when using pip. This is generally a better location than setuptools, which dumps it in the current working directory.
-```
-
-[setuptools' develop mode]: https://setuptools.readthedocs.io/en/latest/userguide/development_mode.html
-
 ## Build artifacts
 
 ```{versionchanged} 21.3

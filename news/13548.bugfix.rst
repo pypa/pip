@@ -1,2 +1,0 @@
-Fix regression in configuration parsing that was turning a single value
-into a list and thus leading to a validation error.

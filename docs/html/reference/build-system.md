@@ -1,8 +1,11 @@
-# `pyproject.toml`
+(build-interface)=
 
-```{versionadded} 10.0
+# Build System Interface
 
-```
+When dealing with installable source distributions of a package, pip does not
+directly handle the build process for the package. This responsibility is
+delegated to "build backends" -- also known as "build systems". This means
+that pip needs an interface, to interact with these build backends.
 
 Modern Python packages can contain a `pyproject.toml` file, first introduced in
 {pep}`518` and later expanded in {pep}`517`, {pep}`621` and {pep}`660`.
@@ -96,16 +99,6 @@ For performing editable installs, pip will use {pep}`660`
 `build_wheel_for_editable` hook that has to be provided by the build backend.
 The wheels generated using this mechanism are not cached.
 
-```{admonition} Compatibility fallback
-If this hook is missing on the build backend _and_ there's a `setup.py` file
-in the project, pip will fallback to the legacy setup.py-based editable
-installation.
-
-This is considered a stopgap solution until setuptools adds support for
-{pep}`660`, at which point this functionality will be removed; following pip's
-regular {ref}`deprecation policy <Deprecation Policy>`.
-```
-
 ### Backend Configuration
 
 Build backends have the ability to accept configuration settings, which can
@@ -125,8 +118,7 @@ files.
 ## Build output
 
 It is the responsibility of the build backend to ensure that the output is
-in the correct encoding, as described in {pep}`517`. This likely involves
-dealing with [the same challenges as pip has for legacy builds](build-output).
+in the correct encoding, as described in {pep}`517`.
 
 ## Fallback Behaviour
 
@@ -138,7 +130,8 @@ https://setuptools.pypa.io/en/stable/userguide/quickstart.html#basic-use).
 ```
 
 If a project does not have a `pyproject.toml` file containing a `build-system`
-section, it will be assumed to have the following backend settings:
+section, and contains a `setup.py` it will be assumed to have the following
+backend settings:
 
 ```toml
 [build-system]
@@ -164,14 +157,36 @@ passed.
 
 ## Historical notes
 
+```{versionadded} 10.0
+
+```
+
 As this feature was incrementally rolled out, there have been various notable
 changes and improvements in it.
 
-- setuptools 40.8.0 is the first version of setuptools that offers a
-  {pep}`517` backend that closely mimics directly executing `setup.py`.
-- Prior to pip 18.0, pip only supports installing build requirements from
-  wheels, and does not support the use of environment markers and extras (only
-  version specifiers are respected).
-- Prior to pip 18.1, build dependencies using `.pth` files are not properly
-  supported; as a result namespace packages do not work under Python 3.2 and
-  earlier.
+Setuptools 40.8.0 is the first version of setuptools that offers a
+{pep}`517` backend that closely mimics directly executing `setup.py`.
+
+```{versionadded} 18.0
+Prior to pip 18.0, pip only supports installing build requirements from
+wheels, and does not support the use of environment markers and extras (only
+version specifiers are respected).
+```
+
+```{versionadded} 18.1
+Prior to pip 18.1, build dependencies using `.pth` files are not properly
+supported; as a result namespace packages do not work under Python 3.2 and
+earlier.
+```
+
+```{versionchanged} 23.1
+The legacy interface where pip could invoke `setup.py install`
+in some circumstances was removed,
+in favor of the fallback behavior described above.
+```
+
+```{versionchanged} 25.3
+The legacy interface where pip could invoke `setup.py build_wheel` or
+`setup.py develop` in some circumstances was removed,
+in favor of the fallback behavior described above.
+```

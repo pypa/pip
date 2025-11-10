@@ -73,4 +73,4 @@ def test_setup_py_with_dos_line_endings(
     Refs https://github.com/pypa/pip/issues/237
     """
     to_install = data.packages.joinpath("LineEndings")
-    script.pip("install", to_install)
+    script.pip("install", "--no-build-isolation", to_install)

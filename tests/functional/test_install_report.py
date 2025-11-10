@@ -50,6 +50,7 @@ def test_install_report_dep(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "require_simple",
         "--dry-run",
         "--no-index",
@@ -75,6 +76,7 @@ def test_yanked_version(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "simple==3.0",
         "--index-url",
         data.index_url("yanked"),
@@ -102,6 +104,7 @@ def test_skipped_yanked_version(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "simple",
         "--index-url",
         data.index_url("yanked"),

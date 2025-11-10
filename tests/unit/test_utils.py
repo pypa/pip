@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, NoReturn
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -33,6 +33,7 @@ from pip._internal.utils.misc import (
     HiddenText,
     build_netloc,
     build_url_from_netloc,
+    display_path,
     format_size,
     get_prog,
     hide_url,
@@ -51,7 +52,6 @@ from pip._internal.utils.misc import (
     split_auth_netloc_from_url,
     tabulate,
 )
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 
 
 class Tests_EgglinkPath:
@@ -319,6 +319,39 @@ elif sys.byteorder == "big":
     expected_byte_string = (
         "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\x00/\\x00d\\x00\\xe9\\x00f'"
     )
+
+
+class Test_display_path:
+    on_unix = pytest.mark.skipif("sys.platform == 'win32'")
+    on_win32 = pytest.mark.skipif("sys.platform != 'win32'")
+
+    @pytest.mark.parametrize(
+        "path, fake_cwd, expected",
+        [
+            pytest.param(
+                *("/home/name/project", Path("/home/name"), "./project"),
+                marks=on_unix,
+            ),
+            pytest.param(
+                *("/home", Path("/home/name"), "/home"),
+                marks=on_unix,
+                id="not-go-up",
+            ),
+            pytest.param(
+                *("C:\\Name\\Project", Path("C:\\Name"), ".\\Project"),
+                marks=on_win32,
+            ),
+            pytest.param(
+                *("D:\\Data", Path("C:\\Name"), "D:\\Data"),
+                marks=on_win32,
+            ),
+        ],
+    )
+    def test_display(self, path: str, fake_cwd: Path, expected: str) -> None:
+        with patch("pathlib.Path.cwd") as cwd_func:
+            cwd_func.return_value = fake_cwd
+            got = display_path(path)
+            assert got == expected
 
 
 class Test_normalize_path:
@@ -930,59 +963,6 @@ def test_deprecated_message_reads_well_future() -> None:
         "You can use the flag --use-feature=crisis to test the upcoming behaviour. "
         "Discussion can be found at https://github.com/pypa/pip/issues/100000"
     )
-
-
-def test_make_setuptools_shim_args() -> None:
-    # Test all arguments at once, including the overall ordering.
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        global_options=["--some", "--option"],
-        no_user_config=True,
-        unbuffered_output=True,
-    )
-
-    assert args[1:3] == ["-u", "-c"]
-    assert args[4:] == ["--some", "--option", "--no-user-cfg"]
-
-    shim = args[3]
-    # Spot-check key aspects of the command string.
-    assert "import setuptools" in shim
-    assert "'/dir/path/setup.py'" in args[3]
-    assert "sys.argv[0] = __file__" in args[3]
-
-
-@pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])
-def test_make_setuptools_shim_args__global_options(
-    global_options: list[str] | None,
-) -> None:
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        global_options=global_options,
-    )
-
-    if global_options:
-        assert len(args) == 5
-        for option in global_options:
-            assert option in args
-    else:
-        assert len(args) == 3
-
-
-@pytest.mark.parametrize("no_user_config", [False, True])
-def test_make_setuptools_shim_args__no_user_config(no_user_config: bool) -> None:
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        no_user_config=no_user_config,
-    )
-    assert ("--no-user-cfg" in args) == no_user_config
-
-
-@pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output: bool) -> None:
-    args = make_setuptools_shim_args(
-        "/dir/path/setup.py", unbuffered_output=unbuffered_output
-    )
-    assert ("-u" in args) == unbuffered_output
 
 
 @pytest.mark.parametrize(
