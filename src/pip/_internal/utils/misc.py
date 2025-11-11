@@ -182,10 +182,12 @@ def rmtree_errorhandler(
 def display_path(path: str) -> str:
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
-    path = os.path.normcase(os.path.abspath(path))
-    if path.startswith(os.getcwd() + os.path.sep):
-        path = "." + path[len(os.getcwd()) :]
-    return path
+    try:
+        relative = Path(path).relative_to(Path.cwd())
+    except ValueError:
+        # If the path isn't relative to the CWD, leave it alone
+        return path
+    return os.path.join(".", relative)
 
 
 def backup_dir(dir: str, ext: str = ".bak") -> str:
