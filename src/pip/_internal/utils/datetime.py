@@ -21,4 +21,8 @@ def parse_iso_datetime(isodate: str) -> datetime.datetime:
     if sys.version_info >= (3, 11):
         return datetime.datetime.fromisoformat(isodate)
     else:
-        return datetime.datetime.fromisoformat(isodate.replace("Z", "+00:00"))
+        return datetime.datetime.fromisoformat(
+            isodate.replace("Z", "+00:00")
+            if isodate.endswith("Z") and ("T" in isodate or " " in isodate.strip())
+            else isodate
+        )
