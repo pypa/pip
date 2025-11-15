@@ -102,22 +102,15 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
             return ""
 
     def rich_expand_default(self, option: optparse.Option) -> Text:
-        # `HelpFormatter.expand_default()` equivalent that returns a `Text`.
-        assert option.help is not None
-        if self.parser is None or not self.default_tag:
-            help = option.help
-        else:
-            default_value = self.parser.defaults.get(option.dest)  # type: ignore
-            if default_value is optparse.NO_DEFAULT or default_value is None:
-                default_value = self.NO_DEFAULT_VALUE
-            help = option.help.replace(self.default_tag, escape(str(default_value)))
+        """Equivalent to HelpFormatter.expand_default() but with Rich support."""
+        help = escape(super().expand_default(option))
         rich_help = Text.from_markup(help, style="optparse.help")
         for highlight in self.highlights:
             rich_help.highlight_regex(highlight, style_prefix="optparse.")
         return rich_help
 
     def format_option(self, option: optparse.Option) -> str:
-        # Overridden to call the rich methods.
+        """Overridden method with Rich support."""
         result: list[Text] = []
         opts = self.rich_option_strings[option]
         opt_width = self.help_position - self.current_indent - 2
@@ -147,7 +140,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         return self.stringify(Text().join(result))
 
     def store_option_strings(self, parser: optparse.OptionParser) -> None:
-        # Overridden to call the rich methods.
+        """Overridden method with Rich support."""
         self.indent()
         max_len = 0
         for opt in parser.option_list:
@@ -168,7 +161,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         self.help_width = max(self.width - self.help_position, 11)
 
     def rich_format_option_strings(self, option: optparse.Option) -> Text:
-        # `HelpFormatter.format_option_strings()` equivalent that returns a `Text`.
+        """Equivalent to HelpFormatter.format_option_strings() but with Rich support."""
         opts: list[Text] = []
 
         if option._short_opts:
