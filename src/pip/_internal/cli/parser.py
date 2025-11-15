@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import optparse
+import os
 import shutil
 import sys
 import textwrap
@@ -11,7 +12,7 @@ from collections.abc import Generator
 from contextlib import suppress
 from typing import Any, NoReturn
 
-from pip._vendor.rich.console import Console, RenderableType
+from pip._vendor.rich.console import RenderableType
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.style import StyleType
 from pip._vendor.rich.text import Text
@@ -19,6 +20,7 @@ from pip._vendor.rich.theme import Theme
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
+from pip._internal.utils.logging import PipConsole
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
 
 logger = logging.getLogger(__name__)
@@ -46,7 +48,14 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         kwargs["indent_increment"] = 1
         kwargs["width"] = shutil.get_terminal_size()[0] - 2
         super().__init__(*args, **kwargs)
-        self.console: Console = Console(theme=Theme(self.styles))
+        # This is unfortunate but necessary since arguments may have not been
+        # parsed yet at this point, so detect --no-color manually.
+        no_color = (
+            "--no-color" in sys.argv
+            or bool(strtobool(os.environ.get("PIP_NO_COLOR", "no") or "no"))
+            or "NO_COLOR" in os.environ
+        )
+        self.console = PipConsole(theme=Theme(self.styles), no_color=no_color)
         self.rich_option_strings: dict[optparse.Option, Text] = {}
 
     def stringify(self, text: RenderableType) -> str:
