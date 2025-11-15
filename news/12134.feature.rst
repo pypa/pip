@@ -1,1 +1,1 @@
-Render the output of pip's command line help using rich.
+Display pip's command line help in colour, if possible.
