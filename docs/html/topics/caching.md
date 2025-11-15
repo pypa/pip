@@ -139,9 +139,17 @@ The {ref}`pip cache` command can be used to manage pip's cache.
 
 ### Listing cached files
 
-`pip cache list` will list all wheel files from pip's cache.
+`pip cache list` will list locally built wheel files from pip's cache.
 
-`pip cache list setuptools` will list all setuptools-related wheel files from pip's cache.
+`pip cache list setuptools` will list locally built wheel files related to setuptools from pip's cache.
+
+`pip cache list --http` will list only HTTP cache files. Package names are extracted by inspecting the cached file content (wheel or tarball structure). Files without identifiable package names are not shown.
+
+`pip cache list --all` will list both locally built wheels and HTTP cache files in a unified list.
+
+When using `--all`, HTTP cached files are marked with a `[HTTP cached]` suffix to distinguish them from locally built wheels.
+
+You can also use `--format abspath` to print absolute paths instead of human-friendly filenames and sizes.
 
 ## Disabling caching
 
