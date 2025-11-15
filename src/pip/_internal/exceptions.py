@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.network.download import _FileDownload
+    from pip._internal.network.rfc9457 import ProblemDetails
     from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
@@ -333,6 +334,30 @@ class NetworkConnectionError(PipError):
 
     def __str__(self) -> str:
         return str(self.error_msg)
+
+
+class HTTPProblemDetailsError(NetworkConnectionError):
+    """HTTP error with RFC 9457 Problem Details."""
+
+    def __init__(
+        self,
+        problem_details: ProblemDetails,
+        response: Response,
+    ) -> None:
+        """
+        Initialize HTTPProblemDetailsError with problem details.
+
+        Args:
+            problem_details: Parsed RFC 9457 problem details
+            response: The HTTP response object
+        """
+        self.problem_details = problem_details
+        error_msg = str(problem_details)
+
+        super().__init__(
+            error_msg=error_msg,
+            response=response,
+        )
 
 
 class InvalidWheelFilename(InstallationError):
