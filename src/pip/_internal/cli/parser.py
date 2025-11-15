@@ -9,7 +9,7 @@ import sys
 import textwrap
 from collections.abc import Generator
 from contextlib import suppress
-from typing import IO, Any, Dict, List, NoReturn, Optional
+from typing import IO, Any, NoReturn
 
 from pip._vendor.rich.console import Console, RenderableType, detect_legacy_windows
 from pip._vendor.rich.markup import escape
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
-    styles: Dict[str, StyleType] = {
+    styles: dict[str, StyleType] = {
         "optparse.args": "cyan",
         "optparse.groups": "dark_orange",
         "optparse.help": "default",
@@ -35,7 +35,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         "optparse.syntax": "bold",
         "optparse.text": "default",
     }
-    highlights: List[str] = [
+    highlights: list[str] = [
         r"(?:^|\s)(?P<args>-{1,2}[\w]+[\w-]*)",  # highlight --words-with-dashes as args
         r"`(?P<syntax>[^`]*)`",  # highlight `text in backquotes` as syntax
     ]
@@ -47,7 +47,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         kwargs["width"] = shutil.get_terminal_size()[0] - 2
         super().__init__(*args, **kwargs)
         self.console: Console = Console(theme=Theme(self.styles))
-        self.rich_option_strings: Dict[optparse.Option, Text] = {}
+        self.rich_option_strings: dict[optparse.Option, Text] = {}
 
     def stringify(self, text: RenderableType) -> str:
         """Render a rich object as a string."""
@@ -118,7 +118,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def format_option(self, option: optparse.Option) -> str:
         # Overridden to call the rich methods.
-        result: List[Text] = []
+        result: list[Text] = []
         opts = self.rich_option_strings[option]
         opt_width = self.help_position - self.current_indent - 2
         if len(opts) > opt_width:
@@ -169,7 +169,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def rich_format_option_strings(self, option: optparse.Option) -> Text:
         # `HelpFormatter.format_option_strings()` equivalent that returns a `Text`.
-        opts: List[Text] = []
+        opts: list[Text] = []
 
         if option._short_opts:
             opts.append(Text(option._short_opts[0], "optparse.args"))
@@ -244,7 +244,7 @@ class CustomOptionParser(optparse.OptionParser):
 
         return res
 
-    def _print_ansi(self, text: str, file: Optional[IO[str]] = None) -> None:
+    def _print_ansi(self, text: str, file: IO[str] | None = None) -> None:
         if file is None:
             file = sys.stdout
         if detect_legacy_windows():
@@ -253,11 +253,11 @@ class CustomOptionParser(optparse.OptionParser):
         else:
             file.write(text)
 
-    def print_usage(self, file: Optional[IO[str]] = None) -> None:
+    def print_usage(self, file: IO[str] | None = None) -> None:
         if self.usage:
             self._print_ansi(self.get_usage(), file=file)
 
-    def print_help(self, file: Optional[IO[str]] = None) -> None:
+    def print_help(self, file: IO[str] | None = None) -> None:
         self._print_ansi(self.format_help(), file=file)
 
 
