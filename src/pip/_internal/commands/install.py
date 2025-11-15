@@ -89,6 +89,8 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.all_releases())
+        self.cmd_opts.add_option(cmdoptions.only_final())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -303,6 +305,7 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
+        cmdoptions.check_release_control_exclusive(options)
 
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(

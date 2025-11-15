@@ -10,10 +10,11 @@ from typing import Any, cast
 import pytest
 
 import pip._internal.configuration
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.main import main
 from pip._internal.commands import create_command
 from pip._internal.commands.configuration import ConfigurationCommand
-from pip._internal.exceptions import PipError
+from pip._internal.exceptions import CommandError, PipError
 
 from tests.lib.options_helpers import AddFakeCommandMixin
 
@@ -572,3 +573,64 @@ class TestOptionsExpandUser(AddFakeCommandMixin):
             tuple[Values, list[str]], main(["--client-cert", "~/path", "fake"])
         )
         assert options.client_cert == os.path.expanduser("~/path")
+
+
+class TestReleaseControlOptions:
+    """Tests for --all-releases and --only-final options."""
+
+    def test_all_releases_and_only_final_together(self) -> None:
+        """Test --all-releases and --only-final together (last wins)."""
+        # This should not fail - the mutual exclusion is only with --pre
+        # The behavior follows --no-binary and --only-binary pattern
+        cmd = create_command("install")
+        options, args = cmd.parser.parse_args(
+            ["--all-releases=pkg1", "--only-final=pkg2", "dummy-package"]
+        )
+        # Both should be present in their respective sets
+        assert "pkg1" in options.release_control.all_releases
+        assert "pkg2" in options.release_control.only_final
+
+    def test_pre_transforms_to_all_releases(self) -> None:
+        """Test that --pre is transformed into --all-releases :all:."""
+        cmd = create_command("install")
+        options, args = cmd.parser.parse_args(["--pre", "dummy-package"])
+
+        # Before transformation
+        assert options.pre is True
+        assert ":all:" not in options.release_control.all_releases
+
+        # Apply transformation
+        cmdoptions.check_release_control_exclusive(options)
+
+        # After transformation
+        assert ":all:" in options.release_control.all_releases
+
+    def test_check_release_control_exclusive_with_pre_and_all_releases(self) -> None:
+        """Test that check raises CommandError when --pre used with --all-releases."""
+        cmd = create_command("install")
+        options, args = cmd.parser.parse_args(
+            ["--pre", "--all-releases=pkg1", "dummy-package"]
+        )
+
+        with pytest.raises(CommandError, match="--pre cannot be used with"):
+            cmdoptions.check_release_control_exclusive(options)
+
+    def test_check_release_control_exclusive_with_pre_and_only_final(self) -> None:
+        """Test that check raises CommandError when --pre used with --only-final."""
+        cmd = create_command("install")
+        options, args = cmd.parser.parse_args(
+            ["--pre", "--only-final=pkg1", "dummy-package"]
+        )
+
+        with pytest.raises(CommandError, match="--pre cannot be used with"):
+            cmdoptions.check_release_control_exclusive(options)
+
+    def test_check_release_control_exclusive_without_pre(self) -> None:
+        """Test that check passes when --pre is not used."""
+        cmd = create_command("install")
+        options, args = cmd.parser.parse_args(
+            ["--all-releases=pkg1", "--only-final=pkg2", "dummy-package"]
+        )
+
+        # Should not raise
+        cmdoptions.check_release_control_exclusive(options)
