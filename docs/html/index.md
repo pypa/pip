@@ -53,6 +53,6 @@ If you find any security issues, please report to [security@python.org](mailto:s
 
 ## Privacy Notice
 
-pip collects anonymized usage data (pip version, Python version, and command success/failure) to help improve reliability and 
+pip collects anonymized usage data (pip version, Python version, and command success/failure) to help improve reliability and
 user experience. No personally identifiable information is collected. For more details, see pip's [Privacy Policy](https://www.
 pypa.io/privacy/).
