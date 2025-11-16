@@ -30,7 +30,8 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
     styles: dict[str, StyleType] = {
-        "optparse.args": "cyan",
+        "optparse.shortargs": "green",
+        "optparse.longargs": "cyan",
         "optparse.groups": "dark_orange",
         "optparse.help": "default",
         "optparse.metavar": "yellow",
@@ -38,7 +39,8 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         "optparse.text": "default",
     }
     highlights: list[str] = [
-        r"(?:^|\s)(?P<args>-{1,2}[\w]+[\w-]*)",  # highlight --words-with-dashes as args
+        r"(?:^|\s)(?P<shortargs>-{1}[\w]+[\w-]*)",  # highlight -letter as short args
+        r"(?:^|\s)(?P<longargs>-{2}[\w]+[\w-]*)",  # highlight --words as long args
         r"`(?P<syntax>[^`]*)`",  # highlight `text in backquotes` as syntax
     ]
 
@@ -173,9 +175,9 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         opts: list[Text] = []
 
         if option._short_opts:
-            opts.append(Text(option._short_opts[0], "optparse.args"))
+            opts.append(Text(option._short_opts[0], "optparse.shortargs"))
         if option._long_opts:
-            opts.append(Text(option._long_opts[0], "optparse.args"))
+            opts.append(Text(option._long_opts[0], "optparse.longargs"))
         if len(opts) > 1:
             opts.insert(1, Text(", "))
 

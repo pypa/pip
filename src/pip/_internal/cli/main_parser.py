@@ -43,7 +43,7 @@ def create_main_parser() -> ConfigOptionParser:
     description = [""] + [
         parser.formatter.stringify(  # type: ignore
             Text()
-            .append(name, "optparse.args")
+            .append(name, "optparse.longargs")
             .append(" " * (28 - len(name)))
             .append(command_info.summary, "optparse.help")
         )
