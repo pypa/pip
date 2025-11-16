@@ -33,7 +33,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         "optparse.args": "cyan",
         "optparse.groups": "dark_orange",
         "optparse.help": "default",
-        "optparse.metavar": "dark_cyan",
+        "optparse.metavar": "yellow",
         "optparse.syntax": "bold",
         "optparse.text": "default",
     }
@@ -68,8 +68,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     def format_heading(self, heading: str) -> str:
         if heading == "Options":
             return ""
-        rich_heading = Text().append(heading, "optparse.groups").append(":\n")
-        return self.stringify(rich_heading)
+        return self.stringify(Text(heading + ":\n", "optparse.groups"))
 
     def format_usage(self, usage: str) -> str:
         """
@@ -78,8 +77,8 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         """
         rich_usage = (
             Text("\n")
-            .append("Usage", "optparse.groups")
-            .append(f": {self.indent_lines(textwrap.dedent(usage), '  ')}\n")
+            .append("Usage:", "optparse.groups")
+            .append(f" {self.indent_lines(textwrap.dedent(usage), '  ')}\n")
         )
         return self.stringify(rich_usage)
 
@@ -90,14 +89,14 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
                 label = "Commands"
             else:
                 label = "Description"
-            rich_label = self.stringify(Text(label, "optparse.groups"))
+            rich_label = self.stringify(Text(label + ":", "optparse.groups"))
             # some doc strings have initial newlines, some don't
             description = description.lstrip("\n")
             # some doc strings have final newlines and spaces, some don't
             description = description.rstrip()
             # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
-            description = f"{rich_label}:\n{description}\n"
+            description = f"{rich_label}\n{description}\n"
             return description
         else:
             return ""
