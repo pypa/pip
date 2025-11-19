@@ -32,7 +32,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     styles: dict[str, StyleType] = {
         "optparse.shortargs": "green",
         "optparse.longargs": "cyan",
-        "optparse.groups": "blue",
+        "optparse.groups": "bold blue",
         "optparse.help": "default",
         "optparse.metavar": "yellow",
         "optparse.syntax": "bold",
