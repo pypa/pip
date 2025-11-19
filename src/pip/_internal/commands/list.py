@@ -341,14 +341,14 @@ def format_for_columns(
     if has_build_tags:
         header.append("Build")
 
+    has_editables = any(x.editable for x in pkgs)
+    if has_editables:
+        header.append("Editable project location")
+
     if options.verbose >= 1:
         header.append("Location")
     if options.verbose >= 1:
         header.append("Installer")
-
-    has_editables = any(x.editable for x in pkgs)
-    if has_editables:
-        header.append("Editable project location")
 
     data = []
     for i, proj in enumerate(pkgs):
