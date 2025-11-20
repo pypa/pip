@@ -11,7 +11,7 @@ on:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
   workflow_dispatch:
-    # allow manual runs on branches without a PR
+  # allow manual runs on branches without a PR
 
 env:
   # The "FORCE_COLOR" variable, when set to 1,
@@ -184,8 +184,8 @@ jobs:
           - "3.13"
           - "3.14"
         group:
-          - { number: 1, pytest-filter: "not test_install" }
-          - { number: 2, pytest-filter: "test_install" }
+          - {number: 1, pytest-filter: "not test_install"}
+          - {number: 2, pytest-filter: "test_install",}
 
     steps:
       # The D: drive is significantly faster than the system C: drive.
@@ -255,7 +255,7 @@ jobs:
           --durations=5
           --use-zipapp
 
-  check:  # This job does nothing and is only used for the branch protection
+  check: # This job does nothing and is only used for the branch protection
     if: always()
 
     needs:
