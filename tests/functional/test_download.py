@@ -1283,6 +1283,8 @@ def download_server_html_index(
             str(download_dir),
             "-i",
             "http://localhost:8000",
+            "--batch-download-parallelism",
+            "1",
             *args,
         ]
         result = script.pip(*pip_args, allow_error=allow_error)
