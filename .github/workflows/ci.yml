@@ -10,8 +10,7 @@ on:
   pull_request:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
-  workflow_dispatch:
-  # allow manual runs on branches without a PR
+  workflow_dispatch: # allow manual runs on branches without a PR
 
 env:
   # The "FORCE_COLOR" variable, when set to 1,
