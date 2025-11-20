@@ -24,6 +24,7 @@ albertg
 Alberto Sottile
 Aleks Bunin
 Ales Erjavec
+Alessandro Molina
 Alethea Flowers
 Alex Gaynor
 Alex Grönholm
@@ -37,6 +38,7 @@ Alexandre Conrad
 Alexey Popravka
 Aleš Erjavec
 Alli
+Aman
 Ami Fischman
 Ananya Maiti
 Anatoly Techtonik
@@ -56,6 +58,7 @@ Aniruddha Basak
 Anish Tambe
 Anrs Hu
 Anthony Sottile
+Antoine Lambert
 Antoine Musso
 Anton Ovchinnikov
 Anton Patrushev
@@ -236,6 +239,7 @@ Dimitri Merejkowsky
 Dimitri Papadopoulos
 Dimitri Papadopoulos Orfanos
 Dirk Stolle
+dkjsone
 Dmitry Gladkov
 Dmitry Volodin
 Domen Kožar
@@ -347,6 +351,7 @@ Igor Sobreira
 Ikko Ashimine
 Ilan Schnell
 Illia Volochii
+Ilya Abdolmanafi
 Ilya Baryshev
 Inada Naoki
 Ionel Cristian Mărieș
@@ -482,6 +487,7 @@ luojiebin
 luz.paz
 László Kiss Kollár
 M00nL1ght
+MajorTanya
 Malcolm Smith
 Marc Abramowitz
 Marc Tamlyn
@@ -498,6 +504,7 @@ Martin Pavlasek
 Masaki
 Masklinn
 Matej Stuchlik
+Mateusz Sokół
 Mathew Jennings
 Mathieu Bridon
 Mathieu Kniewallner
@@ -525,6 +532,7 @@ mayeut
 mbaluna
 Md Sujauddin Sekh
 mdebi
+Meet Vasita
 memoselyk
 meowmeowcat
 Michael
@@ -714,6 +722,7 @@ Shivansh-007
 Shixian Sheng
 Shlomi Fish
 Shovan Maity
+Shubham Nagure
 Simeon Visser
 Simon Cross
 Simon Pichugin
