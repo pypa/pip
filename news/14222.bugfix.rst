@@ -1,0 +1,3 @@
+``append`` options set in configuration files or environment variables (e.g. ``find-links``, ``trusted-host``, ``extra-index-url``, ``constraint``, etc.) now respect shell-style quoting and escaping.
+
+Previously a value containing spaces was incorrectly split even when quoted. This is fixed by using ``shlex.split()`` instead of naive ``str.split()``.
