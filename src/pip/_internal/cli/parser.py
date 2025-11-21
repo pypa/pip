@@ -255,7 +255,8 @@ class ConfigOptionParser(CustomOptionParser):
                 val = [self.check_default(option, key, v) for v in val]
             elif option.action == "callback":
                 assert option.callback is not None
-                late_eval.add(option.dest)
+                if option.dest is not None:
+                    late_eval.add(option.dest)
                 opt_str = option.get_opt_string()
                 val = option.convert_value(opt_str, val)
                 # From take_action
