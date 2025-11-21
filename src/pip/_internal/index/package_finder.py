@@ -7,7 +7,6 @@ import functools
 import itertools
 import logging
 import re
-import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import (
@@ -19,7 +18,7 @@ from typing import (
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
+from pip._vendor.packaging.version import InvalidVersion, Version, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
@@ -29,6 +28,7 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -459,15 +459,17 @@ class CandidateEvaluator:
         allow_prereleases = self._allow_all_prereleases or None
         specifier = self._specifier
 
-        # When running on Python < 3.11 we turn the version object into a str
-        # here because otherwise when we're debundled but setuptools isn't,
+        # When using the pkg_resources backend we turn the version object into
+        # a str here because otherwise when we're debundled but setuptools isn't,
         # Python will see packaging.version.Version and
         # pkg_resources._vendor.packaging.version.Version as different
         # types. This way we'll use a str as a common data interchange
         # format. If we stop using the pkg_resources provided specifier
         # and start using our own, we can drop the cast to str().
-        if sys.version_info < (3, 11):
-            candidates_and_versions = [(c, str(c.version)) for c in candidates]
+        if select_backend().NAME == "pkg_resources":
+            candidates_and_versions: list[
+                tuple[InstallationCandidate, str | Version]
+            ] = [(c, str(c.version)) for c in candidates]
         else:
             candidates_and_versions = [(c, c.version) for c in candidates]
         versions = set(
