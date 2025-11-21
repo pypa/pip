@@ -6,6 +6,7 @@ import logging
 import optparse
 import shutil
 import sys
+import shlex
 import textwrap
 from collections.abc import Generator
 from contextlib import suppress
@@ -250,7 +251,7 @@ class ConfigOptionParser(CustomOptionParser):
                         "which is equivalent to 1/0."
                     )
             elif option.action == "append":
-                val = val.split()
+                val = shlex.split(val)
                 val = [self.check_default(option, key, v) for v in val]
             elif option.action == "callback":
                 assert option.callback is not None
