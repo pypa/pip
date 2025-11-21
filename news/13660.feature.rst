@@ -1,0 +1,2 @@
+When using the ``importlib.metadata`` backend, pip skips redundant work
+converting version objects to strings and back to version objects.
