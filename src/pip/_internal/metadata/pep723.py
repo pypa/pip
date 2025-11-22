@@ -23,4 +23,4 @@ def pep723_metadata(scriptfile: str) -> dict[str, Any]:
         )
         return tomllib.loads(content)
     else:
-        raise ValueError(f"File does not contain 'script' metadata: {scriptfile!r}")
+        raise ValueError(f"File does not contain '{name}' metadata: {scriptfile!r}")
