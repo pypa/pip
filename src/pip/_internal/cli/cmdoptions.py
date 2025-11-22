@@ -481,7 +481,6 @@ def requirements() -> Option:
 
 def requirements_from_scripts() -> Option:
     return Option(
-        "-s",
         "--requirements-from-script",
         action="append",
         default=[],
