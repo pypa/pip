@@ -13,8 +13,6 @@ from functools import partial
 from optparse import Values
 from typing import Any, Callable, TypeVar
 
-from pip._vendor.packaging.requirements import Requirement
-
 from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
