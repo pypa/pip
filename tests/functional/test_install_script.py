@@ -81,3 +81,79 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
         "Script with incompatible requires-python did not fail as expected -- "
         + result.stderr
     )
+
+
+def test_script_invalid_TOML(script: PipTestEnvironment) -> None:
+    """
+    Test installing from a script with invalid TOML in its 'script' metadata
+    """
+
+    script_path = script.scratch_path.joinpath("script.py")
+
+    script_path.write_text(
+        textwrap.dedent(
+            f"""\
+            # /// script
+            # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
+            # dependencies = [
+            # ///
+
+            print("Hello world from a dummy program")
+            """
+        )
+    )
+
+    result = script.pip_install_local(
+        "--requirements-from-script",
+        script_path,
+        expect_stderr=True,
+        expect_error=True,
+    )
+
+    assert "Failed to parse TOML" in result.stderr, (
+        "Script with invalid TOML metadata did not fail as expected -- " + result.stderr
+    )
+
+
+def test_script_multiple_blocks(script: PipTestEnvironment) -> None:
+    """
+    Test installing from a script with multiple metadata blocks
+    """
+
+    script_path = script.scratch_path.joinpath("script.py")
+
+    script_path.write_text(
+        textwrap.dedent(
+            f"""\
+            # /// script
+            # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
+            # dependencies = [
+            #   "INITools==0.2",
+            #   "simple==1.0",
+            # ]
+            # ///
+
+            # /// script
+            # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
+            # dependencies = [
+            #   "INITools==0.2",
+            #   "simple==1.0",
+            # ]
+            # ///
+
+            print("Hello world from a dummy program")
+            """
+        )
+    )
+
+    result = script.pip_install_local(
+        "--requirements-from-script",
+        script_path,
+        expect_stderr=True,
+        expect_error=True,
+    )
+
+    assert "Multiple 'script' blocks" in result.stderr, (
+        "Script with multiple metadata blocks did not fail as expected -- "
+        + result.stderr
+    )
