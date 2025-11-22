@@ -28,7 +28,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata.pep723 import pep723_metadata
+from pip._internal.metadata.pep723 import PEP723Exception, pep723_metadata
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -319,7 +319,10 @@ class RequirementCommand(IndexGroupCommand):
                 raise CommandError("--requirements-from-script can only be given once")
 
             script = options.requirements_from_scripts[0]
-            script_metadata = pep723_metadata(script)
+            try:
+                script_metadata = pep723_metadata(script)
+            except PEP723Exception as exc:
+                raise CommandError(exc.msg)
 
             script_requires_python = script_metadata.get("requires-python", "")
 

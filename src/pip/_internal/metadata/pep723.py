@@ -6,6 +6,13 @@ from pip._vendor import tomli as tomllib
 REGEX = r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
 
 
+class PEP723Exception(ValueError):
+    """Raised to indicate a problem when parsing PEP 723 metadata from a script"""
+
+    def __init__(self, msg: str) -> None:
+        self.msg = msg
+
+
 def pep723_metadata(scriptfile: str) -> dict[str, Any]:
     with open(scriptfile) as f:
         script = f.read()
@@ -15,7 +22,7 @@ def pep723_metadata(scriptfile: str) -> dict[str, Any]:
         filter(lambda m: m.group("type") == name, re.finditer(REGEX, script))
     )
     if len(matches) > 1:
-        raise ValueError(f"Multiple {name} blocks found")
+        raise PEP723Exception(f"Multiple {name} blocks found")
     elif len(matches) == 1:
         content = "".join(
             line[2:] if line.startswith("# ") else line[1:]
@@ -23,4 +30,6 @@ def pep723_metadata(scriptfile: str) -> dict[str, Any]:
         )
         return tomllib.loads(content)
     else:
-        raise ValueError(f"File does not contain '{name}' metadata: {scriptfile!r}")
+        raise PEP723Exception(
+            f"File does not contain '{name}' metadata: {scriptfile!r}"
+        )
