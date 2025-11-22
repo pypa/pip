@@ -26,7 +26,6 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata.pep723 import PEP723Exception, pep723_metadata
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
@@ -38,6 +37,7 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
     install_req_from_req_string,
 )
+from pip._internal.req.pep723 import PEP723Exception, pep723_metadata
 from pip._internal.req.req_dependency_group import parse_dependency_groups
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
