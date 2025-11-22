@@ -226,4 +226,5 @@ class Distribution(BaseDistribution):
             elif not extras and req.marker.evaluate({"extra": ""}):
                 yield req
             elif any(req.marker.evaluate(context) for context in contexts):
+                req.marker = None
                 yield req
