@@ -1,26 +1,22 @@
 import sys
 import textwrap
 
-import pytest
-
 from tests.lib import PipTestEnvironment
 
 
-@pytest.mark.network
 def test_script_file(script: PipTestEnvironment) -> None:
     """
     Test installing from a script with inline metadata (PEP 723).
     """
 
-    other_lib_name, other_lib_version = "peppercorn", "0.6"
     script_path = script.scratch_path.joinpath("script.py")
     script_path.write_text(
         textwrap.dedent(
-            f"""\
+            """\
             # /// script
             # dependencies = [
             #   "INITools==0.2",
-            #   "{other_lib_name}<={other_lib_version}",
+            #   "simple==1.0",
             # ]
             # ///
 
@@ -28,13 +24,8 @@ def test_script_file(script: PipTestEnvironment) -> None:
             """
         )
     )
-    result = script.pip("install", "--requirements-from-script", script_path)
-
-    result.did_create(script.site_packages / "initools-0.2.dist-info")
-    result.did_create(script.site_packages / "initools")
-    assert result.files_created[script.site_packages / other_lib_name].dir
-    fn = f"{other_lib_name}-{other_lib_version}.dist-info"
-    assert result.files_created[script.site_packages / fn].dir
+    script.pip_install_local("--requirements-from-script", script_path)
+    script.assert_installed(initools="0.2", simple="1.0")
 
 
 def test_multiple_scripts(script: PipTestEnvironment) -> None:
@@ -56,13 +47,11 @@ def test_multiple_scripts(script: PipTestEnvironment) -> None:
     ), ("multiple script did not fail as expected -- " + result.stderr)
 
 
-@pytest.mark.network
 def test_script_file_python_version(script: PipTestEnvironment) -> None:
     """
     Test installing from a script with an incompatible `requires-python`
     """
 
-    other_lib_name, other_lib_version = "peppercorn", "0.6"
     script_path = script.scratch_path.joinpath("script.py")
 
     script_path.write_text(
@@ -72,7 +61,7 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
             # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
             # dependencies = [
             #   "INITools==0.2",
-            #   "{other_lib_name}<={other_lib_version}",
+            #   "simple==1.0",
             # ]
             # ///
 
@@ -81,8 +70,7 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
         )
     )
 
-    result = script.pip(
-        "install",
+    result = script.pip_install_local(
         "--requirements-from-script",
         script_path,
         expect_stderr=True,
