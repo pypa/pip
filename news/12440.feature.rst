@@ -1,0 +1,1 @@
+Fix PowerShell completion by switching to Register-ArgumentCompleter (Closes #12440)
