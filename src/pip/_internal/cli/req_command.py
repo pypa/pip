@@ -339,9 +339,12 @@ class RequirementCommand(IndexGroupCommand):
                     )
 
             for req in script_metadata.get("dependencies", []):
-                requirements.append(  # noqa: PERF401
-                    InstallRequirement(Requirement(req), comes_from=None)
+                req_to_add = install_req_from_req_string(
+                    req,
+                    isolated=options.isolated_mode,
+                    user_supplied=True,
                 )
+                requirements.append(req_to_add)
 
         # If any requirement has hash options, enable hash checking.
         if any(req.has_hash_options for req in requirements):
