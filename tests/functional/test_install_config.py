@@ -450,6 +450,7 @@ def test_prompt_for_keyring_if_needed(
         keyring_script.pip(
             "install",
             "keyring",
+            allow_stderr_warning=True,
         )
 
         environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
@@ -464,6 +465,7 @@ def test_prompt_for_keyring_if_needed(
         script.pip(
             "install",
             "keyring",
+            allow_stderr_warning=True,
         )
 
     if keyring_provider_implementation != "subprocess":

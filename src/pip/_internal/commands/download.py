@@ -45,6 +45,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.pre())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.batch_download_parallelism())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
@@ -113,6 +114,7 @@ class DownloadCommand(RequirementCommand):
             download_dir=options.download_dir,
             use_user_site=False,
             verbosity=self.verbosity,
+            batch_download_parallelism=options.batch_download_parallelism,
         )
 
         resolver = self.make_resolver(
