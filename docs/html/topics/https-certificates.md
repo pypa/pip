@@ -17,7 +17,8 @@ allow users to specify a different certificate store/bundle for pip to use. It
 is also possible to use `REQUESTS_CA_BUNDLE` or `CURL_CA_BUNDLE` environment
 variables.
 
-If you need a specific certificate bundle (pem file), you can download the [Mozilla CA bundle extracted by curl](https://curl.se/docs/caextract.html) or use the one provided by the `certifi` package.
+If you need a specific certificate bundle, you can download the
+[Mozilla CA bundle provided by the curl project](https://curl.se/docs/caextract.html).
 
 ## Using system certificate stores
 
