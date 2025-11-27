@@ -1,0 +1,1 @@
+Fixed a crash when creating the SVN INITools test repository by opening the dump file in binary mode.
