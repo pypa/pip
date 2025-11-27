@@ -708,7 +708,7 @@ class Factory:
                 "using the '-r' flag to install the packages listed in "
                 "requirements.txt"
             )
-
+        req = str(req).partition(';')[0].strip()
         return DistributionNotFound(f"No matching distribution found for {req}")
 
     def _has_any_candidates(self, project_name: str) -> bool:
