@@ -1,0 +1,1 @@
+Add support for SOCKS proxies without PySocks installation.

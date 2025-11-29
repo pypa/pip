@@ -41,7 +41,7 @@ with the proxy:
 from __future__ import absolute_import
 
 try:
-    import socks
+    from pip._vendor import socks
 except ImportError:
     import warnings
 
