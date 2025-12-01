@@ -811,6 +811,9 @@ class InvalidMultipleRemoteRepositories(DiagnosticPipError):
         "by passing --insecure-multiple-remote-repositories."
     )
 
+class IncompleteDownloadError(DiagnosticPipError):
+    """Raised when the downloader receives fewer bytes than advertised
+    in the Content-Length header."""
 
 class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
     """There was an issue with a Tracks metadata url.
