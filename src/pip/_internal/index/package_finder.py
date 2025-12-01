@@ -8,7 +8,6 @@ import itertools
 import logging
 import pathlib
 import re
-from collections.abc import Iterable
 import urllib.parse
 from dataclasses import dataclass
 from typing import (
