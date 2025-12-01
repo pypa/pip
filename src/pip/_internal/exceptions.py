@@ -16,7 +16,7 @@ import re
 import sys
 from collections.abc import Iterator
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Literal, Set
+from typing import TYPE_CHECKING, Literal
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.version import InvalidVersion
@@ -923,8 +923,8 @@ class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
         self,
         *,
         package: str,
-        remote_repositories: Set[str],
-        invalid_tracks: Set[str],
+        remote_repositories: set[str],
+        invalid_tracks: set[str],
     ) -> None:
         super().__init__(
             kind="error",
@@ -962,8 +962,8 @@ class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
         self,
         *,
         package: str,
-        remote_repositories: Set[str],
-        invalid_locations: Set[str],
+        remote_repositories: set[str],
+        invalid_locations: set[str],
     ) -> None:
         super().__init__(
             kind="error",
@@ -999,7 +999,7 @@ class UnsafeMultipleRemoteRepositories(InvalidMultipleRemoteRepositories):
 
     reference = "unsafe-multiple-remote-repositories"
 
-    def __init__(self, *, package: str, remote_repositories: Set[str]) -> None:
+    def __init__(self, *, package: str, remote_repositories: set[str]) -> None:
         super().__init__(
             kind="error",
             message=Text(

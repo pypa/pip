@@ -11,7 +11,7 @@ import re
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -29,11 +29,11 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import (
     InstallationCandidate,
     RemoteInstallationCandidate,
 )
-from pip._internal.metadata import select_backend
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
@@ -1075,7 +1075,7 @@ def _extract_version_from_fragment(fragment: str, canonical_name: str) -> str | 
 
 
 def check_multiple_remote_repositories(
-    candidates: List[InstallationCandidate], project_name: str
+    candidates: list[InstallationCandidate], project_name: str
 ) -> None:
     """
     Check whether two or more different namespaces can be flattened into one.

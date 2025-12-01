@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional, Set
 
 import pytest
 
@@ -916,11 +915,11 @@ def test_extract_version_from_fragment(
 
 
 def _make_mock_candidate_check_remote_repo(
-    candidate_name: Optional[str] = None,
-    version: Optional[str] = None,
-    comes_from_url: Optional[str] = None,
-    project_track_urls: Optional[Set[str]] = None,
-    repo_alt_urls: Optional[Set[str]] = None,
+    candidate_name: str | None = None,
+    version: str | None = None,
+    comes_from_url: str | None = None,
+    project_track_urls: set[str] | None = None,
+    repo_alt_urls: set[str] | None = None,
 ) -> InstallationCandidate:
     if candidate_name is None:
         candidate_name = "mypackage"
@@ -1089,7 +1088,7 @@ def test_check_multiple_remote_repositories(
     caplog: pytest.LogCaptureFixture,
     candidates: list[InstallationCandidate],
     project_name: str,
-    expected
+    expected,
 ):
     caplog.set_level(logging.DEBUG)
     if expected:

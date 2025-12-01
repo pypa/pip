@@ -18,13 +18,8 @@ from html.parser import HTMLParser
 from optparse import Values
 from typing import (
     Callable,
-    Dict,
-    List,
     NamedTuple,
-    Optional,
     Protocol,
-    Set,
-    Tuple,
 )
 
 from pip._vendor import requests
@@ -301,10 +296,10 @@ class HTMLLinkParser(HTMLParser):
         super().__init__(convert_charrefs=True)
 
         self.url: str = url
-        self.base_url: Optional[str] = None
-        self.anchors: List[Dict[str, Optional[str]]] = []
-        self.project_track_urls: Set[str] = set()
-        self.repo_alt_urls: Set[str] = set()
+        self.base_url: str | None = None
+        self.anchors: list[dict[str, str | None]] = []
+        self.project_track_urls: set[str] = set()
+        self.repo_alt_urls: set[str] = set()
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "base" and self.base_url is None:
@@ -329,7 +324,7 @@ class HTMLLinkParser(HTMLParser):
                 ):
                     self.repo_alt_urls.add(meta_val)
 
-    def get_href(self, attrs: List[Tuple[str, Optional[str]]]) -> Optional[str]:
+    def get_href(self, attrs: list[tuple[str, str | None]]) -> str | None:
         for name, value in attrs:
             if name == "href":
                 return value

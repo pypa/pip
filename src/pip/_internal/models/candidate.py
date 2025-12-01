@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional, Set
 
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
@@ -43,7 +44,7 @@ class RemoteInstallationCandidate:
         return f"{self.canonical_name!r} candidate"
 
     @property
-    def _link(self) -> Optional[Link]:
+    def _link(self) -> Link | None:
         if not self.candidate:
             return None
         if not self.candidate.link:
@@ -51,7 +52,7 @@ class RemoteInstallationCandidate:
         return self.candidate.link
 
     @property
-    def url(self) -> Optional[str]:
+    def url(self) -> str | None:
         """The remote url that contains the metadata for this installation candidate."""
         link = self._link
         if not link:
@@ -68,12 +69,12 @@ class RemoteInstallationCandidate:
         return None
 
     @property
-    def remote_repository_urls(self) -> Set[str]:
+    def remote_repository_urls(self) -> set[str]:
         """Remote repository urls from Tracks and Alternate Locations metadata."""
         return {*self.project_track_urls, *self.alternate_location_urls}
 
     @property
-    def project_track_urls(self) -> Set[str]:
+    def project_track_urls(self) -> set[str]:
         """Remote repository urls from Tracks metadata."""
         link = self._link
         if not link or not link.project_track_urls:
@@ -81,9 +82,9 @@ class RemoteInstallationCandidate:
         return {i for i in link.project_track_urls if i}
 
     @property
-    def alternate_location_urls(self) -> Set[str]:
+    def alternate_location_urls(self) -> set[str]:
         """Remote repository urls from Alternate Locations metadata."""
-        urls: Set[str] = set()
+        urls: set[str] = set()
         if self.url:
             urls.add(self.url)
         link = self._link

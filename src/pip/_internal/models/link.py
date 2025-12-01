@@ -13,8 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     NamedTuple,
-    Optional,
-    Set,
 )
 
 from pip._internal.utils.deprecation import deprecated
@@ -227,9 +225,9 @@ class Link:
         yanked_reason: str | None = None,
         metadata_file_data: MetadataFile | None = None,
         cache_link_parsing: bool = True,
-        hashes: Optional[Mapping[str, str]] = None,
-        project_track_urls: Optional[Set[str]] = None,
-        repo_alt_urls: Optional[Set[str]] = None,
+        hashes: Mapping[str, str] | None = None,
+        project_track_urls: set[str] | None = None,
+        repo_alt_urls: set[str] | None = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
@@ -298,9 +296,9 @@ class Link:
         cls,
         file_data: dict[str, Any],
         page_url: str,
-        project_track_urls: Optional[Set[str]] = None,
-        repo_alt_urls: Optional[Set[str]] = None,
-    ) -> Optional[Link]:
+        project_track_urls: set[str] | None = None,
+        repo_alt_urls: set[str] | None = None,
+    ) -> Link | None:
         """
         Convert an pypi json document from a simple repository page into a Link.
         """
@@ -359,9 +357,9 @@ class Link:
         anchor_attribs: dict[str, str | None],
         page_url: str,
         base_url: str,
-        project_track_urls: Optional[Set[str]] = None,
-        repo_alt_urls: Optional[Set[str]] = None,
-    ) -> Optional[Link]:
+        project_track_urls: set[str] | None = None,
+        repo_alt_urls: set[str] | None = None,
+    ) -> Link | None:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
         """
