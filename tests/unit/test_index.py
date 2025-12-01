@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 import logging
-import uuid
-from typing import FrozenSet, List, Optional, Set, Tuple
+from typing import List, Optional, Set
 
 import pytest
-from pip._internal.models.candidate import InstallationCandidate
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.index.collector import LinkCollector, IndexContent
 from pip._internal.exceptions import (
     InvalidAlternativeLocationsUrl,
-    InvalidMultipleRemoteRepositories,
     InvalidTracksUrl,
     UnsafeMultipleRemoteRepositories,
 )
+from pip._internal.index.collector import IndexContent, LinkCollector
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     CandidatePreferences,
@@ -30,6 +28,7 @@ from pip._internal.index.package_finder import (
     check_multiple_remote_repositories,
     filter_unallowed_hashes,
 )
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -995,7 +994,7 @@ def _make_mock_candidate_check_remote_repo(
             "mypackage",
             None,
         ),
-        # checks pass when ony one candidate with alt loc url
+        # checks pass when only one candidate with alt loc url
         # TODO: not making requests to repos revealed via metadata
         (
             [
@@ -1087,7 +1086,10 @@ def _make_mock_candidate_check_remote_repo(
     ],
 )
 def test_check_multiple_remote_repositories(
-    caplog, candidates: List[InstallationCandidate], project_name: str, expected
+    caplog: pytest.LogCaptureFixture,
+    candidates: list[InstallationCandidate],
+    project_name: str,
+    expected
 ):
     caplog.set_level(logging.DEBUG)
     if expected:

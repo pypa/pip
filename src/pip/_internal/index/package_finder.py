@@ -9,12 +9,9 @@ import logging
 import pathlib
 import re
 import urllib.parse
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
@@ -26,14 +23,17 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
     InvalidAlternativeLocationsUrl,
-    InvalidWheelFilename,
     InvalidTracksUrl,
+    InvalidWheelFilename,
     UnsafeMultipleRemoteRepositories,
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
-from pip._internal.models.candidate import InstallationCandidate, \
-    RemoteInstallationCandidate
+from pip._internal.models.candidate import (
+    InstallationCandidate,
+    RemoteInstallationCandidate,
+)
+from pip._internal.metadata import select_backend
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
@@ -1184,11 +1184,11 @@ def check_multiple_remote_repositories(
     # all known alternate location urls
     known_alternate_urls = set()
     # the alternate location urls that are not present in all remote candidates
-    mismatch_alternate_urls = set()
+    mismatch_alternate_urls: set[str] = set()
     # all known remote repositories that do not track any other repos
-    known_owner_repo_urls = set()
+    known_owner_repo_urls: set[str | None] = set()
     # all known remote repositories that do track other repos
-    known_tracker_repo_urls = set()
+    known_tracker_repo_urls: set[str | None] = set()
     for candidate in candidates:
         candidate_name = candidate.name
         link = candidate.link
@@ -1213,9 +1213,9 @@ def check_multiple_remote_repositories(
         known_remote_repo_urls.update(remote_candidate.remote_repository_urls)
         known_alternate_urls.update(remote_candidate.alternate_location_urls)
         if len(remote_candidate.project_track_urls) > 0:
-            known_tracker_repo_urls.update(remote_candidate.url)
+            known_tracker_repo_urls.add(remote_candidate.url)
         else:
-            known_owner_repo_urls.update(remote_candidate.url)
+            known_owner_repo_urls.add(remote_candidate.url)
 
         # Update the set, keeping only elements found in either set, but not in both.
         # This should allow all the items that are not present for all remote candidates
@@ -1239,8 +1239,10 @@ def check_multiple_remote_repositories(
         )
         return None
     if len(known_remote_repo_urls) == 0:
-        msg = ("Unexpected situation where there are remote candidates, "
-               "but no remote repositories")
+        msg = (
+            "Unexpected situation where there are remote candidates, "
+            "but no remote repositories"
+        )
         logger.warning(msg)
         raise ValueError(msg)
 
@@ -1268,8 +1270,9 @@ def check_multiple_remote_repositories(
         page_url = remote_candidate.url
         for project_track_url in project_track_urls:
             parts = pathlib.Path(urllib.parse.urlsplit(project_track_url).path).parts
-            parts = list(parts)
-            parts.reverse()
+            path_parts = list(parts)
+            path_parts.reverse()
+            path_parts.reverse()
 
             # Specification: It [Tracks metadata] MUST point to the actual URLs
             # for that project, not the base URL for the extended repositories.
@@ -1285,12 +1288,12 @@ def check_multiple_remote_repositories(
 
             # Note: These assumptions about the structure of the Tracks url may not
             # hold true for all remote repositories.
-            if not parts or not any(
-                canonical_name == canonicalize_name(p) for p in parts
+            if not path_parts or not any(
+                canonical_name == canonicalize_name(p) for p in path_parts
             ):
                 raise InvalidTracksUrl(
                     package=project_name,
-                    remote_repositories={page_url},
+                    remote_repositories={page_url} if page_url is not None else set(),
                     invalid_tracks={project_track_url},
                 )
 
@@ -1305,7 +1308,7 @@ def check_multiple_remote_repositories(
             if project_track_url not in known_owner_repo_urls:
                 raise InvalidTracksUrl(
                     package=project_name,
-                    remote_repositories={page_url},
+                    remote_repositories={page_url} if page_url is not None else set(),
                     invalid_tracks={project_track_url},
                 )
 
@@ -1318,14 +1321,16 @@ def check_multiple_remote_repositories(
     for remote_candidate in remote_candidates:
         candidate_alt_urls = remote_candidate.alternate_location_urls
 
-        invalid_alt_urls =  known_alternate_urls - candidate_alt_urls
+        invalid_alt_urls = known_alternate_urls - candidate_alt_urls
         has_alts = len(candidate_alt_urls) > 0
         has_tracks = len(remote_candidate.project_track_urls) > 0
 
-        is_invalid = any([
-            not has_alts and not has_tracks,
-            not has_tracks and invalid_alt_urls,
-        ])
+        is_invalid = any(
+            [
+                not has_alts and not has_tracks,
+                not has_tracks and invalid_alt_urls,
+            ]
+        )
 
         if is_invalid:
             error = UnsafeMultipleRemoteRepositories(

@@ -18,12 +18,13 @@ from html.parser import HTMLParser
 from optparse import Values
 from typing import (
     Callable,
+    Dict,
+    List,
     NamedTuple,
+    Optional,
     Protocol,
-    Sequence,
     Set,
     Tuple,
-    Union,
 )
 
 from pip._vendor import requests
@@ -314,8 +315,8 @@ class HTMLLinkParser(HTMLParser):
             self.anchors.append(dict(attrs))
         elif tag == "meta":
             meta_attrs = dict(attrs)
-            meta_key = meta_attrs.get("name", "").strip()
-            meta_val = meta_attrs.get("content", "").strip()
+            meta_key = (meta_attrs.get("name") or "").strip()
+            meta_val = (meta_attrs.get("content") or "").strip()
             if meta_key and meta_val:
                 if (
                     meta_key == self._meta_key_tracks

@@ -16,7 +16,7 @@ import re
 import sys
 from collections.abc import Iterator
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING, Dict, Iterator, List, Literal, Optional, Set, Union
+from typing import TYPE_CHECKING, Literal, Set
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.version import InvalidVersion
@@ -800,6 +800,104 @@ class LegacyDistutilsInstall(DiagnosticPipError):
         )
 
 
+class InvalidInstalledPackage(DiagnosticPipError):
+    reference = "invalid-installed-package"
+
+    def __init__(
+        self,
+        *,
+        dist: BaseDistribution,
+        invalid_exc: InvalidRequirement | InvalidVersion,
+    ) -> None:
+        installed_location = dist.installed_location
+
+        if isinstance(invalid_exc, InvalidRequirement):
+            invalid_type = "requirement"
+        else:
+            invalid_type = "version"
+
+        super().__init__(
+            message=Text(
+                f"Cannot process installed package {dist} "
+                + (f"in {installed_location!r} " if installed_location else "")
+                + f"because it has an invalid {invalid_type}:\n{invalid_exc.args[0]}"
+            ),
+            context=(
+                "Starting with pip 24.1, packages with invalid "
+                f"{invalid_type}s can not be processed."
+            ),
+            hint_stmt="To proceed this package must be uninstalled.",
+        )
+
+
+class IncompleteDownloadError(DiagnosticPipError):
+    """Raised when the downloader receives fewer bytes than advertised
+    in the Content-Length header."""
+
+    reference = "incomplete-download"
+
+    def __init__(self, download: _FileDownload) -> None:
+        # Dodge circular import.
+        from pip._internal.utils.misc import format_size
+
+        assert download.size is not None
+        download_status = (
+            f"{format_size(download.bytes_received)}/{format_size(download.size)}"
+        )
+        if download.reattempts:
+            retry_status = f"after {download.reattempts + 1} attempts "
+            hint = "Use --resume-retries to configure resume attempt limit."
+        else:
+            # Download retrying is not enabled.
+            retry_status = ""
+            hint = "Consider using --resume-retries to enable download resumption."
+        message = Text(
+            f"Download failed {retry_status}because not enough bytes "
+            f"were received ({download_status})"
+        )
+
+        super().__init__(
+            message=message,
+            context=f"URL: {download.link.redacted_url}",
+            hint_stmt=hint,
+            note_stmt="This is an issue with network connectivity, not pip.",
+        )
+
+
+class ResolutionTooDeepError(DiagnosticPipError):
+    """Raised when the dependency resolver exceeds the maximum recursion depth."""
+
+    reference = "resolution-too-deep"
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="Dependency resolution exceeded maximum depth",
+            context=(
+                "Pip cannot resolve the current dependencies as the dependency graph "
+                "is too complex for pip to solve efficiently."
+            ),
+            hint_stmt=(
+                "Try adding lower bounds to constrain your dependencies, "
+                "for example: 'package>=2.0.0' instead of just 'package'. "
+            ),
+            link="https://pip.pypa.io/en/stable/topics/dependency-resolution/#handling-resolution-too-deep-errors",
+        )
+
+
+class InstallWheelBuildError(DiagnosticPipError):
+    reference = "failed-wheel-build-for-install"
+
+    def __init__(self, failed: list[InstallRequirement]) -> None:
+        super().__init__(
+            message=(
+                "Failed to build installable wheels for some "
+                "pyproject.toml based projects"
+            ),
+            context=", ".join(r.name for r in failed),  # type: ignore
+            hint_stmt=None,
+        )
+
+
 class InvalidMultipleRemoteRepositories(DiagnosticPipError):
     """Common error for issues with multiple remote repositories."""
 
@@ -811,13 +909,9 @@ class InvalidMultipleRemoteRepositories(DiagnosticPipError):
         "by passing --insecure-multiple-remote-repositories."
     )
 
-class IncompleteDownloadError(DiagnosticPipError):
-    """Raised when the downloader receives fewer bytes than advertised
-    in the Content-Length header."""
 
 class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
     """There was an issue with a Tracks metadata url.
-
     Tracks urls must point to the actual URLs for that project,
     point to the repositories that own the namespaces, and
     point to a project with the exact same name (after normalization).
@@ -858,7 +952,6 @@ class InvalidTracksUrl(InvalidMultipleRemoteRepositories):
 
 class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
     """The list of Alternate Locations for each repository do not match.
-
     In order for this metadata to be trusted, there MUST be agreement between
     all locations where that project is found as to what the alternate locations are.
     """
@@ -899,10 +992,8 @@ class InvalidAlternativeLocationsUrl(InvalidMultipleRemoteRepositories):
 class UnsafeMultipleRemoteRepositories(InvalidMultipleRemoteRepositories):
     """More than one remote repository was provided for a package,
     with no indication that the remote repositories can be safely merged.
-
     The repositories, packages, or user did not indicate that
     it is safe to merge remote repositories.
-
     Multiple remote repositories are not merged by default
     to reduce the risk of dependency confusion attacks."""
 

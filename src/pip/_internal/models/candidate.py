@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Set, Optional
+from typing import Optional, Set
 
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
@@ -35,7 +35,7 @@ class RemoteInstallationCandidate:
     canonical_name: str
     candidate: InstallationCandidate
 
-    def __init__(self, canonical_name:str, candidate: InstallationCandidate) -> None:
+    def __init__(self, canonical_name: str, candidate: InstallationCandidate) -> None:
         object.__setattr__(self, "canonical_name", canonical_name)
         object.__setattr__(self, "candidate", candidate)
 
@@ -56,14 +56,16 @@ class RemoteInstallationCandidate:
         link = self._link
         if not link:
             return None
-        if not link.comes_from:
+        cf = link.comes_from
+        if cf is None:
             return None
-        if hasattr(link.comes_from, 'url') and link.comes_from.url:
-            return self.candidate.link.comes_from.url.lstrip()
-        if link.comes_from:
-            return self.candidate.link.comes_from.lstrip()
-        return None
+        url_attr = getattr(cf, "url", None)
+        if isinstance(url_attr, str):
+            return url_attr.lstrip()
+        if isinstance(cf, str):
+            return cf.lstrip()
 
+        return None
 
     @property
     def remote_repository_urls(self) -> Set[str]:
@@ -73,17 +75,18 @@ class RemoteInstallationCandidate:
     @property
     def project_track_urls(self) -> Set[str]:
         """Remote repository urls from Tracks metadata."""
-        result = {}
         link = self._link
-        if link and link.project_track_urls:
-            result.update(link.project_track_urls)
-        return {i for i in result if i}
+        if not link or not link.project_track_urls:
+            return set()
+        return {i for i in link.project_track_urls if i}
 
     @property
     def alternate_location_urls(self) -> Set[str]:
         """Remote repository urls from Alternate Locations metadata."""
-        result = {self.url}
+        urls: Set[str] = set()
+        if self.url:
+            urls.add(self.url)
         link = self._link
         if link and link.repo_alt_urls:
-            result.update(link.repo_alt_urls)
-        return {i for i in result if i}
+            urls.update({i for i in link.repo_alt_urls if i})
+        return urls

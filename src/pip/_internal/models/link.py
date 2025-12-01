@@ -15,8 +15,6 @@ from typing import (
     NamedTuple,
     Optional,
     Set,
-    Tuple,
-    Union,
 )
 
 from pip._internal.utils.deprecation import deprecated
@@ -302,7 +300,7 @@ class Link:
         page_url: str,
         project_track_urls: Optional[Set[str]] = None,
         repo_alt_urls: Optional[Set[str]] = None,
-    ) -> Optional["Link"]:
+    ) -> Optional[Link]:
         """
         Convert an pypi json document from a simple repository page into a Link.
         """
@@ -339,8 +337,10 @@ class Link:
         elif not yanked_reason:
             yanked_reason = None
 
-        project_track_urls = {i.strip() for i in project_track_urls if i and i.strip()}
-        repo_alt_urls = {i.strip() for i in repo_alt_urls if i and i.strip()}
+        project_track_urls = {
+            i.strip() for i in project_track_urls or [] if i and i.strip()
+        }
+        repo_alt_urls = {i.strip() for i in repo_alt_urls or [] if i and i.strip()}
 
         return cls(
             url,
@@ -361,7 +361,7 @@ class Link:
         base_url: str,
         project_track_urls: Optional[Set[str]] = None,
         repo_alt_urls: Optional[Set[str]] = None,
-    ) -> Optional["Link"]:
+    ) -> Optional[Link]:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
         """
@@ -399,8 +399,10 @@ class Link:
                 )
                 metadata_file_data = MetadataFile(None)
 
-        project_track_urls = {i.strip() for i in project_track_urls if i and i.strip()}
-        repo_alt_urls = {i.strip() for i in repo_alt_urls if i and i.strip()}
+        project_track_urls = {
+            i.strip() for i in project_track_urls or [] if i and i.strip()
+        }
+        repo_alt_urls = {i.strip() for i in repo_alt_urls or [] if i and i.strip()}
 
         return cls(
             url,
@@ -583,7 +585,7 @@ class Link:
         return any(hashes.is_hash_allowed(k, v) for k, v in self._hashes.items())
 
     @property
-    def is_local_only(self):
+    def is_local_only(self) -> bool:
         """
         Is this link entirely local, with no metadata pointing to a remote url?
         """
@@ -595,7 +597,7 @@ class Link:
                 "metadata_urls": {*self.project_track_urls, *self.repo_alt_urls},
             }
         )
-        return (
+        return bool(
             (self.is_file and self.file_path)
             and not self.comes_from
             and not any(
