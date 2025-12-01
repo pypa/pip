@@ -1088,8 +1088,8 @@ def test_check_multiple_remote_repositories(
     caplog: pytest.LogCaptureFixture,
     candidates: list[InstallationCandidate],
     project_name: str,
-    expected,
-):
+    expected: type[Exception] | None,
+)-> None:
     caplog.set_level(logging.DEBUG)
     if expected:
         with pytest.raises(expected):
