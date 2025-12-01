@@ -86,6 +86,8 @@ class WheelCommand(RequirementCommand):
                 "pip only finds stable versions."
             ),
         )
+        self.cmd_opts.add_option(cmdoptions.all_releases())
+        self.cmd_opts.add_option(cmdoptions.only_final())
 
         self.cmd_opts.add_option(cmdoptions.require_hashes())
 
@@ -100,6 +102,7 @@ class WheelCommand(RequirementCommand):
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:
         cmdoptions.check_build_constraints(options)
+        cmdoptions.check_release_control_exclusive(options)
 
         session = self.get_default_session(options)
 
