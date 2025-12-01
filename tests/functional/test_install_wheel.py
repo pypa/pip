@@ -801,3 +801,15 @@ def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
 
     result = script.pip("install", "--no-index", str(wheel_path), expect_error=True)
     assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr
+
+
+def test_wheel_install_mtime(script: PipTestEnvironment, data: TestData) -> None:
+    """Check that installed file mtime matches value inside the given wheel"""
+    to_install = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
+    result = script.pip("install", to_install)
+    result.assert_installed("simplewheel", editable=False)
+
+    pth = script.site_packages / "simplewheel" / "__init__.py"
+    item = result.files_created[pth]
+
+    assert int(item.mtime) == 1523973424, "mtime does not match expected value"
