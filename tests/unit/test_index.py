@@ -1089,7 +1089,7 @@ def test_check_multiple_remote_repositories(
     candidates: list[InstallationCandidate],
     project_name: str,
     expected: type[Exception] | None,
-)-> None:
+) -> None:
     caplog.set_level(logging.DEBUG)
     if expected:
         with pytest.raises(expected):
