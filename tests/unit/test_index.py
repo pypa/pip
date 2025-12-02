@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 import logging
-import uuid
+
 import pytest
-from pip._internal.models.candidate import InstallationCandidate
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.index.collector import LinkCollector, IndexContent
 from pip._internal.exceptions import (
     InvalidAlternativeLocationsUrl,
-    InvalidMultipleRemoteRepositories,
     InvalidTracksUrl,
     UnsafeMultipleRemoteRepositories,
 )
+from pip._internal.index.collector import IndexContent, LinkCollector
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     CandidatePreferences,
@@ -25,8 +24,10 @@ from pip._internal.index.package_finder import (
     _check_link_requires_python,
     _extract_version_from_fragment,
     _find_name_version_sep,
+    check_multiple_remote_repositories,
     filter_unallowed_hashes,
 )
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -911,6 +912,7 @@ def test_extract_version_from_fragment(
 ) -> None:
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected
+
 
 def _make_mock_candidate_check_remote_repo(
     candidate_name: Optional[str] = None,
