@@ -927,26 +927,28 @@ def _make_mock_candidate_check_remote_repo(
     if version is None:
         version = "1.0"
 
-    comes_from = None
-    if comes_from_url is not None:
-        comes_from = IndexContent(
-            b"",
-            "text/html",
-            encoding=None,
-            url=comes_from_url,
-        )
+    if comes_from_url is None:
+        comes_from_url = f"https://example.com/simple/{candidate_name}"
 
-    url = f"https://example.com/pkg-{version}.tar.gz"
+    comes_from = IndexContent(
+        content=b"",
+        content_type="text/html",
+        encoding=None,
+        url=comes_from_url,
+    )
+
+    project_track_urls = project_track_urls or set()
+    repo_alt_urls = repo_alt_urls or set()
+    repo_alt_urls.add(comes_from_url)
 
     link = Link(
-        url,
+        url=f"https://example.com/packages/{candidate_name}-{version}.tar.gz",
         comes_from=comes_from,
         project_track_urls=project_track_urls,
         repo_alt_urls=repo_alt_urls,
     )
-    candidate = InstallationCandidate(candidate_name, version, link)
 
-    return candidate
+    return InstallationCandidate(candidate_name, version, link)
 
 
 @pytest.mark.parametrize(
