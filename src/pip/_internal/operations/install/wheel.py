@@ -8,6 +8,7 @@ import contextlib
 import csv
 import importlib
 import logging
+import os
 import os.path
 import re
 import shutil
@@ -16,6 +17,7 @@ import textwrap
 import warnings
 from base64 import urlsafe_b64encode
 from collections.abc import Generator, Iterable, Iterator, Sequence
+from datetime import datetime
 from email.message import Message
 from itertools import chain, filterfalse, starmap
 from typing import (
@@ -370,6 +372,9 @@ class ZipBackedFile:
                 with self._zip_file.open(zipinfo) as f:
                     blocksize = min(zipinfo.file_size, 1024 * 1024)
                     shutil.copyfileobj(f, dest, blocksize)
+
+        mtime = datetime(*zipinfo.date_time).timestamp()
+        os.utime(self.dest_path, (mtime, mtime))
 
         if zip_item_is_executable(zipinfo):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
