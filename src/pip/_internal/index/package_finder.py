@@ -1181,9 +1181,6 @@ def check_multiple_remote_repositories(
     remote_candidates = []
     # If every remote candidate lacks repository metadata (common in tests using raw links),
     # then treat them as coming from a single implicit repository and skip multi-repo checks.
-    if all(not rc.remote_repository_urls for rc in remote_candidates):
-        logger.debug("All remote candidates lack repository metadata.")
-        return None
     # all known remote repositories
     known_remote_repo_urls = set()
     # all known alternate location urls
@@ -1232,6 +1229,10 @@ def check_multiple_remote_repositories(
     # If there are no remote candidates, then allow merging repositories.
     if len(remote_candidates) == 0:
         logger.debug("No remote candidates for multiple remote repository checks")
+        return None
+
+    if all(not rc.remote_repository_urls for rc in remote_candidates):
+        logger.debug("All remote candidates lack repository metadata.")
         return None
 
     # Specification: If the project in question only comes from a single repository,
