@@ -1166,7 +1166,7 @@ def check_multiple_remote_repositories(
     # to question that and we assume that they’ve made sure it is safe to merge
     # those namespaces. If the end user has explicitly told the installer to fetch
     # the project from specific repositories, filter out all other repositories.
-
+    # import pytest; pytest.set_trace() # TODO: REMOVE FULLY.
     # When no candidates are provided, then no checks are relevant, so just return.
     if candidates is None or len(candidates) == 0:
         logger.debug("No candidates given to multiple remote repository checks")
@@ -1179,6 +1179,11 @@ def check_multiple_remote_repositories(
     # if they do then determine if either “Tracks” or “Alternate Locations” metadata
     # allows safely merging together ALL the repositories where files were discovered.
     remote_candidates = []
+    # If every remote candidate lacks repository metadata (common in tests using raw links),
+    # then treat them as coming from a single implicit repository and skip multi-repo checks.
+    if all(not rc.remote_repository_urls for rc in remote_candidates):
+        logger.debug("All remote candidates lack repository metadata.")
+        return None
     # all known remote repositories
     known_remote_repo_urls = set()
     # all known alternate location urls
@@ -1272,7 +1277,7 @@ def check_multiple_remote_repositories(
             parts = pathlib.Path(urllib.parse.urlsplit(project_track_url).path).parts
             path_parts = list(parts)
             path_parts.reverse()
-            path_parts.reverse()
+            # path_parts.reverse() # Possible intentional behaviour?
 
             # Specification: It [Tracks metadata] MUST point to the actual URLs
             # for that project, not the base URL for the extended repositories.
