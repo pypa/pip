@@ -373,7 +373,7 @@ class ZipBackedFile:
                     blocksize = min(zipinfo.file_size, 1024 * 1024)
                     shutil.copyfileobj(f, dest, blocksize)
 
-        mtime = datetime(*zipinfo.date_time).timestamp()
+        mtime = datetime(*zipinfo.date_time).astimezone().timestamp()
         os.utime(self.dest_path, (mtime, mtime))
 
         if zip_item_is_executable(zipinfo):
