@@ -1385,7 +1385,7 @@ def check_multiple_remote_repositories(
         if not any(ns & other for j, other in enumerate(namespaces) if i != j):
             raise UnsafeMultipleRemoteRepositories(
                 package=project_name,
-                remote_repositories=ns,
+                remote_repositories={u for u in ns if u is not None},
             )
 
     all_declared_sources = set().union(*namespaces)
@@ -1394,7 +1394,7 @@ def check_multiple_remote_repositories(
     if invalid_sources:
         raise UnsafeMultipleRemoteRepositories(
             package=project_name,
-            remote_repositories=invalid_sources,
+            remote_repositories={u for u in invalid_sources if u is not None},
         )
 
     return None

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Set
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
@@ -919,8 +919,8 @@ def _make_mock_candidate_check_remote_repo(
     candidate_name: str | None = None,
     version: str | None = None,
     comes_from_url: str | None = None,
-    project_track_urls: Set[str] | None = None,
-    repo_alt_urls: Set[str] | None = None,
+    project_track_urls: set[str] | None = None,
+    repo_alt_urls: set[str] | None = None,
 ) -> InstallationCandidate:
     if candidate_name is None:
         candidate_name = "mypackage"
@@ -1088,7 +1088,10 @@ def _make_mock_candidate_check_remote_repo(
     ],
 )
 def test_check_multiple_remote_repositories(
-    caplog, candidates: list[InstallationCandidate], project_name: str, expected
+    caplog: LogCaptureFixture,
+    candidates: list[InstallationCandidate],
+    project_name: str,
+    expected: Type[Exception] | None,
 ) -> None:
     caplog.set_level(logging.DEBUG)
     if expected:
