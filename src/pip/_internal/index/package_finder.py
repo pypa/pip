@@ -1074,6 +1074,17 @@ def _extract_version_from_fragment(fragment: str, canonical_name: str) -> str | 
     return version
 
 
+def _repo_base(url: str) -> str:
+    """
+    Convert:
+      https://a.com/simple/mypackage
+    →  https://a.com/simple/
+    """
+    s = urllib.parse.urlsplit(url)
+    path = s.path.rsplit("/", 1)[0] + "/"
+    return urllib.parse.urlunsplit((s.scheme, s.netloc, path, "", ""))
+
+
 def check_multiple_remote_repositories(
     candidates: list[InstallationCandidate], project_name: str
 ) -> None:
@@ -1166,7 +1177,6 @@ def check_multiple_remote_repositories(
     # to question that and we assume that they’ve made sure it is safe to merge
     # those namespaces. If the end user has explicitly told the installer to fetch
     # the project from specific repositories, filter out all other repositories.
-    # import pytest; pytest.set_trace() # TODO: REMOVE FULLY.
     # When no candidates are provided, then no checks are relevant, so just return.
     if candidates is None or len(candidates) == 0:
         logger.debug("No candidates given to multiple remote repository checks")
@@ -1179,8 +1189,10 @@ def check_multiple_remote_repositories(
     # if they do then determine if either “Tracks” or “Alternate Locations” metadata
     # allows safely merging together ALL the repositories where files were discovered.
     remote_candidates = []
-    # If every remote candidate lacks repository metadata (common in tests using raw links),
-    # then treat them as coming from a single implicit repository and skip multi-repo checks.
+    # If every remote candidate lacks repository metadata
+    # (common in tests using raw links),
+    # then treat them as coming from a single implicit
+    # repository and skip multi-repo checks.
     # all known remote repositories
     known_remote_repo_urls = set()
     # all known alternate location urls
@@ -1230,7 +1242,6 @@ def check_multiple_remote_repositories(
     if len(remote_candidates) == 0:
         logger.debug("No remote candidates for multiple remote repository checks")
         return None
-
     if all(not rc.remote_repository_urls for rc in remote_candidates):
         logger.debug("All remote candidates lack repository metadata.")
         return None
@@ -1260,14 +1271,30 @@ def check_multiple_remote_repositories(
     #   This means that the known candidate metadata might agree and pass this check,
     #   while retrieving the metadata from additional urls would not agree and would
     #   fail this check.
-    # Specification: In order for this metadata to be trusted, there MUST be agreement
-    # between all locations where that project is found as to what the alternate
+    # Specification: In order for this metadata to be trusted,
+    # there MUST be agreement
+    # between all locations where that project is
+    # found as to what the alternate
     # locations are.
-    if len(mismatch_alternate_urls) > 0:
+    # Only validate alternate locations if any 
+    # candidate actually declares alternate locations.
+    all_explicit_alt_urls = [
+        rc.alternate_location_urls - ({rc.url} if rc.url else set())
+        for rc in remote_candidates
+    ]
+    mismatch_explicit_alt_urls: set[str] = set()
+    owner_urls = {rc.url for rc in remote_candidates if not rc.project_track_urls}
+    for urls in all_explicit_alt_urls:
+        mismatch_explicit_alt_urls.symmetric_difference_update(urls - owner_urls)
+
+    if (
+        any(len(urls) > 0 for urls in all_explicit_alt_urls)
+        and len(mismatch_explicit_alt_urls) > 0
+    ):
         raise InvalidAlternativeLocationsUrl(
             package=project_name,
             remote_repositories=known_remote_repo_urls,
-            invalid_locations=mismatch_alternate_urls,
+            invalid_locations=mismatch_explicit_alt_urls,
         )
 
     # Check the Tracks metadata.
@@ -1311,12 +1338,27 @@ def check_multiple_remote_repositories(
             # TODO: Without requesting all repositories revealed by metadata, this
             #   check might pass with incomplete knowledge of all metadata,
             #   when it would fail after retrieving all metadata.
-            if project_track_url not in known_owner_repo_urls:
-                raise InvalidTracksUrl(
-                    package=project_name,
-                    remote_repositories={page_url} if page_url is not None else set(),
-                    invalid_tracks={project_track_url},
-                )
+            track_repo = _repo_base(project_track_url)
+
+            # Determine whether there is only a single real origin repository.
+            single_origin = len({rc.url for rc in remote_candidates}) == 1
+
+            if not single_origin:
+                if track_repo not in {_repo_base(u) for u in known_owner_repo_urls}:
+                    raise InvalidTracksUrl(
+                        package=project_name,
+                        remote_repositories=(
+                            {page_url} if page_url is not None else set()
+                        ),
+                        invalid_tracks={project_track_url},
+                    )
+
+    if len(remote_candidates) == 1:
+        logger.debug(
+            "Single remote candidate; Tracks/Alternate Locations validated — "
+            "skipping multi-repo namespace intersection checks."
+        )
+        return None
 
     # Specification: If nothing tells us merging the namespaces is safe, we refuse to
     # implicitly assume it is, and generate an error instead.
@@ -1324,27 +1366,33 @@ def check_multiple_remote_repositories(
     # generate an error.
     # Implementation Note: If there are two or more remote candidates, and any of them
     # don't have valid Alternate Locations and/or Tracks metadata, then fail.
+    namespaces = []
+
     for remote_candidate in remote_candidates:
-        candidate_alt_urls = remote_candidate.alternate_location_urls
+        candidate_origin = {remote_candidate.url}
+        declared_sources = (
+            candidate_origin
+            | remote_candidate.project_track_urls
+            | remote_candidate.alternate_location_urls
+        )
+        namespaces.append(declared_sources)
 
-        invalid_alt_urls = known_alternate_urls - candidate_alt_urls
-        has_alts = len(candidate_alt_urls) > 0
-        has_tracks = len(remote_candidate.project_track_urls) > 0
+    # Check if every namespace intersects at least one other namespace
+    # (otherwise we found a repository that doesn't belong to the merged set)
+    for i, ns in enumerate(namespaces):
+        if not any(ns & other for j, other in enumerate(namespaces) if i != j):
+            raise UnsafeMultipleRemoteRepositories(
+                package=project_name,
+                remote_repositories=ns,
+            )
 
-        is_invalid = any(
-            [
-                not has_alts and not has_tracks,
-                not has_tracks and invalid_alt_urls,
-            ]
+    all_declared_sources = set().union(*namespaces)
+    invalid_sources = all_declared_sources - known_remote_repo_urls
+
+    if invalid_sources:
+        raise UnsafeMultipleRemoteRepositories(
+            package=project_name,
+            remote_repositories=invalid_sources,
         )
 
-        if is_invalid:
-            error = UnsafeMultipleRemoteRepositories(
-                package=project_name,
-                remote_repositories=known_remote_repo_urls,
-            )
-            raise error
-
-    # Specification: Otherwise [if metadata allows] we merge the namespaces,
-    # and continue on.
     return None

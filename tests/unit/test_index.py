@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import pytest
 
@@ -995,7 +996,7 @@ def _make_mock_candidate_check_remote_repo(
             "mypackage",
             None,
         ),
-        # checks pass when ony one candidate with alt loc url
+        # checks pass when only one candidate with alt loc url
         # TODO: not making requests to repos revealed via metadata
         (
             [
@@ -1087,7 +1088,7 @@ def _make_mock_candidate_check_remote_repo(
     ],
 )
 def test_check_multiple_remote_repositories(
-    caplog, candidates: List[InstallationCandidate], project_name: str, expected
+    caplog, candidates: list[InstallationCandidate], project_name: str, expected
 ):
     caplog.set_level(logging.DEBUG)
     if expected:
