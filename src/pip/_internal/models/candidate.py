@@ -85,8 +85,8 @@ class RemoteInstallationCandidate:
     def alternate_location_urls(self) -> set[str]:
         """Remote repository urls from Alternate Locations metadata."""
         urls: set[str] = set()
-        if self.url:
-            urls.add(self.url)
+        # if self.url:
+        #     urls.add(self.url)
         link = self._link
         if link and link.repo_alt_urls:
             urls.update({i for i in link.repo_alt_urls if i})

@@ -1276,7 +1276,7 @@ def check_multiple_remote_repositories(
     # between all locations where that project is
     # found as to what the alternate
     # locations are.
-    # Only validate alternate locations if any 
+    # Only validate alternate locations if any
     # candidate actually declares alternate locations.
     all_explicit_alt_urls = [
         rc.alternate_location_urls - ({rc.url} if rc.url else set())
@@ -1344,7 +1344,9 @@ def check_multiple_remote_repositories(
             single_origin = len({rc.url for rc in remote_candidates}) == 1
 
             if not single_origin:
-                if track_repo not in {_repo_base(u) for u in known_owner_repo_urls}:
+                if track_repo not in {
+                    _repo_base(u) for u in known_owner_repo_urls if u is not None
+                }:
                     raise InvalidTracksUrl(
                         package=project_name,
                         remote_repositories=(

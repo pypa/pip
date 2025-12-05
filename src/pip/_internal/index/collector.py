@@ -231,8 +231,9 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
     if content_type_l.startswith("application/vnd.pypi.simple.v1+json"):
         data = json.loads(page.content)
         project_track_urls = set(data.get("meta", {}).get("tracks", []))
+        # repo_alt_urls = set(data.get("alternate-locations", []))
+        # repo_alt_urls.add(page.url)
         repo_alt_urls = set(data.get("alternate-locations", []))
-        repo_alt_urls.add(page.url)
         for file in data.get("files", []):
             link = Link.from_json(
                 file,
@@ -251,8 +252,9 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
 
     base_url = parser.base_url or url
     for anchor in parser.anchors:
+        # repo_alt_urls = parser.repo_alt_urls or set()
+        # repo_alt_urls.add(page.url)
         repo_alt_urls = parser.repo_alt_urls or set()
-        repo_alt_urls.add(page.url)
         link = Link.from_element(
             anchor,
             page_url=url,
