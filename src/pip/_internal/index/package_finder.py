@@ -11,7 +11,7 @@ import re
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union, Type
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
