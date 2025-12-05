@@ -339,6 +339,13 @@ def get_console_script_specs(console: dict[str, str]) -> list[str]:
     return scripts_to_generate
 
 
+def _set_extracted_file_mtime(extracted_file: str, zipinfo: ZipInfo) -> None:
+    # ZipInfo.date_time is interpreted as a local time, so we must account for
+    # the local timezone when computing the target timestamp
+    mtime = datetime(*zipinfo.date_time).astimezone().timestamp()
+    os.utime(extracted_file, (mtime, mtime))
+
+
 class ZipBackedFile:
     def __init__(
         self, src_record_path: RecordPath, dest_path: str, zip_file: ZipFile
@@ -373,8 +380,7 @@ class ZipBackedFile:
                     blocksize = min(zipinfo.file_size, 1024 * 1024)
                     shutil.copyfileobj(f, dest, blocksize)
 
-        mtime = datetime(*zipinfo.date_time).astimezone().timestamp()
-        os.utime(self.dest_path, (mtime, mtime))
+        _set_extracted_file_mtime(self.dest_path, zipinfo)
 
         if zip_item_is_executable(zipinfo):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
