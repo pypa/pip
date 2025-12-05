@@ -4,6 +4,7 @@ import hashlib
 import os
 import shutil
 import sysconfig
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -812,4 +813,9 @@ def test_wheel_install_mtime(script: PipTestEnvironment, data: TestData) -> None
     pth = script.site_packages / "simplewheel" / "__init__.py"
     item = result.files_created[pth]
 
-    assert int(item.mtime) == 1523973424, "mtime does not match expected value"
+    # These are both naive, so it is reasonable to compare them, and a bit more
+    # legible than comparing to a timestamp expectation
+    dt = datetime.fromtimestamp(item.mtime)
+    expected_dt = datetime(2018, 4, 17, 9, 57, 4)
+
+    assert dt == expected_dt, "Extracted file mtime does not match expected value"
