@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import optparse
+import os
 import shutil
 import sys
 import textwrap
@@ -11,8 +12,15 @@ from collections.abc import Generator
 from contextlib import suppress
 from typing import Any, NoReturn
 
+from pip._vendor.rich.console import RenderableType
+from pip._vendor.rich.markup import escape
+from pip._vendor.rich.style import StyleType
+from pip._vendor.rich.text import Text
+from pip._vendor.rich.theme import Theme
+
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
+from pip._internal.utils.logging import PipConsole
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
 
 logger = logging.getLogger(__name__)
@@ -21,54 +29,60 @@ logger = logging.getLogger(__name__)
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
+    styles: dict[str, StyleType] = {
+        "optparse.shortargs": "green",
+        "optparse.longargs": "cyan",
+        "optparse.groups": "bold blue",
+        "optparse.help": "default",
+        "optparse.metavar": "yellow",
+        "optparse.syntax": "bold",
+        "optparse.text": "default",
+    }
+    highlights: list[str] = [
+        r"(?:^|\s)(?P<shortargs>-{1}[\w]+[\w-]*)",  # highlight -letter as short args
+        r"(?:^|\s)(?P<longargs>-{2}[\w]+[\w-]*)",  # highlight --words as long args
+        r"`(?P<syntax>[^`]*)`",  # highlight `text in backquotes` as syntax
+    ]
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # help position must be aligned with __init__.parseopts.description
         kwargs["max_help_position"] = 30
         kwargs["indent_increment"] = 1
         kwargs["width"] = shutil.get_terminal_size()[0] - 2
         super().__init__(*args, **kwargs)
+        # This is unfortunate but necessary since arguments may have not been
+        # parsed yet at this point, so detect --no-color manually.
+        no_color = (
+            "--no-color" in sys.argv
+            or bool(strtobool(os.environ.get("PIP_NO_COLOR", "no") or "no"))
+            or "NO_COLOR" in os.environ
+        )
+        self.console = PipConsole(theme=Theme(self.styles), no_color=no_color)
+        self.rich_option_strings: dict[optparse.Option, Text] = {}
 
-    def format_option_strings(self, option: optparse.Option) -> str:
-        return self._format_option_strings(option)
-
-    def _format_option_strings(
-        self, option: optparse.Option, mvarfmt: str = " <{}>", optsep: str = ", "
-    ) -> str:
-        """
-        Return a comma-separated list of option strings and metavars.
-
-        :param option:  tuple of (short opt, long opt), e.g: ('-f', '--format')
-        :param mvarfmt: metavar format string
-        :param optsep:  separator
-        """
-        opts = []
-
-        if option._short_opts:
-            opts.append(option._short_opts[0])
-        if option._long_opts:
-            opts.append(option._long_opts[0])
-        if len(opts) > 1:
-            opts.insert(1, optsep)
-
-        if option.takes_value():
-            assert option.dest is not None
-            metavar = option.metavar or option.dest.lower()
-            opts.append(mvarfmt.format(metavar.lower()))
-
-        return "".join(opts)
+    def stringify(self, text: RenderableType) -> str:
+        """Render a rich object as a string."""
+        with self.console.capture() as capture:
+            self.console.print(text, highlight=False, soft_wrap=True, end="")
+        help = capture.get()
+        return "\n".join(line.rstrip() for line in help.split("\n"))
 
     def format_heading(self, heading: str) -> str:
         if heading == "Options":
             return ""
-        return heading + ":\n"
+        return self.stringify(Text(heading + ":\n", "optparse.groups"))
 
     def format_usage(self, usage: str) -> str:
         """
         Ensure there is only one newline between usage and the first heading
         if there is no description.
         """
-        msg = "\nUsage: {}\n".format(self.indent_lines(textwrap.dedent(usage), "  "))
-        return msg
+        rich_usage = (
+            Text("\n")
+            .append("Usage:", "optparse.groups")
+            .append(f" {self.indent_lines(textwrap.dedent(usage), '  ')}\n")
+        )
+        return self.stringify(rich_usage)
 
     def format_description(self, description: str | None) -> str:
         # leave full control over description to us
@@ -77,13 +91,14 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
                 label = "Commands"
             else:
                 label = "Description"
+            rich_label = self.stringify(Text(label + ":", "optparse.groups"))
             # some doc strings have initial newlines, some don't
             description = description.lstrip("\n")
             # some doc strings have final newlines and spaces, some don't
             description = description.rstrip()
             # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
-            description = f"{label}:\n{description}\n"
+            description = f"{rich_label}\n{description}\n"
             return description
         else:
             return ""
@@ -91,9 +106,87 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     def format_epilog(self, epilog: str | None) -> str:
         # leave full control over epilog to us
         if epilog:
-            return epilog
+            rich_epilog = Text(epilog, style="optparse.text")
+            return self.stringify(rich_epilog)
         else:
             return ""
+
+    def rich_expand_default(self, option: optparse.Option) -> Text:
+        """Equivalent to HelpFormatter.expand_default() but with Rich support."""
+        help = escape(super().expand_default(option))
+        rich_help = Text.from_markup(help, style="optparse.help")
+        for highlight in self.highlights:
+            rich_help.highlight_regex(highlight, style_prefix="optparse.")
+        return rich_help
+
+    def format_option(self, option: optparse.Option) -> str:
+        """Overridden method with Rich support."""
+        result: list[Text] = []
+        opts = self.rich_option_strings[option]
+        opt_width = self.help_position - self.current_indent - 2
+        if len(opts) > opt_width:
+            opts.append("\n")
+            indent_first = self.help_position
+        else:  # start help on same line as opts
+            opts.set_length(opt_width + 2)
+            indent_first = 0
+        opts.pad_left(self.current_indent)
+        result.append(opts)
+        if option.help:
+            help_text = self.rich_expand_default(option)
+            help_text.expand_tabs(8)  # textwrap expands tabs first
+            help_text.plain = help_text.plain.translate(
+                textwrap.TextWrapper.unicode_whitespace_trans
+            )  # textwrap converts whitespace to " " second
+            help_lines = help_text.wrap(self.console, self.help_width)
+            result.append(Text(" " * indent_first) + help_lines[0] + "\n")
+            indent = Text(" " * self.help_position)
+            for line in help_lines[1:]:
+                result.append(indent + line + "\n")
+        elif opts.plain[-1] != "\n":
+            result.append(Text("\n"))
+        else:
+            pass  # pragma: no cover
+        return self.stringify(Text().join(result))
+
+    def store_option_strings(self, parser: optparse.OptionParser) -> None:
+        """Overridden method with Rich support."""
+        self.indent()
+        max_len = 0
+        for opt in parser.option_list:
+            strings = self.rich_format_option_strings(opt)
+            self.option_strings[opt] = strings.plain
+            self.rich_option_strings[opt] = strings
+            max_len = max(max_len, len(strings) + self.current_indent)
+        self.indent()
+        for group in parser.option_groups:
+            for opt in group.option_list:
+                strings = self.rich_format_option_strings(opt)
+                self.option_strings[opt] = strings.plain
+                self.rich_option_strings[opt] = strings
+                max_len = max(max_len, len(strings) + self.current_indent)
+        self.dedent()
+        self.dedent()
+        self.help_position = min(max_len + 2, self.max_help_position)
+        self.help_width = max(self.width - self.help_position, 11)
+
+    def rich_format_option_strings(self, option: optparse.Option) -> Text:
+        """Equivalent to HelpFormatter.format_option_strings() but with Rich support."""
+        opts: list[Text] = []
+
+        if option._short_opts:
+            opts.append(Text(option._short_opts[0], "optparse.shortargs"))
+        if option._long_opts:
+            opts.append(Text(option._long_opts[0], "optparse.longargs"))
+        if len(opts) > 1:
+            opts.insert(1, Text(", "))
+
+        if option.takes_value():
+            assert option.dest is not None
+            metavar = option.metavar or option.dest.lower()
+            opts.append(Text(" ").append(f"<{metavar.lower()}>", "optparse.metavar"))
+
+        return Text().join(opts)
 
     def indent_lines(self, text: str, indent: str) -> str:
         new_lines = [indent + line for line in text.split("\n")]
@@ -109,14 +202,14 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
     Also redact auth from url type options
     """
 
-    def expand_default(self, option: optparse.Option) -> str:
+    def rich_expand_default(self, option: optparse.Option) -> Text:
         default_values = None
         if self.parser is not None:
             assert isinstance(self.parser, ConfigOptionParser)
             self.parser._update_defaults(self.parser.defaults)
             assert option.dest is not None
             default_values = self.parser.defaults.get(option.dest)
-        help_text = super().expand_default(option)
+        help_text = super().rich_expand_default(option)
 
         if default_values and option.metavar == "URL":
             if isinstance(default_values, str):
@@ -127,7 +220,8 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
                 default_values = []
 
             for val in default_values:
-                help_text = help_text.replace(val, redact_auth_from_url(val))
+                new_val = escape(redact_auth_from_url(val))
+                help_text = Text(new_val).join(help_text.split(val))
 
         return help_text
 
