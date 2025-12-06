@@ -1,0 +1,1 @@
+Patch scheme to posix_prefix if posix_local and --prefix is specified
