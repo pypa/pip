@@ -29,8 +29,6 @@ Options
 
 .. pip-command-options:: list
 
-.. pip-index-options:: list
-
 
 Examples
 ========
