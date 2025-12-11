@@ -56,7 +56,7 @@ to your system, which can be run from the command prompt as follows:
          py -m pip install requests
       This installs the `requests` library using the latest Python
       interpreter available on your system.
-      
+
 
 Installing Packages
 ===================
