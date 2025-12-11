@@ -37,6 +37,30 @@ to your system, which can be run from the command prompt as follows:
    ``py -m pip`` executes pip using the latest Python interpreter you
    have installed. For more details, read the `Python Windows launcher`_ docs.
 
+.. note::
+
+   **Quick example for beginners**
+
+   To install a real package using pip, try the following example:
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install requests
+
+      This installs the popular ``requests`` library using the Python
+      interpreter currently in use.
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install requests
+
+      This installs the ``requests`` library using the latest Python
+      interpreter available on your system.
+
 
 Installing Packages
 ===================
