@@ -1,2 +1,0 @@
-### Added
-- beginner example for `Running pip` section in user guide (#13690) — Mennaalazaz
