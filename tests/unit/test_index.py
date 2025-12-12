@@ -3,12 +3,18 @@ from __future__ import annotations
 import logging
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.index.collector import LinkCollector
+from pip._internal.exceptions import (
+    InvalidAlternativeLocationsUrl,
+    InvalidTracksUrl,
+    UnsafeMultipleRemoteRepositories,
+)
+from pip._internal.index.collector import IndexContent, LinkCollector
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     CandidatePreferences,
@@ -19,8 +25,10 @@ from pip._internal.index.package_finder import (
     _check_link_requires_python,
     _extract_version_from_fragment,
     _find_name_version_sep,
+    check_multiple_remote_repositories,
     filter_unallowed_hashes,
 )
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -905,3 +913,189 @@ def test_extract_version_from_fragment(
 ) -> None:
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected
+
+
+def _make_mock_candidate_check_remote_repo(
+    candidate_name: str | None = None,
+    version: str | None = None,
+    comes_from_url: str | None = None,
+    project_track_urls: set[str] | None = None,
+    repo_alt_urls: set[str] | None = None,
+) -> InstallationCandidate:
+    if candidate_name is None:
+        candidate_name = "mypackage"
+
+    if version is None:
+        version = "1.0"
+
+    if comes_from_url is None:
+        comes_from_url = f"https://example.com/simple/{candidate_name}"
+
+    comes_from = IndexContent(
+        content=b"",
+        content_type="text/html",
+        encoding=None,
+        url=comes_from_url,
+    )
+
+    project_track_urls = project_track_urls or set()
+    repo_alt_urls = repo_alt_urls or set()
+    repo_alt_urls.add(comes_from_url)
+
+    link = Link(
+        url=f"https://example.com/packages/{candidate_name}-{version}.tar.gz",
+        comes_from=comes_from,
+        project_track_urls=project_track_urls,
+        repo_alt_urls=repo_alt_urls,
+    )
+
+    return InstallationCandidate(candidate_name, version, link)
+
+
+@pytest.mark.parametrize(
+    "candidates, project_name, expected",
+    [
+        # checks pass when no candidates
+        ([], "my_package", None),
+        # checks pass when only one candidate
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                )
+            ],
+            "mypackage",
+            None,
+        ),
+        # checks fail when two candidates with different remotes
+        # and no metadata to enable merging namespaces
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                ),
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://b.example.com/simple/mypackage",
+                ),
+            ],
+            "mypackage",
+            UnsafeMultipleRemoteRepositories,
+        ),
+        # checks pass when only one candidate with tracks url
+        # TODO: not making requests to repos revealed via metadata
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                ),
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://b.example.com/simple/mypackage",
+                    project_track_urls={"https://a.example.com/simple/mypackage"},
+                ),
+            ],
+            "mypackage",
+            None,
+        ),
+        # checks pass when only one candidate with alt loc url
+        # TODO: not making requests to repos revealed via metadata
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                ),
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://b.example.com/simple/mypackage",
+                    repo_alt_urls={"https://a.example.com/simple/mypackage"},
+                ),
+            ],
+            "mypackage",
+            None,
+        ),
+        # checks fail when alternate location urls do not agree
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                    repo_alt_urls={"https://b.example.com/simple/mypackage"},
+                ),
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://b.example.com/simple/mypackage",
+                    repo_alt_urls={"https://c.example.com/simple/mypackage"},
+                ),
+            ],
+            "mypackage",
+            InvalidAlternativeLocationsUrl,
+        ),
+        # checks fails when track url points to the base url instead of
+        # the project url
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                    project_track_urls={"https://b.example.com"},
+                ),
+            ],
+            "mypackage",
+            InvalidTracksUrl,
+        ),
+        # checks fail when track url points to another tracker instead of
+        # the 'owner' project url
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                    project_track_urls={"https://b.example.com/simple/mypackage"},
+                ),
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://b.example.com/simple/mypackage",
+                    project_track_urls={"https://c.example.com/simple/mypackage"},
+                ),
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://c.example.com/simple/mypackage",
+                ),
+            ],
+            "mypackage",
+            InvalidTracksUrl,
+        ),
+        # checks fail when track url points to different name instead of
+        # the project url with same name
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    candidate_name="othername",
+                    comes_from_url="https://a.example.com/simple/othername",
+                    project_track_urls={"https://b.example.com/simple/othername"},
+                ),
+                _make_mock_candidate_check_remote_repo(
+                    comes_from_url="https://b.example.com/simple/mypackage",
+                ),
+            ],
+            "mypackage",
+            InvalidTracksUrl,
+        ),
+        # checks pass when track url points to same normalized name
+        (
+            [
+                _make_mock_candidate_check_remote_repo(
+                    candidate_name="a.b-c_d",
+                    comes_from_url="https://a.example.com/simple/mypackage",
+                    project_track_urls={"https://b.example.com/simple/a_b.c-d"},
+                ),
+            ],
+            "a-b_c.d",
+            None,
+        ),
+    ],
+)
+def test_check_multiple_remote_repositories(
+    caplog: LogCaptureFixture,
+    candidates: list[InstallationCandidate],
+    project_name: str,
+    expected: Type[Exception] | None,
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    if expected:
+        with pytest.raises(expected):
+            check_multiple_remote_repositories(candidates, project_name)
+    else:
+        check_multiple_remote_repositories(candidates, project_name)

@@ -27,7 +27,12 @@ from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.models.link import Link
+from pip._internal.models.link import (
+    HEAD_META_ALTERNATE_LOCATIONS,
+    HEAD_META_PREFIX,
+    HEAD_META_TRACKS,
+    Link,
+)
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
@@ -219,13 +224,22 @@ def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
 def parse_links(page: IndexContent) -> Iterable[Link]:
     """
     Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
+    Includes known metadata from the HTML header.
     """
-
+    url = page.url
     content_type_l = page.content_type.lower()
     if content_type_l.startswith("application/vnd.pypi.simple.v1+json"):
         data = json.loads(page.content)
+        project_track_urls = set(data.get("meta", {}).get("tracks", []))
+        repo_alt_urls = set(data.get("alternate-locations", []))
+        repo_alt_urls.add(page.url)
         for file in data.get("files", []):
-            link = Link.from_json(file, page.url)
+            link = Link.from_json(
+                file,
+                page_url=page.url,
+                project_track_urls=project_track_urls,
+                repo_alt_urls=repo_alt_urls,
+            )
             if link is None:
                 continue
             yield link
@@ -235,10 +249,17 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
     encoding = page.encoding or "utf-8"
     parser.feed(page.content.decode(encoding))
 
-    url = page.url
     base_url = parser.base_url or url
     for anchor in parser.anchors:
-        link = Link.from_element(anchor, page_url=url, base_url=base_url)
+        repo_alt_urls = parser.repo_alt_urls or set()
+        repo_alt_urls.add(page.url)
+        link = Link.from_element(
+            anchor,
+            page_url=url,
+            base_url=base_url,
+            project_track_urls=parser.project_track_urls,
+            repo_alt_urls=repo_alt_urls,
+        )
         if link is None:
             continue
         yield link
@@ -277,6 +298,8 @@ class HTMLLinkParser(HTMLParser):
         self.url: str = url
         self.base_url: str | None = None
         self.anchors: list[dict[str, str | None]] = []
+        self.project_track_urls: set[str] = set()
+        self.repo_alt_urls: set[str] = set()
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "base" and self.base_url is None:
@@ -285,12 +308,35 @@ class HTMLLinkParser(HTMLParser):
                 self.base_url = href
         elif tag == "a":
             self.anchors.append(dict(attrs))
+        elif tag == "meta":
+            meta_attrs = dict(attrs)
+            meta_key = (meta_attrs.get("name") or "").strip()
+            meta_val = (meta_attrs.get("content") or "").strip()
+            if meta_key and meta_val:
+                if (
+                    meta_key == self._meta_key_tracks
+                    and meta_val not in self.project_track_urls
+                ):
+                    self.project_track_urls.add(meta_val)
+                elif (
+                    meta_key == self._meta_key_alternate_locations
+                    and meta_val not in self.repo_alt_urls
+                ):
+                    self.repo_alt_urls.add(meta_val)
 
     def get_href(self, attrs: list[tuple[str, str | None]]) -> str | None:
         for name, value in attrs:
             if name == "href":
                 return value
         return None
+
+    @functools.cached_property
+    def _meta_key_tracks(self) -> str:
+        return f"{HEAD_META_PREFIX}:{HEAD_META_TRACKS}"
+
+    @functools.cached_property
+    def _meta_key_alternate_locations(self) -> str:
+        return f"{HEAD_META_PREFIX}:{HEAD_META_ALTERNATE_LOCATIONS}"
 
 
 def _handle_get_simple_fail(
