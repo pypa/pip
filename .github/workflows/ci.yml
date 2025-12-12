@@ -201,11 +201,11 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
-      - name: Install SVN via Chocolatey
+      - name: Install Subversion
         shell: pwsh
         run: |
-          choco install svn -y --no-progress
-          echo "C:\Program Files (x86)\Subversion\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+          echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox
 
