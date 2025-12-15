@@ -1,1 +1,2 @@
-Improve the clarity of the ``ResolutionImpossible`` error message by providing more actionable guidance for resolving dependency conflicts.
+Improve the ``ResolutionImpossible`` error message by providing clearer,
+more actionable guidance for resolving dependency conflicts.
