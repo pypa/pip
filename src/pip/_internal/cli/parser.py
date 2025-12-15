@@ -197,14 +197,13 @@ class ConfigOptionParser(CustomOptionParser):
                 section, key = section_key.split(".", 1)
                 if section in override_order:
                     section_items_dict[section][key] = val
-        
+
         # Now that we a dict of items per section, convert to list of tuples
         # Make sure we completely remove empty values again
         section_items = {
-            name: [ (k,v) for k,v in section_items_dict[name].items() if v ]
+            name: [(k, v) for k, v in section_items_dict[name].items() if v]
             for name in override_order
         }
-
 
         # Yield each group in their override order
         for section in override_order:
