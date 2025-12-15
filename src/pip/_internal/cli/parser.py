@@ -185,23 +185,26 @@ class ConfigOptionParser(CustomOptionParser):
         override_order = ["global", self.name, ":env:"]
 
         # Pool the options into different groups
-        section_items: dict[str, list[tuple[str, Any]]] = {
-            name: [] for name in override_order
+        # Use a dict because we need to implement the fallthrough logic after PR 12201
+        # was merged which removed the fallthrough logic for options
+        section_items_dict: dict[str, dict[str, Any]] = {
+            name: {} for name in override_order
         }
 
         for _, value in self.config.items():
             for section_key, val in value.items():
-                # ignore empty values
-                if not val:
-                    logger.debug(
-                        "Ignoring configuration key '%s' as its value is empty.",
-                        section_key,
-                    )
-                    continue
 
                 section, key = section_key.split(".", 1)
                 if section in override_order:
-                    section_items[section].append((key, val))
+                    section_items_dict[section][key] = val
+        
+        # Now that we a dict of items per section, convert to list of tuples
+        # Make sure we completely remove empty values again
+        section_items = {
+            name: [ (k,v) for k,v in section_items_dict[name].items() if v ]
+            for name in override_order
+        }
+
 
         # Yield each group in their override order
         for section in override_order:
