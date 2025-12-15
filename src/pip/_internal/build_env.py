@@ -10,8 +10,8 @@ import sys
 import textwrap
 from collections import OrderedDict
 from collections.abc import Iterable
-from contextlib import AbstractContextManager, nullcontext
-from functools import partial
+from contextlib import AbstractContextManager as ContextManager
+from contextlib import nullcontext
 from io import StringIO
 from types import TracebackType
 from typing import TYPE_CHECKING, Protocol, TypedDict
@@ -27,6 +27,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import VERBOSE, capture_logging
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
@@ -319,18 +320,15 @@ class InprocessBuildEnvironmentInstaller:
         for_req: InstallRequirement | None,
     ) -> None:
         """Install entrypoint. Manages output capturing and error handling."""
-        capture_ctx: AbstractContextManager[StringIO]
-        spinner: AbstractContextManager[None]
         should_capture = not logger.isEnabledFor(VERBOSE) and self._level == 0
         if should_capture:
             # Hide the logs from the installation of build dependencies.
             # They will be shown only if an error occurs.
-            capture_ctx = capture_logging()
-            spinner = open_rich_spinner(f"Installing {kind}")
+            capture_ctx: ContextManager[StringIO] = capture_logging()
+            spinner: ContextManager[None] = open_rich_spinner(f"Installing {kind}")
         else:
             # Otherwise, pass-through all logs (with a header).
-            capture_ctx = nullcontext(StringIO())
-            spinner = nullcontext()
+            capture_ctx, spinner = nullcontext(StringIO()), nullcontext()
             logger.info("Installing %s ...", kind)
 
         try:
@@ -342,8 +340,8 @@ class InprocessBuildEnvironmentInstaller:
             if isinstance(exc, DiagnosticPipError):
                 # Format similar to a nested subprocess error, where the
                 # causing error is shown first, followed by the build error.
-                for l in log_lines:
-                    logger.info(l)
+                for line in log_lines:
+                    logger.info(line)
                 log_lines = []
                 logger.error("%s", exc, extra={"rich": True})
                 logger.info("")
@@ -361,47 +359,32 @@ class InprocessBuildEnvironmentInstaller:
         from pip._internal.commands.install import installed_packages_summary
         from pip._internal.req import install_given_reqs
         from pip._internal.req.constructors import install_req_from_line
-        from pip._internal.wheel_builder import build, should_build_for_install_command
+        from pip._internal.wheel_builder import build
 
-        ireqs = []
-        for req in requirements:
-            # TODO: maybe don't enforce PEP 517 for nested builds?
-            ireq = install_req_from_line(req, use_pep517=True, user_supplied=True)
-            ireqs.append(ireq)
-
+        ireqs = [install_req_from_line(req, user_supplied=True) for req in requirements]
         resolver = self._make_resolver()
-        requirement_set = resolver.resolve(ireqs, check_supported_wheels=True)
+        resolved_set = resolver.resolve(ireqs, check_supported_wheels=True)
+        self._preparer.prepare_linked_requirements_more(
+            resolved_set.requirements.values()
+        )
 
         reqs_to_build = [
-            r
-            for r in requirement_set.requirements_to_install
-            if should_build_for_install_command(r)
+            r for r in resolved_set.requirements_to_install if not r.is_wheel
         ]
-        _, build_failures = build(
-            reqs_to_build,
-            wheel_cache=self._wheel_cache,
-            verify=True,
-            # Hard-coded options (that should NOT be inherited).
-            build_options=[],
-            global_options=[],
-        )
-        # build_failures = ireqs
+        _, build_failures = build(reqs_to_build, self._wheel_cache, verify=True)
         if build_failures:
             raise InstallWheelBuildError(build_failures)
 
-        to_install = resolver.get_installation_order(requirement_set)
         installed = install_given_reqs(
-            to_install,
+            resolver.get_installation_order(resolved_set),
             prefix=prefix.path,
             # Hard-coded options (that should NOT be inherited).
-            global_options=[],
             root=None,
             home=None,
             warn_script_location=False,
             use_user_site=False,
             # As the build environment is ephemeral, it's wasteful to
-            # pre-compile everything, especially as not every Python
-            # module will be used/compiled in most cases.
+            # pre-compile everything since not all modules will be used.
             pycompile=False,
             progress_bar="off",
         )
@@ -418,7 +401,7 @@ class InprocessBuildEnvironmentInstaller:
         from pip._internal.resolution.resolvelib.resolver import Resolver
 
         return Resolver(
-            make_install_req=partial(install_req_from_req_string, use_pep517=True),
+            make_install_req=install_req_from_req_string,
             # Inherited state.
             preparer=self._preparer,
             finder=self.finder,

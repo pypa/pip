@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+import pytest
 import tomli_w
 
 from pip._internal.build_env import (

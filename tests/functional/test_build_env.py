@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Generator
 from contextlib import contextmanager
 from textwrap import dedent
-from typing import Generator, Literal
+from typing import Literal
 
 import pytest
 
@@ -47,7 +48,7 @@ def make_test_build_env_installer(
             yield InprocessBuildEnvironmentInstaller(
                 finder=finder,
                 build_tracker=tracker,
-                wheel_cache=WheelCache(None),
+                wheel_cache=WheelCache(None),  # type: ignore
             )
 
 
