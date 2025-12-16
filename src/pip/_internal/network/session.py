@@ -329,6 +329,7 @@ class PipSession(requests.Session):
         self,
         *args: Any,
         retries: int = 0,
+        resume_retries: int = 0,
         cache: str | None = None,
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
@@ -370,6 +371,7 @@ class PipSession(requests.Session):
             # order to prevent hammering the service.
             backoff_factor=0.25,
         )  # type: ignore
+        self.resume_retries = resume_retries
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.
