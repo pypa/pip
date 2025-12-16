@@ -24,6 +24,7 @@ from pip._internal.exceptions import (
     BuildDependencyInstallError,
     DiagnosticPipError,
     InstallWheelBuildError,
+    PipError,
 )
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
@@ -284,7 +285,6 @@ class InprocessBuildEnvironmentInstaller:
         self.finder = finder
         self._level = 0
 
-        # TODO: I don't think this is right
         build_dir = TempDirectory(kind="build-env-install", globally_managed=True)
         self._preparer = RequirementPreparer(
             build_isolation_installer=self,
@@ -320,8 +320,8 @@ class InprocessBuildEnvironmentInstaller:
         for_req: InstallRequirement | None,
     ) -> None:
         """Install entrypoint. Manages output capturing and error handling."""
-        should_capture = not logger.isEnabledFor(VERBOSE) and self._level == 0
-        if should_capture:
+        capture_logs = not logger.isEnabledFor(VERBOSE) and self._level == 0
+        if capture_logs:
             # Hide the logs from the installation of build dependencies.
             # They will be shown only if an error occurs.
             capture_ctx: ContextManager[StringIO] = capture_logging()
@@ -335,22 +335,31 @@ class InprocessBuildEnvironmentInstaller:
             self._level += 1
             with spinner, capture_ctx as stream:
                 self._install_impl(requirements, prefix)
-        except Exception as exc:
-            log_lines = textwrap.dedent(stream.getvalue()).splitlines()
-            if isinstance(exc, DiagnosticPipError):
-                # Format similar to a nested subprocess error, where the
-                # causing error is shown first, followed by the build error.
-                for line in log_lines:
-                    logger.info(line)
-                log_lines = []
-                logger.error("%s", exc, extra={"rich": True})
-                logger.info("")
-            elif not should_capture:
-                logger.error("%s", exc)
 
+        except DiagnosticPipError as exc:
+            # Format similar to a nested subprocess error, where the
+            # causing error is shown first, followed by the build error.
+            logger.info(textwrap.dedent(stream.getvalue()))
+            logger.error("%s", exc, extra={"rich": True})
+            logger.info("")
             raise BuildDependencyInstallError(
-                for_req, requirements, cause=exc, log_lines=log_lines
+                for_req, requirements, cause=exc, log_lines=None
             )
+
+        except Exception as exc:
+            logs: list[str] | None = textwrap.dedent(stream.getvalue()).splitlines()
+            if not capture_logs:
+                # If logs aren't being captured, then display the error inline
+                # with the rest of the logs.
+                logs = None
+                if isinstance(exc, PipError):
+                    logger.error("%s", exc)
+                else:
+                    logger.exception("pip crashed unexpectedly")
+            raise BuildDependencyInstallError(
+                for_req, requirements, cause=exc, log_lines=logs
+            )
+
         finally:
             self._level -= 1
 
