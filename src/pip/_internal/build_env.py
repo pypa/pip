@@ -9,7 +9,7 @@ import site
 import sys
 import textwrap
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from contextlib import AbstractContextManager as ContextManager
 from contextlib import nullcontext
 from io import StringIO
@@ -277,12 +277,15 @@ class InprocessBuildEnvironmentInstaller:
         finder: PackageFinder,
         build_tracker: BuildTracker,
         wheel_cache: WheelCache,
+        build_constraints: Sequence[InstallRequirement] = (),
         resume_retries: int = 0,
         verbosity: int = 0,
     ) -> None:
         from pip._internal.operations.prepare import RequirementPreparer
 
-        self.finder = finder
+        self._finder = finder
+        self._build_constraints = build_constraints
+        self._wheel_cache = wheel_cache
         self._level = 0
 
         build_dir = TempDirectory(kind="build-env-install", globally_managed=True)
@@ -309,7 +312,6 @@ class InprocessBuildEnvironmentInstaller:
             lazy_wheel=False,
             legacy_resolver=False,
         )
-        self._wheel_cache = wheel_cache
 
     def install(
         self,
@@ -371,6 +373,8 @@ class InprocessBuildEnvironmentInstaller:
         from pip._internal.wheel_builder import build
 
         ireqs = [install_req_from_line(req, user_supplied=True) for req in requirements]
+        ireqs.extend(self._build_constraints)
+
         resolver = self._make_resolver()
         resolved_set = resolver.resolve(ireqs, check_supported_wheels=True)
         self._preparer.prepare_linked_requirements_more(
@@ -413,7 +417,7 @@ class InprocessBuildEnvironmentInstaller:
             make_install_req=install_req_from_req_string,
             # Inherited state.
             preparer=self._preparer,
-            finder=self.finder,
+            finder=self._finder,
             wheel_cache=self._wheel_cache,
             # Hard-coded options (that should NOT be inherited).
             ignore_requires_python=False,
