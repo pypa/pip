@@ -198,7 +198,6 @@ class RequirementCommand(IndexGroupCommand):
                 build_tracker=build_tracker,
                 build_constraints=build_constraint_reqs,
                 verbosity=verbosity,
-                resume_retries=options.resume_retries,
                 wheel_cache=WheelCache(options.cache_dir),
             )
         else:

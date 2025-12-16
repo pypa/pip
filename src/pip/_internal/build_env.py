@@ -278,7 +278,6 @@ class InprocessBuildEnvironmentInstaller:
         build_tracker: BuildTracker,
         wheel_cache: WheelCache,
         build_constraints: Sequence[InstallRequirement] = (),
-        resume_retries: int = 0,
         verbosity: int = 0,
     ) -> None:
         from pip._internal.operations.prepare import RequirementPreparer
@@ -297,7 +296,6 @@ class InprocessBuildEnvironmentInstaller:
             build_dir=build_dir.path,
             build_tracker=build_tracker,
             verbosity=verbosity,
-            resume_retries=resume_retries,
             # This is irrelevant as it only applies to editable requirements.
             src_dir="",
             # Hard-coded options (that should NOT be inherited).
