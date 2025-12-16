@@ -127,7 +127,7 @@ Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
 
-Requirements files can also be served via a URL, e.g. 
+Requirements files can also be served via a URL, e.g.
 requirements.txt besides as local files, so that they can
 be stored and served in a centralized place.
 
