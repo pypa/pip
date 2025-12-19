@@ -4284,7 +4284,7 @@ Improved Documentation
 
 - Added global --user flag as shortcut for --install-option="--user". From
   Ronny Pfannschmidt.
-- Added support for `PyPI mirrors <https://pypi.org/mirrors>`_ as
+- Added support for `PyPI mirrors <http://pypi.org/mirrors>`_ as
   defined in `PEP 381 <https://www.python.org/dev/peps/pep-0381/>`_, from
   Jannis Leidel.
 - Fixed git revisions being ignored. Thanks John-Scott Atlakson. (#138)
