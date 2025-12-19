@@ -40,7 +40,7 @@ Features
   (e.g., setuptools) without affecting the final installation. (`#13534 <https://github.com/pypa/pip/issues/13534>`_)
 - On ``ResolutionImpossible`` errors, include a note about causes with no candidates. (`#13588 <https://github.com/pypa/pip/issues/13588>`_)
 - Building pip itself from source now uses flit-core instead of setuptools.
-  This does not affect how pip installs or builds packages you use. (`#13743 <https://github.com/pypa/pip/issues/13743>`_)
+  This does not affect how pip installs or builds packages you use. (`#13473 <https://github.com/pypa/pip/issues/13473>`_)
 
 Bug Fixes
 ---------
