@@ -131,7 +131,6 @@ Requirements files can also be served via a URL, e.g.
 http://example.com/requirements.txt besides as local files, so that they can
 be stored and served in a centralized place.
 
-
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
