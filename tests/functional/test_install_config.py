@@ -424,7 +424,6 @@ def flags(
     return flags
 
 
-@pytest.mark.network
 def test_prompt_for_keyring_if_needed(
     data: TestData,
     cert_factory: CertFactory,
@@ -447,10 +446,7 @@ def test_prompt_for_keyring_if_needed(
         keyring_script = script_factory(
             workspace.joinpath("keyring"), keyring_virtualenv
         )
-        keyring_script.pip(
-            "install",
-            "keyring",
-        )
+        keyring_script.pip_install_local("keyring", "-f", data.common_wheels)
 
         environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
 
@@ -461,10 +457,7 @@ def test_prompt_for_keyring_if_needed(
         keyring_provider not in [None, "auto"]
         or keyring_provider_implementation != "subprocess"
     ):
-        script.pip(
-            "install",
-            "keyring",
-        )
+        script.pip_install_local("keyring", "-f", data.common_wheels)
 
     if keyring_provider_implementation != "subprocess":
         keyring_script = script
