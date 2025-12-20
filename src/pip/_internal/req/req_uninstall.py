@@ -8,6 +8,7 @@ from collections.abc import Generator, Iterable
 from importlib.util import cache_from_source
 from typing import Any, Callable
 
+from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.metadata import BaseDistribution
@@ -355,8 +356,9 @@ class UninstallPathSet:
 
         if not self._paths:
             logger.info(
-                "Can't uninstall '%s'. No files were found to uninstall.",
+                "Can't uninstall '%s'. Exists outside environment, exit status %s.",
                 self._dist.raw_name,
+                ERROR,
             )
             return
 

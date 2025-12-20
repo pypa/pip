@@ -512,7 +512,9 @@ def test_uninstallpathset_no_paths(caplog: pytest.LogCaptureFixture) -> None:
     uninstall_set = UninstallPathSet(test_dist)
     uninstall_set.remove()  # with no files added to set
 
-    assert "Can't uninstall 'pip'. No files were found to uninstall." in caplog.text
+    assert (
+        "Can't uninstall 'pip'. Exists outside environment, exit status" in caplog.text
+    )
 
 
 def test_uninstall_non_local_distutils(
