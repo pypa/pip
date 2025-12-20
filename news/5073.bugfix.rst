@@ -1,0 +1,1 @@
+Fixes open issue where uninstalling a package that exists outside the environment returns an incorrect exit status.
