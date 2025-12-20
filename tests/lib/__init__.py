@@ -35,6 +35,7 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 
+from tests.lib.filesystem import create_file
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
@@ -49,18 +50,6 @@ CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
 _Test = Callable[..., None]
 _FilesState = dict[str, Union[FoundDir, FoundFile]]
-
-
-def create_file(path: str, contents: str | None = None) -> None:
-    """Create a file on the path, with the given contents"""
-    from pip._internal.utils.misc import ensure_dir
-
-    ensure_dir(os.path.dirname(path))
-    with open(path, "w") as f:
-        if contents is not None:
-            f.write(contents)
-        else:
-            f.write("\n")
 
 
 def make_test_search_scope(
@@ -768,6 +757,12 @@ class PipTestEnvironment(TestFileEnvironment):
             if canonicalize_name(x["name"]) == dist_name
             and x.get("editable_project_location")
         )
+
+    def temporary_file(self, filename: str, contents: str) -> pathlib.Path:
+        """Create a temporary file with the given filename and contents."""
+        path = self.scratch_path.joinpath(filename)
+        create_file(path, contents)
+        return path
 
 
 # FIXME ScriptTest does something similar, but only within a single
