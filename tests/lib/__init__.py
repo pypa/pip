@@ -702,17 +702,30 @@ class PipTestEnvironment(TestFileEnvironment):
     def pip_install_local(
         self,
         *args: StrPath,
+        find_links: StrPath | list[StrPath] = pathlib.Path(DATA_DIR, "packages"),
+        build_isolation: bool = False,
         **kwargs: Any,
     ) -> TestPipResult:
-        return self.pip(
-            "install",
-            "--no-build-isolation",
-            "--no-index",
-            "--find-links",
-            pathlib.Path(DATA_DIR, "packages").as_uri(),
-            *args,
-            **kwargs,
-        )
+        """
+        Invoke pip install without PyPI access. By default, only local
+        packages are included via --find-links.
+        """
+        # Convert find links paths to absolute file: URIs
+        if not isinstance(find_links, list):
+            find_links = [find_links]
+        find_links_args: list[StrPath] = []
+        for folder in find_links:
+            # Don't rewrite paths that are already file URIs
+            if isinstance(folder, str) and folder.startswith("file:"):
+                find_links_args.extend(("--find-links", folder))
+            else:
+                path = pathlib.Path(folder).resolve()
+                find_links_args.extend(("--find-links", path.as_uri()))
+
+        cmd = ["install", "--no-index", *find_links_args, *args]
+        if not build_isolation:
+            cmd.insert(1, "--no-build-isolation")
+        return self.pip(*cmd, **kwargs)
 
     def easy_install(self, *args: str, **kwargs: Any) -> TestPipResult:
         args = ("-m", "easy_install") + args
