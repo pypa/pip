@@ -159,7 +159,7 @@ jobs:
           nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
           tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
 
   tests-windows:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
@@ -221,7 +221,7 @@ jobs:
         run: >-
           nox -s test-${{ matrix.python }} --no-install --
           tests/functional -k "${{ matrix.group.pytest-filter }}"
-          --verbose --numprocesses auto --showlocals
+          --verbose --numprocesses auto --showlocals --durations=15
 
   tests-zipapp:
     name: tests / zipapp
@@ -252,7 +252,7 @@ jobs:
           nox -s test-3.10 --
           tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
           --use-zipapp
 
   check:  # This job does nothing and is only used for the branch protection
