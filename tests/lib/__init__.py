@@ -207,6 +207,12 @@ class TestData:
     def index_url(self, index: str = "simple") -> str:
         return self.root.joinpath("indexes", index).as_uri()
 
+    @property
+    def common_wheels(self) -> pathlib.Path:
+        # This is logically separate from the rest of the test data, but
+        # it's convenient to include here.
+        return DATA_DIR.joinpath("common_wheels")
+
 
 class TestFailure(AssertionError):
     """
