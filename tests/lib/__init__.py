@@ -758,7 +758,9 @@ class PipTestEnvironment(TestFileEnvironment):
             and x.get("editable_project_location")
         )
 
-    def temporary_file(self, filename: str, contents: str) -> pathlib.Path:
+    def temporary_file(
+        self, filename: str | pathlib.Path, contents: str
+    ) -> pathlib.Path:
         """Create a temporary file with the given filename and contents."""
         path = self.scratch_path.joinpath(filename)
         create_file(path, contents)
