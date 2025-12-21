@@ -427,6 +427,54 @@ def find_links() -> Option:
     )
 
 
+def _handle_uploaded_prior_to(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    This is an optparse.Option callback for the --uploaded-prior-to option.
+
+    Parses an ISO 8601 datetime string. If no timezone is specified in the string,
+    local timezone is used.
+
+    Note: This option only works with indexes that provide upload-time metadata
+    as specified in the simple repository API:
+    https://packaging.python.org/en/latest/specifications/simple-repository-api/
+    """
+    if value is None:
+        return None
+
+    try:
+        uploaded_prior_to = parse_iso_datetime(value)
+        # Use local timezone if no offset is given in the ISO string.
+        if uploaded_prior_to.tzinfo is None:
+            uploaded_prior_to = uploaded_prior_to.astimezone()
+        parser.values.uploaded_prior_to = uploaded_prior_to
+    except ValueError as exc:
+        msg = (
+            f"invalid --uploaded-prior-to value: {value!r}: {exc}. "
+            f"Expected an ISO 8601 datetime string, "
+            f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
+        )
+        raise_option_error(parser, option=option, msg=msg)
+
+
+def uploaded_prior_to() -> Option:
+    return Option(
+        "--uploaded-prior-to",
+        dest="uploaded_prior_to",
+        metavar="datetime",
+        action="callback",
+        callback=_handle_uploaded_prior_to,
+        type="str",
+        help=(
+            "Only consider packages uploaded prior to the given date time. "
+            "Accepts ISO 8601 strings (e.g., '2023-01-01T00:00:00Z'). "
+            "Uses local timezone if none specified. Only effective when "
+            "installing from indexes that provide upload-time metadata."
+        ),
+    )
+
+
 def trusted_host() -> Option:
     return Option(
         "--trusted-host",
@@ -846,53 +894,6 @@ ignore_requires_python: Callable[..., Option] = partial(
 )
 
 
-def _handle_uploaded_prior_to(
-    option: Option, opt: str, value: str, parser: OptionParser
-) -> None:
-    """
-    This is an optparse.Option callback for the --uploaded-prior-to option.
-
-    Parses an ISO 8601 datetime string. If no timezone is specified in the string,
-    local timezone is used.
-
-    Note: This option only works with indexes that provide upload-time metadata
-    as specified in the simple repository API:
-    https://packaging.python.org/en/latest/specifications/simple-repository-api/
-    """
-    if value is None:
-        return None
-
-    try:
-        uploaded_prior_to = parse_iso_datetime(value)
-        # Use local timezone if no offset is given in the ISO string.
-        if uploaded_prior_to.tzinfo is None:
-            uploaded_prior_to = uploaded_prior_to.astimezone()
-        parser.values.uploaded_prior_to = uploaded_prior_to
-    except ValueError as exc:
-        msg = (
-            f"invalid --uploaded-prior-to value: {value!r}: {exc}. "
-            f"Expected an ISO 8601 datetime string, "
-            f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
-        )
-        raise_option_error(parser, option=option, msg=msg)
-
-
-uploaded_prior_to: Callable[..., Option] = partial(
-    Option,
-    "--uploaded-prior-to",
-    dest="uploaded_prior_to",
-    metavar="datetime",
-    action="callback",
-    callback=_handle_uploaded_prior_to,
-    type="str",
-    help=(
-        "Only consider packages uploaded prior to the given date time. "
-        "Accepts ISO 8601 strings (e.g., '2023-01-01T00:00:00Z'). "
-        "Uses local timezone if none specified. Only effective when "
-        "installing from indexes that provide upload-time metadata."
-    ),
-)
-
 no_build_isolation: Callable[..., Option] = partial(
     Option,
     "--no-build-isolation",
@@ -1167,5 +1168,6 @@ index_group: dict[str, Any] = {
         extra_index_url,
         no_index,
         find_links,
+        uploaded_prior_to,
     ],
 }

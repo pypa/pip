@@ -64,7 +64,6 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        self.cmd_opts.add_option(cmdoptions.uploaded_prior_to())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
