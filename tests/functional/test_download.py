@@ -144,55 +144,29 @@ def test_download_should_download_wheel_deps(
     result.did_create(Path("scratch") / dep_filename)
 
 
-@pytest.mark.network
-def test_download_should_skip_existing_files(script: PipTestEnvironment) -> None:
+def test_download_should_skip_existing_files(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     It should not download files already existing in the scratch dir
     """
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
-        INITools==0.1
-        """
-        )
-    )
-
-    result = script.pip(
-        "download",
-        "-r",
-        script.scratch_path / "test-req.txt",
-        "-d",
-        ".",
-    )
-    result.did_create(Path("scratch") / "INITools-0.1.tar.gz")
-    result.did_not_create(script.site_packages / "initools")
+    req_file = script.temporary_file("reqs.txt", "simplewheel==1.0")
+    result = script.pip("download", "-r", req_file, "-f", data.packages, "--no-index")
+    result.did_create(Path("scratch") / "simplewheel-1.0-py2.py3-none-any.whl")
+    result.did_not_create(script.site_packages / "simplewheel")
 
     # adding second package to test-req.txt
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
-        INITools==0.1
-        python-openid==2.2.5
-        """
-        )
-    )
+    script.temporary_file(req_file, "simplewheel==1.0\nsimple.dist")
 
     # only the second package should be downloaded
-    result = script.pip(
-        "download",
-        "-r",
-        script.scratch_path / "test-req.txt",
-        "-d",
-        ".",
-    )
-    openid_tarball_prefix = str(Path("scratch") / "python-openid-")
+    result = script.pip("download", "-r", req_file, "-f", data.packages, "--no-index")
     assert any(
-        os.fspath(path).startswith(openid_tarball_prefix)
+        os.fspath(path).startswith(str(Path("scratch") / "simple.dist"))
         for path in result.files_created
     )
-    result.did_not_create(Path("scratch") / "INITools-0.1.tar.gz")
-    result.did_not_create(script.site_packages / "initools")
-    result.did_not_create(script.site_packages / "openid")
+    result.did_not_create(Path("scratch") / "simplewheel-1.0-py2.py3-none-any.whl")
+    result.did_not_create(script.site_packages / "simplewheel")
+    result.did_not_create(script.site_packages / "simpledist")
 
 
 @pytest.mark.network
