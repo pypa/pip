@@ -308,7 +308,6 @@ class Link:
         if metadata_info is None:
             metadata_info = file_data.get("dist-info-metadata")
 
-        upload_time: datetime.datetime | None
         if upload_time_data := file_data.get("upload-time"):
             upload_time = parse_iso_datetime(upload_time_data)
         else:
