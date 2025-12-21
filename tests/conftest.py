@@ -420,6 +420,7 @@ def _common_wheel_editable_install(
                 },
                 interpreter=sys.executable,
                 script_kind="posix",
+                bytecode_optimization_levels=[0],
             ),
             additional_metadata={},
         )
