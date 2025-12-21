@@ -62,7 +62,6 @@ class TestUploadedPriorTo:
             )
 
         assert "does not provide upload-time metadata" in result.stderr
-        assert "--uploaded-prior-to" in result.stderr or "Cannot use" in result.stderr
 
     @pytest.mark.network
     def test_uploaded_prior_to_with_real_pypi(self, script: PipTestEnvironment) -> None:

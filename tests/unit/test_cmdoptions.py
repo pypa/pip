@@ -171,7 +171,7 @@ def test_handle_uploaded_prior_to_naive() -> None:
     assert result.month == 6
     assert result.day == 15
 
-    # Verify by creating the same datetime with explicit local timezone
-    local_tz = datetime.datetime.now().astimezone().tzinfo
-    expected = datetime.datetime(2023, 6, 15, 14, 30, 0, tzinfo=local_tz)
+    # Verify by creating the same datetime the same way as the implementation
+    # This ensures we get the correct DST offset for June 2023
+    expected = datetime.datetime(2023, 6, 15, 14, 30, 0).astimezone()
     assert result == expected

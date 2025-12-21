@@ -241,8 +241,7 @@ class LinkEvaluator:
 
                 return (
                     LinkType.upload_time_missing,
-                    f"{index_info} does not provide upload-time metadata. "
-                    "Cannot use --uploaded-prior-to with this index.",
+                    f"{index_info} does not provide upload-time metadata.",
                 )
             elif link.upload_time >= self._uploaded_prior_to:
                 return (

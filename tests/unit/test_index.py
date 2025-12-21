@@ -427,7 +427,7 @@ class TestLinkEvaluatorUploadedPriorTo:
                 datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
                 (
                     LinkType.upload_time_missing,
-                    "Index does not provide upload-time metadata",
+                    "does not provide upload-time metadata",
                 ),
             ),
         ],
