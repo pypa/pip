@@ -421,11 +421,20 @@ class TestLinkEvaluatorUploadedPriorTo:
                 None,
                 (LinkType.candidate, "1.0"),
             ),
+            # Test case: no upload time with filter set (should be rejected)
+            (
+                None,
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (
+                    LinkType.upload_time_missing,
+                    "Index does not provide upload-time metadata",
+                ),
+            ),
         ],
     )
     def test_evaluate_link_uploaded_prior_to(
         self,
-        upload_time: datetime.datetime,
+        upload_time: datetime.datetime | None,
         uploaded_prior_to: datetime.datetime | None,
         expected_result: tuple[LinkType, str],
     ) -> None:
@@ -437,22 +446,13 @@ class TestLinkEvaluatorUploadedPriorTo:
         )
 
         actual = evaluator.evaluate_link(link)
-        assert actual == expected_result
-
-    def test_evaluate_link_no_upload_time(self) -> None:
-        """Test that links with no upload time cause an error when filter is set."""
-        uploaded_prior_to = datetime.datetime(
-            2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-        )
-        evaluator = self.make_test_link_evaluator(uploaded_prior_to)
-
-        # Link with no upload_time should be rejected when uploaded_prior_to is set
-        link = Link("https://example.com/myproject-1.0.tar.gz")
-        actual = evaluator.evaluate_link(link)
-
-        # Should be rejected because index doesn't provide upload-time
-        assert actual[0] == LinkType.upload_time_missing
-        assert "Index does not provide upload-time metadata" in actual[1]
+        if expected_result[0] == LinkType.upload_time_missing:
+            # For upload_time_missing, just check the type and
+            # that the message contains expected text
+            assert actual[0] == expected_result[0]
+            assert expected_result[1] in actual[1]
+        else:
+            assert actual == expected_result
 
     def test_evaluate_link_no_upload_time_no_filter(self) -> None:
         """Test that links with no upload time are accepted when no filter is set."""
