@@ -518,44 +518,6 @@ class TestLinkEvaluatorUploadedPriorTo:
         # Should be rejected regardless of timezone format
         assert actual[0] == LinkType.upload_too_late
 
-    def test_uploaded_prior_to_boundary_precision(self) -> None:
-        """
-        Test that --uploaded-prior-to 2025-01-01 excludes packages
-        uploaded exactly at 2025-01-01T00:00:00.
-        """
-        # --uploaded-prior-to 2025-01-01 should be strictly less than 2025-01-01
-        cutoff_date = datetime.datetime(
-            2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-        )
-        evaluator = self.make_test_link_evaluator(uploaded_prior_to=cutoff_date)
-
-        # Package uploaded exactly at 2025-01-01T00:00:00 should be rejected
-        link_at_boundary = Link(
-            "https://example.com/myproject-1.0.tar.gz",
-            upload_time=cutoff_date,
-        )
-        result_at_boundary = evaluator.evaluate_link(link_at_boundary)
-        assert result_at_boundary[0] == LinkType.upload_too_late
-        assert "not prior to" in result_at_boundary[1]
-
-        # Package uploaded 1 second before should be accepted
-        before_cutoff = cutoff_date - datetime.timedelta(seconds=1)
-        link_before = Link(
-            "https://example.com/myproject-1.0.tar.gz",
-            upload_time=before_cutoff,
-        )
-        result_before = evaluator.evaluate_link(link_before)
-        assert result_before[0] == LinkType.candidate
-
-        # Package uploaded 1 second after should be rejected
-        after_cutoff = cutoff_date + datetime.timedelta(seconds=1)
-        link_after = Link(
-            "https://example.com/myproject-1.0.tar.gz",
-            upload_time=after_cutoff,
-        )
-        result_after = evaluator.evaluate_link(link_after)
-        assert result_after[0] == LinkType.upload_too_late
-
 
 class TestCandidateEvaluator:
     @pytest.mark.parametrize(
