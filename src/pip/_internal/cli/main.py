@@ -8,12 +8,6 @@ import os
 import sys
 import warnings
 
-from pip._internal.cli.autocompletion import autocomplete
-from pip._internal.cli.main_parser import parse_command
-from pip._internal.commands import create_command
-from pip._internal.exceptions import PipError
-from pip._internal.utils import deprecation
-
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +39,12 @@ logger = logging.getLogger(__name__)
 
 
 def main(args: list[str] | None = None) -> int:
+    from pip._internal.cli.autocompletion import autocomplete
+    from pip._internal.cli.main_parser import parse_command
+    from pip._internal.commands import create_command
+    from pip._internal.exceptions import PipError
+    from pip._internal.utils import deprecation
+
     if args is None:
         args = sys.argv[1:]
 
