@@ -1,0 +1,1 @@
+Support developing pip with GitHub codespace by adding devcontainer.json file

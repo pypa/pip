@@ -113,6 +113,7 @@ include = [
     "docs/**/*.rst",
 ]
 exclude = [
+    ".devcontainer/devcontainer.json",
     "src/pip/_vendor/**/*.pyi",
 ]
 
