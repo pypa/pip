@@ -189,7 +189,7 @@ class ConfigOptionParser(CustomOptionParser):
             name: [] for name in override_order
         }
 
-        for _, value in self.config.items():  # noqa: PERF102
+        for _, value in self.config.items():
             for section_key, val in value.items():
                 # ignore empty values
                 if not val:

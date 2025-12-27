@@ -81,6 +81,7 @@ test-common-wheels = [
     # As required by pytest-cov.
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
+    "keyring",
 ]
 
 docs = [
@@ -231,7 +232,6 @@ select = [
     "G",
     "I",
     "ISC",
-    "PERF",
     "PIE810",
     "PLE",
     "PLR0",

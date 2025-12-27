@@ -95,6 +95,7 @@ class IndexCommand(IndexGroupCommand):
         # Pass allow_yanked=False to ignore yanked versions.
         selection_prefs = SelectionPreferences(
             allow_yanked=False,
+            format_control=options.format_control,
             allow_all_prereleases=options.pre,
             ignore_requires_python=ignore_requires_python,
         )

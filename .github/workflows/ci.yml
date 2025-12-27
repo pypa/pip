@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.1
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
@@ -70,7 +70,7 @@ jobs:
         os: [ubuntu-22.04, windows-latest]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.1
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
@@ -94,7 +94,7 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.1
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
@@ -125,7 +125,7 @@ jobs:
           - "3.14"
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.1
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -159,7 +159,7 @@ jobs:
           nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
           tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
 
   tests-windows:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
@@ -195,7 +195,7 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.1
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -221,7 +221,7 @@ jobs:
         run: >-
           nox -s test-${{ matrix.python }} --no-install --
           tests/functional -k "${{ matrix.group.pytest-filter }}"
-          --verbose --numprocesses auto --showlocals
+          --verbose --numprocesses auto --showlocals --durations=15
 
   tests-zipapp:
     name: tests / zipapp
@@ -236,7 +236,7 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.1
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
@@ -252,7 +252,7 @@ jobs:
           nox -s test-3.10 --
           tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
           --use-zipapp
 
   check:  # This job does nothing and is only used for the branch protection
