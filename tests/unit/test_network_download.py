@@ -437,5 +437,5 @@ def test_batch_parallel_downloads(tmpdir: Path) -> None:
         assert len(results) == 2
         
         # Verify files were created
-        for link, (filepath, content_type) in results:
+        for _link, (filepath, _content_type) in results:
             assert Path(filepath).exists()
