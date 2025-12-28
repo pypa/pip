@@ -334,11 +334,13 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
         ssl_context: SSLContext | None = None,
+        parallel_downloads: int = 1,
         **kwargs: Any,
     ) -> None:
         """
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
+        :param parallel_downloads: Number of parallel downloads (1 = sequential).
         """
         super().__init__(*args, **kwargs)
 
@@ -372,6 +374,7 @@ class PipSession(requests.Session):
             backoff_factor=0.25,
         )  # type: ignore
         self.resume_retries = resume_retries
+        self.parallel_downloads = max(1, parallel_downloads)  # Ensure at least 1
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.
