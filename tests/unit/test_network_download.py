@@ -394,15 +394,15 @@ def test_parallel_downloads_configuration() -> None:
     # Default should be 1 (sequential)
     session_default = PipSession()
     assert session_default.parallel_downloads == 1
-    
+
     # Explicit value should be set
     session_parallel = PipSession(parallel_downloads=4)
     assert session_parallel.parallel_downloads == 4
-    
+
     # Zero should be clamped to 1
     session_zero = PipSession(parallel_downloads=0)
     assert session_zero.parallel_downloads == 1
-    
+
     # Negative should be clamped to 1
     session_negative = PipSession(parallel_downloads=-5)
     assert session_negative.parallel_downloads == 1
@@ -412,30 +412,30 @@ def test_batch_parallel_downloads(tmpdir: Path) -> None:
     """Test that batch downloads work with parallel_downloads enabled."""
     session = PipSession(parallel_downloads=2)
     downloader = Downloader(session, "on")
-    
+
     # Create mock responses
     mock_resp1 = MockResponse(b"content1")
     mock_resp1.headers = {"content-length": "8"}
     mock_resp1.url = "http://example.com/file1.whl"
-    
+
     mock_resp2 = MockResponse(b"content2")
     mock_resp2.headers = {"content-length": "8"}
     mock_resp2.url = "http://example.com/file2.whl"
-    
+
     responses = [mock_resp1, mock_resp2]
     _http_get_mock = MagicMock(side_effect=responses)
-    
+
     links = [
         Link("http://example.com/file1.whl"),
         Link("http://example.com/file2.whl"),
     ]
-    
+
     with patch.object(Downloader, "_http_get", _http_get_mock):
         results = list(downloader.batch(links, str(tmpdir)))
-        
+
         # Both downloads should complete
         assert len(results) == 2
-        
+
         # Verify files were created
         for _link, (filepath, _content_type) in results:
             assert Path(filepath).exists()
