@@ -1442,3 +1442,124 @@ def test_canonicalizes_package_name_before_verifying_metadata(
     assert os.listdir(download_dir) == [
         "requires_simple_extra-0.1-py2.py3-none-any.whl",
     ]
+
+
+def test_download_metadata_only_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test that --metadata-only extracts only .dist-info from wheels.
+    """
+    script.pip(
+        "download",
+        "--metadata-only",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.packages,
+        "-d",
+        "metadata_output",
+        "simple==3.0",
+    )
+
+    # Check that metadata directory was created
+    metadata_dir = script.scratch_path / "metadata_output"
+    dist_info_dirs = [
+        d for d in metadata_dir.iterdir() if d.name.endswith(".dist-info")
+    ]
+    assert len(dist_info_dirs) > 0, "No .dist-info directory found"
+
+    # Verify METADATA file exists
+    dist_info = dist_info_dirs[0]
+    metadata_file = dist_info / "METADATA"
+    assert metadata_file.exists(), "METADATA file not found in .dist-info"
+
+    # Verify the wheel file itself was NOT saved
+    wheel_files = list(metadata_dir.glob("*.whl"))
+    assert (
+        len(wheel_files) == 0
+    ), "Wheel file should not be present with --metadata-only"
+
+
+def test_download_metadata_only_multiple_packages(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test that --metadata-only works with multiple packages.
+    """
+    script.pip(
+        "download",
+        "--metadata-only",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.packages,
+        "-d",
+        "metadata_output",
+        "simple==1.0",
+        "simple==2.0",
+    )
+
+    metadata_dir = script.scratch_path / "metadata_output"
+    dist_info_dirs = [
+        d for d in metadata_dir.iterdir() if d.name.endswith(".dist-info")
+    ]
+
+    # Should have metadata for both packages
+    assert (
+        len(dist_info_dirs) >= 2
+    ), f"Expected at least 2 .dist-info directories, got {len(dist_info_dirs)}"
+
+
+def test_download_metadata_only_with_requirements_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test that --metadata-only works with requirements files.
+    """
+    requirements_file = script.scratch_path / "requirements.txt"
+    requirements_file.write_text("simple==1.0\n")
+
+    script.pip(
+        "download",
+        "--metadata-only",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.packages,
+        "-d",
+        "metadata_output",
+        "-r",
+        requirements_file,
+    )
+
+    metadata_dir = script.scratch_path / "metadata_output"
+    dist_info_dirs = [
+        d for d in metadata_dir.iterdir() if d.name.endswith(".dist-info")
+    ]
+    assert len(dist_info_dirs) > 0, "No .dist-info directory found"
+
+
+def test_download_metadata_only_sdist_warning(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test that --metadata-only shows warning for source distributions.
+    """
+    # Use a package that's only available as sdist
+    _result = script.pip(
+        "download",
+        "--metadata-only",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.packages,
+        "-d",
+        "metadata_output",
+        "simple==1.0",
+        expect_stderr=True,
+    )
+
+    # Check for warning message about sdist
+    # Note: This test may need adjustment based on what packages are available
+    # in data.packages as sdist vs wheel

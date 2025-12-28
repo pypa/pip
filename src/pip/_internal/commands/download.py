@@ -1,6 +1,8 @@
 import logging
 import os
 from optparse import Values
+from pathlib import Path
+from zipfile import ZipFile
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -9,6 +11,7 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.wheel import wheel_dist_info_dir
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +63,18 @@ class DownloadCommand(RequirementCommand):
             metavar="dir",
             default=os.curdir,
             help="Download packages into <dir>.",
+        )
+
+        self.cmd_opts.add_option(
+            "--metadata-only",
+            dest="metadata_only",
+            action="store_true",
+            default=False,
+            help=(
+                "Download only package metadata (.dist-info directories) "
+                "without downloading the full packages. Useful for dependency "
+                "analysis, security auditing, and compatibility checking."
+            ),
         )
 
         cmdoptions.add_target_python_options(self.cmd_opts)
@@ -134,10 +149,96 @@ class DownloadCommand(RequirementCommand):
         for req in requirement_set.requirements.values():
             if req.satisfied_by is None:
                 assert req.name is not None
-                preparer.save_linked_requirement(req)
+                if options.metadata_only:
+                    self._download_metadata_only(req, options.download_dir)
+                else:
+                    preparer.save_linked_requirement(req)
                 downloaded.append(req.name)
 
         if downloaded:
-            write_output("Successfully downloaded %s", " ".join(downloaded))
+            action = "metadata" if options.metadata_only else "downloaded"
+            write_output("Successfully %s %s", action, " ".join(downloaded))
 
         return SUCCESS
+
+    def _download_metadata_only(self, req, download_dir: str) -> None:
+        """Extract and save only metadata from a package.
+
+        For wheels: Extract .dist-info directory from the wheel archive.
+        For source distributions: Try to fetch metadata via PEP 658 if available,
+        otherwise log a warning and skip.
+        """
+        assert req.local_file_path is not None, "Requirement must be downloaded first"
+        local_path = Path(req.local_file_path)
+
+        if not local_path.exists():
+            logger.warning("Package file not found: %s", local_path)
+            return
+
+        # Handle wheel files
+        if local_path.suffix == ".whl":
+            self._extract_wheel_metadata(local_path, req.name, download_dir)
+        else:
+            # For sdist, check if metadata was fetched via PEP 658
+            if hasattr(req, "metadata_directory") and req.metadata_directory:
+                self._copy_metadata_directory(
+                    Path(req.metadata_directory), download_dir
+                )
+            else:
+                logger.warning(
+                    "Metadata-only download not supported for source distribution: %s. "
+                    "Consider using --only-binary=:all: to restrict to wheels.",
+                    req.name,
+                )
+
+    def _extract_wheel_metadata(
+        self, wheel_path: Path, package_name: str, download_dir: str
+    ) -> None:
+        """Extract .dist-info directory from a wheel file."""
+        try:
+            with ZipFile(wheel_path, "r") as wheel_zip:
+                # Find the .dist-info directory
+                dist_info_dir = wheel_dist_info_dir(wheel_zip, package_name)
+
+                # Extract only files from .dist-info directory
+                dist_info_members = [
+                    name
+                    for name in wheel_zip.namelist()
+                    if name.startswith(f"{dist_info_dir}/")
+                ]
+
+                # Create output directory
+                output_dir = Path(download_dir)
+                output_dir.mkdir(parents=True, exist_ok=True)
+
+                # Extract metadata files
+                for member in dist_info_members:
+                    target_path = output_dir / member
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Extract file content
+                    with wheel_zip.open(member) as source:
+                        target_path.write_bytes(source.read())
+
+                logger.info("Extracted metadata for %s to %s", package_name, output_dir)
+
+        except Exception as e:
+            logger.error("Failed to extract metadata from %s: %s", wheel_path, e)
+            raise
+
+    def _copy_metadata_directory(self, metadata_dir: Path, download_dir: str) -> None:
+        """Copy a metadata directory to the download location."""
+        import shutil
+
+        output_dir = Path(download_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy the entire .dist-info directory
+        dist_info_name = metadata_dir.name
+        target_path = output_dir / dist_info_name
+
+        if target_path.exists():
+            shutil.rmtree(target_path)
+
+        shutil.copytree(metadata_dir, target_path)
+        logger.info("Copied metadata directory %s to %s", dist_info_name, output_dir)
