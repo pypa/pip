@@ -168,66 +168,42 @@ def copy_directory_permissions(directory: str, target_file: BinaryIO) -> None:
 def subdirs_without_files(path: str) -> Generator[Path]:
     """Yields every subdirectory of +path+ that has no files under it."""
 
-    def inner(path: Path, parents: list[Path]) -> Generator[Path]:
-        path_obj = Path(path)
+    path = Path(path)
 
-        if not path_obj.exists():
-            return
+    directories = []
+    non_empty = set()
 
-        subdirs = []
-        for item in path_obj.iterdir():
-            if item.is_dir():
-                subdirs.append(item)
-            else:
-                # If we find a file, we want to preserve the whole subtree,
-                # so bail immediately.
-                return
+    for root, _, filenames in path.resolve().walk():
+        if filenames:
+            # This directory contains a file, so mark it and all of its
+            # parent directories as non-empty.
+            # The last item in root.parents is ".", so we ignore it.
+            non_empty.update(root.parents[:-1])
+            non_empty.add(root)
+        directories.append(root)
 
-        # If we get to this point, we didn't find a file yet.
-
-        if parents is None:
-            parents = []
-        else:
-            parents += [path_obj]
-
-        if subdirs:
-            for subdir in subdirs:
-                yield from inner(subdir, parents)
-        else:
-            yield from parents
-
-    yield from sorted(set(inner(Path(path), [])), reverse=True)
+    for d in sorted(directories, reverse=True):
+        if d not in non_empty:
+            yield d
 
 
 def subdirs_without_wheels(path: str) -> Generator[Path]:
     """Yields every subdirectory of +path+ that has no .whl files under it."""
 
-    def inner(path: str | Path, parents: list[Path]) -> Generator[Path]:
-        path_obj = Path(path)
+    path = Path(path)
 
-        if not path_obj.exists():
-            return
+    directories = []
+    has_wheels = set()
 
-        subdirs = []
-        for item in path_obj.iterdir():
-            if item.is_dir():
-                subdirs.append(item)
-            elif item.name.endswith(".whl"):
-                # If we found a wheel, we want to preserve this whole subtree,
-                # so we bail immediately and don't return any results.
-                return
+    for root, _, filenames in path.resolve().walk():
+        if any(x.endswith('.whl') for x in filenames):
+            # This directory contains a wheel file, so mark it and all of its
+            # parent directories as has-wheel.
+            # The last item in root.parents is ".", so we ignore it.
+            has_wheels.update(root.parents[:-1])
+            has_wheels.add(root)
+        directories.append(root)
 
-        # If we get to this point, we didn't find a wheel yet.
-
-        if parents is None:
-            parents = []
-        else:
-            parents += [path_obj]
-
-        if subdirs:
-            for subdir in subdirs:
-                yield from inner(subdir, parents)
-        else:
-            yield from parents
-
-    yield from sorted(set(inner(path, [])), reverse=True)
+    for d in sorted(directories, reverse=True):
+        if d not in has_wheels:
+            yield d
