@@ -5,7 +5,6 @@ import os
 import sys
 import sysconfig
 from collections.abc import Generator, Iterable
-from importlib.util import cache_from_source
 from typing import Any, Callable
 
 from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
@@ -336,9 +335,15 @@ class UninstallPathSet:
             self._refuse.add(path)
 
         # __pycache__ files can show up after 'installed-files.txt' is created,
-        # due to imports
+        # due to imports and is invalidated when an adjacent .py file is removed
         if os.path.splitext(path)[1] == ".py":
-            self.add(cache_from_source(path))
+            pycache = os.path.join(os.path.dirname(path), "__pycache__")
+            # only evaluate __pycache__ once
+            if not (pycache in self._paths or pycache in self._refuse):
+                self.add(pycache)
+        elif os.path.basename(path) == "__pycache__" and os.path.isdir(path):
+            for dirpath, _, dirfiles in os.walk(path):
+                self._paths.update(os.path.join(dirpath, f) for f in dirfiles)
 
     def add_pth(self, pth_file: str, entry: str) -> None:
         pth_file = self._normalize_path_cached(pth_file)
