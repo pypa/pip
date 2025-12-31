@@ -83,5 +83,11 @@ def get_dist_canonical_name(dist: importlib.metadata.Distribution) -> Normalized
 
     name = cast(Any, dist).name
     if not isinstance(name, str):
+        if info_location := get_info_location(dist):
+            for metadata_name in ["METADATA", "PKG-INFO"]:
+                if (cast(Any, info_location) / metadata_name).is_file():
+                    break
+            else:
+                raise BadMetadata(dist, reason="metadata file missing")
         raise BadMetadata(dist, reason="invalid metadata entry 'name'")
     return canonicalize_name(name)
