@@ -173,7 +173,8 @@ def subdirs_without_files(path: str) -> Generator[Path]:
     directories = []
     non_empty = set()
 
-    for root, _, filenames in path.resolve().walk():
+    for root, _, filenames in os.walk(path.resolve()):
+        root = Path(root)
         if filenames:
             # This directory contains a file, so mark it and all of its
             # parent directories as non-empty.
@@ -195,7 +196,8 @@ def subdirs_without_wheels(path: str) -> Generator[Path]:
     directories = []
     has_wheels = set()
 
-    for root, _, filenames in path.resolve().walk():
+    for root, _, filenames in os.walk(path.resolve()):
+        root = Path(root)
         if any(x.endswith('.whl') for x in filenames):
             # This directory contains a wheel file, so mark it and all of its
             # parent directories as has-wheel.
