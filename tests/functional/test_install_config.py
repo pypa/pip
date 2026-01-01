@@ -273,9 +273,8 @@ def test_prompt_for_authentication(
     requiring authentication
     """
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -313,9 +312,8 @@ def test_do_not_prompt_for_authentication(
     from a index url requiring authentication
     """
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -463,9 +461,8 @@ def test_prompt_for_keyring_if_needed(
         keyring_script = script
 
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     response = authorization_response if auth_needed else file_response
