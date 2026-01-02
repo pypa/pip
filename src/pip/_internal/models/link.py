@@ -7,6 +7,7 @@ import os
 import posixpath
 import re
 import urllib.parse
+import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (

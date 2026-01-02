@@ -1152,7 +1152,15 @@ def create_really_basic_wheel(name: str, version: str) -> bytes:
     records = [(record_path, "", "")]
     buf = BytesIO()
     with ZipFile(buf, "w") as z:
-        add_file(f"{dist_info}/WHEEL", "Wheel-Version: 1.0")
+        add_file(
+            f"{dist_info}/WHEEL",
+            dedent(
+                """\
+                Wheel-Version: 1.0
+                Root-Is-Purelib: true
+                """
+            ),
+        )
         add_file(
             f"{dist_info}/METADATA",
             dedent(
