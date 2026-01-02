@@ -179,7 +179,9 @@ def subdirs_without_files(path: str) -> Generator[Path]:
             # This directory contains a file, so mark it and all of its
             # parent directories as non-empty.
             # The last item in root.parents is ".", so we ignore it.
-            non_empty.update(root.parents[:-1])
+            #
+            # Wrapping this in `list()` is only needed for Python 3.9.
+            non_empty.update(list(root.parents)[:-1])
             non_empty.add(root)
         directories.append(root)
 
@@ -202,7 +204,9 @@ def subdirs_without_wheels(path: str) -> Generator[Path]:
             # This directory contains a wheel file, so mark it and all of its
             # parent directories as has-wheel.
             # The last item in root.parents is ".", so we ignore it.
-            has_wheels.update(root.parents[:-1])
+            #
+            # Wrapping this in `list()` is only needed for Python 3.9.
+            has_wheels.update(list(root.parents)[:-1])
             has_wheels.add(root)
         directories.append(root)
 
