@@ -168,13 +168,11 @@ def copy_directory_permissions(directory: str, target_file: BinaryIO) -> None:
 def subdirs_without_files(path: str) -> Generator[Path]:
     """Yields every subdirectory of +path+ that has no files under it."""
 
-    path = Path(path)
-
     directories = []
     non_empty = set()
 
-    for root, _, filenames in os.walk(path.resolve()):
-        root = Path(root)
+    for root_str, _, filenames in os.walk(Path(path).resolve()):
+        root = Path(root_str)
         if filenames:
             # This directory contains a file, so mark it and all of its
             # parent directories as non-empty.
@@ -193,14 +191,12 @@ def subdirs_without_files(path: str) -> Generator[Path]:
 def subdirs_without_wheels(path: str) -> Generator[Path]:
     """Yields every subdirectory of +path+ that has no .whl files under it."""
 
-    path = Path(path)
-
     directories = []
     has_wheels = set()
 
-    for root, _, filenames in os.walk(path.resolve()):
-        root = Path(root)
-        if any(x.endswith('.whl') for x in filenames):
+    for root_str, _, filenames in os.walk(Path(path).resolve()):
+        root = Path(root_str)
+        if any(x.endswith(".whl") for x in filenames):
             # This directory contains a wheel file, so mark it and all of its
             # parent directories as has-wheel.
             # The last item in root.parents is ".", so we ignore it.
