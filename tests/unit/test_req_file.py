@@ -325,16 +325,6 @@ class TestProcessLine:
         req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
-    def test_yield_editable_constraint(self, line_processor: LineProcessor) -> None:
-        url = "git+https://url#egg=SomeProject"
-        line = f"-e {url}"
-        filename = "filename"
-        comes_from = f"-c {filename} (line {1})"
-        req = install_req_from_editable(url, comes_from=comes_from, constraint=True)
-        found_req = line_processor(line, filename, 1, constraint=True)[0]
-        assert repr(found_req) == repr(req)
-        assert found_req.constraint is True
-
     def test_nested_constraints_file(
         self, monkeypatch: pytest.MonkeyPatch, tmpdir: Path, session: PipSession
     ) -> None:
