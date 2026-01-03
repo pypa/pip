@@ -895,15 +895,11 @@ def test_config_settings_local_to_package(
         )
     )
 
-    script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        script.scratch_path,
-        "-f",
-        common_wheels,
+    script.pip_install_local(
+        "--no-build-isolation",
         "-r",
         reqs_file,
+        find_links=[script.scratch_path, common_wheels],
     )
 
     simple0_args = simple0_sdist.args()
