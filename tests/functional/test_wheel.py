@@ -425,7 +425,6 @@ def test_pip_wheel_ext_module_with_tmpdir_inside(
     assert "Successfully built extension" in result.stdout, result.stdout
 
 
-@pytest.mark.network
 def test_pep517_wheels_are_not_confused_with_other_files(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -433,7 +432,15 @@ def test_pep517_wheels_are_not_confused_with_other_files(
     pkg_to_wheel = data.src / "withpyproject"
     add_files_to_dist_directory(pkg_to_wheel)
 
-    result = script.pip("wheel", pkg_to_wheel, "-w", script.scratch_path)
+    result = script.pip(
+        "wheel",
+        pkg_to_wheel,
+        "-w",
+        script.scratch_path,
+        "--no-index",
+        "-f",
+        data.common_wheels,
+    )
     assert "Installing build dependencies" in result.stdout, result.stdout
 
     wheel_file_name = f"withpyproject-0.0.1-py{pyversion[0]}-none-any.whl"
