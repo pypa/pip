@@ -2360,9 +2360,8 @@ def test_install_sends_client_cert(
     data: TestData,
 ) -> None:
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -2409,9 +2408,8 @@ def test_install_sends_certs_for_pep518_deps(
     common_wheels: Path,
 ) -> None:
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     setuptools_pkg = next(common_wheels.glob("setuptools*")).name
