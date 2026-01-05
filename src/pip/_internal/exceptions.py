@@ -18,7 +18,6 @@ from collections.abc import Iterator
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Literal
 
-from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.version import InvalidVersion
 from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
 from pip._vendor.rich.markup import escape
@@ -27,6 +26,7 @@ from pip._vendor.rich.text import Text
 if TYPE_CHECKING:
     from hashlib import _Hash
 
+    from pip._vendor.packaging.requirements import InvalidRequirement
     from pip._vendor.requests.models import PreparedRequest, Request, Response
 
     from pip._internal.metadata import BaseDistribution
@@ -809,6 +809,9 @@ class InvalidInstalledPackage(DiagnosticPipError):
         dist: BaseDistribution,
         invalid_exc: InvalidRequirement | InvalidVersion,
     ) -> None:
+        # packaging.requirements module is slow to import
+        from pip._vendor.packaging.requirements import InvalidRequirement
+
         installed_location = dist.installed_location
 
         if isinstance(invalid_exc, InvalidRequirement):
