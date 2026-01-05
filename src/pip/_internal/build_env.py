@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import pathlib
 import site
 import sys
 import textwrap
@@ -15,12 +14,12 @@ from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from pip._vendor.packaging.version import Version
 
-from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import VERBOSE
+from pip._internal.utils.misc import get_runnable_pip
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -47,22 +46,6 @@ class _Prefix:
         scheme = get_scheme("", prefix=path)
         self.bin_dir = scheme.scripts
         self.lib_dirs = _dedup(scheme.purelib, scheme.platlib)
-
-
-def get_runnable_pip() -> str:
-    """Get a file to pass to a Python executable, to run the currently-running pip.
-
-    This is used to run a pip subprocess, for installing requirements into the build
-    environment.
-    """
-    source = pathlib.Path(pip_location).resolve().parent
-
-    if not source.is_dir():
-        # This would happen if someone is using pip from inside a zip file. In that
-        # case, we can use that directly.
-        return str(source)
-
-    return os.fsdecode(source / "__pip-runner__.py")
 
 
 def _get_system_sitepackages() -> set[str]:

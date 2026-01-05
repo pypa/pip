@@ -5,6 +5,7 @@ import getpass
 import hashlib
 import logging
 import os
+import pathlib
 import posixpath
 import shutil
 import stat
@@ -31,6 +32,7 @@ from typing import (
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
+from pip import __file__ as pip_location
 from pip import __version__
 from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
 from pip._internal.locations import get_major_minor_version
@@ -72,6 +74,22 @@ def get_pip_version() -> str:
     pip_pkg_dir = os.path.abspath(pip_pkg_dir)
 
     return f"pip {__version__} from {pip_pkg_dir} (python {get_major_minor_version()})"
+
+
+def get_runnable_pip() -> str:
+    """Get a file to pass to a Python executable, to run the currently-running pip.
+
+    This is used to run a pip subprocess, for installing requirements into the build
+    environment.
+    """
+    source = pathlib.Path(pip_location).resolve().parent
+
+    if not source.is_dir():
+        # This would happen if someone is using pip from inside a zip file. In that
+        # case, we can use that directly.
+        return str(source)
+
+    return os.fsdecode(source / "__pip-runner__.py")
 
 
 def normalize_version_info(py_version_info: tuple[int, ...]) -> tuple[int, int, int]:
