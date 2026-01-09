@@ -356,12 +356,16 @@ def test_explicit_setuptools_backend(
 
 
 @pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
-@pytest.mark.network
-def test_nested_builds(script: PipTestEnvironment, flag: str) -> None:
+def test_nested_builds(script: PipTestEnvironment, flag: str, data: TestData) -> None:
     """Smoke test ensuring that nested PEP 517 builds work."""
     # trove-classifiers -> setuptools
     #                   -> calvar -> setuptools
-    result = script.pip(
-        "install", "trove-classifiers", "--no-cache", "--no-binary", ":all:", flag
+    result = script.pip_install_local(
+        "trove-classifiers",
+        "--no-cache",
+        "--no-binary",
+        "trove-classifiers,calvar",
+        flag,
+        find_links=[data.pypi_packages, data.common_wheels],
     )
     result.assert_installed("trove_classifiers", editable=False)
