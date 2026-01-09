@@ -2066,7 +2066,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
         "which are not also hosted on PyPI."
     )
     error_cause = (
-        "pep-508-url-deps depends on sampleproject@ "
+        "pep-508-url-deps depends on sampleproject @ "
         "https://github.com/pypa/sampleproject/archive/master.zip"
     )
     assert res.returncode == 1
