@@ -15,7 +15,8 @@ from pip._vendor.cachecontrol.wrapper import CacheControl
 
 __author__ = "Eric Larson"
 __email__ = "eric@ionrock.org"
-__version__ = importlib.metadata.version("cachecontrol")
+# pip patch: this won't work when vendored, so just patch it out as it's unused
+# __version__ = importlib.metadata.version("cachecontrol")
 
 __all__ = [
     "__author__",
