@@ -206,11 +206,11 @@ in order to start contributing.
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
-.. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
+.. _`rich CLI`: https://docs.pytest.org/en/latest/how-to/usage.html#specifying-which-tests-to-run
 .. _`GitHub`: https://github.com/pypa/pip
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
 .. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
 .. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/
 .. _`Hello World for Git`: https://guides.github.com/activities/hello-world/
 .. _`Understanding the GitHub flow`: https://guides.github.com/introduction/flow/
-.. _`Start using Git on the command line`: https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html
+.. _`Start using Git on the command line`: https://docs.gitlab.com/ee/topics/git/
