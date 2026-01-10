@@ -232,9 +232,7 @@ class LinkEvaluator:
         # to packages from indexes.
         if self._uploaded_prior_to is not None and not link.is_file:
             if link.upload_time is None:
-                if isinstance(link.comes_from, IndexContent):
-                    index_info = f"Index {link.comes_from.url}"
-                elif link.comes_from:
+                if link.comes_from:
                     index_info = f"Index {link.comes_from}"
                 else:
                     index_info = "Index"
