@@ -12,7 +12,6 @@ import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
-    TYPE_CHECKING,
     Any,
     NamedTuple,
 )

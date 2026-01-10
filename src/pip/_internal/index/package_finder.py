@@ -29,7 +29,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.index.collector import IndexContent, LinkCollector, parse_links
+from pip._internal.index.collector import LinkCollector, parse_links
 from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
