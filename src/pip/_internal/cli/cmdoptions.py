@@ -451,7 +451,7 @@ def _handle_uploaded_prior_to(
         parser.values.uploaded_prior_to = uploaded_prior_to
     except ValueError as exc:
         msg = (
-            f"invalid --uploaded-prior-to value: {value!r}: {exc}. "
+            f"invalid value: {value!r}: {exc}. "
             f"Expected an ISO 8601 datetime string, "
             f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
         )
