@@ -14,7 +14,8 @@ import logging
 import pathlib
 import re
 import sys
-from collections.abc import Iterator
+import traceback
+from collections.abc import Iterable, Iterator
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Literal
 
@@ -895,4 +896,52 @@ class InstallWheelBuildError(DiagnosticPipError):
             ),
             context=", ".join(r.name for r in failed),  # type: ignore
             hint_stmt=None,
+        )
+
+
+class BuildDependencyInstallError(DiagnosticPipError):
+    """Raised when build dependencies cannot be installed."""
+
+    reference = "failed-build-dependency-install"
+
+    def __init__(
+        self,
+        req: InstallRequirement | None,
+        build_reqs: Iterable[str],
+        *,
+        cause: Exception,
+        log_lines: list[str] | None,
+    ) -> None:
+        if isinstance(cause, PipError):
+            note = "This is likely not a problem with pip."
+        else:
+            note = (
+                "pip crashed unexpectedly. Please file an issue on pip's issue "
+                "tracker: https://github.com/pypa/pip/issues/new"
+            )
+
+        if log_lines is None:
+            # No logs are available, they must have been printed earlier.
+            context = Text("See above for more details.")
+        else:
+            if isinstance(cause, PipError):
+                log_lines.append(f"ERROR: {cause}")
+            else:
+                # Split rendered error into real lines without trailing newlines.
+                log_lines.extend(
+                    "".join(traceback.format_exception(cause)).splitlines()
+                )
+
+            context = Text.assemble(
+                f"Installing {' '.join(build_reqs)}\n",
+                (f"[{len(log_lines)} lines of output]\n", "red"),
+                "\n".join(log_lines),
+                ("\n[end of output]", "red"),
+            )
+
+        message = Text("Cannot install build dependencies", "green")
+        if req:
+            message += Text(f" for {req}")
+        super().__init__(
+            message=message, context=context, hint_stmt=None, note_stmt=note
         )

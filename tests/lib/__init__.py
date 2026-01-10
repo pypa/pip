@@ -769,6 +769,12 @@ class PipTestEnvironment(TestFileEnvironment):
         create_file(path, contents)
         return path
 
+    def temporary_multiline_file(
+        self, filename: str | pathlib.Path, contents: str
+    ) -> pathlib.Path:
+        """Like temporary_file() but calls textwrap.dedent beforehand."""
+        return self.temporary_file(filename, textwrap.dedent(contents))
+
 
 # FIXME ScriptTest does something similar, but only within a single
 # ProcResult; this generalizes it so states can be compared across
@@ -1155,7 +1161,15 @@ def create_really_basic_wheel(name: str, version: str) -> bytes:
     records = [(record_path, "", "")]
     buf = BytesIO()
     with ZipFile(buf, "w") as z:
-        add_file(f"{dist_info}/WHEEL", "Wheel-Version: 1.0")
+        add_file(
+            f"{dist_info}/WHEEL",
+            dedent(
+                """\
+                Wheel-Version: 1.0
+                Root-Is-Purelib: true
+                """
+            ),
+        )
         add_file(
             f"{dist_info}/METADATA",
             dedent(

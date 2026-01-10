@@ -47,7 +47,7 @@ from tests.lib import (
     ScriptFactory,
     TestData,
 )
-from tests.lib.server import MockServer, make_mock_server
+from tests.lib.server import MockServer, make_mock_server, patch_getfqdn
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
@@ -420,6 +420,7 @@ def _common_wheel_editable_install(
                 },
                 interpreter=sys.executable,
                 script_kind="posix",
+                bytecode_optimization_levels=[0],
             ),
             additional_metadata={},
         )
@@ -511,12 +512,13 @@ def virtualenv_template(
     # detects changed files.
     venv.site.joinpath("easy-install.pth").touch()
 
-    # Install coverage and pth file for executing it in any spawned processes
-    # in this virtual environment.
-    install_pth_link(venv, "coverage", coverage_install)
-    # zz prefix ensures the file is after easy-install.pth.
-    with open(venv.site / "zz-coverage-helper.pth", "a") as f:
-        f.write("import coverage; coverage.process_startup()")
+    if request.config.getoption("--cov"):
+        # Install coverage and pth file for executing it in any spawned processes
+        # in this virtual environment.
+        install_pth_link(venv, "coverage", coverage_install)
+        # zz prefix ensures the file is after easy-install.pth.
+        with open(venv.site / "zz-coverage-helper.pth", "a") as f:
+            f.write("import coverage; coverage.process_startup()")
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
@@ -1000,7 +1002,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[set[str]] = set()
 
-    with InDirectoryServer(("", 8000), Handler) as httpd:
+    with patch_getfqdn(), InDirectoryServer(("", 8000), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 
