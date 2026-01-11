@@ -67,7 +67,7 @@ else:
         )
 
 
-if sys.version_info >= (3, 11):
+if sys.version_info >= (3, 15):
     import tomllib
 else:
     from pip._vendor import tomli as tomllib
