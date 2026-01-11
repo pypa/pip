@@ -13,7 +13,11 @@ from functools import partial
 from optparse import Values
 from typing import Any, Callable, TypeVar
 
-from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
+from pip._internal.build_env import (
+    BuildEnvironmentInstaller,
+    InprocessBuildEnvironmentInstaller,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -100,6 +104,31 @@ def with_cleanup(
     return wrapper
 
 
+def parse_constraint_files(
+    constraint_files: list[str],
+    finder: PackageFinder,
+    options: Values,
+    session: PipSession,
+) -> list[InstallRequirement]:
+    requirements = []
+    for filename in constraint_files:
+        for parsed_req in parse_requirements(
+            filename,
+            constraint=True,
+            finder=finder,
+            options=options,
+            session=session,
+        ):
+            req_to_add = install_req_from_parsed_requirement(
+                parsed_req,
+                isolated=options.isolated_mode,
+                user_supplied=False,
+            )
+            requirements.append(req_to_add)
+
+    return requirements
+
+
 class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
@@ -159,16 +188,31 @@ class RequirementCommand(IndexGroupCommand):
             "build-constraint" in options.features_enabled
         )
 
+        env_installer: BuildEnvironmentInstaller
+        if "inprocess-build-deps" in options.features_enabled:
+            build_constraint_reqs = parse_constraint_files(
+                build_constraints, finder, options, session
+            )
+            env_installer = InprocessBuildEnvironmentInstaller(
+                finder=finder,
+                build_tracker=build_tracker,
+                build_constraints=build_constraint_reqs,
+                verbosity=verbosity,
+                wheel_cache=WheelCache(options.cache_dir),
+            )
+        else:
+            env_installer = SubprocessBuildEnvironmentInstaller(
+                finder,
+                build_constraints=build_constraints,
+                build_constraint_feature_enabled=build_constraint_feature_enabled,
+            )
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             build_isolation=options.build_isolation,
-            build_isolation_installer=SubprocessBuildEnvironmentInstaller(
-                finder,
-                build_constraints=build_constraints,
-                build_constraint_feature_enabled=build_constraint_feature_enabled,
-            ),
+            build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
@@ -251,22 +295,14 @@ class RequirementCommand(IndexGroupCommand):
         requirements: list[InstallRequirement] = []
 
         if not should_ignore_regular_constraints(options):
-            for filename in options.constraints:
-                for parsed_req in parse_requirements(
-                    filename,
-                    constraint=True,
-                    finder=finder,
-                    options=options,
-                    session=session,
-                ):
-                    req_to_add = install_req_from_parsed_requirement(
-                        parsed_req,
-                        isolated=options.isolated_mode,
-                        user_supplied=False,
-                    )
-                    requirements.append(req_to_add)
+            constraints = parse_constraint_files(
+                options.constraints, finder, options, session
+            )
+            requirements.extend(constraints)
 
         for req in args:
+            if not req.strip():
+                continue
             req_to_add = install_req_from_line(
                 req,
                 comes_from=None,

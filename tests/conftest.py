@@ -47,7 +47,7 @@ from tests.lib import (
     ScriptFactory,
     TestData,
 )
-from tests.lib.server import MockServer, make_mock_server
+from tests.lib.server import MockServer, make_mock_server, patch_getfqdn
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
@@ -1002,7 +1002,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[set[str]] = set()
 
-    with InDirectoryServer(("", 8000), Handler) as httpd:
+    with patch_getfqdn(), InDirectoryServer(("", 8000), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 

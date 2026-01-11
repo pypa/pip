@@ -1,0 +1,14 @@
+diff --git a/src/pip/_vendor/cachecontrol/__init__.py b/src/pip/_vendor/cachecontrol/__init__.py
+index 2a63377e0..3f8c36f67 100644
+--- a/src/pip/_vendor/cachecontrol/__init__.py
++++ b/src/pip/_vendor/cachecontrol/__init__.py
+@@ -15,7 +15,8 @@ from pip._vendor.cachecontrol.wrapper import CacheControl
+ 
+ __author__ = "Eric Larson"
+ __email__ = "eric@ionrock.org"
+-__version__ = importlib.metadata.version("cachecontrol")
++# pip patch: this won't work when vendored, so just patch it out as it's unused
++# __version__ = importlib.metadata.version("cachecontrol")
+ 
+ __all__ = [
+     "__author__",
