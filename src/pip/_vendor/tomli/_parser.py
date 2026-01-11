@@ -61,6 +61,7 @@ BASIC_STR_ESCAPE_REPLACEMENTS: Final = MappingProxyType(
         "\\n": "\u000a",  # linefeed
         "\\f": "\u000c",  # form feed
         "\\r": "\u000d",  # carriage return
+        "\\e": "\u001b",  # escape
         '\\"': "\u0022",  # quote
         "\\\\": "\u005c",  # backslash
     }
@@ -145,7 +146,7 @@ def load(__fp: IO[bytes], *, parse_float: ParseFloat = float) -> dict[str, Any]:
     return loads(s, parse_float=parse_float)
 
 
-def loads(__s: str, *, parse_float: ParseFloat = float) -> dict[str, Any]:  # noqa: C901
+def loads(__s: str, *, parse_float: ParseFloat = float) -> dict[str, Any]:
     """Parse TOML from a string."""
 
     # The spec allows converting "\r\n" to "\n", even in string
@@ -531,7 +532,7 @@ def parse_inline_table(
     nested_dict = NestedDict()
     flags = Flags()
 
-    pos = skip_chars(src, pos, TOML_WS)
+    pos = skip_comments_and_array_ws(src, pos)
     if src.startswith("}", pos):
         return pos + 1, nested_dict.dict
     while True:
@@ -546,16 +547,18 @@ def parse_inline_table(
         if key_stem in nest:
             raise TOMLDecodeError(f"Duplicate inline table key {key_stem!r}", src, pos)
         nest[key_stem] = value
-        pos = skip_chars(src, pos, TOML_WS)
+        pos = skip_comments_and_array_ws(src, pos)
         c = src[pos : pos + 1]
         if c == "}":
             return pos + 1, nested_dict.dict
         if c != ",":
             raise TOMLDecodeError("Unclosed inline table", src, pos)
+        pos += 1
+        pos = skip_comments_and_array_ws(src, pos)
+        if src.startswith("}", pos):
+            return pos + 1, nested_dict.dict
         if isinstance(value, (dict, list)):
             flags.set(key, Flags.FROZEN, recursive=True)
-        pos += 1
-        pos = skip_chars(src, pos, TOML_WS)
 
 
 def parse_basic_str_escape(
@@ -577,6 +580,8 @@ def parse_basic_str_escape(
             pos += 1
         pos = skip_chars(src, pos, TOML_WS_AND_NEWLINE)
         return pos, ""
+    if escape_id == "\\x":
+        return parse_hex_char(src, pos, 2)
     if escape_id == "\\u":
         return parse_hex_char(src, pos, 4)
     if escape_id == "\\U":
@@ -676,7 +681,7 @@ def parse_basic_str(src: str, pos: Pos, *, multiline: bool) -> tuple[Pos, str]:
         pos += 1
 
 
-def parse_value(  # noqa: C901
+def parse_value(
     src: str, pos: Pos, parse_float: ParseFloat, nest_lvl: int
 ) -> tuple[Pos, Any]:
     if nest_lvl > MAX_INLINE_NESTING:
