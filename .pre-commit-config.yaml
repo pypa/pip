@@ -17,22 +17,27 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 25.11.0
+  rev: 25.12.0
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.7
+  rev: v0.14.10
   hooks:
     - id: ruff-check
       args: [--fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.19.0
+  rev: v1.19.1
   hooks:
   - id: mypy
     exclude: tests/data
-    args: ["--pretty", "--show-error-codes"]
+    args:
+      - "--pretty"
+      - "--show-error-codes"
+      # Since this is only a partial mypy run, we can get false-positives
+      # for unused ignores.
+      - "--no-warn-unused-ignores"
     additional_dependencies: [
         'keyring==24.2.0',
         'nox==2024.03.02',

@@ -81,6 +81,7 @@ test-common-wheels = [
     # As required by pytest-cov.
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
+    "keyring",
 ]
 
 docs = [
@@ -112,6 +113,7 @@ include = [
     "docs/**/*.rst",
 ]
 exclude = [
+    ".devcontainer/devcontainer.json",
     "src/pip/_vendor/**/*.pyi",
 ]
 
