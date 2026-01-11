@@ -32,6 +32,7 @@ from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
@@ -351,7 +352,7 @@ class CandidatePreferences:
     """
 
     prefer_binary: bool = False
-    allow_all_prereleases: bool = False
+    release_control: ReleaseControl | None = None
 
 
 @dataclass(frozen=True)
@@ -392,7 +393,7 @@ class CandidateEvaluator:
         project_name: str,
         target_python: TargetPython | None = None,
         prefer_binary: bool = False,
-        allow_all_prereleases: bool = False,
+        release_control: ReleaseControl | None = None,
         specifier: specifiers.BaseSpecifier | None = None,
         hashes: Hashes | None = None,
     ) -> CandidateEvaluator:
@@ -418,7 +419,7 @@ class CandidateEvaluator:
             supported_tags=supported_tags,
             specifier=specifier,
             prefer_binary=prefer_binary,
-            allow_all_prereleases=allow_all_prereleases,
+            release_control=release_control,
             hashes=hashes,
         )
 
@@ -428,14 +429,14 @@ class CandidateEvaluator:
         supported_tags: list[Tag],
         specifier: specifiers.BaseSpecifier,
         prefer_binary: bool = False,
-        allow_all_prereleases: bool = False,
+        release_control: ReleaseControl | None = None,
         hashes: Hashes | None = None,
     ) -> None:
         """
         :param supported_tags: The PEP 425 tags supported by the target
             Python in order of preference (most preferred first).
         """
-        self._allow_all_prereleases = allow_all_prereleases
+        self._release_control = release_control
         self._hashes = hashes
         self._prefer_binary = prefer_binary
         self._project_name = project_name
@@ -456,7 +457,12 @@ class CandidateEvaluator:
         Return the applicable candidates from a list of candidates.
         """
         # Using None infers from the specifier instead.
-        allow_prereleases = self._allow_all_prereleases or None
+        if self._release_control is not None:
+            allow_prereleases = self._release_control.allows_prereleases(
+                canonicalize_name(self._project_name)
+            )
+        else:
+            allow_prereleases = None
         specifier = self._specifier
 
         # When using the pkg_resources backend we turn the version object into
@@ -657,7 +663,7 @@ class PackageFinder:
 
         candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
-            allow_all_prereleases=selection_prefs.allow_all_prereleases,
+            release_control=selection_prefs.release_control,
         )
 
         return cls(
@@ -713,11 +719,11 @@ class PackageFinder:
         return cert
 
     @property
-    def allow_all_prereleases(self) -> bool:
-        return self._candidate_prefs.allow_all_prereleases
+    def release_control(self) -> ReleaseControl | None:
+        return self._candidate_prefs.release_control
 
-    def set_allow_all_prereleases(self) -> None:
-        self._candidate_prefs.allow_all_prereleases = True
+    def set_release_control(self, release_control: ReleaseControl) -> None:
+        self._candidate_prefs.release_control = release_control
 
     @property
     def prefer_binary(self) -> bool:
@@ -896,7 +902,7 @@ class PackageFinder:
             project_name=project_name,
             target_python=self._target_python,
             prefer_binary=candidate_prefs.prefer_binary,
-            allow_all_prereleases=candidate_prefs.allow_all_prereleases,
+            release_control=candidate_prefs.release_control,
             specifier=specifier,
             hashes=hashes,
         )

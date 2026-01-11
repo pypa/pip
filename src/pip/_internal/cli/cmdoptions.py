@@ -27,6 +27,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
@@ -590,6 +591,86 @@ def only_binary() -> Option:
         "without binary distributions will fail to install when this "
         "option is used on them.",
     )
+
+
+def _get_release_control(values: Values, option: Option) -> Any:
+    """Get a release_control object."""
+    return getattr(values, option.dest)
+
+
+def _handle_all_releases(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    existing = _get_release_control(parser.values, option)
+    existing.handle_mutual_excludes(
+        value,
+        existing.all_releases,
+        existing.only_final,
+        "all_releases",
+    )
+
+
+def _handle_only_final(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    existing = _get_release_control(parser.values, option)
+    existing.handle_mutual_excludes(
+        value,
+        existing.only_final,
+        existing.all_releases,
+        "only_final",
+    )
+
+
+def all_releases() -> Option:
+    release_control = ReleaseControl(set(), set())
+    return Option(
+        "--all-releases",
+        dest="release_control",
+        action="callback",
+        callback=_handle_all_releases,
+        type="str",
+        default=release_control,
+        help="Allow all release types (including pre-releases) for a package. "
+        "Can be supplied multiple times, and each time adds to the existing "
+        'value. Accepts either ":all:" to allow pre-releases for all '
+        'packages, ":none:" to empty the set (notice the colons), or one or '
+        "more package names with commas between them (no colons). Cannot be "
+        "used with --pre.",
+    )
+
+
+def only_final() -> Option:
+    release_control = ReleaseControl(set(), set())
+    return Option(
+        "--only-final",
+        dest="release_control",
+        action="callback",
+        callback=_handle_only_final,
+        type="str",
+        default=release_control,
+        help="Only allow final releases (no pre-releases) for a package. Can be "
+        "supplied multiple times, and each time adds to the existing value. "
+        'Accepts either ":all:" to disable pre-releases for all packages, '
+        '":none:" to empty the set, or one or more package names with commas '
+        "between them. Cannot be used with --pre.",
+    )
+
+
+def check_release_control_exclusive(options: Values) -> None:
+    """
+    Raise an error if --pre is used with --all-releases or --only-final,
+    and transform --pre into --all-releases :all: if used alone.
+    """
+    if not hasattr(options, "pre") or not options.pre:
+        return
+
+    release_control = options.release_control
+    if release_control.all_releases or release_control.only_final:
+        raise CommandError("--pre cannot be used with --all-releases or --only-final.")
+
+    # Transform --pre into --all-releases :all:
+    release_control.all_releases.add(":all:")
 
 
 platforms: Callable[..., Option] = partial(
