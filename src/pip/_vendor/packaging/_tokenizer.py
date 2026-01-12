@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import re
 from dataclasses import dataclass
-from typing import Iterator, Mapping, NoReturn
+from typing import Generator, Mapping, NoReturn
 
 from .specifiers import Specifier
 
@@ -172,7 +172,7 @@ class Tokenizer:
     @contextlib.contextmanager
     def enclosing_tokens(
         self, open_token: str, close_token: str, *, around: str
-    ) -> Iterator[None]:
+    ) -> Generator[None, None, None]:
         if self.check(open_token):
             open_position = self.position
             self.read()

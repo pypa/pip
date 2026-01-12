@@ -83,9 +83,13 @@ class InvalidVersion(ValueError):
 class _BaseVersion:
     __slots__ = ()
 
-    @property
-    def _key(self) -> tuple[Any, ...]:
-        raise NotImplementedError  # pragma: no cover
+    # This can also be a normal member (see the packaging_legacy package);
+    # we are just requiring it to be readable. Actually defining a property
+    # has runtime effect on subclasses, so it's typing only.
+    if typing.TYPE_CHECKING:
+
+        @property
+        def _key(self) -> tuple[Any, ...]: ...
 
     def __hash__(self) -> int:
         return hash(self._key)

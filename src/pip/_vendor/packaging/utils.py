@@ -34,8 +34,10 @@ class InvalidSdistFilename(ValueError):
 
 # Core metadata spec for `Name`
 _validate_regex = re.compile(r"[A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9]", re.IGNORECASE)
-_letters_translate = {c: c.lower() for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
-_canonicalize_table = str.maketrans({"_": "-", ".": "-", **_letters_translate})
+_canonicalize_table = str.maketrans(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ_.",
+    "abcdefghijklmnopqrstuvwxyz--",
+)
 _normalized_regex = re.compile(r"[a-z0-9]|[a-z0-9]([a-z0-9-](?!--))*[a-z0-9]")
 # PEP 427: The build number must start with a digit.
 _build_tag_regex = re.compile(r"(\d+)(.*)")
