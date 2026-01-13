@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from pip._internal.utils.compat import tomllib
+from pip._vendor import tomli as tomllib
 
 REGEX = r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
 
