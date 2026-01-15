@@ -1,3 +1,5 @@
+"""Miscellaneous utility helpers used across pip internals."""
+
 from __future__ import annotations
 
 import errno
