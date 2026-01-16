@@ -130,6 +130,27 @@ def test(session: nox.Session) -> None:
 
 @nox.session
 def typecheck(session: nox.Session) -> None:
+    """Run mypy with vendored dependency stubs.
+
+    There are two categories of dependencies needed for type checking:
+
+    1. Runtime/test dependencies (runtime_typing_deps): Packages like pytest,
+       nox, and keyring are installed directly into the mypy environment. These
+       either have inline type annotations or ship with py.typed, so mypy can
+       import and use their types directly.
+
+    2. Vendored dependency stubs (vendored_and_needing_stubs): Packages like
+       requests and urllib3 are vendored under pip._vendor. Installing
+       types-requests normally won't help - mypy wouldn't associate those stubs
+       with imports from pip._vendor.requests. Instead, we install these stubs
+       to a separate directory and restructure them into a pip/_vendor/ package
+       tree (e.g., requests-stubs/ becomes pip/_vendor/requests/).
+
+    Mypy is configured (via tests/typing/pyproject.toml) with mypy_path pointing
+    to this stubs directory. When mypy encounters "from pip._vendor.requests
+    import ...", it finds the stub in stubs/pip/_vendor/requests/. The stubs/pip
+    directory is excluded from type-checking itself, so only src/pip is checked.
+    """
     runtime_typing_deps = [
         "freezegun",
         "installer",
