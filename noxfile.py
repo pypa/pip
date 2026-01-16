@@ -139,12 +139,13 @@ def typecheck(session: nox.Session) -> None:
        environment. These either have inline type annotations or ship with
        py.typed, so mypy can import and use their types directly.
 
-    2. Vendored dependency stubs (vendored_and_needing_stubs): Packages like
-       requests and urllib3 are vendored under pip._vendor. Installing
-       types-requests normally won't help - mypy wouldn't associate those stubs
-       with imports from pip._vendor.requests. Instead, we install these stubs
-       to a separate directory and restructure them into a pip/_vendor/ package
-       tree (e.g., requests-stubs/ becomes pip/_vendor/requests/).
+    2. Vendored dependency stubs (the "typecheck-vendored-stubs" dependency
+       group): Packages like requests and urllib3 are vendored under pip._vendor.
+       Installing types-requests normally won't help - mypy wouldn't associate
+       those stubs with imports from pip._vendor.requests. Instead, we install
+       these stubs to a separate directory and restructure them into a
+       pip/_vendor/ package tree (e.g., requests-stubs/ becomes
+       pip/_vendor/requests/).
 
     Mypy is configured (via tests/typing/pyproject.toml) with mypy_path pointing
     to this stubs directory. When mypy encounters "from pip._vendor.requests
@@ -163,26 +164,12 @@ def typecheck(session: nox.Session) -> None:
     if stubs_dir.exists():
         shutil.rmtree(stubs_dir)
 
-    # TODO: Let's have a single place where these are defined, as we should
-    #  have the exact versions that we are vendoring.
-    #  The versions could be taken from src/pip/_vendor/vendor.txt.
-    vendored_and_needing_stubs = [
-        # Stub libraries that contain type hints as a separate package:
-        "types-docutils",  # via sphinx (test dependency)
-        "types-requests",  # vendored
-        # vendored (can be removed when we upgrade to urllib3 >= 2.0). Note that
-        # we also tweak the stubs for urllib3 in later on.
-        "types-urllib3==1.*",
-        "types-setuptools",  # test dependency and used in distutils_hack
-        "types-six",  # via python-dateutil via freezegun (test dependency)
-        "types-PyYAML",  # update-rtd-redirects dependency
-    ]
-
     run_with_protected_pip(
         session,
         "install",
         f"--target={stubs_dir}",
-        *vendored_and_needing_stubs,
+        "--group",
+        "typecheck-vendored-stubs",
     )
 
     # Generate real pip/__init__.pyi and pip/_vendor/__init__.pyi files. We are
