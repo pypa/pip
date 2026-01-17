@@ -101,7 +101,7 @@ IN OTHER WORDS
 While all dependencies have not been resolved, do the following:
 
 1.  Following the API defined in :pep:`503`, fetch the index page from
-    `http://{pypi_index}/simple/{package_name <http://pypi.org/simple/%7Bpackage_name>`__}
+    `https://{pypi_index}/simple/{package_name} <https://pypi.org/simple/{package_name}>`_
 2.  Parse all of the file links from the page.
 3.  Select a single file to download from the list of links.
 4.  Extract the metadata from the downloaded package.
@@ -139,4 +139,4 @@ files on PyPI. It’s for getting all files of Flask.)
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _PyPI: https://pypi.org/
-.. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
+.. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/

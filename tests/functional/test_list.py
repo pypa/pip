@@ -130,36 +130,32 @@ def test_multiple_exclude_and_normalization(
     assert "pip" not in result.stdout
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user flag in the list command
 
     """
-    script.pip("download", "setuptools", "wheel", "-d", data.packages)
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
-    script.pip("install", "-f", data.find_links, "--no-index", "--user", "simple2==2.0")
+    script.pip_install_local("simplewheel==1.0")
+    script.pip_install_local("--user", "simple.dist==0.1")
     result = script.pip("list", "--user", "--format=json")
-    assert {"name": "simple", "version": "1.0"} not in json.loads(result.stdout)
-    assert {"name": "simple2", "version": "2.0"} in json.loads(result.stdout)
+    assert {"name": "simplewheel", "version": "1.0"} not in json.loads(result.stdout)
+    assert {"name": "simple.dist", "version": "0.1"} in json.loads(result.stdout)
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_user_columns_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user --format=columns flags in the list command
 
     """
-    script.pip("download", "setuptools", "wheel", "-d", data.packages)
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
-    script.pip("install", "-f", data.find_links, "--no-index", "--user", "simple2==2.0")
+    script.pip_install_local("simplewheel==1.0")
+    script.pip_install_local("--user", "simple.dist==0.1")
     result = script.pip("list", "--user", "--format=columns")
     assert "Package" in result.stdout
     assert "Version" in result.stdout
-    assert "simple2 (2.0)" not in result.stdout
-    assert "simple2 2.0" in result.stdout, str(result)
+    assert "simple.dist (2.0)" not in result.stdout
+    assert "simple.dist 0.1" in result.stdout, str(result)
 
 
 @pytest.mark.network
