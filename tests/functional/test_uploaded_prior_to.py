@@ -128,14 +128,7 @@ class TestUploadedPriorTo:
         self, script: PipTestEnvironment, data: TestData
     ) -> None:
         """Test that --find-links bypasses upload-time filtering."""
-        result = script.pip(
-            "install",
-            "--no-build-isolation",
-            "--no-index",
-            "--find-links",
-            data.find_links,
-            "--uploaded-prior-to=2000-01-01T00:00:00",
-            "simple==1.0",
-            expect_error=False,
+        result = script.pip_install_local(
+            "--uploaded-prior-to=2000-01-01T00:00:00", "simple==1.0"
         )
         assert "Successfully installed simple-1.0" in result.stdout
