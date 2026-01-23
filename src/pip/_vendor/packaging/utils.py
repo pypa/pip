@@ -34,10 +34,6 @@ class InvalidSdistFilename(ValueError):
 
 # Core metadata spec for `Name`
 _validate_regex = re.compile(r"[A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9]", re.IGNORECASE)
-_canonicalize_table = str.maketrans(
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ_.",
-    "abcdefghijklmnopqrstuvwxyz--",
-)
 _normalized_regex = re.compile(r"[a-z0-9]|[a-z0-9]([a-z0-9-](?!--))*[a-z0-9]")
 # PEP 427: The build number must start with a digit.
 _build_tag_regex = re.compile(r"(\d+)(.*)")
@@ -48,8 +44,8 @@ def canonicalize_name(name: str, *, validate: bool = False) -> NormalizedName:
         raise InvalidName(f"name is invalid: {name!r}")
     # Ensure all ``.`` and ``_`` are ``-``
     # Emulates ``re.sub(r"[-_.]+", "-", name).lower()`` from PEP 503
-    # About 2x faster, safe since packages only support alphanumeric characters
-    value = name.translate(_canonicalize_table)
+    # Much faster than re, and even faster than str.translate
+    value = name.lower().replace("_", "-").replace(".", "-")
     # Condense repeats (faster than regex)
     while "--" in value:
         value = value.replace("--", "-")
