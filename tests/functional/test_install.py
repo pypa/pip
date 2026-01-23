@@ -2018,15 +2018,15 @@ def test_install_compatible_python_requires(script: PipTestEnvironment) -> None:
 
 @pytest.mark.network
 def test_install_pep508_with_url(script: PipTestEnvironment) -> None:
-    res = script.pip(
+    result = script.pip(
         "install",
         "--no-index",
-        "packaging@https://files.pythonhosted.org/packages/2f/2b/"
-        "c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/"
-        "packaging-15.3-py2.py3-none-any.whl#sha256="
-        "ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4",
+        "tomli@https://files.pythonhosted.org/packages/23/d1/"
+        "136eb2cb77520a31e1f64cbae9d33ec6df0d78bdf4160398e86eec8a8754/"
+        "tomli-2.4.0-py3-none-any.whl#sha256="
+        "1f776e7d669ebceb01dee46484485f43a4048746235e683bcdffacdf1fb4785a",
     )
-    assert "Successfully installed packaging-15.3" in str(res), str(res)
+    result.assert_installed("tomli", editable=False)
 
 
 @pytest.mark.network
@@ -2038,14 +2038,14 @@ def test_install_pep508_with_url_in_install_requires(
         name="pkga",
         version="1.0",
         install_requires=[
-            "packaging@https://files.pythonhosted.org/packages/2f/2b/"
-            "c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/"
-            "packaging-15.3-py2.py3-none-any.whl#sha256="
-            "ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4"
+            "tomli@https://files.pythonhosted.org/packages/23/d1/"
+            "136eb2cb77520a31e1f64cbae9d33ec6df0d78bdf4160398e86eec8a8754/"
+            "tomli-2.4.0-py3-none-any.whl#sha256="
+            "1f776e7d669ebceb01dee46484485f43a4048746235e683bcdffacdf1fb4785a"
         ],
     )
-    res = script.pip("install", pkga_path)
-    assert "Successfully installed packaging-15.3" in str(res), str(res)
+    result = script.pip("install", pkga_path)
+    result.assert_installed("tomli", editable=False)
 
 
 @pytest.mark.network

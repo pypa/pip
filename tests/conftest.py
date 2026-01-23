@@ -464,6 +464,13 @@ def socket_install(tmpdir_factory: pytest.TempPathFactory, common_wheels: Path) 
     return lib_dir
 
 
+@pytest.fixture(scope="session")
+def packaging_install(
+    tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
+) -> Path:
+    return _common_wheel_editable_install(tmpdir_factory, common_wheels, "packaging")
+
+
 def install_pth_link(
     venv: VirtualEnvironment, project_name: str, lib_dir: Path
 ) -> None:
@@ -482,6 +489,7 @@ def virtualenv_template(
     wheel_install: Path,
     coverage_install: Path,
     socket_install: Path,
+    packaging_install: Path,
 ) -> VirtualEnvironment:
     venv_type: VirtualEnvironmentType
     if request.config.getoption("--use-venv"):
@@ -493,9 +501,10 @@ def virtualenv_template(
     tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
-    # Install setuptools, wheel, pytest-subket, and pip.
+    # Install setuptools, wheel, pytest-subket, packaging, and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
     install_pth_link(venv, "wheel", wheel_install)
+    install_pth_link(venv, "packaging", packaging_install)
     install_pth_link(venv, "pytest_subket", socket_install)
     # Also copy pytest-subket's .pth file so it can intercept socket calls.
     with open(venv.site / "pytest_socket.pth", "w") as f:
