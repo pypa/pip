@@ -67,7 +67,6 @@ test = [
     "virtualenv < 20.0 ; python_version < '3.10' and (sys_platform != 'darwin' or platform_machine != 'arm64')",
     "virtualenv >= 20.0 ; python_version >= '3.10' or (sys_platform == 'darwin' and platform_machine == 'arm64')",
     "werkzeug",
-    "wheel",
     "tomli-w",
     "proxy.py",
 ]
@@ -76,8 +75,7 @@ test-common-wheels = [
     "flit-core >= 3.11, < 4",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
-    "setuptools >= 40.8.0, != 60.6.0, <80",
-    "wheel",
+    "setuptools >= 70.1.0, <80",
     # As required by pytest-cov.
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",

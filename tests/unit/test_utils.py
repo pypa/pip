@@ -769,15 +769,15 @@ def test_redact_auth_from_url(auth_url: str, expected_url: str) -> None:
         (
             "resolvelib@ "
             " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1",
-            "resolvelib@"
-            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1",
+            "resolvelib @ "
+            "git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1",
         ),
         (
             "resolvelib@"
             " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1"
             " ; python_version>='3.6'",
-            "resolvelib@"
-            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1"
+            "resolvelib @ "
+            "git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1"
             ' ; python_version >= "3.6"',
         ),
     ],
