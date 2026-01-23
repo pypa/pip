@@ -958,7 +958,7 @@ def test_install_pre__setup_requires_with_pyproject(
     pyproject_path = local_dir.joinpath("pyproject.toml")
     pyproject_path.write_text(
         "[build-system]\n"
-        f'requires = ["setuptools", "wheel", "{depends_package}"]\n'
+        f'requires = ["setuptools", "{depends_package}"]\n'
         'build-backend = "setuptools.build_meta"\n'
     )
     setup_py_path = local_dir.joinpath("setup.py")
