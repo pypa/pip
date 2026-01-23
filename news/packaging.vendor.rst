@@ -1,1 +1,1 @@
-Upgrade packaging to 26.0rc2
+Upgrade packaging to 26.0
