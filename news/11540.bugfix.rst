@@ -1,0 +1,2 @@
+Fix pip's submodule usage in the test suite to accomodate Git updates
+for CVE-2022-39253.
