@@ -80,6 +80,21 @@ class FreezeCommand(Command):
             action="store_true",
             help="Exclude editable package from output.",
         )
+        self.cmd_opts.add_option(
+            "--exclude-dependencies",
+            dest="exclude_dependencies",
+            action="store_true",
+            help="Exclude dependency packages from output.",
+        )
+        self.cmd_opts.add_option(
+            "--user-requested",
+            dest="user_requested",
+            action="store_true",
+            help=(
+                "List packages that were explicitly requested by user, either directly "
+                "via a command line argument or indirectly via a requirements file."
+            ),
+        )
         self.cmd_opts.add_option(cmdoptions.list_exclude())
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -102,6 +117,8 @@ class FreezeCommand(Command):
             isolated=options.isolated_mode,
             skip=skip,
             exclude_editable=options.exclude_editable,
+            exclude_dependencies=options.exclude_dependencies,
+            user_requested=options.user_requested,
         ):
             sys.stdout.write(line + "\n")
         return SUCCESS
