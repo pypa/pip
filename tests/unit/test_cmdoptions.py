@@ -93,17 +93,16 @@ def test_handle_uploaded_prior_to_with_timezone(
 @pytest.mark.parametrize(
     "value, expected_date_time",
     [
-        # Test basic ISO 8601 formats (timezone-naive, will get local timezone)
         ("2023-01-01T00:00:00", (2023, 1, 1, 0, 0, 0)),
         ("2023-12-31T23:59:59", (2023, 12, 31, 23, 59, 59)),
-        # Test date only (will be extended to midnight)
-        ("2023-01-01", (2023, 1, 1, 0, 0, 0)),
+        ("2023-01-01", (2023, 1, 1, 0, 0, 0)),  # Date-only extends to midnight
+        ("2023-06-15T14:30:00", (2023, 6, 15, 14, 30, 0)),
     ],
 )
-def test_handle_uploaded_prior_to_naive_dates(
+def test_handle_uploaded_prior_to_naive_gets_local_timezone(
     value: str, expected_date_time: tuple[int, int, int, int, int, int]
 ) -> None:
-    """Test that timezone-naive ISO 8601 date strings get local timezone applied."""
+    """Test naive datetimes are treated as local time, not converted from UTC."""
     option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
     opt = "--uploaded-prior-to"
     parser = OptionParser()
@@ -113,17 +112,12 @@ def test_handle_uploaded_prior_to_naive_dates(
 
     result = parser.values.uploaded_prior_to
     assert isinstance(result, datetime.datetime)
-
-    # Check that the date/time components match
     assert result.timetuple()[:6] == expected_date_time
-
-    # Check that local timezone was applied (result should not be timezone-naive)
     assert result.tzinfo is not None
 
-    # Verify it's equivalent to what .astimezone() produces on a naive datetime
+    # Verify the result matches naive datetime with local timezone applied
     naive_dt = datetime.datetime(*expected_date_time)
-    expected_with_local_tz = naive_dt.astimezone()
-    assert result == expected_with_local_tz
+    assert result == naive_dt.astimezone()
 
 
 @pytest.mark.parametrize(
@@ -145,33 +139,3 @@ def test_handle_uploaded_prior_to_invalid_dates(invalid_value: str) -> None:
 
     with pytest.raises(SystemExit):
         _handle_uploaded_prior_to(option, opt, invalid_value, parser)
-
-
-def test_handle_uploaded_prior_to_naive() -> None:
-    """
-    Test that a naive datetime is interpreted as local time.
-    """
-    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
-    opt = "--uploaded-prior-to"
-    parser = OptionParser()
-    parser.values = Values()
-
-    # Parse a naive datetime
-    naive_input = "2023-06-15T14:30:00"
-    _handle_uploaded_prior_to(option, opt, naive_input, parser)
-    result = parser.values.uploaded_prior_to
-
-    assert result.hour == 14, (
-        f"Expected hour=14 (from input), got hour={result.hour}. "
-        "This suggests the naive datetime was incorrectly interpreted as UTC "
-        "and converted to local timezone."
-    )
-    assert result.minute == 30
-    assert result.year == 2023
-    assert result.month == 6
-    assert result.day == 15
-
-    # Verify by creating the same datetime the same way as the implementation
-    # This ensures we get the correct DST offset for June 2023
-    expected = datetime.datetime(2023, 6, 15, 14, 30, 0).astimezone()
-    assert result == expected
