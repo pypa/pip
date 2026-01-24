@@ -270,7 +270,7 @@ will initiate a vote among the existing maintainers.
     - CI Administration capabilities
     - ReadTheDocs Administration capabilities
 
-.. _`Studies have shown`: https://www.kessler.de/prd/smartbear/BestPracticesForPeerCodeReview.pdf
+.. _`Studies have shown`: https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
 .. _`GitHub Actions`: https://github.com/features/actions
 .. _`.github/workflows`: https://github.com/pypa/pip/blob/main/.github/workflows

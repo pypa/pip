@@ -1056,6 +1056,7 @@ use_new_feature: Callable[..., Option] = partial(
     choices=[
         "fast-deps",
         "build-constraint",
+        "inprocess-build-deps",
     ]
     + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",

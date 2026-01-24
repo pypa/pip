@@ -765,7 +765,7 @@ class TestInstallRequirement:
             ("pkg ; python_version<='3.6'", "pkg"),
             ("pkg[ext]", "pkg"),
             ("pkg [ ext1, ext2 ]", "pkg"),
-            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg@ https://example.com/"),
+            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg @ https://example.com/"),
             ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
             ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
             ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
@@ -814,7 +814,7 @@ class TestInstallRequirement:
             (
                 "pkg-all.allowed_chars0 [ ext1 ] @ https://example.com/",
                 {"ext2"},
-                "pkg-all.allowed_chars0[ext1,ext2]@ https://example.com/",
+                "pkg-all.allowed_chars0[ext1,ext2] @ https://example.com/",
             ),
         ],
     )

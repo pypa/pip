@@ -766,6 +766,12 @@ class PipTestEnvironment(TestFileEnvironment):
         create_file(path, contents)
         return path
 
+    def temporary_multiline_file(
+        self, filename: str | pathlib.Path, contents: str
+    ) -> pathlib.Path:
+        """Like temporary_file() but calls textwrap.dedent beforehand."""
+        return self.temporary_file(filename, textwrap.dedent(contents))
+
 
 # FIXME ScriptTest does something similar, but only within a single
 # ProcResult; this generalizes it so states can be compared across
