@@ -35,7 +35,9 @@ def test_only_final_blocks_prereleases(script: PipTestEnvironment) -> None:
         find_links=[pkg_path.parent],
         expect_error=True,
     )
-    assert "Could not find a version that satisfies the requirement" in result.stderr
+    assert (
+        "Could not find a final version that satisfies the requirement" in result.stderr
+    )
 
 
 def test_only_final_package_specific(script: PipTestEnvironment) -> None:
@@ -48,7 +50,9 @@ def test_only_final_package_specific(script: PipTestEnvironment) -> None:
         find_links=[pkg_path.parent],
         expect_error=True,
     )
-    assert "Could not find a version that satisfies the requirement" in result.stderr
+    assert (
+        "Could not find a final version that satisfies the requirement" in result.stderr
+    )
 
 
 def test_pre_transforms_to_all_releases(script: PipTestEnvironment) -> None:
@@ -114,7 +118,9 @@ def test_package_specific_overrides_all(script: PipTestEnvironment) -> None:
         find_links=[pkg_path.parent],
         expect_error=True,
     )
-    assert "Could not find a version that satisfies the requirement" in result.stderr
+    assert (
+        "Could not find a final version that satisfies the requirement" in result.stderr
+    )
 
 
 def test_requirements_file_all_releases(script: PipTestEnvironment) -> None:
@@ -172,10 +178,52 @@ def test_order_all_releases_then_only_final(script: PipTestEnvironment) -> None:
 
     # This should block prereleases for 'simple' because --only-final comes after
     result = script.pip_install_local(
-        "install",
         "--all-releases=:all:",
         "--only-final=simple",
         "simple==1.0a1",
+        find_links=[pkg_path.parent],
+        expect_error=True,
+    )
+    assert (
+        "Could not find a final version that satisfies the requirement" in result.stderr
+    )
+
+
+def test_no_matching_version_without_release_control(
+    script: PipTestEnvironment,
+) -> None:
+    """Test error message when no version matches without release control flags.
+
+    This verifies the generic "Could not find a version" message is shown
+    when release control isn't restricting to final versions only.
+    """
+    pkg_path = create_basic_wheel_for_package(script, "simple", "1.0")
+
+    # Request a version that doesn't exist, without any release control flags
+    result = script.pip_install_local(
+        "simple==2.0",
+        find_links=[pkg_path.parent],
+        expect_error=True,
+    )
+    assert "Could not find a version that satisfies the requirement" in result.stderr
+    # Ensure it's NOT saying "final version"
+    assert "Could not find a final version" not in result.stderr
+
+
+def test_no_matching_version_with_all_releases(
+    script: PipTestEnvironment,
+) -> None:
+    """Test error message when no version matches with --all-releases.
+
+    This verifies the generic "Could not find a version" message is shown
+    when --all-releases is used (not restricting to final versions).
+    """
+    pkg_path = create_basic_wheel_for_package(script, "simple", "1.0")
+
+    # Request a version that doesn't exist, with --all-releases
+    result = script.pip_install_local(
+        "--all-releases=:all:",
+        "simple==2.0",
         find_links=[pkg_path.parent],
         expect_error=True,
     )

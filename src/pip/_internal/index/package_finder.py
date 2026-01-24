@@ -976,9 +976,19 @@ class PackageFinder:
             )
 
         if installed_version is None and best_candidate is None:
+            # Check if only final releases are allowed for this package
+            version_type = "version"
+            if self.release_control is not None:
+                allows_pre = self.release_control.allows_prereleases(
+                    canonicalize_name(name)
+                )
+                if allows_pre is False:
+                    version_type = "final version"
+
             logger.critical(
-                "Could not find a version that satisfies the requirement %s "
+                "Could not find a %s that satisfies the requirement %s "
                 "(from versions: %s)",
+                version_type,
                 req,
                 _format_versions(best_candidate_result.all_candidates),
             )
