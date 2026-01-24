@@ -291,6 +291,24 @@ Examples
          py -m pip install "SomePackage==1.0.4"   # specific version
          py -m pip install "SomePackage>=1.0.4"   # minimum version
 
+#. Install packages into a custom target directory.
+
+   This is useful when working with embedded or custom Python distributions
+   where virtual environments are not practical.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install requests numpy \
+             --target ./extern/python/lib/python3.11/site-packages
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install requests numpy ^
+             --target .\extern\python\lib\python3.11\site-packages
 
 #. Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
 
