@@ -291,10 +291,16 @@ Examples
          py -m pip install "SomePackage==1.0.4"   # specific version
          py -m pip install "SomePackage>=1.0.4"   # minimum version
 
-#. Install packages into a custom target directory.
+#. Install packages into a specified directory instead of the default
+   site-packages location.
 
-   This is useful when working with embedded or custom Python distributions
-   where virtual environments are not practical.
+   .. warning::
+
+      The ``--target`` option is intended for specialized scenarios, such as
+      embedding Python where a new, empty directory is explicitly added to
+      ``sys.path``. Using it for general-purpose installation can lead to unexpected
+      behavior, since ``pip`` is designed to install packages into standard
+      environments.
 
    .. tab:: Unix/macOS
 
