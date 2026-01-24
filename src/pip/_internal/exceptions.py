@@ -707,10 +707,16 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
             message="This environment is externally managed",
             context=context,
             note_stmt=(
-                "If you believe this is a mistake, please contact your "
-                "Python installation or OS distribution provider. "
-                "You can override this, at the risk of breaking your Python "
-                "installation or OS, by passing --break-system-packages."
+                "You are receiving this message because this Python "
+                "installation is set up to not allow pip to alter it. This is "
+                "often because it is a system wide Python managed by the OS "
+                "distribution provider, or somehow specially managed, such as "
+                "by Conda or another package manager. If you think this is a "
+                "mistake, contact the provider of this Python. You may have "
+                "invoked this version of pip by mistake, but if you are sure "
+                "you want to override this check, at the risk of breaking "
+                "this Python installation, you can pass the "
+                "flag --break-system-packages to the install command."
             ),
             hint_stmt=Text("See PEP 668 for the detailed specification."),
         )
