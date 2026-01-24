@@ -301,14 +301,14 @@ Examples
       .. code-block:: shell
 
          python -m pip install requests numpy \
-             --target ./extern/python/lib/python3.11/site-packages
+             --target ./extern/python_deps
 
    .. tab:: Windows
 
       .. code-block:: shell
 
          py -m pip install requests numpy ^
-             --target .\extern\python\lib\python3.11\site-packages
+             --target .\extern\python_deps
 
 #. Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
 
