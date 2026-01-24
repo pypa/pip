@@ -1,6 +1,2 @@
-Make ``pip cache purge``/``pip cache remove`` delete additional unneeded files.
-
-These commands now remove:
-* wheel cache folders without ``.whl`` files.
-* empty folders in the HTTP cache.
-* some files created by old versions of pip, which aren't used anymore.
+``pip cache purge`` and ``pip cache remove`` now clean up empty directories
+and legacy files left by older pip versions.
