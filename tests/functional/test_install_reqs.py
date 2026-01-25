@@ -646,12 +646,12 @@ def test_install_with_extras_from_constraints(
     script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
 ) -> None:
     to_install = data.packages.joinpath("LocalExtras")
-    script.scratch_path.joinpath("constraints.txt").write_text(
-        f"{to_install.as_uri()}#egg=LocalExtras[bar]"
+    file = script.temporary_file(
+        "constraints.txt", f"LocalExtras[bar] @ {to_install.as_uri()}"
     )
     result = script.pip_install_local(
         "-c",
-        script.scratch_path / "constraints.txt",
+        file,
         "LocalExtras",
         allow_stderr_warning=True,
         expect_error=(resolver_variant == "resolvelib"),
@@ -684,12 +684,12 @@ def test_install_with_extras_joined(
     script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
 ) -> None:
     to_install = data.packages.joinpath("LocalExtras")
-    script.scratch_path.joinpath("constraints.txt").write_text(
-        f"{to_install.as_uri()}#egg=LocalExtras[bar]"
+    file = script.temporary_file(
+        "constraints.txt", f"LocalExtras[bar] @ {to_install.as_uri()}"
     )
     result = script.pip_install_local(
         "-c",
-        script.scratch_path / "constraints.txt",
+        file,
         "LocalExtras[baz]",
         allow_stderr_warning=True,
         expect_error=(resolver_variant == "resolvelib"),
@@ -705,12 +705,12 @@ def test_install_with_extras_editable_joined(
     script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
 ) -> None:
     to_install = data.packages.joinpath("LocalExtras")
-    script.scratch_path.joinpath("constraints.txt").write_text(
-        f"-e {to_install.as_uri()}#egg=LocalExtras[bar]"
+    file = script.temporary_file(
+        "constraints.txt", f"-e LocalExtras[bar] @ {to_install.as_uri()}"
     )
     result = script.pip_install_local(
         "-c",
-        script.scratch_path / "constraints.txt",
+        file,
         "LocalExtras[baz]",
         allow_stderr_warning=True,
         expect_error=(resolver_variant == "resolvelib"),
