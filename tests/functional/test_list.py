@@ -811,3 +811,73 @@ def test_list_wheel_build(script: PipTestEnvironment) -> None:
     result = script.pip("list")
     assert "Build" in result.stdout, str(result)
     assert "123" in result.stdout, str(result)
+
+
+def test_outdated_only_final_for_specific_package(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test that --only-final filters prereleases for specific package."""
+    script.pip_install_local("simple==1.0")
+
+    # Create fake wheelhouse with prerelease
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.1").save_to_dir(wheelhouse_path)
+    make_wheel("simple", "2.0a1").save_to_dir(wheelhouse_path)
+
+    # Without --only-final, should show 1.1 (highest stable)
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--outdated",
+        "--format=json",
+    )
+    outdated = json.loads(result.stdout)
+    assert len(outdated) == 1
+    assert outdated[0]["name"] == "simple"
+    assert outdated[0]["latest_version"] == "1.1"
+
+    # With --only-final for simple, should still show 1.1
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--outdated",
+        "--only-final=simple",
+        "--format=json",
+    )
+    outdated = json.loads(result.stdout)
+    assert len(outdated) == 1
+    assert outdated[0]["name"] == "simple"
+    assert outdated[0]["latest_version"] == "1.1"
+
+
+def test_outdated_all_releases_for_specific_package(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test that --all-releases allows prereleases for specific package."""
+    script.pip_install_local("simple==1.0")
+
+    # Create fake wheelhouse with prerelease
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.1").save_to_dir(wheelhouse_path)
+    make_wheel("simple", "2.0a1").save_to_dir(wheelhouse_path)
+
+    # With --all-releases for simple, should show 2.0a1 (highest including prereleases)
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--outdated",
+        "--all-releases=simple",
+        "--format=json",
+    )
+    outdated = json.loads(result.stdout)
+    assert len(outdated) == 1
+    assert outdated[0]["name"] == "simple"
+    assert outdated[0]["latest_version"] == "2.0a1"

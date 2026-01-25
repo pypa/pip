@@ -47,7 +47,7 @@ from tests.lib import (
     ScriptFactory,
     TestData,
 )
-from tests.lib.server import MockServer, make_mock_server
+from tests.lib.server import MockServer, make_mock_server, patch_getfqdn
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
@@ -441,11 +441,6 @@ def setuptools_install(
 
 
 @pytest.fixture(scope="session")
-def wheel_install(tmpdir_factory: pytest.TempPathFactory, common_wheels: Path) -> Path:
-    return _common_wheel_editable_install(tmpdir_factory, common_wheels, "wheel")
-
-
-@pytest.fixture(scope="session")
 def coverage_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
 ) -> Path:
@@ -479,7 +474,6 @@ def virtualenv_template(
     pip_src: Path,
     pip_editable_parts: tuple[Path, ...],
     setuptools_install: Path,
-    wheel_install: Path,
     coverage_install: Path,
     socket_install: Path,
 ) -> VirtualEnvironment:
@@ -493,9 +487,8 @@ def virtualenv_template(
     tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
-    # Install setuptools, wheel, pytest-subket, and pip.
+    # Install setuptools, pytest-subket, and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
-    install_pth_link(venv, "wheel", wheel_install)
     install_pth_link(venv, "pytest_subket", socket_install)
     # Also copy pytest-subket's .pth file so it can intercept socket calls.
     with open(venv.site / "pytest_socket.pth", "w") as f:
@@ -1002,7 +995,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[set[str]] = set()
 
-    with InDirectoryServer(("", 8000), Handler) as httpd:
+    with patch_getfqdn(), InDirectoryServer(("", 8000), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 

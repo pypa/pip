@@ -34,11 +34,11 @@ from pip._internal.exceptions import (
     InstallWheelBuildError,
 )
 from pip._internal.locations import get_scheme
-from pip._internal.metadata import get_environment
+from pip._internal.metadata import BaseEnvironment, get_environment
 from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
-from pip._internal.req import install_given_reqs
+from pip._internal.req import InstallationResult, install_given_reqs
 from pip._internal.req.req_install import (
     InstallRequirement,
 )
@@ -90,6 +90,8 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.all_releases())
+        self.cmd_opts.add_option(cmdoptions.only_final())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -304,6 +306,7 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
+        cmdoptions.check_release_control_exclusive(options)
 
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
@@ -476,34 +479,13 @@ class InstallCommand(RequirementCommand):
             )
             env = get_environment(lib_locations)
 
-            # Display a summary of installed packages, with extra care to
-            # display a package name as it was requested by the user.
-            installed.sort(key=operator.attrgetter("name"))
-            summary = []
-            installed_versions = {}
-            for distribution in env.iter_all_distributions():
-                installed_versions[distribution.canonical_name] = distribution.version
-            for package in installed:
-                display_name = package.name
-                version = installed_versions.get(canonicalize_name(display_name), None)
-                if version:
-                    text = f"{display_name}-{version}"
-                else:
-                    text = display_name
-                summary.append(text)
-
             if conflicts is not None:
                 self._warn_about_conflicts(
                     conflicts,
                     resolver_variant=self.determine_resolver_variant(options),
                 )
-
-            installed_desc = " ".join(summary)
-            if installed_desc:
-                write_output(
-                    "Successfully installed %s",
-                    installed_desc,
-                )
+            if summary := installed_packages_summary(installed, env):
+                write_output(summary)
         except OSError as error:
             show_traceback = self.verbosity >= 1
 
@@ -640,6 +622,30 @@ class InstallCommand(RequirementCommand):
                 parts.append(message)
 
         logger.critical("\n".join(parts))
+
+
+def installed_packages_summary(
+    installed: list[InstallationResult], env: BaseEnvironment
+) -> str:
+    # Format a summary of installed packages, with extra care to
+    # display a package name as it was requested by the user.
+    installed.sort(key=operator.attrgetter("name"))
+    summary = []
+    installed_versions = {}
+    for distribution in env.iter_all_distributions():
+        installed_versions[distribution.canonical_name] = distribution.version
+    for package in installed:
+        display_name = package.name
+        version = installed_versions.get(canonicalize_name(display_name), None)
+        if version:
+            text = f"{display_name}-{version}"
+        else:
+            text = display_name
+        summary.append(text)
+
+    if not summary:
+        return ""
+    return f"Successfully installed {' '.join(summary)}"
 
 
 def get_lib_location_guesses(

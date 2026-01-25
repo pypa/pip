@@ -296,6 +296,55 @@ Example build constraints file (``build-constraints.txt``):
    # Pin Cython for packages that use it to build
    cython==0.29.24
 
+Controlling Pre-release Installation
+=====================================
+
+By default, pip installs stable versions of packages, unless their specifier includes
+a pre-release version (e.g., ``SomePackage>=1.0a1``) or if there are no stable versions
+available that satisfy the requirement. The ``--all-releases`` and ``--only-final``
+options provide per-package control over pre-release selection.
+
+Use ``--all-releases`` to allow pre-releases for specific packages:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --all-releases=DependencyPackage SomePackage
+      python -m pip install --all-releases=:all: SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --all-releases=DependencyPackage SomePackage
+      py -m pip install --all-releases=:all: SomePackage
+
+Use ``--only-final`` to explicitly disable pre-releases for specific packages:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --only-final=DependencyPackage SomePackage
+      python -m pip install --only-final=:all: SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --only-final=DependencyPackage SomePackage
+      py -m pip install --only-final=:all: SomePackage
+
+Both options accept ``:all:`` to apply to all packages, ``:none:`` to clear
+the setting, or comma-separated package names. Package-specific settings
+override ``:all:``. These options can also be used in requirements files.
+
+.. note::
+
+   The ``--pre`` flag is equivalent to ``--all-releases :all:`` but cannot
+   be combined with ``--all-releases`` or ``--only-final``.
+
 
 .. _`Dependency Groups`:
 
