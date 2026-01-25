@@ -9,7 +9,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, cast
+from typing import Any, BinaryIO, Callable, cast
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
@@ -165,47 +165,39 @@ def copy_directory_permissions(directory: str, target_file: BinaryIO) -> None:
         os.chmod(target_file.name, mode, follow_symlinks=False)
 
 
-def subdirs_without_files(path: str) -> Generator[Path]:
-    """Yields every subdirectory of +path+ that has no files under it."""
+def _subdirs_without_generic(
+    path: str, predicate: Callable[[str, list[str]], bool]
+) -> Generator[Path]:
+    """Yields every subdirectory of +path+ that has no files matching the
+    predicate under it."""
 
     directories = []
-    non_empty = set()
+    excluded = set()
 
     for root_str, _, filenames in os.walk(Path(path).resolve()):
         root = Path(root_str)
-        if filenames:
-            # This directory contains a file, so mark it and all of its
-            # parent directories as non-empty.
+        if predicate(root_str, filenames):
+            # This directory should be excluded, so exclude it and all of its
+            # parent directories.
             # The last item in root.parents is ".", so we ignore it.
             #
             # Wrapping this in `list()` is only needed for Python 3.9.
-            non_empty.update(list(root.parents)[:-1])
-            non_empty.add(root)
+            excluded.update(list(root.parents)[:-1])
+            excluded.add(root)
         directories.append(root)
 
     for d in sorted(directories, reverse=True):
-        if d not in non_empty:
+        if d not in excluded:
             yield d
+
+
+def subdirs_without_files(path: str) -> Generator[Path]:
+    """Yields every subdirectory of +path+ that has no files under it."""
+    return _subdirs_without_generic(path, lambda root, filenames: len(filenames) > 0)
 
 
 def subdirs_without_wheels(path: str) -> Generator[Path]:
     """Yields every subdirectory of +path+ that has no .whl files under it."""
-
-    directories = []
-    has_wheels = set()
-
-    for root_str, _, filenames in os.walk(Path(path).resolve()):
-        root = Path(root_str)
-        if any(x.endswith(".whl") for x in filenames):
-            # This directory contains a wheel file, so mark it and all of its
-            # parent directories as has-wheel.
-            # The last item in root.parents is ".", so we ignore it.
-            #
-            # Wrapping this in `list()` is only needed for Python 3.9.
-            has_wheels.update(list(root.parents)[:-1])
-            has_wheels.add(root)
-        directories.append(root)
-
-    for d in sorted(directories, reverse=True):
-        if d not in has_wheels:
-            yield d
+    return _subdirs_without_generic(
+        path, lambda root, filenames: any(x.endswith(".whl") for x in filenames)
+    )
