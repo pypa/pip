@@ -20,6 +20,7 @@ from pip._vendor.rich.text import Text
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import get_default_environment
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import WINDOWS
@@ -179,7 +180,7 @@ def _get_current_remote_pip_version(
     # yanked version.
     selection_prefs = SelectionPreferences(
         allow_yanked=False,
-        allow_all_prereleases=False,  # Explicitly set to False
+        release_control=ReleaseControl(only_final={"pip"}),
     )
 
     finder = PackageFinder.create(

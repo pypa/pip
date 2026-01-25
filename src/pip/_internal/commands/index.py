@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from optparse import Values
 from typing import Any, Callable
 
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.cli import cmdoptions
@@ -41,6 +42,8 @@ class IndexCommand(IndexGroupCommand):
 
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.all_releases())
+        self.cmd_opts.add_option(cmdoptions.only_final())
         self.cmd_opts.add_option(cmdoptions.json())
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
@@ -59,6 +62,8 @@ class IndexCommand(IndexGroupCommand):
         }
 
     def run(self, options: Values, args: list[str]) -> int:
+        cmdoptions.check_release_control_exclusive(options)
+
         handler_map = self.handler_map()
 
         # Determine action
@@ -95,8 +100,8 @@ class IndexCommand(IndexGroupCommand):
         # Pass allow_yanked=False to ignore yanked versions.
         selection_prefs = SelectionPreferences(
             allow_yanked=False,
+            release_control=options.release_control,
             format_control=options.format_control,
-            allow_all_prereleases=options.pre,
             ignore_requires_python=ignore_requires_python,
         )
 
@@ -126,8 +131,7 @@ class IndexCommand(IndexGroupCommand):
                 candidate.version for candidate in finder.find_all_candidates(query)
             )
 
-            if not options.pre:
-                # Remove prereleases
+            if self.should_exclude_prerelease(options, canonicalize_name(query)):
                 versions = (
                     version for version in versions if not version.is_prerelease
                 )

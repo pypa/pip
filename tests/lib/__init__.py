@@ -31,6 +31,7 @@ from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
@@ -104,9 +105,15 @@ def make_test_finder(
         index_urls=index_urls,
         session=session,
     )
+
+    # Convert allow_all_prereleases to release_control
+    release_control = ReleaseControl()
+    if allow_all_prereleases:
+        release_control.all_releases.add(":all:")
+
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
-        allow_all_prereleases=allow_all_prereleases,
+        release_control=release_control,
     )
 
     return PackageFinder.create(

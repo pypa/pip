@@ -434,7 +434,7 @@ class RequirementCommand(IndexGroupCommand):
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=options.format_control,
-            allow_all_prereleases=options.pre,
+            release_control=options.release_control,
             prefer_binary=options.prefer_binary,
             ignore_requires_python=ignore_requires_python,
         )

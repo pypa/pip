@@ -23,6 +23,7 @@ from pip._internal.index.package_finder import (
     filter_unallowed_hashes,
 )
 from pip._internal.models.link import Link
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
@@ -533,14 +534,20 @@ class TestCandidateEvaluator:
         target_python = TargetPython()
         target_python._valid_tags = [Tag("py36", "none", "any")]
         specifier = SpecifierSet()
+
+        # Convert allow_all_prereleases to release_control
+        release_control = ReleaseControl()
+        if allow_all_prereleases:
+            release_control.all_releases.add(":all:")
+
         evaluator = CandidateEvaluator.create(
             project_name="my-project",
             target_python=target_python,
-            allow_all_prereleases=allow_all_prereleases,
+            release_control=release_control,
             prefer_binary=prefer_binary,
             specifier=specifier,
         )
-        assert evaluator._allow_all_prereleases == allow_all_prereleases
+        assert evaluator._release_control == release_control
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._specifier is specifier
         assert evaluator._supported_tags == [Tag("py36", "none", "any")]
@@ -753,9 +760,15 @@ class TestPackageFinder:
             session=PipSession(),
             search_scope=SearchScope([], [], False),
         )
+
+        # Convert allow_all_prereleases to release_control
+        release_control = ReleaseControl()
+        if allow_all_prereleases:
+            release_control.all_releases.add(":all:")
+
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
-            allow_all_prereleases=allow_all_prereleases,
+            release_control=release_control,
             prefer_binary=prefer_binary,
         )
         finder = PackageFinder.create(
@@ -763,7 +776,7 @@ class TestPackageFinder:
             selection_prefs=selection_prefs,
         )
         candidate_prefs = finder._candidate_prefs
-        assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
+        assert candidate_prefs.release_control == release_control
         assert candidate_prefs.prefer_binary == prefer_binary
 
     def test_create__link_collector(self) -> None:
@@ -945,9 +958,15 @@ class TestPackageFinder:
     ) -> None:
         target_python = TargetPython()
         target_python._valid_tags = [Tag("py36", "none", "any")]
+
+        # Convert allow_all_prereleases to release_control
+        release_control = ReleaseControl()
+        if allow_all_prereleases:
+            release_control.all_releases.add(":all:")
+
         candidate_prefs = CandidatePreferences(
             prefer_binary=prefer_binary,
-            allow_all_prereleases=allow_all_prereleases,
+            release_control=release_control,
         )
         link_collector = LinkCollector(
             session=PipSession(),
@@ -968,7 +987,7 @@ class TestPackageFinder:
             specifier=specifier,
             hashes=hashes,
         )
-        assert evaluator._allow_all_prereleases == allow_all_prereleases
+        assert evaluator._release_control == release_control
         assert evaluator._hashes == hashes
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._project_name == "my-project"

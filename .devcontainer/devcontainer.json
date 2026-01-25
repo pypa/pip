@@ -1,6 +1,6 @@
 {
 	"name": "pip",
-	"image": "mcr.microsoft.com/devcontainers/python:1-3",
+	"image": "mcr.microsoft.com/devcontainers/python:3",
 	"features": {
 		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
 			"packages": "mercurial,subversion,bzr"
