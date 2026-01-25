@@ -112,8 +112,8 @@ class TestLink:
         # The hint should suggest Direct URL syntax, not just "remove version
         # specifiers" because the extras require Direct URL syntax anyway.
         hint = str(exc_info.value.hint_stmt)
-        assert "name[extra] @ URL" in hint
-        assert "version specifiers are ignored" in hint
+        assert r"name\[extra] @ URL" in hint
+        assert "Version specifiers are silently ignored" in hint
 
     @pytest.mark.parametrize(
         "yanked_reason, expected",
