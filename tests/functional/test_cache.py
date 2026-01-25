@@ -494,13 +494,7 @@ def test_cache_purge_removes_empty_dirs_and_legacy_files(
     assert "Directories removed:" in result.stdout
 
     # Verify directory count is positive
-    dir_count = int(
-        [line for line in result.stdout.splitlines() if "Directories removed:" in line][
-            0
-        ]
-        .split(":")[-1]
-        .strip()
-    )
+    dir_count = int(re.findall(r"Directories removed: (\d+)", result.stdout)[0])
     assert dir_count > 0
 
 
