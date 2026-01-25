@@ -29,22 +29,31 @@ def fake_wheel(data: TestData, wheel_path: str) -> None:
     data.packages.joinpath(wheel_path).write_bytes(wheel_data)
 
 
-@pytest.mark.network
-def test_download_if_requested(script: PipTestEnvironment) -> None:
+def test_download_if_requested(script: PipTestEnvironment, data: TestData) -> None:
     """
     It should download (in the scratch path) and not install if requested.
     """
-    result = script.pip("download", "-d", "pip_downloads", "INITools==0.1")
+    result = script.pip(
+        "download",
+        "--no-index",
+        "-d",
+        "pip_downloads",
+        "INITools==0.1",
+        "-f",
+        data.pypi_packages,
+        "--no-build-isolation",
+    )
     result.did_create(Path("scratch") / "pip_downloads" / "INITools-0.1.tar.gz")
     result.did_not_create(script.site_packages / "initools")
 
 
-@pytest.mark.network
-def test_basic_download_setuptools(script: PipTestEnvironment) -> None:
+def test_basic_download_setuptools(script: PipTestEnvironment, data: TestData) -> None:
     """
     It should download (in the scratch path) and not install if requested.
     """
-    result = script.pip("download", "setuptools")
+    result = script.pip(
+        "download", "setuptools", "--no-index", "-f", data.common_wheels
+    )
     setuptools_prefix = str(Path("scratch") / "setuptools")
     assert any(os.fspath(p).startswith(setuptools_prefix) for p in result.files_created)
 
@@ -70,25 +79,22 @@ def test_download_wheel(script: PipTestEnvironment, data: TestData) -> None:
     result.did_not_create(script.site_packages / "piptestpackage")
 
 
-@pytest.mark.network
-def test_single_download_from_requirements_file(script: PipTestEnvironment) -> None:
+def test_single_download_from_requirements_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
-    It should support download (in the scratch path) from PyPI from a
+    It should support download (in the scratch path) from a
     requirements file
     """
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
-        INITools==0.1
-        """
-        )
-    )
+    req_file = script.temporary_file("test-req.txt", "INITools==0.1")
     result = script.pip(
         "download",
         "-r",
-        script.scratch_path / "test-req.txt",
-        "-d",
-        ".",
+        req_file,
+        "--no-index",
+        "-f",
+        data.pypi_packages,
+        "--no-build-isolation",
     )
     result.did_create(Path("scratch") / "INITools-0.1.tar.gz")
     result.did_not_create(script.site_packages / "initools")

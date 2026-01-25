@@ -4,5 +4,4 @@ requires = [
     "simplewheel==1.0; python_version < '3'",
     "simplewheel==2.0; python_version >= '3'",
     "setuptools",
-    "wheel",
 ]

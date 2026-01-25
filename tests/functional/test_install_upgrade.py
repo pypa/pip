@@ -1,7 +1,6 @@
 import itertools
 import os
 import sys
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -252,35 +251,30 @@ def test_upgrade_to_same_version_from_url(script: PipTestEnvironment) -> None:
     assert_all_changes(result, result3, [script.venv / "build", "cache"])
 
 
-@pytest.mark.network
 def test_upgrade_from_reqs_file(script: PipTestEnvironment) -> None:
     """
     Upgrade from a requirements file.
 
     """
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """\
-        PyLogo<0.4
+    req_file = script.temporary_multiline_file(
+        "test-req.txt",
+        """\
+        simplewheel<2
         # and something else to test out:
-        INITools==0.3
-        """
-        )
+        license.dist==0.2
+        """,
     )
-    install_result = script.pip("install", "-r", script.scratch_path / "test-req.txt")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """\
-        PyLogo
+    install_result = script.pip_install_local("-r", req_file)
+    script.temporary_multiline_file(
+        "test-req.txt",
+        """\
+        simplewheel
         # and something else to test out:
-        INITools
-        """
-        )
+        license.dist
+        """,
     )
-    script.pip("install", "--upgrade", "-r", script.scratch_path / "test-req.txt")
-    uninstall_result = script.pip(
-        "uninstall", "-r", script.scratch_path / "test-req.txt", "-y"
-    )
+    script.pip_install_local("--upgrade", "-r", req_file)
+    uninstall_result = script.pip("uninstall", "-r", req_file, "-y")
     assert_all_changes(
         install_result,
         uninstall_result,

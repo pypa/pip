@@ -219,8 +219,9 @@ def test_pep518_with_user_pip(
     )
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_pep518_with_extra_and_markers(
-    script: PipTestEnvironment, data: TestData, common_wheels: Path
+    script: PipTestEnvironment, data: TestData, common_wheels: Path, flag: str
 ) -> None:
     script.pip(
         "wheel",
@@ -230,11 +231,13 @@ def test_pep518_with_extra_and_markers(
         "-f",
         data.find_links,
         data.src.joinpath("pep518_with_extra_and_markers-1.0"),
+        flag,
     )
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_pep518_with_namespace_package(
-    script: PipTestEnvironment, data: TestData, common_wheels: Path
+    script: PipTestEnvironment, data: TestData, common_wheels: Path, flag: str
 ) -> None:
     script.pip(
         "wheel",
@@ -244,6 +247,7 @@ def test_pep518_with_namespace_package(
         "-f",
         data.find_links,
         data.src.joinpath("pep518_with_namespace_package-1.0"),
+        flag,
         use_module=True,
     )
 
@@ -253,12 +257,14 @@ def test_pep518_with_namespace_package(
     "package",
     ["pep518_forkbomb", "pep518_twin_forkbombs_first", "pep518_twin_forkbombs_second"],
 )
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_pep518_forkbombs(
     script: PipTestEnvironment,
     data: TestData,
     common_wheels: Path,
     command: str,
     package: str,
+    flag: str,
 ) -> None:
     package_source = next(data.packages.glob(package + "-[0-9]*.tar.gz"))
     result = script.pip(
@@ -270,6 +276,7 @@ def test_pep518_forkbombs(
         "-f",
         data.find_links,
         package,
+        flag,
         expect_error=True,
     )
     assert (
@@ -951,7 +958,7 @@ def test_install_pre__setup_requires_with_pyproject(
     pyproject_path = local_dir.joinpath("pyproject.toml")
     pyproject_path.write_text(
         "[build-system]\n"
-        f'requires = ["setuptools", "wheel", "{depends_package}"]\n'
+        f'requires = ["setuptools", "{depends_package}"]\n'
         'build-backend = "setuptools.build_meta"\n'
     )
     setup_py_path = local_dir.joinpath("setup.py")
@@ -1787,11 +1794,12 @@ def test_install_no_binary_builds_wheels(
     assert "Failed to build wheelbroken" in str(res), str(res)
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_install_no_binary_builds_pep_517_wheel(
-    script: PipTestEnvironment, data: TestData
+    script: PipTestEnvironment, data: TestData, flag: str
 ) -> None:
     res = script.pip_install_local(
-        "--no-binary=:all:", data.packages / "pep517_setup_and_pyproject"
+        "--no-binary=:all:", data.packages / "pep517_setup_and_pyproject", flag
     )
     expected = "Successfully installed pep517-setup-and-pyproject"
     # Must have installed the package
@@ -1800,12 +1808,13 @@ def test_install_no_binary_builds_pep_517_wheel(
     assert "Building wheel for pep517-setup" in str(res), str(res)
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_install_no_binary_uses_local_backend(
-    script: PipTestEnvironment, data: TestData, tmpdir: Path
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, flag: str
 ) -> None:
     to_install = data.packages.joinpath("pep517_wrapper_buildsys")
     script.environ["PIP_TEST_MARKER_FILE"] = marker = str(tmpdir / "marker")
-    res = script.pip_install_local("--no-binary=:all:", to_install)
+    res = script.pip_install_local("--no-binary=:all:", to_install, flag)
     expected = "Successfully installed pep517-wrapper-buildsys"
     # Must have installed the package
     assert expected in str(res), str(res)
@@ -1813,8 +1822,9 @@ def test_install_no_binary_uses_local_backend(
     assert os.path.isfile(marker), "Local PEP 517 backend not used"
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_install_no_binary_uses_cached_wheels(
-    script: PipTestEnvironment, data: TestData
+    script: PipTestEnvironment, data: TestData, flag: str
 ) -> None:
     # Seed the cache
     script.pip(
@@ -1829,6 +1839,7 @@ def test_install_no_binary_uses_cached_wheels(
         "-f",
         data.find_links,
         "upper",
+        flag,
         expect_stderr=True,
     )
     assert "Successfully installed upper-2.0" in str(res), str(res)
@@ -2055,7 +2066,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
         "which are not also hosted on PyPI."
     )
     error_cause = (
-        "pep-508-url-deps depends on sampleproject@ "
+        "pep-508-url-deps depends on sampleproject @ "
         "https://github.com/pypa/sampleproject/archive/master.zip"
     )
     assert res.returncode == 1
@@ -2401,11 +2412,13 @@ def test_install_sends_client_cert(
         assert environ["SSL_CLIENT_CERT"]
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_install_sends_certs_for_pep518_deps(
     script: PipTestEnvironment,
     cert_factory: CertFactory,
     data: TestData,
     common_wheels: Path,
+    flag: str,
 ) -> None:
     cert_path = cert_factory()
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
@@ -2420,7 +2433,7 @@ def test_install_sends_certs_for_pep518_deps(
     ]
     url = f"https://{server.host}:{server.port}/simple"
 
-    args = ["install", str(data.packages / "pep517_setup_and_pyproject")]
+    args = ["install", str(data.packages / "pep517_setup_and_pyproject"), flag]
     args.extend(["--index-url", url])
     args.extend(["--cert", cert_path, "--client-cert", cert_path])
 

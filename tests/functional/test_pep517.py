@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+import pytest
 import tomli_w
 
 from pip._internal.build_env import (
@@ -103,19 +104,21 @@ def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_pep517_install(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, flag: str
 ) -> None:
     """Check we can build with a custom backend"""
     project_dir = make_project(
         tmpdir, requires=["test_backend"], backend="test_backend"
     )
-    result = script.pip("install", "--no-index", "-f", data.backends, project_dir)
+    result = script.pip("install", "--no-index", "-f", data.backends, project_dir, flag)
     result.assert_installed("project", editable=False)
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_pep517_install_with_reqs(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, flag: str
 ) -> None:
     """Backend generated requirements are installed in the build env"""
     project_dir = make_project(
@@ -123,7 +126,14 @@ def test_pep517_install_with_reqs(
     )
     project_dir.joinpath("backend_reqs.txt").write_text("simplewheel")
     result = script.pip(
-        "install", "--no-index", "-f", data.backends, "-f", data.packages, project_dir
+        "install",
+        "--no-index",
+        "-f",
+        data.backends,
+        "-f",
+        data.packages,
+        project_dir,
+        flag,
     )
     result.assert_installed("project", editable=False)
 
@@ -237,28 +247,37 @@ def test_pep517_backend_requirements_satisfied_by_prerelease(
     assert "Installing backend dependencies:" not in result.stdout
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_pep517_backend_requirements_already_satisfied(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, flag: str
 ) -> None:
     project_dir = make_project(
         tmpdir, requires=["test_backend", "simplewheel==1.0"], backend="test_backend"
     )
     project_dir.joinpath("backend_reqs.txt").write_text("simplewheel")
     result = script.pip_install_local(
-        project_dir, build_isolation=True, find_links=[data.backends, data.packages]
+        project_dir,
+        flag,
+        build_isolation=True,
+        find_links=[data.backends, data.packages],
     )
     assert "Installing backend dependencies:" not in result.stdout
 
 
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_pep517_install_with_no_cache_dir(
-    script: PipTestEnvironment, tmpdir: Path, data: TestData
+    script: PipTestEnvironment, tmpdir: Path, data: TestData, flag: str
 ) -> None:
     """Check builds with a custom backends work, even with no cache."""
     project_dir = make_project(
         tmpdir, requires=["test_backend"], backend="test_backend"
     )
     result = script.pip_install_local(
-        "--no-cache-dir", project_dir, build_isolation=True, find_links=data.backends
+        "--no-cache-dir",
+        project_dir,
+        flag,
+        build_isolation=True,
+        find_links=data.backends,
     )
     result.assert_installed("project", editable=False)
 
@@ -334,3 +353,19 @@ def test_explicit_setuptools_backend(
         "--no-cache-dir", project_dir, find_links=common_wheels
     )
     result.assert_installed(name, editable=False)
+
+
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
+def test_nested_builds(script: PipTestEnvironment, flag: str, data: TestData) -> None:
+    """Smoke test ensuring that nested PEP 517 builds work."""
+    # trove-classifiers -> setuptools
+    #                   -> calvar -> setuptools
+    result = script.pip_install_local(
+        "trove-classifiers",
+        "--no-cache",
+        "--no-binary",
+        "trove-classifiers,calvar",
+        flag,
+        find_links=[data.pypi_packages, data.common_wheels],
+    )
+    result.assert_installed("trove_classifiers", editable=False)
