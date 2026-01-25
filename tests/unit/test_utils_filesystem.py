@@ -1,7 +1,11 @@
 import os
 from pathlib import Path
 
-from pip._internal.utils.filesystem import subdirs_without_files, subdirs_without_wheels
+from pip._internal.utils.filesystem import (
+    _subdirs_without_generic,
+    subdirs_without_files,
+    subdirs_without_wheels,
+)
 
 
 def make_file(path: str) -> None:
@@ -20,6 +24,26 @@ def make_broken_symlink(path: str) -> None:
 
 def make_dir(path: str) -> None:
     os.mkdir(path)
+
+
+class TestSubdirsWithoutGeneric:
+    """Tests for _subdirs_without_generic."""
+
+    def test_yieled_in_reverse_order(self, tmp_path: Path) -> None:
+        test_dir = tmp_path / "empty"
+        deepest_dir = test_dir / "a" / "b" / "c" / "d"
+        deepest_dir.mkdir(parents=True)
+
+        result = list(
+            _subdirs_without_generic(str(test_dir), lambda root, filenames: False)
+        )
+        assert [
+            deepest_dir,
+            deepest_dir.parent,
+            deepest_dir.parent.parent,
+            deepest_dir.parent.parent.parent,
+            test_dir,
+        ] == result
 
 
 class TestSubdirsWithoutFiles:
