@@ -2,6 +2,9 @@ import sys
 from optparse import Values
 from pathlib import Path
 
+from pip._vendor import tomli_w
+from pip._vendor.packaging.pylock import is_valid_pylock_path
+
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import (
@@ -9,12 +12,12 @@ from pip._internal.cli.req_command import (
     with_cleanup,
 )
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.models.pylock import Pylock, is_valid_pylock_file_name
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     get_pip_version,
 )
+from pip._internal.utils.pylock import pylock_from_install_requirements
 from pip._internal.utils.temp_dir import TempDirectory
 
 logger = getLogger(__name__)
@@ -154,15 +157,16 @@ class LockCommand(RequirementCommand):
             base_dir = Path.cwd()
         else:
             output_file_path = Path(options.output_file)
-            if not is_valid_pylock_file_name(output_file_path):
+            if not is_valid_pylock_path(output_file_path):
                 logger.warning(
                     "%s is not a valid lock file name.",
                     output_file_path,
                 )
             base_dir = output_file_path.parent
-        pylock_toml = Pylock.from_install_requirements(
+        pylock = pylock_from_install_requirements(
             requirement_set.requirements.values(), base_dir=base_dir
-        ).as_toml()
+        )
+        pylock_toml = tomli_w.dumps(pylock.to_dict())
         if options.output_file == "-":
             sys.stdout.write(pylock_toml)
         else:
