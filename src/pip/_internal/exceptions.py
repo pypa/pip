@@ -903,18 +903,16 @@ class InvalidEggFragment(DiagnosticPipError):
     reference = "invalid-egg-fragment"
 
     def __init__(self, link: Link, fragment: str) -> None:
+        hint = ""
         if ">" in fragment or "=" in fragment or "<" in fragment:
             hint = (
                 "Version specifiers are silently ignored for URL references. "
-                "Remove them."
+                "Remove them. "
             )
-        elif fragment.endswith("]"):
-            stripped = re.sub(r"[#&]egg=([^&]*)", "", str(link))
-            hint = (
-                "Try using the Direct URL requirement syntax: "
-                f"'{fragment} @ {stripped}'"
-            )
-        else:
+        if "[" in fragment and "]" in fragment:
+            hint += "Try using the Direct URL requirement syntax: 'name[extra] @ URL'"
+
+        if not hint:
             hint = "Egg fragments can only be a valid project name."
 
         super().__init__(

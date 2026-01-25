@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from pip._internal.exceptions import PipError
+from pip._internal.exceptions import InvalidEggFragment, PipError
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
@@ -101,6 +101,19 @@ class TestLink:
         url = f"git+https://example.com/package#egg={fragment}"
         with pytest.raises(PipError):
             Link(url)
+
+    def test_invalid_egg_fragment_with_extras_and_version_hint(self) -> None:
+        """Test that fragments with extras and version specifiers get proper hint."""
+
+        url = "git+https://example.com/package#egg=eggname[extra]==1.0"
+        with pytest.raises(InvalidEggFragment) as exc_info:
+            Link(url)
+
+        # The hint should suggest Direct URL syntax, not just "remove version
+        # specifiers" because the extras require Direct URL syntax anyway.
+        hint = str(exc_info.value.hint_stmt)
+        assert "name[extra] @ URL" in hint
+        assert "version specifiers are ignored" in hint
 
     @pytest.mark.parametrize(
         "yanked_reason, expected",
