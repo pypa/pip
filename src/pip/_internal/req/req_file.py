@@ -25,6 +25,7 @@ from typing import (
 
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 
 if TYPE_CHECKING:
@@ -59,6 +60,8 @@ SUPPORTED_OPTIONS: list[Callable[..., optparse.Option]] = [
     cmdoptions.prefer_binary,
     cmdoptions.require_hashes,
     cmdoptions.pre,
+    cmdoptions.all_releases,
+    cmdoptions.only_final,
     cmdoptions.trusted_host,
     cmdoptions.use_new_feature,
 ]
@@ -273,8 +276,14 @@ def handle_option_line(
         )
         finder.search_scope = search_scope
 
+        # Transform --pre into --all-releases :all:
         if opts.pre:
-            finder.set_allow_all_prereleases()
+            if not opts.release_control:
+                opts.release_control = ReleaseControl()
+            opts.release_control.all_releases.add(":all:")
+
+        if opts.release_control:
+            finder.set_release_control(opts.release_control)
 
         if opts.prefer_binary:
             finder.set_prefer_binary()

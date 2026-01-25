@@ -200,6 +200,12 @@ class SubprocessBuildEnvironmentInstaller:
                 )
             )
 
+        if finder.release_control is not None:
+            # Use ordered args to preserve the user's original command-line order
+            # This is important because later flags can override earlier ones
+            for attr_name, value in finder.release_control.get_ordered_args():
+                args.extend(("--" + attr_name.replace("_", "-"), value))
+
         index_urls = finder.index_urls
         if index_urls:
             args.extend(["-i", index_urls[0]])
@@ -218,8 +224,6 @@ class SubprocessBuildEnvironmentInstaller:
             args.extend(["--cert", finder.custom_cert])
         if finder.client_cert:
             args.extend(["--client-cert", finder.client_cert])
-        if finder.allow_all_prereleases:
-            args.append("--pre")
         if finder.prefer_binary:
             args.append("--prefer-binary")
 
