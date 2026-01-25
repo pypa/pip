@@ -518,6 +518,5 @@ def test_cache_purge_with_mixed_content(
     # Verify counts in output
     assert "Files removed:" in result.stdout
     assert "Directories removed:" in result.stdout
-    lines = result.stdout.splitlines()
-    file_line = [line for line in lines if "Files removed:" in line][0]
-    assert "4" in file_line or "4 " in file_line
+    files_removed = int(re.findall(r"Files removed: (\d+)", result.stdout)[0])
+    assert files_removed == 4
