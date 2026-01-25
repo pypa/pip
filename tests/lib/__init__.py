@@ -147,7 +147,13 @@ class TestData:
         # try/except.
         if self.root.exists():
             shutil.rmtree(self.root)
+        # import time
+
+        # t0 = time.perf_counter()
         shutil.copytree(self.source, self.root, symlinks=True)
+        # elapsed = time.perf_counter() - t0
+        # with open("/tmp/pip-data-times", "a", encoding="utf-8") as f:
+        #     f.write(f"{elapsed * 1000:.1f} - {self.root}\n")
 
     @property
     def packages(self) -> pathlib.Path:
@@ -529,6 +535,7 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
         # Make sure we get UTF-8 on output, even on Windows...
         environ["PYTHONIOENCODING"] = "UTF-8"
+        environ["_PIP_DISABLE_USER_AGENT"] = "1"
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)

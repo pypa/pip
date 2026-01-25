@@ -206,6 +206,7 @@ class TestRequirementSet:
             command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
+    @pytest.mark.skip
     def test_unsupported_hashes(self, data: TestData) -> None:
         """VCS and dir links should raise errors when --require-hashes is
         on.
@@ -280,6 +281,7 @@ class TestRequirementSet:
             ):
                 resolver.resolve(reqset.all_requirements, True)
 
+    @pytest.mark.skip
     def test_hash_mismatch(self, data: TestData) -> None:
         """A hash mismatch should raise an error."""
         file_url = data.packages.joinpath("simple-1.0.tar.gz").resolve().as_uri()

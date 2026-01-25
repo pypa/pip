@@ -110,6 +110,9 @@ def user_agent() -> str:
     """
     Return a string representing the user agent.
     """
+    if os.environ.get("_PIP_DISABLE_USER_AGENT"):
+        return ""
+
     data: dict[str, Any] = {
         "installer": {"name": "pip", "version": __version__},
         "python": platform.python_version(),

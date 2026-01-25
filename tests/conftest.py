@@ -663,8 +663,8 @@ def shared_data(tmpdir_factory: pytest.TempPathFactory) -> TestData:
 
 
 @pytest.fixture
-def data(tmpdir: Path) -> TestData:
-    return TestData.copy(tmpdir.joinpath("data"))
+def data(shared_data: TestData) -> TestData:
+    return shared_data
 
 
 @pytest.fixture
