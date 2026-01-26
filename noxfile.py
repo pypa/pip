@@ -44,7 +44,14 @@ def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     session.run_install(*command, env=env, silent=True)
 
 
-def should_update_common_wheels() -> bool:
+def should_update_common_wheels(session: nox.Session) -> bool:
+    """Determine if the common wheels cache needs to be updated.
+
+    The cache is invalidated if:
+    1. It doesn't exist yet
+    2. pyproject.toml was modified after the cache was created
+    3. The cached wheels cannot satisfy the current Python version's requirements
+    """
     # If the cache hasn't been created, create it.
     if not os.path.exists(LOCATIONS["common-wheels"]):
         return True
@@ -53,6 +60,34 @@ def should_update_common_wheels() -> bool:
     cache_last_populated_at = os.path.getmtime(LOCATIONS["common-wheels"])
     pyproject_updated_at = os.path.getmtime("pyproject.toml")
     need_to_repopulate = pyproject_updated_at > cache_last_populated_at
+
+    if not need_to_repopulate:
+        # Check all common wheels are available for the current Python version,
+        # by using --ignore-installed and --dry-run against the common-wheels
+        # directory.
+        result = session.run(
+            "python",
+            LOCATIONS["protected-pip"],
+            "install",
+            "--dry-run",
+            "--ignore-installed",
+            "--no-index",
+            "--find-links",
+            LOCATIONS["common-wheels"],
+            "--group",
+            "test-common-wheels",
+            env={"VIRTUAL_ENV": session.virtualenv.location},
+            silent=True,
+            success_codes=[0, 1],  # Accept both success and failure and check result
+        )
+
+        # Result is the stdout of the pip install command.
+        if result is None or "Would install" not in result:
+            session.log(
+                "Regenerating common wheels as cached wheels "
+                "cannot satisfy test-common-wheels"
+            )
+            need_to_repopulate = True
 
     # Clear the stale cache.
     if need_to_repopulate:
@@ -67,7 +102,7 @@ def should_update_common_wheels() -> bool:
 @nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
-    if should_update_common_wheels():
+    if should_update_common_wheels(session):
         # fmt: off
         run_with_protected_pip(
             session,
