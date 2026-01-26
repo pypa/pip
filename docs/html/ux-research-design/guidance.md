@@ -311,7 +311,7 @@ As part of the [2020 UX Work](research-results/index), we published a form that 
 
 We found Twitter to be a very effective platform for engaging with the Python community and drive participation in UX research. We recommend:
 
-1. Asking [ThePSF](https://twitter.com/ThePSF), [PyPA](https://twitter.com/ThePyPA) and [PyPI](https://twitter.com/pypi) to retweet calls for survey and interview participation
+1. Asking [ThePSF](https://x.com/ThePSF), [PyPA](https://x.com/ThePyPA) and [PyPI](https://x.com/pypi) to retweet calls for survey and interview participation
 2. Asking specific individuals (who have reach within specific communities, or general followings within the Python community) to retweet.
 3. Explicitly asking for retweets within tweets
 4. Responding to users within Twitter

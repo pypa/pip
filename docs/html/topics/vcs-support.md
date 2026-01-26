@@ -71,7 +71,7 @@ The supported schemes are `hg+file`, `hg+http`, `hg+https`, `hg+ssh`
 and `hg+static-http`. Here are some of the supported forms:
 
 ```
-MyProject @ hg+http://hg.myproject.org/MyProject
+MyProject @ hg+https://hg.myproject.org/MyProject
 MyProject @ hg+https://hg.myproject.org/MyProject
 MyProject @ hg+ssh://hg.myproject.org/MyProject
 MyProject @ hg+file:///home/user/projects/MyProject
@@ -81,10 +81,10 @@ It is also possible to specify a revision number, a revision hash, a tag name
 or a local branch name:
 
 ```none
-MyProject @ hg+http://hg.example.com/MyProject@da39a3ee5e6b
-MyProject @ hg+http://hg.example.com/MyProject@2019
-MyProject @ hg+http://hg.example.com/MyProject@v1.0
-MyProject @ hg+http://hg.example.com/MyProject@special_feature
+MyProject @ hg+https://hg.example.com/MyProject@da39a3ee5e6b
+MyProject @ hg+https://hg.example.com/MyProject@2019
+MyProject @ hg+https://hg.example.com/MyProject@v1.0
+MyProject @ hg+https://hg.example.com/MyProject@special_feature
 ```
 
 ### Subversion
@@ -101,8 +101,8 @@ MyProject @ svn+ssh://user@svn.example.com/MyProject
 You can also give specific revisions to an SVN URL, like so:
 
 ```none
--e MyProject @ svn+http://svn.example.com/svn/MyProject/trunk@2019
--e MyProject @ svn+http://svn.example.com/svn/MyProject/trunk@{20080101}
+-e MyProject @ svn+https://svn.example.com/svn/MyProject/trunk@2019
+-e MyProject @ svn+https://svn.example.com/svn/MyProject/trunk@{20080101}
 ```
 
 Note that you need to use [Editable VCS installs](#editable-vcs-installs) for
@@ -114,7 +114,7 @@ The supported schemes are `bzr+http`, `bzr+https`, `bzr+ssh`, `bzr+sftp`,
 `bzr+ftp` and `bzr+lp`. Here are the supported forms:
 
 ```none
-MyProject @ bzr+http://bzr.example.com/MyProject/trunk
+MyProject @ bzr+https://bzr.example.com/MyProject/trunk
 MyProject @ bzr+sftp://user@example.com/MyProject/trunk
 MyProject @ bzr+ssh://user@example.com/MyProject/trunk
 MyProject @ bzr+ftp://user@example.com/MyProject/trunk
@@ -125,7 +125,7 @@ Tags or revisions can be installed like so:
 
 ```none
 MyProject @ bzr+https://bzr.example.com/MyProject/trunk@2019
-MyProject @ bzr+http://bzr.example.com/MyProject/trunk@v1.0
+MyProject @ bzr+https://bzr.example.com/MyProject/trunk@v1.0
 ```
 
 (editable-vcs-installs)=

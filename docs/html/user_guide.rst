@@ -128,7 +128,7 @@ placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
 
 Requirements files can also be served via a URL, e.g.
-http://example.com/requirements.txt besides as local files, so that they can
+https://example.com/requirements.txt besides as local files, so that they can
 be stored and served in a centralized place.
 
 In practice, there are 4 common uses of Requirements files:
@@ -252,7 +252,7 @@ and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
 
 Same as requirements files, constraints files can also be served via a URL,
-e.g. http://example.com/constraints.txt, so that your organization can store and
+e.g. https://example.com/constraints.txt, so that your organization can store and
 serve them in a centralized place.
 
 
@@ -1249,7 +1249,7 @@ Install:
 * ``elasticsearch`` and ``requests`` together
 * ``six`` and ``cherrypy`` together
 * ``pip install flake8-import-order==0.17.1 flake8==3.5.0 --use-feature=2020-resolver``
-* ``pip install tornado==5.0 sprockets.http==1.5.0 --use-feature=2020-resolver``
+* ``pip install tornado==5.0 sprockets.https==1.5.0 --use-feature=2020-resolver``
 
 Try:
 
@@ -1338,7 +1338,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _issue 8661: https://github.com/pypa/pip/issues/8661
-.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _our announcement on the PSF blog: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _two-minute video explanation: https://www.youtube.com/watch?v=B4GQCBBsuNU
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/

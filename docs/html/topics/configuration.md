@@ -184,12 +184,12 @@ which can be written on multiple lines:
 ```ini
 [global]
 find-links =
-    http://download.example.com
+    https://download.example.com
 
 [install]
 find-links =
-    http://mirror1.example.com
-    http://mirror2.example.com
+    https://mirror1.example.com
+    https://mirror2.example.com
 
 trusted-host =
     mirror1.example.com
@@ -207,13 +207,13 @@ underscores (`_`).
 
 - `PIP_TIMEOUT=60` is the same as `--timeout=60`
 - ```
-  PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+  PIP_FIND_LINKS="https://mirror1.example.com https://mirror2.example.com"
   ```
 
   is the same as
 
   ```
-  --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+  --find-links=https://mirror1.example.com --find-links=https://mirror2.example.com
   ```
 
 Repeatable options that do not take a value (such as `--verbose`) can be
