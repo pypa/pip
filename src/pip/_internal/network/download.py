@@ -7,6 +7,7 @@ import logging
 import mimetypes
 import os
 from collections.abc import Iterable, Mapping
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import BinaryIO
@@ -178,10 +179,53 @@ class Downloader:
     def batch(
         self, links: Iterable[Link], location: str
     ) -> Iterable[tuple[Link, tuple[str, str]]]:
-        """Convenience method to download multiple links."""
-        for link in links:
-            filepath, content_type = self(link, location)
-            yield link, (filepath, content_type)
+        """Download multiple links, with optional parallelization.
+
+        If parallel downloads are enabled (via session.parallel_downloads),
+        downloads will be performed concurrently using a thread pool.
+        Otherwise, downloads are performed sequentially for backward compatibility.
+        """
+        max_workers = getattr(self._session, "parallel_downloads", 1)
+
+        if max_workers <= 1:
+            # Sequential downloads (original behavior)
+            for link in links:
+                filepath, content_type = self(link, location)
+                yield link, (filepath, content_type)
+        else:
+            # Parallel downloads
+            yield from self._batch_parallel(links, location, max_workers)
+
+    def _batch_parallel(
+        self, links: Iterable[Link], location: str, max_workers: int
+    ) -> Iterable[tuple[Link, tuple[str, str]]]:
+        """Download multiple links in parallel using ThreadPoolExecutor."""
+        links_list = list(links)
+
+        def download_one(link: Link) -> tuple[Link, tuple[str, str]]:
+            """Download a single link and return the result."""
+            try:
+                filepath, content_type = self(link, location)
+                return link, (filepath, content_type)
+            except Exception as e:
+                logger.error("Failed to download %s: %s", link, e)
+                raise
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all download tasks
+            future_to_link = {
+                executor.submit(download_one, link): link for link in links_list
+            }
+
+            # Yield results as they complete
+            for future in as_completed(future_to_link):
+                link = future_to_link[future]
+                try:
+                    result = future.result()
+                    yield result
+                except Exception as e:
+                    logger.error("Download failed for %s: %s", link, e)
+                    raise
 
     def __call__(self, link: Link, location: str) -> tuple[str, str]:
         """Download a link and save it under location."""
