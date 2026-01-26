@@ -51,9 +51,6 @@ class WheelCommand(RequirementCommand):
                 "current working directory."
             ),
         )
-        self.cmd_opts.add_option(cmdoptions.no_binary())
-        self.cmd_opts.add_option(cmdoptions.only_binary())
-        self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
@@ -77,18 +74,6 @@ class WheelCommand(RequirementCommand):
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
 
-        self.cmd_opts.add_option(
-            "--pre",
-            action="store_true",
-            default=False,
-            help=(
-                "Include pre-release and development versions. By default, "
-                "pip only finds stable versions."
-            ),
-        )
-        self.cmd_opts.add_option(cmdoptions.all_releases())
-        self.cmd_opts.add_option(cmdoptions.only_final())
-
         self.cmd_opts.add_option(cmdoptions.require_hashes())
 
         index_opts = cmdoptions.make_option_group(
@@ -96,7 +81,13 @@ class WheelCommand(RequirementCommand):
             self.parser,
         )
 
+        selection_opts = cmdoptions.make_option_group(
+            cmdoptions.package_selection_group,
+            self.parser,
+        )
+
         self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup

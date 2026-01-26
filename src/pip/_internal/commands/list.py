@@ -90,17 +90,6 @@ class ListCommand(IndexGroupCommand):
             help="Only output packages installed in user-site.",
         )
         self.cmd_opts.add_option(cmdoptions.list_path())
-        self.cmd_opts.add_option(
-            "--pre",
-            action="store_true",
-            default=False,
-            help=(
-                "Include pre-release and development versions. By default, "
-                "pip only finds stable versions."
-            ),
-        )
-        self.cmd_opts.add_option(cmdoptions.all_releases())
-        self.cmd_opts.add_option(cmdoptions.only_final())
 
         self.cmd_opts.add_option(
             "--format",
@@ -137,7 +126,13 @@ class ListCommand(IndexGroupCommand):
         self.cmd_opts.add_option(cmdoptions.list_exclude())
         index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
+        selection_opts = cmdoptions.make_option_group(
+            cmdoptions.package_selection_group,
+            self.parser,
+        )
+
         self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def handle_pip_version_check(self, options: Values) -> None:

@@ -41,19 +41,20 @@ class IndexCommand(IndexGroupCommand):
         cmdoptions.add_target_python_options(self.cmd_opts)
 
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        self.cmd_opts.add_option(cmdoptions.pre())
-        self.cmd_opts.add_option(cmdoptions.all_releases())
-        self.cmd_opts.add_option(cmdoptions.only_final())
         self.cmd_opts.add_option(cmdoptions.json())
-        self.cmd_opts.add_option(cmdoptions.no_binary())
-        self.cmd_opts.add_option(cmdoptions.only_binary())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
         )
 
+        selection_opts = cmdoptions.make_option_group(
+            cmdoptions.package_selection_group,
+            self.parser,
+        )
+
         self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
