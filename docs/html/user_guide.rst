@@ -346,6 +346,67 @@ override ``:all:``. These options can also be used in requirements files.
    be combined with ``--all-releases`` or ``--only-final``.
 
 
+.. _`Filtering by Upload Time`:
+
+Filtering by Upload Time
+=========================
+
+The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
+to an index, only considering packages that were uploaded before a specified datetime.
+This can be useful for creating reproducible builds by ensuring you only install
+packages that were available at a known point in time.
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+
+The option accepts ISO 8601 datetime strings in several formats:
+
+* ``2025-03-16`` - Date in local timezone
+* ``2025-03-16T12:30:00`` - Datetime in local timezone
+* ``2025-03-16T12:30:00Z`` - Datetime in UTC
+* ``2025-03-16T12:30:00+05:00`` - Datetime in UTC offset
+
+For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
+format (with timezone offset like '+05:00'). Local timezone formats may produce different
+results on different machines.
+
+.. note::
+
+    This option only applies to packages from remote indexes, not local files or VCS
+    requirements. Local package files are allowed regardless of the
+    ``--uploaded-prior-to`` setting, e.g. ``pip install /path/to/package.whl``,
+    packages from ``--find-links`` directories, or VCS requirements like
+    ``git+https://...``.
+
+    This option requires package indexes that provide upload-time metadata
+    (such as PyPI). If the index does not provide upload-time metadata for a
+    package file, pip will fail immediately with an error message indicating
+    that upload-time metadata is required when using ``--uploaded-prior-to``.
+
+You can combine this option with other filtering mechanisms like constraints files:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
+
+
 .. _`Dependency Groups`:
 
 

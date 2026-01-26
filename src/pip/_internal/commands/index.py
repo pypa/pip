@@ -109,6 +109,7 @@ class IndexCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            uploaded_prior_to=options.uploaded_prior_to,
         )
 
     def get_available_package_versions(self, options: Values, args: list[Any]) -> None:

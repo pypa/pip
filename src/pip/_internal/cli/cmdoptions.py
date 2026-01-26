@@ -29,6 +29,7 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.target_python import TargetPython
+from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
 
@@ -424,6 +425,54 @@ def find_links() -> Option:
         "If a local path or file:// URL that's a directory, "
         "then look for archives in the directory listing. "
         "Links to VCS project URLs are not supported.",
+    )
+
+
+def _handle_uploaded_prior_to(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    This is an optparse.Option callback for the --uploaded-prior-to option.
+
+    Parses an ISO 8601 datetime string. If no timezone is specified in the string,
+    local timezone is used.
+
+    Note: This option only works with indexes that provide upload-time metadata
+    as specified in the simple repository API:
+    https://packaging.python.org/en/latest/specifications/simple-repository-api/
+    """
+    if value is None:
+        return None
+
+    try:
+        uploaded_prior_to = parse_iso_datetime(value)
+        # Use local timezone if no offset is given in the ISO string.
+        if uploaded_prior_to.tzinfo is None:
+            uploaded_prior_to = uploaded_prior_to.astimezone()
+        parser.values.uploaded_prior_to = uploaded_prior_to
+    except ValueError as exc:
+        msg = (
+            f"invalid value: {value!r}: {exc}. "
+            f"Expected an ISO 8601 datetime string, "
+            f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
+        )
+        raise_option_error(parser, option=option, msg=msg)
+
+
+def uploaded_prior_to() -> Option:
+    return Option(
+        "--uploaded-prior-to",
+        dest="uploaded_prior_to",
+        metavar="datetime",
+        action="callback",
+        callback=_handle_uploaded_prior_to,
+        type="str",
+        help=(
+            "Only consider packages uploaded prior to the given date time. "
+            "Accepts ISO 8601 strings (e.g., '2023-01-01T00:00:00Z'). "
+            "Uses local timezone if none specified. Only effective when "
+            "installing from indexes that provide upload-time metadata."
+        ),
     )
 
 
@@ -925,6 +974,7 @@ ignore_requires_python: Callable[..., Option] = partial(
     help="Ignore the Requires-Python information.",
 )
 
+
 no_build_isolation: Callable[..., Option] = partial(
     Option,
     "--no-build-isolation",
@@ -1200,5 +1250,6 @@ index_group: dict[str, Any] = {
         extra_index_url,
         no_index,
         find_links,
+        uploaded_prior_to,
     ],
 }

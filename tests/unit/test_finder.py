@@ -1,3 +1,4 @@
+import datetime
 import logging
 from collections.abc import Iterable
 from unittest.mock import Mock, patch
@@ -575,3 +576,40 @@ def test_find_all_candidates_find_links_and_index(data: TestData) -> None:
     versions = finder.find_all_candidates("simple")
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ["3.0", "2.0", "1.0", "1.0"]
+
+
+class TestPackageFinderUploadedPriorTo:
+    """Test PackageFinder integration with uploaded_prior_to functionality.
+
+    Only effective with indexes that provide upload-time metadata.
+    """
+
+    def test_package_finder_create_with_uploaded_prior_to(self) -> None:
+        """Test that PackageFinder.create() accepts uploaded_prior_to parameter."""
+        uploaded_prior_to = datetime.datetime(
+            2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
+        )
+
+        finder = make_test_finder(uploaded_prior_to=uploaded_prior_to)
+
+        assert finder._uploaded_prior_to == uploaded_prior_to
+
+    def test_package_finder_make_link_evaluator_with_uploaded_prior_to(self) -> None:
+        """Test that PackageFinder creates LinkEvaluator with uploaded_prior_to."""
+        uploaded_prior_to = datetime.datetime(
+            2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
+        )
+
+        finder = make_test_finder(uploaded_prior_to=uploaded_prior_to)
+
+        link_evaluator = finder.make_link_evaluator("test-package")
+        assert link_evaluator._uploaded_prior_to == uploaded_prior_to
+
+    def test_package_finder_uploaded_prior_to_none(self) -> None:
+        """Test that PackageFinder works correctly when uploaded_prior_to is None."""
+        finder = make_test_finder(uploaded_prior_to=None)
+
+        assert finder._uploaded_prior_to is None
+
+        link_evaluator = finder.make_link_evaluator("test-package")
+        assert link_evaluator._uploaded_prior_to is None
