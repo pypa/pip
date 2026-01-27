@@ -1249,7 +1249,7 @@ Install:
 * ``elasticsearch`` and ``requests`` together
 * ``six`` and ``cherrypy`` together
 * ``pip install flake8-import-order==0.17.1 flake8==3.5.0 --use-feature=2020-resolver``
-* ``pip install tornado==5.0 sprockets.https==1.5.0 --use-feature=2020-resolver``
+* ``pip install tornado==5.0 sprockets.http==1.5.0 --use-feature=2020-resolver``
 
 Try:
 
