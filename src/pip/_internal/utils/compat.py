@@ -7,7 +7,7 @@ import os
 import sys
 from typing import IO
 
-__all__ = ["get_path_uid", "stdlib_pkgs", "tomllib", "WINDOWS"]
+__all__ = ["get_path_uid", "stdlib_pkgs", "stdlib_module_names", "tomllib", "WINDOWS"]
 
 
 logger = logging.getLogger(__name__)
@@ -79,6 +79,11 @@ else:
 # py26:sysconfig.get_config_vars('LIBDEST')), but fear platform variation may
 # make this ineffective, so hard-coding
 stdlib_pkgs = {"python", "wsgiref", "argparse"}
+
+# sys.stdlib_module_names is only available in Python 3.10+
+# This is used to provide helpful error messages when users try to install
+# standard library modules
+stdlib_module_names: frozenset[str] = getattr(sys, "stdlib_module_names", frozenset())
 
 
 # windows detection, covers cpython and ironpython
