@@ -1,9 +1,10 @@
 import os
+import sys
 from pathlib import Path
 
 import pytest
 
-from pip._internal.utils.compat import get_path_uid
+from pip._internal.utils.compat import get_path_uid, stdlib_module_names
 
 
 def test_get_path_uid() -> None:
@@ -44,3 +45,30 @@ def test_get_path_uid_symlink_without_NOFOLLOW(
     os.symlink(f, fs)
     with pytest.raises(OSError):
         get_path_uid(fs)
+
+
+def test_stdlib_module_names_type() -> None:
+    """Test that stdlib_module_names is a frozenset."""
+    assert isinstance(stdlib_module_names, frozenset)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="sys.stdlib_module_names only available in Python 3.10+",
+)
+def test_stdlib_module_names_contains_common_modules() -> None:
+    """Test that stdlib_module_names contains expected stdlib modules on Python 3.10+."""
+    # These are common stdlib modules that should always be present
+    assert "os" in stdlib_module_names
+    assert "sys" in stdlib_module_names
+    assert "json" in stdlib_module_names
+    assert "collections" in stdlib_module_names
+
+
+@pytest.mark.skipif(
+    sys.version_info >= (3, 10),
+    reason="Testing fallback behavior on Python < 3.10",
+)
+def test_stdlib_module_names_empty_on_older_python() -> None:
+    """Test that stdlib_module_names is empty on Python < 3.10."""
+    assert len(stdlib_module_names) == 0

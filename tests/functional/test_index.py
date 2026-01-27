@@ -1,4 +1,5 @@
 import json
+import sys
 
 import pytest
 
@@ -162,3 +163,26 @@ def test_index_versions_only_final_for_package(script: PipTestEnvironment) -> No
     )
     assert "1.0" in result.stdout
     assert "2.0a1" not in result.stdout
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="sys.stdlib_module_names only available in Python 3.10+",
+)
+def test_index_versions_stdlib_module_hint(script: PipTestEnvironment) -> None:
+    """
+    Test that pip index shows a helpful hint when querying a stdlib module.
+    """
+    result = script.pip(
+        "index",
+        "versions",
+        "--no-index",
+        "os",  # stdlib module
+        expect_error=True,
+    )
+
+    assert "No matching distribution found for os" in result.stderr, str(result)
+    assert "HINT: os is part of the Python standard library" in result.stdout, str(
+        result
+    )
+    assert "import os" in result.stdout, str(result)
