@@ -413,14 +413,14 @@ Examples
       .. code-block:: shell
 
          python -m pip install './downloads/SomePackage-1.0.4.tar.gz'
-         python -m pip install 'http://my.package.repo/SomePackage-1.0.4.zip'
+         python -m pip install 'https://my.package.repo/SomePackage-1.0.4.zip'
 
    .. tab:: Windows
 
       .. code-block:: shell
 
          py -m pip install "./downloads/SomePackage-1.0.4.tar.gz"
-         py -m pip install "http://my.package.repo/SomePackage-1.0.4.zip"
+         py -m pip install "https://my.package.repo/SomePackage-1.0.4.zip"
 
 #. Install a particular source archive file following direct references
    (:ref:`specification <pypug:dependency-specifiers>`).
@@ -429,17 +429,18 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install 'SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl'
-         python -m pip install 'SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl'
-         python -m pip install 'SomeProject@http://my.package.repo/1.2.3.tar.gz'
+         python -m pip install 'SomeProject@https://my.package.repo/SomeProject-1.2.3-py33-none-any.whl'
+         python -m pip install 'SomeProject @ https://my.package.repo/SomeProject-1.2.3-py33-none-any.whl'
+         python -m pip install 'SomeProject@https://my.package.repo/1.2.3.tar.gz'
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install "SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
-         py -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
-         py -m pip install "SomeProject@http://my.package.repo/1.2.3.tar.gz"
+         py -m pip install "SomeProject@https://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
+         py -m pip install "SomeProject @ https://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
+         py -m pip install "SomeProject@https://my.package.repo/1.2.3.tar.gz"
+
 
 #. Install from alternative package repositories.
 
@@ -449,13 +450,13 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install --index-url http://my.package.repo/simple/ SomePackage
+         python -m pip install --index-url https://my.package.repo/simple/ SomePackage
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install --index-url http://my.package.repo/simple/ SomePackage
+         py -m pip install --index-url https://my.package.repo/simple/ SomePackage
 
    Install from a local flat directory containing archives (and don't scan indexes):
 
@@ -489,13 +490,13 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install --extra-index-url http://my.package.repo/simple SomePackage
+         python -m pip install --extra-index-url https://my.package.repo/simple SomePackage
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install --extra-index-url http://my.package.repo/simple SomePackage
+         py -m pip install --extra-index-url https://my.package.repo/simple SomePackage
 
 
 #. Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.

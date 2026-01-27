@@ -13,8 +13,8 @@ control system being used). It is used through URL prefixes:
 The general form of a VCS requirement is `ProjectName @ VCS_URL`, e.g.
 
 ```none
-MyProject @ git+https://git.example.com/MyProject
-MyProject[extra] @ git+https:/git.example.com/MyProject
+MyProject @ git+http://git.example.com/MyProject
+MyProject[extra] @ git+http:/git.example.com/MyProject
 ```
 
 This is the {ref}`Direct URL <pypug:dependency-specifiers>` requirement syntax.
@@ -22,7 +22,7 @@ It is also permissible to remove `MyProject @` portion is removed and provide
 a bare VCS URL.
 
 ```none
-git+https://git.example.com/MyProject
+git+http://git.example.com/MyProject
 ```
 
 This is a pip specific extension. This form can be used as long as pip does
@@ -40,7 +40,7 @@ The supported schemes are `git+file`, `git+https`, `git+ssh`, `git+http`,
 ```none
 MyProject @ git+ssh://git@git.example.com/MyProject
 MyProject @ git+file:///home/user/projects/MyProject
-MyProject @ git+https://git.example.com/MyProject
+MyProject @ git+http://git.example.com/MyProject
 ```
 
 ```{warning}
@@ -55,10 +55,10 @@ It is also possible to specify a "git ref" such as branch name, a commit hash or
 a tag name:
 
 ```none
-MyProject @ git+https://git.example.com/MyProject.git@master
-MyProject @ git+https://git.example.com/MyProject.git@v1.0
-MyProject @ git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709
-MyProject @ git+https://git.example.com/MyProject.git@refs/pull/123/head
+MyProject @ git+http://git.example.com/MyProject.git@master
+MyProject @ git+http://git.example.com/MyProject.git@v1.0
+MyProject @ git+http://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709
+MyProject @ git+http://git.example.com/MyProject.git@refs/pull/123/head
 ```
 
 When passing a commit hash, specifying a full hash is preferable to a partial
@@ -72,7 +72,7 @@ and `hg+static-http`. Here are some of the supported forms:
 
 ```
 MyProject @ hg+http://hg.myproject.org/MyProject
-MyProject @ hg+https://hg.myproject.org/MyProject
+MyProject @ hg+http://hg.myproject.org/MyProject
 MyProject @ hg+ssh://hg.myproject.org/MyProject
 MyProject @ hg+file:///home/user/projects/MyProject
 ```
@@ -93,7 +93,7 @@ The supported schemes are `svn`, `svn+svn`, `svn+http`, `svn+https` and
 `svn+ssh`. Here are some of the supported forms:
 
 ```none
-MyProject @ svn+https://svn.example.com/MyProject
+MyProject @ svn+http://svn.example.com/MyProject
 MyProject @ svn+ssh://svn.example.com/MyProject
 MyProject @ svn+ssh://user@svn.example.com/MyProject
 ```
@@ -124,7 +124,7 @@ MyProject @ bzr+lp:MyProject
 Tags or revisions can be installed like so:
 
 ```none
-MyProject @ bzr+https://bzr.example.com/MyProject/trunk@2019
+MyProject @ bzr+http://bzr.example.com/MyProject/trunk@2019
 MyProject @ bzr+http://bzr.example.com/MyProject/trunk@v1.0
 ```
 
