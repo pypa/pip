@@ -19,6 +19,7 @@ class SelectionPreferences:
         "prefer_binary",
         "ignore_requires_python",
         "index_priority",
+        "index_mappings",
     ]
 
     # Don't include an allow_yanked default value to make sure each call
@@ -33,6 +34,7 @@ class SelectionPreferences:
         prefer_binary: bool = False,
         ignore_requires_python: bool | None = None,
         index_priority: bool = False,
+        index_mappings: list[str] | None = None,
     ) -> None:
         """Create a SelectionPreferences object.
 
@@ -49,6 +51,7 @@ class SelectionPreferences:
             "Requires-Python" values in links. Defaults to False.
         :param index_priority: Whether to stop searching for candidates after
             the first index that has hits.
+        :param index_mappings: A list of package:url mapping strings.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -59,3 +62,4 @@ class SelectionPreferences:
         self.prefer_binary = prefer_binary
         self.ignore_requires_python = ignore_requires_python
         self.index_priority = index_priority
+        self.index_mappings = index_mappings or []

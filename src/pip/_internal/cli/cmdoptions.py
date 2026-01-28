@@ -413,6 +413,20 @@ def index_priority() -> Option:
     )
 
 
+def index_mapping() -> Option:
+    return Option(
+        "--index-mapping",
+        dest="index_mappings",
+        metavar="PACKAGE:URL",
+        action="append",
+        default=[],
+        help="Map package names to specific indexes. "
+        "Format: <package_pattern>:<index_url>. "
+        "Example: --index-mapping 'my-internal-*:https://my-repo/simple'. "
+        "Can be used multiple times.",
+    )
+
+
 no_index: Callable[..., Option] = partial(
     Option,
     "--no-index",
@@ -1261,6 +1275,7 @@ index_group: dict[str, Any] = {
         extra_index_url,
         no_index,
         index_priority,
+        index_mapping,
         find_links,
         uploaded_prior_to,
     ],
