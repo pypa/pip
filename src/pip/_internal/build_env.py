@@ -226,6 +226,8 @@ class SubprocessBuildEnvironmentInstaller:
             args.extend(["--client-cert", finder.client_cert])
         if finder.prefer_binary:
             args.append("--prefer-binary")
+        if finder.credential_helper:
+            args.extend(["--credential-helper", finder.credential_helper])
 
         # Handle build constraints
         if self._build_constraint_feature_enabled:

@@ -169,3 +169,50 @@ the keyring to download and install keyring.
 
 It is, thus, expected that users that wish to use pip's keyring support have
 some mechanism for downloading and installing {pypi}`keyring`.
+
+## Credential Helpers
+
+pip supports using external credential helper commands for authentication.
+This is enabled by passing `--credential-helper <command>`.
+
+The command will be called with an additional argument specifying the action: `get`, `store`, or `erase`.
+
+### Protocol
+
+The credential helper communicates with pip using JSON over standard input and output.
+
+#### `get` action
+
+When pip needs credentials for a URL, it calls:
+`<command> get`
+
+It sends a JSON object to standard input:
+```json
+{"url": "...", "username": "..."}
+```
+
+The command should return a JSON object on standard output:
+```json
+{"username": "...", "password": "..."}
+```
+Or an empty response/`null` if no credentials are found.
+
+#### `store` action
+
+When a user successfully authenticates, pip can store the credentials by calling:
+`<command> store`
+
+It sends a JSON object to standard input:
+```json
+{"url": "...", "username": "...", "password": "..."}
+```
+
+#### `erase` action
+
+When authentication fails with previously provided credentials, pip can notify the helper by calling:
+`<command> erase`
+
+It sends a JSON object to standard input:
+```json
+{"url": "...", "username": "..."}
+```

@@ -293,6 +293,16 @@ keyring_provider: Callable[..., Option] = partial(
         " (default: %default)"
     ),
 )
+ 
+credential_helper: Callable[..., Option] = partial(
+    Option,
+    "--credential-helper",
+    dest="credential_helper",
+    metavar="command",
+    default=None,
+    help="Specify an external command to fetch credentials. "
+    "The command will be called with 'get', 'store' or 'erase' as the first argument.",
+)
 
 proxy: Callable[..., Option] = partial(
     Option,
@@ -1254,6 +1264,7 @@ general_group: dict[str, Any] = {
         log,
         no_input,
         keyring_provider,
+        credential_helper,
         proxy,
         retries,
         timeout,
