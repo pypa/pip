@@ -921,7 +921,8 @@ class PackageFinder:
         if not new_index_urls and not new_find_links:
             logger.warning(
                 "Index mapping for %s to %s resulted in no search locations. "
-                "Check if the URL is correctly specified in --index-url or --find-links.",
+                "Check if the URL is correctly specified in --index-url "
+                "or --find-links.",
                 project_name,
                 target_url,
             )
