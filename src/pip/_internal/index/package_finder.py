@@ -955,7 +955,9 @@ class PackageFinder:
         )
 
         if self._candidate_prefs.index_mappings:
-            collected_sources = self._apply_index_mapping(project_name, collected_sources)
+            collected_sources = self._apply_index_mapping(
+                project_name, collected_sources
+            )
 
         page_candidates: list[InstallationCandidate] = []
         if self._candidate_prefs.index_priority:
