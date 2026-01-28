@@ -412,9 +412,6 @@ def extra_index_url() -> Option:
     )
 
 
-
-
-
 no_index: Callable[..., Option] = partial(
     Option,
     "--no-index",
