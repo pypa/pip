@@ -162,7 +162,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         res = subprocess.run(
             cmd,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             env=env,
         )
         if res.returncode:
@@ -207,8 +207,7 @@ class CredentialHelperProvider(KeyRingBaseProvider):
             res = subprocess.run(
                 cmd + ["get"],
                 input=input_data.encode(),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 check=True,
             )
             output = res.stdout.decode("utf-8").strip()

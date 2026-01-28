@@ -548,7 +548,7 @@ def test_credential_helper_get_password(monkeypatch: pytest.MonkeyPatch) -> None
     import json
     from pip._internal.network.auth import CredentialHelperProvider
 
-    def mock_run(cmd, input, **kwargs):
+    def mock_run(cmd: list[str], input: bytes, **kwargs: Any) -> Any:
         assert cmd == ["my-helper", "--arg", "get"]
         input_data = json.loads(input.decode())
         assert input_data["url"] == "http://example.com"
@@ -558,7 +558,7 @@ def test_credential_helper_get_password(monkeypatch: pytest.MonkeyPatch) -> None
             stderr = b""
             returncode = 0
 
-            def check_returncode(self):
+            def check_returncode(self) -> None:
                 pass
 
         return MockResult()
@@ -573,7 +573,7 @@ def test_credential_helper_save_password(monkeypatch: pytest.MonkeyPatch) -> Non
     import json
     from pip._internal.network.auth import CredentialHelperProvider
 
-    def mock_run(cmd, input, **kwargs):
+    def mock_run(cmd: list[str], input: bytes, **kwargs: Any) -> Any:
         assert cmd == ["my-helper", "store"]
         input_data = json.loads(input.decode())
         assert input_data["url"] == "http://example.com"
@@ -583,7 +583,7 @@ def test_credential_helper_save_password(monkeypatch: pytest.MonkeyPatch) -> Non
         class MockResult:
             returncode = 0
 
-            def check_returncode(self):
+            def check_returncode(self) -> None:
                 pass
 
         return MockResult()
