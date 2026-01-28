@@ -1,0 +1,1 @@
+Implement ``--index-mapping`` to allow users to pin specific packages or patterns to a particular index URL. This provides robust namespace isolation and completely mitigates dependency confusion for the mapped packages.

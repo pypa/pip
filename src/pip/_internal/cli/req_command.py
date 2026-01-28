@@ -437,6 +437,8 @@ class RequirementCommand(IndexGroupCommand):
             release_control=options.release_control,
             prefer_binary=options.prefer_binary,
             ignore_requires_python=ignore_requires_python,
+            index_strategy=options.index_strategy,
+            index_mappings=options.index_mappings,
         )
 
         return PackageFinder.create(
