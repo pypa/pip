@@ -293,7 +293,7 @@ keyring_provider: Callable[..., Option] = partial(
         " (default: %default)"
     ),
 )
- 
+
 credential_helper: Callable[..., Option] = partial(
     Option,
     "--credential-helper",
