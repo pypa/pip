@@ -1,1 +1,0 @@
-Implement ``--index-priority`` to allow users to prioritize package indexes in the order they are provided. This helps mitigate dependency confusion attacks by stopping the search after the first index that yields a match.

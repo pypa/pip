@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import datetime
 import enum
-import fnmatch
 import functools
 import itertools
 import logging
 import re
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -384,8 +383,6 @@ class CandidatePreferences:
 
     prefer_binary: bool = False
     release_control: ReleaseControl | None = None
-    index_strategy: str = "best-match"
-    index_mappings: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -702,8 +699,6 @@ class PackageFinder:
         candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
             release_control=selection_prefs.release_control,
-            index_strategy=selection_prefs.index_strategy,
-            index_mappings=selection_prefs.index_mappings,
         )
 
         return cls(
@@ -887,55 +882,6 @@ class PackageFinder:
 
         return package_links
 
-    def _apply_index_mapping(
-        self, project_name: str, collected_sources: CollectedSources
-    ) -> CollectedSources:
-        mappings = []
-        for m in self._candidate_prefs.index_mappings:
-            if ":" in m:
-                pattern, url = m.split(":", 1)
-                mappings.append((pattern, url))
-
-        if not mappings:
-            return collected_sources
-
-        target_url = None
-        for pattern, url in mappings:
-            if fnmatch.fnmatch(project_name, pattern):
-                target_url = url
-                break
-
-        if target_url is None:
-            return collected_sources
-
-        logger.info(
-            "Limiting search for %s to index %s due to index mapping",
-            project_name,
-            target_url,
-        )
-
-        def matches_target(source: Any) -> bool:
-            if source is None or source.link is None:
-                return False
-            return source.link.url.startswith(target_url)
-
-        new_index_urls = [s for s in collected_sources.index_urls if matches_target(s)]
-        new_find_links = [s for s in collected_sources.find_links if matches_target(s)]
-
-        if not new_index_urls and not new_find_links:
-            logger.warning(
-                "Index mapping for %s to %s resulted in no search locations. "
-                "Check if the URL is correctly specified in --index-url "
-                "or --find-links.",
-                project_name,
-                target_url,
-            )
-
-        return CollectedSources(
-            find_links=new_find_links,
-            index_urls=new_index_urls,
-        )
-
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
 
@@ -958,33 +904,13 @@ class PackageFinder:
             ),
         )
 
-        if self._candidate_prefs.index_mappings:
-            collected_sources = self._apply_index_mapping(
-                project_name, collected_sources
-            )
-
-        page_candidates: list[InstallationCandidate] = []
-        if self._candidate_prefs.index_strategy == "first-match":
-            # Process find_links first (they are usually prioritized in pip)
-            for source in collected_sources.find_links:
-                if source is not None:
-                    page_candidates.extend(source.page_candidates())
-
-            # Then process index_urls in order, stopping at the first one with hits
-            for source in collected_sources.index_urls:
-                if source is not None:
-                    candidates = list(source.page_candidates())
-                    if candidates:
-                        page_candidates.extend(candidates)
-                        break
-        else:
-            page_candidates_it = itertools.chain.from_iterable(
-                source.page_candidates()
-                for sources in collected_sources
-                for source in sources
-                if source is not None
-            )
-            page_candidates = list(page_candidates_it)
+        page_candidates_it = itertools.chain.from_iterable(
+            source.page_candidates()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        page_candidates = list(page_candidates_it)
 
         file_links_it = itertools.chain.from_iterable(
             source.file_links()

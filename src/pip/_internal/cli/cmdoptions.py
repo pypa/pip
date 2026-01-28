@@ -412,33 +412,7 @@ def extra_index_url() -> Option:
     )
 
 
-def index_strategy() -> Option:
-    return Option(
-        "--index-strategy",
-        dest="index_strategy",
-        choices=["first-match", "best-match"],
-        default="best-match",
-        help="Select the strategy used to select packages from indexes. "
-        "Choices: first-match, best-match. "
-        "Default: best-match. "
-        "first-match: stop searching indexes after finding the package in the "
-        "first index (respecting order of --index-url and --extra-index-url). "
-        "best-match: search all indexes for the best version.",
-    )
 
-
-def index_mapping() -> Option:
-    return Option(
-        "--index-mapping",
-        dest="index_mappings",
-        metavar="PACKAGE:URL",
-        action="append",
-        default=[],
-        help="Map package names to specific indexes. "
-        "Format: <package_pattern>:<index_url>. "
-        "Example: --index-mapping 'my-internal-*:https://my-repo/simple'. "
-        "Can be used multiple times.",
-    )
 
 
 no_index: Callable[..., Option] = partial(
@@ -1289,8 +1263,6 @@ index_group: dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
-        index_strategy,
-        index_mapping,
         find_links,
         uploaded_prior_to,
     ],
