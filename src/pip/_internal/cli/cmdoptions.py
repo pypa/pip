@@ -402,6 +402,17 @@ def extra_index_url() -> Option:
     )
 
 
+def index_priority() -> Option:
+    return Option(
+        "--index-priority",
+        dest="index_priority",
+        action="store_true",
+        default=False,
+        help="Give priority to indexes in the order they are provided. "
+        "If a package is found in an index, skip searching subsequent indexes.",
+    )
+
+
 no_index: Callable[..., Option] = partial(
     Option,
     "--no-index",
@@ -1249,6 +1260,7 @@ index_group: dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
+        index_priority,
         find_links,
         uploaded_prior_to,
     ],

@@ -382,6 +382,7 @@ class CandidatePreferences:
 
     prefer_binary: bool = False
     release_control: ReleaseControl | None = None
+    index_priority: bool = False
 
 
 @dataclass(frozen=True)
@@ -698,6 +699,7 @@ class PackageFinder:
         candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
             release_control=selection_prefs.release_control,
+            index_priority=selection_prefs.index_priority,
         )
 
         return cls(
@@ -899,13 +901,28 @@ class PackageFinder:
             ),
         )
 
-        page_candidates_it = itertools.chain.from_iterable(
-            source.page_candidates()
-            for sources in collected_sources
-            for source in sources
-            if source is not None
-        )
-        page_candidates = list(page_candidates_it)
+        page_candidates: list[InstallationCandidate] = []
+        if self._candidate_prefs.index_priority:
+            # Process find_links first (they are usually prioritized in pip)
+            for source in collected_sources.find_links:
+                if source is not None:
+                    page_candidates.extend(source.page_candidates())
+
+            # Then process index_urls in order, stopping at the first one with hits
+            for source in collected_sources.index_urls:
+                if source is not None:
+                    candidates = list(source.page_candidates())
+                    if candidates:
+                        page_candidates.extend(candidates)
+                        break
+        else:
+            page_candidates_it = itertools.chain.from_iterable(
+                source.page_candidates()
+                for sources in collected_sources
+                for source in sources
+                if source is not None
+            )
+            page_candidates = list(page_candidates_it)
 
         file_links_it = itertools.chain.from_iterable(
             source.file_links()
