@@ -402,14 +402,18 @@ def extra_index_url() -> Option:
     )
 
 
-def index_priority() -> Option:
+def index_strategy() -> Option:
     return Option(
-        "--index-priority",
-        dest="index_priority",
-        action="store_true",
-        default=False,
-        help="Give priority to indexes in the order they are provided. "
-        "If a package is found in an index, skip searching subsequent indexes.",
+        "--index-strategy",
+        dest="index_strategy",
+        choices=["first-match", "best-match"],
+        default="best-match",
+        help="Select the strategy used to select packages from indexes. "
+        "Choices: first-match, best-match. "
+        "Default: best-match. "
+        "first-match: stop searching indexes after finding the package in the "
+        "first index (respecting order of --index-url and --extra-index-url). "
+        "best-match: search all indexes for the best version.",
     )
 
 
@@ -1274,7 +1278,7 @@ index_group: dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
-        index_priority,
+        index_strategy,
         index_mapping,
         find_links,
         uploaded_prior_to,

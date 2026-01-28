@@ -384,7 +384,7 @@ class CandidatePreferences:
 
     prefer_binary: bool = False
     release_control: ReleaseControl | None = None
-    index_priority: bool = False
+    index_strategy: str = "best-match"
     index_mappings: list[str] = field(default_factory=list)
 
 
@@ -702,7 +702,7 @@ class PackageFinder:
         candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
             release_control=selection_prefs.release_control,
-            index_priority=selection_prefs.index_priority,
+            index_strategy=selection_prefs.index_strategy,
             index_mappings=selection_prefs.index_mappings,
         )
 
@@ -960,7 +960,7 @@ class PackageFinder:
             )
 
         page_candidates: list[InstallationCandidate] = []
-        if self._candidate_prefs.index_priority:
+        if self._candidate_prefs.index_strategy == "first-match":
             # Process find_links first (they are usually prioritized in pip)
             for source in collected_sources.find_links:
                 if source is not None:
