@@ -1253,3 +1253,15 @@ index_group: dict[str, Any] = {
         uploaded_prior_to,
     ],
 }
+
+package_selection_group: dict[str, Any] = {
+    "name": "Package Selection Options",
+    "options": [
+        pre,
+        all_releases,
+        only_final,
+        no_binary,
+        only_binary,
+        prefer_binary,
+    ],
+}
