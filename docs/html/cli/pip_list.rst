@@ -31,6 +31,8 @@ Options
 
 .. pip-index-options:: list
 
+.. pip-package-selection-options:: list
+
 
 Examples
 ========

@@ -46,6 +46,8 @@ Options
 
 .. pip-index-options:: wheel
 
+.. pip-package-selection-options:: wheel
+
 
 Examples
 ========
