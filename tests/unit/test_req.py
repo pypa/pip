@@ -701,7 +701,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_line_url_requirement(self) -> None:
-        line = "git+https://url#egg=SomeProject[ex1,ex2]"
+        line = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_line(line, comes_from=comes_from)
@@ -717,7 +717,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_editable_url_requirement(self) -> None:
-        url = "git+https://url#egg=SomeProject[ex1,ex2]"
+        url = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_editable(url, comes_from=comes_from)
@@ -894,10 +894,10 @@ def test_parse_editable_explicit_vcs() -> None:
 
 
 def test_parse_editable_vcs_extras() -> None:
-    assert parse_editable("svn+https://foo#egg=foo[extras]") == (
-        "foo[extras]",
-        "svn+https://foo#egg=foo[extras]",
-        set(),
+    assert parse_editable("foo[extras] @ svn+https://foo") == (
+        "foo",
+        "svn+https://foo",
+        {"extras"},
     )
 
 
