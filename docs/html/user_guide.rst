@@ -299,6 +299,8 @@ Example build constraints file (``build-constraints.txt``):
 Controlling Pre-release Installation
 =====================================
 
+.. versionadded:: 26.0
+
 By default, pip installs stable versions of packages, unless their specifier includes
 a pre-release version (e.g., ``SomePackage>=1.0a1``) or if there are no stable versions
 available that satisfy the requirement. The ``--all-releases`` and ``--only-final``
@@ -350,6 +352,8 @@ override ``:all:``. These options can also be used in requirements files.
 
 Filtering by Upload Time
 =========================
+
+.. versionadded:: 26.0
 
 The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
 to an index, only considering packages that were uploaded before a specified datetime.
@@ -412,6 +416,8 @@ You can combine this option with other filtering mechanisms like constraints fil
 
 Dependency Groups
 =================
+
+.. versionadded:: 25.1
 
 "Dependency Groups" are lists of items to be installed stored in a
 ``pyproject.toml`` file.
