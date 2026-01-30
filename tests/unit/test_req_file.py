@@ -517,7 +517,39 @@ class TestProcessLine:
         self, line_processor: LineProcessor, finder: PackageFinder
     ) -> None:
         line_processor("--pre", "file", 1, finder=finder)
-        assert finder.allow_all_prereleases
+        # --pre should add :all: to release_control.all_releases
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_all_releases(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--all-releases :all:", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_all_releases_specific_package(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--all-releases pkg1,pkg2", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert "pkg1" in finder._candidate_prefs.release_control.all_releases
+        assert "pkg2" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_only_final(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--only-final :all:", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.only_final
+
+    def test_set_finder_only_final_specific_package(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--only-final pkg1,pkg2", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert "pkg1" in finder._candidate_prefs.release_control.only_final
+        assert "pkg2" in finder._candidate_prefs.release_control.only_final
 
     def test_use_feature(
         self, line_processor: LineProcessor, options: mock.Mock

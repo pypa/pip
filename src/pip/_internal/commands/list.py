@@ -99,6 +99,8 @@ class ListCommand(IndexGroupCommand):
                 "pip only finds stable versions."
             ),
         )
+        self.cmd_opts.add_option(cmdoptions.all_releases())
+        self.cmd_opts.add_option(cmdoptions.only_final())
 
         self.cmd_opts.add_option(
             "--format",
@@ -157,7 +159,7 @@ class ListCommand(IndexGroupCommand):
         # Pass allow_yanked=False to ignore yanked versions.
         selection_prefs = SelectionPreferences(
             allow_yanked=False,
-            allow_all_prereleases=options.pre,
+            release_control=options.release_control,
         )
 
         return PackageFinder.create(
@@ -166,6 +168,8 @@ class ListCommand(IndexGroupCommand):
         )
 
     def run(self, options: Values, args: list[str]) -> int:
+        cmdoptions.check_release_control_exclusive(options)
+
         if options.outdated and options.uptodate:
             raise CommandError("Options --outdated and --uptodate cannot be combined.")
 
@@ -248,8 +252,7 @@ class ListCommand(IndexGroupCommand):
                 dist: _DistWithLatestInfo,
             ) -> _DistWithLatestInfo | None:
                 all_candidates = finder.find_all_candidates(dist.canonical_name)
-                if not options.pre:
-                    # Remove prereleases
+                if self.should_exclude_prerelease(options, dist.canonical_name):
                     all_candidates = [
                         candidate
                         for candidate in all_candidates

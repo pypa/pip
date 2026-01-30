@@ -1,0 +1,2 @@
+Add ``--all-releases`` and ``--only-final`` options to control pre-release
+and final release selection during package installation.
