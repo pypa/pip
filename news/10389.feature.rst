@@ -1,0 +1,2 @@
+Add ``--credential-helper`` command line option to allow using external
+credential helper commands for authentication.
