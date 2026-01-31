@@ -190,6 +190,17 @@ class PipIndexOptions(PipOptions):
         )
 
 
+class PipPackageSelectionOptions(PipOptions):
+    required_arguments = 1
+
+    def process_options(self) -> None:
+        cmd_name = self.arguments[0]
+        self._format_options(
+            [o() for o in cmdoptions.package_selection_group["options"]],
+            cmd_name=cmd_name,
+        )
+
+
 class PipCommandOptions(PipOptions):
     required_arguments = 1
 
@@ -316,6 +327,7 @@ def setup(app: Sphinx) -> dict[str, bool | str]:
     app.add_directive("pip-command-options", PipCommandOptions)
     app.add_directive("pip-general-options", PipGeneralOptions)
     app.add_directive("pip-index-options", PipIndexOptions)
+    app.add_directive("pip-package-selection-options", PipPackageSelectionOptions)
     app.add_directive(
         "pip-requirements-file-options-ref-list", PipReqFileOptionsReference
     )

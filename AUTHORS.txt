@@ -1,6 +1,7 @@
 @Switch01
 A_Rog
 Aakanksha Agrawal
+Aarni Koskela
 Abhinav Sagar
 ABHYUDAY PRATAP SINGH
 abs51295
@@ -191,6 +192,7 @@ Dane Hillard
 daniel
 Daniel Collins
 Daniel Hahler
+Daniel Hollas
 Daniel Holth
 Daniel Jost
 Daniel Katz
@@ -318,6 +320,7 @@ gousaiyang
 gpiks
 Greg Roodt
 Greg Ward
+Guido Diepen
 Guilherme Espada
 Guillaume Seguin
 gutsytechster
@@ -327,8 +330,10 @@ gzpan123
 Hanjun Kim
 Hari Charan
 Harsh Vardhan
+Harsha Sai
 harupy
 Harutaka Kawamura
+Hasan-8326
 hauntsaninja
 Henrich Hartzer
 Henry Schreiner
@@ -369,6 +374,7 @@ Jakub Kuczys
 Jakub Stasiak
 Jakub Vysoky
 Jakub Wilk
+James
 James Cleveland
 James Curtin
 James Firth
@@ -425,12 +431,14 @@ Josh Hansen
 Josh Schneier
 Joshua
 JoshuaPerdue
+Jost Migenda
 Juan Luis Cano Rodríguez
 Juanjo Bazán
 Judah Rand
 Julian Berman
 Julian Gethmann
 Julien Demoor
+Julien Stephan
 July Tikhonov
 Jussi Kukkonen
 Justin van Heek
@@ -442,6 +450,7 @@ Kamal Bin Mustafa
 Karolina Surma
 kasium
 kaustav haldar
+Kaz Nishimura
 keanemind
 Keith Maxwell
 Kelsey Hightower
@@ -557,6 +566,7 @@ Monty Taylor
 morotti
 mrKazzila
 Muha Ajjan
+MUTHUSRIHEMADHARSHINI S A
 Nadav Wexler
 Nahuel Ambrosini
 Nate Coraor
@@ -581,6 +591,7 @@ Nitesh Sharma
 Niyas Sait
 Noah
 Noah Gorny
+Nothing-991
 Nowell Strite
 NtaleGrey
 nucccc
@@ -601,8 +612,10 @@ Omry Yadan
 onlinejudge95
 Oren Held
 Oscar Benjamin
+oxygen dioxide
 Oz N Tiram
 Pachwenko
+Paresh Joshi
 Patrick Dubroy
 Patrick Jenkins
 Patrick Lawson
@@ -737,6 +750,7 @@ Stavros Korokithakis
 Stefan Scherfke
 Stefano Rivera
 Stephan Erb
+Stephane Chazelas
 Stephen Payne
 Stephen Rosen
 stepshal
@@ -760,6 +774,7 @@ Sylvain
 Takayuki SHIMIZUKAWA
 Taneli Hukkinen
 tbeswick
+Terrance
 Thiago
 Thijs Triemstra
 Thomas Fenzl
@@ -808,6 +823,7 @@ Vitaly Babiy
 Vladimir Fokow
 Vladimir Rutsky
 W. Trevor King
+Weida Hong
 Wil Tan
 Wilfred Hughes
 William Edwards
@@ -825,6 +841,8 @@ Xianpeng Shen
 xoviat
 xtreak
 YAMAMOTO Takashi
+Yash
+Yashraj
 Yen Chi Hsuan
 Yeray Diaz Diaz
 Yoval P

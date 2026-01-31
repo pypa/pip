@@ -89,7 +89,6 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
-        self.cmd_opts.add_option(cmdoptions.pre())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -245,9 +244,6 @@ class InstallCommand(RequirementCommand):
             default=True,
             help="Do not warn about broken dependencies",
         )
-        self.cmd_opts.add_option(cmdoptions.no_binary())
-        self.cmd_opts.add_option(cmdoptions.only_binary())
-        self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
@@ -257,7 +253,13 @@ class InstallCommand(RequirementCommand):
             self.parser,
         )
 
+        selection_opts = cmdoptions.make_option_group(
+            cmdoptions.package_selection_group,
+            self.parser,
+        )
+
         self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
         self.cmd_opts.add_option(
@@ -304,6 +306,7 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
+        cmdoptions.check_release_control_exclusive(options)
 
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(

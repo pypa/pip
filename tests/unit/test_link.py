@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from pip._internal.exceptions import InvalidEggFragment, PipError
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
@@ -80,20 +81,6 @@ class TestLink:
         assert "eggname" == Link(url).egg_fragment
         assert "subdir" == Link(url).subdirectory_fragment
 
-        # Extras are supported and preserved in the egg fragment,
-        # even the empty extras specifier.
-        # This behavior is deprecated and will change in pip 25.
-        url = "git+https://example.com/package#egg=eggname[extra]"
-        assert "eggname[extra]" == Link(url).egg_fragment
-        assert None is Link(url).subdirectory_fragment
-        url = "git+https://example.com/package#egg=eggname[extra1,extra2]"
-        assert "eggname[extra1,extra2]" == Link(url).egg_fragment
-        assert None is Link(url).subdirectory_fragment
-        url = "git+https://example.com/package#egg=eggname[]"
-        assert "eggname[]" == Link(url).egg_fragment
-        assert None is Link(url).subdirectory_fragment
-
-    @pytest.mark.xfail(reason="Behavior change scheduled for 25.0", strict=True)
     @pytest.mark.parametrize(
         "fragment",
         [
@@ -102,14 +89,31 @@ class TestLink:
             # Version specifiers are not valid in egg fragments.
             "eggname==1.2.3",
             "eggname>=1.2.3",
-            # The extras specifier must be in PEP 508 form.
+            # Extras are also prohibited.
             "eggname[!]",
+            "eggname[extra]",
+            "eggname[extra1,extra2]",
+            "eggmame[]",
+            "eggname[extra]==1000",
         ],
     )
     def test_invalid_egg_fragments(self, fragment: str) -> None:
         url = f"git+https://example.com/package#egg={fragment}"
-        with pytest.raises(ValueError):
+        with pytest.raises(PipError):
             Link(url)
+
+    def test_invalid_egg_fragment_with_extras_and_version_hint(self) -> None:
+        """Test that fragments with extras and version specifiers get proper hint."""
+
+        url = "git+https://example.com/package#egg=eggname[extra]==1.0"
+        with pytest.raises(InvalidEggFragment) as exc_info:
+            Link(url)
+
+        # The hint should suggest Direct URL syntax, not just "remove version
+        # specifiers" because the extras require Direct URL syntax anyway.
+        hint = str(exc_info.value.hint_stmt)
+        assert r"name\[extra] @ URL" in hint
+        assert "Version specifiers are silently ignored" in hint
 
     @pytest.mark.parametrize(
         "yanked_reason, expected",
