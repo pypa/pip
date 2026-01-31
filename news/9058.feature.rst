@@ -1,2 +1,0 @@
-``pip cache purge`` and ``pip cache remove`` now clean up empty directories
-and legacy files left by older pip versions.
