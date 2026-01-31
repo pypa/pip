@@ -1,1 +1,0 @@
-Display pip's command line help in colour, if possible.

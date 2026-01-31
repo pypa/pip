@@ -1,1 +1,0 @@
-Better preserve original casing when a path is displayed.

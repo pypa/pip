@@ -1,1 +1,0 @@
-Fix fallthrough logic for options (allowing for overriding global options with default again from user config)

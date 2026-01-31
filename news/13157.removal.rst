@@ -1,2 +1,0 @@
-Remove support for non-bare project names in egg fragments. Affected users should use
-the `Direct URL requirement syntax <https://packaging.python.org/en/latest/specifications/version-specifiers/#direct-references>`_.

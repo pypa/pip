@@ -1,6 +1,0 @@
-Add ``--use-feature inprocess-build-deps`` to request that build dependencies are installed
-within the same pip install process. This new mechanism is faster, supports ``--no-clean``
-and ``--no-cache-dir`` reliably, and supports prompting for authentication.
-
-Enabling this feature will also enable ``--use-feature build-constraints``. This feature will
-become the default in a future pip version.

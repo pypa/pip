@@ -1,2 +1,0 @@
-Add ``--uploaded-prior-to`` option to only consider packages uploaded prior to
-a given datetime when the ``upload-time`` field is available from a remote index.
