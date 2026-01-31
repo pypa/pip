@@ -850,7 +850,14 @@ class Factory:
         logger.info(msg)
 
         return DistributionNotFound(
-            "ResolutionImpossible: for help visit "
-            "https://pip.pypa.io/en/latest/topics/dependency-resolution/"
-            "#dealing-with-dependency-conflicts"
+            "ResolutionImpossible: pip could not resolve the requested "
+            "dependencies.\n\n"
+            "This usually means you have conflicting version constraints.\n\n"
+            "You can try:\n"
+            " - loosening the range of package versions you specified\n"
+            " - removing package versions to allow pip to resolve the conflict\n"
+            " - running pip with --verbose for more details\n\n"
+            "See https://pip.pypa.io/en/stable/user_guide/"
+            "#fixing-conflicting-dependencies "
+            "for help."
         )
