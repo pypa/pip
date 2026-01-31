@@ -43,7 +43,7 @@ Examples
          Name: Sphinx
          Version: 1.4.5
          Summary: Python documentation generator
-         Home-page: http://sphinx-doc.org/
+         Home-page: https://sphinx-doc.org/
          Author: Georg Brandl
          Author-email: georg@python.org
          License: BSD
@@ -58,7 +58,7 @@ Examples
          Name: Sphinx
          Version: 1.4.5
          Summary: Python documentation generator
-         Home-page: http://sphinx-doc.org/
+         Home-page: https://sphinx-doc.org/
          Author: Georg Brandl
          Author-email: georg@python.org
          License: BSD
@@ -75,7 +75,7 @@ Examples
          Name: Sphinx
          Version: 1.4.5
          Summary: Python documentation generator
-         Home-page: http://sphinx-doc.org/
+         Home-page: https://sphinx-doc.org/
          Author: Georg Brandl
          Author-email: georg@python.org
          License: BSD
@@ -118,7 +118,7 @@ Examples
          Name: Sphinx
          Version: 1.4.5
          Summary: Python documentation generator
-         Home-page: http://sphinx-doc.org/
+         Home-page: https://sphinx-doc.org/
          Author: Georg Brandl
          Author-email: georg@python.org
          License: BSD
