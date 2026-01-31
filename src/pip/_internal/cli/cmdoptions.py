@@ -417,8 +417,6 @@ def index_strategy() -> Option:
     )
 
 
-
-
 no_index: Callable[..., Option] = partial(
     Option,
     "--no-index",

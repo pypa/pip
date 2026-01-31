@@ -6,67 +6,56 @@ def test_index_strategy_first_match_functional(
 ) -> None:
     """
     Functional test for --index-strategy first-match.
-    We set up two indexes:
-    - Index A: simple 1.0
-    - Index B: simple 2.0
-    By default, pip should pick 2.0.
-    With --index-strategy first-match and Index A first, it should pick 1.0.
+    Index 1: data.index_url("simple") -> contains simple 1.0
+    Index 2: data.find_links -> contains simple 1.0, 2.0, 3.0
+    By default (best-match), pip should pick 3.0.
+    With --index-strategy first-match and Index 1 first, it should pick 1.0.
     """
-    # Create Index A
-    index_a = script.scratch_path / "index_a"
-    index_a.mkdir()
-    pkg_a = index_a / "simple"
-    pkg_a.mkdir()
-    (pkg_a / "simple-1.0.tar.gz").touch()
-
-    # Create Index B
-    index_b = script.scratch_path / "index_b"
-    index_b.mkdir()
-    pkg_b = index_b / "simple"
-    pkg_b.mkdir()
-    (pkg_b / "simple-2.0.tar.gz").touch()
-
-    # Verify best-match (default) picks 2.0
+    # Verify best-match (default) picks 3.0
     result = script.pip(
-        "install", "simple",
+        "install",
+        "simple",
         "--dry-run",
-        "--index-url", f"file:///{index_a.as_posix()}",
-        "--extra-index-url", f"file:///{index_b.as_posix()}",
+        "--index-url",
+        data.index_url("simple"),
+        "--extra-index-url",
+        data.find_links,
     )
-    assert "Would install simple-2.0" in result.stdout
+    assert "Would install simple-3.0" in result.stdout
 
-    # Verify first-match picks 1.0
+    # Verify first-match picks 1.0 from the first index (index-url)
     result = script.pip(
-        "install", "simple",
+        "install",
+        "simple",
         "--dry-run",
-        "--index-strategy", "first-match",
-        "--index-url", f"file:///{index_a.as_posix()}",
-        "--extra-index-url", f"file:///{index_b.as_posix()}",
+        "--index-strategy",
+        "first-match",
+        "--index-url",
+        data.index_url("simple"),
+        "--extra-index-url",
+        data.find_links,
     )
     assert "Would install simple-1.0" in result.stdout
+
 
 def test_index_strategy_find_links_combo(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     """
     Verify that find-links are still collected in first-match mode.
+    Find-links: data.find_links -> contains 3.0
+    Index-url: data.index_url("simple") -> contains 1.0
+    Even in first-match mode, find-links should be searched first and 3.0 picked.
     """
-    index_a = script.scratch_path / "index_a"
-    index_a.mkdir()
-    pkg_a = index_a / "simple"
-    pkg_a.mkdir()
-    (pkg_a / "simple-1.0.tar.gz").touch()
-
-    find_links = script.scratch_path / "links"
-    find_links.mkdir()
-    (find_links / "simple-3.0.tar.gz").touch()
-
-    # Should find 3.0 from find-links even if index_a is searched
     result = script.pip(
-        "install", "simple",
+        "install",
+        "simple",
         "--dry-run",
-        "--index-strategy", "first-match",
-        "--find-links", f"file:///{find_links.as_posix()}",
-        "--index-url", f"file:///{index_a.as_posix()}",
+        "--index-strategy",
+        "first-match",
+        "--find-links",
+        data.find_links,
+        "--index-url",
+        data.index_url("simple"),
     )
     assert "Would install simple-3.0" in result.stdout

@@ -20,6 +20,7 @@ def test_index_strategy_best_match(data: TestData) -> None:
     # Total 4 versions found across both indexes.
     assert len(version_strs) == 4
 
+
 def test_index_strategy_first_match(data: TestData) -> None:
     """Test the 'first-match' strategy stops after the first index with hits."""
     # Order: Index 1 (v1.0) then Index 2 (v3.0, v2.0, v1.0)
@@ -33,6 +34,7 @@ def test_index_strategy_first_match(data: TestData) -> None:
     # Should stop after Index 1
     version_strs = [str(v.version) for v in versions]
     assert version_strs == ["1.0"]
+
 
 def test_index_strategy_first_match_reversed(data: TestData) -> None:
     """Test first-match stops at the first index even if it contains better versions."""
@@ -50,6 +52,7 @@ def test_index_strategy_first_match_reversed(data: TestData) -> None:
     assert "1.0" in version_strs
     # Should not have versions from Index 2 (even though 1.0 is duplicate)
     assert len(version_strs) == 3
+
 
 def test_index_strategy_find_links_priority(data: TestData) -> None:
     """Test that find-links are always collected even in first-match mode."""

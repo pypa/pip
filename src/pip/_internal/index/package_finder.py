@@ -5,7 +5,6 @@ from __future__ import annotations
 import datetime
 import enum
 import functools
-import itertools
 import logging
 import re
 from collections.abc import Iterable
@@ -902,37 +901,34 @@ class PackageFinder:
         )
 
         page_candidates: list[InstallationCandidate] = []
+        file_links: list[Link] = []
+
         if self._candidate_prefs.index_strategy == "first-match":
-            # Process find_links first (they are usually prioritized in pip)
+            # 1. find-links: collect ALL of them (they are prioritized)
             for source in collected_sources.find_links:
                 if source is not None:
                     page_candidates.extend(source.page_candidates())
+                    file_links.extend(source.file_links())
 
-            # Then process index_urls in order, stopping at the first one with hits
+            # 2. index-urls: stop at the first one that PROVIDES candidates
             for source in collected_sources.index_urls:
                 if source is not None:
-                    candidates = list(source.page_candidates())
-                    if candidates:
-                        page_candidates.extend(candidates)
+                    curr_pages = list(source.page_candidates())
+                    curr_files = list(source.file_links())
+                    if curr_pages or curr_files:
+                        page_candidates.extend(curr_pages)
+                        file_links.extend(curr_files)
                         break
         else:
-            page_candidates_it = itertools.chain.from_iterable(
-                source.page_candidates()
-                for sources in collected_sources
-                for source in sources
-                if source is not None
-            )
-            page_candidates = list(page_candidates_it)
+            for sources in collected_sources:
+                for source in sources:
+                    if source is not None:
+                        page_candidates.extend(source.page_candidates())
+                        file_links.extend(source.file_links())
 
-        file_links_it = itertools.chain.from_iterable(
-            source.file_links()
-            for sources in collected_sources
-            for source in sources
-            if source is not None
-        )
         file_candidates = self.evaluate_links(
             link_evaluator,
-            sorted(file_links_it, reverse=True),
+            sorted(file_links, reverse=True),
         )
 
         if logger.isEnabledFor(logging.DEBUG) and file_candidates:
