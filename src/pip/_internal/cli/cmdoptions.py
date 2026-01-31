@@ -417,18 +417,6 @@ def index_strategy() -> Option:
     )
 
 
-def index_mapping() -> Option:
-    return Option(
-        "--index-mapping",
-        dest="index_mappings",
-        metavar="PACKAGE:URL",
-        action="append",
-        default=[],
-        help="Map package names to specific indexes. "
-        "Format: <package_pattern>:<index_url>. "
-        "Example: --index-mapping 'my-internal-*:https://my-repo/simple'. "
-        "Can be used multiple times.",
-    )
 
 
 no_index: Callable[..., Option] = partial(

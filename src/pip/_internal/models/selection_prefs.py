@@ -19,7 +19,6 @@ class SelectionPreferences:
         "prefer_binary",
         "ignore_requires_python",
         "index_strategy",
-        "index_mappings",
     ]
 
     # Don't include an allow_yanked default value to make sure each call
@@ -34,7 +33,6 @@ class SelectionPreferences:
         prefer_binary: bool = False,
         ignore_requires_python: bool | None = None,
         index_strategy: str = "best-match",
-        index_mappings: list[str] | None = None,
     ) -> None:
         """Create a SelectionPreferences object.
 
@@ -52,7 +50,6 @@ class SelectionPreferences:
         :param index_strategy: Strategies for how to select packages from indexes.
             "first-match" stops searching after the first index with hits.
             "best-match" searches all indexes for the best version.
-        :param index_mappings: A list of package:url mapping strings.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -63,4 +60,3 @@ class SelectionPreferences:
         self.prefer_binary = prefer_binary
         self.ignore_requires_python = ignore_requires_python
         self.index_strategy = index_strategy
-        self.index_mappings = index_mappings or []
