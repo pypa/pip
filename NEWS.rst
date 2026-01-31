@@ -54,6 +54,7 @@ Bug Fixes
 - Fix ``pip index versions`` to honor only-binary/no-binary options. (`#13682 <https://github.com/pypa/pip/issues/13682>`_)
 - Fix fallthrough logic for options, allowing overriding global options with
   defaults from user config. (`#13703 <https://github.com/pypa/pip/issues/13703>`_)
+- Use a path-segment prefix comparison, not char-by-char. (`#13777 <https://github.com/pypa/pip/issues/13777>`_)
 
 Vendored Libraries
 ------------------
