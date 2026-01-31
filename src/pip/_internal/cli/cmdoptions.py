@@ -1267,7 +1267,6 @@ index_group: dict[str, Any] = {
         extra_index_url,
         no_index,
         index_strategy,
-        index_mapping,
         find_links,
         uploaded_prior_to,
     ],

@@ -1,7 +1,5 @@
-import pytest
-from pip._internal.index.package_finder import PackageFinder
-from pip._internal.models.selection_prefs import SelectionPreferences
 from tests.lib import TestData, make_test_finder
+
 
 def test_index_strategy_best_match(data: TestData) -> None:
     """Test the default 'best-match' strategy searches all indexes."""
@@ -12,13 +10,14 @@ def test_index_strategy_best_match(data: TestData) -> None:
     # data.index_url("simple") has simple 1.0
     # data.find_links has simple 3.0, 2.0, 1.0
     versions = finder.find_all_candidates("simple")
-    
+
     # Best match should return versions from all indexes
     version_strs = [str(v.version) for v in versions]
     assert "1.0" in version_strs
     assert "3.0" in version_strs
     assert "2.0" in version_strs
-    # In best-match, we expect everything to be collected (total 4 versions found across both)
+    # In best-match, we expect everything to be collected.
+    # Total 4 versions found across both indexes.
     assert len(version_strs) == 4
 
 def test_index_strategy_first_match(data: TestData) -> None:
@@ -28,9 +27,9 @@ def test_index_strategy_first_match(data: TestData) -> None:
         index_urls=[data.index_url("simple"), data.find_links],
         index_strategy="first-match",
     )
-    
+
     versions = finder.find_all_candidates("simple")
-    
+
     # Should stop after Index 1
     version_strs = [str(v.version) for v in versions]
     assert version_strs == ["1.0"]
@@ -42,9 +41,9 @@ def test_index_strategy_first_match_reversed(data: TestData) -> None:
         index_urls=[data.find_links, data.index_url("simple")],
         index_strategy="first-match",
     )
-    
+
     versions = finder.find_all_candidates("simple")
-    
+
     # Should stop after Index 1 (find_links)
     version_strs = [str(v.version) for v in versions]
     assert version_strs == ["3.0", "2.0", "1.0"]
@@ -59,9 +58,9 @@ def test_index_strategy_find_links_priority(data: TestData) -> None:
         index_urls=[data.index_url("simple")],
         index_strategy="first-match",
     )
-    
+
     versions = finder.find_all_candidates("simple")
-    
+
     # Should collect find-links PLUS the first matching index
     version_strs = [str(v.version) for v in versions]
     # find_links (3.0, 2.0, 1.0) + index_url (1.0)

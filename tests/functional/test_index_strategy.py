@@ -1,8 +1,9 @@
-import pytest
-import textwrap
 from tests.lib import PipTestEnvironment, TestData
 
-def test_index_strategy_first_match_functional(script: PipTestEnvironment, data: TestData) -> None:
+
+def test_index_strategy_first_match_functional(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Functional test for --index-strategy first-match.
     We set up two indexes:
@@ -17,7 +18,7 @@ def test_index_strategy_first_match_functional(script: PipTestEnvironment, data:
     pkg_a = index_a / "simple"
     pkg_a.mkdir()
     (pkg_a / "simple-1.0.tar.gz").touch()
-    
+
     # Create Index B
     index_b = script.scratch_path / "index_b"
     index_b.mkdir()
@@ -44,7 +45,9 @@ def test_index_strategy_first_match_functional(script: PipTestEnvironment, data:
     )
     assert "Would install simple-1.0" in result.stdout
 
-def test_index_strategy_find_links_combo(script: PipTestEnvironment, data: TestData) -> None:
+def test_index_strategy_find_links_combo(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     Verify that find-links are still collected in first-match mode.
     """
@@ -53,7 +56,7 @@ def test_index_strategy_find_links_combo(script: PipTestEnvironment, data: TestD
     pkg_a = index_a / "simple"
     pkg_a.mkdir()
     (pkg_a / "simple-1.0.tar.gz").touch()
-    
+
     find_links = script.scratch_path / "links"
     find_links.mkdir()
     (find_links / "simple-3.0.tar.gz").touch()
