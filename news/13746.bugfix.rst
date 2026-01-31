@@ -1,3 +1,0 @@
-Fix selecting pre-release versions when only pre-releases match.
-For example, ``package>1.0`` with versions ``1.0, 2.0rc1`` now installs
-``2.0rc1`` instead of failing.

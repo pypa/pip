@@ -61,6 +61,8 @@ Options
 
 .. pip-index-options:: download
 
+.. pip-package-selection-options:: download
+
 
 Examples
 ========

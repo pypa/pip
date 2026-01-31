@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from pip._vendor.requests.models import PreparedRequest, Request, Response
 
     from pip._internal.metadata import BaseDistribution
+    from pip._internal.models.link import Link
     from pip._internal.network.download import _FileDownload
     from pip._internal.req.req_install import InstallRequirement
 
@@ -896,6 +897,29 @@ class InstallWheelBuildError(DiagnosticPipError):
             ),
             context=", ".join(r.name for r in failed),  # type: ignore
             hint_stmt=None,
+        )
+
+
+class InvalidEggFragment(DiagnosticPipError):
+    reference = "invalid-egg-fragment"
+
+    def __init__(self, link: Link, fragment: str) -> None:
+        hint = ""
+        if ">" in fragment or "=" in fragment or "<" in fragment:
+            hint = (
+                "Version specifiers are silently ignored for URL references. "
+                "Remove them. "
+            )
+        if "[" in fragment and "]" in fragment:
+            hint += "Try using the Direct URL requirement syntax: 'name[extra] @ URL'"
+
+        if not hint:
+            hint = "Egg fragments can only be a valid project name."
+
+        super().__init__(
+            message=f"The '{escape(fragment)}' egg fragment is invalid",
+            context=f"from '{escape(str(link))}'",
+            hint_stmt=escape(hint),
         )
 
 
