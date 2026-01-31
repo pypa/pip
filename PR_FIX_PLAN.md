@@ -12,7 +12,10 @@ Split the original PR into two separate features as requested by the maintainers
 2.  **Focus on Strategy**:
     *   Ensured `--index-strategy` is the primary option (replacing the initial `--index-priority`).
     *   Maintained support for `best-match` (default) and `first-match` strategies.
-3.  **News Fragment**:
+3.  **Tests and Documentation**:
+    *   Added comprehensive unit tests in `tests/unit/test_index_strategy.py`.
+    *   Updated the User Guide in `docs/html/cli/pip_install.rst` to explain the new `--index-strategy` option.
+4.  **News Fragment**:
     *   Updated `news/8606.feature.rst` to refer to `--index-strategy`.
     *   Deleted `news/50.feature.rst` (was for mapping).
 

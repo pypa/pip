@@ -215,10 +215,21 @@ found.
 pip looks for packages in a number of places: on PyPI (or the index given as
 ``--index-url``, if not disabled via ``--no-index``), in the local filesystem,
 and in any additional repositories specified via ``--find-links`` or
-``--extra-index-url``. There is no priority in the locations that are searched.
+``--extra-index-url``.
+
+By default, there is no priority in the locations that are searched.
 Rather they are all checked, and the "best" match for the requirements (in
 terms of version number - see the
 :ref:`specification <pypug:version-specifiers>` for details) is selected.
+
+This behavior can be modified using the ``--index-strategy`` option:
+
+- ``best-match`` (default): Searches all indexes and picks the version that
+  best matches the requirement.
+- ``first-match``: Prioritizes indexes in the order they are provided
+  (first ``--find-links``, then ``--index-url``, then each ``--extra-index-url``).
+  The search stops as soon as an index provides a matching package. This is
+  useful for mitigating dependency confusion attacks.
 
 See the :ref:`pip install Examples<pip install Examples>`.
 
@@ -496,6 +507,20 @@ Examples
       .. code-block:: shell
 
          py -m pip install --extra-index-url http://my.package.repo/simple SomePackage
+
+   Mitigate dependency confusion by stopping at the first matching index:
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install --index-strategy first-match --extra-index-url http://my.package.repo/simple SomePackage
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install --index-strategy first-match --extra-index-url http://my.package.repo/simple SomePackage
 
 
 #. Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
