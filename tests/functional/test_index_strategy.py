@@ -7,7 +7,7 @@ def test_index_strategy_first_match_functional(
     """
     Functional test for --index-strategy first-match.
     Index 1: data.index_url("simple") -> contains simple 1.0
-    Index 2: data.find_links -> contains simple 1.0, 2.0, 3.0
+    Index 2: data.index_url("yanked") -> contains simple 1.0, 2.0, 3.0
     By default (best-match), pip should pick 3.0.
     With --index-strategy first-match and Index 1 first, it should pick 1.0.
     """
@@ -19,7 +19,7 @@ def test_index_strategy_first_match_functional(
         "--index-url",
         data.index_url("simple"),
         "--extra-index-url",
-        data.find_links,
+        data.index_url("yanked"),
     )
     assert "Would install simple-3.0" in result.stdout
 
@@ -33,7 +33,7 @@ def test_index_strategy_first_match_functional(
         "--index-url",
         data.index_url("simple"),
         "--extra-index-url",
-        data.find_links,
+        data.index_url("yanked"),
     )
     assert "Would install simple-1.0" in result.stdout
 
