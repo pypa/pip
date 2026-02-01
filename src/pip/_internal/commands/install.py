@@ -6,7 +6,7 @@ import operator
 import os
 import shutil
 import site
-from optparse import Values
+from optparse import SUPPRESS_HELP, Values
 from pathlib import Path
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -135,11 +135,7 @@ class InstallCommand(RequirementCommand):
             "--no-user",
             dest="use_user_site",
             action="store_false",
-            help=(
-                "Disable user site-packages install. If site-packages is not "
-                "writeable, pip will fail with a permission error rather than "
-                "falling back to a user install."
-            ),
+            help=SUPPRESS_HELP,
         )
 
         self.cmd_opts.add_option(
@@ -327,12 +323,8 @@ class InstallCommand(RequirementCommand):
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
-            if (
-                # fmt: off
-                os.path.exists(options.target_dir)
-                and not os.path.isdir(options.target_dir)
-                # fmt: on
-            ):
+            if (os.path.exists(options.target_dir) and not
+                    os.path.isdir(options.target_dir)):
                 raise CommandError(
                     "Target path exists but is not a directory, will not continue."
                 )
@@ -741,7 +733,8 @@ def decide_user_install(
         return False
 
     logger.info(
-        "Defaulting to user installation because normal site-packages is not writeable"
+        "Defaulting to user installation because normal site-packages "
+        "is not writeable"
     )
     return True
 

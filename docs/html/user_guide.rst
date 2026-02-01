@@ -912,47 +912,13 @@ Automatic User Install Fallback
       Defaulting to user installation because normal site-packages is not writeable
 
    This automatic fallback can be surprising, especially if the warning is
-   missed among other output. If you explicitly want to prevent this behavior
-   and instead receive an error when ``site-packages`` is not writeable, use
-   the ``--no-user`` option.
-
-The ``--no-user`` Option
-------------------------
-
-The ``--no-user`` option explicitly disables user installs, ensuring that pip
-will attempt to install to the system ``site-packages`` directory. If pip
-cannot write to ``site-packages``, it will fail with a permission error rather
-than silently falling back to a user install.
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install --no-user SomePackage
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install --no-user SomePackage
-
-This is useful in scenarios where:
-
-- You want to ensure packages are installed globally and not in user space.
-- You want pip to fail loudly if it doesn't have the necessary permissions,
-  rather than silently succeeding with a user install.
-- You are debugging installation issues and want to understand exactly where
-  packages are being installed.
-
-Environment Variables
----------------------
+   missed among other output.
 
 The user install behavior can also be controlled via environment variables:
 
 ``PIP_USER``
    Set to ``1``, ``true``, or ``yes`` to enable user installs by default
-   (equivalent to ``--user``). Set to ``0``, ``false``, or ``no`` to disable
-   the automatic user install fallback (equivalent to ``--no-user``).
+   (equivalent to ``--user``).
 
    .. tab:: Unix/macOS
 
@@ -962,20 +928,12 @@ The user install behavior can also be controlled via environment variables:
          export PIP_USER=1
          python -m pip install SomePackage
 
-         # Never fall back to user installs
-         export PIP_USER=0
-         python -m pip install SomePackage
-
    .. tab:: Windows
 
       .. code-block:: shell
 
          :: Always use user installs
          set PIP_USER=1
-         py -m pip install SomePackage
-
-         :: Never fall back to user installs
-         set PIP_USER=0
          py -m pip install SomePackage
 
 ``PYTHONUSERBASE``
