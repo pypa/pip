@@ -1,0 +1,6 @@
+Improved documentation for the ``--user`` and ``--no-user`` options, including:
+
+- Documented the automatic user installation fallback behavior that occurs when site-packages is not writeable.
+- Made the ``--no-user`` option visible in help output (previously hidden).
+- Documented the ``PIP_USER`` environment variable for controlling user install behavior.
+- Added examples and use cases for when to use ``--no-user``.
