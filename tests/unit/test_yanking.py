@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -15,7 +16,7 @@ from pip._internal.models.target_python import TargetPython
 
 
 def make_test_link(
-    filename: str, version: str, yanked_reason: str | None = None
+    filename: str, version: str, yanked_reason: Optional[str] = None
 ) -> Link:
     """Create a test Link object."""
     return Link(
@@ -25,7 +26,7 @@ def make_test_link(
 
 
 def make_test_candidate(
-    name: str, version: str, filename: str, yanked_reason: str | None = None
+    name: str, version: str, filename: str, yanked_reason: Optional[str] = None
 ) -> InstallationCandidate:
     """Create a test InstallationCandidate."""
     link = make_test_link(filename, version, yanked_reason)
