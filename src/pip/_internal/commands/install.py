@@ -135,8 +135,13 @@ class InstallCommand(RequirementCommand):
             "--no-user",
             dest="use_user_site",
             action="store_false",
-            help=SUPPRESS_HELP,
+            help=(
+                "Disable user site-packages install. If site-packages is not "
+                "writeable, pip will fail with a permission error rather than "
+                "falling back to a user install."
+            ),
         )
+
         self.cmd_opts.add_option(
             "--root",
             dest="root_path",
