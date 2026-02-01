@@ -23,9 +23,9 @@ def test_index_strategy_first_match_functional(
         "--extra-index-url",
         data.index_url("yanked"),
     )
-    assert "Would install simple-2.0" in result.stdout, (
-        f"Actual output: {result.stdout}"
-    )
+    assert (
+        "Would install simple-2.0" in result.stdout
+    ), f"Actual output: {result.stdout}"
 
     # Verify first-match picks 1.0 from the first index (index-url)
     result = script.pip(
@@ -40,9 +40,9 @@ def test_index_strategy_first_match_functional(
         "--extra-index-url",
         data.index_url("yanked"),
     )
-    assert "Would install simple-1.0" in result.stdout, (
-        f"Actual output: {result.stdout}"
-    )
+    assert (
+        "Would install simple-1.0" in result.stdout
+    ), f"Actual output: {result.stdout}"
 
 
 def test_index_strategy_find_links_combo(
@@ -69,6 +69,6 @@ def test_index_strategy_find_links_combo(
         "--index-url",
         data.index_url("simple"),
     )
-    assert "Would install simple-3.0" in result.stdout, (
-        f"Actual output: {result.stdout}"
-    )
+    assert (
+        "Would install simple-3.0" in result.stdout
+    ), f"Actual output: {result.stdout}"
