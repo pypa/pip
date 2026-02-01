@@ -1,22 +1,14 @@
 from __future__ import annotations
 
-from typing import Optional
-from unittest.mock import MagicMock
-
-import pytest
-
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.version import Version
 
-from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
-from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.models.target_python import TargetPython
 
 
 def make_test_link(
-    filename: str, version: str, yanked_reason: Optional[str] = None
+    filename: str, version: str, yanked_reason: str | None = None
 ) -> Link:
     """Create a test Link object."""
     return Link(
@@ -26,7 +18,7 @@ def make_test_link(
 
 
 def make_test_candidate(
-    name: str, version: str, filename: str, yanked_reason: Optional[str] = None
+    name: str, version: str, filename: str, yanked_reason: str | None = None
 ) -> InstallationCandidate:
     """Create a test InstallationCandidate."""
     link = make_test_link(filename, version, yanked_reason)
