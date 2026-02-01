@@ -372,7 +372,6 @@ class Factory:
                 )
                 yield ican.version, func
 
-
         return FoundCandidates(
             iter_index_candidate_infos,
             _get_installed_candidate(),
@@ -743,8 +742,7 @@ class Factory:
                 version_type = "final version"
 
         logger.critical(
-            "Could not find a %s that satisfies the requirement %s "
-            "(from versions: %s)",
+            "Could not find a %s that satisfies the requirement %s (from versions: %s)",
             version_type,
             req_disp,
             ", ".join(versions) or "none",

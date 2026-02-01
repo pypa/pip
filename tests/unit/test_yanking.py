@@ -36,12 +36,8 @@ class TestFileLevelYanking:
         """
         # Version 1.0 has two files: wheel (not yanked) and tarball (yanked)
         candidates = [
-            make_test_candidate(
-                "example", "1.0", "example-1.0-py3-none-any.whl", None
-            ),
-            make_test_candidate(
-                "example", "1.0", "example-1.0.tar.gz", "bad tarball"
-            ),
+            make_test_candidate("example", "1.0", "example-1.0-py3-none-any.whl", None),
+            make_test_candidate("example", "1.0", "example-1.0.tar.gz", "bad tarball"),
         ]
 
         # Group by version
@@ -139,26 +135,16 @@ class TestMixedYankingScenarios:
         """
         candidates = [
             # Version 1.0: file-level yanking
-            make_test_candidate(
-                "example", "1.0", "example-1.0-py3-none-any.whl", None
-            ),
-            make_test_candidate(
-                "example", "1.0", "example-1.0.tar.gz", "bad tarball"
-            ),
+            make_test_candidate("example", "1.0", "example-1.0-py3-none-any.whl", None),
+            make_test_candidate("example", "1.0", "example-1.0.tar.gz", "bad tarball"),
             # Version 2.0: release-level yanking
             make_test_candidate(
                 "example", "2.0", "example-2.0-py3-none-any.whl", "security"
             ),
-            make_test_candidate(
-                "example", "2.0", "example-2.0.tar.gz", "security"
-            ),
+            make_test_candidate("example", "2.0", "example-2.0.tar.gz", "security"),
             # Version 3.0: no yanking
-            make_test_candidate(
-                "example", "3.0", "example-3.0-py3-none-any.whl", None
-            ),
-            make_test_candidate(
-                "example", "3.0", "example-3.0.tar.gz", None
-            ),
+            make_test_candidate("example", "3.0", "example-3.0-py3-none-any.whl", None),
+            make_test_candidate("example", "3.0", "example-3.0.tar.gz", None),
         ]
 
         # Group by version
@@ -206,13 +192,9 @@ class TestMixedYankingScenarios:
         """
         candidates = [
             # Version 1.0: release-level yanking
-            make_test_candidate(
-                "example", "1.0", "example-1.0.tar.gz", "old version"
-            ),
+            make_test_candidate("example", "1.0", "example-1.0.tar.gz", "old version"),
             # Version 2.0: release-level yanking
-            make_test_candidate(
-                "example", "2.0", "example-2.0.tar.gz", "has bug"
-            ),
+            make_test_candidate("example", "2.0", "example-2.0.tar.gz", "has bug"),
         ]
 
         # Group by version
