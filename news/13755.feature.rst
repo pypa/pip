@@ -1,0 +1,10 @@
+Improved yanking behavior to properly distinguish between file-level and
+release-level yanking per PEP 592:
+
+- **File-level yanking**: When individual files are yanked but not all files
+  for a version, only those specific yanked files are excluded. Other
+  non-yanked files from the same version can still be selected.
+
+- **Release-level yanking**: When all files for a version are yanked, the
+  version is considered "yanked" and the pinned version exception (``==`` or
+  ``===``) applies, allowing it to be installed only when explicitly pinned.
