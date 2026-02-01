@@ -96,6 +96,7 @@ def make_test_finder(
     session: PipSession | None = None,
     target_python: TargetPython | None = None,
     uploaded_prior_to: datetime.datetime | None = None,
+    index_strategy: str = "best-match",
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -114,6 +115,7 @@ def make_test_finder(
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
         release_control=release_control,
+        index_strategy=index_strategy,
     )
 
     return PackageFinder.create(
