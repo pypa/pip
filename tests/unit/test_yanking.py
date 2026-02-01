@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
 from unittest.mock import MagicMock
 
 import pytest
@@ -15,7 +14,7 @@ from pip._internal.models.target_python import TargetPython
 
 
 def make_test_link(
-    filename: str, version: str, yanked_reason: Optional[str] = None
+    filename: str, version: str, yanked_reason: str | None = None
 ) -> Link:
     """Create a test Link object."""
     return Link(
@@ -25,7 +24,7 @@ def make_test_link(
 
 
 def make_test_candidate(
-    name: str, version: str, filename: str, yanked_reason: Optional[str] = None
+    name: str, version: str, filename: str, yanked_reason: str | None = None
 ) -> InstallationCandidate:
     """Create a test InstallationCandidate."""
     link = make_test_link(filename, version, yanked_reason)
@@ -52,12 +51,12 @@ class TestFileLevelYanking:
         ]
 
         # Group by version
-        version_to_candidates: Dict[Version, List[InstallationCandidate]] = {}
+        version_to_candidates: dict[Version, list[InstallationCandidate]] = {}
         for c in candidates:
             version_to_candidates.setdefault(c.version, []).append(c)
 
         # Determine yanked versions (release-level)
-        yanked_versions: Set[Version] = set()
+        yanked_versions: set[Version] = set()
         for version, version_cands in version_to_candidates.items():
             if all(c.link.is_yanked for c in version_cands):
                 yanked_versions.add(version)
@@ -90,12 +89,12 @@ class TestReleaseLevelYanking:
         ]
 
         # Group by version
-        version_to_candidates: Dict[Version, List[InstallationCandidate]] = {}
+        version_to_candidates: dict[Version, list[InstallationCandidate]] = {}
         for c in candidates:
             version_to_candidates.setdefault(c.version, []).append(c)
 
         # Determine yanked versions
-        yanked_versions: Set[Version] = set()
+        yanked_versions: set[Version] = set()
         for version, version_cands in version_to_candidates.items():
             if all(c.link.is_yanked for c in version_cands):
                 yanked_versions.add(version)
@@ -169,12 +168,12 @@ class TestMixedYankingScenarios:
         ]
 
         # Group by version
-        version_to_candidates: Dict[Version, List[InstallationCandidate]] = {}
+        version_to_candidates: dict[Version, list[InstallationCandidate]] = {}
         for c in candidates:
             version_to_candidates.setdefault(c.version, []).append(c)
 
         # Determine yanked versions
-        yanked_versions: Set[Version] = set()
+        yanked_versions: set[Version] = set()
         for version, version_cands in version_to_candidates.items():
             if all(c.link.is_yanked for c in version_cands):
                 yanked_versions.add(version)
@@ -223,12 +222,12 @@ class TestMixedYankingScenarios:
         ]
 
         # Group by version
-        version_to_candidates: Dict[Version, List[InstallationCandidate]] = {}
+        version_to_candidates: dict[Version, list[InstallationCandidate]] = {}
         for c in candidates:
             version_to_candidates.setdefault(c.version, []).append(c)
 
         # Determine yanked versions
-        yanked_versions: Set[Version] = set()
+        yanked_versions: set[Version] = set()
         for version, version_cands in version_to_candidates.items():
             if all(c.link.is_yanked for c in version_cands):
                 yanked_versions.add(version)
