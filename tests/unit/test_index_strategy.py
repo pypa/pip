@@ -16,7 +16,8 @@ def test_index_strategy_best_match(data: TestData) -> None:
     assert "1.0" in version_strs
     assert "2.0" in version_strs
     assert "3.0" in version_strs
-    # We expect 4 candidates (1.0 from simple index, and 1.0, 2.0, 3.0 from yanked index)
+    # We expect 4 candidates:
+    # 1.0 from simple index, and 1.0, 2.0, 3.0 from yanked index
     assert len(version_strs) == 4
 
 
