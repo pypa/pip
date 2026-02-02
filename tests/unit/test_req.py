@@ -116,7 +116,6 @@ class TestRequirementSet:
                 lazy_wheel=False,
                 verbosity=0,
                 legacy_resolver=True,
-                resume_retries=0,
             )
             yield Resolver(
                 preparer=preparer,
@@ -702,7 +701,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_line_url_requirement(self) -> None:
-        line = "git+https://url#egg=SomeProject[ex1,ex2]"
+        line = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_line(line, comes_from=comes_from)
@@ -718,7 +717,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_editable_url_requirement(self) -> None:
-        url = "git+https://url#egg=SomeProject[ex1,ex2]"
+        url = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_editable(url, comes_from=comes_from)
@@ -766,7 +765,7 @@ class TestInstallRequirement:
             ("pkg ; python_version<='3.6'", "pkg"),
             ("pkg[ext]", "pkg"),
             ("pkg [ ext1, ext2 ]", "pkg"),
-            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg@ https://example.com/"),
+            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg @ https://example.com/"),
             ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
             ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
             ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
@@ -815,7 +814,7 @@ class TestInstallRequirement:
             (
                 "pkg-all.allowed_chars0 [ ext1 ] @ https://example.com/",
                 {"ext2"},
-                "pkg-all.allowed_chars0[ext1,ext2]@ https://example.com/",
+                "pkg-all.allowed_chars0[ext1,ext2] @ https://example.com/",
             ),
         ],
     )
@@ -895,10 +894,10 @@ def test_parse_editable_explicit_vcs() -> None:
 
 
 def test_parse_editable_vcs_extras() -> None:
-    assert parse_editable("svn+https://foo#egg=foo[extras]") == (
-        "foo[extras]",
-        "svn+https://foo#egg=foo[extras]",
-        set(),
+    assert parse_editable("foo[extras] @ svn+https://foo") == (
+        "foo",
+        "svn+https://foo",
+        {"extras"},
     )
 
 

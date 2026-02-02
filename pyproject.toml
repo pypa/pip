@@ -67,7 +67,6 @@ test = [
     "virtualenv < 20.0 ; python_version < '3.10' and (sys_platform != 'darwin' or platform_machine != 'arm64')",
     "virtualenv >= 20.0 ; python_version >= '3.10' or (sys_platform == 'darwin' and platform_machine == 'arm64')",
     "werkzeug",
-    "wheel",
     "tomli-w",
     "proxy.py",
 ]
@@ -76,11 +75,11 @@ test-common-wheels = [
     "flit-core >= 3.11, < 4",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
-    "setuptools >= 40.8.0, != 60.6.0, <80",
-    "wheel",
+    "setuptools >= 70.1.0, <80",
     # As required by pytest-cov.
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
+    "keyring",
 ]
 
 docs = [
@@ -112,6 +111,7 @@ include = [
     "docs/**/*.rst",
 ]
 exclude = [
+    ".devcontainer/devcontainer.json",
     "src/pip/_vendor/**/*.pyi",
 ]
 
@@ -267,7 +267,7 @@ max-complexity = 33  # default is 10
 [tool.ruff.lint.pylint]
 max-args = 15  # default is 5
 max-branches = 28  # default is 12
-max-returns = 13  # default is 6
+max-returns = 15  # default is 6
 max-statements = 134  # default is 50
 
 [tool.ruff.per-file-target-version]

@@ -141,10 +141,12 @@ def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> 
 def test_freeze_multiple_exclude_with_all(script: PipTestEnvironment) -> None:
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
-    assert "wheel==" in result.stdout
-    result = script.pip("freeze", "--all", "--exclude", "pip", "--exclude", "wheel")
+    assert "setuptools==" in result.stdout
+    result = script.pip(
+        "freeze", "--all", "--exclude", "pip", "--exclude", "setuptools"
+    )
     assert "pip==" not in result.stdout
-    assert "wheel==" not in result.stdout
+    assert "setuptools==" not in result.stdout
 
 
 def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
@@ -888,7 +890,6 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(
     assert result.stderr.count("is not installed") == 1
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_freeze_user(
     script: PipTestEnvironment, virtualenv: VirtualEnvironment, data: TestData
@@ -896,7 +897,6 @@ def test_freeze_user(
     """
     Testing freeze with --user, first we have to install some stuff.
     """
-    script.pip("download", "setuptools", "wheel", "-d", data.packages)
     script.pip_install_local("--find-links", data.find_links, "--user", "simple==2.0")
     script.pip_install_local("--find-links", data.find_links, "simple2==3.0")
     result = script.pip("freeze", "--user", expect_stderr=True)
@@ -909,14 +909,11 @@ def test_freeze_user(
     assert "simple2" not in result.stdout
 
 
-@pytest.mark.network
 def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> None:
     """
     Test freeze with --path.
     """
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", tmpdir, "simple==2.0"
-    )
+    script.pip_install_local("--target", tmpdir, "simple==2.0")
     result = script.pip("freeze", "--path", tmpdir)
     expected = textwrap.dedent(
         """\
@@ -926,7 +923,6 @@ def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_freeze_path_exclude_user(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
@@ -936,9 +932,7 @@ def test_freeze_path_exclude_user(
     up.
     """
     script.pip_install_local("--find-links", data.find_links, "--user", "simple2")
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", tmpdir, "simple==1.0"
-    )
+    script.pip_install_local("--target", tmpdir, "simple==1.0")
     result = script.pip("freeze", "--user")
     expected = textwrap.dedent(
         """\
@@ -955,7 +949,6 @@ def test_freeze_path_exclude_user(
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.network
 def test_freeze_path_multiple(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -966,12 +959,8 @@ def test_freeze_path_multiple(
     os.mkdir(path1)
     path2 = tmpdir / "path2"
     os.mkdir(path2)
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", path1, "simple==2.0"
-    )
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", path2, "simple2==3.0"
-    )
+    script.pip_install_local("--target", path1, "simple==2.0")
+    script.pip_install_local("--target", path2, "simple2==3.0")
     result = script.pip("freeze", "--path", path1)
     expected = textwrap.dedent(
         """\

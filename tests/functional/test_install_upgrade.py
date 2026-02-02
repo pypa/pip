@@ -1,7 +1,6 @@
 import itertools
 import os
 import sys
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -17,14 +16,13 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.wheel import make_wheel
 
 
-@pytest.mark.network
 def test_no_upgrade_unless_requested(script: PipTestEnvironment) -> None:
     """
     No upgrade if not specifically requested.
 
     """
-    script.pip("install", "INITools==0.1")
-    result = script.pip("install", "INITools")
+    script.pip_install_local("simplewheel==1.0")
+    result = script.pip_install_local("simplewheel")
     assert (
         not result.files_created
     ), "pip install INITools upgraded when it should not have"
@@ -135,29 +133,27 @@ def test_eager_does_upgrade_dependencies_when_no_longer_satisfied(
     ), "should have uninstalled simple==1.0"
 
 
-@pytest.mark.network
 def test_upgrade_to_specific_version(script: PipTestEnvironment) -> None:
     """
     It does upgrade to specific version requested.
 
     """
-    script.pip("install", "INITools==0.1")
-    result = script.pip("install", "INITools==0.2")
+    script.pip_install_local("simplewheel==1.0")
+    result = script.pip_install_local("simplewheel==2.0")
     assert result.files_created, "pip install with specific version did not upgrade"
-    assert script.site_packages / "initools-0.1.dist-info" in result.files_deleted
-    result.did_create(script.site_packages / "initools-0.2.dist-info")
+    assert script.site_packages / "simplewheel-1.0.dist-info" in result.files_deleted
+    result.did_create(script.site_packages / "simplewheel-2.0.dist-info")
 
 
-@pytest.mark.network
 def test_upgrade_if_requested(script: PipTestEnvironment) -> None:
     """
     And it does upgrade if requested.
 
     """
-    script.pip("install", "INITools==0.1")
-    result = script.pip("install", "--upgrade", "INITools")
+    script.pip_install_local("simplewheel==1.0")
+    result = script.pip_install_local("--upgrade", "simplewheel")
     assert result.files_created, "pip install --upgrade did not upgrade"
-    result.did_not_create(script.site_packages / "initools-0.1.dist-info")
+    result.did_not_create(script.site_packages / "simplewheel-1.0.dist-info")
 
 
 def test_upgrade_with_newest_already_installed(
@@ -192,31 +188,29 @@ def test_upgrade_with_newest_already_installed(
     assert msg in result.stdout, result.stdout
 
 
-@pytest.mark.network
 def test_upgrade_force_reinstall_newest(script: PipTestEnvironment) -> None:
     """
     Force reinstallation of a package even if it is already at its newest
     version if --force-reinstall is supplied.
     """
-    result = script.pip("install", "INITools")
-    result.did_create(script.site_packages / "initools")
-    result2 = script.pip("install", "--upgrade", "--force-reinstall", "INITools")
-    assert result2.files_updated, "upgrade to INITools 0.3 failed"
-    result3 = script.pip("uninstall", "initools", "-y")
+    result = script.pip_install_local("simplewheel")
+    result.did_create(script.site_packages / "simplewheel")
+    result2 = script.pip_install_local("--upgrade", "--force-reinstall", "simplewheel")
+    assert result2.files_updated, "upgrade to simplewheel 2.0 failed"
+    result3 = script.pip("uninstall", "simplewheel", "-y")
     assert_all_changes(result, result3, [script.venv / "build", "cache"])
 
 
-@pytest.mark.network
 def test_uninstall_before_upgrade(script: PipTestEnvironment) -> None:
     """
     Automatic uninstall-before-upgrade.
 
     """
-    result = script.pip("install", "INITools==0.2")
-    result.did_create(script.site_packages / "initools")
-    result2 = script.pip("install", "INITools==0.3")
-    assert result2.files_created, "upgrade to INITools 0.3 failed"
-    result3 = script.pip("uninstall", "initools", "-y")
+    result = script.pip_install_local("simplewheel==1.0")
+    result.did_create(script.site_packages / "simplewheel")
+    result2 = script.pip_install_local("simplewheel==2.0")
+    assert result2.files_created, "upgrade to simplewheel 2.0 failed"
+    result3 = script.pip("uninstall", "simplewheel", "-y")
     assert_all_changes(result, result3, [script.venv / "build", "cache"])
 
 
@@ -257,35 +251,30 @@ def test_upgrade_to_same_version_from_url(script: PipTestEnvironment) -> None:
     assert_all_changes(result, result3, [script.venv / "build", "cache"])
 
 
-@pytest.mark.network
 def test_upgrade_from_reqs_file(script: PipTestEnvironment) -> None:
     """
     Upgrade from a requirements file.
 
     """
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """\
-        PyLogo<0.4
+    req_file = script.temporary_multiline_file(
+        "test-req.txt",
+        """\
+        simplewheel<2
         # and something else to test out:
-        INITools==0.3
-        """
-        )
+        license.dist==0.2
+        """,
     )
-    install_result = script.pip("install", "-r", script.scratch_path / "test-req.txt")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """\
-        PyLogo
+    install_result = script.pip_install_local("-r", req_file)
+    script.temporary_multiline_file(
+        "test-req.txt",
+        """\
+        simplewheel
         # and something else to test out:
-        INITools
-        """
-        )
+        license.dist
+        """,
     )
-    script.pip("install", "--upgrade", "-r", script.scratch_path / "test-req.txt")
-    uninstall_result = script.pip(
-        "uninstall", "-r", script.scratch_path / "test-req.txt", "-y"
-    )
+    script.pip_install_local("--upgrade", "-r", req_file)
+    uninstall_result = script.pip("uninstall", "-r", req_file, "-y")
     assert_all_changes(
         install_result,
         uninstall_result,
@@ -329,30 +318,30 @@ def test_uninstall_rollback(script: PipTestEnvironment, data: TestData) -> None:
     )
 
 
-@pytest.mark.network
-def test_should_not_install_always_from_cache(script: PipTestEnvironment) -> None:
+def test_should_not_install_always_from_cache(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     If there is an old cached package, pip should download the newer version
     Related to issue #175
     """
-    script.pip("install", "INITools==0.2")
-    script.pip("uninstall", "-y", "INITools")
-    result = script.pip("install", "INITools==0.1")
-    result.did_not_create(script.site_packages / "initools-0.2.dist-info")
-    result.did_create(script.site_packages / "initools-0.1.dist-info")
+    script.pip_install_local("simplewheel==2.0")
+    script.pip("uninstall", "-y", "simplewheel")
+    result = script.pip_install_local("simplewheel==1.0")
+    result.did_not_create(script.site_packages / "simplewheel-2.0.dist-info")
+    result.did_create(script.site_packages / "simplewheel-1.0.dist-info")
 
 
-@pytest.mark.network
 def test_install_with_ignoreinstalled_requested(script: PipTestEnvironment) -> None:
     """
     Test old conflicting package is completely ignored
     """
-    script.pip("install", "INITools==0.1")
-    result = script.pip("install", "-I", "INITools==0.3")
+    script.pip_install_local("simplewheel==1.0")
+    result = script.pip_install_local("-I", "simplewheel==2.0")
     assert result.files_created, "pip install -I did not install"
     # both the old and new metadata should be present.
-    assert os.path.exists(script.site_packages_path / "initools-0.1.dist-info")
-    assert os.path.exists(script.site_packages_path / "initools-0.3.dist-info")
+    assert os.path.exists(script.site_packages_path / "simplewheel-1.0.dist-info")
+    assert os.path.exists(script.site_packages_path / "simplewheel-2.0.dist-info")
 
 
 @pytest.mark.network

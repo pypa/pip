@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import pathlib
@@ -30,11 +31,13 @@ from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 
+from tests.lib.filesystem import create_file
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
@@ -49,18 +52,6 @@ CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
 _Test = Callable[..., None]
 _FilesState = dict[str, Union[FoundDir, FoundFile]]
-
-
-def create_file(path: str, contents: str | None = None) -> None:
-    """Create a file on the path, with the given contents"""
-    from pip._internal.utils.misc import ensure_dir
-
-    ensure_dir(os.path.dirname(path))
-    with open(path, "w") as f:
-        if contents is not None:
-            f.write(contents)
-        else:
-            f.write("\n")
 
 
 def make_test_search_scope(
@@ -104,6 +95,7 @@ def make_test_finder(
     allow_all_prereleases: bool = False,
     session: PipSession | None = None,
     target_python: TargetPython | None = None,
+    uploaded_prior_to: datetime.datetime | None = None,
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -113,15 +105,22 @@ def make_test_finder(
         index_urls=index_urls,
         session=session,
     )
+
+    # Convert allow_all_prereleases to release_control
+    release_control = ReleaseControl()
+    if allow_all_prereleases:
+        release_control.all_releases.add(":all:")
+
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
-        allow_all_prereleases=allow_all_prereleases,
+        release_control=release_control,
     )
 
     return PackageFinder.create(
         link_collector=link_collector,
         selection_prefs=selection_prefs,
         target_python=target_python,
+        uploaded_prior_to=uploaded_prior_to,
     )
 
 
@@ -173,6 +172,10 @@ class TestData:
         return self.root.joinpath("packages3")
 
     @property
+    def pypi_packages(self) -> pathlib.Path:
+        return self.root.joinpath("pypi_packages")
+
+    @property
     def src(self) -> pathlib.Path:
         return self.root.joinpath("src")
 
@@ -206,6 +209,12 @@ class TestData:
 
     def index_url(self, index: str = "simple") -> str:
         return self.root.joinpath("indexes", index).as_uri()
+
+    @property
+    def common_wheels(self) -> pathlib.Path:
+        # This is logically separate from the rest of the test data, but
+        # it's convenient to include here.
+        return DATA_DIR.joinpath("common_wheels")
 
 
 class TestFailure(AssertionError):
@@ -702,17 +711,30 @@ class PipTestEnvironment(TestFileEnvironment):
     def pip_install_local(
         self,
         *args: StrPath,
+        find_links: StrPath | list[StrPath] = pathlib.Path(DATA_DIR, "packages"),
+        build_isolation: bool = False,
         **kwargs: Any,
     ) -> TestPipResult:
-        return self.pip(
-            "install",
-            "--no-build-isolation",
-            "--no-index",
-            "--find-links",
-            pathlib.Path(DATA_DIR, "packages").as_uri(),
-            *args,
-            **kwargs,
-        )
+        """
+        Invoke pip install without PyPI access. By default, only local
+        packages are included via --find-links.
+        """
+        # Convert find links paths to absolute file: URIs
+        if not isinstance(find_links, list):
+            find_links = [find_links]
+        find_links_args: list[StrPath] = []
+        for folder in find_links:
+            # Don't rewrite paths that are already file URIs
+            if isinstance(folder, str) and folder.startswith("file:"):
+                find_links_args.extend(("--find-links", folder))
+            else:
+                path = pathlib.Path(folder).resolve()
+                find_links_args.extend(("--find-links", path.as_uri()))
+
+        cmd = ["install", "--no-index", *find_links_args, *args]
+        if not build_isolation:
+            cmd.insert(1, "--no-build-isolation")
+        return self.pip(*cmd, **kwargs)
 
     def easy_install(self, *args: str, **kwargs: Any) -> TestPipResult:
         args = ("-m", "easy_install") + args
@@ -745,6 +767,20 @@ class PipTestEnvironment(TestFileEnvironment):
             if canonicalize_name(x["name"]) == dist_name
             and x.get("editable_project_location")
         )
+
+    def temporary_file(
+        self, filename: str | pathlib.Path, contents: str
+    ) -> pathlib.Path:
+        """Create a temporary file with the given filename and contents."""
+        path = self.scratch_path.joinpath(filename)
+        create_file(path, contents)
+        return path
+
+    def temporary_multiline_file(
+        self, filename: str | pathlib.Path, contents: str
+    ) -> pathlib.Path:
+        """Like temporary_file() but calls textwrap.dedent beforehand."""
+        return self.temporary_file(filename, textwrap.dedent(contents))
 
 
 # FIXME ScriptTest does something similar, but only within a single
@@ -1132,7 +1168,15 @@ def create_really_basic_wheel(name: str, version: str) -> bytes:
     records = [(record_path, "", "")]
     buf = BytesIO()
     with ZipFile(buf, "w") as z:
-        add_file(f"{dist_info}/WHEEL", "Wheel-Version: 1.0")
+        add_file(
+            f"{dist_info}/WHEEL",
+            dedent(
+                """\
+                Wheel-Version: 1.0
+                Root-Is-Purelib: true
+                """
+            ),
+        )
         add_file(
             f"{dist_info}/METADATA",
             dedent(

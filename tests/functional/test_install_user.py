@@ -38,14 +38,15 @@ def _patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
 
 @pytest.mark.usefixtures("enable_user_site")
 class Tests_UserSite:
-    @pytest.mark.network
     def test_reset_env_system_site_packages_usersite(
-        self, script: PipTestEnvironment
+        self,
+        script: PipTestEnvironment,
+        data: TestData,
     ) -> None:
         """
         Check user site works as expected.
         """
-        script.pip("install", "--user", "INITools==0.2")
+        script.pip_install_local("--user", "INITools==0.2", "-f", data.pypi_packages)
         result = script.run(
             "python",
             "-c",
@@ -121,29 +122,30 @@ class Tests_UserSite:
             "visible in this virtualenv." in result.stderr
         )
 
-    @pytest.mark.network
     def test_install_user_conflict_in_usersite(
-        self, script: PipTestEnvironment
+        self, script: PipTestEnvironment, data: TestData
     ) -> None:
         """
         Test user install with conflict in usersite updates usersite.
         """
 
-        script.pip("install", "--user", "INITools==0.3", "--no-binary=:all:")
+        script.pip_install_local("--user", "INITools==0.2", "-f", data.pypi_packages)
 
-        result2 = script.pip("install", "--user", "INITools==0.1", "--no-binary=:all:")
+        result2 = script.pip_install_local(
+            "--user", "INITools==0.1", "-f", data.pypi_packages
+        )
 
         # usersite has 0.1
         dist_info_folder = script.user_site / "initools-0.1.dist-info"
-        initools_v3_file = (
-            # file only in 0.3
+        initools_v2_file = (
+            # file only in 0.2
             script.base_path
             / script.user_site
             / "initools"
             / "configparser.py"
         )
         result2.did_create(dist_info_folder)
-        assert not isfile(initools_v3_file), initools_v3_file
+        assert not isfile(initools_v2_file), initools_v2_file
 
     def test_install_user_conflict_in_globalsite(
         self, virtualenv: VirtualEnvironment, script: PipTestEnvironment

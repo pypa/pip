@@ -266,6 +266,7 @@ Options
 
 .. pip-index-options:: install
 
+.. pip-package-selection-options:: install
 
 .. _`pip install Examples`:
 

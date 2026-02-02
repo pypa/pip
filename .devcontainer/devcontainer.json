@@ -1,0 +1,18 @@
+{
+	"name": "pip",
+	"image": "mcr.microsoft.com/devcontainers/python:3",
+	"features": {
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+			"packages": "mercurial,subversion,bzr"
+		}
+	},
+	"postCreateCommand": "python -m venv .venv\nsource .venv/bin/activate\npip install nox\npip install -e .",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"hbenl.vscode-test-explorer",
+				"ms-python.python"
+			]
+		}
+	}
+}
