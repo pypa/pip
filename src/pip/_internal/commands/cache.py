@@ -107,8 +107,7 @@ class CacheCommand(Command):
         wheels_cache_size = filesystem.format_directory_size(wheels_cache_location)
 
         message = (
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                     Package index page cache location (pip v23.3+): {http_cache_location}
                     Package index page cache location (older pips): {old_http_cache_location}
                     Package index page cache size: {http_cache_size}
@@ -116,8 +115,7 @@ class CacheCommand(Command):
                     Locally built wheels location: {wheels_cache_location}
                     Locally built wheels size: {wheels_cache_size}
                     Number of locally built wheels: {package_count}
-                """  # noqa: E501
-            )
+                """)  # noqa: E501
             .format(
                 http_cache_location=http_cache_location,
                 old_http_cache_location=old_http_cache_location,

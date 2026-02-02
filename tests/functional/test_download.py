@@ -632,14 +632,12 @@ def make_wheel_with_python_requires(
     package_dir = script.scratch_path / package_name
     package_dir.mkdir()
 
-    text = textwrap.dedent(
-        """\
+    text = textwrap.dedent("""\
     from setuptools import setup
     setup(name='{}',
           python_requires='{}',
           version='1.0')
-    """
-    ).format(package_name, python_requires)
+    """).format(package_name, python_requires)
     package_dir.joinpath("setup.py").write_text(text)
     script.run(
         "python",
@@ -936,14 +934,10 @@ def test_prefer_binary_tarball_higher_than_wheel_req_file(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     fake_wheel(data, "source-0.8-py2.py3-none-any.whl")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
                 --prefer-binary
                  source
-                """
-        )
-    )
+                """))
     result = script.pip(
         "download",
         "-r",
@@ -963,13 +957,9 @@ def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     fake_wheel(data, "source-0.8-py2.py3-none-any.whl")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         source>0.9
-        """
-        )
-    )
+        """))
 
     result = script.pip(
         "download",
@@ -991,14 +981,10 @@ def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     fake_wheel(data, "source-0.8-py2.py3-none-any.whl")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         --prefer-binary
         source>0.9
-        """
-        )
-    )
+        """))
 
     result = script.pip(
         "download",
@@ -1035,14 +1021,10 @@ def test_download_prefer_binary_when_only_tarball_exists(
 def test_prefer_binary_when_only_tarball_exists_req_file(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
             --prefer-binary
             source
-            """
-        )
-    )
+            """))
     result = script.pip(
         "download",
         "--no-build-isolation",

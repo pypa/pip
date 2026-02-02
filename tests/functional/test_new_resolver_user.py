@@ -97,15 +97,13 @@ def patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch `pip._internal.utils.misc.dist_in_site_packages`
     # so it's possible to install a conflicting distribution in the user site.
-    virtualenv.sitecustomize = textwrap.dedent(
-        """
+    virtualenv.sitecustomize = textwrap.dedent("""
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.metadata.base import BaseDistribution
         BaseDistribution.in_site_packages = property(dist_in_site_packages)
-    """
-    )
+    """)
 
 
 @pytest.mark.usefixtures("enable_user_site", "patch_dist_in_site_packages")

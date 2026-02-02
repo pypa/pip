@@ -775,14 +775,12 @@ class FakePackage:
     def generate_metadata(self) -> bytes:
         """This is written to `self.metadata_filename()` and will override the actual
         dist's METADATA, unless `self.metadata == MetadataKind.NoFile`."""
-        return dedent(
-            f"""\
+        return dedent(f"""\
         Metadata-Version: 2.1
         Name: {self.metadata_name or self.name}
         Version: {self.version}
         {self.requires_str()}
-        """
-        ).encode("utf-8")
+        """).encode("utf-8")
 
 
 @pytest.fixture(scope="session")
@@ -892,8 +890,7 @@ def html_index_for_packages(
     )
     # Output won't be nicely indented because dedent() acts after f-string
     # arg insertion.
-    index_html = dedent(
-        f"""\
+    index_html = dedent(f"""\
         <!DOCTYPE html>
         <html>
           <head>
@@ -903,8 +900,7 @@ def html_index_for_packages(
           <body>
           {pkg_links}
           </body>
-        </html>"""
-    )
+        </html>""")
     # (2) Generate the index.html in a new subdirectory of the temp directory.
     (html_dir / "index.html").write_text(index_html)
 
@@ -935,8 +931,7 @@ def html_index_for_packages(
         # write an index.html with the generated download links for each
         # copied file for this specific package name.
         download_links_str = "\n".join(download_links)
-        pkg_index_content = dedent(
-            f"""\
+        pkg_index_content = dedent(f"""\
             <!DOCTYPE html>
             <html>
               <head>
@@ -947,8 +942,7 @@ def html_index_for_packages(
                 <h1>Links for {pkg}</h1>
                 {download_links_str}
               </body>
-            </html>"""
-        )
+            </html>""")
         with open(pkg_subdir / "index.html", "w") as f:
             f.write(pkg_index_content)
 

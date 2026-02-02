@@ -823,14 +823,12 @@ def make_fake_html_response(url: str) -> mock.Mock:
     """
     Create a fake requests.Response object.
     """
-    html = dedent(
-        """\
+    html = dedent("""\
     <html><head><meta name="api-version" value="2" /></head>
     <body>
     <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
     </body></html>
-    """
-    )
+    """)
     content = html.encode("utf-8")
     return mock.Mock(content=content, url=url, headers={"Content-Type": "text/html"})
 
@@ -1008,11 +1006,9 @@ class TestLinkCollector:
         # Check that index URLs are marked as *un*cacheable.
         assert not pages[0].link.cache_link_parsing
 
-        expected_message = dedent(
-            """\
+        expected_message = dedent("""\
         1 location(s) to search for versions of twine:
-        * https://pypi.org/simple/twine/"""
-        )
+        * https://pypi.org/simple/twine/""")
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]
@@ -1054,11 +1050,9 @@ class TestLinkCollector:
         assert len(files) > 0
         check_links_include(files, names=["singlemodule-0.0.1.tar.gz"])
 
-        expected_message = dedent(
-            """\
+        expected_message = dedent("""\
         1 location(s) to search for versions of singlemodule:
-        * https://pypi.org/simple/singlemodule/"""
-        )
+        * https://pypi.org/simple/singlemodule/""")
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]

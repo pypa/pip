@@ -41,15 +41,11 @@ def test_find_links_requirements_file_relative_path(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     """Test find-links as a relative path to a reqs file."""
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            f"""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent(f"""
         --no-index
         --find-links={data.packages.as_posix()}
         parent==0.1
-        """
-        )
-    )
+        """))
     result = script.pip(
         "install",
         "--no-build-isolation",

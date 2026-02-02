@@ -26,9 +26,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
 
     fake_pkg = script.scratch_path / "fake_pkg"
     fake_pkg.mkdir()
-    fake_pkg.joinpath("setup.py").write_text(
-        dedent(
-            f"""
+    fake_pkg.joinpath("setup.py").write_text(dedent(f"""
     from setuptools import setup
 
     setup(
@@ -40,9 +38,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
             ]
         }}
     )
-    """
-        )
-    )
+    """))
 
     # expect_temp because pip install will generate fake_pkg.egg-info
     script.pip(

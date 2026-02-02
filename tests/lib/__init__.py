@@ -365,15 +365,11 @@ class TestPipResult:
         if pkg_dir and (pkg_dir in self.files_created) == (os.curdir in without_files):
             maybe = "not " if os.curdir in without_files else ""
             files = sorted(p.as_posix() for p in self.files_created)
-            raise TestFailure(
-                textwrap.dedent(
-                    f"""
+            raise TestFailure(textwrap.dedent(f"""
                     expected package directory {pkg_dir!r} {maybe}to be created
                     actually created:
                     {files}
-                    """
-                )
-            )
+                    """))
 
         for f in with_files:
             normalized_path = os.path.normpath(pkg_dir / f)
@@ -414,13 +410,11 @@ def make_check_stderr_message(stderr: str, line: str, reason: str) -> str:
     """
     Create an exception message to use inside check_stderr().
     """
-    return dedent(
-        """\
+    return dedent("""\
     {reason}:
      Caused by line: {line!r}
      Complete stderr: {stderr}
-    """
-    ).format(stderr=stderr, line=line, reason=reason)
+    """).format(stderr=stderr, line=line, reason=reason)
 
 
 def _check_stderr(
@@ -882,12 +876,10 @@ def _create_main_file(
         name = "version_pkg"
     if output is None:
         output = "0.1"
-    text = textwrap.dedent(
-        f"""
+    text = textwrap.dedent(f"""
         def main():
             print({output!r})
-        """
-    )
+        """)
     filename = f"{name}.py"
     dir_path.joinpath(filename).write_text(text)
 
@@ -994,9 +986,7 @@ def _create_test_package_with_subdirectory(
     script.scratch_path.joinpath("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / "version_pkg"
     _create_main_file(version_pkg_path, name="version_pkg", output="0.1")
-    version_pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
             from setuptools import setup, find_packages
 
             setup(
@@ -1006,17 +996,13 @@ def _create_test_package_with_subdirectory(
                 py_modules=["version_pkg"],
                 entry_points=dict(console_scripts=["version_pkg=version_pkg:main"]),
             )
-            """
-        )
-    )
+            """))
 
     subdirectory_path = version_pkg_path.joinpath(subdirectory)
     subdirectory_path.mkdir()
     _create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
 
-    subdirectory_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    subdirectory_path.joinpath("setup.py").write_text(textwrap.dedent("""
             from setuptools import find_packages, setup
 
             setup(
@@ -1026,9 +1012,7 @@ def _create_test_package_with_subdirectory(
                 py_modules=["version_subpkg"],
                 entry_points=dict(console_scripts=["version_pkg=version_subpkg:main"]),
             )
-            """
-        )
-    )
+            """))
 
     script.run("git", "init", cwd=version_pkg_path)
     script.run("git", "add", ".", cwd=version_pkg_path)
@@ -1049,9 +1033,7 @@ def _create_test_package_with_srcdir(
     pkg_path = src_path.joinpath("pkg")
     pkg_path.mkdir()
     pkg_path.joinpath("__init__.py").write_text("")
-    subdir_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            f"""
+    subdir_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
                 from setuptools import setup, find_packages
                 setup(
                     name="{name}",
@@ -1059,9 +1041,7 @@ def _create_test_package_with_srcdir(
                     packages=find_packages(),
                     package_dir={{"": "src"}},
                 )
-            """
-        )
-    )
+            """))
     return _vcs_add(dir_path, version_pkg_path, vcs)
 
 
@@ -1071,9 +1051,7 @@ def _create_test_package(
     dir_path.joinpath(name).mkdir()
     version_pkg_path = dir_path / name
     _create_main_file(version_pkg_path, name=name, output="0.1")
-    version_pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            f"""
+    version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
                 from setuptools import setup, find_packages
                 setup(
                     name="{name}",
@@ -1082,9 +1060,7 @@ def _create_test_package(
                     py_modules=["{name}"],
                     entry_points=dict(console_scripts=["{name}={name}:main"]),
                 )
-            """
-        )
-    )
+            """))
     return _vcs_add(dir_path, version_pkg_path, vcs)
 
 
@@ -1138,15 +1114,11 @@ def create_test_package_with_setup(
     assert "name" in setup_kwargs, setup_kwargs
     pkg_path = script.scratch_path / setup_kwargs["name"]
     pkg_path.mkdir()
-    pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            f"""
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
                 from setuptools import setup
                 kwargs = {setup_kwargs!r}
                 setup(**kwargs)
-            """
-        )
-    )
+            """))
     return pkg_path
 
 
@@ -1170,22 +1142,18 @@ def create_really_basic_wheel(name: str, version: str) -> bytes:
     with ZipFile(buf, "w") as z:
         add_file(
             f"{dist_info}/WHEEL",
-            dedent(
-                """\
+            dedent("""\
                 Wheel-Version: 1.0
                 Root-Is-Purelib: true
-                """
-            ),
+                """),
         )
         add_file(
             f"{dist_info}/METADATA",
-            dedent(
-                f"""\
+            dedent(f"""\
                 Metadata-Version: 2.1
                 Name: {name}
                 Version: {version}
-                """
-            ),
+                """),
         )
         z.writestr(record_path, "\n".join(",".join(r) for r in records))
     buf.seek(0)
@@ -1263,8 +1231,7 @@ def create_basic_sdist_for_package(
     setup_py_prelude: str = "",
 ) -> pathlib.Path:
     files = {
-        "setup.py": textwrap.dedent(
-            """\
+        "setup.py": textwrap.dedent("""\
             import sys
             from setuptools import find_packages, setup
 
@@ -1277,8 +1244,7 @@ def create_basic_sdist_for_package(
 
             setup(name={name!r}, version={version!r},
                 install_requires={depends!r})
-        """
-        ).format(
+        """).format(
             name=name,
             version=version,
             depends=depends or [],

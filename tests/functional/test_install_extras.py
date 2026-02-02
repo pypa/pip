@@ -218,9 +218,7 @@ def test_install_extra_merging(
     # Check that extra specifications in the extras section are honoured.
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
@@ -228,9 +226,7 @@ def test_install_extra_merging(
               extras_require={'extra1': ['simple<3'],
                               'extra2': ['simple==1.*']},
         )
-    """
-        )
-    )
+    """))
 
     result = script.pip_install_local(
         f"{pkga_path}{extra_to_install}",
@@ -264,16 +260,12 @@ def test_install_setuptools_extras_inconsistency(
 ) -> None:
     test_project_path = tmp_path.joinpath("test")
     test_project_path.mkdir()
-    test_project_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    test_project_path.joinpath("setup.py").write_text(textwrap.dedent("""
                 from setuptools import setup
                 setup(
                     name='test',
                     version='0.1',
                     extras_require={'extra_underscored': ['packaging']},
                 )
-            """
-        )
-    )
+            """))
     script.pip("install", "--no-build-isolation", "--dry-run", test_project_path)

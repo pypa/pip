@@ -13,8 +13,7 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtual environment, and we can't
     # guarantee access to the actual stdlib location (where EXTERNALLY-MANAGED
     # needs to go into), we patch the check to always raise a simple message.
-    virtualenv.sitecustomize = textwrap.dedent(
-        """\
+    virtualenv.sitecustomize = textwrap.dedent("""\
         from pip._internal.exceptions import ExternallyManagedEnvironment
         from pip._internal.utils import misc
 
@@ -22,8 +21,7 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
             raise ExternallyManagedEnvironment("I am externally managed")
 
         misc.check_externally_managed = check_externally_managed
-        """
-    )
+        """)
 
 
 @pytest.mark.parametrize(

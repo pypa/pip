@@ -145,12 +145,10 @@ def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> list[InstalledCS
 def test_get_csv_rows_for_installed(
     tmpdir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    text = textwrap.dedent(
-        """\
+    text = textwrap.dedent("""\
     a,b,c
     d,e,f
-    """
-    )
+    """)
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
@@ -165,13 +163,11 @@ def test_get_csv_rows_for_installed(
 def test_get_csv_rows_for_installed__long_lines(
     tmpdir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    text = textwrap.dedent(
-        """\
+    text = textwrap.dedent("""\
     a,b,c,d
     e,f,g
     h,i,j,k
-    """
-    )
+    """)
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
     assert outrows == [
         ("z", "b", "c"),
@@ -234,38 +230,32 @@ class TestInstallUnpackedWheel:
         self.wheelpath = make_wheel(
             "sample",
             "1.2.0",
-            metadata_body=textwrap.dedent(
-                """
+            metadata_body=textwrap.dedent("""
                 A sample Python project
                 =======================
 
                 ...
-                """
-            ),
+                """),
             metadata_updates={
                 "Requires-Dist": ["peppercorn"],
             },
             extra_files={
-                "sample/__init__.py": textwrap.dedent(
-                    '''
+                "sample/__init__.py": textwrap.dedent('''
                     __version__ = '1.2.0'
 
                     def main():
                         """Entry point for the application script"""
                         print("Call your main application code here")
-                    '''
-                ),
+                    '''),
                 "sample/package_data.dat": "some data",
             },
             extra_metadata_files={
-                "DESCRIPTION.rst": textwrap.dedent(
-                    """
+                "DESCRIPTION.rst": textwrap.dedent("""
                     A sample Python project
                     =======================
 
                     ...
-                    """
-                ),
+                    """),
                 "top_level.txt": "sample\n",
                 "empty_dir/empty_dir/": "",
             },

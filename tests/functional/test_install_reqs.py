@@ -37,8 +37,7 @@ class ArgRecordingSdistMaker(Protocol):
 def arg_recording_sdist_maker(
     script: PipTestEnvironment,
 ) -> ArgRecordingSdistMaker:
-    arg_writing_setup_py_prelude = textwrap.dedent(
-        """
+    arg_writing_setup_py_prelude = textwrap.dedent("""
         import io
         import json
         import os
@@ -47,8 +46,7 @@ def arg_recording_sdist_maker(
         args_path = os.path.join(os.environ["OUTPUT_DIR"], "{name}.json")
         with open(args_path, 'w') as f:
             json.dump(sys.argv, f)
-        """
-    )
+        """)
     output_dir = script.scratch_path.joinpath("args_recording_sdist_maker_output")
     output_dir.mkdir(parents=True)
     script.environ["OUTPUT_DIR"] = str(output_dir)
@@ -249,12 +247,10 @@ def test_multiple_requirements_files(script: PipTestEnvironment, tmpdir: Path) -
     """
     other_lib_name, other_lib_version = "six", "1.16.0"
     script.scratch_path.joinpath("initools-req.txt").write_text(
-        textwrap.dedent(
-            """
+        textwrap.dedent("""
             -e {}@10#egg=INITools
             -r {}-req.txt
-        """
-        ).format(
+        """).format(
             local_checkout("svn+http://svn.colorstudy.com/INITools", tmpdir),
             other_lib_name,
         ),
@@ -293,14 +289,10 @@ def test_constraints_apply_to_dependency_groups(
 ) -> None:
     script.scratch_path.joinpath("constraints.txt").write_text("TopoRequires==0.0.1")
     pyproject = script.scratch_path / "pyproject.toml"
-    pyproject.write_text(
-        textwrap.dedent(
-            """\
+    pyproject.write_text(textwrap.dedent("""\
             [dependency-groups]
             mylibs = ["TopoRequires2"]
-            """
-        )
-    )
+            """))
     result = script.pip(
         "install",
         "--no-build-isolation",
@@ -335,15 +327,11 @@ def test_multiple_constraints_files(script: PipTestEnvironment, data: TestData) 
 def test_respect_order_in_requirements_file(
     script: PipTestEnvironment, data: TestData
 ) -> None:
-    script.scratch_path.joinpath("frameworks-req.txt").write_text(
-        textwrap.dedent(
-            """\
+    script.scratch_path.joinpath("frameworks-req.txt").write_text(textwrap.dedent("""\
         parent
         child
         simple
-        """
-        )
-    )
+        """))
 
     result = script.pip(
         "install",
@@ -425,13 +413,9 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     user_cfg = os.path.join(os.path.expanduser("~"), user_filename)
     script.scratch_path.joinpath("bin").mkdir()
     with open(user_cfg, "w") as cfg:
-        cfg.write(
-            textwrap.dedent(
-                f"""
+        cfg.write(textwrap.dedent(f"""
             [install]
-            prefix={script.scratch_path}"""
-            )
-        )
+            prefix={script.scratch_path}"""))
 
     result = script.pip(
         "install",
@@ -806,11 +790,9 @@ def test_install_distribution_union_conflicting_extras(
 
 def test_install_unsupported_wheel_link_with_marker(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("with-marker.txt").write_text(
-        textwrap.dedent(
-            """\
+        textwrap.dedent("""\
             {url}; {req}
-        """
-        ).format(
+        """).format(
             url="https://github.com/a/b/c/asdf-1.5.2-cp27-none-xyz.whl",
             req='sys_platform == "xyz"',
         )
@@ -849,13 +831,11 @@ def test_config_settings_local_to_package(
     common_wheels: Path,
     arg_recording_sdist_maker: ArgRecordingSdistMaker,
 ) -> None:
-    pyproject_toml = textwrap.dedent(
-        """
+    pyproject_toml = textwrap.dedent("""
         [build-system]
         requires = ["setuptools"]
         build-backend = "setuptools.build_meta"
-        """
-    )
+        """)
     simple0_sdist = arg_recording_sdist_maker(
         "simple0",
         extra_files={"pyproject.toml": pyproject_toml},
@@ -884,16 +864,12 @@ def test_config_settings_local_to_package(
     )
 
     reqs_file = script.scratch_path.joinpath("reqs.txt")
-    reqs_file.write_text(
-        textwrap.dedent(
-            """
+    reqs_file.write_text(textwrap.dedent("""
             simple0 --config-settings "--build-option=--verbose"
             foo --config-settings "--build-option=--quiet"
             simple1 --config-settings "--build-option=--verbose"
             simple2
-            """
-        )
-    )
+            """))
 
     script.pip_install_local(
         "--no-build-isolation",

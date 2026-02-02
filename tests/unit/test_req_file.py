@@ -104,34 +104,28 @@ class TestPreprocess:
     """tests for `preprocess`"""
 
     def test_comments_and_joins_case1(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment \\
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
     def test_comments_and_joins_case2(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1\\
           # comment
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1")]
 
     def test_comments_and_joins_case3(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
@@ -943,15 +937,13 @@ class TestParseRequirements:
         Test parsing a requirements file without a finder
         """
         with open(tmpdir.joinpath("req.txt"), "w") as fp:
-            fp.write(
-                """
+            fp.write("""
     --find-links https://example.com/
     --index-url https://example.com/
     --extra-index-url https://two.example.com/
     --no-use-wheel
     --no-index
-            """
-            )
+            """)
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 

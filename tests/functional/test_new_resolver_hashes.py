@@ -23,13 +23,11 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
     wheel_hash = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
 
     index_html = script.scratch_path / "index.html"
-    index_html.write_text(
-        f"""
+    index_html.write_text(f"""
         <!DOCTYPE html>
         <a href="{sdist_path.as_uri()}#sha256={sdist_hash}">{sdist_path.stem}</a>
         <a href="{wheel_path.as_uri()}#sha256={wheel_hash}">{wheel_path.stem}</a>
-        """.strip()
-    )
+        """.strip())
 
     return _FindLinks(index_html, sdist_hash, wheel_hash)
 

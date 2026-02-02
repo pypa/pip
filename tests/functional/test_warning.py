@@ -11,9 +11,7 @@ from tests.lib import PipTestEnvironment
 @pytest.fixture
 def warnings_demo(tmpdir: Path) -> Path:
     demo = tmpdir.joinpath("warnings_demo.py")
-    demo.write_text(
-        textwrap.dedent(
-            """
+    demo.write_text(textwrap.dedent("""
         from logging import basicConfig
         from pip._internal.utils import deprecation
 
@@ -21,9 +19,7 @@ def warnings_demo(tmpdir: Path) -> Path:
         basicConfig()
 
         deprecation.deprecated(reason="deprecated!", replacement=None, gone_in=None)
-    """
-        )
-    )
+    """))
     return demo
 
 
