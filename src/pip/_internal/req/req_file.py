@@ -368,7 +368,8 @@ class RequirementsFileParser:
                 # parse a nested requirements file
                 if line.opts.requirements:
                     req_path = line.opts.requirements[0]
-                    nested_constraint = False
+                    # -r in constraint files yields constraints
+                    nested_constraint = constraint
                 else:
                     req_path = line.opts.constraints[0]
                     nested_constraint = True
