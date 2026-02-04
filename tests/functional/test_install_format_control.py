@@ -62,7 +62,8 @@ def test_reqfile_no_binary_overrides_cmdline_only_binary(
 
     req_file = script.temporary_file(
         "requirements.txt",
-        f"--find-links {wheel_path.parent}\n--no-binary :all:\nsimple==1.0\n",
+        f"--find-links {wheel_path.parent.as_posix()}\n"
+        "--no-binary :all:\nsimple==1.0\n",
     )
 
     result = script.pip_install_local(
@@ -82,7 +83,8 @@ def test_reqfile_only_binary_overrides_cmdline_no_binary(
 
     req_file = script.temporary_file(
         "requirements.txt",
-        f"--find-links {wheel_path.parent}\n--only-binary :all:\nsimple==1.0\n",
+        f"--find-links {wheel_path.parent.as_posix()}\n"
+        "--only-binary :all:\nsimple==1.0\n",
     )
 
     result = script.pip_install_local(
@@ -101,7 +103,7 @@ def test_package_specific_overrides_all_in_requirements_file(
 
     req_file = script.temporary_file(
         "requirements.txt",
-        f"--find-links {wheel_path.parent}\n--no-binary :all:\n"
+        f"--find-links {wheel_path.parent.as_posix()}\n--no-binary :all:\n"
         "--only-binary simple\nsimple==1.0\n",
     )
 
