@@ -736,6 +736,27 @@ class PipTestEnvironment(TestFileEnvironment):
             cmd.insert(1, "--no-build-isolation")
         return self.pip(*cmd, **kwargs)
 
+    def pip_install_local_report(
+        self,
+        *args: StrPath,
+        find_links: StrPath | list[StrPath] = pathlib.Path(DATA_DIR, "packages"),
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """
+        Invoke pip install with --dry-run --report and return parsed JSON report.
+        Includes --no-index and --find-links like pip_install_local.
+        """
+        result = self.pip_install_local(
+            "--dry-run",
+            "--report",
+            "-",
+            "--quiet",
+            *args,
+            find_links=find_links,
+            **kwargs,
+        )
+        return json.loads(result.stdout)
+
     def easy_install(self, *args: str, **kwargs: Any) -> TestPipResult:
         args = ("-m", "easy_install") + args
         return self.run("python", *args, **kwargs)
