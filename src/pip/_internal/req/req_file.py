@@ -283,7 +283,9 @@ def handle_option_line(
             opts.release_control.all_releases.add(":all:")
 
         if opts.release_control:
-            finder.set_release_control(opts.release_control)
+            if not finder.release_control:
+                # First time seeing release_control, set it on finder
+                finder.set_release_control(opts.release_control)
 
         if opts.prefer_binary:
             finder.set_prefer_binary()
@@ -440,6 +442,7 @@ def get_line_parser(finder: PackageFinder | None) -> LineParser:
         defaults.index_url = None
         if finder:
             defaults.format_control = finder.format_control
+            defaults.release_control = finder.release_control
 
         args_str, options_str = break_args_options(line)
 
