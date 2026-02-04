@@ -242,7 +242,7 @@ def test_pre_flag_with_requirements_file_containing_options(
 
     req_file = script.temporary_file(
         "requirements.txt",
-        f"--find-links {pre_pkg.parent}\nsimple\n",
+        f"--find-links {pre_pkg.parent.as_posix()}\nsimple\n",
     )
 
     report = script.pip_install_local_report("-r", req_file, find_links=[])
@@ -263,7 +263,7 @@ def test_reqfile_all_releases_overrides_cmdline_only_final(
 
     req_file = script.temporary_file(
         "requirements.txt",
-        f"--find-links {pre_pkg.parent}\n--all-releases :all:\nsimple\n",
+        f"--find-links {pre_pkg.parent.as_posix()}\n--all-releases :all:\nsimple\n",
     )
 
     report = script.pip_install_local_report(
@@ -282,7 +282,7 @@ def test_reqfile_only_final_overrides_cmdline_all_releases(
 
     req_file = script.temporary_file(
         "requirements.txt",
-        f"--find-links {pre_pkg.parent}\n--only-final :all:\nsimple\n",
+        f"--find-links {pre_pkg.parent.as_posix()}\n--only-final :all:\nsimple\n",
     )
 
     report = script.pip_install_local_report(
@@ -301,7 +301,7 @@ def test_package_specific_overrides_all_in_requirements_file(
 
     req_file = script.temporary_file(
         "requirements.txt",
-        f"--find-links {pre_pkg.parent}\n--all-releases :all:\n"
+        f"--find-links {pre_pkg.parent.as_posix()}\n--all-releases :all:\n"
         "--only-final simple\nsimple\n",
     )
 
