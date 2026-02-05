@@ -1,2 +1,0 @@
-Fix ``--pre`` not being respected when a requirement file
-includes an option e.g. ``-extra-index-url``.
