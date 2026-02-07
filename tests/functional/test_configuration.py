@@ -230,7 +230,7 @@ class TestBasicLoading(ConfigurationMixin):
         )
         assert "Fatal Internal error [id=2]" not in result.stderr
         assert "PIP_CONFIG_FILE" in result.stderr
-        assert "non-regular file" in result.stderr
+        assert "not a regular file" in result.stderr
 
     @pytest.mark.network
     def test_editable_mode_default_config(
