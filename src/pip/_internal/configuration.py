@@ -378,9 +378,16 @@ class Configuration:
         assert self.load_only
         parsers = self._parsers[self.load_only]
         if not parsers:
-            # This should not happen if everything works correctly.
+            env_config_file = os.environ.get("PIP_CONFIG_FILE")
+            if env_config_file and not os.path.isfile(env_config_file):
+                raise ConfigurationError(
+                    "Cannot modify pip configuration: "
+                    "PIP_CONFIG_FILE is not a regular file: "
+                    f"{env_config_file}"
+                )
+
             raise ConfigurationError(
-                "Fatal Internal error [id=2]. Please report as a bug."
+                "Cannot modify pip configuration: no configuration file is available."
             )
 
         # Use the highest priority parser.
