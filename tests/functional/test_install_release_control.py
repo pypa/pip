@@ -228,3 +228,83 @@ def test_no_matching_version_with_all_releases(
         expect_error=True,
     )
     assert "Could not find a version that satisfies the requirement" in result.stderr
+
+
+def test_pre_flag_with_requirements_file_containing_options(
+    script: PipTestEnvironment,
+) -> None:
+    """Test --pre on command line works with requirements file options.
+
+    Requirements file options overwrote command-line release control.
+    """
+    pre_pkg = create_basic_wheel_for_package(script, "simple", "2.0a1")
+    create_basic_wheel_for_package(script, "simple", "1.0")
+
+    req_file = script.temporary_file(
+        "requirements.txt",
+        f"--find-links {pre_pkg.parent.as_posix()}\nsimple\n",
+    )
+
+    report = script.pip_install_local_report("-r", req_file, find_links=[])
+    assert len(report["install"]) == 1
+    assert report["install"][0]["metadata"]["version"] == "1.0"
+
+    report = script.pip_install_local_report("--pre", "-r", req_file, find_links=[])
+    assert len(report["install"]) == 1
+    assert report["install"][0]["metadata"]["version"] == "2.0a1"
+
+
+def test_reqfile_all_releases_overrides_cmdline_only_final(
+    script: PipTestEnvironment,
+) -> None:
+    """Test requirements file --all-releases overrides command line --only-final."""
+    pre_pkg = create_basic_wheel_for_package(script, "simple", "2.0a1")
+    create_basic_wheel_for_package(script, "simple", "1.0")
+
+    req_file = script.temporary_file(
+        "requirements.txt",
+        f"--find-links {pre_pkg.parent.as_posix()}\n--all-releases :all:\nsimple\n",
+    )
+
+    report = script.pip_install_local_report(
+        "--only-final=:all:", "-r", req_file, find_links=[]
+    )
+    assert len(report["install"]) == 1
+    assert report["install"][0]["metadata"]["version"] == "2.0a1"
+
+
+def test_reqfile_only_final_overrides_cmdline_all_releases(
+    script: PipTestEnvironment,
+) -> None:
+    """Test requirements file --only-final overrides command line --all-releases."""
+    pre_pkg = create_basic_wheel_for_package(script, "simple", "2.0a1")
+    create_basic_wheel_for_package(script, "simple", "1.0")
+
+    req_file = script.temporary_file(
+        "requirements.txt",
+        f"--find-links {pre_pkg.parent.as_posix()}\n--only-final :all:\nsimple\n",
+    )
+
+    report = script.pip_install_local_report(
+        "--all-releases=:all:", "-r", req_file, find_links=[]
+    )
+    assert len(report["install"]) == 1
+    assert report["install"][0]["metadata"]["version"] == "1.0"
+
+
+def test_package_specific_overrides_all_in_requirements_file(
+    script: PipTestEnvironment,
+) -> None:
+    """Test package-specific setting overrides :all: in requirements file."""
+    pre_pkg = create_basic_wheel_for_package(script, "simple", "2.0a1")
+    create_basic_wheel_for_package(script, "simple", "1.0")
+
+    req_file = script.temporary_file(
+        "requirements.txt",
+        f"--find-links {pre_pkg.parent.as_posix()}\n--all-releases :all:\n"
+        "--only-final simple\nsimple\n",
+    )
+
+    report = script.pip_install_local_report("-r", req_file, find_links=[])
+    assert len(report["install"]) == 1
+    assert report["install"][0]["metadata"]["version"] == "1.0"
