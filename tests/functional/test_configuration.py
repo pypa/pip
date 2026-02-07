@@ -216,6 +216,10 @@ class TestBasicLoading(ConfigurationMixin):
             result.stdout,
         )
 
+    @pytest.mark.skipif(
+        WINDOWS,
+        reason="Windows has no /dev/null; this test is POSIX-only.",
+    )
     def test_config_set_with_pip_config_file_devnull_shows_human_error(
         self, script: PipTestEnvironment
     ) -> None:
