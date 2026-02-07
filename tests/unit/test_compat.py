@@ -57,7 +57,7 @@ def test_stdlib_module_names_type() -> None:
     reason="sys.stdlib_module_names only available in Python 3.10+",
 )
 def test_stdlib_module_names_contains_common_modules() -> None:
-    """Test that stdlib_module_names contains expected stdlib modules on Python 3.10+."""
+    """Test that stdlib_module_names contains expected stdlib modules."""
     # These are common stdlib modules that should always be present
     assert "os" in stdlib_module_names
     assert "sys" in stdlib_module_names
