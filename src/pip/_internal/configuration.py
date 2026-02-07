@@ -381,7 +381,9 @@ class Configuration:
             env_config_file = os.environ.get("PIP_CONFIG_FILE")
             if env_config_file and not os.path.isfile(env_config_file):
                 raise ConfigurationError(
-                    f"Cannot modify pip configuration: PIP_CONFIG_FILE is not a regular file: {env_config_file}"
+                    "Cannot modify pip configuration: "
+                    "PIP_CONFIG_FILE is not a regular file: "
+                    f"{env_config_file}"
                 )
 
             raise ConfigurationError(
