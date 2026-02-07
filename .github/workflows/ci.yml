@@ -32,6 +32,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
+      - run: pip install .
       - run: pip install nox
       - run: nox -s docs
 
@@ -79,6 +80,7 @@ jobs:
           git config --global user.email "pypa-dev@googlegroups.com"
           git config --global user.name "pip"
 
+      - run: pip install .
       - run: pip install nox
       - run: nox -s prepare-release -- 99.9
       - run: nox -s build-release -- 99.9
@@ -99,6 +101,7 @@ jobs:
         with:
           python-version: "3.x"
 
+      - run: pip install .
       - run: pip install nox
       - run: nox -s vendoring
       - run: git diff --exit-code
@@ -146,6 +149,7 @@ jobs:
           fi
           brew install ${DEPS}
 
+      - run: pip install .
       - run: pip install nox
 
       # Main check
@@ -207,6 +211,7 @@ jobs:
           winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
           echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - run: pip install .
       - run: pip install nox
 
       # Main check
@@ -244,6 +249,7 @@ jobs:
       - name: Install MacOS dependencies
         run: brew install breezy subversion
 
+      - run: pip install .
       - run: pip install nox
 
       # Main check
