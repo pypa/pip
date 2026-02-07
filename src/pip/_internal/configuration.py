@@ -378,9 +378,18 @@ class Configuration:
         assert self.load_only
         parsers = self._parsers[self.load_only]
         if not parsers:
-            # This should not happen if everything works correctly.
+            # When PIP_CONFIG_FILE points to a non-regular file (e.g. /dev/null),
+            # we can't load/modify it as an INI file. Surface a clear error instead
+            # of an internal one.
+            env_config_file = os.environ.get("PIP_CONFIG_FILE")
+            if env_config_file and not os.path.isfile(env_config_file):
+                raise ConfigurationError(
+                    "Cannot modify pip configuration: PIP_CONFIG_FILE points to a "
+                    f"non-regular file: {env_config_file}"
+                )
+
             raise ConfigurationError(
-                "Fatal Internal error [id=2]. Please report as a bug."
+                "Cannot modify pip configuration: no configuration file is available for the selected scope."
             )
 
         # Use the highest priority parser.

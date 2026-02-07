@@ -216,6 +216,24 @@ class TestBasicLoading(ConfigurationMixin):
             result.stdout,
         )
 
+
+    def test_config_set_with_pip_config_file_devnull_shows_human_error(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.environ["PIP_CONFIG_FILE"] = "/dev/null"
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            expect_error=True,
+        )
+        assert "Fatal Internal error [id=2]" not in result.stderr
+        assert "PIP_CONFIG_FILE" in result.stderr
+        assert "non-regular file" in result.stderr
+
+
     @pytest.mark.network
     def test_editable_mode_default_config(
         self, script: PipTestEnvironment, data: TestData
