@@ -22,7 +22,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
-from pip._internal.utils.compat import stdlib_module_names
+from pip._internal.utils.compat import warn_stdlib_module
 from pip._internal.utils.misc import write_output
 
 logger = logging.getLogger(__name__)
@@ -140,15 +140,7 @@ class IndexCommand(IndexGroupCommand):
             versions = set(versions)
 
             if not versions:
-                # Check if the user is trying to find a standard library module
-                if query in stdlib_module_names:
-                    logger.info(
-                        "HINT: %s is part of the Python standard library and does "
-                        "not need to be installed. You can use it by importing it "
-                        "directly: 'import %s'",
-                        query,
-                        query,
-                    )
+                warn_stdlib_module(query)
                 raise DistributionNotFound(
                     f"No matching distribution found for {query}"
                 )

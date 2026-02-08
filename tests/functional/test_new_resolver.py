@@ -307,8 +307,8 @@ def test_new_resolver_no_dist_message(script: PipTestEnvironment) -> None:
 )
 def test_new_resolver_stdlib_module_hint(script: PipTestEnvironment) -> None:
     """
-    Test that pip shows a helpful hint when the user tries to install
-    a standard library module.
+    Test that pip shows a warning when the user tries to install
+    a standard library module name.
     """
     result = script.pip(
         "install",
@@ -320,10 +320,7 @@ def test_new_resolver_stdlib_module_hint(script: PipTestEnvironment) -> None:
     )
 
     assert "No matching distribution found for os" in result.stderr, str(result)
-    assert "HINT: os is part of the Python standard library" in result.stdout, str(
-        result
-    )
-    assert "import os" in result.stdout, str(result)
+    assert "is a Python standard library module name" in result.stderr, str(result)
 
 
 def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:

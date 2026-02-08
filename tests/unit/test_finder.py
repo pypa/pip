@@ -1,5 +1,6 @@
 import datetime
 import logging
+import sys
 from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
@@ -41,6 +42,28 @@ def test_no_partial_name_match(data: TestData) -> None:
     found = finder.find_requirement(req, False)
     assert found is not None
     assert found.link.url.endswith("gmpy-1.15.tar.gz"), found
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="sys.stdlib_module_names only available in Python 3.10+",
+)
+def test_find_requirement_stdlib_module_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Finder warns when a top-level requirement matches a stdlib module name."""
+    patched_exists = patch(
+        "pip._internal.index.collector.os.path.exists", return_value=True
+    )
+    with patched_exists:
+        finder = make_test_finder(find_links=["~/python-pkgs"])
+    req = install_req_from_line("os")
+    with (
+        caplog.at_level(logging.WARNING, logger="pip._internal.utils.compat"),
+        pytest.raises(DistributionNotFound),
+    ):
+        finder.find_requirement(req, False)
+    assert "is a Python standard library module name" in caplog.text
 
 
 def test_tilde() -> None:

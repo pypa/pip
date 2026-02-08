@@ -43,7 +43,7 @@ from pip._internal.req.req_install import (
     check_invalid_constraint_type,
 )
 from pip._internal.resolution.base import InstallRequirementProvider
-from pip._internal.utils.compat import stdlib_module_names
+from pip._internal.utils.compat import warn_stdlib_module
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.packaging import get_requirement
@@ -721,16 +721,9 @@ class Factory:
                 "requirements.txt"
             )
 
-        # Check if the user is trying to install a standard library module.
-        # Only show this hint for top-level requirements (not dependencies).
-        if parent is None and req.project_name in stdlib_module_names:
-            logger.info(
-                "HINT: %s is part of the Python standard library and does not "
-                "need to be installed. You can use it by importing it directly: "
-                "'import %s'",
-                req.project_name,
-                req.project_name,
-            )
+        # Only show stdlib hint for top-level requirements (not dependencies).
+        if parent is None:
+            warn_stdlib_module(req.project_name)
 
         return DistributionNotFound(f"No matching distribution found for {req}")
 

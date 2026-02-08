@@ -7,7 +7,14 @@ import os
 import sys
 from typing import IO
 
-__all__ = ["get_path_uid", "stdlib_pkgs", "stdlib_module_names", "tomllib", "WINDOWS"]
+__all__ = [
+    "get_path_uid",
+    "stdlib_pkgs",
+    "stdlib_module_names",
+    "tomllib",
+    "warn_stdlib_module",
+    "WINDOWS",
+]
 
 
 logger = logging.getLogger(__name__)
@@ -84,6 +91,17 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 # This is used to provide helpful error messages when users try to install
 # standard library modules
 stdlib_module_names: frozenset[str] = getattr(sys, "stdlib_module_names", frozenset())
+
+
+def warn_stdlib_module(name: str) -> None:
+    """Warn if a package name matches a Python standard library module."""
+    if name in stdlib_module_names:
+        logger.warning(
+            "%r is a Python standard library module name; it likely does not "
+            "need to be installed. Installing a package with the same name "
+            "may override it and break imports.",
+            name,
+        )
 
 
 # windows detection, covers cpython and ironpython

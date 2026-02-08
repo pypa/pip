@@ -171,7 +171,7 @@ def test_index_versions_only_final_for_package(script: PipTestEnvironment) -> No
 )
 def test_index_versions_stdlib_module_hint(script: PipTestEnvironment) -> None:
     """
-    Test that pip index shows a helpful hint when querying a stdlib module.
+    Test that pip index shows a warning when querying a stdlib module name.
     """
     result = script.pip(
         "index",
@@ -182,7 +182,4 @@ def test_index_versions_stdlib_module_hint(script: PipTestEnvironment) -> None:
     )
 
     assert "No matching distribution found for os" in result.stderr, str(result)
-    assert "HINT: os is part of the Python standard library" in result.stdout, str(
-        result
-    )
-    assert "import os" in result.stdout, str(result)
+    assert "is a Python standard library module name" in result.stderr, str(result)

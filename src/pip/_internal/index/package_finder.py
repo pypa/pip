@@ -41,7 +41,7 @@ from pip._internal.models.target_python import TargetPython
 from pip._internal.models.wheel import Wheel
 from pip._internal.req import InstallRequirement
 from pip._internal.utils._log import getLogger
-from pip._internal.utils.compat import stdlib_module_names
+from pip._internal.utils.compat import warn_stdlib_module
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -1038,17 +1038,10 @@ class PackageFinder:
                 _format_versions(best_candidate_result.all_candidates),
             )
 
-            # Check if the user is trying to install a standard library module.
-            # Only show this hint for top-level requirements (not dependencies).
+            # Only show stdlib hint for top-level requirements (not dependencies).
             is_top_level = not isinstance(req.comes_from, InstallRequirement)
-            if is_top_level and name in stdlib_module_names:
-                logger.info(
-                    "HINT: %s is part of the Python standard library and does not "
-                    "need to be installed. You can use it by importing it directly: "
-                    "'import %s'",
-                    name,
-                    name,
-                )
+            if is_top_level:
+                warn_stdlib_module(name)
 
             raise DistributionNotFound(f"No matching distribution found for {req}")
 
