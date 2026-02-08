@@ -122,3 +122,35 @@ def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> N
     r: Resolver[Requirement, Candidate, str] = Resolver(provider, BaseReporter())
     result = r.resolve(reqs)
     assert set(result.mapping.keys()) == {"simplewheel"}
+
+
+class TestStripExtrasMarker:
+    """Test _strip_extras_marker helper for error message formatting."""
+
+    @pytest.mark.parametrize(
+        "input_str, expected",
+        [
+            # Basic case: extra marker is the only marker
+            ('torch; extra == "optimizer"', "torch"),
+            # With version specifier
+            ('torch>=2.0; extra == "optimizer"', "torch>=2.0"),
+            # Extra marker combined with other markers (extra first)
+            (
+                'torch>=2.0; extra == "optimizer" and python_version >= "3.8"',
+                'torch>=2.0; python_version >= "3.8"',
+            ),
+            # Extra marker combined with other markers (extra last)
+            (
+                'torch>=2.0; python_version >= "3.8" and extra == "optimizer"',
+                'torch>=2.0; python_version >= "3.8"',
+            ),
+            # No extra marker - should be unchanged
+            ("torch>=2.0", "torch>=2.0"),
+            ("torch", "torch"),
+            ('torch; python_version >= "3.8"', 'torch; python_version >= "3.8"'),
+        ],
+    )
+    def test_strip_extras_marker(self, input_str: str, expected: str) -> None:
+        from pip._internal.resolution.resolvelib.factory import _strip_extras_marker
+
+        assert _strip_extras_marker(input_str) == expected

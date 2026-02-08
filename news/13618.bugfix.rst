@@ -1,0 +1,4 @@
+Strip extra markers (e.g., ``; extra == "optimizer"``) from error messages
+when a package distribution cannot be found, so the message now reads
+"No matching distribution found for torch" instead of the confusing
+"No matching distribution found for torch; extra == \"optimizer\"".

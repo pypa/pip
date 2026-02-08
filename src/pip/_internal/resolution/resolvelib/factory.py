@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import logging
+import re
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -75,6 +76,22 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _strip_extras_marker(req_str: str) -> str:
+    """Strip extra markers from a requirement string for cleaner error messages.
+
+    Removes ``extra == "..."`` conditions from the marker string.
+    For example, ``torch; extra == "optimizer"`` becomes ``torch``.
+    """
+    # Remove '; extra == "..."' when it's the only marker
+    result = re.sub(r"\s*;\s*extra\s*==\s*\"[^\"]*\"\s*$", "", req_str)
+    # Remove 'extra == "..." and ' when combined with other markers
+    result = re.sub(r"(;\s*)extra\s*==\s*\"[^\"]*\"\s+and\s+", r"\1", result)
+    # Remove ' and extra == "..."' when at end of combined markers
+    result = re.sub(r"\s+and\s+extra\s*==\s*\"[^\"]*\"", "", result)
+    return result
+
 
 C = TypeVar("C")
 Cache = dict[Link, C]
@@ -663,9 +680,9 @@ class Factory:
         self, req: Requirement, parent: Candidate | None
     ) -> DistributionNotFound:
         if parent is None:
-            req_disp = str(req)
+            req_disp = _strip_extras_marker(str(req))
         else:
-            req_disp = f"{req} (from {parent.name})"
+            req_disp = f"{_strip_extras_marker(str(req))} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
@@ -706,8 +723,7 @@ class Factory:
                 version_type = "final version"
 
         logger.critical(
-            "Could not find a %s that satisfies the requirement %s "
-            "(from versions: %s)",
+            "Could not find a %s that satisfies the requirement %s (from versions: %s)",
             version_type,
             req_disp,
             ", ".join(versions) or "none",
@@ -720,7 +736,8 @@ class Factory:
                 "requirements.txt"
             )
 
-        return DistributionNotFound(f"No matching distribution found for {req}")
+        req_str = _strip_extras_marker(str(req))
+        return DistributionNotFound(f"No matching distribution found for {req_str}")
 
     def _has_any_candidates(self, project_name: str) -> bool:
         """
