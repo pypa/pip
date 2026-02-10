@@ -84,6 +84,17 @@ def parse_reqfile(
         )
 
 
+def test_missing_constraint_file_message_mentions_constraints(
+    tmp_path: Path, session: PipSession
+) -> None:
+    missing = tmp_path / "does-not-exist.txt"
+
+    with pytest.raises(InstallationError) as exc:
+        list(parse_reqfile(missing, session=session, constraint=True))
+
+    assert "Could not open constraint file:" in str(exc.value)
+
+
 def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")

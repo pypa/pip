@@ -412,7 +412,7 @@ class RequirementsFileParser:
     def _parse_file(
         self, filename: str, constraint: bool
     ) -> Generator[ParsedLine, None, None]:
-        _, content = get_file_content(filename, self._session)
+        _, content = get_file_content(filename, self._session, constraint=constraint)
 
         lines_enum = preprocess(content)
 
@@ -572,7 +572,9 @@ def expand_env_variables(lines_enum: ReqFileLines) -> ReqFileLines:
         yield line_number, line
 
 
-def get_file_content(url: str, session: PipSession) -> tuple[str, str]:
+def get_file_content(
+    url: str, session: PipSession, *, constraint: bool = False
+) -> tuple[str, str]:
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
@@ -595,7 +597,8 @@ def get_file_content(url: str, session: PipSession) -> tuple[str, str]:
         with open(url, "rb") as f:
             raw_content = f.read()
     except OSError as exc:
-        raise InstallationError(f"Could not open requirements file: {exc}")
+        kind = "constraint" if constraint else "requirements"
+        raise InstallationError(f"Could not open {kind} file: {exc}")
 
     content = _decode_req_file(raw_content, url)
 
