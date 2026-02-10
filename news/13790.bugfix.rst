@@ -1,1 +1,0 @@
-Improve the warning shown when pip’s self-version check fails by including the underlying exception reason (e.g. inaccessible cache directory).

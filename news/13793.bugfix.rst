@@ -1,0 +1,1 @@
+Include the underlying exception type/message in the self version check warning to improve diagnosability.
