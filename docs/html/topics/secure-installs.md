@@ -43,6 +43,12 @@ FooProject == 1.2 \
 
   This prevents a surprising hash mismatch upon the release of a new version that matches the requirement specifier.
 
+```{versionadded} 23.2
+VCS URLs that reference a commit hash are now supported in hash checking mode,
+since pip now trusts that the VCS provides the required source immutability guarantees.
+This is currently only supported with `git` URLs.
+```
+
 ### Forcing Hash-checking mode
 
 It is possible to force the hash checking mode to be enabled, by passing `--require-hashes` command-line option.
