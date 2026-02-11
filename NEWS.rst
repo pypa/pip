@@ -9,6 +9,15 @@
 
 .. towncrier release notes start
 
+26.0.1 (2026-02-04)
+===================
+
+Bug Fixes
+---------
+
+- Fix ``--pre`` not being respected from the command line when a requirement file
+  includes an option e.g. ``-extra-index-url``. (`#13788 <https://github.com/pypa/pip/issues/13788>`_)
+
 26.0 (2026-01-30)
 =================
 

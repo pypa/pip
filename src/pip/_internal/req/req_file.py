@@ -283,7 +283,9 @@ def handle_option_line(
             opts.release_control.all_releases.add(":all:")
 
         if opts.release_control:
-            finder.set_release_control(opts.release_control)
+            if not finder.release_control:
+                # First time seeing release_control, set it on finder
+                finder.set_release_control(opts.release_control)
 
         if opts.prefer_binary:
             finder.set_prefer_binary()
@@ -410,7 +412,7 @@ class RequirementsFileParser:
     def _parse_file(
         self, filename: str, constraint: bool
     ) -> Generator[ParsedLine, None, None]:
-        _, content = get_file_content(filename, self._session)
+        _, content = get_file_content(filename, self._session, constraint=constraint)
 
         lines_enum = preprocess(content)
 
@@ -440,6 +442,7 @@ def get_line_parser(finder: PackageFinder | None) -> LineParser:
         defaults.index_url = None
         if finder:
             defaults.format_control = finder.format_control
+            defaults.release_control = finder.release_control
 
         args_str, options_str = break_args_options(line)
 
@@ -569,7 +572,9 @@ def expand_env_variables(lines_enum: ReqFileLines) -> ReqFileLines:
         yield line_number, line
 
 
-def get_file_content(url: str, session: PipSession) -> tuple[str, str]:
+def get_file_content(
+    url: str, session: PipSession, *, constraint: bool = False
+) -> tuple[str, str]:
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
@@ -592,7 +597,8 @@ def get_file_content(url: str, session: PipSession) -> tuple[str, str]:
         with open(url, "rb") as f:
             raw_content = f.read()
     except OSError as exc:
-        raise InstallationError(f"Could not open requirements file: {exc}")
+        kind = "constraint" if constraint else "requirements"
+        raise InstallationError(f"Could not open {kind} file: {exc}")
 
     content = _decode_req_file(raw_content, url)
 
