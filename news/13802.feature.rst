@@ -1,0 +1,1 @@
+Changes the exit code code of `pip install --dry-run` if state would be changed.
