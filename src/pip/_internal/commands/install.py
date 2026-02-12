@@ -411,6 +411,7 @@ class InstallCommand(RequirementCommand):
                         "Would install %s",
                         " ".join("-".join(item) for item in would_install_items),
                     )
+                    return ERROR
                 return SUCCESS
 
             # If there is any more preparation to do for the actual installation, do
