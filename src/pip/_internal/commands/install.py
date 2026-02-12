@@ -27,7 +27,7 @@ from pip._internal.cli.req_command import (
     RequirementCommand,
     with_cleanup,
 )
-from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.cli.status_codes import ERROR, SUCCESS, WOULD_INSTALL
 from pip._internal.exceptions import (
     CommandError,
     InstallationError,
@@ -100,6 +100,16 @@ class InstallCommand(RequirementCommand):
                 "Don't actually install anything, just print what would be. "
                 "Can be used in combination with --ignore-installed "
                 "to 'resolve' the requirements."
+            ),
+        )
+        self.cmd_opts.add_option(
+            "--exit-code",
+            action="store_true",
+            dest="exit_code",
+            default=False,
+            help=(
+                "When combined with --dry-run, return non-zero exit code if "
+                "packages would be installed"
             ),
         )
         self.cmd_opts.add_option(
@@ -411,7 +421,8 @@ class InstallCommand(RequirementCommand):
                         "Would install %s",
                         " ".join("-".join(item) for item in would_install_items),
                     )
-                    return ERROR
+                    if options.exit_code:
+                        return WOULD_INSTALL
                 return SUCCESS
 
             # If there is any more preparation to do for the actual installation, do
