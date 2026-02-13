@@ -402,6 +402,21 @@ def extra_index_url() -> Option:
     )
 
 
+def index_strategy() -> Option:
+    return Option(
+        "--index-strategy",
+        dest="index_strategy",
+        choices=["first-match", "best-match"],
+        default="best-match",
+        help="Select the strategy used to select packages from indexes. "
+        "Choices: first-match, best-match. "
+        "Default: best-match. "
+        "first-match: stop searching indexes after finding the package in the "
+        "first index (respecting order of --index-url and --extra-index-url). "
+        "best-match: search all indexes for the best version.",
+    )
+
+
 no_index: Callable[..., Option] = partial(
     Option,
     "--no-index",
@@ -1249,6 +1264,7 @@ index_group: dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
+        index_strategy,
         find_links,
         uploaded_prior_to,
     ],
