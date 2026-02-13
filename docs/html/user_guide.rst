@@ -743,7 +743,11 @@ To setup for bash::
 
 To setup for zsh::
 
-    python -m pip completion --zsh >> ~/.zprofile
+    python -m pip completion --zsh >> ~/.zshrc
+
+If you see ``command not found: compdef``, ensure your ``~/.zshrc`` initializes
+completion (for example, by running ``autoload -Uz compinit && compinit``)
+before this snippet.
 
 To setup for fish::
 
