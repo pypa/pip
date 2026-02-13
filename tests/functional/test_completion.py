@@ -55,7 +55,12 @@ if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
   __pip "$@"
 else
   # eval/source/. command, register function for later
-  compdef __pip -P 'pip[0-9.]#'
+  if [[ -o interactive ]] && ! command -v compdef >/dev/null; then
+    autoload -Uz compinit && compinit
+  fi
+  if command -v compdef >/dev/null; then
+    compdef __pip -P 'pip[0-9.]#'
+  fi
 fi""",
     ),
     (
