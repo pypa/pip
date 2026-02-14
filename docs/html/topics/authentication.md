@@ -66,7 +66,7 @@ man pages][netrc-docs].
 ## Keyring Support
 
 pip supports loading credentials stored in your keyring using the
-{pypi}`keyring` library, which can be enabled py passing `--keyring-provider`
+{pypi}`keyring` library, which can be enabled by passing `--keyring-provider`
 with a value of `auto`, `disabled`, `import`, or `subprocess`. The default
 value `auto` respects `--no-input` and does not query keyring at all if the option
 is used; otherwise it tries the `import`, `subprocess`, and `disabled`
@@ -84,7 +84,7 @@ configure its usage would be to use a configuration instead:
 ```bash
 $ pip config set --global global.keyring-provider subprocess
 
-# A different user on the same system which has PYTHONPATH configured and and
+# A different user on the same system which has PYTHONPATH configured and
 # wanting to use keyring installed that way could then run
 $ pip config set --user global.keyring-provider import
 
