@@ -31,6 +31,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_default_environment
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
@@ -304,10 +305,24 @@ class Factory:
             )
             icans = result.applicable_candidates
 
-            # PEP 592: Yanked releases are ignored unless the specifier
-            # explicitly pins a version (via '==' or '===') that can be
-            # solely satisfied by a yanked release.
-            all_yanked = all(ican.link.is_yanked for ican in icans)
+            # PEP 592: Distinguish between file-level and release-level yanking.
+            # - File-level yanking: Individual files are yanked, but not all files
+            #   for that version. These files should be excluded, but non-yanked
+            #   files from the same version can be selected.
+            # - Release-level yanking: All installable files for a version are
+            #   yanked. The version is considered "yanked" and can only be selected
+            #   if the specifier explicitly pins to that version (== or ===).
+
+            # Group candidates by version to determine release-level yanking
+            version_to_candidates: dict[Version, list[InstallationCandidate]] = {}
+            for ican in icans:
+                version_to_candidates.setdefault(ican.version, []).append(ican)
+
+            # Determine which versions are fully yanked (release-level yanking)
+            yanked_versions: set[Version] = set()
+            for version, version_icans in version_to_candidates.items():
+                if all(ic.link.is_yanked for ic in version_icans):
+                    yanked_versions.add(version)
 
             def is_pinned(specifier: SpecifierSet) -> bool:
                 for sp in specifier:
@@ -322,10 +337,31 @@ class Factory:
 
             pinned = is_pinned(specifier)
 
+            # Check if ALL versions are yanked (entire package is yanked)
+            all_versions_yanked = bool(icans) and all(
+                v in yanked_versions for v in version_to_candidates
+            )
+
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
-                if not (all_yanked and pinned) and ican.link.is_yanked:
-                    continue
+                # Determine if this candidate should be included
+                version_is_yanked = ican.version in yanked_versions
+                file_is_yanked = ican.link.is_yanked
+
+                if file_is_yanked:
+                    # For release-level yanking: allow if pinned and all versions
+                    # are yanked, OR if pinned and this specific version is yanked
+                    if version_is_yanked and pinned:
+                        # Release-level yanking with pinned specifier - allow
+                        pass
+                    elif all_versions_yanked and pinned:
+                        # All versions yanked and pinned - allow
+                        pass
+                    else:
+                        # File-level yanking or unpinned release-level yanking
+                        # Skip this yanked file
+                        continue
+
                 func = functools.partial(
                     self._make_candidate_from_link,
                     link=ican.link,
@@ -706,8 +742,7 @@ class Factory:
                 version_type = "final version"
 
         logger.critical(
-            "Could not find a %s that satisfies the requirement %s "
-            "(from versions: %s)",
+            "Could not find a %s that satisfies the requirement %s (from versions: %s)",
             version_type,
             req_disp,
             ", ".join(versions) or "none",
