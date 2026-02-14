@@ -52,7 +52,7 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`, or the Pip/Python installation directory if not in a virtual environment (`pip --version`)
 ```
 
 ```{tab} MacOS
@@ -68,7 +68,7 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`, or the Pip/Python installation directory if not in a virtual environment (`pip --version`)
 ```
 
 ```{tab} Windows
@@ -86,7 +86,7 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`%HOME%\\pip\\pip.ini`
 
 Site
-: {file}`%VIRTUAL_ENV%\\pip.ini`
+: {file}`%VIRTUAL_ENV%\\pip.ini`, or the Pip/Python installation directory if not in a virtual environment (`pip --version`)
 ```
 
 ### `PIP_CONFIG_FILE`
