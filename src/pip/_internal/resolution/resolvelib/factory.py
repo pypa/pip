@@ -43,6 +43,7 @@ from pip._internal.req.req_install import (
     check_invalid_constraint_type,
 )
 from pip._internal.resolution.base import InstallRequirementProvider
+from pip._internal.utils.compat import warn_stdlib_module
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.packaging import get_requirement
@@ -719,6 +720,10 @@ class Factory:
                 "using the '-r' flag to install the packages listed in "
                 "requirements.txt"
             )
+
+        # Only show stdlib hint for top-level requirements (not dependencies).
+        if parent is None:
+            warn_stdlib_module(req.project_name)
 
         return DistributionNotFound(f"No matching distribution found for {req}")
 
