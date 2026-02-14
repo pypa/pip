@@ -32,6 +32,13 @@ pip_lock
 
 ```{toctree}
 :maxdepth: 1
+:caption: Command-line usability and shell integration
+
+pip_completion
+```
+
+```{toctree}
+:maxdepth: 1
 :caption: Handling Distribution Files
 
 pip_download
