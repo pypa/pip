@@ -190,6 +190,10 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             )
             with session:
                 _pip_self_version_check(session, options)
-        except Exception:
-            logger.warning("There was an error checking the latest version of pip.")
+        except Exception as e:
+            logger.warning(
+                "There was an error checking the latest version of pip. (%s: %s)",
+                e.__class__.__name__,
+                e,
+            )
             logger.debug("See below for error", exc_info=True)

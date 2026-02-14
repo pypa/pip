@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Callable
 from unittest import mock
@@ -158,3 +159,27 @@ def test_list_pip_version_check(version_check_mock: mock.Mock, flag: str) -> Non
         version_check_mock.assert_called_once()
     else:
         version_check_mock.assert_not_called()
+
+
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check")
+def test_handle_pip_version_check_warning_includes_reason(
+    mock_version_check: mock.Mock, caplog: pytest.LogCaptureFixture
+) -> None:
+    mock_version_check.side_effect = PermissionError("Access is denied")
+
+    cmd = create_command("install")
+    options = cmd.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+
+    with mock.patch.object(
+        cmd,
+        "_build_session",
+        side_effect=PermissionError("Access is denied"),
+    ):
+        with caplog.at_level(logging.WARNING):
+            cmd.handle_pip_version_check(options)
+
+    assert "There was an error checking the latest version of pip." in caplog.text
+    assert "PermissionError" in caplog.text
+    assert "Access is denied" in caplog.text
