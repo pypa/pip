@@ -18,7 +18,6 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from textwrap import dedent
 from typing import Any, AnyStr, Callable, Literal, Protocol, Union, cast
-from urllib.request import pathname2url
 from zipfile import ZipFile
 
 import pytest
@@ -1413,19 +1412,3 @@ class ScriptFactory(Protocol):
 
 
 CertFactory = Callable[[], str]
-
-# -------------------------------------------------------------------------
-# Accommodations for Windows path and URL changes in recent Python releases
-# -------------------------------------------------------------------------
-
-# Trailing slashes are now preserved on Windows, matching POSIX behaviour.
-# BPO: https://github.com/python/cpython/issues/126212
-does_pathname2url_preserve_trailing_slash = pathname2url("C:\\foo\\").endswith("/")
-skip_needs_new_pathname2url_trailing_slash_behavior_win = pytest.mark.skipif(
-    sys.platform != "win32" or not does_pathname2url_preserve_trailing_slash,
-    reason="testing windows (pathname2url) behavior for newer CPython",
-)
-skip_needs_old_pathname2url_trailing_slash_behavior_win = pytest.mark.skipif(
-    sys.platform != "win32" or does_pathname2url_preserve_trailing_slash,
-    reason="testing windows (pathname2url) behavior for older CPython",
-)
