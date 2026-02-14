@@ -1,0 +1,1 @@
+Rewriting of ``#!python`` headers in scripts has been improved to handle unusual paths more robustly.
