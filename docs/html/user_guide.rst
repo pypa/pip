@@ -903,6 +903,50 @@ To install "SomePackage" into an environment with ``site.USER_BASE`` customized 
       set PYTHONUSERBASE=c:/myappenv
       py -m pip install --user SomePackage
 
+Automatic User Install Fallback
+-------------------------------
+
+.. important::
+
+   When pip detects that the normal ``site-packages`` directory is not
+   writeable (e.g., when running as a non-root user on a system Python),
+   it will **automatically default to a user installation** without requiring
+   the ``--user`` flag. You will see this message:
+
+   .. code-block:: text
+
+      Defaulting to user installation because normal site-packages is not writeable
+
+   This automatic fallback can be surprising, especially if the warning is
+   missed among other output.
+
+The user install behavior can also be controlled via environment variables:
+
+``PIP_USER``
+   Set to ``1``, ``true``, or ``yes`` to enable user installs by default
+   (equivalent to ``--user``).
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         # Always use user installs
+         export PIP_USER=1
+         python -m pip install SomePackage
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         :: Always use user installs
+         set PIP_USER=1
+         py -m pip install SomePackage
+
+``PYTHONUSERBASE``
+   Customizes the user install location by changing the value of
+   ``site.USER_BASE``.
+
+
 ``pip install --user`` follows four rules:
 
 #. When globally installed packages are on the python path, and they *conflict*

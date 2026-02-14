@@ -134,6 +134,7 @@ class InstallCommand(RequirementCommand):
             action="store_false",
             help=SUPPRESS_HELP,
         )
+
         self.cmd_opts.add_option(
             "--root",
             dest="root_path",
@@ -322,12 +323,8 @@ class InstallCommand(RequirementCommand):
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
-            if (
-                # fmt: off
-                os.path.exists(options.target_dir) and
-                not os.path.isdir(options.target_dir)
-                # fmt: on
-            ):
+            if (os.path.exists(options.target_dir) and not
+                    os.path.isdir(options.target_dir)):
                 raise CommandError(
                     "Target path exists but is not a directory, will not continue."
                 )
