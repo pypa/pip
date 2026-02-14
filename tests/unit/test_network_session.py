@@ -14,16 +14,15 @@ from pip._vendor import requests
 from pip import __version__
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
-    CI_ENVIRONMENT_VARIABLES,
     PipSession,
-    user_agent,
+    Telemetry,
 )
 
 
 def get_user_agent() -> str:
     # These tests are testing the computation of the user agent, so we want to
     # avoid reusing cached values.
-    user_agent.cache_clear()
+    Telemetry.user_agent_id.cache_clear()
     return PipSession().headers["User-Agent"]
 
 
@@ -49,10 +48,10 @@ def test_user_agent__ci(
 ) -> None:
     # Delete the variable names we use to check for CI to prevent the
     # detection from always returning True in case the tests are being run
-    # under actual CI.  It is okay to depend on CI_ENVIRONMENT_VARIABLES
+    # under actual CI.  It is okay to depend on KNOWN_CI_SENTINEL_VARIABLES
     # here (part of the code under test) because this setup step can only
     # prevent false test failures.  It can't cause a false test passage.
-    for ci_name in CI_ENVIRONMENT_VARIABLES:
+    for ci_name in Telemetry.KNOWN_CI_SENTINEL_VARIABLES:
         monkeypatch.delenv(ci_name, raising=False)
 
     # Confirm the baseline before setting the environment variable.
@@ -69,6 +68,11 @@ def test_user_agent__ci(
 def test_user_agent_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_USER_AGENT_USER_DATA", "some_string")
     assert "some_string" in get_user_agent()
+
+
+def test_clobber_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(Telemetry.CLOBBER_USER_AGENT_ENV_VAR, "some_string")
+    assert "some_string" == get_user_agent()
 
 
 class TestPipSession:

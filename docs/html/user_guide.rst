@@ -46,7 +46,7 @@ directly from distribution files.
 
 
 The most common scenario is to install from `PyPI`_ using :ref:`Requirement
-Specifiers`
+Specifiers`.
 
 .. tab:: Unix/macOS
 
@@ -65,6 +65,16 @@ Specifiers`
       py -m pip install 'SomePackage>=1.0.4'   # minimum version
 
 For more information and examples, see the :ref:`pip install` reference.
+
+.. note::
+
+   Pip generates a ``User-Agent`` string that includes the running version of Python and pip, along
+   with further identifying info about the libc and Linux distribution. This string is sent with
+   every HTTP(S) request pip makes to a remote host.
+
+   Setting ``PIP_TELEMETRY_USER_AGENT_ID`` in the
+   process environment to any value will instead use exactly that string for the
+   ``User-Agent`` header. This value is printed as part of the output of :doc:`cli/pip_debug`.
 
 .. _PyPI: https://pypi.org/
 
