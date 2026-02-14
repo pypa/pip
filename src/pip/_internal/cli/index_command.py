@@ -108,6 +108,8 @@ class SessionCommandMixin(CommandContextMixIn):
             resume_retries=options.resume_retries,
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
+            keyring_provider=options.keyring_provider,
+            credential_helper=options.credential_helper,
             ssl_context=ssl_context,
         )
 
@@ -134,7 +136,6 @@ class SessionCommandMixin(CommandContextMixIn):
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
-        session.auth.keyring_provider = options.keyring_provider
 
         return session
 

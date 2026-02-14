@@ -542,3 +542,52 @@ def test_keyring_cli_set_password(
         assert keyring.saved_passwords == [("example.com", creds[0], creds[1])]
     else:
         assert keyring.saved_passwords == []
+
+
+def test_credential_helper_get_password(monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+    from pip._internal.network.auth import CredentialHelperProvider
+
+    def mock_run(cmd: list[str], input: bytes, **kwargs: Any) -> Any:
+        assert cmd == ["my-helper", "--arg", "get"]
+        input_data = json.loads(input.decode())
+        assert input_data["url"] == "http://example.com"
+
+        class MockResult:
+            stdout = json.dumps({"username": "user", "password": "pass"}).encode()
+            stderr = b""
+            returncode = 0
+
+            def check_returncode(self) -> None:
+                pass
+
+        return MockResult()
+
+    monkeypatch.setattr("pip._internal.network.auth.subprocess.run", mock_run)
+    provider = CredentialHelperProvider("my-helper --arg")
+    actual = provider.get_auth_info("http://example.com", "prev-user")
+    assert actual == ("user", "pass")
+
+
+def test_credential_helper_save_password(monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+    from pip._internal.network.auth import CredentialHelperProvider
+
+    def mock_run(cmd: list[str], input: bytes, **kwargs: Any) -> Any:
+        assert cmd == ["my-helper", "store"]
+        input_data = json.loads(input.decode())
+        assert input_data["url"] == "http://example.com"
+        assert input_data["username"] == "user"
+        assert input_data["password"] == "pass"
+
+        class MockResult:
+            returncode = 0
+
+            def check_returncode(self) -> None:
+                pass
+
+        return MockResult()
+
+    monkeypatch.setattr("pip._internal.network.auth.subprocess.run", mock_run)
+    provider = CredentialHelperProvider("my-helper")
+    provider.save_auth_info("http://example.com", "user", "pass")

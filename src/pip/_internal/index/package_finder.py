@@ -740,6 +740,10 @@ class PackageFinder:
             yield build_netloc(*host_port)
 
     @property
+    def credential_helper(self) -> str | None:
+        return self._link_collector.session.auth.credential_helper
+
+    @property
     def custom_cert(self) -> str | None:
         # session.verify is either a boolean (use default bundle/no SSL
         # verification) or a string path to a custom CA bundle to use. We only
