@@ -37,7 +37,7 @@ urllib3 @ https://github.com/urllib3/urllib3/archive/refs/tags/1.26.8.zip
 ./downloads/numpy-1.9.2-cp34-none-win32.whl
 
 # It is possible to refer to URLs.
-http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl
+https://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl
 ```
 
 ## Structure
@@ -95,7 +95,7 @@ and two {ref}`--find-links <install_--find-links>` locations:
 --pre
 --no-index
 --find-links /my/local/archives
---find-links http://some.archives.com/archives
+--find-links https://some.archives.com/archives
 ```
 ````
 
