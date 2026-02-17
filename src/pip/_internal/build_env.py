@@ -308,6 +308,7 @@ class InprocessBuildEnvironmentInstaller:
             download_dir=None,
             build_isolation=True,
             check_build_deps=False,
+            only_dependencies=False,
             progress_bar="off",
             # TODO: hash-checking should be extended to build deps, but that is
             # deferred for later as it'd be a breaking change.
@@ -427,6 +428,7 @@ class InprocessBuildEnvironmentInstaller:
             ignore_requires_python=False,
             use_user_site=False,
             ignore_dependencies=False,
+            only_dependencies=False,
             ignore_installed=True,
             force_reinstall=False,
             upgrade_strategy="to-satisfy-only",

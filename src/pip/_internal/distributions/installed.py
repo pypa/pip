@@ -29,5 +29,6 @@ class InstalledDistribution(AbstractDistribution):
         build_env_installer: BuildEnvironmentInstaller,
         build_isolation: bool,
         check_build_deps: bool,
+        only_dependencies: bool,
     ) -> None:
         pass

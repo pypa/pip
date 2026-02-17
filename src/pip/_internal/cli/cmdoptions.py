@@ -64,6 +64,15 @@ def make_option_group(group: dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
+def check_deps_opts_do_not_conflict(options: Values) -> None:
+    """Function for determining if --no-deps and --only-deps are both specified.
+
+    :param options: The OptionParser options.
+    """
+    if options.ignore_dependencies and options.only_dependencies:
+        raise CommandError("Cannot use '--no-deps' in combination with '--only-deps'")
+
+
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     """Function for determining if custom platform options are allowed.
 
@@ -942,6 +951,23 @@ no_deps: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help="Don't install package dependencies.",
+)
+
+
+only_deps: Callable[..., Option] = partial(
+    Option,
+    "--only-deps",
+    "--only-dependencies",
+    dest="only_dependencies",
+    action="store_true",
+    default=False,
+    help=(
+        "Install only package dependencies, not the package itself. "
+        "If you specify an optional dependency group such as [doc], "
+        "the project dependencies and selected optional dependencies "
+        "will be installed. Cannot be used in combination with "
+        "--no-deps."
+    ),
 )
 
 
