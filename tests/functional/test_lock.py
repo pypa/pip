@@ -269,3 +269,38 @@ def test_lock_roundtrip(script: PipTestEnvironment, data: TestData) -> None:
     pylock_result = tomllib.loads(pylock_result_path.read_text(encoding="utf-8"))
     simplify_paths_and_urls(pylock_result)
     assert pylock_result == pylock
+
+
+def test_lock_only_deps(
+    script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
+) -> None:
+    project_path = tmp_path / "pkga"
+    project_path.mkdir()
+    project_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [project]
+            name = "pkga"
+            version = "1.0"
+            dependencies = [
+              "simple==3.0",
+            ]
+            """
+        )
+    )
+    result = script.pip(
+        "lock",
+        ".",
+        "--quiet",
+        "--output=-",
+        "--no-build-isolation",  # to use the pre-installed setuptools
+        "--no-index",
+        "--only-deps",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        cwd=project_path,
+        expect_stderr=True,  # for the experimental warning
+    )
+    pylock = tomllib.loads(result.stdout)
+    assert len(pylock["packages"]) == 1
+    assert pylock["packages"][0]["name"] == "simple"

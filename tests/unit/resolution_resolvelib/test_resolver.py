@@ -28,6 +28,7 @@ def resolver(preparer: RequirementPreparer, finder: PackageFinder) -> Resolver:
         make_install_req=mock.Mock(),
         use_user_site=False,
         ignore_dependencies=False,
+        only_dependencies=False,
         ignore_installed=False,
         ignore_requires_python=False,
         force_reinstall=False,
