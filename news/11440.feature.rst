@@ -1,0 +1,3 @@
+Add ``--only-deps`` flag to instruct pip to select only the dependencies
+of supplied packages. It cannot be used with ``--no-deps``, ``-r``, ``--group``,
+or ``--requirements-from-script``.

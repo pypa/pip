@@ -65,6 +65,37 @@ def make_option_group(group: dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
+def check_only_deps_option_does_not_conflict(options: Values) -> None:
+    """Function for determining if --only-deps and other incompatible options are
+    specified.
+
+    :param options: The OptionParser options.
+    """
+    if not options.only_dependencies:
+        return
+    conflicts = []
+    if options.ignore_dependencies:
+        conflicts.append("'--no-deps'")
+    if "legacy-resolver" in options.deprecated_features_enabled:
+        conflicts.append("'--use-deprecated legacy-resolver'")
+    if options.requirements:
+        conflicts.append("'--requirements'")
+    if options.requirements_from_scripts:
+        conflicts.append("'--requirements-from-script'")
+    if options.dependency_groups:
+        conflicts.append("'--group'")
+    if conflicts:
+        if len(conflicts) > 1:
+            conflicts[-1] = "or " + conflicts[-1]
+        conflict_message = ", ".join(conflicts)
+        raise CommandError(
+            f"Cannot use '--only-dependencies' in combination with {conflict_message}. "
+            "If this is unexpected, please refer to the user guide:\n"
+            "\n"
+            "    https://pip.pypa.io/en/stable/user_guide/#installing-only-dependencies"
+        )
+
+
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     """Function for determining if custom platform options are allowed.
 
@@ -967,6 +998,23 @@ no_deps: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help="Don't install package dependencies.",
+)
+
+
+only_deps: Callable[..., Option] = partial(
+    Option,
+    "--only-deps",
+    "--only-dependencies",
+    dest="only_dependencies",
+    action="store_true",
+    default=False,
+    help=(
+        "Take only the dependencies of the provided requirements into account, "
+        "not the requirements themselves. Cannot be used in combination with "
+        "--no-deps, --group, --requirement. "
+        "No user-supplied requirements will be handled, even if they were "
+        "dependencies of other user-supplied requirements."
+    ),
 )
 
 
