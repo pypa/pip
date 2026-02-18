@@ -96,12 +96,8 @@ def should_update_common_wheels(session: nox.Session) -> bool:
     return need_to_repopulate
 
 
-# -----------------------------------------------------------------------------
-# Development Commands
-# -----------------------------------------------------------------------------
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
-def test(session: nox.Session) -> None:
-    # Get the common wheels.
+def get_common_wheels(session: nox.Session) -> None:
+    """Build the common wheels needed by tests."""
     if should_update_common_wheels(session):
         # fmt: off
         run_with_protected_pip(
@@ -114,6 +110,21 @@ def test(session: nox.Session) -> None:
     else:
         msg = f"Reusing existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
+
+
+# -----------------------------------------------------------------------------
+# Development Commands
+# -----------------------------------------------------------------------------
+@nox.session(name="common-wheels")
+def common_wheels(session: nox.Session) -> None:
+    """Build the common wheels needed by tests."""
+    get_common_wheels(session)
+
+
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
+def test(session: nox.Session) -> None:
+    # Get the common wheels.
+    get_common_wheels(session)
 
     # Build source distribution
     # HACK: we want to skip building and installing pip when nox's --no-install

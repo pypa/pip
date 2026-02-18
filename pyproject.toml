@@ -381,6 +381,7 @@ git-only = [
   "tests/**",
   "tools/**",
   "news/.gitignore",
+  ".devcontainer/**",
   ".gitattributes",
   ".gitignore",
   ".git-blame-ignore-revs",
