@@ -1,0 +1,1 @@
+Add a warning when attempting to install a local file (like ``pyproject.toml``, ``setup.py``, or ``requirements.txt``) as a package name, to help prevent accidents and potential typosquatting attacks.

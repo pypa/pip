@@ -798,6 +798,34 @@ class TestInstallRequirement:
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
         assert without_extras.user_supplied == req.user_supplied
+
+    @pytest.mark.parametrize(
+        "name, expected_warning",
+        [
+            ("pyproject.toml", True),
+            ("setup.py", True),
+            ("requirements.txt", True),
+            ("requests", False),
+            ("./pyproject.toml", False),
+        ],
+    )
+    def test_install_req_from_line_typosquatting_warning(
+        self, name: str, expected_warning: bool, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with mock.patch("pip._internal.req.constructors.os.path.exists") as mock_exists:
+            mock_exists.return_value = True
+            # We don't care about the return value, just the side effect (logging)
+            with contextlib.suppress(Exception):
+                install_req_from_line(name)
+
+            warning_msg = (
+                f"It looks like you are trying to install a local file ({name}) "
+                "as a package."
+            )
+            if expected_warning:
+                assert warning_msg in caplog.text
+            else:
+                assert warning_msg not in caplog.text
         assert without_extras.permit_editable_wheels == req.permit_editable_wheels
 
     @pytest.mark.parametrize(

@@ -375,6 +375,31 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     # a requirement specifier
     else:
         req_as_string = name
+        # If the requirement looks like a common configuration file and it
+        # exists in the current directory, it's likely the user intended to
+        # install the local project or use a requirements file, but forgot
+        # the proper prefix or flag.
+        suspicious_names = {
+            "pyproject.toml",
+            "setup.py",
+            "setup.cfg",
+            "requirements.txt",
+        }
+        if name in suspicious_names and os.path.exists(name):
+            if name == "requirements.txt":
+                flag = "-r"
+                hint = f"use '{flag} {name}' to install from the file"
+            else:
+                flag = "-e" if name != "setup.cfg" else ""
+                hint = f"use './' prefix (e.g. 'pip install ./' or 'pip install {flag} ./') to install from the current directory"
+
+            logger.warning(
+                "It looks like you are trying to install a local file (%s) "
+                "as a package. This might be a mistake. If you intended to "
+                "install the local project, %s.",
+                name,
+                hint,
+            )
 
     extras = convert_extras(extras_as_string)
 
