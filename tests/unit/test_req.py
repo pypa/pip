@@ -798,6 +798,7 @@ class TestInstallRequirement:
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
         assert without_extras.user_supplied == req.user_supplied
+        assert without_extras.permit_editable_wheels == req.permit_editable_wheels
 
     @pytest.mark.parametrize(
         "name, expected_warning",
@@ -826,7 +827,6 @@ class TestInstallRequirement:
                 assert warning_msg in caplog.text
             else:
                 assert warning_msg not in caplog.text
-        assert without_extras.permit_editable_wheels == req.permit_editable_wheels
 
     @pytest.mark.parametrize(
         "inp, extras, out",

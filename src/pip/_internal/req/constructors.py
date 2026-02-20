@@ -391,7 +391,10 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
                 hint = f"use '{flag} {name}' to install from the file"
             else:
                 flag = "-e" if name != "setup.cfg" else ""
-                hint = f"use './' prefix (e.g. 'pip install ./' or 'pip install {flag} ./') to install from the current directory"
+                hint = (
+                    f"use './' prefix (e.g. 'pip install ./' or 'pip install "
+                    f"{flag} ./') to install from the current directory"
+                )
 
             logger.warning(
                 "It looks like you are trying to install a local file (%s) "
