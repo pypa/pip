@@ -385,16 +385,11 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
             "setup.cfg",
             "requirements.txt",
         }
-        if name in suspicious_names and os.path.exists(name):
-            if name == "requirements.txt":
-                flag = "-r"
-                hint = f"use '{flag} {name}' to install from the file"
+        if name.lower() in suspicious_names and os.path.exists(name):
+            if name.lower() == "requirements.txt":
+                hint = f"use '-r {name}' to install from the requirements file"
             else:
-                flag = "-e" if name != "setup.cfg" else ""
-                hint = (
-                    f"use './' prefix (e.g. 'pip install ./' or 'pip install "
-                    f"{flag} ./') to install from the current directory"
-                )
+                hint = "use 'pip install .' to install the local project"
 
             logger.warning(
                 "It looks like you are trying to install a local file (%s) "

@@ -1,1 +1,2 @@
-Warn when installing packages named like local files (e.g. ``pyproject.toml``).
+Add a warning when a package name matches a common local file that exists in
+the current directory (e.g. ``pip install pyproject.toml``).

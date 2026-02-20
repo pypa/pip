@@ -805,7 +805,9 @@ class TestInstallRequirement:
         [
             ("pyproject.toml", True),
             ("setup.py", True),
+            ("setup.cfg", True),
             ("requirements.txt", True),
+            ("Setup.py", True),  # case-insensitive match
             ("requests", False),
             ("./pyproject.toml", False),
         ],
@@ -827,6 +829,19 @@ class TestInstallRequirement:
                 assert warning_msg in caplog.text
             else:
                 assert warning_msg not in caplog.text
+
+    def test_install_req_from_line_typosquatting_no_warning_when_file_missing(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """No warning should be emitted when the suspicious file does not exist."""
+        with mock.patch("pip._internal.req.constructors.os.path.exists") as mock_exists:
+            mock_exists.return_value = False
+            with contextlib.suppress(Exception):
+                install_req_from_line("pyproject.toml")
+
+            assert "It looks like you are trying to install a local file" not in (
+                caplog.text
+            )
 
     @pytest.mark.parametrize(
         "inp, extras, out",
