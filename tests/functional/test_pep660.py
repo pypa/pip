@@ -72,7 +72,7 @@ def _make_project(
         project_dir.joinpath("setup.py").write_text(SETUP_PY)
     if backend_code:
         assert with_pyproject
-        buildsys: dict[str, Any] = {"requires": ["setuptools", "wheel"]}
+        buildsys: dict[str, Any] = {"requires": ["setuptools"]}
         buildsys["build-backend"] = "test_backend"
         buildsys["backend-path"] = ["."]
         data = tomli_w.dumps({"build-system": buildsys})

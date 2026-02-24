@@ -18,7 +18,7 @@ def _create_svn_initools_repo(initools_dir: str) -> None:
         "http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/"
         "INITools_modified.dump"
     )
-    with open(filename) as dump:
+    with open(filename, "rb") as dump:
         subprocess.check_call(
             ["svnadmin", "load", initools_dir],
             stdin=dump,

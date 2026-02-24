@@ -17,6 +17,9 @@ allow users to specify a different certificate store/bundle for pip to use. It
 is also possible to use `REQUESTS_CA_BUNDLE` or `CURL_CA_BUNDLE` environment
 variables.
 
+If you need a specific certificate bundle, you can download the
+[Mozilla CA bundle provided by the curl project](https://curl.se/docs/caextract.html).
+
 ## Using system certificate stores
 
 ```{versionadded} 24.2

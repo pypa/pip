@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import sys
 from collections.abc import Generator, Iterable, Iterator
-from typing import Callable, Literal, TypeVar
+from typing import TYPE_CHECKING, Callable, Literal, TypeVar
 
 from pip._vendor.rich.progress import (
     BarColumn,
@@ -20,8 +20,10 @@ from pip._vendor.rich.progress import (
 )
 
 from pip._internal.cli.spinners import RateLimiter
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import get_console, get_indentation
+
+if TYPE_CHECKING:
+    from pip._internal.req.req_install import InstallRequirement
 
 T = TypeVar("T")
 ProgressRenderer = Callable[[Iterable[T]], Iterator[T]]

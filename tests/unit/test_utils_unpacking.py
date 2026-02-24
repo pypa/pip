@@ -412,6 +412,8 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
         (("parent/", "parent/sub"), True),
         # Test target outside parent
         (("parent/", "parent/../sub"), False),
+        # Test target sub-string of parent
+        (("parent/child", "parent/childfoo"), False),
     ],
 )
 def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:

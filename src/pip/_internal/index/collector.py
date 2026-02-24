@@ -12,7 +12,6 @@ import json
 import logging
 import os
 import urllib.parse
-import urllib.request
 from collections.abc import Iterable, MutableMapping, Sequence
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -34,6 +33,7 @@ from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import redact_auth_from_url
+from pip._internal.utils.urls import url_to_path
 from pip._internal.vcs import vcs
 
 from .sources import CandidatesFromPage, LinkSource, build_source
@@ -330,8 +330,7 @@ def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | Non
         return None
 
     # Tack index.html onto file:// URLs that point to directories
-    scheme, _, path, _, _, _ = urllib.parse.urlparse(url)
-    if scheme == "file" and os.path.isdir(urllib.request.url2pathname(path)):
+    if url.startswith("file:") and os.path.isdir(url_to_path(url)):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
         if not url.endswith("/"):

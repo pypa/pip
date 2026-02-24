@@ -24,18 +24,16 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout, local_repo
 
 
-@pytest.mark.network
-def test_basic_uninstall(script: PipTestEnvironment) -> None:
+def test_basic_uninstall(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test basic install and uninstall.
-
     """
-    result = script.pip("install", "INITools==0.2")
-    result.did_create(join(script.site_packages, "initools"))
+    result = script.pip_install_local("six", "-f", data.pypi_packages)
+    result.did_create(join(script.site_packages, "six.py"))
     # the import forces the generation of __pycache__ if the version of python
     # supports it
-    script.run("python", "-c", "import initools")
-    result2 = script.pip("uninstall", "INITools", "-y")
+    script.run("python", "-c", "import six")
+    result2 = script.pip("uninstall", "six", "-y")
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 

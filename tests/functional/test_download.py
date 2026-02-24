@@ -29,22 +29,31 @@ def fake_wheel(data: TestData, wheel_path: str) -> None:
     data.packages.joinpath(wheel_path).write_bytes(wheel_data)
 
 
-@pytest.mark.network
-def test_download_if_requested(script: PipTestEnvironment) -> None:
+def test_download_if_requested(script: PipTestEnvironment, data: TestData) -> None:
     """
     It should download (in the scratch path) and not install if requested.
     """
-    result = script.pip("download", "-d", "pip_downloads", "INITools==0.1")
+    result = script.pip(
+        "download",
+        "--no-index",
+        "-d",
+        "pip_downloads",
+        "INITools==0.1",
+        "-f",
+        data.pypi_packages,
+        "--no-build-isolation",
+    )
     result.did_create(Path("scratch") / "pip_downloads" / "INITools-0.1.tar.gz")
     result.did_not_create(script.site_packages / "initools")
 
 
-@pytest.mark.network
-def test_basic_download_setuptools(script: PipTestEnvironment) -> None:
+def test_basic_download_setuptools(script: PipTestEnvironment, data: TestData) -> None:
     """
     It should download (in the scratch path) and not install if requested.
     """
-    result = script.pip("download", "setuptools")
+    result = script.pip(
+        "download", "setuptools", "--no-index", "-f", data.common_wheels
+    )
     setuptools_prefix = str(Path("scratch") / "setuptools")
     assert any(os.fspath(p).startswith(setuptools_prefix) for p in result.files_created)
 
@@ -70,25 +79,22 @@ def test_download_wheel(script: PipTestEnvironment, data: TestData) -> None:
     result.did_not_create(script.site_packages / "piptestpackage")
 
 
-@pytest.mark.network
-def test_single_download_from_requirements_file(script: PipTestEnvironment) -> None:
+def test_single_download_from_requirements_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
-    It should support download (in the scratch path) from PyPI from a
+    It should support download (in the scratch path) from a
     requirements file
     """
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
-        INITools==0.1
-        """
-        )
-    )
+    req_file = script.temporary_file("test-req.txt", "INITools==0.1")
     result = script.pip(
         "download",
         "-r",
-        script.scratch_path / "test-req.txt",
-        "-d",
-        ".",
+        req_file,
+        "--no-index",
+        "-f",
+        data.pypi_packages,
+        "--no-build-isolation",
     )
     result.did_create(Path("scratch") / "INITools-0.1.tar.gz")
     result.did_not_create(script.site_packages / "initools")
@@ -144,55 +150,29 @@ def test_download_should_download_wheel_deps(
     result.did_create(Path("scratch") / dep_filename)
 
 
-@pytest.mark.network
-def test_download_should_skip_existing_files(script: PipTestEnvironment) -> None:
+def test_download_should_skip_existing_files(
+    script: PipTestEnvironment, data: TestData
+) -> None:
     """
     It should not download files already existing in the scratch dir
     """
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
-        INITools==0.1
-        """
-        )
-    )
-
-    result = script.pip(
-        "download",
-        "-r",
-        script.scratch_path / "test-req.txt",
-        "-d",
-        ".",
-    )
-    result.did_create(Path("scratch") / "INITools-0.1.tar.gz")
-    result.did_not_create(script.site_packages / "initools")
+    req_file = script.temporary_file("reqs.txt", "simplewheel==1.0")
+    result = script.pip("download", "-r", req_file, "-f", data.packages, "--no-index")
+    result.did_create(Path("scratch") / "simplewheel-1.0-py2.py3-none-any.whl")
+    result.did_not_create(script.site_packages / "simplewheel")
 
     # adding second package to test-req.txt
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
-        INITools==0.1
-        python-openid==2.2.5
-        """
-        )
-    )
+    script.temporary_file(req_file, "simplewheel==1.0\nsimple.dist")
 
     # only the second package should be downloaded
-    result = script.pip(
-        "download",
-        "-r",
-        script.scratch_path / "test-req.txt",
-        "-d",
-        ".",
-    )
-    openid_tarball_prefix = str(Path("scratch") / "python-openid-")
+    result = script.pip("download", "-r", req_file, "-f", data.packages, "--no-index")
     assert any(
-        os.fspath(path).startswith(openid_tarball_prefix)
+        os.fspath(path).startswith(str(Path("scratch") / "simple.dist"))
         for path in result.files_created
     )
-    result.did_not_create(Path("scratch") / "INITools-0.1.tar.gz")
-    result.did_not_create(script.site_packages / "initools")
-    result.did_not_create(script.site_packages / "openid")
+    result.did_not_create(Path("scratch") / "simplewheel-1.0-py2.py3-none-any.whl")
+    result.did_not_create(script.site_packages / "simplewheel")
+    result.did_not_create(script.site_packages / "simpledist")
 
 
 @pytest.mark.network
