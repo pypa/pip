@@ -383,14 +383,14 @@ class Configuration:
                 parser = self._construct_parser(env_config_file)
                 self._parsers[kinds.ENV].append((env_config_file, parser))
                 logger.warning(
-                    "PIP_CONFIG_FILE is set to '{}'. "
-                    "Applying changes to this file instead of '{}' config. "
+                    "PIP_CONFIG_FILE is set to '%s'. "
+                    "Applying changes to this file instead of '%s' config. "
                     "Note that some commands may not reflect these changes "
                     "as this config file is outside pip's normal config scopes. "
                     "Please inspect the file manually or unset "
-                    "PIP_CONFIG_FILE for typical behavior.".format(
-                        env_config_file, self.load_only
-                    )
+                    "PIP_CONFIG_FILE for typical behavior.",
+                    env_config_file,
+                    self.load_only,
                 )
                 return env_config_file, parser
 
