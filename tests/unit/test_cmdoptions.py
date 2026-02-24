@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import datetime
 import os
+from optparse import Option, OptionParser, Values
 from pathlib import Path
 from venv import EnvBuilder
 
 import pytest
 
-from pip._internal.cli.cmdoptions import _convert_python_version
+from pip._internal.cli.cmdoptions import (
+    _convert_python_version,
+    _handle_uploaded_prior_to,
+)
 from pip._internal.cli.main_parser import identify_python_interpreter
 
 
@@ -51,3 +56,86 @@ def test_identify_python_interpreter_venv(tmpdir: Path) -> None:
 
     # Passing a non-existent file returns None
     assert identify_python_interpreter(str(tmpdir / "nonexistent")) is None
+
+
+@pytest.mark.parametrize(
+    "value, expected_datetime",
+    [
+        (
+            "2023-01-01T00:00:00+00:00",
+            datetime.datetime(2023, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+        ),
+        (
+            "2023-01-01T12:00:00-05:00",
+            datetime.datetime(
+                *(2023, 1, 1, 12, 0, 0),
+                tzinfo=datetime.timezone(datetime.timedelta(hours=-5)),
+            ),
+        ),
+    ],
+)
+def test_handle_uploaded_prior_to_with_timezone(
+    value: str, expected_datetime: datetime.datetime
+) -> None:
+    """Test that timezone-aware ISO 8601 date strings are parsed correctly."""
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    _handle_uploaded_prior_to(option, opt, value, parser)
+
+    result = parser.values.uploaded_prior_to
+    assert isinstance(result, datetime.datetime)
+    assert result == expected_datetime
+
+
+@pytest.mark.parametrize(
+    "value, expected_date_time",
+    [
+        ("2023-01-01T00:00:00", (2023, 1, 1, 0, 0, 0)),
+        ("2023-12-31T23:59:59", (2023, 12, 31, 23, 59, 59)),
+        ("2023-01-01", (2023, 1, 1, 0, 0, 0)),  # Date-only extends to midnight
+        ("2023-06-15T14:30:00", (2023, 6, 15, 14, 30, 0)),
+    ],
+)
+def test_handle_uploaded_prior_to_naive_gets_local_timezone(
+    value: str, expected_date_time: tuple[int, int, int, int, int, int]
+) -> None:
+    """Test naive datetimes are treated as local time, not converted from UTC."""
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    _handle_uploaded_prior_to(option, opt, value, parser)
+
+    result = parser.values.uploaded_prior_to
+    assert isinstance(result, datetime.datetime)
+    assert result.timetuple()[:6] == expected_date_time
+    assert result.tzinfo is not None
+
+    # Verify the result matches naive datetime with local timezone applied
+    naive_dt = datetime.datetime(*expected_date_time)
+    assert result == naive_dt.astimezone()
+
+
+@pytest.mark.parametrize(
+    "invalid_value",
+    [
+        "not-a-date",
+        "2023-13-01",  # Invalid month
+        "2023-01-32",  # Invalid day
+        "2023-01-01T25:00:00",  # Invalid hour
+        "",  # Empty string
+    ],
+)
+def test_handle_uploaded_prior_to_invalid_dates(invalid_value: str) -> None:
+    """Test that invalid date strings raise SystemExit via raise_option_error."""
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    with pytest.raises(SystemExit):
+        _handle_uploaded_prior_to(option, opt, invalid_value, parser)

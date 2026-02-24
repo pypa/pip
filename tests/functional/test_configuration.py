@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -232,3 +233,38 @@ class TestBasicLoading(ConfigurationMixin):
                 to_install, "build", "__editable__.simplewheel-1.0-py3-none-any"
             )
         )
+
+    @pytest.mark.network
+    def test_user_config_overrides_global_config_with_empty_value(
+        self, script: PipTestEnvironment, tmpdir: Path
+    ) -> None:
+        """Test that user config empty value overrides global config."""
+        # Set up global config with proxy
+        global_dir = tmpdir / "global"
+        global_pip = global_dir / "pip" / "pip.conf"
+        global_pip.parent.mkdir(parents=True)
+        global_pip.write_text(
+            "[global]\nproxy = http://non_existing_proxy_server.tld\n"
+        )
+        script.environ["XDG_CONFIG_DIRS"] = str(global_dir)
+
+        # Set up user config that overrides with empty value
+        user_config_dir = tmpdir / "user-config"
+        user_pip_config = user_config_dir / "pip" / "pip.conf"
+        user_pip_config.parent.mkdir(parents=True)
+        user_pip_config.write_text("[global]\nproxy = \n")
+        script.environ["PIP_CONFIG_FILE"] = str(user_pip_config)
+
+        # Install should succeed without trying to use the proxy
+        result = script.pip(
+            "install",
+            "--dry-run",
+            "--no-deps",
+            "--ignore-installed",
+            "--retries",
+            "0",
+            "--no-cache-dir",
+            "requests",
+        )
+
+        assert "Would install" in result.stdout

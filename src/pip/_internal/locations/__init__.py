@@ -6,7 +6,6 @@ import os
 import pathlib
 import sys
 import sysconfig
-from typing import Any
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -134,7 +133,7 @@ def _looks_like_red_hat_scheme() -> bool:
     from distutils.command.install import install
     from distutils.dist import Distribution
 
-    cmd: Any = install(Distribution())
+    cmd = install(Distribution())
     cmd.finalize_options()
     return (
         cmd.exec_prefix == f"{os.path.normpath(sys.exec_prefix)}/local"

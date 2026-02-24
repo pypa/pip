@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import shutil
 from glob import glob
 from typing import Callable
@@ -256,7 +258,7 @@ def test_cache_purge_with_empty_cache(script: PipTestEnvironment) -> None:
     and exit without an error code."""
     result = script.pip("cache", "purge", allow_stderr_warning=True)
     assert result.stderr == "WARNING: No matching packages\n"
-    assert result.stdout == "Files removed: 0 (0 bytes)\n"
+    assert result.stdout == "Files removed: 0 (0 bytes)\nDirectories removed: 0\n"
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
@@ -265,7 +267,7 @@ def test_cache_remove_with_bad_pattern(script: PipTestEnvironment) -> None:
     and exit without an error code."""
     result = script.pip("cache", "remove", "aaa", allow_stderr_warning=True)
     assert result.stderr == 'WARNING: No matching packages for pattern "aaa"\n'
-    assert result.stdout == "Files removed: 0 (0 bytes)\n"
+    assert result.stdout == "Files removed: 0 (0 bytes)\nDirectories removed: 0\n"
 
 
 def test_cache_list_too_many_args(script: PipTestEnvironment) -> None:
@@ -413,3 +415,109 @@ def test_cache_abort_when_no_cache_dir(
         "ERROR: pip cache commands can not function"
         " since cache is disabled." in result.stderr.splitlines()
     )
+
+
+@pytest.fixture
+def populate_wheel_cache_with_empty_dirs(wheel_cache_dir: str) -> None:
+    metadata_dir = os.path.join(wheel_cache_dir, "metadata_only")
+    os.makedirs(metadata_dir)
+    with open(os.path.join(metadata_dir, "metadata.json"), "w"):
+        pass
+
+    empty_dir = os.path.join(wheel_cache_dir, "completely_empty")
+    os.makedirs(empty_dir)
+
+    nested_empty = os.path.join(wheel_cache_dir, "nested", "empty", "dirs")
+    os.makedirs(nested_empty)
+
+
+@pytest.fixture
+def populate_http_cache_with_empty_dirs(cache_dir: str) -> None:
+    http_cache_dir = os.path.join(cache_dir, "http")
+    empty1 = os.path.join(http_cache_dir, "empty1")
+    empty2 = os.path.join(http_cache_dir, "empty2", "nested")
+
+    os.makedirs(empty1)
+    os.makedirs(empty2)
+
+
+@pytest.fixture
+def create_selfcheck_json(cache_dir: str) -> None:
+    selfcheck_path = os.path.join(cache_dir, "selfcheck.json")
+    with open(selfcheck_path, "w") as statefile:
+        json.dump(
+            {
+                "/some/prefix": {
+                    "last_check": "2020-01-01T00:00:00",
+                    "pypi_version": "20.0.1",
+                }
+            },
+            statefile,
+        )
+
+
+@pytest.mark.usefixtures(
+    "populate_wheel_cache_with_empty_dirs",
+    "populate_http_cache_with_empty_dirs",
+    "create_selfcheck_json",
+)
+def test_cache_purge_removes_empty_dirs_and_legacy_files(
+    script: PipTestEnvironment,
+    cache_dir: str,
+    wheel_cache_dir: str,
+) -> None:
+    """Test pip cache purge/remove with empty dirs and legacy files.
+
+    Verifies purge removes:
+    - Wheel cache directories without .whl files
+    - HTTP cache empty directories
+    - Legacy selfcheck.json file
+    - Reports correct directory counts
+    Also tests that 'cache remove' works similarly.
+    """
+    selfcheck_path = os.path.join(cache_dir, "selfcheck.json")
+    http_cache_dir = os.path.join(cache_dir, "http")
+    metadata_dir = os.path.join(wheel_cache_dir, "metadata_only")
+
+    # Verify setup
+    assert os.path.exists(selfcheck_path)
+    assert os.path.exists(metadata_dir)
+    assert os.path.exists(os.path.join(http_cache_dir, "empty1"))
+
+    result = script.pip("cache", "purge", "--verbose", allow_stderr_warning=True)
+
+    # Verify all cleanup happened
+    assert not os.path.exists(selfcheck_path)
+    assert "Removed legacy selfcheck.json file" in result.stdout
+    assert not os.path.exists(metadata_dir)
+    assert not os.path.exists(os.path.join(wheel_cache_dir, "completely_empty"))
+    assert not os.path.exists(os.path.join(http_cache_dir, "empty1"))
+    assert "Directories removed:" in result.stdout
+
+    # Verify directory count is positive
+    dir_count = int(re.findall(r"Directories removed: (\d+)", result.stdout)[0])
+    assert dir_count > 0
+
+
+def test_cache_purge_with_mixed_content(
+    script: PipTestEnvironment,
+    populate_wheel_cache: list[tuple[str, str]],
+    wheel_cache_dir: str,
+) -> None:
+    """Test purge removes both wheel files and empty directories."""
+    # Add an empty directory alongside the wheels
+    empty_dir = os.path.join(wheel_cache_dir, "empty_subdir")
+    os.makedirs(empty_dir)
+
+    result = script.pip("cache", "purge", "--verbose")
+
+    # Verify wheels and empty directory were removed
+    for _name, filepath in populate_wheel_cache:
+        assert not os.path.exists(filepath)
+    assert not os.path.exists(empty_dir)
+
+    # Verify counts in output
+    assert "Files removed:" in result.stdout
+    assert "Directories removed:" in result.stdout
+    files_removed = int(re.findall(r"Files removed: (\d+)", result.stdout)[0])
+    assert files_removed == 4

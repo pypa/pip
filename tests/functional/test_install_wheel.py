@@ -747,11 +747,8 @@ def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(
 def test_wheel_install_fails_with_badly_encoded_metadata(
     script: PipTestEnvironment,
 ) -> None:
-    package = create_basic_wheel_for_package(
-        script,
-        "simple",
-        "0.1.0",
-        extra_files={"simple-0.1.0.dist-info/METADATA": b"\xff"},
+    package = make_wheel("simple", "0.1.0", metadata=b"\xff").save_to_dir(
+        script.scratch_path
     )
     result = script.pip(
         "install", "--no-cache-dir", "--no-index", package, expect_error=True
