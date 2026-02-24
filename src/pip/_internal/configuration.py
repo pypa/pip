@@ -184,12 +184,10 @@ class Configuration:
         self._ensure_have_load_only()
 
         assert self.load_only
-        fname, parser = self._get_parser_to_modify()
+        fname, parser = self._get_parser_to_modify(key)
 
-        if (
-            key not in self._config[self.load_only][fname]
-            and key not in self._config[self.load_only]
-        ):
+        file_config = self._config[self.load_only].get(fname, {})
+        if key not in file_config:
             raise ConfigurationError(f"No such key - {orig_key}")
 
         if parser is not None:
@@ -279,9 +277,9 @@ class Configuration:
         logger.verbose("For variant '%s', will try loading '%s'", variant, fname)
         parser = self._construct_parser(fname)
 
+        self._config[variant].setdefault(fname, {})
         for section in parser.sections():
             items = parser.items(section)
-            self._config[variant].setdefault(fname, {})
             self._config[variant][fname].update(self._normalized_keys(section, items))
 
         return parser
@@ -373,7 +371,9 @@ class Configuration:
         """Get values present in a config file"""
         return self._config[variant]
 
-    def _get_parser_to_modify(self) -> tuple[str, RawConfigParser]:
+    def _get_parser_to_modify(
+        self, key: str | None = None
+    ) -> tuple[str, RawConfigParser]:
         # Determine which parser to modify
         assert self.load_only
         parsers = self._parsers[self.load_only]
@@ -397,6 +397,14 @@ class Configuration:
             raise ConfigurationError(
                 "Fatal Internal error [id=2]. Please report as a bug."
             )
+
+        if key is None:
+            return parsers[-1]
+
+        section, name = _disassemble_key(key)
+        for fname, parser in reversed(parsers):
+            if parser.has_section(section) and parser.has_option(section, name):
+                return fname, parser
 
         # Use the highest priority parser.
         return parsers[-1]
