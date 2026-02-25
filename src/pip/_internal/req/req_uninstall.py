@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
+import site
 import sys
 import sysconfig
 from collections.abc import Generator, Iterable
@@ -16,7 +17,6 @@ from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
 from pip._internal.utils.misc import ask, normalize_path, renames, rmtree
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
-from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = getLogger(__name__)
 
@@ -26,6 +26,21 @@ def _is_path_within_directory(directory: str, target: str) -> bool:
         return os.path.commonpath([directory, target]) == directory
     except ValueError:
         return False
+
+
+def _iter_permitted_roots(dist: BaseDistribution) -> Iterable[str]:
+    location = dist.location
+    if location:
+        yield location
+
+    yield sys.prefix
+    yield get_bin_prefix()
+
+    if dist.in_usersite:
+        yield get_bin_user()
+        user_base = site.getuserbase()
+        if user_base:
+            yield user_base
 
 
 def _script_names(
@@ -83,16 +98,8 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
     if entries is None:
         raise UninstallMissingRecord(distribution=dist)
 
-    normalized_location = normalize_path(location)
     for entry in entries:
         path = os.path.join(location, entry)
-        normalized_path = normalize_path(path)
-        if not _is_path_within_directory(normalized_location, normalized_path):
-            logger.warning(
-                "Not uninstalling invalid RECORD entry outside install location: %s",
-                entry,
-            )
-            continue
         yield path
         if path.endswith(".py"):
             dn, fn = os.path.split(path)
@@ -324,6 +331,11 @@ class UninstallPathSet:
         # can result in hundreds/thousands of redundant calls to normalize_path with
         # the same args, which hurts performance.
         self._normalize_path_cached = functools.lru_cache(normalize_path)
+        self._permitted_roots = tuple(
+            dict.fromkeys(
+                self._normalize_path_cached(path) for path in _iter_permitted_roots(dist)
+            )
+        )
 
     def _permitted(self, path: str) -> bool:
         """
@@ -331,10 +343,10 @@ class UninstallPathSet:
         remove/modify, False otherwise.
 
         """
-        # aka is_local, but caching normalized sys.prefix
-        if not running_under_virtualenv():
-            return True
-        return path.startswith(self._normalize_path_cached(sys.prefix))
+        for root in self._permitted_roots:
+            if _is_path_within_directory(root, path):
+                return True
+        return False
 
     def add(self, path: str) -> None:
         head, tail = os.path.split(path)

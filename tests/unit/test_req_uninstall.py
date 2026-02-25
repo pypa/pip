@@ -57,51 +57,6 @@ def test_uninstallation_paths() -> None:
     assert paths2 == paths
 
 
-def test_uninstallation_paths_skips_parent_traversal(tmp_path: Path) -> None:
-    class dist:
-        location = str(tmp_path.joinpath("site-packages"))
-
-        def iter_declared_entries(self) -> Iterator[str] | None:
-            return iter(["good.py", "../outside.py", "pkg/../../escape.py"])
-
-    d = dist()
-
-    paths = list(uninstallation_paths(d))
-
-    expected = [
-        os.path.join(d.location, "good.py"),
-        os.path.join(d.location, "good.pyc"),
-        os.path.join(d.location, "good.pyo"),
-    ]
-
-    assert paths == expected
-
-
-def test_uninstallation_paths_skips_absolute_path(tmp_path: Path) -> None:
-    class dist:
-        location = str(tmp_path.joinpath("site-packages"))
-
-        def iter_declared_entries(self) -> Iterator[str] | None:
-            return iter(
-                [
-                    os.path.abspath(os.path.join(os.path.sep, "tmp", "evil.py")),
-                    "pkg/module.py",
-                ]
-            )
-
-    d = dist()
-
-    paths = list(uninstallation_paths(d))
-
-    expected = [
-        os.path.join(d.location, "pkg/module.py"),
-        os.path.join(d.location, "pkg/module.pyc"),
-        os.path.join(d.location, "pkg/module.pyo"),
-    ]
-
-    assert paths == expected
-
-
 def test_compressed_listing(tmpdir: Path) -> None:
     def in_tmpdir(paths: list[str]) -> list[str]:
         return [
@@ -191,6 +146,48 @@ class TestUninstallPathSet:
 
         ups.add(file_nonexistent)
         assert ups._paths == {file_extant}
+
+    def test_add_refuses_path_outside_permitted_roots(self, tmpdir: Path) -> None:
+        allowed_root = os.path.normcase(os.path.join(tmpdir, "allowed"))
+        blocked_root = os.path.normcase(os.path.join(tmpdir, "blocked"))
+        os.makedirs(allowed_root)
+        os.makedirs(blocked_root)
+
+        allowed_file = os.path.join(allowed_root, "allowed.py")
+        blocked_file = os.path.join(blocked_root, "blocked.py")
+
+        with open(allowed_file, "w"):
+            pass
+        with open(blocked_file, "w"):
+            pass
+
+        ups = UninstallPathSet(dist=Mock())
+        ups._permitted_roots = (allowed_root,)
+        ups.add(allowed_file)
+        ups.add(blocked_file)
+
+        assert os.path.normcase(allowed_file) in ups._paths
+        assert os.path.normcase(blocked_file) in ups._refuse
+
+    def test_add_allows_record_style_script_path(self, tmpdir: Path) -> None:
+        root = os.path.normcase(os.path.join(tmpdir, "prefix"))
+        site_packages = os.path.join(root, "Lib", "site-packages")
+        scripts_dir = os.path.join(root, "Scripts")
+        os.makedirs(site_packages)
+        os.makedirs(scripts_dir)
+
+        script = os.path.join(scripts_dir, "docutils.exe")
+        with open(script, "w"):
+            pass
+
+        # Simulate RECORD entry "../../Scripts/docutils.exe" joined to dist.location.
+        record_path = os.path.join(site_packages, "..", "..", "Scripts", "docutils.exe")
+
+        ups = UninstallPathSet(dist=Mock())
+        ups._permitted_roots = (root,)
+        ups.add(record_path)
+
+        assert os.path.normcase(script) in ups._paths
 
     def test_add_pth(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
