@@ -37,7 +37,7 @@ the following properties:
 
 - `metadata`: the metadata of the distribution, converted to a JSON object according to
   the [PEP 566
-  transformation](https://www.python.org/dev/peps/pep-0566/#json-compatible-metadata).
+  transformation](https://peps.python.org/pep-0566/#json-compatible-metadata).
 
 - `metadata_location`: the location of the metadata of the installed distribution. Most
   of the time this is the `.dist-info` directory. For legacy installs it is the

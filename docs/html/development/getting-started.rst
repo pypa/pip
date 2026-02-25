@@ -211,6 +211,6 @@ in order to start contributing.
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
 .. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
 .. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/
-.. _`Hello World for Git`: https://guides.github.com/activities/hello-world/
-.. _`Understanding the GitHub flow`: https://guides.github.com/introduction/flow/
-.. _`Start using Git on the command line`: https://docs.gitlab.com/ee/topics/git/
+.. _`Hello World for Git`: https://docs.github.com/en/get-started/start-your-journey/hello-world
+.. _`Understanding the GitHub flow`: https://docs.github.com/en/get-started/using-github/github-flow
+.. _`Start using Git on the command line`: https://docs.gitlab.com/topics/git/

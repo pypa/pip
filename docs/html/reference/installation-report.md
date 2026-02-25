@@ -50,7 +50,7 @@ package with the following properties:
 
 - `metadata`: the metadata of the distribution, converted to a JSON object according to
   the [PEP 566
-  transformation](https://www.python.org/dev/peps/pep-0566/#json-compatible-metadata).
+  transformation](https://peps.python.org/pep-0566/#json-compatible-metadata).
 
 - `is_direct`: `true` if the requirement was provided as, or constrained to, a direct
   URL reference. `false` if the requirements was provided as a name and version

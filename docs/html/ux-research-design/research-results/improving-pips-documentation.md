@@ -75,7 +75,7 @@ Common feedback that emerged from both surveys and user interviews includes:
 - There should be more instructions specific to each user's different situation (e.g. what operating system they are using)
 - The scope of the documentation is unclear
 - The documentation should recognise that pip exists within an ecosystem of other packaging tools
-- ["There should be one-- and preferably only one --obvious way to do it."](https://www.python.org/dev/peps/pep-0020/) - i.e. the documentation should provide stronger recommendations
+- ["There should be one-- and preferably only one --obvious way to do it."](https://peps.python.org/pep-0020/) - i.e. the documentation should provide stronger recommendations
 
 While some users mentioned that video would be helpful, more said that video was too long, or inappropriate for the kind of problems they experience using pip.
 
@@ -517,7 +517,7 @@ _Page purpose:_
 _Suggested content:_
 
 - This guide
-- Writing styleguide / glossary of terms - see the [Warehouse documentation](https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology) for an example.
+- Writing styleguide / glossary of terms - see the [Warehouse documentation](https://warehouse.pypa.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology) for an example.
 
 </details>
 

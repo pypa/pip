@@ -237,4 +237,4 @@ The class is the return type of both the ``CandidateEvaluator`` class's
 ``find_best_candidate()`` method.
 
 
-.. _`PEP 503`: https://www.python.org/dev/peps/pep-0503/
+.. _`PEP 503`: https://peps.python.org/pep-0503/

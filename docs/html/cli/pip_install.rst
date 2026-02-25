@@ -194,7 +194,7 @@ The ``pip install`` command also supports a :ref:`--pre <install_--pre>` flag
 that enables installation of pre-releases and development releases.
 
 
-.. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
+.. _pre-releases: https://peps.python.org/pep-0440/#handling-of-pre-releases
 
 .. _`0-vcs-support`:
 .. rubric:: VCS Support
@@ -207,7 +207,7 @@ Finding Packages
 pip searches for packages on `PyPI`_ using the
 `HTTP simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://packaging.python.org/specifications/simple-repository-api/>`_
-and `there <https://www.python.org/dev/peps/pep-0503/>`_.
+and `there <https://peps.python.org/pep-0503/>`_.
 
 pip offers a number of package index options for modifying how packages are
 found.
