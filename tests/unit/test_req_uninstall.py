@@ -57,6 +57,51 @@ def test_uninstallation_paths() -> None:
     assert paths2 == paths
 
 
+def test_uninstallation_paths_skips_parent_traversal(tmp_path: Path) -> None:
+    class dist:
+        location = str(tmp_path.joinpath("site-packages"))
+
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter(["good.py", "../outside.py", "pkg/../../escape.py"])
+
+    d = dist()
+
+    paths = list(uninstallation_paths(d))
+
+    expected = [
+        os.path.join(d.location, "good.py"),
+        os.path.join(d.location, "good.pyc"),
+        os.path.join(d.location, "good.pyo"),
+    ]
+
+    assert paths == expected
+
+
+def test_uninstallation_paths_skips_absolute_path(tmp_path: Path) -> None:
+    class dist:
+        location = str(tmp_path.joinpath("site-packages"))
+
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter(
+                [
+                    os.path.abspath(os.path.join(os.path.sep, "tmp", "evil.py")),
+                    "pkg/module.py",
+                ]
+            )
+
+    d = dist()
+
+    paths = list(uninstallation_paths(d))
+
+    expected = [
+        os.path.join(d.location, "pkg/module.py"),
+        os.path.join(d.location, "pkg/module.pyc"),
+        os.path.join(d.location, "pkg/module.pyo"),
+    ]
+
+    assert paths == expected
+
+
 def test_compressed_listing(tmpdir: Path) -> None:
     def in_tmpdir(paths: list[str]) -> list[str]:
         return [

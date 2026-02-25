@@ -1,0 +1,2 @@
+Prevent ``pip uninstall`` from processing invalid ``RECORD`` entries that resolve outside
+the installed distribution location.

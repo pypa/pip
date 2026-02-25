@@ -21,6 +21,13 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 logger = getLogger(__name__)
 
 
+def _is_path_within_directory(directory: str, target: str) -> bool:
+    try:
+        return os.path.commonpath([directory, target]) == directory
+    except ValueError:
+        return False
+
+
 def _script_names(
     bin_dir: str, script_name: str, is_gui: bool
 ) -> Generator[str, None, None]:
@@ -76,8 +83,16 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
     if entries is None:
         raise UninstallMissingRecord(distribution=dist)
 
+    normalized_location = normalize_path(location)
     for entry in entries:
         path = os.path.join(location, entry)
+        normalized_path = normalize_path(path)
+        if not _is_path_within_directory(normalized_location, normalized_path):
+            logger.warning(
+                "Not uninstalling invalid RECORD entry outside install location: %s",
+                entry,
+            )
+            continue
         yield path
         if path.endswith(".py"):
             dn, fn = os.path.split(path)
