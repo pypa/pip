@@ -800,7 +800,7 @@ class Packer:
     def pack(self, obj):
         try:
             self._pack(obj)
-        except:
+        except Exception:
             self._buffer = BytesIO()  # force reset
             raise
         if self._autoreset:
