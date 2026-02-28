@@ -442,6 +442,32 @@ Examples
          py -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
          py -m pip install "SomeProject@http://my.package.repo/1.2.3.tar.gz"
 
+#. Install to a custom directory using ``--target``.
+
+   Install packages into a specific directory without creating a site-packages structure.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install --target ./custom_dir SomePackage
+         python -m pip install --target ~/.local/python-packages SomePackage
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install --target .\custom_dir SomePackage
+         py -m pip install --target %APPDATA%\Python-Packages SomePackage
+
+   .. note::
+
+      The ``--target`` option is useful when you want to install packages into a custom
+      location such as a bundled Python environment, an application-specific directory,
+      or a staging directory. Unlike ``--prefix``, which creates a structure with lib,
+      bin, and other standard directories, ``--target`` installs directly into the
+      specified directory. If you need to upgrade packages, use ``--target`` with ``--upgrade``.
+
 #. Install from alternative package repositories.
 
    Install from a different index, and not `PyPI`_

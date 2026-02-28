@@ -110,9 +110,14 @@ class InstallCommand(RequirementCommand):
             default=None,
             help=(
                 "Install packages into <dir>. "
+                "This option can be used to install packages into a custom path, "
+                "such as a custom Python environment, application-specific directory, "
+                "or a location you're preparing for deployment. "
                 "By default this will not replace existing files/folders in "
                 "<dir>. Use --upgrade to replace existing packages in <dir> "
-                "with new versions."
+                "with new versions. "
+                "Unlike --prefix or --root, --target installs directly into the "
+                "specified directory without using site-packages paths."
             ),
         )
         cmdoptions.add_target_python_options(self.cmd_opts)
@@ -139,7 +144,12 @@ class InstallCommand(RequirementCommand):
             dest="root_path",
             metavar="dir",
             default=None,
-            help="Install everything relative to this alternate root directory.",
+            help=(
+                "Install everything relative to this alternate root directory. "
+                "This option is useful for creating a staged installation for packaging, "
+                "where the installed files maintain their structure relative to the root. "
+                "Cannot be used with --user or --target."
+            ),
         )
         self.cmd_opts.add_option(
             "--prefix",
@@ -148,9 +158,13 @@ class InstallCommand(RequirementCommand):
             default=None,
             help=(
                 "Installation prefix where lib, bin and other top-level "
-                "folders are placed. Note that the resulting installation may "
+                "folders are placed. This option is useful when you want to install "
+                "packages with a structure similar to a virtual environment or Python "
+                "installation, with lib, bin, and other standard directories created "
+                "automatically. Note that the resulting installation may "
                 "contain scripts and other resources which reference the "
                 "Python interpreter of pip, and not that of ``--prefix``. "
+                "If you just want to install packages into a flat directory, use --target instead. "
                 "See also the ``--python`` option if the intention is to "
                 "install packages into another (possibly pip-free) "
                 "environment."
