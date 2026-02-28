@@ -97,6 +97,7 @@ def _eagerly_import_modules() -> None:
         # Imported by standard library machinery:
         "encodings.iso8859_15",
         "_suggestions",
+        "gc",
     ]
     for module in known_possible_imports:
         try:
