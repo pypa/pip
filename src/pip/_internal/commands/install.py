@@ -91,6 +91,7 @@ def _eagerly_import_modules() -> None:
         # Imported directly by pip:
         "netrc",
         "difflib",
+        "distutils.command.build",
         # Imported by vendored packaging:
         "_manylinux",
         # Imported by standard library machinery:
