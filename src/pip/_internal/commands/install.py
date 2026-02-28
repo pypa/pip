@@ -92,6 +92,8 @@ def _eagerly_import_modules() -> None:
         "netrc",
         "difflib",
         "distutils.command.build",
+        # Vendored module
+        "pip._vendor.rich._windows_renderer",
         # Imported by vendored packaging:
         "_manylinux",
         # Imported by standard library machinery:
