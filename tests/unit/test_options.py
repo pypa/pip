@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from optparse import Values
@@ -11,7 +12,9 @@ import pytest
 
 import pip._internal.configuration
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.base_command import Command
 from pip._internal.cli.main import main
+from pip._internal.cli.status_codes import VIRTUALENV_NOT_FOUND
 from pip._internal.commands import create_command
 from pip._internal.commands.configuration import ConfigurationCommand
 from pip._internal.exceptions import CommandError, PipError
@@ -491,6 +494,112 @@ class TestGeneralOptions(AddFakeCommandMixin):
             tuple[Values, list[str]], main(["fake", "--client-cert", "path"])
         )
         assert options1.client_cert == options2.client_cert == "path"
+
+
+class TestRequireVirtualenv(AddFakeCommandMixin):
+    """
+    Tests for the --require-virtualenv option and the ignore_require_venv
+    command attribute.
+    """
+
+    def test_require_virtualenv_with_venv(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test --require-virtualenv when inside a virtualenv."""
+        # Mock running_under_virtualenv to return True (we're in a venv)
+        monkeypatch.setattr(
+            "pip._internal.cli.base_command.running_under_virtualenv",
+            lambda: True,
+        )
+        # Should not raise SystemExit
+        options, args = cast(
+            tuple[Values, list[str]], main(["--require-virtualenv", "fake"])
+        )
+        assert options.require_venv
+
+    def test_require_virtualenv_without_venv(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test --require-virtualenv when outside a virtualenv."""
+        # Mock running_under_virtualenv to return False (not in a venv)
+        monkeypatch.setattr(
+            "pip._internal.cli.base_command.running_under_virtualenv",
+            lambda: False,
+        )
+        # Should raise SystemExit with VIRTUALENV_NOT_FOUND code
+        with pytest.raises(SystemExit) as excinfo:
+            main(["--require-virtualenv", "fake"])
+        assert excinfo.value.code == VIRTUALENV_NOT_FOUND
+
+    def test_require_virtualenv_with_command_ignoring_venv(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test --require-virtualenv with a command that ignores it.
+
+        When a command has ignore_require_venv = True, it should not
+        raise an error even when --require-virtualenv is used outside a venv.
+        """
+        # Mock running_under_virtualenv to return False
+        monkeypatch.setattr(
+            "pip._internal.cli.base_command.running_under_virtualenv",
+            lambda: False,
+        )
+
+        # Create a custom command that ignores require_venv
+        from pip._internal.commands import CommandInfo, commands_dict
+
+        class CustomIgnoreCommand(Command):
+            ignore_require_venv = True
+
+            def run(self, options: Values, args: list[str]) -> int:
+                return 0
+
+        # Register the custom command
+        commands_dict["custom_ignore"] = CommandInfo(
+            "tests.lib.options_helpers",
+            "CustomIgnoreCommand",
+            "custom command that ignores venv",
+        )
+
+        try:
+            # This should not raise SystemExit because ignore_require_venv = True
+            options, args = cast(
+                tuple[Values, list[str]],
+                main(["--require-virtualenv", "fake"]),
+            )
+            assert options.require_venv
+        finally:
+            # Clean up
+            commands_dict.pop("custom_ignore", None)
+
+    def test_require_virtualenv_not_set(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that absence of --require-virtualenv doesn't trigger venv check."""
+        # Mock running_under_virtualenv to return False
+        monkeypatch.setattr(
+            "pip._internal.cli.base_command.running_under_virtualenv",
+            lambda: False,
+        )
+        # Should not raise even when outside venv if --require-virtualenv not used
+        options, args = cast(
+            tuple[Values, list[str]], main(["fake"])
+        )
+        assert not options.require_venv
+
+    def test_require_virtualenv_attribute_default_value(self) -> None:
+        """Test that ignore_require_venv defaults to False for most commands."""
+        cmd = Command("test", "test command")
+        assert cmd.ignore_require_venv is False
+
+    def test_require_virtualenv_attribute_can_be_overridden(self) -> None:
+        """Test that ignore_require_venv can be set to True."""
+
+        class CustomCommand(Command):
+            ignore_require_venv = True
+
+        cmd = CustomCommand("custom", "custom command")
+        assert cmd.ignore_require_venv is True
 
 
 class TestOptionsConfigFiles:
