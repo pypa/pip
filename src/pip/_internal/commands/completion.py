@@ -33,7 +33,9 @@ COMPLETION_SCRIPTS = {
           __pip "$@"
         else
           # eval/source/. command, register function for later
-          compdef __pip -P 'pip[0-9.]#'
+          if (( ${{+functions[compdef]}} )); then
+            compdef __pip -P 'pip[0-9.]#'
+          fi
         fi
     """,
     "fish": """
