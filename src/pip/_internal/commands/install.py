@@ -6,8 +6,10 @@ import operator
 import os
 import shutil
 import site
+import sys
 from optparse import SUPPRESS_HELP, Values
 from pathlib import Path
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
@@ -61,6 +63,63 @@ from pip._internal.utils.virtualenv import (
 from pip._internal.wheel_builder import build
 
 logger = getLogger(__name__)
+
+
+_PREVENT_IMPORT_HOOK_ACTIVE = False
+_MISSING_MODULES = set()
+
+
+def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
+    if name == "import":
+        if args[0] in _MISSING_MODULES:
+            raise ImportError(f"No module named {args[0]!r}")
+        logger.error(
+            "Error while installing, unexpected import detected: %r."
+            "Please file an issue on pip's issue tracker: "
+            "https://github.com/pypa/pip/issues/new",
+            args[0],
+        )
+        sys.exit(1)
+
+
+def _eagerly_import_modules() -> None:
+    """
+    Eagerly import modules that may be imported later in the installation process.
+    """
+    global _MISSING_MODULES
+    known_possible_imports = [
+        # Imported directly by pip:
+        "netrc",
+        "difflib",
+        # Imported by vendored packaging:
+        "_manylinux",
+        # Imported by standard library machinery:
+        "encodings.iso8859_15",
+        "_suggestions",
+    ]
+    for module in known_possible_imports:
+        try:
+            __import__(module)
+        except ImportError:
+            # If the module doesn't currently exist preserve that
+            # information to the prevent import hook can raise an
+            # ImportError rather than trying to import it again.
+            _MISSING_MODULES.add(module)
+
+
+def _prevent_further_imports() -> None:
+    """
+    After calling this new imports will raise a SystemExit.
+
+    First we must eagerly import possible future imports, these
+    are imports that are called lazily after the installation step.
+    """
+    global _PREVENT_IMPORT_HOOK_ACTIVE
+    if _PREVENT_IMPORT_HOOK_ACTIVE:
+        return
+
+    _PREVENT_IMPORT_HOOK_ACTIVE = True
+    sys.addaudithook(_prevent_import_hook)
 
 
 class InstallCommand(RequirementCommand):
@@ -458,6 +517,13 @@ class InstallCommand(RequirementCommand):
             warn_script_location = options.warn_script_location
             if options.target_dir or options.prefix_path:
                 warn_script_location = False
+
+            # Prevent further imports so we don't accidentally
+            # import something that was just installed
+            try:
+                _eagerly_import_modules()
+            finally:
+                _prevent_further_imports()
 
             installed = install_given_reqs(
                 to_install,
