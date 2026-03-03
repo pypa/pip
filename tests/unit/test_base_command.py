@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import importlib
 import logging
 import os
 import time
-import importlib
 from collections.abc import Iterator
 from optparse import Values
 from pathlib import Path
@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import pip._internal.cli.base_command as base_command
+from pip._internal.cli import base_command
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS, VIRTUALENV_NOT_FOUND
 from pip._internal.commands import commands_dict, create_command

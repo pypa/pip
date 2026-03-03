@@ -7,10 +7,10 @@ from textwrap import dedent
 
 import pytest
 
-from pip._internal.commands import commands_dict
 from pip._internal.cli.status_codes import VIRTUALENV_NOT_FOUND
+from pip._internal.commands import commands_dict
 
-from tests.lib import PipTestEnvironment
+from tests.lib import PipTestEnvironment, TestPipResult
 
 
 @pytest.mark.parametrize(
@@ -57,7 +57,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
 
 def _run_pip_without_virtualenv(
     script: PipTestEnvironment, *args: str, expect_error: bool = False
-):
+) -> TestPipResult:
     test_script = script.scratch_path / "run_pip_without_virtualenv.py"
     test_script.write_text(
         dedent(
