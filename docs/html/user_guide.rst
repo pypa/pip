@@ -356,21 +356,24 @@ Filtering by Upload Time
 .. versionadded:: 26.0
 
 The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
-to an index, only considering packages that were uploaded before a specified datetime.
+to an index, only considering packages that were uploaded before a specified value.
 This can be useful for creating reproducible builds by ensuring you only install
-packages that were available at a known point in time.
+packages that were available at a known point in time, or as a dependency cooldown to
+protect against supply chain attacks.
 
 .. tab:: Unix/macOS
 
    .. code-block:: shell
 
       python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      python -m pip install --uploaded-prior-to=P7D SomePackage
 
 .. tab:: Windows
 
    .. code-block:: shell
 
       py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      py -m pip install --uploaded-prior-to=P7D SomePackage
 
 The option accepts ISO 8601 datetime strings in several formats:
 
@@ -378,6 +381,14 @@ The option accepts ISO 8601 datetime strings in several formats:
 * ``2025-03-16T12:30:00`` - Datetime in local timezone
 * ``2025-03-16T12:30:00Z`` - Datetime in UTC
 * ``2025-03-16T12:30:00+05:00`` - Datetime in UTC offset
+
+It also accepts ISO 8601 durations in the ``PnD`` format, where ``n`` is the number of
+days. This provides a dependency cooldown: a rolling window that only considers packages
+uploaded at least ``n`` days ago.
+
+* ``P3D`` - 3 days ago
+* ``P7D`` - 7 days ago
+* ``P30D`` - 30 days ago
 
 For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
 format (with timezone offset like '+05:00'). Local timezone formats may produce different
