@@ -40,7 +40,7 @@ As the makers of software that is used by millions of people worldwide and with 
 No matter what LLM vendors or boosters on LinkedIn tell you, we have to manually review every change before merging, because it's our responsibility to keep the project stable.
 
 Please understand that by opening low-quality pull requests you're not helping anyone.
-Worse, you're [poisoning the open source ecosystem](https://lwn.net/SubscriberLink/1058266/cfe99725c2855d66/) that was precarious even before the arrival of LLM tools.
+Worse, you're [poisoning the open source ecosystem](https://lwn.net/Articles/1058266/) that was precarious even before the arrival of LLM tools.
 Having to wade through plausible-looking-but-low-quality pull requests and trying to determine which ones are legit is extremely demoralizing and has already burned out many good maintainers.
 
 Put bluntly, we have no time or interest to become part of your vibe coding loop where you drop LLM slop at our door, we spend time and energy to review it, and you just feed it back into the LLM for another iteration.
