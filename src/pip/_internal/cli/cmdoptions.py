@@ -14,7 +14,9 @@ from __future__ import annotations
 import logging
 import os
 import pathlib
+import re
 import textwrap
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
@@ -459,6 +461,66 @@ def _handle_uploaded_prior_to(
         raise_option_error(parser, option=option, msg=msg)
 
 
+def _handle_min_release_age(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    This is an optparse.Option callback for the --min-release-age option.
+
+    Parses a time span string and converts it to an absolute datetime.
+    Accepts formats like '7' (days), '7d', '168h', '10080m'.
+    """
+
+    if value is None:
+        return None
+
+    value = value.strip().lower()
+
+    # Try plain number (interpreted as days)
+    try:
+        days = float(value)
+        if days < 0:
+            raise ValueError("time span must be non-negative")
+        delta = timedelta(days=days)
+    except ValueError:
+        # Parse with unit suffix
+        match = re.match(r"^(\d+(?:\.\d+)?)\s*([a-z]+)$", value)
+        if not match:
+            msg = (
+                f"invalid value: {value!r}. "
+                f"Expected a number (days) or time span with unit "
+                f"(e.g., '7', '7d', '168h', '10080m')"
+            )
+            raise_option_error(parser, option=option, msg=msg)
+
+        amount, unit = match.groups()
+        amount = float(amount)
+
+        if amount < 0:
+            msg = f"invalid value: {value!r}. Time span must be non-negative"
+            raise_option_error(parser, option=option, msg=msg)
+
+        # Map units to timedelta
+        if unit in ("d", "day", "days"):
+            delta = timedelta(days=amount)
+        elif unit in ("h", "hour", "hours"):
+            delta = timedelta(hours=amount)
+        elif unit in ("m", "min", "minute", "minutes"):
+            delta = timedelta(minutes=amount)
+        elif unit in ("w", "week", "weeks"):
+            delta = timedelta(weeks=amount)
+        else:
+            msg = (
+                f"invalid value: {value!r}. Unknown unit: {unit!r}. "
+                f"Supported: d/days, h/hours, m/minutes, w/weeks"
+            )
+            raise_option_error(parser, option=option, msg=msg)
+
+    # Convert to absolute datetime and set uploaded_prior_to
+    cutoff = datetime.now(timezone.utc) - delta
+    parser.values.uploaded_prior_to = cutoff
+
+
 def uploaded_prior_to() -> Option:
     return Option(
         "--uploaded-prior-to",
@@ -472,6 +534,25 @@ def uploaded_prior_to() -> Option:
             "Accepts ISO 8601 strings (e.g., '2023-01-01T00:00:00Z'). "
             "Uses local timezone if none specified. Only effective when "
             "installing from indexes that provide upload-time metadata."
+        ),
+    )
+
+
+def min_release_age() -> Option:
+    return Option(
+        "--min-release-age",
+        dest="min_release_age",
+        metavar="timespan",
+        action="callback",
+        callback=_handle_min_release_age,
+        type="str",
+        help=(
+            "Only consider packages released at least the given time span ago. "
+            "Accepts time spans like '3d' (days), '168h' (hours), '10080m' "
+            "(minutes), or plain numbers interpreted as days (e.g., '3' means 3"
+            "days). Equivalent to --uploaded-prior-to with a relative time."
+            "Only effective when installing from indexes that provide "
+            "upload-time metadata."
         ),
     )
 
@@ -1251,6 +1332,7 @@ index_group: dict[str, Any] = {
         no_index,
         find_links,
         uploaded_prior_to,
+        min_release_age,
     ],
 }
 

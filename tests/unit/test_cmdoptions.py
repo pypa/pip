@@ -10,6 +10,7 @@ import pytest
 
 from pip._internal.cli.cmdoptions import (
     _convert_python_version,
+    _handle_min_release_age,
     _handle_uploaded_prior_to,
 )
 from pip._internal.cli.main_parser import identify_python_interpreter
@@ -139,3 +140,79 @@ def test_handle_uploaded_prior_to_invalid_dates(invalid_value: str) -> None:
 
     with pytest.raises(SystemExit):
         _handle_uploaded_prior_to(option, opt, invalid_value, parser)
+
+
+@pytest.mark.parametrize(
+    "value, expected_days",
+    [
+        ("7", 7.0),
+        ("7d", 7.0),
+        ("7days", 7.0),
+        ("168h", 7.0),
+        ("168hours", 7.0),
+        ("10080m", 7.0),
+        ("10080minutes", 7.0),
+        ("1w", 7.0),
+        ("1week", 7.0),
+        ("3.5", 3.5),
+        ("3.5d", 3.5),
+    ],
+)
+def test_handle_min_release_age_valid_timespans(
+    value: str, expected_days: float
+) -> None:
+    """Test that valid time span strings are parsed correctly."""
+    option = Option("--min-release-age", dest="min_release_age")
+    opt = "--min-release-age"
+    parser = OptionParser()
+    parser.values = Values()
+
+    _handle_min_release_age(option, opt, value, parser)
+
+    result = parser.values.uploaded_prior_to
+    assert isinstance(result, datetime.datetime)
+    assert result.tzinfo is not None
+
+    # Verify the result is approximately expected_days ago
+    expected = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+        days=expected_days
+    )
+    # Allow 1 second tolerance for test execution time
+    assert abs((result - expected).total_seconds()) < 1
+
+
+@pytest.mark.parametrize(
+    "invalid_value",
+    [
+        "not-a-number",
+        "-5",  # Negative value
+        "-7d",  # Negative with unit
+        "7x",  # Unknown unit
+        "7unknown",  # Unknown unit
+        "",  # Empty string
+        "d7",  # Unit before number
+    ],
+)
+def test_handle_min_release_age_invalid_values(invalid_value: str) -> None:
+    """Test that invalid time span strings raise SystemExit via raise_option_error."""
+    option = Option("--min-release-age", dest="min_release_age")
+    opt = "--min-release-age"
+    parser = OptionParser()
+    parser.values = Values()
+
+    with pytest.raises(SystemExit):
+        _handle_min_release_age(option, opt, invalid_value, parser)
+
+
+def test_handle_min_release_age_sets_uploaded_prior_to() -> None:
+    """Test that min_release_age sets uploaded_prior_to internally."""
+    option = Option("--min-release-age", dest="min_release_age")
+    opt = "--min-release-age"
+    parser = OptionParser()
+    parser.values = Values()
+
+    _handle_min_release_age(option, opt, "7", parser)
+
+    # Verify uploaded_prior_to is set (not min_release_age)
+    assert hasattr(parser.values, "uploaded_prior_to")
+    assert isinstance(parser.values.uploaded_prior_to, datetime.datetime)
