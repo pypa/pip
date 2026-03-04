@@ -1,0 +1,1 @@
+Allow ``--uploaded-prior-to`` to accept ISO 8601 durations (e.g., ``P7D``) as a dependency cooldown.
