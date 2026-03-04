@@ -44,7 +44,7 @@ Worse, you're [poisoning the open source ecosystem](https://lwn.net/Articles/105
 Having to wade through plausible-looking-but-low-quality pull requests and trying to determine which ones are legit is extremely demoralizing and has already burned out many good maintainers.
 
 In partcular, note that [code reviews are a social process](https://blog.glyph.im/2026/03/what-is-code-review-for.html) and are *not* intended
-to catch bugs in PRs creted by an LLM. If you submit a pull request, we expect you to engage with reviewers and learn from the review, not
+to catch bugs in PRs created by an LLM. If you submit a pull request, we expect you to engage with reviewers and learn from the review, not
 simply update the prompt that generated the PR and regenerate the code.
 
 Put bluntly, we have no time or interest to become part of your vibe coding loop where you drop LLM slop at our door, we spend time and energy to review it, and you just feed it back into the LLM for another iteration.
