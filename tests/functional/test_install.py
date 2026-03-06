@@ -354,7 +354,10 @@ def test_install_warns_on_unexpected_post_install_import(
     result = script.run(
         "python", str(runner), str(wheel_path.parent), expect_stderr=True
     )
-    assert "Unexpected import detected during install" in result.stderr
+    assert (
+        "Unexpected import of 'pip_unexpected_module_xyz' detected during install"
+        in result.stderr
+    )
 
 
 def test_install_exit_status_code_when_no_requirements(
