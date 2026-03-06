@@ -45,6 +45,7 @@ from pip._internal.req.req_install import (
     InstallRequirement,
 )
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -88,11 +89,11 @@ def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
     if name == "import":
         if args[0] in _MISSING_MODULES:
             raise ImportError(f"No module named {args[0]!r}")
-        logger.warning(
-            "Unexpected import detected during install: %r. "
-            "Please file an issue on pip's issue tracker: "
-            "https://github.com/pypa/pip/issues/new",
-            args[0],
+        deprecated(
+            reason=f"Unexpected import of {args[0]!r} detected during install.",
+            replacement=None,
+            gone_in="26.3",
+            issue=13842,
         )
 
 
