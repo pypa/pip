@@ -310,11 +310,11 @@ def test_pip_second_command_line_interface_works(
     result.did_create(initools_folder)
 
 
-def test_install_errors_on_unexpected_post_install_import(
+def test_install_warns_on_unexpected_post_install_import(
     script: PipTestEnvironment,
 ) -> None:
     """
-    Test that pip exits with an error when an unexpected module import is
+    Test that pip emits a warning when an unexpected module import is
     triggered after install_given_reqs() completes, validating that the
     audit hook registered by _prevent_further_imports() catches imports that
     could come from newly installed packages.
@@ -326,9 +326,14 @@ def test_install_errors_on_unexpected_post_install_import(
             """\
             import sys
             import pip._internal.commands.install as _install_mod
+            _orig_get_environment = _install_mod.get_environment
 
             def _patched_get_environment(lib_locations):
-                import pip_unexpected_module_xyz  # noqa
+                try:
+                    import pip_unexpected_module_xyz
+                except ModuleNotFoundError:
+                    pass
+                return _orig_get_environment(lib_locations)
 
             _install_mod.get_environment = _patched_get_environment
 
@@ -347,10 +352,9 @@ def test_install_errors_on_unexpected_post_install_import(
     )
 
     result = script.run(
-        "python", str(runner), str(wheel_path.parent), expect_error=True
+        "python", str(runner), str(wheel_path.parent), expect_stderr=True
     )
-    assert result.returncode != 0
-    assert "unexpected import detected" in result.stderr
+    assert "Unexpected import detected during install" in result.stderr
 
 
 def test_install_exit_status_code_when_no_requirements(

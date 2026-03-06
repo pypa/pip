@@ -1,4 +1,5 @@
 import errno
+import logging
 import sys
 from unittest import mock
 
@@ -189,10 +190,12 @@ def test_create_os_error_message(
     assert msg == expected
 
 
-def test_prevent_further_imports_raises_system_exit_on_import() -> None:
+def test_prevent_further_imports_warns_on_import(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """
     Test that an import attempted after _prevent_further_imports() is called
-    triggers a SystemExit via the registered audit hook.
+    emits a warning via the registered audit hook.
     """
     captured_hooks: list[mock.Mock] = []
 
@@ -202,5 +205,8 @@ def test_prevent_further_imports_raises_system_exit_on_import() -> None:
     assert len(captured_hooks) == 1, "Expected exactly one audit hook to be registered"
     audit_hook = captured_hooks[0]
 
-    with pytest.raises(SystemExit):
+    with caplog.at_level(logging.WARNING, logger="pip._internal.commands.install"):
         audit_hook("import", ("unknown_module",))
+
+    assert len(caplog.records) == 1
+    assert "unknown_module" in caplog.records[0].message

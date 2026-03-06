@@ -68,18 +68,32 @@ logger = getLogger(__name__)
 _PREVENT_IMPORT_HOOK_ACTIVE = False
 _MISSING_MODULES = set()
 
+_KNOWN_POSSIBLE_IMPORTS: tuple[str, ...] = (
+    # Imported directly by pip:
+    "netrc",
+    "difflib",
+    "distutils.command.build",
+    # Vendored module
+    "pip._vendor.rich._windows_renderer",
+    # Imported by vendored packaging:
+    "_manylinux",
+    # Imported by standard library machinery:
+    "encodings.iso8859_15",
+    "_suggestions",
+    "gc",
+)
+
 
 def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
     if name == "import":
         if args[0] in _MISSING_MODULES:
             raise ImportError(f"No module named {args[0]!r}")
-        logger.error(
-            "Error while installing, unexpected import detected: %r."
+        logger.warning(
+            "Unexpected import detected during install: %r. "
             "Please file an issue on pip's issue tracker: "
             "https://github.com/pypa/pip/issues/new",
             args[0],
         )
-        sys.exit(1)
 
 
 def _eagerly_import_modules() -> None:
@@ -87,21 +101,7 @@ def _eagerly_import_modules() -> None:
     Eagerly import modules that may be imported later in the installation process.
     """
     global _MISSING_MODULES
-    known_possible_imports = [
-        # Imported directly by pip:
-        "netrc",
-        "difflib",
-        "distutils.command.build",
-        # Vendored module
-        "pip._vendor.rich._windows_renderer",
-        # Imported by vendored packaging:
-        "_manylinux",
-        # Imported by standard library machinery:
-        "encodings.iso8859_15",
-        "_suggestions",
-        "gc",
-    ]
-    for module in known_possible_imports:
+    for module in _KNOWN_POSSIBLE_IMPORTS:
         try:
             __import__(module)
         except ImportError:
@@ -113,7 +113,7 @@ def _eagerly_import_modules() -> None:
 
 def _prevent_further_imports() -> None:
     """
-    After calling this new imports will raise a SystemExit.
+    After calling this new imports will emit a warning.
 
     First we must eagerly import possible future imports, these
     are imports that are called lazily after the installation step.
