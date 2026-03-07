@@ -82,6 +82,29 @@ test-common-wheels = [
     "keyring",
 ]
 
+typecheck = [
+    {include-group = "test"},
+    "keyring",  # An optional runtime dependency.
+    "nox",
+    "packaging",
+    "httpx",
+    "rich",
+    "types-PyYAML",
+]
+
+# Stubs which get vendored into pip for `nox -s typecheck`.
+# See the typecheck session in noxfile.py.
+typecheck-vendored-stubs = [
+    "types-docutils",  # via sphinx (test dependency)
+    "types-requests",  # vendored
+    # vendored
+    # can be removed when we upgrade to urllib3 >= 2.0
+    "types-urllib3==1.*",
+    "types-setuptools",  # test dependency and used in distutils_hack
+    "types-six",  # via python-dateutil via freezegun (test dependency)
+    "types-PyYAML",  # update-rtd-redirects dependency
+]
+
 docs = [
     "sphinx ~= 7.0",
     # currently incompatible with sphinxcontrib-towncrier
