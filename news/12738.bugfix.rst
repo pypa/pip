@@ -1,0 +1,2 @@
+Fix zsh completion setup to avoid startup errors when the completion system
+isn't initialized yet.
