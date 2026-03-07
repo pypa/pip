@@ -1,0 +1,1 @@
+Fix minor grammar issues in dependency-resolution documentation.

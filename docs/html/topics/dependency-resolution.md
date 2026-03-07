@@ -120,16 +120,14 @@ In most cases, pip will complete the backtracking process successfully.
 This could take a very long time to complete, so this may not be your
 preferred option.
 
-However, it is a possible that pip will not be able to find a set of
-compatible versions. For this, pip will try every possible combination that
-it needs to and determine that there is no compatible set.
+However, it is possible that pip will not be able to find a set of compatible versions. For this, pip will try every possible combination that it needs to and determine that there is no compatible set.
 
 If you'd prefer not to wait, you can interrupt pip (Ctrl+c) and try the
 strategies listed below.
 
 ### Reduce the number of versions pip is trying to use
 
-It is usually a good idea to add constraints the package(s) that pip is backtracking on (e.g. in the above example - `cup`).
+It is usually a good idea to add constraints to the package(s) that pip is backtracking on (e.g. in the above example - `cup`).
 
 You could try something like:
 
