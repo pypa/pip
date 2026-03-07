@@ -32,8 +32,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
-      - run: pip install nox
-      - run: nox -s docs
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s docs
 
   determine-changes:
     runs-on: ubuntu-22.04
@@ -79,9 +80,10 @@ jobs:
           git config --global user.email "pypa-dev@googlegroups.com"
           git config --global user.name "pip"
 
-      - run: pip install nox
-      - run: nox -s prepare-release -- 99.9
-      - run: nox -s build-release -- 99.9
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s prepare-release -- 99.9
+      - run: python -m nox -s build-release -- 99.9
       - run: pipx run check-sdist
 
   vendoring:
@@ -99,8 +101,9 @@ jobs:
         with:
           python-version: "3.x"
 
-      - run: pip install nox
-      - run: nox -s vendoring
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s vendoring
       - run: git diff --exit-code
 
   tests-unix:
@@ -146,17 +149,18 @@ jobs:
           fi
           brew install ${DEPS}
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python.key || matrix.python }} --
+          python -m nox -s test-${{ matrix.python.key || matrix.python }} --
           tests/unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
+          python -m nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
           tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=15
@@ -207,19 +211,20 @@ jobs:
           winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
           echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run unit tests (group 1)
         if: matrix.group.number == 1
         run: >-
-          nox -s test-${{ matrix.python }} --
+          python -m nox -s test-${{ matrix.python }} --
           tests/unit
           --verbose --numprocesses auto --showlocals
 
       - name: Run integration tests (group ${{ matrix.group.number }})
         run: >-
-          nox -s test-${{ matrix.python }} --no-install --
+          python -m nox -s test-${{ matrix.python }} --no-install --
           tests/functional -k "${{ matrix.group.pytest-filter }}"
           --verbose --numprocesses auto --showlocals --durations=15
 
@@ -244,12 +249,13 @@ jobs:
       - name: Install MacOS dependencies
         run: brew install breezy subversion
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run integration tests
         run: >-
-          nox -s test-3.10 --
+          python -m nox -s test-3.10 --
           tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=15
