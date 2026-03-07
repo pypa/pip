@@ -455,6 +455,20 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     else:
         lib_dir = scheme.platlib
 
+    # Parse RECORD file for hash verification (PEP 427).
+    # We read the RECORD from the wheel zip *before* extracting files so we
+    # can verify each file's integrity as it is written to disk.
+    distribution = get_wheel_distribution(
+        FilesystemWheel(wheel_path),
+        canonicalize_name(name),
+    )
+    record_text = distribution.read_text("RECORD")
+    record_rows = list(csv.reader(record_text.splitlines()))
+    record_hashes: dict[RecordPath, str] = {}
+    for row in record_rows:
+        if len(row) >= 2 and row[1]:
+            record_hashes[cast("RecordPath", row[0])] = row[1]
+
     # Record details of the files moved
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
@@ -552,11 +566,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     other_scheme_files = map(make_data_scheme_file, other_scheme_paths)
     files = chain(files, other_scheme_files)
 
-    # Get the defined entry points
-    distribution = get_wheel_distribution(
-        FilesystemWheel(wheel_path),
-        canonicalize_name(name),
-    )
+    # Get the defined entry points (reuse the distribution parsed earlier)
     console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(file: File) -> bool:
@@ -592,6 +602,26 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
             ensure_dir(parent_dir)
             existing_parents.add(parent_dir)
         file.save()
+
+        # Verify the extracted file's hash against RECORD (PEP 427).
+        # Files that have empty hashes in RECORD (e.g. the RECORD file
+        # itself) are skipped.
+        expected_hash = record_hashes.get(file.src_record_path)
+        if expected_hash and not file.changed:
+            algo, _, expected_digest = expected_hash.partition("=")
+            if algo == "sha256":
+                h, _ = hash_file(file.dest_path)
+                actual_digest = (
+                    urlsafe_b64encode(h.digest()).decode("latin1").rstrip("=")
+                )
+                if actual_digest != expected_digest:
+                    raise InstallationError(
+                        f"RECORD hash mismatch for {file.src_record_path!r} "
+                        f"in {wheel_path!r}: expected {expected_hash}, got "
+                        f"{algo}={actual_digest}. The wheel may be corrupted "
+                        f"or tampered with."
+                    )
+
         record_installed(file.src_record_path, file.dest_path, file.changed)
 
     def pyc_source_file_paths() -> Generator[str, None, None]:
@@ -691,8 +721,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
             pass
         generated.append(requested_path)
 
-    record_text = distribution.read_text("RECORD")
-    record_rows = list(csv.reader(record_text.splitlines()))
+    # Reuse the record_rows parsed earlier for hash verification
 
     rows = get_csv_rows_for_installed(
         record_rows,
