@@ -703,7 +703,7 @@ class PipTestEnvironment(TestFileEnvironment):
             args = (self.zipapp,) + args
         elif use_module:
             exe = "python"
-            args = ("-m", "pip") + args
+            args = ("-m", "pip", "--disable-pip-version-check") + args
         else:
             exe = "pip"
         return self.run(exe, *(os.fspath(a) for a in args), **kwargs)
