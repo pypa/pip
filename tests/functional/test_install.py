@@ -958,7 +958,7 @@ def test_install_pre__setup_requires_with_pyproject(
     pyproject_path = local_dir.joinpath("pyproject.toml")
     pyproject_path.write_text(
         "[build-system]\n"
-        f'requires = ["setuptools", "wheel", "{depends_package}"]\n'
+        f'requires = ["setuptools", "{depends_package}"]\n'
         'build-backend = "setuptools.build_meta"\n'
     )
     setup_py_path = local_dir.joinpath("setup.py")
@@ -2066,7 +2066,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
         "which are not also hosted on PyPI."
     )
     error_cause = (
-        "pep-508-url-deps depends on sampleproject@ "
+        "pep-508-url-deps depends on sampleproject @ "
         "https://github.com/pypa/sampleproject/archive/master.zip"
     )
     assert res.returncode == 1

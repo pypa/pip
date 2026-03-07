@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pip._internal.models.format_control import FormatControl
+from pip._internal.models.release_control import ReleaseControl
 
 
 # TODO: This needs Python 3.10's improved slots support for dataclasses
@@ -13,7 +14,7 @@ class SelectionPreferences:
 
     __slots__ = [
         "allow_yanked",
-        "allow_all_prereleases",
+        "release_control",
         "format_control",
         "prefer_binary",
         "ignore_requires_python",
@@ -26,7 +27,7 @@ class SelectionPreferences:
     def __init__(
         self,
         allow_yanked: bool,
-        allow_all_prereleases: bool = False,
+        release_control: ReleaseControl | None = None,
         format_control: FormatControl | None = None,
         prefer_binary: bool = False,
         ignore_requires_python: bool | None = None,
@@ -35,6 +36,8 @@ class SelectionPreferences:
 
         :param allow_yanked: Whether files marked as yanked (in the sense
             of PEP 592) are permitted to be candidates for install.
+        :param release_control: A ReleaseControl object or None. Used to control
+            whether pre-releases are allowed for specific packages.
         :param format_control: A FormatControl object or None. Used to control
             the selection of source packages / binary packages when consulting
             the index and links.
@@ -47,7 +50,7 @@ class SelectionPreferences:
             ignore_requires_python = False
 
         self.allow_yanked = allow_yanked
-        self.allow_all_prereleases = allow_all_prereleases
+        self.release_control = release_control
         self.format_control = format_control
         self.prefer_binary = prefer_binary
         self.ignore_requires_python = ignore_requires_python

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import pathlib
@@ -30,6 +31,7 @@ from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
@@ -93,6 +95,7 @@ def make_test_finder(
     allow_all_prereleases: bool = False,
     session: PipSession | None = None,
     target_python: TargetPython | None = None,
+    uploaded_prior_to: datetime.datetime | None = None,
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -102,15 +105,22 @@ def make_test_finder(
         index_urls=index_urls,
         session=session,
     )
+
+    # Convert allow_all_prereleases to release_control
+    release_control = ReleaseControl()
+    if allow_all_prereleases:
+        release_control.all_releases.add(":all:")
+
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
-        allow_all_prereleases=allow_all_prereleases,
+        release_control=release_control,
     )
 
     return PackageFinder.create(
         link_collector=link_collector,
         selection_prefs=selection_prefs,
         target_python=target_python,
+        uploaded_prior_to=uploaded_prior_to,
     )
 
 
@@ -725,6 +735,27 @@ class PipTestEnvironment(TestFileEnvironment):
         if not build_isolation:
             cmd.insert(1, "--no-build-isolation")
         return self.pip(*cmd, **kwargs)
+
+    def pip_install_local_report(
+        self,
+        *args: StrPath,
+        find_links: StrPath | list[StrPath] = pathlib.Path(DATA_DIR, "packages"),
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """
+        Invoke pip install with --dry-run --report and return parsed JSON report.
+        Includes --no-index and --find-links like pip_install_local.
+        """
+        result = self.pip_install_local(
+            "--dry-run",
+            "--report",
+            "-",
+            "--quiet",
+            *args,
+            find_links=find_links,
+            **kwargs,
+        )
+        return json.loads(result.stdout)
 
     def easy_install(self, *args: str, **kwargs: Any) -> TestPipResult:
         args = ("-m", "easy_install") + args

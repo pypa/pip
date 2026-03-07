@@ -1,2 +1,0 @@
-Support installing dependencies declared with inline script metadata
-(:pep:`723`) with ``--requirements-from-script``.

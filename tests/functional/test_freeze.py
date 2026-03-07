@@ -141,10 +141,12 @@ def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> 
 def test_freeze_multiple_exclude_with_all(script: PipTestEnvironment) -> None:
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
-    assert "wheel==" in result.stdout
-    result = script.pip("freeze", "--all", "--exclude", "pip", "--exclude", "wheel")
+    assert "setuptools==" in result.stdout
+    result = script.pip(
+        "freeze", "--all", "--exclude", "pip", "--exclude", "setuptools"
+    )
     assert "pip==" not in result.stdout
-    assert "wheel==" not in result.stdout
+    assert "setuptools==" not in result.stdout
 
 
 def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
