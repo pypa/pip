@@ -475,7 +475,19 @@ class Factory:
                 (or link) and one with the extra. This allows centralized constraint
                 handling for the base, resulting in fewer candidate rejections.
         """
-        if not ireq.match_markers(requested_extras):
+        try:
+            match_markers = ireq.match_markers(requested_extras)
+        except InvalidVersion as e:
+            logger.info(
+                "Ignoring %s: markers '%s' don't match your environment "
+                "due to a version parsing error (%s). "
+                "https://github.com/pypa/packaging/issues/774",
+                ireq.name,
+                ireq.markers,
+                e,
+            )
+            return
+        if not match_markers:
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
                 ireq.name,
