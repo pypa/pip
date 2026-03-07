@@ -189,6 +189,10 @@ def test_install_special_extra(
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
     ) in result.stderr, str(result)
+    assert "No matching distribution found for missing_pkg" in result.stderr, str(
+        result
+    )
+    assert "extra ==" not in result.stderr, str(result)
 
 
 @pytest.mark.network
