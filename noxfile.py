@@ -169,6 +169,7 @@ def test(session: nox.Session) -> None:
         *arguments,
         env={
             "LC_CTYPE": "en_US.UTF-8",
+            "PYTHON_WARN_DEFAULT_ENCODING": "1",
         },
     )
 
