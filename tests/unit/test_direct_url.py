@@ -4,7 +4,6 @@ from pip._internal.models.direct_url import (
     ArchiveInfo,
     DirectUrl,
     DirectUrlValidationError,
-    DirInfo,
     VcsInfo,
 )
 
@@ -13,14 +12,14 @@ def test_from_json() -> None:
     json = '{"url": "file:///home/user/project", "dir_info": {}}'
     direct_url = DirectUrl.from_json(json)
     assert direct_url.url == "file:///home/user/project"
-    assert isinstance(direct_url.info, DirInfo)
-    assert direct_url.info.editable is False
+    assert direct_url.dir_info
+    assert not direct_url.dir_info.editable
 
 
 def test_to_json() -> None:
     direct_url = DirectUrl(
         url="file:///home/user/archive.tgz",
-        info=ArchiveInfo(),
+        archive_info=ArchiveInfo(),
     )
     direct_url.validate()
     assert direct_url.to_json() == (
@@ -34,16 +33,12 @@ def test_archive_info() -> None:
         "archive_info": {"hash": "sha1=1b8c5bc61a86f377fea47b4276c8c8a5842d2220"},
     }
     direct_url = DirectUrl.from_dict(direct_url_dict)
-    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.archive_info
     assert direct_url.url == direct_url_dict["url"]
-    assert (
-        direct_url.info.hash == direct_url_dict["archive_info"]["hash"]  # type: ignore
-    )
     # test we add the hashes key automatically
-    direct_url_dict["archive_info"]["hashes"] = {  # type: ignore
+    assert direct_url.archive_info.hashes == {
         "sha1": "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
     }
-    assert direct_url.to_dict() == direct_url_dict
 
 
 def test_dir_info() -> None:
@@ -52,15 +47,15 @@ def test_dir_info() -> None:
         "dir_info": {"editable": True},
     }
     direct_url = DirectUrl.from_dict(direct_url_dict)
-    assert isinstance(direct_url.info, DirInfo)
+    assert direct_url.dir_info
     assert direct_url.url == direct_url_dict["url"]
-    assert direct_url.info.editable is True
-    assert direct_url.to_dict() == direct_url_dict
+    assert direct_url.dir_info.editable is True
+    assert direct_url.to_dict_compat() == direct_url_dict
     # test editable default to False
     direct_url_dict = {"url": "file:///home/user/project", "dir_info": {}}
     direct_url = DirectUrl.from_dict(direct_url_dict)
-    assert isinstance(direct_url.info, DirInfo)
-    assert direct_url.info.editable is False
+    assert direct_url.dir_info
+    assert not direct_url.dir_info.editable
 
 
 def test_vcs_info() -> None:
@@ -73,38 +68,54 @@ def test_vcs_info() -> None:
         },
     }
     direct_url = DirectUrl.from_dict(direct_url_dict)
-    assert isinstance(direct_url.info, VcsInfo)
+    assert direct_url.vcs_info
     assert direct_url.url == direct_url_dict["url"]
-    assert direct_url.info.vcs == "git"
-    assert direct_url.info.requested_revision == "master"
-    assert direct_url.info.commit_id == "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
-    assert direct_url.to_dict() == direct_url_dict
+    assert direct_url.vcs_info.vcs == "git"
+    assert direct_url.vcs_info.requested_revision == "master"
+    assert direct_url.vcs_info.commit_id == "1b8c5bc61a86f377fea47b4276c8c8a5842d2220"
+    assert direct_url.to_dict_compat() == direct_url_dict
 
 
 def test_parsing_validation() -> None:
-    with pytest.raises(DirectUrlValidationError, match="url must have a value"):
+    with pytest.raises(
+        DirectUrlValidationError, match="Missing required value in 'url'"
+    ):
         DirectUrl.from_dict({"dir_info": {}})
     with pytest.raises(
         DirectUrlValidationError,
-        match="missing one of archive_info, dir_info, vcs_info",
+        match="Exactly one of vcs_info, archive_info, dir_info must be present",
     ):
         DirectUrl.from_dict({"url": "http://..."})
-    with pytest.raises(DirectUrlValidationError, match="unexpected type for editable"):
+    with pytest.raises(
+        DirectUrlValidationError,
+        match=r"Unexpected type str \(expected bool\) in 'dir_info\.editable'",
+    ):
         DirectUrl.from_dict({"url": "http://...", "dir_info": {"editable": "false"}})
-    with pytest.raises(DirectUrlValidationError, match="unexpected type for hash"):
+    with pytest.raises(
+        DirectUrlValidationError,
+        match=r"Unexpected type int \(expected str\) in 'archive_info\.hash'",
+    ):
         DirectUrl.from_dict({"url": "http://...", "archive_info": {"hash": 1}})
-    with pytest.raises(DirectUrlValidationError, match="unexpected type for vcs"):
+    with pytest.raises(
+        DirectUrlValidationError, match=r"Missing required value in 'vcs_info\.vcs'"
+    ):
         DirectUrl.from_dict({"url": "http://...", "vcs_info": {"vcs": None}})
-    with pytest.raises(DirectUrlValidationError, match="commit_id must have a value"):
+    with pytest.raises(
+        DirectUrlValidationError,
+        match=r"Missing required value in 'vcs_info\.commit_id'",
+    ):
         DirectUrl.from_dict({"url": "http://...", "vcs_info": {"vcs": "git"}})
     with pytest.raises(
         DirectUrlValidationError,
-        match="more than one of archive_info, dir_info, vcs_info",
+        match="Exactly one of vcs_info, archive_info, dir_info must be present",
     ):
         DirectUrl.from_dict({"url": "http://...", "dir_info": {}, "archive_info": {}})
     with pytest.raises(
         DirectUrlValidationError,
-        match="invalid archive_info.hash format",
+        match=(
+            r"Invalid hash format \(expected '<algorithm>=<hash>'\) "
+            r"in 'archive_info\.hash'"
+        ),
     ):
         DirectUrl.from_dict(
             {"url": "http://...", "archive_info": {"hash": "sha256:aaa"}}
@@ -115,16 +126,16 @@ def test_redact_url() -> None:
     def _redact_git(url: str) -> str:
         direct_url = DirectUrl(
             url=url,
-            info=VcsInfo(vcs="git", commit_id="1"),
+            vcs_info=VcsInfo(vcs="git", commit_id="1"),
         )
-        return direct_url.redacted_url
+        return direct_url.to_dict()["url"]
 
     def _redact_archive(url: str) -> str:
         direct_url = DirectUrl(
             url=url,
-            info=ArchiveInfo(),
+            archive_info=ArchiveInfo(),
         )
-        return direct_url.redacted_url
+        return direct_url.to_dict()["url"]
 
     assert (
         _redact_git("https://user:password@g.c/u/p.git@branch#egg=pkg")
@@ -140,33 +151,3 @@ def test_redact_url() -> None:
         == "https://${PIP_TOKEN}@g.c/u/p.git"
     )
     assert _redact_git("ssh://git@g.c/u/p.git") == "ssh://git@g.c/u/p.git"
-
-
-def test_hash_to_hashes() -> None:
-    direct_url = DirectUrl(url="https://e.c/archive.tar.gz", info=ArchiveInfo())
-    assert isinstance(direct_url.info, ArchiveInfo)
-    direct_url.info.hash = "sha256=abcdef"
-    assert direct_url.info.hashes == {"sha256": "abcdef"}
-
-
-def test_hash_to_hashes_constructor() -> None:
-    direct_url = DirectUrl(
-        url="https://e.c/archive.tar.gz", info=ArchiveInfo(hash="sha256=abcdef")
-    )
-    assert isinstance(direct_url.info, ArchiveInfo)
-    assert direct_url.info.hashes == {"sha256": "abcdef"}
-    direct_url = DirectUrl(
-        url="https://e.c/archive.tar.gz",
-        info=ArchiveInfo(hash="sha256=abcdef", hashes={"sha512": "123456"}),
-    )
-    assert isinstance(direct_url.info, ArchiveInfo)
-    assert direct_url.info.hashes == {"sha256": "abcdef", "sha512": "123456"}
-    # In case of conflict between hash and hashes, hashes wins.
-    direct_url = DirectUrl(
-        url="https://e.c/archive.tar.gz",
-        info=ArchiveInfo(
-            hash="sha256=abcdef", hashes={"sha256": "012345", "sha512": "123456"}
-        ),
-    )
-    assert isinstance(direct_url.info, ArchiveInfo)
-    assert direct_url.info.hashes == {"sha256": "012345", "sha512": "123456"}

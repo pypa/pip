@@ -15,7 +15,7 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.metadata.base import FilesystemWheel
-from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, ArchiveInfo
+from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME
 
 from tests.lib.wheel import make_wheel
 
@@ -91,7 +91,7 @@ def test_dist_get_direct_url_valid_metadata(mock_read_text: mock.Mock) -> None:
     assert direct_url is not None
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)
     assert direct_url.url == "https://e.c/p.tgz"
-    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.archive_info
 
 
 def test_metadata_dict(tmp_path: Path) -> None:
