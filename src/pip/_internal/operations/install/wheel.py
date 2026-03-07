@@ -600,8 +600,10 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         # Sorting installation paths makes it easier to reproduce and debug
         # issues related to permissions on existing files.
         for installed_path in sorted(set(installed.values())):
-            full_installed_path = os.path.join(lib_dir, installed_path)
+            full_installed_path = os.path.abspath(os.path.join(lib_dir, installed_path))
             if not os.path.isfile(full_installed_path):
+                continue
+            if lib_dir != os.path.commonpath([lib_dir, full_installed_path]):
                 continue
             if not full_installed_path.endswith(".py"):
                 continue
