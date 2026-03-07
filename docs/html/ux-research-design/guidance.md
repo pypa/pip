@@ -424,7 +424,7 @@ The following copywriting Style Guides may be useful to the pip team:
 - [Simply Secure: Feedback Gathering Guide](https://simplysecure.org/blog/feedback-gathering-guide)
 - [Simply Secure: Getting Quick Tool Feedback](https://simplysecure.org/blog/design-spot-tool-feedback)
 - [Internews: UX Feedback Collection Guidebook](https://globaltech.internews.org/our-resources/ux-feedback-collection-guidebook)
-- [Simply Secure: Knowledge Base](http://simplysecure.org/knowledge-base/)
+- [Simply Secure: Knowledge Base](https://simplysecure.org/knowledge-base/)
 - [Open Source Design](https://opensourcedesign.net/resources/)
 - [Nielsen Norman Group](https://www.nngroup.com/articles/)
 - [Interaction Design Foundation](https://www.interaction-design.org/literature)
