@@ -1,0 +1,2 @@
+Emit a deprecation warning when an unexpected module import is detected during
+package installation.
