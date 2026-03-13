@@ -121,7 +121,7 @@ def common_wheels(session: nox.Session) -> None:
     get_common_wheels(session)
 
 
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     get_common_wheels(session)
