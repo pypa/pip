@@ -104,7 +104,7 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
+    name: tests / ${{ matrix.python.version || matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     needs: [determine-changes]
@@ -123,12 +123,24 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+        include:
+          # Test the first release of each Python minor version to
+          # catch issues with backports and bug fixes.
+          # Note: 3.9.0 and 3.10.0 are not available on ubuntu-22.04+ runners.
+          - os: ubuntu-22.04
+            python: { key: "3.11", version: "3.11.0" }
+          - os: ubuntu-22.04
+            python: { key: "3.12", version: "3.12.0" }
+          - os: ubuntu-22.04
+            python: { key: "3.13", version: "3.13.0" }
+          - os: ubuntu-22.04
+            python: { key: "3.14", version: "3.14.0" }
 
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
