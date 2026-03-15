@@ -297,6 +297,13 @@ class Factory:
             return candidate
 
         def iter_index_candidate_infos() -> Iterator[IndexCandidateInfo]:
+            session = self._finder._link_collector.session
+
+            if getattr(session, "index_access_failed", False) and not prefers_installed:
+                raise InstallationError(
+                    "Failed to access package index while checking for upgrades."
+                )
+
             result = self._finder.find_best_candidate(
                 project_name=name,
                 specifier=specifier,

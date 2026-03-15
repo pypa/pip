@@ -361,6 +361,7 @@ def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | Non
         )
     except NetworkConnectionError as exc:
         _handle_get_simple_fail(link, exc)
+        session.index_access_failed = True
     except RetryError as exc:
         _handle_get_simple_fail(link, exc)
     except SSLError as exc:
@@ -369,8 +370,10 @@ def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | Non
         _handle_get_simple_fail(link, reason, meth=logger.info)
     except requests.ConnectionError as exc:
         _handle_get_simple_fail(link, f"connection error: {exc}")
+        session.index_access_failed = True
     except requests.Timeout:
         _handle_get_simple_fail(link, "timed out")
+        session.index_access_failed = True
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None

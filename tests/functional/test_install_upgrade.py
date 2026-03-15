@@ -251,6 +251,29 @@ def test_upgrade_to_same_version_from_url(script: PipTestEnvironment) -> None:
     assert_all_changes(result, result3, [script.venv / "build", "cache"])
 
 
+@pytest.mark.network
+def test_upgrade_fails_if_index_unreachable(script: PipTestEnvironment) -> None:
+    """
+    pip should fail during upgrade if the index cannot be accessed.
+    """
+
+    result = script.pip("install", "INITools==0.2")
+    result.did_create(script.site_packages / "initools")
+
+    result2 = script.pip(
+        "install",
+        "--upgrade",
+        "--index-url",
+        "http://127.0.0.1:9/simple",
+        "INITools",
+        expect_error=True,
+    )
+
+    assert (
+        "Failed to access package index while checking for upgrades." in result2.stderr
+    )
+
+
 def test_upgrade_from_reqs_file(script: PipTestEnvironment) -> None:
     """
     Upgrade from a requirements file.
