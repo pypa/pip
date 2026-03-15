@@ -77,13 +77,22 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     # needs to go into), we patch the check to always raise a simple message.
     virtualenv.sitecustomize = textwrap.dedent(
         """\
-        from pip._internal.exceptions import ExternallyManagedEnvironment
-        from pip._internal.utils import misc
+        import sys
+        print("SITECUSTOMIZE_DEBUG: loading from", __file__, file=sys.stderr)
+        try:
+            from pip._internal.exceptions import ExternallyManagedEnvironment
+            from pip._internal.utils import misc
 
-        def check_externally_managed():
-            raise ExternallyManagedEnvironment("I am externally managed")
+            original = misc.check_externally_managed
+            print(f"SITECUSTOMIZE_DEBUG: original={original}", file=sys.stderr)
 
-        misc.check_externally_managed = check_externally_managed
+            def check_externally_managed():
+                raise ExternallyManagedEnvironment("I am externally managed")
+
+            misc.check_externally_managed = check_externally_managed
+            print(f"SITECUSTOMIZE_DEBUG: patched={misc.check_externally_managed}", file=sys.stderr)
+        except Exception as exc:
+            print(f"SITECUSTOMIZE_DEBUG: FAILED: {exc}", file=sys.stderr)
         """
     )
     _debug_venv_sitecustomize(virtualenv)
@@ -100,7 +109,11 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
 )
 @pytest.mark.usefixtures("patch_check_externally_managed")
 def test_fails(script: PipTestEnvironment, arguments: list[str]) -> None:
-    result = script.pip(*arguments, "pip", expect_error=True)
+    result = script.pip(*arguments, "pip", allow_error=True, allow_stderr_warning=True)
+    print(f"[debug] test_fails exit code: {result.returncode}")
+    print(f"[debug] test_fails stdout: {result.stdout}")
+    print(f"[debug] test_fails stderr: {result.stderr}")
+    assert result.returncode != 0, "pip should have failed but succeeded"
     assert "I am externally managed" in result.stderr
 
 
