@@ -1,11 +1,73 @@
 import json
 import pathlib
+import subprocess
 import textwrap
 
 import pytest
 
 from tests.lib import PipTestEnvironment, create_basic_wheel_for_package
 from tests.lib.venv import VirtualEnvironment
+
+_DEBUG_SCRIPT = textwrap.dedent("""\
+    import importlib
+    import os
+    import sys
+    import sysconfig
+
+    info = {
+        "sys.path": sys.path,
+        "sys.prefix": sys.prefix,
+        "sys.base_prefix": sys.base_prefix,
+        "is_venv": sys.prefix != sys.base_prefix,
+        "has_real_prefix": hasattr(sys, "real_prefix"),
+        "stdlib": sysconfig.get_path("stdlib"),
+    }
+
+    # Which sitecustomize does Python resolve?
+    spec = importlib.util.find_spec("sitecustomize")
+    if spec is not None:
+        info["sitecustomize_origin"] = spec.origin
+    else:
+        info["sitecustomize_origin"] = None
+
+    # Is there a sitecustomize.py in the stdlib dir?
+    stdlib_sc = os.path.join(sysconfig.get_path("stdlib"), "sitecustomize.py")
+    info["stdlib_sitecustomize_exists"] = os.path.isfile(stdlib_sc)
+
+    # Did the monkey-patch take effect?
+    from pip._internal.utils import misc
+    try:
+        misc.check_externally_managed()
+        info["patch_active"] = False
+        info["patch_detail"] = "returned without raising"
+    except Exception as exc:
+        info["patch_active"] = "externally managed" in str(exc).lower()
+        info["patch_detail"] = f"{type(exc).__name__}: {exc}"
+
+    import json
+    print(json.dumps(info, indent=2))
+""")
+
+
+def _debug_venv_sitecustomize(virtualenv: VirtualEnvironment) -> None:
+    """Print diagnostic info about sitecustomize resolution in the venv."""
+    python = str(virtualenv.bin / "python")
+
+    # Dump the sitecustomize.py we wrote
+    sc_path = virtualenv.site / "sitecustomize.py"
+    if sc_path.exists():
+        print(f"[debug] venv sitecustomize.py ({sc_path}):")
+        print(sc_path.read_text())
+
+    # Run the debug script inside the venv's Python
+    result = subprocess.run(
+        [python, "-c", _DEBUG_SCRIPT],
+        capture_output=True,
+        text=True,
+    )
+    print(f"[debug] diagnostics stdout:\n{result.stdout}")
+    if result.stderr:
+        print(f"[debug] diagnostics stderr:\n{result.stderr}")
 
 
 @pytest.fixture
@@ -24,6 +86,7 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
         misc.check_externally_managed = check_externally_managed
         """
     )
+    _debug_venv_sitecustomize(virtualenv)
 
 
 @pytest.mark.parametrize(
