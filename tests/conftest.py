@@ -183,7 +183,7 @@ def tmp_path_factory(
 def tmpdir_factory(tmp_path_factory: pytest.TempPathFactory) -> pytest.TempPathFactory:
     """Override Pytest's ``tmpdir_factory`` with our pathlib implementation.
 
-    This prevents mis-use of this fixture.
+    This prevents misuse of this fixture.
     """
     return tmp_path_factory
 
@@ -211,7 +211,7 @@ def tmp_path(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
 def tmpdir(tmp_path: Path) -> Path:
     """Override Pytest's ``tmpdir`` with our pathlib implementation.
 
-    This prevents mis-use of this fixture.
+    This prevents misuse of this fixture.
     """
     return tmp_path
 
