@@ -9,7 +9,8 @@ from tests.lib import PipTestEnvironment, create_basic_wheel_for_package
 from tests.lib.venv import VirtualEnvironment
 
 _DEBUG_SCRIPT = textwrap.dedent("""\
-    import importlib
+    import importlib.util
+    import json
     import os
     import sys
     import sysconfig
@@ -44,7 +45,6 @@ _DEBUG_SCRIPT = textwrap.dedent("""\
         info["patch_active"] = "externally managed" in str(exc).lower()
         info["patch_detail"] = f"{type(exc).__name__}: {exc}"
 
-    import json
     print(json.dumps(info, indent=2))
 """)
 
