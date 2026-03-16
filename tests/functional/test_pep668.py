@@ -80,7 +80,20 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
         import atexit
         import sys
 
+        import os
         print("SC_DEBUG: loading from", __file__, file=sys.stderr)
+        print(f"SC_DEBUG: PIP_BREAK_SYSTEM_PACKAGES="
+              f"{os.environ.get('PIP_BREAK_SYSTEM_PACKAGES', '<unset>')}",
+              file=sys.stderr)
+
+        # Check for pip config files
+        for p in ['/etc/pip.conf', '/etc/xdg/pip/pip.conf',
+                  os.path.expanduser('~/.config/pip/pip.conf'),
+                  os.path.expanduser('~/.pip/pip.conf')]:
+            if os.path.isfile(p):
+                with open(p) as f:
+                    print(f"SC_DEBUG: config {p}:\n{f.read()}", file=sys.stderr)
+
         try:
             from pip._internal.exceptions import ExternallyManagedEnvironment
             from pip._internal.utils import misc
