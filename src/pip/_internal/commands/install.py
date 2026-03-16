@@ -298,6 +298,15 @@ class InstallCommand(RequirementCommand):
             installing_into_current_environment
             and not options.override_externally_managed
         ):
+            import sys
+            from pip._internal.utils import misc as _misc_debug
+
+            print(
+                f"INSTALL_DEBUG: check_externally_managed id={id(check_externally_managed):#x}"
+                f" misc.check_externally_managed id={id(_misc_debug.check_externally_managed):#x}"
+                f" same={check_externally_managed is _misc_debug.check_externally_managed}",
+                file=sys.stderr,
+            )
             check_externally_managed()
 
         upgrade_strategy = "to-satisfy-only"
