@@ -84,13 +84,19 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
             from pip._internal.utils import misc
 
             original = misc.check_externally_managed
-            print(f"SITECUSTOMIZE_DEBUG: original={original}", file=sys.stderr)
+            print(f"SITECUSTOMIZE_DEBUG: original id={id(original):#x}", file=sys.stderr)
 
             def check_externally_managed():
+                print("SITECUSTOMIZE_DEBUG: patched function CALLED", file=sys.stderr)
                 raise ExternallyManagedEnvironment("I am externally managed")
 
             misc.check_externally_managed = check_externally_managed
-            print(f"SITECUSTOMIZE_DEBUG: patched={misc.check_externally_managed}", file=sys.stderr)
+            print(f"SITECUSTOMIZE_DEBUG: patched id={id(check_externally_managed):#x}", file=sys.stderr)
+
+            # Also check what install.py will see: patch at module level
+            # to survive 'from ... import' style imports
+            print(f"SITECUSTOMIZE_DEBUG: sys.modules keys with 'install': "
+                  f"{[k for k in sys.modules if 'install' in k]}", file=sys.stderr)
         except Exception as exc:
             print(f"SITECUSTOMIZE_DEBUG: FAILED: {exc}", file=sys.stderr)
         """
