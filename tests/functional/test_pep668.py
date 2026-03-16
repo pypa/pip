@@ -77,28 +77,57 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     # needs to go into), we patch the check to always raise a simple message.
     virtualenv.sitecustomize = textwrap.dedent(
         """\
+        import atexit
         import sys
-        print("SITECUSTOMIZE_DEBUG: loading from", __file__, file=sys.stderr)
+
+        print("SC_DEBUG: loading from", __file__, file=sys.stderr)
         try:
             from pip._internal.exceptions import ExternallyManagedEnvironment
             from pip._internal.utils import misc
 
-            original = misc.check_externally_managed
-            print(f"SITECUSTOMIZE_DEBUG: original id={id(original):#x}", file=sys.stderr)
+            _patched_misc = misc
+            _patched_misc_id = id(misc)
 
             def check_externally_managed():
-                print("SITECUSTOMIZE_DEBUG: patched function CALLED", file=sys.stderr)
+                print("SC_DEBUG: patched function CALLED", file=sys.stderr)
                 raise ExternallyManagedEnvironment("I am externally managed")
 
+            _patched_func = check_externally_managed
             misc.check_externally_managed = check_externally_managed
-            print(f"SITECUSTOMIZE_DEBUG: patched id={id(check_externally_managed):#x}", file=sys.stderr)
 
-            # Also check what install.py will see: patch at module level
-            # to survive 'from ... import' style imports
-            print(f"SITECUSTOMIZE_DEBUG: sys.modules keys with 'install': "
-                  f"{[k for k in sys.modules if 'install' in k]}", file=sys.stderr)
+            print(f"SC_DEBUG: patched misc id={_patched_misc_id:#x} "
+                  f"file={misc.__file__}", file=sys.stderr)
+            print(f"SC_DEBUG: func id={id(_patched_func):#x}", file=sys.stderr)
+
+            def _atexit_debug():
+                # Check the state at process exit
+                import sys as _sys
+                misc_at_exit = _sys.modules.get('pip._internal.utils.misc')
+                install_mod = _sys.modules.get('pip._internal.commands.install')
+                print(f"SC_DEBUG_ATEXIT: misc in sys.modules: "
+                      f"id={id(misc_at_exit):#x} "
+                      f"same_as_patched={misc_at_exit is _patched_misc}",
+                      file=_sys.stderr)
+                if misc_at_exit is not None:
+                    cem = getattr(misc_at_exit, 'check_externally_managed', None)
+                    print(f"SC_DEBUG_ATEXIT: misc.check_externally_managed "
+                          f"id={id(cem):#x} "
+                          f"is_patched={cem is _patched_func}",
+                          file=_sys.stderr)
+                if install_mod is not None:
+                    cem_install = getattr(install_mod, 'check_externally_managed', None)
+                    print(f"SC_DEBUG_ATEXIT: install.check_externally_managed "
+                          f"id={id(cem_install):#x} "
+                          f"is_patched={cem_install is _patched_func}",
+                          file=_sys.stderr)
+                else:
+                    print("SC_DEBUG_ATEXIT: install module not in sys.modules",
+                          file=_sys.stderr)
+
+            atexit.register(_atexit_debug)
+
         except Exception as exc:
-            print(f"SITECUSTOMIZE_DEBUG: FAILED: {exc}", file=sys.stderr)
+            print(f"SC_DEBUG: FAILED: {exc}", file=sys.stderr)
         """
     )
     _debug_venv_sitecustomize(virtualenv)
