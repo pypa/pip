@@ -51,7 +51,7 @@ def create_package_set_from_installed() -> tuple[PackageSet, bool]:
         try:
             dependencies = list(dist.iter_dependencies())
             package_set[name] = PackageDetails(dist.version, dependencies)
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError, TypeError) as e:
             # Don't crash on unreadable or broken metadata.
             logger.warning("Error parsing dependencies of %s: %s", name, e)
             problems = True

@@ -186,7 +186,10 @@ class Distribution(BaseDistribution):
 
     @property
     def version(self) -> Version:
-        return parse_version(self._dist.version)
+        raw = self._dist.version
+        if raw is None:
+            raise ValueError(f"Package {self.raw_name!r} has no version metadata")
+        return parse_version(raw)
 
     @property
     def raw_version(self) -> str:
