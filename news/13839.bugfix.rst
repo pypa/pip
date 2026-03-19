@@ -1,0 +1,1 @@
+"Invalidate self-check cache when local pip version changes to avoid false upgrade warnings." 
