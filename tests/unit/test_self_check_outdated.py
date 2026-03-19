@@ -114,7 +114,7 @@ def test_core_logic(
         )
 
     # THEN
-    mock_state.get.assert_called_once_with(fake_time)
+    mock_state.get.assert_called_once_with(fake_time, installed_version)
     assert caplog.messages == [
         f"Remote version of pip: {version_that_should_be_checked}",
         f"Local version of pip:  {installed_version}",
@@ -125,7 +125,7 @@ def test_core_logic(
         mock_state.set.assert_not_called()
     else:
         mock_state.set.assert_called_once_with(
-            version_that_should_be_checked, fake_time
+            version_that_should_be_checked, fake_time, installed_version
         )
 
     if not should_show_prompt:
@@ -178,6 +178,7 @@ class TestSelfCheckState:
         state.set(
             "1.0.0",
             datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+            "1.0"
         )
 
         # THEN
@@ -188,6 +189,7 @@ class TestSelfCheckState:
             "key": sys.prefix,
             "last_check": "2000-01-01T00:00:00+00:00",
             "pypi_version": "1.0.0",
+            "pip_version": "1.0"
         }
         # Check that the self-check cache entries inherit the root cache permissions.
         statefile_permissions = os.stat(expected_path).st_mode & 0o666
