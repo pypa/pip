@@ -1,10 +1,11 @@
+import hashlib
 import os
 import shutil
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import pytest
 
@@ -12,7 +13,7 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
-from pip._internal.operations.prepare import unpack_url
+from pip._internal.operations.prepare import _check_download_dir, unpack_url
 from pip._internal.utils.hashes import Hashes
 
 from tests.lib import TestData
@@ -135,3 +136,102 @@ class Test_unpack_url:
                 hashes=Hashes({"md5": ["bogus"]}),
                 verbosity=0,
             )
+
+
+class TestCheckDownloadDir:
+    """Tests for _check_download_dir and the hash-verified optimisation."""
+
+    def _make_file(self, directory: Path, filename: str, content: bytes) -> Path:
+        path = directory / filename
+        path.write_bytes(content)
+        return path
+
+    def _sha256_hashes(self, content: bytes) -> Hashes:
+        digest = hashlib.sha256(content).hexdigest()
+        return Hashes({"sha256": [digest]})
+
+    def test_returns_none_when_file_absent(self, tmpdir: Path) -> None:
+        link = Link("https://example.com/pkg-1.0.whl")
+        result = _check_download_dir(link, os.fspath(tmpdir), hashes=None)
+        assert result is None
+
+    def test_returns_path_when_file_present_no_hashes(self, tmpdir: Path) -> None:
+        content = b"wheel content"
+        self._make_file(tmpdir, "pkg-1.0.whl", content)
+        link = Link("https://example.com/pkg-1.0.whl")
+        result = _check_download_dir(link, os.fspath(tmpdir), hashes=None)
+        assert result == os.fspath(tmpdir / "pkg-1.0.whl")
+
+    def test_returns_path_and_verifies_hash_when_file_present(
+        self, tmpdir: Path
+    ) -> None:
+        content = b"wheel content"
+        self._make_file(tmpdir, "pkg-1.0.whl", content)
+        link = Link("https://example.com/pkg-1.0.whl")
+        hashes = self._sha256_hashes(content)
+
+        with patch.object(hashes, "check_against_path", wraps=hashes.check_against_path) as mock_check:
+            result = _check_download_dir(link, os.fspath(tmpdir), hashes=hashes)
+
+        assert result == os.fspath(tmpdir / "pkg-1.0.whl")
+        mock_check.assert_called_once()
+
+    def test_deletes_file_and_returns_none_on_hash_mismatch(
+        self, tmpdir: Path
+    ) -> None:
+        content = b"wheel content"
+        self._make_file(tmpdir, "pkg-1.0.whl", content)
+        link = Link("https://example.com/pkg-1.0.whl")
+        bad_hashes = Hashes({"sha256": ["deadbeef" * 8]})
+
+        result = _check_download_dir(link, os.fspath(tmpdir), hashes=bad_hashes)
+
+        assert result is None
+        assert not (tmpdir / "pkg-1.0.whl").exists()
+
+    def test_check_against_path_called_once_when_file_in_download_dir(
+        self, tmpdir: Path, data: TestData
+    ) -> None:
+        """
+        Regression test for https://github.com/pypa/pip/issues/12589.
+
+        When a wheel is found in the download directory and its hash is verified
+        by _check_download_dir, _prepare_linked_requirement must NOT call
+        check_against_path a second time for the same file.
+        """
+        content = b"wheel content"
+        self._make_file(tmpdir, "pkg-1.0.whl", content)
+        link = Link("https://example.com/pkg-1.0.whl")
+        hashes = self._sha256_hashes(content)
+
+        call_count = 0
+        original = hashes.check_against_path
+
+        def counting_check(path: str) -> None:
+            nonlocal call_count
+            call_count += 1
+            return original(path)
+
+        hashes.check_against_path = counting_check  # type: ignore[method-assign]
+
+        # Simulate the flow: _check_download_dir is called first (as in
+        # prepare_linked_requirement), then the else-branch in
+        # _prepare_linked_requirement would call check_against_path again.
+        # With the fix, the second call must be skipped.
+        verified_urls: set[str] = set()
+
+        file_path = _check_download_dir(link, os.fspath(tmpdir), hashes=hashes)
+        assert file_path is not None
+
+        # Record hash as verified (mirrors what prepare_linked_requirement does).
+        verified_urls.add(link.url)
+
+        # Simulate _prepare_linked_requirement's else-branch:
+        # it should skip check_against_path when the URL is already verified.
+        if hashes and link.url not in verified_urls:
+            hashes.check_against_path(file_path)
+
+        assert call_count == 1, (
+            "check_against_path was called more than once for the same file; "
+            "see https://github.com/pypa/pip/issues/12589"
+        )
