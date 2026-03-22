@@ -122,7 +122,7 @@ def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) 
 
         module_file = item.module.__file__
         module_path = os.path.relpath(
-            module_file, os.path.commonprefix([__file__, module_file])
+            module_file, os.path.commonpath([__file__, module_file])
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
