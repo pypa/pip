@@ -42,7 +42,7 @@ jobs:
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
