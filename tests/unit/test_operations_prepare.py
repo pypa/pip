@@ -5,7 +5,7 @@ from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from typing import Any
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -170,15 +170,15 @@ class TestCheckDownloadDir:
         link = Link("https://example.com/pkg-1.0.whl")
         hashes = self._sha256_hashes(content)
 
-        with patch.object(hashes, "check_against_path", wraps=hashes.check_against_path) as mock_check:
+        with patch.object(
+            hashes, "check_against_path", wraps=hashes.check_against_path
+        ) as mock_check:
             result = _check_download_dir(link, os.fspath(tmpdir), hashes=hashes)
 
         assert result == os.fspath(tmpdir / "pkg-1.0.whl")
         mock_check.assert_called_once()
 
-    def test_deletes_file_and_returns_none_on_hash_mismatch(
-        self, tmpdir: Path
-    ) -> None:
+    def test_deletes_file_and_returns_none_on_hash_mismatch(self, tmpdir: Path) -> None:
         content = b"wheel content"
         self._make_file(tmpdir, "pkg-1.0.whl", content)
         link = Link("https://example.com/pkg-1.0.whl")
