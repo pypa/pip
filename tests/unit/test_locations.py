@@ -93,7 +93,7 @@ class TestLocations:
             assert _should_use_sysconfig() is False
 
     @pytest.mark.parametrize("vendor_value", [True, False, None, "", 0, 1])
-    def test_vendor_overriden_should_use_sysconfig(
+    def test_vendor_overridden_should_use_sysconfig(
         self, monkeypatch: pytest.MonkeyPatch, vendor_value: Any
     ) -> None:
         monkeypatch.setattr(

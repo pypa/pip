@@ -2310,7 +2310,7 @@ def test_install_yanked_file_and_print_warning(
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
-def test_yanked_version_missing_from_availble_versions_error_message(
+def test_yanked_version_missing_from_available_versions_error_message(
     script: PipTestEnvironment, data: TestData
 ) -> None:
     """
