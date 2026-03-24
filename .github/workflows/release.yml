@@ -5,6 +5,8 @@ on:
     tags:
       - "*"
 
+permissions: {}
+
 jobs:
   build:
     name: Build distribution 📦
