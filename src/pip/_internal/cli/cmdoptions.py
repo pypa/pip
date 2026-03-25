@@ -451,7 +451,7 @@ def _handle_uploaded_prior_to(
     # to disambiguate from absolute datetimes. Only whole days are supported;
     # the format may be extended to more of the ISO 8601 duration syntax in
     # the future if a real need is presented.
-    match = re.match(r"^P(\d+)D$", value)
+    match = re.match(r"^P(\d+)D$", value, re.ASCII)
     if match:
         days = int(match.group(1))
         parser.values.uploaded_prior_to = datetime.now(timezone.utc) - timedelta(
