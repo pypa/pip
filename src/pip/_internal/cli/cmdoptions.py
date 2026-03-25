@@ -437,7 +437,8 @@ def _handle_uploaded_prior_to(
     This is an optparse.Option callback for the --uploaded-prior-to option.
 
     Accepts either an ISO 8601 datetime string (e.g., '2023-01-01T00:00:00Z')
-    or an ISO 8601 duration in days (e.g., 'P7D' for 7 days ago).
+    or a strict subset of ISO 8601 durations: PnD where n is a number of days
+    (e.g., 'P7D' for 7 days ago).
 
     Note: This option only works with indexes that provide upload-time metadata
     as specified in the simple repository API:
@@ -446,11 +447,10 @@ def _handle_uploaded_prior_to(
     if value is None:
         return None
 
-    # Try ISO 8601 duration in PnD format (e.g., P7D for 7 days ago).
-    # This is a minimal subset of ISO 8601 durations, using the leading 'P'
-    # to disambiguate from absolute datetimes. Only whole days are supported;
-    # the format may be extended to more of the ISO 8601 duration syntax in
-    # the future if a real need is presented.
+    # Try ISO 8601 duration in PnD format. The leading 'P' disambiguates
+    # from absolute datetimes. Only whole days are supported; the format may
+    # be extended to more of the ISO 8601 duration syntax in the future if
+    # a real need is presented.
     match = re.match(r"^P(\d+)D$", value, re.ASCII)
     if match:
         days = int(match.group(1))
@@ -470,7 +470,7 @@ def _handle_uploaded_prior_to(
             f"invalid value: {value!r}: {exc}. "
             f"Expected an ISO 8601 datetime string "
             f"(e.g., '2023-01-01' or '2023-01-01T00:00:00Z') "
-            f"or an ISO 8601 duration in days (e.g., 'P7D')"
+            f"or a duration in days (e.g., 'P1D')"
         )
         raise_option_error(parser, option=option, msg=msg)
 
@@ -485,11 +485,11 @@ def uploaded_prior_to() -> Option:
         type="str",
         help=(
             "Only consider packages uploaded prior to the given value. "
-            "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z') "
-            "or an ISO 8601 duration in days as a cooldown period "
-            "(e.g., 'P7D' for 7 days). Uses local timezone if none "
-            "specified. Only effective when installing from indexes that "
-            "provide upload-time metadata."
+            "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
+            "uses local timezone if none specified) or a duration in days "
+            "(e.g., 'P1D' for packages uploaded at least 1 day ago). "
+            "Only effective when installing from indexes that provide "
+            "upload-time metadata."
         ),
     )
 
