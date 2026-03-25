@@ -1,1 +1,1 @@
-Allow ``--uploaded-prior-to`` to accept ISO 8601 durations (e.g., ``P7D``) as a dependency cooldown.
+Allow ``--uploaded-prior-to`` to accept a duration in days (e.g., ``P1D`` for 1 day ago).
