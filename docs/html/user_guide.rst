@@ -358,22 +358,21 @@ Filtering by Upload Time
 The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
 to an index, only considering packages that were uploaded before a specified value.
 This can be useful for creating reproducible builds by ensuring you only install
-packages that were available at a known point in time, or as a dependency cooldown to
-protect against supply chain attacks.
+packages that were available at a known point in time.
 
 .. tab:: Unix/macOS
 
    .. code-block:: shell
 
       python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
-      python -m pip install --uploaded-prior-to=P7D SomePackage
+      python -m pip install --uploaded-prior-to=P1D SomePackage
 
 .. tab:: Windows
 
    .. code-block:: shell
 
       py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
-      py -m pip install --uploaded-prior-to=P7D SomePackage
+      py -m pip install --uploaded-prior-to=P1D SomePackage
 
 The option accepts ISO 8601 datetime strings in several formats:
 
@@ -382,17 +381,26 @@ The option accepts ISO 8601 datetime strings in several formats:
 * ``2025-03-16T12:30:00Z`` - Datetime in UTC
 * ``2025-03-16T12:30:00+05:00`` - Datetime in UTC offset
 
-It also accepts ISO 8601 durations in the ``PnD`` format, where ``n`` is the number of
-days. This provides a dependency cooldown: a rolling window that only considers packages
-uploaded at least ``n`` days ago.
+It also accepts a duration in the ``PnD`` format, where ``n`` is the number of
+days. This only considers packages uploaded at least ``n`` days ago.
 
-* ``P3D`` - 3 days ago
-* ``P7D`` - 7 days ago
-* ``P30D`` - 30 days ago
+* ``P1D`` - uploaded at least 1 day ago
+* ``P7D`` - uploaded at least 7 days ago
+* ``P30D`` - uploaded at least 30 days ago
+
+To override a duration set in configuration, pass ``P0D`` on the command line.
 
 For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
 format (with timezone offset like '+05:00'). Local timezone formats may produce different
 results on different machines.
+
+.. warning::
+
+    While a duration can help protect against supply chain attacks by avoiding
+    newly published packages, it will also delay security fixes reaching your
+    environment. If you use this option, pair it with a vulnerability scanning
+    tool such as Dependabot or pip-audit so that you are notified of security
+    issues independently of your update schedule.
 
 .. note::
 
