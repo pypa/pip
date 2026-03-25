@@ -207,3 +207,21 @@ def test_handle_uploaded_prior_to_invalid_duration(invalid_value: str) -> None:
 
     with pytest.raises(SystemExit):
         _handle_uploaded_prior_to(option, opt, invalid_value, parser)
+
+
+def test_handle_uploaded_prior_to_p0d_overrides_duration() -> None:
+    """P0D on CLI overrides a previously set duration like P10D from env."""
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    _handle_uploaded_prior_to(option, opt, "P10D", parser)
+    p10d_result = parser.values.uploaded_prior_to
+
+    _handle_uploaded_prior_to(option, opt, "P0D", parser)
+    p0d_result = parser.values.uploaded_prior_to
+
+    assert p0d_result > p10d_result
+    now = datetime.datetime.now(datetime.timezone.utc)
+    assert abs((p0d_result - now).total_seconds()) < 1
