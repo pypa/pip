@@ -1,0 +1,165 @@
+abi <abi/4.0>,
+
+include <tunables/global>
+
+# - /usr/bin/pip, /usr/bin/pip3, /usr/bin/pip3.X
+# - /usr/local/bin/pip*
+# - python -m pip
+# but will only work if pip wrapped by a a distinct ELF
+@{pip_exe} = /usr/{local/,}bin/pip{,3{,.[0-9]{,[0-9]}}}{,-safe}
+
+profile pip @{pip_exe} flags=(attach_disconnected) {
+
+  # read/write/lock access to Python projects (to be configured inside `tunables/home.d/`
+  @{HOME}/@{python_project_dirs}{,/**} rwkl,
+
+  include <abstractions/base>
+  include <abstractions/python>
+
+  # Pip executable and Python interpreter
+  @{pip_exe} rmix,
+  # TODO: use a specific profile for Python execution or just inherit?
+  /usr/bin/python3{,.[0-9]{,[0-9]}} rix,
+
+
+  # Network access
+  network inet dgram,
+  network inet6 dgram,
+  network inet stream,
+  network inet6 stream,
+  network netlink raw,
+
+  # Terminal and random access
+  /dev/{null,tty,ptmx,urandom} rw,
+  /dev/pts/[0-9]* rw,
+  /usr/bin/stty rix,
+
+  # System configuration for networking
+  @{etc_ro}/{gnutls/config,ssl/openssl.cnf,host.conf,gai.conf,hosts,nsswitch.conf,resolv.conf} r,
+  @{etc_ro}/ssl/certs/** r,
+
+  # System information needed by pip
+  /usr/share/zoneinfo/** r,
+  /run/systemd/userdb/* r,
+  @{etc_ro}/timezone r,
+  @{etc_ro}/localtime r,
+
+  # Python configuration
+  /etc/python3*/** r,
+  /usr/lib/python3*/** r,
+
+  # Process information
+  owner @{PROC}/@{pid}/{maps,mountinfo,stat,status,cmdline} r,
+
+  # Locale and timezone
+  /usr/{lib,share}/locale/** r,
+  @{etc_ro}/{locale.alias,timezone,localtime} r,
+
+  # Common utilities for package installation (setup.py, build scripts)
+  /usr/bin/{bash,dash,sh,env,cat,echo,grep,sed,cut,dirname,basename,which*} rix,
+  /usr/bin/{cp,mv,mkdir,chmod,ln,touch,rm} rix,
+  /usr/bin/{tar,gzip,bzip2,xz,unzip} rix,
+  /usr/bin/{curl,wget} rix,
+
+  # Git for VCS installations (pip install git+https://...)
+  /usr/lib/git-core/git Px -> git-pip,
+  /usr/bin/git Px -> git-pip,
+
+  # conditional wheel building
+  # (whether pip install --only-binary or not)
+  include <local/python-build-wheel>
+
+  # SSL/TLS certificates for HTTPS downloads
+  /etc/ssl/certs/{,*} r,
+  /etc/ca-certificates/** r,
+  /usr/share/ca-certificates/** r,
+
+  # Pip cache and configuration
+  @{HOME}/.{cache,config}/pip{,/**} rwkl,
+  @{HOME}/.pip{,/**} rwkl,
+
+  # Python package directories (write access for installation)
+  @{HOME}/.local/lib/python3*/site-packages/** rwkl,
+  /usr/lib/python3*/site-packages/** r,
+  /usr/local/lib/python3*/site-packages/** rwkl,
+
+  # Virtual environments (scoped to project directories)
+  @{HOME}/@{python_project_dirs}/**/{venv,.venv,env}/** rwkl,
+
+  # read-only project files
+  @{HOME}/@{python_project_dirs}/**/requirements{,-dev,-test}.txt r,
+  @{HOME}/@{python_project_dirs}/**/setup.{py,cfg} r,
+  @{HOME}/@{python_project_dirs}/**/pyproject.toml r,
+  @{HOME}/@{python_project_dirs}/**/MANIFEST.in r,
+
+  # Temporary directories (downloads/unzip)
+  /tmp/pip-{download,unpack,target}-*/** rwkl,
+  /tmp/tmp*/** rwkl,
+  /var/tmp/** rwkl,
+
+  # Python bytecode cache
+  @{HOME}/@{python_project_dirs}/**/__pycache__/** rwkl,
+
+  # Distribution metadata (editable installs)
+  @{HOME}/@{python_project_dirs}/**/*.egg-info/** rwkl,
+
+  # DENIALS
+  # sensitive credential and configuration files
+  # in memory of the poor dudes who once got these exfiltrated
+  include <local/abstractions/deny-info-stealer>
+
+  # Prevent Python bootstrapping hijacks (executed on every Python startup)
+  # Reserved for rare trusted packages
+  deny /usr/lib/python3*/sitecustomize.py w,
+  deny /usr/local/lib/python3*/site-packages/sitecustomize.py w,
+  deny @{HOME}/.local/lib/python3*/site-packages/sitecustomize.py w,
+  deny /etc/python3*/sitecustomize.py w,
+
+  # Prevent privilege escalation and system modification
+  deny /usr/bin/{sudo,su,pkexec,doas} x,
+  deny /etc/{passwd,shadow,group,sudoers{,.d/**}} w,
+  deny /etc/{crontab,cron.d/**} w,
+  deny /etc/systemd/system/** w,
+}
+
+# Restricted git profile for pip VCS installations
+profile git-pip flags=(attach_disconnected) {
+  network inet dgram,
+  network inet6 dgram,
+  network inet stream,
+  network inet6 stream,
+  network netlink raw,
+
+  /dev/{urandom,null,tty} rw,
+
+  /usr/bin/git rmix,
+  /usr/lib/git-core/git{,-remote-*} rmix,
+  /usr/share/git-core/templates/** r,
+
+  # SSL/TLS and networking
+  /etc/ssl/certs/** r,
+  @{etc_ro}/{resolv.conf,hosts,nsswitch.conf,gnutls/config} r,
+
+  # Git configuration (read-only)
+  /etc/gitconfig r,
+  @{HOME}/@{python_project_dirs}/**/.git/** r,
+
+  # Utilities
+  /usr/bin/{bash,dash,mkdir} ix,
+  @{pip_exe} rPx -> pip,
+
+  # System libraries
+  /etc/ld.so.cache r,
+  /usr/lib/@{multiarch}/*.so* rm,
+  /usr/lib/locale/** r,
+
+  # Temporary and cache directories (git clones to pip cache, not project dir)
+  /tmp/** rwkl,
+  @{HOME}/.cache/pip/vcs/** rwkl,
+  @{HOME}/.cache/pip/http/** rwkl,
+
+  owner @{PROC}/@{pid}/{maps,stat} r,
+
+  # explicit blacklist
+  include <local/abstractions/deny-info-stealer>
+}

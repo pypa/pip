@@ -1,0 +1,38 @@
+# Build tools for compiling C/C++ extensions
+/usr/bin/{gcc,g++,cc,c++} rix,
+/usr/bin/{ld,ar,ranlib,strip,objcopy,objdump} rix,
+/usr/bin/{make,cmake,ninja} rix,
+/usr/bin/{pkg-config,pkgconf} rix,
+
+# Additional build utilities
+/usr/bin/{as,nm,readelf,size,strings} rix,
+/usr/lib/gcc/** rix,
+/usr/lib/llvm-*/bin/* rix,
+
+# Build system access
+/usr/include/** r,
+/usr/lib/@{multiarch}/** r,
+/usr/local/include/** r,
+/usr/local/lib/** r,
+
+# Compiler configuration
+/usr/lib/gcc/** r,
+/usr/share/gcc-*/** r,
+/etc/alternatives/{cc,c++,gcc,g++} r,
+
+# Build dependencies metadata
+/usr/lib/python3*/config-*/** r,
+/usr/lib/@{multiarch}/pkgconfig/** r,
+/usr/share/pkgconfig/** r,
+
+# Temporary build artifacts (write access)
+@{HOME}/@{python_project_dirs}/**/build/** rwkl,
+@{HOME}/@{python_project_dirs}/**/.eggs/** rwkl,
+@{HOME}/@{python_project_dirs}/**/*.egg-info/** rwkl,
+
+# Wheel building in pip cache
+@{HOME}/.cache/pip/wheels/** rwkl,
+
+# setuptools/distutils build directories
+/tmp/pip-{build,install,req-build,wheel}-*/** rwkl,
+/tmp/tmp*/** rwkl,

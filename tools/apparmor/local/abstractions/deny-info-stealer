@@ -1,0 +1,47 @@
+# SSH keys and config
+deny @{HOME}/.ssh/** r,
+
+# Cloud provider credentials
+deny @{HOME}/.aws/** r,
+deny @{HOME}/.config/gcloud/** r,
+deny @{HOME}/.azure/** r,
+deny @{HOME}/.kube/** r,
+deny @{HOME}/.docker/config.json r,
+
+# Version control credentials
+deny @{HOME}/.gitconfig r,
+deny @{HOME}/.git-credentials r,
+deny @{HOME}/.config/git/credentials r,
+
+# Package manager tokens
+deny @{HOME}/.npmrc r,
+# deny @{HOME}/.pypirc r, # not for pip
+deny @{HOME}/.gem/credentials r,
+deny @{HOME}/.cargo/credentials{,.toml} r,
+deny @{HOME}/.netrc r,
+
+# Database credentials
+deny @{HOME}/.my.cnf r,
+deny @{HOME}/.pgpass r,
+deny @{HOME}/.mongorc.js r,
+
+# Shell history (contains secrets in commands)
+deny @{HOME}/.bash_history r,
+deny @{HOME}/.zsh_history r,
+deny @{HOME}/.{mysql,psql,sqlite}_history r,
+
+# GPG keys
+deny @{HOME}/.gnupg/** r,
+
+# Browser profiles (saved passwords, cookies, session tokens)
+deny @{HOME}/.mozilla/** r,
+deny @{HOME}/.config/{google-chrome,chromium,BraveSoftware}/** r,
+
+# Password managers
+deny @{HOME}/.password-store/** r,
+deny @{HOME}/.local/share/keyrings/** r,
+deny @{HOME}/.config/{1Password,Bitwarden,KeePass}/** r,
+
+# System identification (fingerprinting)
+deny /etc/machine-id r,
+deny /var/lib/dbus/machine-id r,
