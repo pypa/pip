@@ -348,7 +348,7 @@ def unpack_file(
     # order checks from most to least reliable / explicit
     content_chk = {"application/zip": ZIP, "application/x-gzip": TAR}.get(content_type)
     if content_chk:
-        return unpack_function[content_chk]
+        return unpack_function[content_chk]()
 
     filename_check = (
         ZIP if filename.lower().endswith(ZIP_EXTENSIONS) else
@@ -358,7 +358,7 @@ def unpack_file(
         None
     )
     if filename_check:
-        return unpack_function[filename_check]
+        return unpack_function[filename_check]()
 
     # avoid ambiguous case where both signature checks return True
     is_zipfile = zipfile.is_zipfile(filename)
@@ -369,7 +369,7 @@ def unpack_file(
         None
     )
     if magic_sig_check:
-        return unpack_function[magic_sig_check]
+        return unpack_function[magic_sig_check]()
     elif is_zipfile and is_tarfile:
         log.error("Ambiguous file signature in %s.", filename)
 
