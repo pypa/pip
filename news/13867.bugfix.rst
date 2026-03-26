@@ -1,0 +1,1 @@
+Refactor unpacking logic and make it resilient against ambiguous tar+zip signature check
