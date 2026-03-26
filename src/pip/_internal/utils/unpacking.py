@@ -338,24 +338,38 @@ def unpack_file(
 ) -> None:
     filename = os.path.realpath(filename)
     zip_flatten = not filename.endswith(".whl")
-    
+
     ZIP = "zip"
     TAR = "tar"
-    zip_fn = lambda: unzip_file(filename, location, flatten=zip_flatten)
-    tar_fn = lambda: untar_file(filename, location)
-    unpack_function = {ZIP: zip_fn, TAR: tar_fn}
+
+    def _unzip() -> None:
+        unzip_file(filename, location, flatten=zip_flatten)
+
+    def _untar() -> None:
+        untar_file(filename, location)
+
+    unpack_function = {ZIP: _unzip, TAR: _untar}
 
     # order checks from most to least reliable / explicit
-    content_chk = {"application/zip": ZIP, "application/x-gzip": TAR}.get(content_type)
-    if content_chk:
-        return unpack_function[content_chk]()
+
+    content_check = (
+        ZIP
+        if content_type == "application/zip"
+        else TAR if content_type == "application/x-gzip" else None
+    )
+    if content_check:
+        return unpack_function[content_check]()
 
     filename_check = (
-        ZIP if filename.lower().endswith(ZIP_EXTENSIONS) else
-        TAR if filename.lower().endswith(
-            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
-        ) else
-        None
+        ZIP
+        if filename.lower().endswith(ZIP_EXTENSIONS)
+        else (
+            TAR
+            if filename.lower().endswith(
+                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
+            )
+            else None
+        )
     )
     if filename_check:
         return unpack_function[filename_check]()
@@ -364,14 +378,14 @@ def unpack_file(
     is_zipfile = zipfile.is_zipfile(filename)
     is_tarfile = tarfile.is_tarfile(filename)
     magic_sig_check = (
-        ZIP if is_zipfile and not is_tarfile else
-        TAR if is_tarfile and not is_zipfile else
-        None
+        ZIP
+        if is_zipfile and not is_tarfile
+        else TAR if is_tarfile and not is_zipfile else None
     )
     if magic_sig_check:
         return unpack_function[magic_sig_check]()
     elif is_zipfile and is_tarfile:
-        log.error("Ambiguous file signature in %s.", filename)
+        logger.error("Ambiguous file signature in %s.", filename)
 
     # FIXME: handle?
     # FIXME: magic signatures?
@@ -383,4 +397,3 @@ def unpack_file(
         content_type,
     )
     raise InstallationError(f"Cannot determine archive format of {location}")
-        
