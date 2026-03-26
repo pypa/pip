@@ -358,7 +358,7 @@ def unpack_file(
         None
     )
     if filename_check:
-        return unpack_function[filename_chk]
+        return unpack_function[filename_check]
 
     # avoid ambiguous case where both signature checks return True
     is_zipfile = zipfile.is_zipfile(filename)
