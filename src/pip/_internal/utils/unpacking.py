@@ -347,17 +347,17 @@ def unpack_file(
 
     # order checks from most to least reliable / explicit
     content_chk = {"application/zip": ZIP, "application/x-gzip": TAR}.get(content_type)
-    if content:
+    if content_chk:
         return unpack_function[content_chk]
 
-    filename_chk = (
+    filename_check = (
         ZIP if filename.lower().endswith(ZIP_EXTENSIONS) else
         TAR if filename.lower().endswith(
             TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
         ) else
         None
     )
-    if filename_chk:
+    if filename_check:
         return unpack_function[filename_chk]
 
     # avoid ambiguous case where both signature checks return True
