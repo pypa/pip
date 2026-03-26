@@ -337,26 +337,50 @@ def unpack_file(
     content_type: str | None = None,
 ) -> None:
     filename = os.path.realpath(filename)
-    if (
-        content_type == "application/zip"
-        or filename.lower().endswith(ZIP_EXTENSIONS)
-        or zipfile.is_zipfile(filename)
-    ):
-        unzip_file(filename, location, flatten=not filename.endswith(".whl"))
-    elif (
-        content_type == "application/x-gzip"
-        or tarfile.is_tarfile(filename)
-        or filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)
-    ):
-        untar_file(filename, location)
-    else:
-        # FIXME: handle?
-        # FIXME: magic signatures?
-        logger.critical(
-            "Cannot unpack file %s (downloaded from %s, content-type: %s); "
-            "cannot detect archive format",
-            filename,
-            location,
-            content_type,
-        )
-        raise InstallationError(f"Cannot determine archive format of {location}")
+    zip_flatten = not filename.endswith(".whl")
+    
+    ZIP = "zip"
+    TAR = "tar"
+    zip_fn = lambda: unzip_file(filename, location, flatten=zip_flatten)
+    tar_fn = lambda: untar_file(filename, location)
+    unpack_function = {ZIP: zip_fn, TAR: tar_fn}
+
+    # order checks from most to least reliable / explicit
+    content_chk = {"application/zip": ZIP, "application/x-gzip": TAR}.get(content_type)
+    if content:
+        return unpack_function[content_chk]
+
+    filename_chk = (
+        ZIP if filename.lower().endswith(ZIP_EXTENSIONS) else
+        TAR if filename.lower().endswith(
+            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
+        ) else
+        None
+    )
+    if filename_chk:
+        return unpack_function[filename_chk]
+
+    # avoid ambiguous case where both signature checks return True
+    is_zipfile = zipfile.is_zipfile(filename)
+    is_tarfile = tarfile.is_tarfile(filename)
+    magic_sig_check = (
+        ZIP if is_zipfile and not is_tarfile else
+        TAR if is_tarfile and not is_zipfile else
+        None
+    )
+    if magic_sig_check:
+        return unpack_function[magic_sig_check]
+    elif is_zipfile and is_tarfile:
+        log.error("Ambiguous file signature in %s.", filename)
+
+    # FIXME: handle?
+    # FIXME: magic signatures?
+    logger.critical(
+        "Cannot unpack file %s (downloaded from %s, content-type: %s); "
+        "cannot detect archive format",
+        filename,
+        location,
+        content_type,
+    )
+    raise InstallationError(f"Cannot determine archive format of {location}")
+        
