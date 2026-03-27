@@ -230,6 +230,24 @@ def _fs_to_record_path(path: str, lib_dir: str) -> RecordPath:
     return cast("RecordPath", path)
 
 
+def _is_record_path_within_base(record_path: RecordPath, lib_dir: str) -> bool:
+    """Check that a RECORD path, when joined with lib_dir, stays within lib_dir.
+
+    This prevents path-traversal entries (e.g. ``../../../tmp/target``) in a
+    wheel RECORD from being persisted into the installed RECORD and later
+    used to delete files outside the installation root during uninstall.
+    """
+    abs_lib = os.path.normpath(os.path.abspath(lib_dir))
+    abs_target = os.path.normpath(os.path.abspath(os.path.join(lib_dir, record_path)))
+    # Use os.path.commonpath to verify containment.
+    try:
+        common = os.path.commonpath([abs_lib, abs_target])
+    except ValueError:
+        # On Windows this is raised when paths are on different drives.
+        return False
+    return common == abs_lib
+
+
 def get_csv_rows_for_installed(
     old_csv_rows: list[list[str]],
     installed: dict[RecordPath, RecordPath],
@@ -246,7 +264,22 @@ def get_csv_rows_for_installed(
         if len(row) > 3:
             logger.warning("RECORD line has more than three elements: %s", row)
         old_record_path = cast("RecordPath", row[0])
-        new_record_path = installed.pop(old_record_path, old_record_path)
+        # If the entry was actually installed by pip it will be in the
+        # ``installed`` dict (with a validated destination path).  Entries
+        # that are *not* in the dict come directly from the wheel's RECORD
+        # and could contain path-traversal components injected by a
+        # malicious wheel.
+        if old_record_path in installed:
+            new_record_path = installed.pop(old_record_path)
+        else:
+            new_record_path = old_record_path
+            if not _is_record_path_within_base(new_record_path, lib_dir):
+                logger.warning(
+                    "Skipping RECORD entry that resolves outside the "
+                    "installation directory: %s",
+                    new_record_path,
+                )
+                continue
         if new_record_path in changed:
             digest, length = rehash(_record_to_fs_path(new_record_path, lib_dir))
         else:

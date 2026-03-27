@@ -186,6 +186,87 @@ def test_get_csv_rows_for_installed__long_lines(
     ]
 
 
+def test_get_csv_rows_for_installed__rejects_path_traversal(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    text = textwrap.dedent(
+        """\
+    pkg/__init__.py,sha256=abc,100
+    ../../../tmp/evil.py,,
+    pkg/ok.py,sha256=def,200
+    """
+    )
+    path = tmpdir.joinpath("temp.txt")
+    path.write_text(text)
+
+    lib_dir = str(tmpdir / "lib")
+    os.makedirs(lib_dir, exist_ok=True)
+
+    with open(path, **wheel.csv_io_kwargs("r")) as f:
+        record_rows = list(csv.reader(f))
+    outrows = wheel.get_csv_rows_for_installed(
+        record_rows,
+        installed={},
+        changed=set(),
+        generated=[],
+        lib_dir=lib_dir,
+    )
+
+    # The traversal entry must be filtered out.
+    record_paths = [row[0] for row in outrows]
+    assert "../../../tmp/evil.py" not in record_paths
+    # Legitimate entries must remain.
+    assert "pkg/__init__.py" in record_paths
+    assert "pkg/ok.py" in record_paths
+    # A warning must be logged for the skipped entry.
+    assert any("resolves outside" in rec.message for rec in caplog.records)
+
+
+def test_get_csv_rows_for_installed__allows_installed_paths_outside_lib(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Entries in the ``installed`` dict may resolve outside lib_dir.
+
+    For example, scripts on Windows are recorded as ``../../Scripts/foo.exe``
+    relative to the site-packages lib_dir.  These entries must NOT be rejected.
+    """
+    text = textwrap.dedent(
+        """\
+    mypkg-1.0.data/scripts/foo.exe,sha256=abc,100
+    mypkg/__init__.py,sha256=def,200
+    """
+    )
+    path = tmpdir.joinpath("temp.txt")
+    path.write_text(text)
+
+    lib_dir = str(tmpdir / "lib")
+    os.makedirs(lib_dir, exist_ok=True)
+
+    # Simulate pip having installed the script to ../../Scripts/foo.exe
+    # relative to lib_dir (as happens on Windows).
+    installed = cast(
+        dict[RecordPath, RecordPath],
+        {"mypkg-1.0.data/scripts/foo.exe": "../../Scripts/foo.exe"},
+    )
+
+    with open(path, **wheel.csv_io_kwargs("r")) as f:
+        record_rows = list(csv.reader(f))
+    outrows = wheel.get_csv_rows_for_installed(
+        record_rows,
+        installed=installed,
+        changed=set(),
+        generated=[],
+        lib_dir=lib_dir,
+    )
+
+    record_paths = [row[0] for row in outrows]
+    # The ../../Scripts/ entry must be preserved since it was in ``installed``.
+    assert "../../Scripts/foo.exe" in record_paths
+    assert "mypkg/__init__.py" in record_paths
+    # No warnings should be emitted.
+    assert not any("resolves outside" in rec.message for rec in caplog.records)
+
+
 @pytest.mark.parametrize(
     "text,expected",
     [
