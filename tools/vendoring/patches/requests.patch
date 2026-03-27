@@ -1,7 +1,7 @@
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
 index 8ecd8b814..81d38590a 100644
---- b/src/pip/_vendor/requests/__init__.py
-+++ a/src/pip/_vendor/requests/__init__.py
+--- a/src/pip/_vendor/requests/__init__.py
++++ b/src/pip/_vendor/requests/__init__.py
 @@ -40,19 +40,12 @@ is at <https://requests.readthedocs.io>.
  
  import warnings
@@ -70,8 +70,8 @@ index 8ecd8b814..81d38590a 100644
  
 diff --git a/src/pip/_vendor/requests/adapters.py b/src/pip/_vendor/requests/adapters.py
 index 98f74465f..da8959e77 100644
---- b/src/pip/_vendor/requests/adapters.py
-+++ a/src/pip/_vendor/requests/adapters.py
+--- a/src/pip/_vendor/requests/adapters.py
++++ b/src/pip/_vendor/requests/adapters.py
 @@ -11,7 +11,7 @@ import socket  # noqa: F401
  import typing
  import warnings
@@ -115,8 +115,8 @@ index 98f74465f..da8959e77 100644
      def SOCKSProxyManager(*args, **kwargs):
 diff --git a/src/pip/_vendor/requests/certs.py b/src/pip/_vendor/requests/certs.py
 index 4f85ac070..c5953485f 100644
---- b/src/pip/_vendor/requests/certs.py
-+++ a/src/pip/_vendor/requests/certs.py
+--- a/src/pip/_vendor/requests/certs.py
++++ b/src/pip/_vendor/requests/certs.py
 @@ -12,7 +12,7 @@ environment, you can change the definition of where() to return a separately
  packaged CA bundle.
  """
@@ -128,8 +128,8 @@ index 4f85ac070..c5953485f 100644
      print(where())
 diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
 index 7f9d75435..b95a92140 100644
---- b/src/pip/_vendor/requests/compat.py
-+++ a/src/pip/_vendor/requests/compat.py
+--- a/src/pip/_vendor/requests/compat.py
++++ b/src/pip/_vendor/requests/compat.py
 @@ -7,13 +7,12 @@ between Python 2 and Python 3. It remains for backwards
  compatibility until the next major version.
  """
@@ -184,8 +184,8 @@ index 7f9d75435..b95a92140 100644
  from collections import OrderedDict
 diff --git a/src/pip/_vendor/requests/exceptions.py b/src/pip/_vendor/requests/exceptions.py
 index 6e71506e9..d84504881 100644
---- b/src/pip/_vendor/requests/exceptions.py
-+++ a/src/pip/_vendor/requests/exceptions.py
+--- a/src/pip/_vendor/requests/exceptions.py
++++ b/src/pip/_vendor/requests/exceptions.py
 @@ -5,7 +5,7 @@ requests.exceptions
  This module contains the set of Requests' exceptions.
  """
@@ -197,8 +197,8 @@ index 6e71506e9..d84504881 100644
  
 diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
 index 5d5107895..022cd6062 100644
---- b/src/pip/_vendor/requests/help.py
-+++ a/src/pip/_vendor/requests/help.py
+--- a/src/pip/_vendor/requests/help.py
++++ b/src/pip/_vendor/requests/help.py
 @@ -5,23 +5,16 @@ import platform
  import ssl
  import sys
@@ -230,8 +230,8 @@ index 5d5107895..022cd6062 100644
      OpenSSL = None
 diff --git a/src/pip/_vendor/requests/models.py b/src/pip/_vendor/requests/models.py
 index 2d043f59c..ba7c01d9b 100644
---- b/src/pip/_vendor/requests/models.py
-+++ a/src/pip/_vendor/requests/models.py
+--- a/src/pip/_vendor/requests/models.py
++++ b/src/pip/_vendor/requests/models.py
 @@ -13,16 +13,16 @@ import datetime
  import encodings.idna  # noqa: F401
  from io import UnsupportedOperation
@@ -264,8 +264,8 @@ index 2d043f59c..ba7c01d9b 100644
              host = idna.encode(host, uts46=True).decode("utf-8")
 diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
 index 5ab3d8e25..200c38287 100644
---- b/src/pip/_vendor/requests/packages.py
-+++ a/src/pip/_vendor/requests/packages.py
+--- a/src/pip/_vendor/requests/packages.py
++++ b/src/pip/_vendor/requests/packages.py
 @@ -6,12 +6,14 @@ from .compat import chardet
  # I don't like it either. Just look the other way. :)
  
@@ -286,8 +286,8 @@ index 5ab3d8e25..200c38287 100644
      target = chardet.__name__
 diff --git a/src/pip/_vendor/requests/utils.py b/src/pip/_vendor/requests/utils.py
 index 54959bb8a..c2732ff04 100644
---- b/src/pip/_vendor/requests/utils.py
-+++ a/src/pip/_vendor/requests/utils.py
+--- a/src/pip/_vendor/requests/utils.py
++++ b/src/pip/_vendor/requests/utils.py
 @@ -19,7 +19,7 @@ import warnings
  import zipfile
  from collections import OrderedDict
