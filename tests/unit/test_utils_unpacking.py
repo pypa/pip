@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import os
 import shutil
@@ -8,6 +10,7 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -16,6 +19,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import (
     _get_default_mode_plus_executable,
     is_within_directory,
+    unpack_file,
     untar_file,
     unzip_file,
 )
@@ -459,3 +463,87 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
 def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:
     result = is_within_directory(*args)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "is_zip, is_tar, unzip, untar, exception",
+    [
+        # zip file
+        (True, False, True, False, False),
+        # tar file
+        (False, True, False, True, False),
+        # neither zip nor tar
+        (False, False, False, False, True),
+        # ambiguous (both zip and tar)
+        (True, True, False, False, True),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_magic_signature_check_logic(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    is_zip: bool,
+    is_tar: bool,
+    unzip: bool,
+    untar: bool,
+    exception: bool,
+) -> None:
+    """
+    Test that pip throws an error if file is identified as both zip and tar
+    and all other checks came out undeterministic.
+    """
+    mock_tarfile.is_tarfile.return_value = is_tar
+    mock_zipfile.is_zipfile.return_value = is_zip
+    filename = "ambiguous-file.unknown-extension"
+
+    if exception:
+        with pytest.raises(InstallationError):
+            unpack_file(filename, "any-location", content_type=None)
+    else:
+        unpack_file(filename, "any-location", content_type=None)
+
+    mock_unzip.assert_called_once() if unzip else mock_unzip.assert_not_called()
+    mock_untar.assert_called_once() if untar else mock_untar.assert_not_called()
+    mock_tarfile.is_tarfile.assert_called_once()
+    mock_zipfile.is_zipfile.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "filename, content_type, unzip, untar",
+    [
+        # content_type check
+        ("noname", "application/zip", True, False),
+        ("noname", "application/x-gzip", False, True),
+        # filename check
+        ("ok.zip", None, True, False),
+        ("ok.tar.gz", None, False, True),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_check_priority(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    filename: str,
+    content_type: str | None,
+    unzip: bool,
+    untar: bool,
+) -> None:
+    """
+    Test the order of priority of checks to ensure
+    we don't use magic signature check unless we have to.
+    """
+    unpack_file(filename, "any-location", content_type=content_type)
+    mock_unzip.assert_called_once() if unzip else mock_unzip.assert_not_called()
+    mock_untar.assert_called_once() if untar else mock_untar.assert_not_called()
+    mock_zipfile.is_zipfile.assert_not_called()
+    mock_tarfile.is_tarfile.assert_not_called()

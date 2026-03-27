@@ -1,1 +1,19 @@
-Refactor unpacking logic and make it resilient against ambiguous tar+zip signature check
+Refactor unpacking logic and make it resilient against ambiguous tar+zip signature check.
+
+Former unpacking logic was like that:
+1. run all possible zip checks - content type, filename, signature. If match - unzip.
+2. same for tar
+3. fail if we reached here
+
+It was discovered that zipfile.is_zipfile may come out false positive,
+so this logic can fail on a valid tar.gz falsely identified as zip.
+Additionally, it may be unnecessary to do the magic signature check, if
+content type is explicitly provided, or format is obvious from filename.
+
+New logic works the following way:
+1. run content_type check. If match found, either unzip or untar.
+2. run filename check. Same as above.
+3. run magic signature check (is_zipfile, is_tarfile). Only unzip or untar if only one of these matched.
+4. fail if we reached here. Additionally, log error if the file is ambiguous (is_zipfile AND is_tarfile are both True).
+
+This fixes the bug and makes logic more sensible in terms of check order.
