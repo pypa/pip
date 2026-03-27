@@ -1,20 +1,31 @@
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
-index 300a16c5..a66f6024 100644
---- a/src/pip/_vendor/requests/__init__.py
-+++ b/src/pip/_vendor/requests/__init__.py
-@@ -49,10 +49,7 @@ try:
- except ImportError:
-     charset_normalizer_version = None
+index 8ecd8b814..81d38590a 100644
+--- b/src/pip/_vendor/requests/__init__.py
++++ a/src/pip/_vendor/requests/__init__.py
+@@ -40,19 +40,12 @@ is at <https://requests.readthedocs.io>.
  
+ import warnings
+ 
+-import urllib3
++from pip._vendor import urllib3
+ 
+ from .exceptions import RequestsDependencyWarning
+ 
+-try:
+-    from charset_normalizer import __version__ as charset_normalizer_version
+-except ImportError:
+-    charset_normalizer_version = None
+-
 -try:
 -    from chardet import __version__ as chardet_version
 -except ImportError:
 -    chardet_version = None
++charset_normalizer_version = None
 +chardet_version = None
  
  
  def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):
-@@ -76,11 +76,8 @@ def check_compatibility(urllib3_version, chardet_version, charset_normalizer_ver
+@@ -83,11 +76,8 @@ def check_compatibility(urllib3_version, chardet_version, charset_normalizer_ver
          # charset_normalizer >= 2.0.0 < 4.0.0
          assert (2, 0, 0) <= (major, minor, patch) < (4, 0, 0)
      else:
@@ -25,10 +36,10 @@ index 300a16c5..a66f6024 100644
 -        )
 +        # pip does not need or use character detection
 +        pass
-
-
+ 
+ 
  def _check_cryptography(cryptography_version):
-@@ -118,6 +115,11 @@ except (AssertionError, ValueError):
+@@ -121,13 +111,18 @@ except (AssertionError, ValueError):
  # if the standard library doesn't support SNI or the
  # 'ssl' library isn't available.
  try:
@@ -40,11 +51,114 @@ index 300a16c5..a66f6024 100644
      try:
          import ssl
      except ImportError:
+         ssl = None
+ 
+     if not getattr(ssl, "HAS_SNI", False):
+-        from urllib3.contrib import pyopenssl
++        from pip._vendor.urllib3.contrib import pyopenssl
+ 
+         pyopenssl.inject_into_urllib3()
+ 
+@@ -139,7 +134,7 @@ except ImportError:
+     pass
+ 
+ # urllib3's DependencyWarnings should be silenced.
+-from urllib3.exceptions import DependencyWarning
++from pip._vendor.urllib3.exceptions import DependencyWarning
+ 
+ warnings.simplefilter("ignore", DependencyWarning)
+ 
+diff --git a/src/pip/_vendor/requests/adapters.py b/src/pip/_vendor/requests/adapters.py
+index 98f74465f..da8959e77 100644
+--- b/src/pip/_vendor/requests/adapters.py
++++ a/src/pip/_vendor/requests/adapters.py
+@@ -11,7 +11,7 @@ import socket  # noqa: F401
+ import typing
+ import warnings
+ 
+-from urllib3.exceptions import (
++from pip._vendor.urllib3.exceptions import (
+     ClosedPoolError,
+     ConnectTimeoutError,
+     LocationValueError,
+@@ -21,14 +21,14 @@ from urllib3.exceptions import (
+     ReadTimeoutError,
+     ResponseError,
+ )
+-from urllib3.exceptions import HTTPError as _HTTPError
+-from urllib3.exceptions import InvalidHeader as _InvalidHeader
+-from urllib3.exceptions import ProxyError as _ProxyError
+-from urllib3.exceptions import SSLError as _SSLError
+-from urllib3.poolmanager import PoolManager, proxy_from_url
+-from urllib3.util import Timeout as TimeoutSauce
+-from urllib3.util import parse_url
+-from urllib3.util.retry import Retry
++from pip._vendor.urllib3.exceptions import HTTPError as _HTTPError
++from pip._vendor.urllib3.exceptions import InvalidHeader as _InvalidHeader
++from pip._vendor.urllib3.exceptions import ProxyError as _ProxyError
++from pip._vendor.urllib3.exceptions import SSLError as _SSLError
++from pip._vendor.urllib3.poolmanager import PoolManager, proxy_from_url
++from pip._vendor.urllib3.util import Timeout as TimeoutSauce
++from pip._vendor.urllib3.util import parse_url
++from pip._vendor.urllib3.util.retry import Retry
+ 
+ from .auth import _basic_auth_str
+ from .compat import basestring, urlparse
+@@ -57,7 +57,7 @@ from .utils import (
+ )
+ 
+ try:
+-    from urllib3.contrib.socks import SOCKSProxyManager
++    from pip._vendor.urllib3.contrib.socks import SOCKSProxyManager
+ except ImportError:
+ 
+     def SOCKSProxyManager(*args, **kwargs):
+diff --git a/src/pip/_vendor/requests/certs.py b/src/pip/_vendor/requests/certs.py
+index 4f85ac070..c5953485f 100644
+--- b/src/pip/_vendor/requests/certs.py
++++ a/src/pip/_vendor/requests/certs.py
+@@ -12,7 +12,7 @@ environment, you can change the definition of where() to return a separately
+ packaged CA bundle.
+ """
+ 
+-from certifi import where
++from pip._vendor.certifi import where
+ 
+ if __name__ == "__main__":
+     print(where())
 diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
-index 6776163c..7819bb99 100644
---- a/src/pip/_vendor/requests/compat.py
-+++ b/src/pip/_vendor/requests/compat.py
-@@ -27,19 +24,10 @@ is_py2 = _ver[0] == 2
+index 7f9d75435..b95a92140 100644
+--- b/src/pip/_vendor/requests/compat.py
++++ a/src/pip/_vendor/requests/compat.py
+@@ -7,13 +7,12 @@ between Python 2 and Python 3. It remains for backwards
+ compatibility until the next major version.
+ """
+ 
+-import importlib
+ import sys
+ 
+ # -------
+ # urllib3
+ # -------
+-from urllib3 import __version__ as urllib3_version
++from pip._vendor.urllib3 import __version__ as urllib3_version
+ 
+ # Detect which major version of urllib3 is being used.
+ try:
+@@ -30,12 +29,6 @@ except (TypeError, AttributeError):
+ def _resolve_char_detection():
+     """Find supported character detection libraries."""
+     chardet = None
+-    for lib in ("chardet", "charset_normalizer"):
+-        if chardet is None:
+-            try:
+-                chardet = importlib.import_module(lib)
+-            except ImportError:
+-                pass
+     return chardet
+ 
+ 
+@@ -54,19 +47,10 @@ is_py2 = _ver[0] == 2
  #: Python 3.x?
  is_py3 = _ver[0] == 3
  
@@ -68,86 +182,93 @@ index 6776163c..7819bb99 100644
  
  # Keep OrderedDict for backwards compatibility.
  from collections import OrderedDict
-diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
-index 8fbcd656..094e2046 100644
---- a/src/pip/_vendor/requests/help.py
-+++ b/src/pip/_vendor/requests/help.py
-@@ -15,10 +15,7 @@ try:
- except ImportError:
-     charset_normalizer = None
+diff --git a/src/pip/_vendor/requests/exceptions.py b/src/pip/_vendor/requests/exceptions.py
+index 6e71506e9..d84504881 100644
+--- b/src/pip/_vendor/requests/exceptions.py
++++ a/src/pip/_vendor/requests/exceptions.py
+@@ -5,7 +5,7 @@ requests.exceptions
+ This module contains the set of Requests' exceptions.
+ """
  
--try:
--    import chardet
--except ImportError:
--    chardet = None
-+chardet = None
+-from urllib3.exceptions import HTTPError as BaseHTTPError
++from pip._vendor.urllib3.exceptions import HTTPError as BaseHTTPError
  
- try:
-     from urllib3.contrib import pyopenssl
-diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
-index 9d4e72c60..04230fc8d 100644
---- a/src/pip/_vendor/requests/__init__.py
-+++ b/src/pip/_vendor/requests/__init__.py
-@@ -44,11 +44,7 @@ from pip._vendor import urllib3
-
- from .exceptions import RequestsDependencyWarning
-
--try:
--    from charset_normalizer import __version__ as charset_normalizer_version
--except ImportError:
--    charset_normalizer_version = None
--
-+charset_normalizer_version = None
- chardet_version = None
-
-
+ from .compat import JSONDecodeError as CompatJSONDecodeError
+ 
 diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
-index 17ca75eda..ddbb6150d 100644
---- a/src/pip/_vendor/requests/help.py
-+++ b/src/pip/_vendor/requests/help.py
-@@ -10,11 +10,7 @@ from pip._vendor import urllib3
-
+index 5d5107895..022cd6062 100644
+--- b/src/pip/_vendor/requests/help.py
++++ a/src/pip/_vendor/requests/help.py
+@@ -5,23 +5,16 @@ import platform
+ import ssl
+ import sys
+ 
+-import idna
+-import urllib3
++from pip._vendor import idna
++from pip._vendor import urllib3
+ 
  from . import __version__ as requests_version
-
+ 
 -try:
 -    import charset_normalizer
 -except ImportError:
 -    charset_normalizer = None
 -
+-try:
+-    import chardet
+-except ImportError:
+-    chardet = None
 +charset_normalizer = None
- chardet = None
-
++chardet = None
+ 
  try:
---- a/src/pip/_vendor/requests/compat.py
-+++ b/src/pip/_vendor/requests/compat.py
-@@ -7,7 +7,6 @@ between Python 2 and Python 3. It remains for backwards
- compatibility until the next major version.
- """
-
--import importlib
- import sys
-
- # -------
-@@ -30,12 +29,6 @@ import sys
- def _resolve_char_detection():
-     """Find supported character detection libraries."""
-     chardet = None
--    for lib in ("chardet", "charset_normalizer"):
--        if chardet is None:
--            try:
--                chardet = importlib.import_module(lib)
--            except ImportError:
--                pass
-     return chardet
-
-
+-    from urllib3.contrib import pyopenssl
++    from pip._vendor.urllib3.contrib import pyopenssl
+ except ImportError:
+     pyopenssl = None
+     OpenSSL = None
+diff --git a/src/pip/_vendor/requests/models.py b/src/pip/_vendor/requests/models.py
+index 2d043f59c..ba7c01d9b 100644
+--- b/src/pip/_vendor/requests/models.py
++++ a/src/pip/_vendor/requests/models.py
+@@ -13,16 +13,16 @@ import datetime
+ import encodings.idna  # noqa: F401
+ from io import UnsupportedOperation
+ 
+-from urllib3.exceptions import (
++from pip._vendor.urllib3.exceptions import (
+     DecodeError,
+     LocationParseError,
+     ProtocolError,
+     ReadTimeoutError,
+     SSLError,
+ )
+-from urllib3.fields import RequestField
+-from urllib3.filepost import encode_multipart_formdata
+-from urllib3.util import parse_url
++from pip._vendor.urllib3.fields import RequestField
++from pip._vendor.urllib3.filepost import encode_multipart_formdata
++from pip._vendor.urllib3.util import parse_url
+ 
+ from ._internal_utils import to_native_string, unicode_is_ascii
+ from .auth import HTTPBasicAuth
+@@ -400,7 +400,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+ 
+     @staticmethod
+     def _get_idna_encoded_host(host):
+-        import idna
++        from pip._vendor import idna
+ 
+         try:
+             host = idna.encode(host, uts46=True).decode("utf-8")
 diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
 index 5ab3d8e25..200c38287 100644
---- a/src/pip/_vendor/requests/packages.py
-+++ b/src/pip/_vendor/requests/packages.py
+--- b/src/pip/_vendor/requests/packages.py
++++ a/src/pip/_vendor/requests/packages.py
 @@ -6,12 +6,14 @@ from .compat import chardet
  # I don't like it either. Just look the other way. :)
-
+ 
  for package in ("urllib3", "idna"):
 -    locals()[package] = __import__(package)
 +    vendored_package = "pip._vendor." + package
@@ -160,6 +281,19 @@ index 5ab3d8e25..200c38287 100644
 +        if mod == vendored_package or mod.startswith(vendored_package + '.'):
 +            unprefixed_mod = mod[len("pip._vendor."):]
 +            sys.modules['pip._vendor.requests.packages.' + unprefixed_mod] = sys.modules[mod]
-
+ 
  if chardet is not None:
      target = chardet.__name__
+diff --git a/src/pip/_vendor/requests/utils.py b/src/pip/_vendor/requests/utils.py
+index 54959bb8a..c2732ff04 100644
+--- b/src/pip/_vendor/requests/utils.py
++++ a/src/pip/_vendor/requests/utils.py
+@@ -19,7 +19,7 @@ import warnings
+ import zipfile
+ from collections import OrderedDict
+ 
+-from urllib3.util import make_headers, parse_url
++from pip._vendor.urllib3.util import make_headers, parse_url
+ 
+ from . import certs
+ from .__version__ import __version__
