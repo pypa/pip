@@ -11,7 +11,10 @@ import logging
 import os
 from functools import partial
 from optparse import Values
+from pathlib import Path
 from typing import Any, Callable, TypeVar
+
+from pip._vendor.packaging import pylock
 
 from pip._internal.build_env import (
     BuildEnvironmentInstaller,
@@ -39,6 +42,7 @@ from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
     install_req_from_parsed_requirement,
+    install_req_from_pylock_package,
     install_req_from_req_string,
 )
 from pip._internal.req.pep723 import PEP723Exception, pep723_metadata
@@ -47,6 +51,7 @@ from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.packaging import check_requires_python
+from pip._internal.utils.pylock import select_from_pylock_path_or_url
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -332,6 +337,29 @@ class RequirementCommand(IndexGroupCommand):
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
+            if pylock.is_valid_pylock_path(Path(filename)):
+                if any(
+                    [
+                        options.python_version,
+                        options.platforms,
+                        options.abis,
+                        options.implementation,
+                    ]
+                ):
+                    raise CommandError(
+                        "Patform and interpreter constraints using "
+                        "--python-version, --platform, --abi, or --implementation, "
+                        f"are not supported when installing from {filename!r}"
+                    )
+                for package, package_dist in select_from_pylock_path_or_url(
+                    filename, session=session
+                ):
+                    requirements.append(
+                        install_req_from_pylock_package(
+                            package, package_dist, filename, options.format_control
+                        )
+                    )
+                continue
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session
             ):

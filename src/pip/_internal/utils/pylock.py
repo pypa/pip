@@ -1,5 +1,11 @@
-from collections.abc import Iterable
+from __future__ import annotations
+
+import os
+import re
+from collections.abc import Iterable, Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
+from urllib.parse import urljoin, urlsplit
 
 from pip._vendor.packaging.pylock import (
     Package,
@@ -14,7 +20,11 @@ from pip._vendor.packaging.version import Version
 
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.urls import url_to_path
+from pip._internal.utils.compat import tomllib
+from pip._internal.utils.urls import path_to_url, url_to_path
+
+if TYPE_CHECKING:
+    from pip._internal.network.session import PipSession
 
 
 def _pylock_package_from_install_requirement(
@@ -115,3 +125,123 @@ def pylock_from_install_requirements(
             key=lambda p: p.name,
         ),
     )
+
+
+_SCHEME_RE = re.compile("^(http|https|file)://", re.IGNORECASE)
+
+
+def _is_url(s: str) -> bool:
+    return bool(_SCHEME_RE.match(s))
+
+
+def _package_dist_url(
+    pylock_path_or_url: str,
+    path: str | None,
+    url: str | None,
+) -> str:
+    """Compute an url from a Pylock package path and url.
+
+    Give priority to path over url. If path is relative,
+    compute an url using the pylock file location as base.
+    """
+    if path is not None:
+        if not os.path.isabs(path):
+            if _is_url(pylock_path_or_url):
+                return urljoin(pylock_path_or_url, path)
+            else:
+                return path_to_url(
+                    os.path.join(os.path.dirname(pylock_path_or_url), path)
+                )
+        else:
+            return path_to_url(path)
+    else:
+        assert url is not None  # guaranteed by packaging.pylock validation
+        return url
+
+
+def package_vcs_requirement_url(
+    pylock_path_or_url: str, package_vcs: PackageVcs
+) -> str:
+    url = (
+        package_vcs.type
+        + "+"
+        + _package_dist_url(pylock_path_or_url, package_vcs.path, package_vcs.url)
+        + "@"
+        + package_vcs.commit_id
+    )
+    if package_vcs.subdirectory:
+        assert "#" not in url  # TODO: prorper exception
+        url += "#" + package_vcs.subdirectory
+    return url
+
+
+def package_archive_requirement_url(
+    pylock_path_or_url: str, package_archive: PackageArchive
+) -> str:
+    url = _package_dist_url(
+        pylock_path_or_url, package_archive.path, package_archive.url
+    )
+    if package_archive.subdirectory:
+        assert "#" not in url  # TODO: prorper exception
+        url += "#" + package_archive.subdirectory
+    return url
+
+
+def package_directory_requirement_url(
+    pylock_path_or_url: str, package_directory: PackageDirectory
+) -> str:
+    url = _package_dist_url(pylock_path_or_url, package_directory.path, None)
+    assert url.startswith("file://")  # TODO: proper exception
+    if not url.endswith("/"):
+        url += "/"
+    if package_directory.subdirectory:
+        url += package_directory.subdirectory
+        if not url.endswith("/"):
+            url += "/"
+    return url
+
+
+def package_sdist_requirement_url(
+    pylock_path_or_url: str, package_sdist: PackageSdist
+) -> str:
+    return _package_dist_url(pylock_path_or_url, package_sdist.path, package_sdist.url)
+
+
+def package_wheel_requirement_url(
+    pylock_path_or_url: str, package_wheel: PackageWheel
+) -> str:
+    return _package_dist_url(pylock_path_or_url, package_wheel.path, package_wheel.url)
+
+
+def _get_pylock_path_or_url_content(path_or_url: str, session: PipSession) -> str:
+    # TODO: refactor - this is similar to req_file.get_file_content
+    scheme = urlsplit(path_or_url).scheme
+    # Pip has special support for file:// URLs (LocalFSAdapter).
+    if scheme in ["http", "https", "file"]:
+        # Delay importing heavy network modules until absolutely necessary.
+        from pip._internal.network.utils import raise_for_status
+
+        resp = session.get(path_or_url)
+        raise_for_status(resp)
+        return resp.text
+
+    # Assume this is a bare path.
+    return Path(path_or_url).read_text(encoding="utf-8")
+
+
+def select_from_pylock_path_or_url(
+    pylock_path_or_url: str,
+    session: PipSession,
+) -> Iterator[
+    tuple[
+        Package,
+        PackageVcs | PackageDirectory | PackageArchive | PackageWheel | PackageSdist,
+    ]
+]:
+    lock = Pylock.from_dict(
+        tomllib.loads(
+            _get_pylock_path_or_url_content(pylock_path_or_url, session),
+        )
+    )
+    # TODO: Exception handling on PylockValidationError and PylockSelectError
+    yield from lock.select()
