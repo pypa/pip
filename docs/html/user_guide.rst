@@ -365,14 +365,14 @@ packages that were available at a known point in time.
    .. code-block:: shell
 
       python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
-      python -m pip install --uploaded-prior-to=P1D SomePackage
+      python -m pip install --uploaded-prior-to=P3D SomePackage
 
 .. tab:: Windows
 
    .. code-block:: shell
 
       py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
-      py -m pip install --uploaded-prior-to=P1D SomePackage
+      py -m pip install --uploaded-prior-to=P3D SomePackage
 
 The option accepts ISO 8601 datetime strings in several formats:
 
@@ -381,18 +381,19 @@ The option accepts ISO 8601 datetime strings in several formats:
 * ``2025-03-16T12:30:00Z`` - Datetime in UTC
 * ``2025-03-16T12:30:00+05:00`` - Datetime in UTC offset
 
-It also accepts a duration in the ``PnD`` format, where ``n`` is the number of
-days. This only considers packages uploaded at least ``n`` days ago.
+For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
+format (with timezone offset like '+05:00'). Local timezone formats may produce different
+results on different machines.
 
-* ``P1D`` - uploaded at least 1 day ago
+It also accepts a duration in the ``PnD`` format, where ``n`` is the number of
+days. This only considers packages uploaded at least ``n`` days ago. A day is
+always 24 hours; daylight savings and other time zone transitions are ignored.
+
+* ``P3D`` - uploaded at least 3 days ago
 * ``P7D`` - uploaded at least 7 days ago
 * ``P30D`` - uploaded at least 30 days ago
 
 To override a duration set in configuration, pass ``P0D`` on the command line.
-
-For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
-format (with timezone offset like '+05:00'). Local timezone formats may produce different
-results on different machines.
 
 .. warning::
 

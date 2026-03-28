@@ -470,7 +470,7 @@ def _handle_uploaded_prior_to(
             f"invalid value: {value!r}: {exc}. "
             f"Expected an ISO 8601 datetime string "
             f"(e.g., '2023-01-01' or '2023-01-01T00:00:00Z') "
-            f"or a duration in days (e.g., 'P1D')"
+            f"or a duration in days (e.g., 'P3D')"
         )
         raise_option_error(parser, option=option, msg=msg)
 
@@ -487,7 +487,7 @@ def uploaded_prior_to() -> Option:
             "Only consider packages uploaded prior to the given value. "
             "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
             "uses local timezone if none specified) or a duration in days "
-            "(e.g., 'P1D' for packages uploaded at least 1 day ago). "
+            "(e.g., 'P3D' for packages uploaded at least 3 days ago). "
             "Only effective when installing from indexes that provide "
             "upload-time metadata."
         ),

@@ -1,1 +1,1 @@
-Allow ``--uploaded-prior-to`` to accept a duration in days (e.g., ``P1D`` for 1 day ago).
+Allow ``--uploaded-prior-to`` to accept a duration in days (e.g., ``P3D`` for 3 days ago).
