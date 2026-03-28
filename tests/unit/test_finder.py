@@ -19,6 +19,7 @@ from pip._internal.index.package_finder import (
     LinkEvaluator,
     LinkType,
 )
+from pip._internal.index.package_finder import logger as finder_logger
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
 
@@ -613,3 +614,33 @@ class TestPackageFinderUploadedPriorTo:
 
         link_evaluator = finder.make_link_evaluator("test-package")
         assert link_evaluator._uploaded_prior_to is None
+        
+def test_log_skipped_link_populates_logged_links_without_debug_logging() -> None:
+    """
+    _log_skipped_link() must store requires-python mismatch entries in
+    _logged_links even when debug logging is disabled, so that
+    requires_python_skipped_reasons() returns the helpful error line:
+      'ERROR: Ignored the following versions that require a different python version'
+
+    Regression test for https://github.com/pypa/pip/issues/13260
+    The bug was introduced by #13128 which added an early return before
+    self._logged_links.add(entry) when debug logging was off.
+    """
+    finder = make_test_finder()
+    link = Link("https://files.pythonhosted.org/packages/ipython-9.0.0-py3-none-any.whl")
+    detail = "9.0.0 Requires-Python >=3.11"
+
+    # Simulate debug logging being OFF (the normal production state for most users)
+    with patch.object(
+        type(finder_logger),
+        "isEnabledFor",
+        return_value=False,
+    ):
+        finder._log_skipped_link(link, LinkType.requires_python_mismatch, detail)
+
+    reasons = finder.requires_python_skipped_reasons()
+    assert detail in reasons, (
+        "requires_python_skipped_reasons() returned nothing when debug logging "
+        "was disabled — _log_skipped_link early-returned before storing the entry "
+        "in _logged_links (regression: https://github.com/pypa/pip/issues/13260)"
+    )        

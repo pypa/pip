@@ -1,0 +1,3 @@
+Fix requires-python skipped versions no longer appearing in the
+``ERROR: Ignored the following versions that require a different python version``
+error message when debug logging is disabled.
