@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 from collections.abc import Iterator
@@ -141,14 +142,14 @@ class TestUninstallPathSet:
 
         metadata_path = dist_info / INSTALL_SCHEME_METADATA_NAME
         metadata_path.write_text(
-            (
-                "{"
-                f'"platlib": "{site_packages}", '
-                f'"purelib": "{site_packages}", '
-                f'"headers": "{headers}", '
-                f'"scripts": "{scripts}", '
-                f'"data": "{data}"'
-                "}"
+            json.dumps(
+                {
+                    "platlib": str(site_packages),
+                    "purelib": str(site_packages),
+                    "headers": str(headers),
+                    "scripts": str(scripts),
+                    "data": str(data),
+                }
             )
         )
 
@@ -170,8 +171,8 @@ class TestUninstallPathSet:
         dist.location = str(site_packages)
         dist.info_location = str(dist_info)
         dist.installed_location = str(site_packages)
-        dist.read_text.side_effect = (
-            lambda path: metadata_path.read_text()
+        dist.read_text.side_effect = lambda path: (
+            metadata_path.read_text()
             if path == INSTALL_SCHEME_METADATA_NAME
             else (_ for _ in ()).throw(FileNotFoundError())
         )

@@ -390,7 +390,10 @@ class UninstallPathSet:
             return tuple(sorted(set(installed_scheme_roots) | extra_roots))
 
         roots = set(extra_roots)
-        if isinstance(self._dist.installed_location, str) and self._dist.installed_location:
+        if (
+            isinstance(self._dist.installed_location, str)
+            and self._dist.installed_location
+        ):
             scheme = get_scheme(self._dist.raw_name, user=self._dist.in_usersite)
             current_scheme = {
                 key: self._normalize_path_cached(getattr(scheme, key))
@@ -421,9 +424,7 @@ class UninstallPathSet:
         head, tail = os.path.split(path)
         path = os.path.join(self._normalize_path_cached(head), os.path.normcase(tail))
 
-        if any(
-            _is_path_within_directory(path, root) for root in self._permitted_roots
-        ):
+        if any(_is_path_within_directory(path, root) for root in self._permitted_roots):
             return True
 
         if not running_under_virtualenv():
