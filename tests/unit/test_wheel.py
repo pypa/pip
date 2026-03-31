@@ -493,11 +493,7 @@ class TestInstallUnpackedWheel:
         with open(os.path.join(self.dest_dist_info, "RECORD")) as f:
             rows = list(csv.reader(f))
 
-        assert (
-            os.path.join("sample-1.2.0.dist-info", "RECORD"),
-            "",
-            "",
-        ) in [tuple(row) for row in rows]
+        assert ("sample-1.2.0.dist-info/RECORD", "", "") in [tuple(row) for row in rows]
 
     @pytest.mark.parametrize("user_mask, expected_permission", [(0o27, 0o640)])
     def test_std_install_with_custom_umask(
