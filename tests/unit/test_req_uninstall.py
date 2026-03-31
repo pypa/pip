@@ -9,6 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 import pip._internal.req.req_uninstall
+from pip._internal.models.scheme import INSTALL_SCHEME_METADATA_NAME, Scheme
 from pip._internal.req.req_uninstall import (
     StashedUninstallPathSet,
     UninstallPathSet,
@@ -127,6 +128,97 @@ def test_compressed_listing(tmpdir: Path) -> None:
 
 
 class TestUninstallPathSet:
+    def test_permitted_uses_recorded_install_scheme(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        site_packages = tmp_path / "site-packages"
+        dist_info = site_packages / "mypkg-1.0.dist-info"
+        scripts = tmp_path / "bin"
+        headers = tmp_path / "include" / "mypkg"
+        data = tmp_path / "share"
+        for path in (site_packages, dist_info, scripts, headers, data):
+            path.mkdir(parents=True, exist_ok=True)
+
+        metadata_path = dist_info / INSTALL_SCHEME_METADATA_NAME
+        metadata_path.write_text(
+            (
+                "{"
+                f'"platlib": "{site_packages}", '
+                f'"purelib": "{site_packages}", '
+                f'"headers": "{headers}", '
+                f'"scripts": "{scripts}", '
+                f'"data": "{data}"'
+                "}"
+            )
+        )
+
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall,
+            "get_scheme",
+            lambda *args, **kwargs: Scheme(
+                platlib=str(tmp_path / "other-lib"),
+                purelib=str(tmp_path / "other-lib"),
+                headers=str(tmp_path / "other-headers"),
+                scripts=str(tmp_path / "other-bin"),
+                data=str(tmp_path / "other-data"),
+            ),
+        )
+
+        dist = Mock()
+        dist.raw_name = "mypkg"
+        dist.in_usersite = False
+        dist.location = str(site_packages)
+        dist.info_location = str(dist_info)
+        dist.installed_location = str(site_packages)
+        dist.read_text.side_effect = (
+            lambda path: metadata_path.read_text()
+            if path == INSTALL_SCHEME_METADATA_NAME
+            else (_ for _ in ()).throw(FileNotFoundError())
+        )
+
+        ups = UninstallPathSet(dist=dist)
+
+        assert ups._permitted(str(scripts / "mypkg"))
+        assert not ups._permitted(str(tmp_path / "outside" / "mypkg"))
+
+    def test_permitted_rebases_current_scheme_for_old_install(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        current_prefix = tmp_path / "current"
+        old_prefix = tmp_path / "old"
+        current_scheme = Scheme(
+            platlib=str(current_prefix / "lib" / "python3.13" / "site-packages"),
+            purelib=str(current_prefix / "lib" / "python3.13" / "site-packages"),
+            headers=str(current_prefix / "include" / "site" / "python3.13" / "mypkg"),
+            scripts=str(current_prefix / "bin"),
+            data=str(current_prefix / "share"),
+        )
+        old_site_packages = old_prefix / "lib" / "python3.13" / "site-packages"
+        old_scripts = old_prefix / "bin"
+        old_dist_info = old_site_packages / "mypkg-1.0.dist-info"
+        for path in (old_site_packages, old_scripts, old_dist_info):
+            path.mkdir(parents=True, exist_ok=True)
+
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall,
+            "get_scheme",
+            lambda *args, **kwargs: current_scheme,
+        )
+
+        dist = Mock()
+        dist.raw_name = "mypkg"
+        dist.in_usersite = False
+        dist.location = str(old_site_packages)
+        dist.info_location = str(old_dist_info)
+        dist.installed_location = str(old_site_packages)
+        dist.read_text.side_effect = FileNotFoundError()
+
+        ups = UninstallPathSet(dist=dist)
+
+        assert ups._permitted(str(old_scripts / "mypkg"))
+        assert not ups._permitted(str(current_prefix / "bin" / "mypkg"))
+        assert not ups._permitted(str(tmp_path / "outside" / "mypkg"))
+
     def test_add(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
             pip._internal.req.req_uninstall.UninstallPathSet,

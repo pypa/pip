@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import json
 import os
 import sys
 import sysconfig
@@ -9,8 +10,9 @@ from importlib.util import cache_from_source
 from typing import Any, Callable
 
 from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
-from pip._internal.locations import get_bin_prefix, get_bin_user
+from pip._internal.locations import get_bin_prefix, get_bin_user, get_scheme
 from pip._internal.metadata import BaseDistribution
+from pip._internal.models.scheme import INSTALL_SCHEME_METADATA_NAME, SCHEME_KEYS
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
@@ -19,6 +21,66 @@ from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = getLogger(__name__)
+
+
+def _is_path_within_directory(path: str, directory: str) -> bool:
+    try:
+        return os.path.commonpath([directory, path]) == directory
+    except ValueError:
+        # On Windows this is raised when paths are on different drives.
+        return False
+
+
+def _load_installed_scheme_paths(
+    dist: BaseDistribution, normalize: Callable[[str], str]
+) -> tuple[str, ...]:
+    try:
+        text = dist.read_text(INSTALL_SCHEME_METADATA_NAME)
+    except FileNotFoundError:
+        return ()
+
+    try:
+        data = json.loads(text)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Ignoring invalid %s for %s",
+            INSTALL_SCHEME_METADATA_NAME,
+            dist.raw_name,
+        )
+        return ()
+
+    if not isinstance(data, dict):
+        logger.warning(
+            "Ignoring invalid %s for %s",
+            INSTALL_SCHEME_METADATA_NAME,
+            dist.raw_name,
+        )
+        return ()
+
+    roots = []
+    for key in SCHEME_KEYS:
+        value = data.get(key)
+        if isinstance(value, str) and value:
+            roots.append(normalize(value))
+    return tuple(sorted(set(roots)))
+
+
+def _rebase_scheme_paths(
+    installed_location: str,
+    current_scheme: dict[str, str],
+    normalize: Callable[[str], str],
+) -> tuple[str, ...]:
+    roots = set()
+    for anchor_key in ("purelib", "platlib"):
+        current_anchor = current_scheme[anchor_key]
+        for key in SCHEME_KEYS:
+            try:
+                relative = os.path.relpath(current_scheme[key], current_anchor)
+            except ValueError:
+                continue
+            rebased = os.path.join(installed_location, relative)
+            roots.add(normalize(rebased))
+    return tuple(sorted(roots))
 
 
 def _script_names(
@@ -310,15 +372,62 @@ class UninstallPathSet:
         # the same args, which hurts performance.
         self._normalize_path_cached = functools.lru_cache(normalize_path)
 
+    @functools.cached_property
+    def _permitted_roots(self) -> tuple[str, ...]:
+        installed_scheme_roots = _load_installed_scheme_paths(
+            self._dist, self._normalize_path_cached
+        )
+        extra_roots = {
+            self._normalize_path_cached(candidate)
+            for candidate in (
+                self._dist.location,
+                self._dist.info_location,
+                self._dist.installed_location,
+            )
+            if isinstance(candidate, str) and candidate
+        }
+        if installed_scheme_roots:
+            return tuple(sorted(set(installed_scheme_roots) | extra_roots))
+
+        roots = set(extra_roots)
+        if isinstance(self._dist.installed_location, str) and self._dist.installed_location:
+            scheme = get_scheme(self._dist.raw_name, user=self._dist.in_usersite)
+            current_scheme = {
+                key: self._normalize_path_cached(getattr(scheme, key))
+                for key in SCHEME_KEYS
+            }
+            roots.update(
+                _rebase_scheme_paths(
+                    self._dist.installed_location,
+                    current_scheme,
+                    self._normalize_path_cached,
+                )
+            )
+        else:
+            # Without an installed location we cannot reconstruct an old scheme,
+            # so fall back to the current interpreter's scheme as best effort.
+            scheme = get_scheme(self._dist.raw_name, user=self._dist.in_usersite)
+            roots.update(
+                self._normalize_path_cached(getattr(scheme, key)) for key in SCHEME_KEYS
+            )
+        return tuple(sorted(roots))
+
     def _permitted(self, path: str) -> bool:
         """
         Return True if the given path is one we are permitted to
         remove/modify, False otherwise.
 
         """
-        # aka is_local, but caching normalized sys.prefix
-        if not running_under_virtualenv():
+        head, tail = os.path.split(path)
+        path = os.path.join(self._normalize_path_cached(head), os.path.normcase(tail))
+
+        if any(
+            _is_path_within_directory(path, root) for root in self._permitted_roots
+        ):
             return True
+
+        if not running_under_virtualenv():
+            return False
         return path.startswith(self._normalize_path_cached(sys.prefix))
 
     def add(self, path: str) -> None:

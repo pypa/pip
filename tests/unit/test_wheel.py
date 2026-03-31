@@ -121,23 +121,38 @@ def test_normalized_outrows(
     assert actual == expected
 
 
-def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> list[InstalledCSVRow]:
+def call_get_csv_rows_for_installed(
+    tmpdir: Path,
+    text: str,
+    *,
+    installed: dict[RecordPath, RecordPath] | None = None,
+    lib_dir: str = "/lib/dir",
+    scheme_paths: list[str] | None = None,
+) -> list[InstalledCSVRow]:
     path = tmpdir.joinpath("temp.txt")
     path.write_text(text)
 
-    # Test that an installed file appearing in RECORD has its filename
-    # updated in the new RECORD file.
-    installed = cast(dict[RecordPath, RecordPath], {"a": "z"})
-    lib_dir = "/lib/dir"
-
     with open(path, **wheel.csv_io_kwargs("r")) as f:
         record_rows = list(csv.reader(f))
+    if installed is None:
+        installed = cast(
+            dict[RecordPath, RecordPath],
+            {
+                cast("RecordPath", row[0]): cast("RecordPath", row[0])
+                for row in record_rows
+            },
+        )
+        if cast("RecordPath", "a") in installed:
+            installed[cast("RecordPath", "a")] = cast("RecordPath", "z")
+    if scheme_paths is None:
+        scheme_paths = [lib_dir]
     outrows = wheel.get_csv_rows_for_installed(
         record_rows,
         installed=installed,
         changed=set(),
         generated=[],
         lib_dir=lib_dir,
+        scheme_paths=scheme_paths,
     )
     return outrows
 
@@ -159,6 +174,25 @@ def test_get_csv_rows_for_installed(
     ]
     assert outrows == expected
     # Check there were no warnings.
+    assert len(caplog.records) == 0
+
+
+def test_get_csv_rows_for_installed__drops_unmatched_entries(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    text = textwrap.dedent(
+        """\
+    a,b,c
+    d,e,f
+    """
+    )
+    outrows = call_get_csv_rows_for_installed(
+        tmpdir,
+        text,
+        installed=cast(dict[RecordPath, RecordPath], {"a": "z"}),
+    )
+
+    assert outrows == [("z", "b", "c")]
     assert len(caplog.records) == 0
 
 
@@ -206,10 +240,17 @@ def test_get_csv_rows_for_installed__rejects_path_traversal(
         record_rows = list(csv.reader(f))
     outrows = wheel.get_csv_rows_for_installed(
         record_rows,
-        installed={},
+        installed=cast(
+            dict[RecordPath, RecordPath],
+            {
+                "pkg/__init__.py": "pkg/__init__.py",
+                "pkg/ok.py": "pkg/ok.py",
+            },
+        ),
         changed=set(),
         generated=[],
         lib_dir=lib_dir,
+        scheme_paths=[lib_dir],
     )
 
     # The traversal entry must be filtered out.
@@ -222,14 +263,10 @@ def test_get_csv_rows_for_installed__rejects_path_traversal(
     assert any("resolves outside" in rec.message for rec in caplog.records)
 
 
-def test_get_csv_rows_for_installed__allows_installed_paths_outside_lib(
+def test_get_csv_rows_for_installed__allows_installed_paths_in_scheme(
     tmpdir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Entries in the ``installed`` dict may resolve outside lib_dir.
-
-    For example, scripts on Windows are recorded as ``../../Scripts/foo.exe``
-    relative to the site-packages lib_dir.  These entries must NOT be rejected.
-    """
+    """Entries in the ``installed`` dict may resolve to other scheme roots."""
     text = textwrap.dedent(
         """\
     mypkg-1.0.data/scripts/foo.exe,sha256=abc,100
@@ -240,13 +277,19 @@ def test_get_csv_rows_for_installed__allows_installed_paths_outside_lib(
     path.write_text(text)
 
     lib_dir = str(tmpdir / "lib")
+    scripts_dir = str(tmpdir / "scripts")
     os.makedirs(lib_dir, exist_ok=True)
+    os.makedirs(scripts_dir, exist_ok=True)
 
-    # Simulate pip having installed the script to ../../Scripts/foo.exe
-    # relative to lib_dir (as happens on Windows).
+    script_path = os.path.join(scripts_dir, "foo.exe")
+    script_record_path = wheel._fs_to_record_path(script_path, lib_dir)
+
     installed = cast(
         dict[RecordPath, RecordPath],
-        {"mypkg-1.0.data/scripts/foo.exe": "../../Scripts/foo.exe"},
+        {
+            "mypkg-1.0.data/scripts/foo.exe": script_record_path,
+            "mypkg/__init__.py": "mypkg/__init__.py",
+        },
     )
 
     with open(path, **wheel.csv_io_kwargs("r")) as f:
@@ -257,14 +300,48 @@ def test_get_csv_rows_for_installed__allows_installed_paths_outside_lib(
         changed=set(),
         generated=[],
         lib_dir=lib_dir,
+        scheme_paths=[lib_dir, scripts_dir],
     )
 
     record_paths = [row[0] for row in outrows]
-    # The ../../Scripts/ entry must be preserved since it was in ``installed``.
-    assert "../../Scripts/foo.exe" in record_paths
+    assert script_record_path in record_paths
     assert "mypkg/__init__.py" in record_paths
-    # No warnings should be emitted.
     assert not any("resolves outside" in rec.message for rec in caplog.records)
+
+
+def test_get_csv_rows_for_installed__rejects_installed_paths_outside_scheme(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    text = "mypkg-1.0.data/scripts/foo.exe,sha256=abc,100\n"
+    path = tmpdir.joinpath("temp.txt")
+    path.write_text(text)
+
+    lib_dir = str(tmpdir / "lib")
+    os.makedirs(lib_dir, exist_ok=True)
+
+    outside_path = str(tmpdir / "outside" / "foo.exe")
+    installed = cast(
+        dict[RecordPath, RecordPath],
+        {
+            "mypkg-1.0.data/scripts/foo.exe": wheel._fs_to_record_path(
+                outside_path, lib_dir
+            )
+        },
+    )
+
+    with open(path, **wheel.csv_io_kwargs("r")) as f:
+        record_rows = list(csv.reader(f))
+    outrows = wheel.get_csv_rows_for_installed(
+        record_rows,
+        installed=installed,
+        changed=set(),
+        generated=[],
+        lib_dir=lib_dir,
+        scheme_paths=[lib_dir],
+    )
+
+    assert outrows == []
+    assert any("installation scheme" in rec.message for rec in caplog.records)
 
 
 @pytest.mark.parametrize(
@@ -401,6 +478,26 @@ class TestInstallUnpackedWheel:
             req_description=str(self.req),
         )
         self.assert_installed(0o644)
+
+    def test_std_install_record_contains_itself(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        self.prep(data, tmpdir)
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
+
+        with open(os.path.join(self.dest_dist_info, "RECORD")) as f:
+            rows = list(csv.reader(f))
+
+        assert (
+            os.path.join("sample-1.2.0.dist-info", "RECORD"),
+            "",
+            "",
+        ) in [tuple(row) for row in rows]
 
     @pytest.mark.parametrize("user_mask, expected_permission", [(0o27, 0o640)])
     def test_std_install_with_custom_umask(

@@ -7,6 +7,7 @@ import compileall
 import contextlib
 import csv
 import importlib
+import json
 import logging
 import os.path
 import re
@@ -42,7 +43,11 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
-from pip._internal.models.scheme import SCHEME_KEYS, Scheme
+from pip._internal.models.scheme import (
+    INSTALL_SCHEME_METADATA_NAME,
+    SCHEME_KEYS,
+    Scheme,
+)
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
@@ -230,22 +235,34 @@ def _fs_to_record_path(path: str, lib_dir: str) -> RecordPath:
     return cast("RecordPath", path)
 
 
-def _is_record_path_within_base(record_path: RecordPath, lib_dir: str) -> bool:
-    """Check that a RECORD path, when joined with lib_dir, stays within lib_dir.
-
-    This prevents path-traversal entries (e.g. ``../../../tmp/target``) in a
-    wheel RECORD from being persisted into the installed RECORD and later
-    used to delete files outside the installation root during uninstall.
-    """
-    abs_lib = os.path.normpath(os.path.abspath(lib_dir))
-    abs_target = os.path.normpath(os.path.abspath(os.path.join(lib_dir, record_path)))
-    # Use os.path.commonpath to verify containment.
+def _is_path_within_directory(path: str, directory: str) -> bool:
+    abs_directory = os.path.normpath(os.path.abspath(directory))
+    abs_path = os.path.normpath(os.path.abspath(path))
     try:
-        common = os.path.commonpath([abs_lib, abs_target])
+        common = os.path.commonpath([abs_directory, abs_path])
     except ValueError:
         # On Windows this is raised when paths are on different drives.
         return False
-    return common == abs_lib
+    return common == abs_directory
+
+
+def _is_record_path_within_scheme(
+    record_path: RecordPath,
+    lib_dir: str,
+    scheme_paths: Iterable[str],
+) -> bool:
+    """Check that a RECORD path resolves within one of the installation roots.
+
+    Installed RECORD rows may legitimately point outside ``lib_dir`` (for
+    example, scripts in the ``scripts`` scheme).  However, every row persisted
+    to the installed RECORD must resolve to one of the directories the install
+    scheme is allowed to write to.
+    """
+    abs_target = os.path.normpath(os.path.abspath(os.path.join(lib_dir, record_path)))
+    return any(
+        _is_path_within_directory(abs_target, scheme_path)
+        for scheme_path in scheme_paths
+    )
 
 
 def get_csv_rows_for_installed(
@@ -254,6 +271,7 @@ def get_csv_rows_for_installed(
     changed: set[RecordPath],
     generated: list[str],
     lib_dir: str,
+    scheme_paths: Iterable[str],
 ) -> list[InstalledCSVRow]:
     """
     :param installed: A map from archive RECORD path to installation RECORD
@@ -264,22 +282,24 @@ def get_csv_rows_for_installed(
         if len(row) > 3:
             logger.warning("RECORD line has more than three elements: %s", row)
         old_record_path = cast("RecordPath", row[0])
-        # If the entry was actually installed by pip it will be in the
-        # ``installed`` dict (with a validated destination path).  Entries
-        # that are *not* in the dict come directly from the wheel's RECORD
-        # and could contain path-traversal components injected by a
-        # malicious wheel.
-        if old_record_path in installed:
-            new_record_path = installed.pop(old_record_path)
-        else:
-            new_record_path = old_record_path
-            if not _is_record_path_within_base(new_record_path, lib_dir):
+        new_record_path = installed.pop(old_record_path, None)
+        if new_record_path is None:
+            if not _is_record_path_within_scheme(
+                old_record_path, lib_dir, scheme_paths
+            ):
                 logger.warning(
                     "Skipping RECORD entry that resolves outside the "
-                    "installation directory: %s",
-                    new_record_path,
+                    "installation scheme: %s",
+                    old_record_path,
                 )
-                continue
+            continue
+        if not _is_record_path_within_scheme(new_record_path, lib_dir, scheme_paths):
+            logger.warning(
+                "Skipping RECORD entry that resolves outside the "
+                "installation scheme: %s",
+                new_record_path,
+            )
+            continue
         if new_record_path in changed:
             digest, length = rehash(_record_to_fs_path(new_record_path, lib_dir))
         else:
@@ -288,11 +308,28 @@ def get_csv_rows_for_installed(
         installed_rows.append((new_record_path, digest, length))
     for f in generated:
         path = _fs_to_record_path(f, lib_dir)
+        if not _is_record_path_within_scheme(path, lib_dir, scheme_paths):
+            logger.warning(
+                "Skipping RECORD entry that resolves outside the "
+                "installation scheme: %s",
+                path,
+            )
+            continue
         digest, length = rehash(f)
         installed_rows.append((path, digest, length))
-    return installed_rows + [
-        (installed_record_path, "", "") for installed_record_path in installed.values()
-    ]
+    trailing_rows: list[InstalledCSVRow] = []
+    for installed_record_path in installed.values():
+        if not _is_record_path_within_scheme(
+            installed_record_path, lib_dir, scheme_paths
+        ):
+            logger.warning(
+                "Skipping RECORD entry that resolves outside the "
+                "installation scheme: %s",
+                installed_record_path,
+            )
+            continue
+        trailing_rows.append((installed_record_path, "", ""))
+    return installed_rows + trailing_rows
 
 
 def get_console_script_specs(console: dict[str, str]) -> list[str]:
@@ -724,6 +761,16 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
             pass
         generated.append(requested_path)
 
+    install_scheme_path = os.path.join(dest_info_dir, INSTALL_SCHEME_METADATA_NAME)
+    with _generate_file(install_scheme_path) as install_scheme_file:
+        install_scheme_file.write(
+            json.dumps(
+                {key: getattr(scheme, key) for key in SCHEME_KEYS},
+                sort_keys=True,
+            ).encode("utf-8")
+        )
+    generated.append(install_scheme_path)
+
     record_text = distribution.read_text("RECORD")
     record_rows = list(csv.reader(record_text.splitlines()))
 
@@ -733,10 +780,12 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         changed=changed,
         generated=generated,
         lib_dir=lib_dir,
+        scheme_paths=[getattr(scheme, key) for key in SCHEME_KEYS],
     )
 
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, "RECORD")
+    rows.append((_fs_to_record_path(record_path, lib_dir), "", ""))
 
     with _generate_file(record_path, **csv_io_kwargs("w")) as record_file:
         # Explicitly cast to typing.IO[str] as a workaround for the mypy error:

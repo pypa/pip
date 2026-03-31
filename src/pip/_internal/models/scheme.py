@@ -8,6 +8,7 @@ https://docs.python.org/3/install/index.html#alternate-installation.
 from dataclasses import dataclass
 
 SCHEME_KEYS = ["platlib", "purelib", "headers", "scripts", "data"]
+INSTALL_SCHEME_METADATA_NAME = "pip-install-scheme.json"
 
 
 @dataclass(frozen=True)
