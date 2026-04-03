@@ -356,7 +356,7 @@ Filtering by Upload Time
 .. versionadded:: 26.0
 
 The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
-to an index, only considering packages that were uploaded before a specified datetime.
+to an index, only considering packages that were uploaded before a specified value.
 This can be useful for creating reproducible builds by ensuring you only install
 packages that were available at a known point in time.
 
@@ -365,12 +365,14 @@ packages that were available at a known point in time.
    .. code-block:: shell
 
       python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      python -m pip install --uploaded-prior-to=P3D SomePackage
 
 .. tab:: Windows
 
    .. code-block:: shell
 
       py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      py -m pip install --uploaded-prior-to=P3D SomePackage
 
 The option accepts ISO 8601 datetime strings in several formats:
 
@@ -382,6 +384,26 @@ The option accepts ISO 8601 datetime strings in several formats:
 For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
 format (with timezone offset like '+05:00'). Local timezone formats may produce different
 results on different machines.
+
+.. versionchanged:: 26.1
+
+``--uploaded-prior-to`` also accepts a duration in the ``PnD`` format, where ``n`` is
+the number of days. This only considers packages uploaded at least ``n`` days ago.
+A day is always 24 hours; daylight savings and other time zone transitions are ignored.
+
+* ``P3D`` - uploaded at least 3 days ago
+* ``P7D`` - uploaded at least 7 days ago
+* ``P30D`` - uploaded at least 30 days ago
+
+To override a duration set in configuration, pass ``P0D`` on the command line.
+
+.. warning::
+
+    While a duration can help protect against supply chain attacks by avoiding
+    newly published packages, it will also delay security fixes reaching your
+    environment. If you use this option, pair it with a vulnerability scanning
+    tool such as Dependabot or pip-audit so that you are notified of security
+    issues independently of your update schedule.
 
 .. note::
 

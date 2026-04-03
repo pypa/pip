@@ -66,6 +66,13 @@ repos:
       exclude: AUTHORS.txt|tests/data
       args: ["--ignore-words", tools/codespell-ignore.txt]
 
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.23.1
+  hooks:
+  - id: zizmor
+    args: ["--fix=all"]
+    files: ^\.github/
+
 - repo: local
   hooks:
   - id: news-fragment-filenames

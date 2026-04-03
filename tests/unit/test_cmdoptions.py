@@ -139,3 +139,89 @@ def test_handle_uploaded_prior_to_invalid_dates(invalid_value: str) -> None:
 
     with pytest.raises(SystemExit):
         _handle_uploaded_prior_to(option, opt, invalid_value, parser)
+
+
+@pytest.mark.parametrize(
+    "value, expected_timedelta",
+    [
+        ("P1D", datetime.timedelta(days=1)),
+        ("P7D", datetime.timedelta(days=7)),
+        ("P30D", datetime.timedelta(days=30)),
+        ("P365D", datetime.timedelta(days=365)),
+    ],
+)
+def test_handle_uploaded_prior_to_duration(
+    value: str, expected_timedelta: datetime.timedelta
+) -> None:
+    """Test that ISO 8601 PnD duration strings are parsed correctly."""
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    _handle_uploaded_prior_to(option, opt, value, parser)
+
+    result = parser.values.uploaded_prior_to
+    assert isinstance(result, datetime.datetime)
+    assert result.tzinfo is not None
+
+    expected = datetime.datetime.now(datetime.timezone.utc) - expected_timedelta
+    assert abs((result - expected).total_seconds()) < 1
+
+
+@pytest.mark.parametrize(
+    "invalid_value",
+    [
+        "P7",  # Missing D
+        "PD",  # Missing number
+        "P-7D",  # Negative
+        "P7.5D",  # Fractional
+        "P7W",  # Weeks not supported
+        "p7d",  # Lowercase not valid ISO 8601
+        "p7D",  # Mixed case not valid ISO 8601
+        "P",  # Empty duration
+        "PT",  # Empty time component
+        "PT24H",  # Hours not supported
+        "PT60M",  # Minutes not supported
+        "PT1H30M",  # Hours and minutes not supported
+        "P1DT12H",  # Days with hours not supported
+        "P1DT12H30M",  # Days with hours and minutes not supported
+        "P7DT",  # Valid days but empty time component
+        "P7DTH",  # Valid days but missing hour number
+        "P7DTM",  # Valid days but missing minute number
+        "P7DT-1H",  # Valid days but negative hours
+        "P7DT1.5H",  # Valid days but fractional hours
+        "PT-30M",  # Negative minutes
+        "PT1H-30M",  # Valid hours but negative minutes
+        "2023-01-01P7D",  # Date mixed with duration
+        "P7D2023-01-01",  # Duration mixed with date
+        "P7DT00:00:00Z",  # Duration mixed with time
+    ],
+)
+def test_handle_uploaded_prior_to_invalid_duration(invalid_value: str) -> None:
+    """Test that invalid duration strings raise SystemExit."""
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    with pytest.raises(SystemExit):
+        _handle_uploaded_prior_to(option, opt, invalid_value, parser)
+
+
+def test_handle_uploaded_prior_to_p0d_overrides_duration() -> None:
+    """P0D on CLI overrides a previously set duration like P10D from env."""
+    option = Option("--uploaded-prior-to", dest="uploaded_prior_to")
+    opt = "--uploaded-prior-to"
+    parser = OptionParser()
+    parser.values = Values()
+
+    _handle_uploaded_prior_to(option, opt, "P10D", parser)
+    p10d_result = parser.values.uploaded_prior_to
+
+    _handle_uploaded_prior_to(option, opt, "P0D", parser)
+    p0d_result = parser.values.uploaded_prior_to
+
+    assert p0d_result > p10d_result
+    now = datetime.datetime.now(datetime.timezone.utc)
+    assert abs((p0d_result - now).total_seconds()) < 1
