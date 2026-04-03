@@ -19,7 +19,6 @@ from dataclasses import dataclass
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
-from pip._vendor.packaging.specifiers import Specifier
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
@@ -40,7 +39,10 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-operators = Specifier._operators.keys()
+
+# All standard version specifier operators
+# https://packaging.python.org/en/latest/specifications/version-specifiers/#id5
+operators = ("~=", "==", "!=", "<=", ">=", "<", ">", "===")
 
 
 def _strip_extras(path: str) -> tuple[str, str | None]:
