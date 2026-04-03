@@ -385,9 +385,11 @@ For consistency across machines, use either UTC format (with 'Z' suffix) or UTC 
 format (with timezone offset like '+05:00'). Local timezone formats may produce different
 results on different machines.
 
-It also accepts a duration in the ``PnD`` format, where ``n`` is the number of
-days. This only considers packages uploaded at least ``n`` days ago. A day is
-always 24 hours; daylight savings and other time zone transitions are ignored.
+.. versionchanged:: 26.1
+
+``--uploaded-prior-to`` also accepts a duration in the ``PnD`` format, where ``n`` is
+the number of days. This only considers packages uploaded at least ``n`` days ago.
+A day is always 24 hours; daylight savings and other time zone transitions are ignored.
 
 * ``P3D`` - uploaded at least 3 days ago
 * ``P7D`` - uploaded at least 7 days ago
