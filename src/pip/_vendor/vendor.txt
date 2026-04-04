@@ -6,7 +6,7 @@ packaging==26.0
 platformdirs==4.5.1
 pyproject-hooks==1.2.0
 requests==2.33.1
-    certifi==2026.1.4
+    certifi==2026.2.25
     idna==3.11
     urllib3==1.26.20
 rich==14.2.0
