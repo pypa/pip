@@ -144,6 +144,13 @@ class Command(CommandContextMixIn):
             logger.debug("Exception information:", exc_info=True)
 
             return ERROR
+        except BrokenPipeError:
+            # Python raises BrokenPipeError when stdout is piped to a process
+            # that exits early (e.g. `pip show pip | head -1`). Suppress the
+            # traceback and exit cleanly per Python SIGPIPE convention.
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, sys.stdout.fileno())
+            return ERROR
         except BaseException:
             logger.critical("Exception:", exc_info=True)
 
