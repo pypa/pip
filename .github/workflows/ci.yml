@@ -113,7 +113,7 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
+    name: tests / ${{ matrix.python.version || matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     needs: [determine-changes]
@@ -133,6 +133,23 @@ jobs:
           - "3.13"
           - "3.14"
           - "3.15"
+        include:
+          # Oldest patch release per minor version on ubuntu-latest,
+          # to catch backport/bug fix regressions. Constrained by what
+          # actions/setup-python ships for the runner OS (ubuntu-24.04).
+          # See: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+          - os: ubuntu-latest
+            python: { key: "3.9", version: "3.9.12" }
+          - os: ubuntu-latest
+            python: { key: "3.10", version: "3.10.4" }
+          - os: ubuntu-latest
+            python: { key: "3.11", version: "3.11.0" }
+          - os: ubuntu-latest
+            python: { key: "3.12", version: "3.12.0" }
+          - os: ubuntu-latest
+            python: { key: "3.13", version: "3.13.0" }
+          - os: ubuntu-latest
+            python: { key: "3.14", version: "3.14.0" }
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -140,7 +157,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
