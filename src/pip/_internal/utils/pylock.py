@@ -171,7 +171,7 @@ def package_vcs_requirement_url(
     )
     if package_vcs.subdirectory:
         assert "#" not in url  # TODO: prorper exception
-        url += "#" + package_vcs.subdirectory
+        url += "#subdirectory=" + package_vcs.subdirectory
     return url
 
 
@@ -183,7 +183,7 @@ def package_archive_requirement_url(
     )
     if package_archive.subdirectory:
         assert "#" not in url  # TODO: prorper exception
-        url += "#" + package_archive.subdirectory
+        url += "#subdirectory=" + package_archive.subdirectory
     return url
 
 
