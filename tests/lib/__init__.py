@@ -172,6 +172,10 @@ class TestData:
         return self.root.joinpath("packages3")
 
     @property
+    def lockfiles(self) -> pathlib.Path:
+        return self.root.joinpath("lockfiles")
+
+    @property
     def pypi_packages(self) -> pathlib.Path:
         return self.root.joinpath("pypi_packages")
 
