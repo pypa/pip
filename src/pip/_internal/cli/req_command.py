@@ -338,6 +338,12 @@ class RequirementCommand(IndexGroupCommand):
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
             if pylock.is_valid_pylock_path(Path(filename)):
+                logger.warning(
+                    "Using pylock.toml as a requirements source "
+                    "is an experimental feature. "
+                    "It may be removed/changed in a future release "
+                    "without prior warning."
+                )
                 if any(
                     [
                         options.python_version,
