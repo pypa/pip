@@ -542,8 +542,12 @@ def requirements() -> Option:
         action="append",
         default=[],
         metavar="file",
-        help="Install from the given requirements file. "
-        "This option can be used multiple times.",
+        help=(
+            "Install from the given requirements file. "
+            "The file or URL can be in pip's requirements.txt format "
+            "or pylock.toml format. "
+            "This option can be used multiple times."
+        ),
     )
 
 
