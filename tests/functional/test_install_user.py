@@ -25,15 +25,13 @@ def _patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch the Distribution class so it's possible to install a
     # conflicting distribution in the user site.
-    virtualenv.sitecustomize = textwrap.dedent(
-        """
+    virtualenv.sitecustomize = textwrap.dedent("""
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.metadata.base import BaseDistribution
         BaseDistribution.in_site_packages = property(dist_in_site_packages)
-    """
-    )
+    """)
 
 
 @pytest.mark.usefixtures("enable_user_site")
@@ -343,9 +341,7 @@ class Tests_UserSite:
 
         # Create a custom Python script that disables user site and runs pip via exec
         test_script = script.scratch_path / "test_disable_user_site.py"
-        test_script.write_text(
-            textwrap.dedent(
-                f"""
+        test_script.write_text(textwrap.dedent(f"""
             import site
             import sys
 
@@ -369,9 +365,7 @@ class Tests_UserSite:
             # Import and run pip's main
             from pip._internal.cli.main import main
             sys.exit(main())
-            """
-            )
-        )
+            """))
 
         result = script.run("python", str(test_script), expect_error=True)
         assert (

@@ -71,14 +71,10 @@ def test_env_vars_override_config_file(
     # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    config_file.write_text(
-        textwrap.dedent(
-            """\
+    config_file.write_text(textwrap.dedent("""\
         [global]
         no-index = 1
-        """
-        )
-    )
+        """))
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     msg = "DistributionNotFound: No matching distribution found for INITools"
     # Case insensitive as the new resolver canonicalizes the project name
@@ -175,27 +171,19 @@ def test_config_file_override_stack(
     # set this to make pip load it
     script.environ["PIP_CONFIG_FILE"] = str(config_file)
 
-    config_file.write_text(
-        textwrap.dedent(
-            f"""\
+    config_file.write_text(textwrap.dedent(f"""\
         [global]
         index-url = {base_address}/simple1
-        """
-        )
-    )
+        """))
     script.pip("install", "-vvv", "INITools", expect_error=True)
     virtualenv.clear()
 
-    config_file.write_text(
-        textwrap.dedent(
-            f"""\
+    config_file.write_text(textwrap.dedent(f"""\
         [global]
         index-url = {base_address}/simple1
         [install]
         index-url = {base_address}/simple2
-        """
-        )
-    )
+        """))
     script.pip("install", "-vvv", "INITools", expect_error=True)
     script.pip(
         "install",
@@ -241,14 +229,10 @@ def test_install_no_binary_via_config_disables_cached_wheels(
     config_file = tempfile.NamedTemporaryFile(mode="wt", delete=False)
     try:
         script.environ["PIP_CONFIG_FILE"] = config_file.name
-        config_file.write(
-            textwrap.dedent(
-                """\
+        config_file.write(textwrap.dedent("""\
             [global]
             no-binary = :all:
-            """
-            )
-        )
+            """))
         config_file.close()
         res = script.pip(
             "install",
@@ -480,8 +464,7 @@ def test_prompt_for_keyring_if_needed(
 
     url = f"https://USERNAME@{server.host}:{server.port}/simple"
 
-    keyring_content = textwrap.dedent(
-        """\
+    keyring_content = textwrap.dedent("""\
         import os
         import sys
         import keyring
@@ -501,8 +484,7 @@ def test_prompt_for_keyring_if_needed(
 
             def set_password(self, url, username):
                 pass
-    """
-    )
+    """)
     keyring_path = keyring_script.site_packages_path / "keyring_test.py"
     keyring_path.write_text(keyring_content)
 
