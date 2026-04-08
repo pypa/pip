@@ -15,7 +15,7 @@ While we do not dictate what tools contributors use to create pull requests,
 LLM (Large Language Model) tools are often used to generate code that the
 human contributor does not fully understand, and may not even be legally
 considered the owner of. Therefore, contributors wishing to use LLM tools
-should read and follow the project [AI policy](https://github.com/pypa/pip/blob/main/AI_POLICY.md).
+should read and follow the project `AI policy`_.
 
 Submitting Pull Requests
 ========================
@@ -276,6 +276,7 @@ will initiate a vote among the existing maintainers.
     - CI Administration capabilities
     - ReadTheDocs Administration capabilities
 
+.. _`AI policy`: https://github.com/pypa/pip/blob/main/AI_POLICY.md
 .. _`Studies have shown`: https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
 .. _`GitHub Actions`: https://github.com/features/actions
