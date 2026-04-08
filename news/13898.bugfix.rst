@@ -1,0 +1,3 @@
+``pip install --report -`` now writes valid JSON to stdout by redirecting
+log messages to stderr automatically, instead of mixing them into the
+JSON output.

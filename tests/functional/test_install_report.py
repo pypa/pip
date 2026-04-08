@@ -405,3 +405,31 @@ def test_install_report_to_stdout(
     report = json.loads(result.stdout)
     assert "install" in report
     assert len(report["install"]) == 1
+
+
+def test_install_report_to_stdout_without_quiet(
+    script: PipTestEnvironment, shared_data: TestData
+) -> None:
+    """``--report -`` should produce valid JSON on stdout even without ``--quiet``.
+
+    Log messages must be redirected to stderr so they don't corrupt the JSON.
+    """
+    result = script.pip(
+        "install",
+        "simplewheel",
+        "--dry-run",
+        "--no-index",
+        "--find-links",
+        str(shared_data.root / "packages/"),
+        "--report",
+        "-",
+    )
+    # stdout must be *only* valid JSON — no log lines before or after.
+    report = json.loads(result.stdout)
+    assert 1 == len(report["install"])
+    # Round-trip: the raw stdout must equal the parsed-then-reserialized JSON.
+    # This proves no extra text (log lines, ANSI codes, etc.) is present.
+    assert json.dumps(report, indent=2, ensure_ascii=False) + "\n" == result.stdout
+    # Log messages must have been redirected to stderr.
+    assert "Collecting simplewheel" in result.stderr
+    assert "Would install" in result.stderr
