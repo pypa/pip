@@ -67,6 +67,28 @@ def test_install_only_deps(
         result.assert_installed("simple2", editable=False, editable_vcs=False)
 
 
+def test_install_only_deps_does_not_prepare_a_build_env(
+    script: PipTestEnvironment, reqs_test_package: Path, shared_data: TestData
+) -> None:
+    """Test installing project dependencies."""
+    result = script.pip(
+        "--verbose",
+        "install",
+        "--disable-pip-version-check",
+        "--no-index",
+        "--find-links",
+        str(shared_data.packages),
+        "--only-deps",
+        str(reqs_test_package),
+    )
+    assert "setuptools" not in result.stderr, result.stderr
+    result.assert_installed("simple", editable=False, editable_vcs=False)
+    with pytest.raises(TestFailure):
+        result.assert_installed("pkga", editable=False, editable_vcs=False)
+    with pytest.raises(TestFailure):
+        result.assert_installed("simple2", editable=False, editable_vcs=False)
+
+
 def test_install_only_deps_and_optional_deps(
     script: PipTestEnvironment, reqs_test_package: Path, shared_data: TestData
 ) -> None:

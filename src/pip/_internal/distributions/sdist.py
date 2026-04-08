@@ -59,7 +59,7 @@ class SourceDistribution(AbstractDistribution):
             # the build backend supports PEP 660.
             self.req.editable_sanity_check()
         # Check if the current environment provides build dependencies
-        if check_build_deps and not only_dependencies:
+        if check_build_deps:
             pyproject_requires = self.req.pyproject_requires
             assert pyproject_requires is not None
             conflicting, missing = self.req.build_env.check_requirements(
