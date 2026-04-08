@@ -39,6 +39,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
@@ -84,6 +85,8 @@ class DownloadCommand(RequirementCommand):
         cmdoptions.check_dist_restriction(options)
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_release_control_exclusive(options)
+        cmdoptions.check_deps_opts_do_not_conflict(options)
+        cmdoptions.check_no_deps_does_not_use_legacy_resolver(options)
 
         options.download_dir = normalize_path(options.download_dir)
         ensure_dir(options.download_dir)

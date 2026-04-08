@@ -123,3 +123,22 @@ def test_install_dependency_options_are_mutually_exclusive(
     )
     assert "--no-deps" in result.stderr
     assert "--only-deps" in result.stderr
+
+
+def test_install_only_deps_incompatible_with_legacy_resolver(
+    script: PipTestEnvironment,
+    reqs_test_package: Path,
+) -> None:
+    """Test legacy resolver options conflict with only-deps."""
+    result = script.pip(
+        "install",
+        "--disable-pip-version-check",
+        "--no-index",
+        "--no-deps",
+        "--use-deprecated",
+        "--only-deps",
+        str(reqs_test_package),
+        expect_error=True,
+    )
+    assert "--use-deprecated" in result.stderr
+    assert "--only-deps" in result.stderr

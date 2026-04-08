@@ -73,6 +73,19 @@ def check_deps_opts_do_not_conflict(options: Values) -> None:
         raise CommandError("Cannot use '--no-deps' in combination with '--only-deps'")
 
 
+def check_no_deps_does_not_use_legacy_resolver(options: Values) -> None:
+    """Function to fail if --use-deprecated and --only-deps are both specified.
+
+    Only the resolvelib supports --only-deps.
+
+    :param options: The OptionParser options.
+    """
+    if options.deprecated_features_enabled and options.only_dependencies:
+        raise CommandError(
+            "Cannot use '--use-deprecated' in combination with '--only-deps'"
+        )
+
+
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     """Function for determining if custom platform options are allowed.
 
