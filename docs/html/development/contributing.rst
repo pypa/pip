@@ -15,7 +15,7 @@ While we do not dictate what tools contributors use to create pull requests,
 LLM (Large Language Model) tools are often used to generate code that the
 human contributor does not fully understand, and may not even be legally
 considered the owner of. Therefore, contributors wishing to use LLM tools
-should read and follow the project [AI policy](https://github.com/pypa/pip/blob/main/.github/AI_POLICY.md).
+should read and follow the project [AI policy](https://github.com/pypa/pip/blob/main/AI_POLICY.md).
 
 Submitting Pull Requests
 ========================
