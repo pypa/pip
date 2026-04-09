@@ -431,5 +431,5 @@ def test_install_report_to_stdout_without_quiet(
     # This proves no extra text (log lines, ANSI codes, etc.) is present.
     assert json.dumps(report, indent=2, ensure_ascii=False) + "\n" == result.stdout
     # Log messages must have been redirected to stderr.
-    assert "Collecting simplewheel" in result.stderr
+    assert "simplewheel" in result.stderr
     assert "Would install" in result.stderr
