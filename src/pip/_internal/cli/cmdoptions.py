@@ -975,11 +975,8 @@ only_deps: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help=(
-        "Install only package dependencies, not the package itself. "
-        "If you specify an optional dependency group such as [doc], "
-        "the project dependencies and selected optional dependencies "
-        "will be installed. Cannot be used in combination with "
-        "--no-deps."
+        "Install only the dependencies of the provided requirements, not the "
+        "requirements themselves. Cannot be used in combination with --no-deps."
     ),
 )
 
