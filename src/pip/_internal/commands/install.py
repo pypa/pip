@@ -286,15 +286,9 @@ class InstallCommand(RequirementCommand):
         import logging as _logging
         import sys
 
-        stderr_console = None
-        for handler in _logging.getLogger().handlers:
-            if hasattr(handler, "console") and handler.console.file is sys.stderr:
-                stderr_console = handler.console
-                break
+        from pip._internal.utils.logging import get_console
 
-        if stderr_console is None:
-            return
-
+        stderr_console = get_console(stderr=True)
         for handler in _logging.getLogger().handlers:
             if hasattr(handler, "console") and handler.console.file is sys.stdout:
                 handler.console = stderr_console
