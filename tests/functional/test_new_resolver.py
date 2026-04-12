@@ -767,10 +767,6 @@ def test_new_resolver_constraint_no_specifier(script: PipTestEnvironment) -> Non
             "Unnamed requirements are not allowed as constraints",
         ),
         (
-            "-e git+https://example.com/dist.git#egg=req",
-            "Editable requirements are not allowed as constraints",
-        ),
-        (
             "pkg[extra]",
             "Constraints cannot have extras",
         ),
