@@ -27,7 +27,7 @@ from tests.lib import TestData
 def _is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
     """A helper function to check if a requirement is satisfied by a candidate.
 
-    Used for mocking PipProvider.is_satified_by.
+    Used for mocking PipProvider.is_satisfied_by.
     """
     return requirement.is_satisfied_by(candidate)
 

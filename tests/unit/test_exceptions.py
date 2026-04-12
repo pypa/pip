@@ -494,7 +494,7 @@ class TestExternallyManagedEnvironment:
         orig_getlocal = locale.getlocale
 
         def fake_getlocale(category: int) -> tuple[str | None, str | None]:
-            """Fake getlocale() that always reports zh_Hant for LC_MESSASGES."""
+            """Fake getlocale() that always reports zh_Hant for LC_MESSAGES."""
             result = orig_getlocal(category)
             if category == getattr(locale, "LC_MESSAGES", None):
                 return "zh_Hant", result[1]

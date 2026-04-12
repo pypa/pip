@@ -16,7 +16,7 @@ Continuous Integration
 Supported interpreters
 ======================
 
-pip support a variety of Python interpreters:
+pip supports a variety of Python interpreters:
 
 - CPython 3.9
 - CPython 3.10

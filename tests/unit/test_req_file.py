@@ -1028,7 +1028,7 @@ class TestParseRequirements:
         assert reqs[0].name == req_name
         assert reqs[0].specifier == req_specifier
 
-    def test_warns_and_fallsback_to_locale_on_utf8_decode_fail(
+    def test_warns_and_falls_back_to_locale_on_utf8_decode_fail(
         self,
         tmpdir: Path,
         session: PipSession,

@@ -121,7 +121,7 @@ def common_wheels(session: nox.Session) -> None:
     get_common_wheels(session)
 
 
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     get_common_wheels(session)
@@ -136,7 +136,9 @@ def test(session: nox.Session) -> None:
     if not no_install and os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
-    run_with_protected_pip(session, "install", "build")
+    # build 1.4.1 doesn't fall back to virtualenv when pip is missing,
+    # breaking the uninstall workaround below. See pypa/build#1003.
+    run_with_protected_pip(session, "install", "build<1.4.1")
     # build uses the pip present in the outer environment (aka the nox environment)
     # as an optimization. This will crash if the last test run installed a broken
     # pip, so uninstall pip to force build to provision a known good version of pip.

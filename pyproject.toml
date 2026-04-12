@@ -99,6 +99,7 @@ docs = [
 include = [
     "NEWS.rst",
     "SECURITY.md",
+    "AI_POLICY.md",
     "build-project/.python-version",
     "build-project/build-project.py",
     "build-project/build-requirements.in",
