@@ -148,7 +148,7 @@ Creating a new release
    Merge the changes back into ``main`` and pull them back locally.
 #. Push the tag created by ``prepare-release``. This will trigger the release
    workflow on GitHub.
-#. Go to https://github.com/pypa/pip/actions, find the latest ``Publish Python
+#. Go to https://github.com/pypa/pip/actions find the latest ``Publish Python
    🐍 distribution 📦 to PyPI`` workflow run, open it, wait for the build step
    to complete, then approve the PyPI environment to let the publishing step
    run. If you desire, you have the possibility to download and inspect the

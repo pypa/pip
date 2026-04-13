@@ -89,7 +89,7 @@ The following command:
 pip install \
   --ignore-installed --dry-run --quiet \
   --report - \
-  "pydantic>=1.9" git+https://github.com/pypa/packaging@main
+  "pydantic>=1.9" git+https://github.com/pypa/packaging
 ```
 
 will produce an output similar to this (metadata abriged for brevity):

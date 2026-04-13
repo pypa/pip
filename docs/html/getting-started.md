@@ -42,7 +42,7 @@ upload packages.
 ### Install a package from GitHub
 
 ```{pip-cli}
-$ pip install git+https://github.com/pypa/sampleproject.git@main
+$ pip install git+https://github.com/pypa/sampleproject
 [...]
 Successfully installed sampleproject
 ```

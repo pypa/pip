@@ -80,7 +80,7 @@ There are several helpers to manage issues and pull requests.
 
 Issues created on the issue tracker are automatically given the
 `triage` label by the
-[triage-new-issues](https://github.com/apps/triage-new-issues)
+[triage-new-issues](https://github.com/pypa/pip/issues)
 bot. The label is automatically removed when another label is added.
 
 When an issue needs feedback from the author we can label it with

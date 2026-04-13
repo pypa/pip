@@ -24,7 +24,7 @@ There are a number of possible solutions. You can try:
 4. patching Apple2.0 to use Banana3.0
 5. force installing (Be aware!)
 
-For instructions on how to do these steps visit: https://pypa.io/SomeLink
+For instructions on how to do these steps visit: https://pip.pypa.io/en/latest/
 To debug this further you can run `pip-tree` to see all of your dependencies.
 ```
 

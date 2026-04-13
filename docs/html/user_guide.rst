@@ -1425,7 +1425,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 `the official Python blog`_.
 
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
-.. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
+.. _resolver testing survey: https://web.archive.org/web/2024/https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _issue 8661: https://github.com/pypa/pip/issues/8661
 .. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _two-minute video explanation: https://www.youtube.com/watch?v=B4GQCBBsuNU
