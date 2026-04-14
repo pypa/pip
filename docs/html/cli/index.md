@@ -14,7 +14,7 @@ pip
 :maxdepth: 1
 :caption: Environment Management and Introspection
 
-pip_install
+pip_install youtube-transcript-api
 pip_uninstall
 pip_inspect
 pip_list
