@@ -50,7 +50,7 @@ class VirtualEnvironment:
         return int(_virtualenv.__version__.split(".", 1)[0]) < 20
 
     def __update_paths_legacy(self) -> None:
-        home, lib, inc, bin = _virtualenv.path_locations(self.location)
+        home, lib, inc, bin = _virtualenv.path_locations(self.location)  # type: ignore[attr-defined]
         self.bin = Path(bin)
         self.site = Path(lib) / "site-packages"
         # Workaround for https://github.com/pypa/virtualenv/issues/306
@@ -113,7 +113,6 @@ class VirtualEnvironment:
                 _virtualenv.cli_run(
                     [
                         "--no-pip",
-                        "--no-wheel",
                         "--no-setuptools",
                         os.fspath(self.location),
                     ],

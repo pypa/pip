@@ -34,14 +34,13 @@ from pip._internal.exceptions import (
     InstallWheelBuildError,
 )
 from pip._internal.locations import get_scheme
-from pip._internal.metadata import get_environment
+from pip._internal.metadata import BaseEnvironment, get_environment
 from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
-from pip._internal.req import install_given_reqs
+from pip._internal.req import InstallationResult, install_given_reqs
 from pip._internal.req.req_install import (
     InstallRequirement,
-    check_legacy_setup_py_options,
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import test_writable_dir
@@ -59,7 +58,7 @@ from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-from pip._internal.wheel_builder import build, should_build_for_install_command
+from pip._internal.wheel_builder import build
 
 logger = getLogger(__name__)
 
@@ -87,8 +86,9 @@ class InstallCommand(RequirementCommand):
     def add_options(self) -> None:
         self.cmd_opts.add_option(cmdoptions.requirements())
         self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.build_constraints())
+        self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
-        self.cmd_opts.add_option(cmdoptions.pre())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -210,12 +210,10 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
-        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
         self.cmd_opts.add_option(cmdoptions.override_externally_managed())
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
-        self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
             "--compile",
@@ -246,9 +244,6 @@ class InstallCommand(RequirementCommand):
             default=True,
             help="Do not warn about broken dependencies",
         )
-        self.cmd_opts.add_option(cmdoptions.no_binary())
-        self.cmd_opts.add_option(cmdoptions.only_binary())
-        self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
@@ -258,7 +253,13 @@ class InstallCommand(RequirementCommand):
             self.parser,
         )
 
+        selection_opts = cmdoptions.make_option_group(
+            cmdoptions.package_selection_group,
+            self.parser,
+        )
+
         self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
         self.cmd_opts.add_option(
@@ -303,7 +304,9 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
+        cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
+        cmdoptions.check_release_control_exclusive(options)
 
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
@@ -334,8 +337,6 @@ class InstallCommand(RequirementCommand):
             target_temp_dir_path = target_temp_dir.path
             self.enter_context(target_temp_dir)
 
-        global_options = options.global_options or []
-
         session = self.get_default_session(options)
 
         target_python = make_target_python(options)
@@ -355,7 +356,6 @@ class InstallCommand(RequirementCommand):
 
         try:
             reqs = self.get_requirements(args, options, finder, session)
-            check_legacy_setup_py_options(options, reqs)
 
             wheel_cache = WheelCache(options.cache_dir)
 
@@ -384,7 +384,6 @@ class InstallCommand(RequirementCommand):
                 ignore_requires_python=options.ignore_requires_python,
                 force_reinstall=options.force_reinstall,
                 upgrade_strategy=upgrade_strategy,
-                use_pep517=options.use_pep517,
                 py_version_info=options.python_version,
             )
 
@@ -414,6 +413,13 @@ class InstallCommand(RequirementCommand):
                     )
                 return SUCCESS
 
+            # If there is any more preparation to do for the actual installation, do
+            # so now. This includes actually downloading the files in the case that
+            # we have been using PEP-658 metadata so far.
+            preparer.prepare_linked_requirements_more(
+                requirement_set.requirements.values()
+            )
+
             try:
                 pip_req = requirement_set.get_requirement("pip")
             except KeyError:
@@ -425,17 +431,13 @@ class InstallCommand(RequirementCommand):
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
             reqs_to_build = [
-                r
-                for r in requirement_set.requirements_to_install
-                if should_build_for_install_command(r)
+                r for r in requirement_set.requirements_to_install if not r.is_wheel
             ]
 
             _, build_failures = build(
                 reqs_to_build,
                 wheel_cache=wheel_cache,
                 verify=True,
-                build_options=[],
-                global_options=global_options,
             )
 
             if build_failures:
@@ -459,7 +461,6 @@ class InstallCommand(RequirementCommand):
 
             installed = install_given_reqs(
                 to_install,
-                global_options,
                 root=options.root_path,
                 home=target_temp_dir_path,
                 prefix=options.prefix_path,
@@ -478,34 +479,13 @@ class InstallCommand(RequirementCommand):
             )
             env = get_environment(lib_locations)
 
-            # Display a summary of installed packages, with extra care to
-            # display a package name as it was requested by the user.
-            installed.sort(key=operator.attrgetter("name"))
-            summary = []
-            installed_versions = {}
-            for distribution in env.iter_all_distributions():
-                installed_versions[distribution.canonical_name] = distribution.version
-            for package in installed:
-                display_name = package.name
-                version = installed_versions.get(canonicalize_name(display_name), None)
-                if version:
-                    text = f"{display_name}-{version}"
-                else:
-                    text = display_name
-                summary.append(text)
-
             if conflicts is not None:
                 self._warn_about_conflicts(
                     conflicts,
                     resolver_variant=self.determine_resolver_variant(options),
                 )
-
-            installed_desc = " ".join(summary)
-            if installed_desc:
-                write_output(
-                    "Successfully installed %s",
-                    installed_desc,
-                )
+            if summary := installed_packages_summary(installed, env):
+                write_output(summary)
         except OSError as error:
             show_traceback = self.verbosity >= 1
 
@@ -644,6 +624,30 @@ class InstallCommand(RequirementCommand):
         logger.critical("\n".join(parts))
 
 
+def installed_packages_summary(
+    installed: list[InstallationResult], env: BaseEnvironment
+) -> str:
+    # Format a summary of installed packages, with extra care to
+    # display a package name as it was requested by the user.
+    installed.sort(key=operator.attrgetter("name"))
+    summary = []
+    installed_versions = {}
+    for distribution in env.iter_all_distributions():
+        installed_versions[distribution.canonical_name] = distribution.version
+    for package in installed:
+        display_name = package.name
+        version = installed_versions.get(canonicalize_name(display_name), None)
+        if version:
+            text = f"{display_name}-{version}"
+        else:
+            text = display_name
+        summary.append(text)
+
+    if not summary:
+        return ""
+    return f"Successfully installed {' '.join(summary)}"
+
+
 def get_lib_location_guesses(
     user: bool = False,
     home: str | None = None,
@@ -690,6 +694,7 @@ def decide_user_install(
         logger.debug("Non-user install by explicit request")
         return False
 
+    # If we have been asked for a user install explicitly, check compatibility.
     if use_user_site:
         if prefix_path:
             raise CommandError(
@@ -700,6 +705,13 @@ def decide_user_install(
             raise InstallationError(
                 "Can not perform a '--user' install. User site-packages "
                 "are not visible in this virtualenv."
+            )
+        # Catch all remaining cases which honour the site.ENABLE_USER_SITE
+        # value, such as a plain Python installation (e.g. no virtualenv).
+        if not site.ENABLE_USER_SITE:
+            raise InstallationError(
+                "Can not perform a '--user' install. User site-packages "
+                "are disabled for this Python."
             )
         logger.debug("User install by explicit request")
         return True

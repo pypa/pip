@@ -1,0 +1,1 @@
+Force UTF-8 encoding for PEP723 metadata.

@@ -5,6 +5,7 @@ requests.sessions
 This module provides a Session object to manage and persist settings across
 requests (cookies, auth, proxies).
 """
+
 import os
 import sys
 import time
@@ -421,6 +422,8 @@ class Session(SessionRedirectMixin):
         #: expired certificates, which will make your application vulnerable to
         #: man-in-the-middle (MitM) attacks.
         #: Only set this to `False` for testing.
+        #: If verify is set to a string, it must be the path to a CA bundle file
+        #: that will be used to verify the TLS certificate.
         self.verify = True
 
         #: SSL client certificate default, if String, path to ssl client
@@ -535,7 +538,7 @@ class Session(SessionRedirectMixin):
             for multipart encoding upload.
         :param auth: (optional) Auth tuple or callable to enable
             Basic/Digest/Custom HTTP Auth.
-        :param timeout: (optional) How long to wait for the server to send
+        :param timeout: (optional) How many seconds to wait for the server to send
             data before giving up, as a float, or a :ref:`(connect timeout,
             read timeout) <timeouts>` tuple.
         :type timeout: float or tuple

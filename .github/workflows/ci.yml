@@ -18,6 +18,9 @@ env:
   # tells Nox to colorize itself.
   FORCE_COLOR: "1"
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
@@ -25,24 +28,26 @@ concurrency:
 jobs:
   docs:
     name: docs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
       - run: pip install nox
       - run: nox -s docs
 
   determine-changes:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     outputs:
       tests: ${{ steps.filter.outputs.tests }}
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
           filters: |
@@ -67,11 +72,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
       - name: Set up git credentials
@@ -86,7 +93,7 @@ jobs:
 
   vendoring:
     name: vendoring
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     needs: [determine-changes]
     if: >-
@@ -94,8 +101,10 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
 
@@ -104,7 +113,7 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
+    name: tests / ${{ matrix.python.version || matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     needs: [determine-changes]
@@ -115,7 +124,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         python:
           - "3.9"
           - "3.10"
@@ -123,19 +132,39 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
+        include:
+          # Oldest patch release per minor version on ubuntu-latest,
+          # to catch backport/bug fix regressions. Constrained by what
+          # actions/setup-python ships for the runner OS (ubuntu-24.04).
+          # See: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+          - os: ubuntu-latest
+            python: { key: "3.9", version: "3.9.12" }
+          - os: ubuntu-latest
+            python: { key: "3.10", version: "3.10.4" }
+          - os: ubuntu-latest
+            python: { key: "3.11", version: "3.11.0" }
+          - os: ubuntu-latest
+            python: { key: "3.12", version: "3.12.0" }
+          - os: ubuntu-latest
+            python: { key: "3.13", version: "3.13.0" }
+          - os: ubuntu-latest
+            python: { key: "3.14", version: "3.14.0" }
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          python-version: ${{ matrix.python }}
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'ubuntu-22.04'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install bzr
+          sudo apt-get install brz subversion
 
       - name: Install MacOS dependencies
         if: runner.os == 'macOS'
@@ -159,7 +188,7 @@ jobs:
           nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
           tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
 
   tests-windows:
     name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
@@ -181,8 +210,9 @@ jobs:
           # - "3.10"
           # - "3.11"
           # - "3.12"
-          - "3.13"
+          # - "3.13"
           - "3.14"
+          - "3.15"
         group:
           - { number: 1, pytest-filter: "not test_install" }
           - { number: 2, pytest-filter: "test_install" }
@@ -195,11 +225,19 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
 
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
+
+      - name: Install Subversion
+        shell: pwsh
+        run: |
+          winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+          echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox
 
@@ -215,7 +253,7 @@ jobs:
         run: >-
           nox -s test-${{ matrix.python }} --no-install --
           tests/functional -k "${{ matrix.group.pytest-filter }}"
-          --verbose --numprocesses auto --showlocals
+          --verbose --numprocesses auto --showlocals --durations=15
 
   tests-zipapp:
     name: tests / zipapp
@@ -230,8 +268,10 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.10"
 
@@ -246,7 +286,7 @@ jobs:
           nox -s test-3.10 --
           tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
           --use-zipapp
 
   check:  # This job does nothing and is only used for the branch protection
@@ -261,11 +301,11 @@ jobs:
       - tests-zipapp
       - vendoring
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # release/v1
         with:
           allowed-skips: >-
             ${{

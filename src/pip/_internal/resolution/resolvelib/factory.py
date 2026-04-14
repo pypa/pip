@@ -695,9 +695,20 @@ class Factory:
                 "version: %s",
                 "; ".join(skipped_by_requires_python) or "none",
             )
+
+        # Check if only final releases are allowed for this package
+        version_type = "version"
+        if self._finder.release_control is not None:
+            allows_pre = self._finder.release_control.allows_prereleases(
+                canonicalize_name(req.project_name)
+            )
+            if allows_pre is False:
+                version_type = "final version"
+
         logger.critical(
-            "Could not find a version that satisfies the requirement %s "
+            "Could not find a %s that satisfies the requirement %s "
             "(from versions: %s)",
+            version_type,
             req_disp,
             ", ".join(versions) or "none",
         )
@@ -710,6 +721,21 @@ class Factory:
             )
 
         return DistributionNotFound(f"No matching distribution found for {req}")
+
+    def _has_any_candidates(self, project_name: str) -> bool:
+        """
+        Check if there are any candidates available for the project name.
+        """
+        return any(
+            self.find_candidates(
+                project_name,
+                requirements={project_name: []},
+                incompatibilities={},
+                constraint=Constraint.empty(),
+                prefers_installed=True,
+                is_satisfied_by=lambda r, c: True,
+            )
+        )
 
     def get_installation_error(
         self,
@@ -795,6 +821,22 @@ class Factory:
         for key in relevant_constraints:
             spec = constraints[key].specifier
             msg += f"\n    The user requested (constraint) {key}{spec}"
+
+        # Check for causes that had no candidates
+        causes = set()
+        for req, _ in e.causes:
+            causes.add(req.name)
+
+        no_candidates = {c for c in causes if not self._has_any_candidates(c)}
+        if no_candidates:
+            msg = (
+                msg
+                + "\n\n"
+                + "Additionally, some packages in these conflicts have no "
+                + "matching distributions available for your environment:"
+                + "\n    "
+                + "\n    ".join(sorted(no_candidates))
+            )
 
         msg = (
             msg

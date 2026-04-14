@@ -4,7 +4,7 @@ from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.wheel import Wheel
-from pip._internal.utils import compatibility_tags, deprecation
+from pip._internal.utils import compatibility_tags
 
 
 class TestWheelFile:
@@ -47,9 +47,8 @@ class TestWheelFile:
         assert w.version == "1"
 
     def test_non_pep440_version(self) -> None:
-        with pytest.warns(deprecation.PipDeprecationWarning):
-            w = Wheel("simple-_invalid_-py2-none-any.whl")
-        assert w.version == "-invalid-"
+        with pytest.raises(InvalidWheelFilename):
+            Wheel("simple-_invalid_-py2-none-any.whl")
 
     def test_missing_version_raises(self) -> None:
         with pytest.raises(InvalidWheelFilename):
@@ -254,16 +253,14 @@ class TestWheelFile:
 
     def test_version_underscore_conversion(self) -> None:
         """
-        Test that we convert '_' to '-' for versions parsed out of wheel
-        filenames
+        Test that underscore versions are now invalid (no longer converted)
         """
-        with pytest.warns(deprecation.PipDeprecationWarning):
-            w = Wheel("simple-0.1_1-py2-none-any.whl")
-        assert w.version == "0.1-1"
+        with pytest.raises(InvalidWheelFilename):
+            Wheel("simple-0.1_1-py2-none-any.whl")
 
-    def test_invalid_wheel_warning(self) -> None:
+    def test_invalid_wheel_raises(self) -> None:
         """
-        Test that wheel with invalid name produces warning
+        Test that wheel with invalid name now raises exception
         """
-        with pytest.warns(deprecation.PipDeprecationWarning):
+        with pytest.raises(InvalidWheelFilename):
             Wheel("six-1.16.0_build1-py3-none-any.whl")

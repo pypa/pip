@@ -33,7 +33,7 @@ If you find bugs, need help, or want to talk to the developers, please use our m
 * `Discourse channel`_
 * `User IRC`_
 
-If you want to get involved head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:
+If you want to get involved, head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:
 
 * `GitHub page`_
 * `Development documentation`_

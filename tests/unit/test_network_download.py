@@ -315,9 +315,9 @@ def test_downloader(
     expected_bytes: bytes | None,
     tmpdir: Path,
 ) -> None:
-    session = PipSession()
+    session = PipSession(resume_retries=resume_retries)
     link = Link("http://example.com/foo.tgz")
-    downloader = Downloader(session, "on", resume_retries)
+    downloader = Downloader(session, "on")
 
     responses = []
     for headers, status_code, body in mock_responses:
@@ -355,9 +355,9 @@ def test_downloader(
 def test_resumed_download_caching(tmpdir: Path) -> None:
     """Test that resumed downloads are cached properly for future use."""
     cache_dir = tmpdir / "cache"
-    session = PipSession(cache=str(cache_dir))
+    session = PipSession(cache=str(cache_dir), resume_retries=5)
     link = Link("https://example.com/foo.tgz")
-    downloader = Downloader(session, "on", resume_retries=5)
+    downloader = Downloader(session, "on")
 
     # Mock an incomplete download followed by a successful resume
     incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")

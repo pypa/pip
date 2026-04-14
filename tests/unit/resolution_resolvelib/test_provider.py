@@ -12,7 +12,10 @@ from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.resolution.resolvelib.base import Candidate
 from pip._internal.resolution.resolvelib.candidates import REQUIRES_PYTHON_IDENTIFIER
 from pip._internal.resolution.resolvelib.factory import Factory
-from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._internal.resolution.resolvelib.provider import (
+    _CONFLICT_PRIORITY_THRESHOLD,
+    PipProvider,
+)
 from pip._internal.resolution.resolvelib.requirements import (
     ExplicitRequirement,
     SpecifierRequirement,
@@ -60,7 +63,7 @@ def build_explicit_req_info(
             {"pinned-package": [build_req_info("pinned-package==1.0")]},
             [],
             {},
-            (True, False, True, math.inf, False, "pinned-package"),
+            (True, True, False, True, math.inf, False, "pinned-package"),
         ),
         # Star-specified package, i.e. with "*"
         (
@@ -68,7 +71,7 @@ def build_explicit_req_info(
             {"star-specified-package": [build_req_info("star-specified-package==1.*")]},
             [],
             {},
-            (True, True, False, math.inf, False, "star-specified-package"),
+            (True, True, True, False, math.inf, False, "star-specified-package"),
         ),
         # Package that caused backtracking
         (
@@ -76,7 +79,7 @@ def build_explicit_req_info(
             {"backtrack-package": [build_req_info("backtrack-package")]},
             [build_req_info("backtrack-package")],
             {},
-            (True, True, True, math.inf, True, "backtrack-package"),
+            (True, True, True, True, math.inf, True, "backtrack-package"),
         ),
         # Root package requested by user
         (
@@ -84,7 +87,7 @@ def build_explicit_req_info(
             {"root-package": [build_req_info("root-package")]},
             [],
             {"root-package": 1},
-            (True, True, True, 1, True, "root-package"),
+            (True, True, True, True, 1, True, "root-package"),
         ),
         # Unfree package (with specifier operator)
         (
@@ -92,7 +95,7 @@ def build_explicit_req_info(
             {"unfree-package": [build_req_info("unfree-package!=1")]},
             [],
             {},
-            (True, True, True, math.inf, False, "unfree-package"),
+            (True, True, True, True, math.inf, False, "unfree-package"),
         ),
         # Free package (no operator)
         (
@@ -100,7 +103,7 @@ def build_explicit_req_info(
             {"free-package": [build_req_info("free-package")]},
             [],
             {},
-            (True, True, True, math.inf, True, "free-package"),
+            (True, True, True, True, math.inf, True, "free-package"),
         ),
         # Test case for "direct" preference (explicit URL)
         (
@@ -108,7 +111,7 @@ def build_explicit_req_info(
             {"direct-package": [build_explicit_req_info("direct-package")]},
             [],
             {},
-            (False, True, True, math.inf, True, "direct-package"),
+            (True, False, True, True, math.inf, True, "direct-package"),
         ),
         # Upper bounded with <= operator
         (
@@ -120,7 +123,7 @@ def build_explicit_req_info(
             },
             [],
             {},
-            (True, True, False, math.inf, False, "upper-bound-lte-package"),
+            (True, True, True, False, math.inf, False, "upper-bound-lte-package"),
         ),
         # Upper bounded with < operator
         (
@@ -128,7 +131,7 @@ def build_explicit_req_info(
             {"upper-bound-lt-package": [build_req_info("upper-bound-lt-package<2.0")]},
             [],
             {},
-            (True, True, False, math.inf, False, "upper-bound-lt-package"),
+            (True, True, True, False, math.inf, False, "upper-bound-lt-package"),
         ),
         # Upper bounded with ~= operator
         (
@@ -140,7 +143,15 @@ def build_explicit_req_info(
             },
             [],
             {},
-            (True, True, False, math.inf, False, "upper-bound-compatible-package"),
+            (
+                True,
+                True,
+                True,
+                False,
+                math.inf,
+                False,
+                "upper-bound-compatible-package",
+            ),
         ),
         # Not upper bounded, using only >= operator
         (
@@ -148,7 +159,7 @@ def build_explicit_req_info(
             {"lower-bound-package": [build_req_info("lower-bound-package>=1.0")]},
             [],
             {},
-            (True, True, True, math.inf, False, "lower-bound-package"),
+            (True, True, True, True, math.inf, False, "lower-bound-package"),
         ),
     ],
 )
@@ -225,7 +236,8 @@ def test_narrow_requirement_selection(
     """Test that narrow_requirement_selection correctly prioritizes identifiers:
     1. REQUIRES_PYTHON_IDENTIFIER (if present)
     2. Backtrack causes (if present)
-    3. All other identifiers (as-is)
+    3. Conflict-promoted identifiers (if present)
+    4. All other identifiers (as-is)
     """
     provider = PipProvider(
         factory=factory,
@@ -240,3 +252,41 @@ def test_narrow_requirement_selection(
     )
 
     assert list(result) == expected, f"Expected {expected}, got {list(result)}"
+
+
+def test_conflict_promotion_after_threshold(provider: PipProvider) -> None:
+    """Repeated unresolved backtrack causes get promoted after the threshold."""
+    narrow = provider.narrow_requirement_selection
+    cause = [build_req_info("conflict-pkg")]
+
+    # Below threshold: no promotion, all identifiers returned.
+    for i in range(1, _CONFLICT_PRIORITY_THRESHOLD):
+        result = list(narrow(["other-pkg"], {}, {}, {}, cause))
+        assert result == ["other-pkg"], f"Unexpected promotion at call {i}"
+
+    # At threshold: conflict-pkg is a backtrack cause so it wins on that basis.
+    result = list(narrow(["other-pkg", "conflict-pkg"], {}, {}, {}, cause))
+    assert result == ["conflict-pkg"]
+
+    # Without active backtrack causes, the promoted package is still preferred.
+    result = list(narrow(["other-pkg", "conflict-pkg"], {}, {}, {}, []))
+    assert result == ["conflict-pkg"]
+
+    # Backtrack causes still win over promoted-only packages.
+    other_cause = [build_req_info("other-pkg")]
+    result = list(narrow(["other-pkg", "conflict-pkg"], {}, {}, {}, other_cause))
+    assert result == ["other-pkg"]
+
+
+def test_conflict_promoted_get_preference(provider: PipProvider) -> None:
+    """Promoted packages sort before non-promoted in get_preference."""
+    provider._conflict_promoted.add("promoted-pkg")
+
+    info = {
+        "promoted-pkg": [build_req_info("promoted-pkg")],
+        "normal-pkg": [build_req_info("normal-pkg")],
+    }
+    pref = provider.get_preference("promoted-pkg", {}, {}, info, [])
+    pref_other = provider.get_preference("normal-pkg", {}, {}, info, [])
+
+    assert pref < pref_other

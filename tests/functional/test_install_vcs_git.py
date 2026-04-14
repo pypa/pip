@@ -108,7 +108,11 @@ def _install_version_pkg_only(
     """
     version_pkg_url = _make_version_pkg_url(path, rev=rev)
     script.pip(
-        "install", "-e", version_pkg_url, allow_stderr_warning=allow_stderr_warning
+        "install",
+        "--no-build-isolation",
+        "-e",
+        version_pkg_url,
+        allow_stderr_warning=allow_stderr_warning,
     )
 
 
@@ -183,7 +187,9 @@ def test_install_editable_from_git_with_https(
     url_path = "pypa/pip-test-package.git"
     local_url = _github_checkout(url_path, tmpdir, egg="pip-test-package")
     result = script.pip("install", "-e", local_url)
-    result.assert_installed("pip-test-package", with_files=[".git"])
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", with_files=[".git"]
+    )
 
 
 @pytest.mark.network
@@ -193,11 +199,12 @@ def test_install_noneditable_git(script: PipTestEnvironment) -> None:
     """
     result = script.pip(
         "install",
-        "git+https://github.com/pypa/pip-test-package.git"
-        "@0.1.1#egg=pip-test-package",
+        "git+https://github.com/pypa/pip-test-package.git@0.1.1#egg=pip-test-package",
     )
     dist_info_folder = script.site_packages / "pip_test_package-0.1.1.dist-info"
-    result.assert_installed("piptestpackage", without_egg_link=True, editable=False)
+    result.assert_installed(
+        "piptestpackage", dist_name="pip-test-package", editable=False
+    )
     result.did_create(dist_info_folder)
 
 
@@ -340,29 +347,6 @@ def test_install_git_logs_commit_sha(
 
 
 @pytest.mark.network
-def test_git_with_tag_name_and_update(script: PipTestEnvironment, tmpdir: Path) -> None:
-    """
-    Test cloning a git repository and updating to a different version.
-    """
-    url_path = "pypa/pip-test-package.git"
-    base_local_url = _github_checkout(url_path, tmpdir)
-
-    local_url = f"{base_local_url}#egg=pip-test-package"
-    result = script.pip("install", "-e", local_url)
-    result.assert_installed("pip-test-package", with_files=[".git"])
-
-    new_local_url = f"{base_local_url}@0.1.2#egg=pip-test-package"
-    result = script.pip(
-        "install",
-        "--global-option=--version",
-        "-e",
-        new_local_url,
-        allow_stderr_warning=True,
-    )
-    assert "0.1.2" in result.stdout
-
-
-@pytest.mark.network
 def test_git_branch_should_not_be_changed(
     script: PipTestEnvironment, tmpdir: Path
 ) -> None:
@@ -393,7 +377,6 @@ def test_git_with_non_editable_unpacking(
     )
     result = script.pip(
         "install",
-        "--global-option=--quiet",
         local_url,
         allow_stderr_warning=True,
     )
@@ -446,7 +429,7 @@ def test_git_with_ambiguous_revs(script: PipTestEnvironment) -> None:
     version_pkg_path = _create_test_package(script.scratch_path)
     version_pkg_url = _make_version_pkg_url(version_pkg_path, rev="0.1")
     script.run("git", "tag", "0.1", cwd=version_pkg_path)
-    result = script.pip("install", "-e", version_pkg_url)
+    result = script.pip("install", "--no-build-isolation", "-e", version_pkg_url)
     assert "Could not find a tag or branch" not in result.stdout
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module
@@ -587,11 +570,11 @@ def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
     PKG = "gitbranchnotcached"
     repo_dir = _create_test_package(script.scratch_path, name=PKG)
     url = _make_version_pkg_url(repo_dir, rev="master", name=PKG)
-    result = script.pip("install", url, "--only-binary=:all:")
+    result = script.pip("install", "--no-build-isolation", url, "--only-binary=:all:")
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
     script.pip("uninstall", "-y", PKG)
     # build occurs on the second install too because it is not cached
-    result = script.pip("install", url)
+    result = script.pip("install", "--no-build-isolation", url)
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
 
 
@@ -603,9 +586,9 @@ def test_install_git_sha_cached(script: PipTestEnvironment) -> None:
     repo_dir = _create_test_package(script.scratch_path, name=PKG)
     commit = script.run("git", "rev-parse", "HEAD", cwd=repo_dir).stdout.strip()
     url = _make_version_pkg_url(repo_dir, rev=commit, name=PKG)
-    result = script.pip("install", url)
+    result = script.pip("install", "--no-build-isolation", url)
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
     script.pip("uninstall", "-y", PKG)
     # build does not occur on the second install because it is cached
-    result = script.pip("install", url)
+    result = script.pip("install", "--no-build-isolation", url)
     assert f"Successfully built {PKG}" not in result.stdout, result.stdout

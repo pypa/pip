@@ -9,6 +9,135 @@
 
 .. towncrier release notes start
 
+26.0.1 (2026-02-04)
+===================
+
+Bug Fixes
+---------
+
+- Fix ``--pre`` not being respected from the command line when a requirement file
+  includes an option e.g. ``-extra-index-url``. (`#13788 <https://github.com/pypa/pip/issues/13788>`_)
+
+26.0 (2026-01-30)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove support for non-bare project names in egg fragments. Affected users should use
+  the `Direct URL requirement syntax <https://packaging.python.org/en/latest/specifications/version-specifiers/#direct-references>`_. (`#13157 <https://github.com/pypa/pip/issues/13157>`_)
+
+Features
+--------
+
+- Display pip's command-line help in colour, if possible. (`#12134 <https://github.com/pypa/pip/issues/12134>`_)
+- Support installing dependencies declared with inline script metadata
+  (:pep:`723`) with ``--requirements-from-script``. (`#12891 <https://github.com/pypa/pip/issues/12891>`_)
+- Add ``--all-releases`` and ``--only-final`` options to control pre-release
+  and final release selection during package installation. (`#13221 <https://github.com/pypa/pip/issues/13221>`_)
+- Add ``--uploaded-prior-to`` option to only consider packages uploaded prior to
+  a given datetime when the ``upload-time`` field is available from a remote index. (`#13625 <https://github.com/pypa/pip/issues/13625>`_)
+- Add ``--use-feature inprocess-build-deps`` to request that build dependencies are installed
+  within the same pip install process. This new mechanism is faster, supports ``--no-clean``
+  and ``--no-cache-dir`` reliably, and supports prompting for authentication.
+
+  Enabling this feature will also enable ``--use-feature build-constraints``. This feature will
+  become the default in a future pip version. (`#9081 <https://github.com/pypa/pip/issues/9081>`_)
+- ``pip cache purge`` and ``pip cache remove`` now clean up empty directories
+  and legacy files left by older pip versions. (`#9058 <https://github.com/pypa/pip/issues/9058>`_)
+
+Bug Fixes
+---------
+
+- Fix selecting pre-release versions when only pre-releases match.
+  For example, ``package>1.0`` with versions ``1.0, 2.0rc1`` now installs
+  ``2.0rc1`` instead of failing. (`#13746 <https://github.com/pypa/pip/issues/13746>`_)
+- Revisions in version control URLs now must be percent-encoded.
+  For example, use ``git+https://example.com/repo.git@issue%231`` to specify the branch ``issue#1``.
+  If you previously used a branch name containing a ``%`` character in a version control URL, you now need to replace it with ``%25`` to ensure correct percent-encoding. (`#13407 <https://github.com/pypa/pip/issues/13407>`_)
+- Preserve original casing when a path is displayed. (`#6823 <https://github.com/pypa/pip/issues/6823>`_)
+- Fix bash completion when the ``$IFS`` variable has been modified from its default. (`#13555 <https://github.com/pypa/pip/issues/13555>`_)
+- Precompute Python requirements on each candidate, reducing time of long resolutions. (`#13656 <https://github.com/pypa/pip/issues/13656>`_)
+- Skip redundant work converting version objects to strings when using the
+  ``importlib.metadata`` backend. (`#13660 <https://github.com/pypa/pip/issues/13660>`_)
+- Fix ``pip index versions`` to honor only-binary/no-binary options. (`#13682 <https://github.com/pypa/pip/issues/13682>`_)
+- Fix fallthrough logic for options, allowing overriding global options with
+  defaults from user config. (`#13703 <https://github.com/pypa/pip/issues/13703>`_)
+- Use a path-segment prefix comparison, not char-by-char. (`#13777 <https://github.com/pypa/pip/issues/13777>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.14.4
+- Upgrade certifi to 2026.1.4
+- Upgrade idna to 3.11
+- Upgrade packaging to 26.0
+- Upgrade platformdirs to 4.5.1
+
+25.3 (2025-10-24)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove support for the legacy ``setup.py develop`` editable method in setuptools
+  editable installs; setuptools >= 64 is now required. (`#11457 <https://github.com/pypa/pip/issues/11457>`_)
+- Remove the deprecated ``--global-option`` and ``--build-option``.
+  ``--config-setting`` is now the only way to pass options to the build backend. (`#11859 <https://github.com/pypa/pip/issues/11859>`_)
+- Deprecate the ``PIP_CONSTRAINT`` environment variable for specifying build
+  constraints.
+
+  Use the ``--build-constraint`` option or the ``PIP_BUILD_CONSTRAINT`` environment variable
+  instead. When build constraints are used, ``PIP_CONSTRAINT`` no longer affects isolated build
+  environments. To enable this behavior without specifying any build constraints, use
+  ``--use-feature=build-constraint``. (`#13534 <https://github.com/pypa/pip/issues/13534>`_)
+- Remove support for non-standard legacy wheel filenames. (`#13581 <https://github.com/pypa/pip/issues/13581>`_)
+- Remove support for the deprecated ``setup.py bdist_wheel`` mechanism. Consequently,
+  ``--use-pep517`` is now always on, and ``--no-use-pep517`` has been removed. (`#6334 <https://github.com/pypa/pip/issues/6334>`_)
+
+Features
+--------
+
+- When :pep:`658` metadata is available, full distribution files are no longer downloaded when using ``pip lock`` or ``pip install --dry-run``. (`#12603 <https://github.com/pypa/pip/issues/12603>`_)
+- Add support for installing an editable requirement written as a Direct URL (``PackageName @ URL``). (`#13495 <https://github.com/pypa/pip/issues/13495>`_)
+- Add support for build constraints via the ``--build-constraint`` option. This
+  allows constraining the versions of packages used during the build process
+  (e.g., setuptools) without affecting the final installation. (`#13534 <https://github.com/pypa/pip/issues/13534>`_)
+- On ``ResolutionImpossible`` errors, include a note about causes with no candidates. (`#13588 <https://github.com/pypa/pip/issues/13588>`_)
+- Building pip itself from source now uses flit-core instead of setuptools.
+  This does not affect how pip installs or builds packages you use. (`#13473 <https://github.com/pypa/pip/issues/13473>`_)
+
+Bug Fixes
+---------
+
+- Handle malformed ``Version`` metadata entries and
+  show a sensible error message instead of crashing. (`#13443 <https://github.com/pypa/pip/issues/13443>`_)
+- Permit spaces between a filepath and extras in an install requirement. (`#13523 <https://github.com/pypa/pip/issues/13523>`_)
+- Ensure the self-check files in the cache have the same permissions as the rest of the cache. (`#13528 <https://github.com/pypa/pip/issues/13528>`_)
+- Avoid concurrency issues and improve performance when caching locally built wheels,
+  especially when the temporary build directory is on a different filesystem than the cache.
+  The wheel directory passed to the build backend is now a temporary subdirectory inside
+  the cache directory. (`#13540 <https://github.com/pypa/pip/issues/13540>`_)
+- Include relevant user-supplied constraints in logs when reporting dependency conflicts. (`#13545 <https://github.com/pypa/pip/issues/13545>`_)
+- Fix a regression in configuration parsing that was turning a single value
+  into a list and thus leading to a validation error. (`#13548 <https://github.com/pypa/pip/issues/13548>`_)
+- For Python versions that do not support :pep:`706`, pip will now raise an installation error for a
+  source distribution when it includes a symlink that points outside the source distribution archive. (`#13550 <https://github.com/pypa/pip/issues/13550>`_)
+- Prevent ``--user`` installs if ``site.ENABLE_USER_SITE`` is set to ``False``. (`#8794 <https://github.com/pypa/pip/issues/8794>`_)
+
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2025.10.5
+- Upgrade msgpack to 1.1.2
+- Upgrade platformdirs to 4.5.0
+- Upgrade requests to 2.32.5
+- Upgrade resolvelib to 1.2.1
+- Upgrade rich to 14.2.0
+- Upgrade tomli to 2.3.0
+- Upgrade truststore to 0.10.4
+
 25.2 (2025-07-30)
 =================
 

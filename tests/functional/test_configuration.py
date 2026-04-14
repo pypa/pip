@@ -8,13 +8,16 @@ import re
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
+
+import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.configuration import CONFIG_BASENAME, Kind
 from pip._internal.configuration import get_configuration_files as _get_config_files
 from pip._internal.utils.compat import WINDOWS
 
-from tests.lib import PipTestEnvironment
+from tests.lib import PipTestEnvironment, TestData
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 from tests.lib.venv import VirtualEnvironment
 
@@ -212,3 +215,56 @@ class TestBasicLoading(ConfigurationMixin):
             ),
             result.stdout,
         )
+
+    @pytest.mark.network
+    def test_editable_mode_default_config(
+        self, script: PipTestEnvironment, data: TestData
+    ) -> None:
+        """Test that setting default editable mode through configuration works
+        as expected.
+        """
+        script.pip(
+            "config", "--site", "set", "install.config-settings", "editable_mode=strict"
+        )
+        to_install = data.src.joinpath("simplewheel-1.0")
+        script.pip("install", "-e", to_install)
+        assert os.path.isdir(
+            os.path.join(
+                to_install, "build", "__editable__.simplewheel-1.0-py3-none-any"
+            )
+        )
+
+    @pytest.mark.network
+    def test_user_config_overrides_global_config_with_empty_value(
+        self, script: PipTestEnvironment, tmpdir: Path
+    ) -> None:
+        """Test that user config empty value overrides global config."""
+        # Set up global config with proxy
+        global_dir = tmpdir / "global"
+        global_pip = global_dir / "pip" / "pip.conf"
+        global_pip.parent.mkdir(parents=True)
+        global_pip.write_text(
+            "[global]\nproxy = http://non_existing_proxy_server.tld\n"
+        )
+        script.environ["XDG_CONFIG_DIRS"] = str(global_dir)
+
+        # Set up user config that overrides with empty value
+        user_config_dir = tmpdir / "user-config"
+        user_pip_config = user_config_dir / "pip" / "pip.conf"
+        user_pip_config.parent.mkdir(parents=True)
+        user_pip_config.write_text("[global]\nproxy = \n")
+        script.environ["PIP_CONFIG_FILE"] = str(user_pip_config)
+
+        # Install should succeed without trying to use the proxy
+        result = script.pip(
+            "install",
+            "--dry-run",
+            "--no-deps",
+            "--ignore-installed",
+            "--retries",
+            "0",
+            "--no-cache-dir",
+            "requests",
+        )
+
+        assert "Would install" in result.stdout

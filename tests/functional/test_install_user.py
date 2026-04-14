@@ -38,14 +38,15 @@ def _patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
 
 @pytest.mark.usefixtures("enable_user_site")
 class Tests_UserSite:
-    @pytest.mark.network
     def test_reset_env_system_site_packages_usersite(
-        self, script: PipTestEnvironment
+        self,
+        script: PipTestEnvironment,
+        data: TestData,
     ) -> None:
         """
         Check user site works as expected.
         """
-        script.pip("install", "--user", "INITools==0.2")
+        script.pip_install_local("--user", "INITools==0.2", "-f", data.pypi_packages)
         result = script.run(
             "python",
             "-c",
@@ -75,7 +76,7 @@ class Tests_UserSite:
                 )
             ),
         )
-        result.assert_installed("INITools", use_user_site=True)
+        result.assert_installed("INITools")
 
     def test_install_from_current_directory_into_usersite(
         self, script: PipTestEnvironment, data: TestData
@@ -86,6 +87,7 @@ class Tests_UserSite:
         run_from = data.packages.joinpath("FSPkg")
         result = script.pip(
             "install",
+            "--no-build-isolation",
             "-vvv",
             "--user",
             curdir,
@@ -120,29 +122,30 @@ class Tests_UserSite:
             "visible in this virtualenv." in result.stderr
         )
 
-    @pytest.mark.network
     def test_install_user_conflict_in_usersite(
-        self, script: PipTestEnvironment
+        self, script: PipTestEnvironment, data: TestData
     ) -> None:
         """
         Test user install with conflict in usersite updates usersite.
         """
 
-        script.pip("install", "--user", "INITools==0.3", "--no-binary=:all:")
+        script.pip_install_local("--user", "INITools==0.2", "-f", data.pypi_packages)
 
-        result2 = script.pip("install", "--user", "INITools==0.1", "--no-binary=:all:")
+        result2 = script.pip_install_local(
+            "--user", "INITools==0.1", "-f", data.pypi_packages
+        )
 
         # usersite has 0.1
         dist_info_folder = script.user_site / "initools-0.1.dist-info"
-        initools_v3_file = (
-            # file only in 0.3
+        initools_v2_file = (
+            # file only in 0.2
             script.base_path
             / script.user_site
             / "initools"
             / "configparser.py"
         )
         result2.did_create(dist_info_folder)
-        assert not isfile(initools_v3_file), initools_v3_file
+        assert not isfile(initools_v2_file), initools_v2_file
 
     def test_install_user_conflict_in_globalsite(
         self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
@@ -327,3 +330,51 @@ class Tests_UserSite:
             f"Will not install to the user site because it will lack sys.path "
             f"precedence to pkg in {dist_location}"
         ) in result2.stderr
+
+    def test_install_user_nositepkgs_fails(
+        self,
+        script: PipTestEnvironment,
+        data: TestData,
+    ) -> None:
+        """
+        Test that --user install fails when user site-packages are disabled.
+        """
+        create_basic_wheel_for_package(script, "pkg", "0.1")
+
+        # Create a custom Python script that disables user site and runs pip via exec
+        test_script = script.scratch_path / "test_disable_user_site.py"
+        test_script.write_text(
+            textwrap.dedent(
+                f"""
+            import site
+            import sys
+
+            # Make sys.base_prefix equal to sys.prefix to simulate not being in a venv
+            # This ensures virtualenv_no_global() returns False, so we test the
+            # site.ENABLE_USER_SITE path
+            sys.base_prefix = sys.prefix
+            site.ENABLE_USER_SITE = False
+
+            # Set up sys.argv to simulate running pip install --user
+            sys.argv = [
+                "pip", "install",
+                "--no-cache-dir",
+                "--no-index",
+                "--find-links",
+                r"{script.scratch_path}",
+                "pkg",
+                "--user"
+            ]
+
+            # Import and run pip's main
+            from pip._internal.cli.main import main
+            sys.exit(main())
+            """
+            )
+        )
+
+        result = script.run("python", str(test_script), expect_error=True)
+        assert (
+            "Can not perform a '--user' install. User site-packages are "
+            "disabled for this Python." in result.stderr
+        )

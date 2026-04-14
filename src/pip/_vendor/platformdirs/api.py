@@ -95,7 +95,7 @@ class PlatformDirsABC(ABC):  # noqa: PLR0904
     def _first_item_as_path_if_multipath(self, directory: str) -> Path:
         if self.multipath:
             # If multipath is True, the first path is returned.
-            directory = directory.split(os.pathsep)[0]
+            directory = directory.partition(os.pathsep)[0]
         return Path(directory)
 
     @property

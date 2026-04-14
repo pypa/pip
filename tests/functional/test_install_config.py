@@ -199,6 +199,7 @@ def test_config_file_override_stack(
     script.pip("install", "-vvv", "INITools", expect_error=True)
     script.pip(
         "install",
+        "--no-build-isolation",
         "-vvv",
         "--index-url",
         f"{base_address}/simple3",
@@ -250,7 +251,13 @@ def test_install_no_binary_via_config_disables_cached_wheels(
         )
         config_file.close()
         res = script.pip(
-            "install", "--no-index", "-f", data.find_links, "upper", expect_stderr=True
+            "install",
+            "--no-build-isolation",
+            "--no-index",
+            "-f",
+            data.find_links,
+            "upper",
+            expect_stderr=True,
         )
     finally:
         os.unlink(config_file.name)
@@ -266,9 +273,8 @@ def test_prompt_for_authentication(
     requiring authentication
     """
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -306,9 +312,8 @@ def test_do_not_prompt_for_authentication(
     from a index url requiring authentication
     """
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -417,7 +422,6 @@ def flags(
     return flags
 
 
-@pytest.mark.network
 def test_prompt_for_keyring_if_needed(
     data: TestData,
     cert_factory: CertFactory,
@@ -440,10 +444,7 @@ def test_prompt_for_keyring_if_needed(
         keyring_script = script_factory(
             workspace.joinpath("keyring"), keyring_virtualenv
         )
-        keyring_script.pip(
-            "install",
-            "keyring",
-        )
+        keyring_script.pip_install_local("keyring", "-f", data.common_wheels)
 
         environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
 
@@ -454,18 +455,14 @@ def test_prompt_for_keyring_if_needed(
         keyring_provider not in [None, "auto"]
         or keyring_provider_implementation != "subprocess"
     ):
-        script.pip(
-            "install",
-            "keyring",
-        )
+        script.pip_install_local("keyring", "-f", data.common_wheels)
 
     if keyring_provider_implementation != "subprocess":
         keyring_script = script
 
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     response = authorization_response if auth_needed else file_response
@@ -520,6 +517,7 @@ def test_prompt_for_keyring_if_needed(
     with server_running(server):
         result = script.pip(
             "install",
+            "--no-build-isolation",
             "--index-url",
             url,
             "--cert",

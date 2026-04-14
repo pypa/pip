@@ -24,7 +24,6 @@ from tests.lib import (
     need_svn,
     wheel,
 )
-from tests.lib.direct_url import get_created_direct_url_path
 from tests.lib.venv import VirtualEnvironment
 
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
@@ -142,10 +141,12 @@ def test_exclude_and_normalization(script: PipTestEnvironment, tmpdir: Path) -> 
 def test_freeze_multiple_exclude_with_all(script: PipTestEnvironment) -> None:
     result = script.pip("freeze", "--all")
     assert "pip==" in result.stdout
-    assert "wheel==" in result.stdout
-    result = script.pip("freeze", "--all", "--exclude", "pip", "--exclude", "wheel")
+    assert "setuptools==" in result.stdout
+    result = script.pip(
+        "freeze", "--all", "--exclude", "pip", "--exclude", "setuptools"
+    )
     assert "pip==" not in result.stdout
-    assert "wheel==" not in result.stdout
+    assert "setuptools==" not in result.stdout
 
 
 def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
@@ -210,7 +211,7 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     # Rename the .git directory so the directory is no longer recognized
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, ".git"), os.path.join(pkg_path, ".bak"))
-    script.pip("install", "-e", pkg_path)
+    script.pip("install", "--no-build-isolation", "-e", pkg_path)
     result = script.pip("freeze")
 
     # We need to apply os.path.normcase() to the path since that is what
@@ -232,7 +233,7 @@ def test_freeze_editable_git_with_no_remote(
     Test an editable Git install with no remote url.
     """
     pkg_path = _create_test_package(script.scratch_path)
-    script.pip("install", "-e", pkg_path)
+    script.pip("install", "--no-build-isolation", "-e", pkg_path)
     result = script.pip("freeze")
 
     if not deprecated_python:
@@ -596,7 +597,7 @@ def test_freeze_nested_vcs(
         os.fspath(src_path),
         expect_stderr=True,
     )
-    script.pip("install", "-e", src_path, expect_stderr=True)
+    script.pip("install", "--no-build-isolation", "-e", src_path, expect_stderr=True)
 
     # Check the freeze output recognizes the inner VCS.
     result = script.pip("freeze", expect_stderr=True)
@@ -889,7 +890,6 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(
     assert result.stderr.count("is not installed") == 1
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_freeze_user(
     script: PipTestEnvironment, virtualenv: VirtualEnvironment, data: TestData
@@ -897,7 +897,6 @@ def test_freeze_user(
     """
     Testing freeze with --user, first we have to install some stuff.
     """
-    script.pip("download", "setuptools", "wheel", "-d", data.packages)
     script.pip_install_local("--find-links", data.find_links, "--user", "simple==2.0")
     script.pip_install_local("--find-links", data.find_links, "simple2==3.0")
     result = script.pip("freeze", "--user", expect_stderr=True)
@@ -910,14 +909,11 @@ def test_freeze_user(
     assert "simple2" not in result.stdout
 
 
-@pytest.mark.network
 def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -> None:
     """
     Test freeze with --path.
     """
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", tmpdir, "simple==2.0"
-    )
+    script.pip_install_local("--target", tmpdir, "simple==2.0")
     result = script.pip("freeze", "--path", tmpdir)
     expected = textwrap.dedent(
         """\
@@ -927,7 +923,6 @@ def test_freeze_path(tmpdir: Path, script: PipTestEnvironment, data: TestData) -
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_freeze_path_exclude_user(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
@@ -937,9 +932,7 @@ def test_freeze_path_exclude_user(
     up.
     """
     script.pip_install_local("--find-links", data.find_links, "--user", "simple2")
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", tmpdir, "simple==1.0"
-    )
+    script.pip_install_local("--target", tmpdir, "simple==1.0")
     result = script.pip("freeze", "--user")
     expected = textwrap.dedent(
         """\
@@ -956,7 +949,6 @@ def test_freeze_path_exclude_user(
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.network
 def test_freeze_path_multiple(
     tmpdir: Path, script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -967,12 +959,8 @@ def test_freeze_path_multiple(
     os.mkdir(path1)
     path2 = tmpdir / "path2"
     os.mkdir(path2)
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", path1, "simple==2.0"
-    )
-    script.pip(
-        "install", "--find-links", data.find_links, "--target", path2, "simple2==3.0"
-    )
+    script.pip_install_local("--target", path1, "simple==2.0")
+    script.pip_install_local("--target", path2, "simple2==3.0")
     result = script.pip("freeze", "--path", path1)
     expected = textwrap.dedent(
         """\
@@ -994,7 +982,7 @@ def test_freeze_direct_url_archive(
     script: PipTestEnvironment, shared_data: TestData
 ) -> None:
     req = "simple @ " + shared_data.packages.joinpath("simple-2.0.tar.gz").as_uri()
-    script.pip("install", req)
+    script.pip("install", "--no-build-isolation", req)
     result = script.pip("freeze")
     assert req in result.stdout
 
@@ -1038,8 +1026,8 @@ def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     is correctly frozeon as editable.
     """
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
-    result = script.pip("install", pkg_path)
-    direct_url_path = get_created_direct_url_path(result, "testpkg")
+    result = script.pip("install", "--no-build-isolation", pkg_path)
+    direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:

@@ -17,22 +17,27 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 25.1.0
+  rev: 25.12.0
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.12.11
+  rev: v0.15.10
   hooks:
     - id: ruff-check
       args: [--fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.17.1
+  rev: v1.20.0
   hooks:
   - id: mypy
     exclude: tests/data
-    args: ["--pretty", "--show-error-codes"]
+    args:
+      - "--pretty"
+      - "--show-error-codes"
+      # Since this is only a partial mypy run, we can get false-positives
+      # for unused ignores.
+      - "--no-warn-unused-ignores"
     additional_dependencies: [
         'keyring==24.2.0',
         'nox==2024.03.02',
@@ -55,11 +60,18 @@ repos:
     exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
 
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.4.1
+  rev: v2.4.2
   hooks:
     - id: codespell
       exclude: AUTHORS.txt|tests/data
       args: ["--ignore-words", tools/codespell-ignore.txt]
+
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.23.1
+  hooks:
+  - id: zizmor
+    args: ["--fix=all"]
+    files: ^\.github/
 
 - repo: local
   hooks:

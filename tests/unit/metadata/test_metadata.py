@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from pip._vendor.packaging.utils import NormalizedName
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata import (
     BaseDistribution,
@@ -102,7 +102,7 @@ def test_metadata_dict(tmp_path: Path) -> None:
     """
     wheel_path = make_wheel(name="pkga", version="1.0.1").save_to_dir(tmp_path)
     wheel = FilesystemWheel(wheel_path)
-    dist = get_wheel_distribution(wheel, "pkga")
+    dist = get_wheel_distribution(wheel, canonicalize_name("pkga"))
     metadata_dict = dist.metadata_dict
     assert metadata_dict["name"] == "pkga"
     assert metadata_dict["version"] == "1.0.1"
@@ -135,15 +135,15 @@ def test_dist_found_in_zip(tmp_path: Path) -> None:
     assert Path(dist.location) == Path(location)
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        "/path/to/foo.egg-info".replace("/", os.path.sep),
-        # Tests issue fixed by https://github.com/pypa/pip/pull/2530
-        "/path/to/foo.egg-info/".replace("/", os.path.sep),
-    ],
-)
-def test_trailing_slash_directory_metadata(path: str) -> None:
+@pytest.mark.parametrize("trailing_slash", [False, True])
+def test_trailing_slash_directory_metadata(
+    tmp_path: Path, trailing_slash: bool
+) -> None:
+    # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+    egg_info = tmp_path / "foo.egg-info"
+    egg_info.mkdir()
+    (egg_info / "PKG-INFO").write_text("Metadata-Version: 1.0\nName: foo\n")
+    path = str(egg_info) + (os.sep if trailing_slash else "")
     dist = get_directory_distribution(path)
     assert dist.raw_name == dist.canonical_name == "foo"
-    assert dist.location == "/path/to".replace("/", os.path.sep)
+    assert dist.location == str(tmp_path)

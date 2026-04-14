@@ -225,7 +225,7 @@ def _check_download_dir(
 class RequirementPreparer:
     """Prepares a Requirement"""
 
-    def __init__(  # noqa: PLR0913 (too many parameters)
+    def __init__(
         self,
         *,
         build_dir: str,
@@ -243,7 +243,6 @@ class RequirementPreparer:
         lazy_wheel: bool,
         verbosity: int,
         legacy_resolver: bool,
-        resume_retries: int,
     ) -> None:
         super().__init__()
 
@@ -251,7 +250,7 @@ class RequirementPreparer:
         self.build_dir = build_dir
         self.build_tracker = build_tracker
         self._session = session
-        self._download = Downloader(session, progress_bar, resume_retries)
+        self._download = Downloader(session, progress_bar)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -444,7 +443,7 @@ class RequirementPreparer:
             return None
 
         wheel = Wheel(link.filename)
-        name = canonicalize_name(wheel.name)
+        name = wheel.name
         logger.info(
             "Obtaining dependency information from %s %s",
             name,
@@ -531,6 +530,12 @@ class RequirementPreparer:
                 metadata_dist = self._fetch_metadata_only(req)
                 if metadata_dist is not None:
                     req.needs_more_preparation = True
+                    req.set_dist(metadata_dist)
+                    # Ensure download_info is available even in dry-run mode
+                    if req.download_info is None:
+                        req.download_info = direct_url_from_link(
+                            req.link, req.source_dir
+                        )
                     return metadata_dist
 
             # None of the optimizations worked, fully prepare the requirement
