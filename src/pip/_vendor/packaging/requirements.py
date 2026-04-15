@@ -11,6 +11,15 @@ from .markers import Marker, _normalize_extra_values
 from .specifiers import SpecifierSet
 from .utils import canonicalize_name
 
+__all__ = [
+    "InvalidRequirement",
+    "Requirement",
+]
+
+
+def __dir__() -> list[str]:
+    return __all__
+
 
 class InvalidRequirement(ValueError):
     """
@@ -68,7 +77,7 @@ class Requirement:
         return "".join(self._iter_parts(self.name))
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}('{self}')>"
+        return f"<{self.__class__.__name__}({str(self)!r})>"
 
     def __hash__(self) -> int:
         return hash(tuple(self._iter_parts(canonicalize_name(self.name))))
