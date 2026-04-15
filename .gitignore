@@ -51,3 +51,8 @@ tests/data/common_wheels/
 
 # Profiling related artifacts
 *.prof
+
+# Custom PR/Issue body files
+ISSUE_BODY.md
+PR_BODY.md
+PR_FIX_PLAN.md
