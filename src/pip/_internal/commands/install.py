@@ -6,8 +6,10 @@ import operator
 import os
 import shutil
 import site
+import sys
 from optparse import SUPPRESS_HELP, Values
 from pathlib import Path
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
@@ -43,6 +45,7 @@ from pip._internal.req.req_install import (
     InstallRequirement,
 )
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -61,6 +64,91 @@ from pip._internal.utils.virtualenv import (
 from pip._internal.wheel_builder import build
 
 logger = getLogger(__name__)
+
+
+_IMPORT_AUDIT_HOOK_INSTALLED = False
+_MISSING_MODULES: set[str] = set()
+
+# Non-stdlib modules pip (or its vendored dependencies) may import lazily
+# after installation has started. Importing them eagerly keeps the audit
+# hook from misattributing them to a freshly installed distribution.
+_EAGER_IMPORTS: tuple[str, ...] = (
+    # Used by rich when emitting output to a legacy Windows console.
+    "pip._vendor.rich._windows_renderer",
+    # Optional stub that packaging imports while probing manylinux support.
+    "_manylinux",
+)
+
+
+def _collect_stdlib_module_names() -> frozenset[str]:
+    # Imports of standard library modules are always safe: they cannot be
+    # shadowed by a distribution pip has just installed. sys.stdlib_module_names
+    # (added in 3.10) is authoritative; on 3.9 we fall back to walking the
+    # stdlib directory.
+    names = set(sys.builtin_module_names)
+    stdlib_names = getattr(sys, "stdlib_module_names", None)
+    if stdlib_names is not None:
+        names.update(stdlib_names)
+    else:
+        import sysconfig
+
+        stdlib_path = sysconfig.get_path("stdlib")
+        try:
+            entries = os.listdir(stdlib_path)
+        except OSError:
+            entries = []
+        for entry in entries:
+            if entry.endswith(".py"):
+                names.add(entry[:-3])
+            elif "." not in entry and os.path.isdir(os.path.join(stdlib_path, entry)):
+                names.add(entry)
+    return frozenset(names)
+
+
+_STDLIB_MODULE_NAMES: frozenset[str] = _collect_stdlib_module_names()
+
+
+def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
+    if name != "import":
+        return
+    module = args[0]
+    if module in _MISSING_MODULES:
+        raise ImportError(f"No module named {module!r}")
+    if module.partition(".")[0] in _STDLIB_MODULE_NAMES:
+        return
+    deprecated(
+        reason=f"Unexpected import of {module!r} after pip install started.",
+        replacement=None,
+        gone_in="26.3",
+        issue=13842,
+        include_source=True,
+        stacklevel=3,
+    )
+
+
+def _eagerly_import_modules() -> None:
+    """Import modules pip uses lazily so the audit hook ignores them later."""
+    for module in _EAGER_IMPORTS:
+        try:
+            __import__(module)
+        except ImportError:
+            # Record the module as missing so the hook can raise ImportError
+            # instead of trying to import it again.
+            _MISSING_MODULES.add(module)
+
+
+def _prevent_further_imports() -> None:
+    """Install an audit hook that warns on unexpected imports after pip install starts.
+
+    Eagerly pre-imports the known lazy imports first so the hook only fires
+    on genuinely unexpected modules.
+    """
+    global _IMPORT_AUDIT_HOOK_INSTALLED
+    if _IMPORT_AUDIT_HOOK_INSTALLED:
+        return
+
+    _IMPORT_AUDIT_HOOK_INSTALLED = True
+    sys.addaudithook(_prevent_import_hook)
 
 
 class InstallCommand(RequirementCommand):
@@ -458,6 +546,13 @@ class InstallCommand(RequirementCommand):
             warn_script_location = options.warn_script_location
             if options.target_dir or options.prefix_path:
                 warn_script_location = False
+
+            # Warn on late imports so we don't silently pick up a module
+            # from a distribution pip is about to install.
+            try:
+                _eagerly_import_modules()
+            finally:
+                _prevent_further_imports()
 
             installed = install_given_reqs(
                 to_install,
