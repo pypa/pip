@@ -126,7 +126,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python:
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
@@ -138,8 +137,6 @@ jobs:
           # to catch backport/bug fix regressions. Constrained by what
           # actions/setup-python ships for the runner OS (ubuntu-24.04).
           # See: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-          - os: ubuntu-latest
-            python: { key: "3.9", version: "3.9.12" }
           - os: ubuntu-latest
             python: { key: "3.10", version: "3.10.4" }
           - os: ubuntu-latest
@@ -204,10 +201,9 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - "3.9"
+          - "3.10"
           # Commented out, since Windows tests are expensively slow,
           # only test the oldest and newest Python supported by pip
-          # - "3.10"
           # - "3.11"
           # - "3.12"
           # - "3.13"

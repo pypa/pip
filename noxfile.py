@@ -121,7 +121,7 @@ def common_wheels(session: nox.Session) -> None:
     get_common_wheels(session)
 
 
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "pypy3"])
+@nox.session(python=["3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "pypy3"])
 def test(session: nox.Session) -> None:
     # Get the common wheels.
     get_common_wheels(session)
@@ -242,12 +242,6 @@ def lint(session: nox.Session) -> None:
 # git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
-    # Ensure that the session Python is running 3.10+
-    # so that truststore can be installed correctly.
-    session.run(
-        "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
-    )
-
     parser = argparse.ArgumentParser(prog="nox -s vendoring")
     parser.add_argument("--upgrade-all", action="store_true")
     parser.add_argument("--upgrade", action="append", default=[])

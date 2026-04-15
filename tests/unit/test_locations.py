@@ -87,10 +87,7 @@ class TestLocations:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.delattr(sysconfig, "_PIP_USE_SYSCONFIG", raising=False)
-        if sys.version_info[:2] >= (3, 10):
-            assert _should_use_sysconfig() is True
-        else:
-            assert _should_use_sysconfig() is False
+        assert _should_use_sysconfig() is True
 
     @pytest.mark.parametrize("vendor_value", [True, False, None, "", 0, 1])
     def test_vendor_overridden_should_use_sysconfig(
