@@ -422,7 +422,7 @@ class RequirementCommand(IndexGroupCommand):
         options: Values,
         session: PipSession,
         target_python: TargetPython | None = None,
-        ignore_requires_python: bool | None = None,
+        ignore_requires_python: bool = False,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to this requirement command.

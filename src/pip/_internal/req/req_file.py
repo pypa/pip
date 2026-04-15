@@ -101,18 +101,8 @@ DEFAULT_ENCODING = "utf-8"
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ParsedRequirement:
-    # TODO: replace this with slots=True when dropping Python 3.9 support.
-    __slots__ = (
-        "requirement",
-        "is_editable",
-        "comes_from",
-        "constraint",
-        "options",
-        "line_source",
-    )
-
     requirement: str
     is_editable: bool
     comes_from: str
@@ -121,10 +111,8 @@ class ParsedRequirement:
     line_source: str | None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ParsedLine:
-    __slots__ = ("filename", "lineno", "args", "opts", "constraint")
-
     filename: str
     lineno: int
     args: str

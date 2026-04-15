@@ -137,7 +137,7 @@ class LinkEvaluator:
         formats: frozenset[str],
         target_python: TargetPython,
         allow_yanked: bool,
-        ignore_requires_python: bool | None = None,
+        ignore_requires_python: bool = False,
         uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
@@ -159,8 +159,6 @@ class LinkEvaluator:
         :param uploaded_prior_to: If set, only allow links uploaded prior to
             the given datetime.
         """
-        if ignore_requires_python is None:
-            ignore_requires_python = False
 
         self._allow_yanked = allow_yanked
         self._canonical_name = canonical_name
@@ -633,7 +631,7 @@ class PackageFinder:
         allow_yanked: bool,
         format_control: FormatControl | None = None,
         candidate_prefs: CandidatePreferences | None = None,
-        ignore_requires_python: bool | None = None,
+        ignore_requires_python: bool = False,
         uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
