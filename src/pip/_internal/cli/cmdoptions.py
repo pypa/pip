@@ -16,11 +16,12 @@ import os
 import pathlib
 import re
 import textwrap
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 

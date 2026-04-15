@@ -10,14 +10,14 @@ import shutil
 import subprocess
 import sys
 import threading
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, AnyStr, Callable, ClassVar
+from typing import TYPE_CHECKING, Any, AnyStr, ClassVar
 from unittest.mock import patch
 from zipfile import ZipFile
 

@@ -7,7 +7,6 @@ import pathlib
 import sys
 import zipfile
 from collections.abc import Iterator, Sequence
-from typing import Optional
 
 from pip._vendor.packaging.utils import (
     InvalidWheelFilename,
@@ -50,7 +49,7 @@ class _DistributionFinder:
     installations as well. It's useful feature, after all.
     """
 
-    FoundResult = tuple[importlib.metadata.Distribution, Optional[BasePath]]
+    FoundResult = tuple[importlib.metadata.Distribution, BasePath | None]
 
     def __init__(self) -> None:
         self._found_names: set[NormalizedName] = set()

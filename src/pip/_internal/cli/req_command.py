@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from functools import partial
 from optparse import Values
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from pip._internal.build_env import (
     BuildEnvironmentInstaller,

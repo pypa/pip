@@ -4,8 +4,8 @@ import functools
 import os
 import sys
 import sysconfig
-from collections.abc import Generator, Iterable
-from typing import Any, Callable
+from collections.abc import Callable, Generator, Iterable
+from typing import Any
 
 from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
 from pip._internal.locations import get_bin_prefix, get_bin_user
