@@ -13,7 +13,13 @@ import pytest
 
 from pip._vendor import rich
 
-from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
+from unittest.mock import MagicMock
+
+from pip._internal.exceptions import (
+    DiagnosticPipError,
+    ExternallyManagedEnvironment,
+    UninstallMissingRecord,
+)
 
 
 class TestDiagnosticPipErrorCreation:
@@ -479,6 +485,52 @@ class TestDiagnosticPipErrorPresentation_Unicode:
               It broke. :(
             """
         )
+
+
+class TestUninstallMissingRecord:
+    def _make_dist(self, name: str, version: str, installer: str = "pip") -> MagicMock:
+        dist = MagicMock()
+        dist.raw_name = name
+        dist.version = version
+        dist.installer = installer
+        dist.__str__ = lambda self: f"{name} {version}"
+        return dist
+
+    def test_pip_installed_hint_uses_ignore_installed(
+        self,
+    ) -> None:
+        """Recovery hint must use --ignore-installed, not --force-reinstall.
+
+        --force-reinstall triggers an uninstall first, which fails with the
+        same RECORD-missing error, creating an infinite loop.  --ignore-installed
+        skips the uninstall step and writes fresh package files directly.
+        """
+        dist = self._make_dist("mypackage", "1.2.3", installer="pip")
+        err = UninstallMissingRecord(distribution=dist)
+        hint_text = str(err.hint_stmt)
+        assert "--ignore-installed" in hint_text
+        assert "--force-reinstall" not in hint_text
+        assert "--no-deps" in hint_text
+        assert "mypackage==1.2.3" in hint_text
+
+    def test_empty_installer_also_uses_ignore_installed(self) -> None:
+        """Empty installer string is treated the same as pip-installed."""
+        dist = self._make_dist("mypkg", "0.1", installer="")
+        err = UninstallMissingRecord(distribution=dist)
+        hint_text = str(err.hint_stmt)
+        assert "--ignore-installed" in hint_text
+        assert "--force-reinstall" not in hint_text
+
+    def test_third_party_installer_hint(
+        self,
+    ) -> None:
+        """Non-pip installer produces a different hint pointing to that tool."""
+        dist = self._make_dist("mypkg", "0.1", installer="conda")
+        err = UninstallMissingRecord(distribution=dist)
+        hint_text = str(err.hint_stmt)
+        assert "conda" in hint_text
+        assert "--ignore-installed" not in hint_text
+        assert "--force-reinstall" not in hint_text
 
 
 class TestExternallyManagedEnvironment:
