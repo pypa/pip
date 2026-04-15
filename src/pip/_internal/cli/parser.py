@@ -220,8 +220,16 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            print(f"An error occurred during configuration: {exc}")
-            sys.exit(3)
+            # Emit a warning instead of aborting so that an invalid config
+            # value (e.g. a stale or mistyped use-feature entry) does not
+            # make pip completely unusable.  Users can still run
+            # `pip config unset` or other subcommands to recover.
+            logger.warning(
+                "Ignoring configuration key '%s': %s",
+                key,
+                exc,
+            )
+            return None
 
     def _get_ordered_configuration_items(
         self,

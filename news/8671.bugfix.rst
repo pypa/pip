@@ -1,0 +1,1 @@
+Warn instead of aborting when a pip config file contains an invalid use-feature value.
