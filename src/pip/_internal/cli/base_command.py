@@ -131,9 +131,13 @@ class Command(CommandContextMixIn):
             logger.debug("Exception information:", exc_info=True)
 
             return ERROR
-        except BrokenStdoutLoggingError:
+        except (BrokenStdoutLoggingError, BrokenPipeError):
             # Bypass our logger and write any remaining messages to
             # stderr because stdout no longer works.
+            # BrokenPipeError can surface directly from PipConsole.on_broken_pipe()
+            # (rich 13.8.0+ changed Console.on_broken_pipe to sys.exit(); pip
+            # overrides it to reraise BrokenPipeError so our handler fires, but
+            # that means the raw BrokenPipeError must also be caught here).
             print("ERROR: Pipe to stdout was broken", file=sys.stderr)
             if level_number <= logging.DEBUG:
                 traceback.print_exc(file=sys.stderr)
