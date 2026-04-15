@@ -1,0 +1,2 @@
+When writing JSON report to stdout (:option:`pip install --report -`), console
+logs are now also sent to stderr, preventing output from being interleaved.

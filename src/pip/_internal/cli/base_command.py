@@ -180,6 +180,7 @@ class Command(CommandContextMixIn):
             options.progress_bar = "on" if self.verbosity >= 0 else "off"
 
         reconfigure(no_color=options.no_color)
+
         level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,
