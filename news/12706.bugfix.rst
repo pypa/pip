@@ -1,0 +1,1 @@
+Fix Fatal Internal error [id=1] raised by pip config unset when the target key lives in a lower-priority config file.

@@ -1,11 +1,12 @@
 """Tests for all things related to the configuration"""
 
+import configparser
 import re
 from unittest.mock import MagicMock
 
 import pytest
 
-from pip._internal.configuration import get_configuration_files, kinds
+from pip._internal.configuration import Configuration, get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError
 
 from tests.lib.configuration_helpers import ConfigurationMixin
@@ -270,3 +271,77 @@ class TestConfigurationModification(ConfigurationMixin):
         pat = r"^No such key - global\.index-url$"
         with pytest.raises(ConfigurationError, match=pat):
             self.configuration.get_value("global.index-url")
+
+
+class TestConfigurationUnsetMultipleFiles:
+    """Tests for unset_value when multiple config files exist (issue #12706).
+
+    When multiple files of the same kind are present (e.g. two global config
+    files), _get_parser_to_modify() returns the highest-priority parser, but
+    the key to be removed may live in a lower-priority file.  The old code
+    would raise 'Fatal Internal error [id=1]' in that case because it tried
+    to remove the option from the wrong parser.
+    """
+
+    def _make_config_with_two_parsers(
+        self, key_in_first: str, value: str
+    ) -> Configuration:
+        """Build a Configuration whose global variant has two parsers.
+
+        The key lives in the *first* (lower-priority) parser; the second
+        (higher-priority) parser is empty.  This is the scenario that
+        triggered the Fatal Internal error [id=1].
+        """
+        config = Configuration(isolated=False)
+        config.load_only = kinds.GLOBAL
+
+        # First parser: owns the key
+        parser_a = configparser.RawConfigParser()
+        section, name = key_in_first.split(".", 1)
+        parser_a.add_section(section)
+        parser_a.set(section, name, value)
+        config._parsers[kinds.GLOBAL].append(("file_a.conf", parser_a))
+        config._config[kinds.GLOBAL]["file_a.conf"] = {key_in_first: value}
+
+        # Second parser: higher priority but empty — simulates a second global
+        # config file that does not contain this key.
+        parser_b = configparser.RawConfigParser()
+        config._parsers[kinds.GLOBAL].append(("file_b.conf", parser_b))
+        config._config[kinds.GLOBAL]["file_b.conf"] = {}
+
+        return config
+
+    def test_unset_from_lower_priority_file_does_not_raise(self) -> None:
+        """unset_value must not raise when the key is in a non-primary parser.
+
+        Before the fix this raised:
+          ConfigurationError: Fatal Internal error [id=1]. Please report as a bug.
+        """
+        config = self._make_config_with_two_parsers("global.no-cache-dir", "true")
+
+        # Must not raise — this is the regression test for #12706
+        config.unset_value("global.no-cache-dir")
+
+    def test_unset_removes_key_from_correct_file(self) -> None:
+        """After unset_value the key must be gone from the config."""
+        config = self._make_config_with_two_parsers("global.index-url", "https://example.com")
+
+        config.unset_value("global.index-url")
+
+        # The key must no longer appear in any file under global
+        all_keys = {}
+        for file_dict in config._config[kinds.GLOBAL].values():
+            all_keys.update(file_dict)
+        assert "global.index-url" not in all_keys
+
+    def test_unset_marks_correct_file_as_modified(self) -> None:
+        """_mark_as_modified must be called with the file that owns the key."""
+        config = self._make_config_with_two_parsers("global.retries", "5")
+
+        modified = []
+        config._mark_as_modified = lambda fname, parser: modified.append(fname)  # type: ignore[method-assign]
+
+        config.unset_value("global.retries")
+
+        # Should have marked file_a (the owner), not file_b (the empty one)
+        assert modified == ["file_a.conf"]

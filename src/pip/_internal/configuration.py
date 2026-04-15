@@ -186,30 +186,48 @@ class Configuration:
         assert self.load_only
         fname, parser = self._get_parser_to_modify()
 
-        if (
-            key not in self._config[self.load_only][fname]
-            and key not in self._config[self.load_only]
-        ):
+        # Check across ALL files for this variant, not just the highest-priority
+        # one.  A key set in a lower-priority file is still a valid key to unset.
+        key_exists = any(
+            key in file_values
+            for file_values in self._config[self.load_only].values()
+        )
+        if not key_exists:
             raise ConfigurationError(f"No such key - {orig_key}")
 
         if parser is not None:
             section, name = _disassemble_key(key)
-            if not (
-                parser.has_section(section) and parser.remove_option(section, name)
-            ):
-                # The option was not removed.
+
+            # The key may have been loaded from a lower-priority config file
+            # while _get_parser_to_modify() returns the highest-priority one.
+            # Search all parsers for the load_only variant to find the one
+            # that actually owns this key, so we remove it from the right file.
+            target_fname = fname
+            target_parser = parser
+            for candidate_fname, candidate_parser in self._parsers[self.load_only]:
+                if candidate_parser.has_section(section) and candidate_parser.has_option(
+                    section, name
+                ):
+                    target_fname = candidate_fname
+                    target_parser = candidate_parser
+                    break
+
+            if not target_parser.remove_option(section, name):
+                # The option was not removed — this should not happen given
+                # the search above, but guard against it defensively.
                 raise ConfigurationError(
                     "Fatal Internal error [id=1]. Please report as a bug."
                 )
 
             # The section may be empty after the option was removed.
-            if not parser.items(section):
-                parser.remove_section(section)
-            self._mark_as_modified(fname, parser)
-        try:
-            del self._config[self.load_only][fname][key]
-        except KeyError:
-            del self._config[self.load_only][key]
+            if not target_parser.items(section):
+                target_parser.remove_section(section)
+            self._mark_as_modified(target_fname, target_parser)
+        # Remove the key from whichever file dict in _config actually owns it.
+        for file_values in self._config[self.load_only].values():
+            if key in file_values:
+                del file_values[key]
+                break
 
     def save(self) -> None:
         """Save the current in-memory state."""
