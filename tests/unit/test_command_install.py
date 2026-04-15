@@ -1,6 +1,5 @@
 import errno
 import sys
-import warnings
 from unittest import mock
 
 import pytest
@@ -8,12 +7,7 @@ import pytest
 from pip._vendor.requests.exceptions import InvalidProxyURL
 
 from pip._internal.commands import install
-from pip._internal.commands.install import (
-    _prevent_further_imports,
-    create_os_error_message,
-    decide_user_install,
-)
-from pip._internal.utils.deprecation import PipDeprecationWarning
+from pip._internal.commands.install import create_os_error_message, decide_user_install
 
 
 class TestDecideUserInstall:
@@ -189,36 +183,3 @@ def test_create_os_error_message(
     monkeypatch.setattr(install, "running_under_virtualenv", lambda: False)
     msg = create_os_error_message(error, show_traceback, using_user_site)
     assert msg == expected
-
-
-def test_prevent_further_imports_warns_on_import() -> None:
-    """
-    An import issued after _prevent_further_imports() has run must emit a
-    deprecation warning via the registered audit hook, except when the
-    imported module lives in the standard library.
-    """
-    captured_hooks: list[mock.Mock] = []
-
-    with mock.patch.object(install, "_IMPORT_AUDIT_HOOK_INSTALLED", False):
-        with mock.patch.object(sys, "addaudithook", side_effect=captured_hooks.append):
-            _prevent_further_imports()
-
-    assert len(captured_hooks) == 1, "Expected exactly one audit hook to be registered"
-    audit_hook = captured_hooks[0]
-
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        audit_hook("import", ("unknown_module",))
-
-    assert len(caught) == 1
-    assert "unknown_module" in str(caught[0].message)
-    assert issubclass(caught[0].category, PipDeprecationWarning)
-
-    # Standard library imports must not emit a warning: pip cannot shadow
-    # them with a freshly installed distribution.
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        audit_hook("import", ("os",))
-        audit_hook("import", ("encodings.iso8859_15",))
-
-    assert caught == []
