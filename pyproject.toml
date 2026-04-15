@@ -183,6 +183,8 @@ drop = [
   "rich/markdown.py",
   # trim parts of distlib that aren't related to scripts
   '^distlib/(?!__init__|compat|resources|scripts|util).*\.py$',
+  # pip never runs on emscripten
+  "urllib3/contrib/emscripten/",
 ]
 
 [tool.vendoring.typing-stubs]
