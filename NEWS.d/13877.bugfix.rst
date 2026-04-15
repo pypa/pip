@@ -1,0 +1,1 @@
+Fixed a crash where piping pip output to a process that exits early (e.g. ``pip show pip | head -1``) raised an unhandled ``BrokenPipeError`` traceback instead of the friendly 'Pipe to stdout was broken' message.
