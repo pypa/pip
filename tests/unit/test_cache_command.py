@@ -1,7 +1,10 @@
 """Tests for the cache command with HTTP cache listing functionality."""
 
+import io
 import os
+import tarfile
 import tempfile
+import zipfile
 from optparse import Values
 
 from pip._vendor.cachecontrol.serialize import Serializer
@@ -14,8 +17,6 @@ class TestGetHttpCacheFilesWithMetadata:
 
     def test_extracts_filename_from_wheel_body(self) -> None:
         """Test that filenames are extracted from wheel file bodies."""
-        import zipfile
-
         with tempfile.TemporaryDirectory() as cache_dir:
             cache_subdir = os.path.join(cache_dir, "http-v2", "a", "b", "c", "d", "e")
             os.makedirs(cache_subdir, exist_ok=True)
@@ -66,8 +67,6 @@ class TestGetHttpCacheFilesWithMetadata:
 
     def test_extracts_filename_from_tarball_body(self) -> None:
         """Test that filenames are extracted from tarball file bodies."""
-        import tarfile
-
         with tempfile.TemporaryDirectory() as cache_dir:
             cache_subdir = os.path.join(cache_dir, "http-v2", "a", "b", "c", "d", "e")
             os.makedirs(cache_subdir, exist_ok=True)
@@ -78,8 +77,6 @@ class TestGetHttpCacheFilesWithMetadata:
             body_file = cache_file + ".body"
             with tarfile.open(body_file, "w:gz") as tf:
                 # Tarballs typically have package-version/ as root
-                import io
-
                 data = b"test content"
                 tarinfo = tarfile.TarInfo(name="mypackage-2.0.0/setup.py")
                 tarinfo.size = len(data)

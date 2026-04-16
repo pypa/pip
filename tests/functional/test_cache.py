@@ -440,9 +440,9 @@ def test_cache_purge_too_many_args(
 
 
 @pytest.mark.usefixtures("populate_http_cache")
-def test_cache_list_with_http_flag(script: PipTestEnvironment) -> None:
-    """Running `pip cache list --http` should list HTTP cache files."""
-    result = script.pip("cache", "list", "--http")
+def test_cache_list_with_http_packages_flag(script: PipTestEnvironment) -> None:
+    """Running `pip cache list --http-packages` should list HTTP cache files."""
+    result = script.pip("cache", "list", "--http-packages")
 
     # Should show HTTP cache files section
     assert "HTTP cache files:" in result.stdout
@@ -453,9 +453,9 @@ def test_cache_list_with_http_flag(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.usefixtures("populate_http_cache")
-def test_cache_list_with_http_flag_abspath(script: PipTestEnvironment) -> None:
-    """Running `pip cache list --http --format=abspath` should list full paths."""
-    result = script.pip("cache", "list", "--http", "--format=abspath")
+def test_cache_list_with_http_packages_flag_abspath(script: PipTestEnvironment) -> None:
+    """`pip cache list --http-packages --format=abspath` should list full paths."""
+    result = script.pip("cache", "list", "--http-packages", "--format=abspath")
 
     # Should have some output with paths
     lines = result.stdout.strip().split("\n")
@@ -466,9 +466,9 @@ def test_cache_list_with_http_flag_abspath(script: PipTestEnvironment) -> None:
 
 
 @pytest.mark.usefixtures("empty_wheel_cache")
-def test_cache_list_with_http_flag_empty(script: PipTestEnvironment) -> None:
-    """Test `pip cache list --http` with empty cache."""
-    result = script.pip("cache", "list", "--http")
+def test_cache_list_with_http_packages_flag_empty(script: PipTestEnvironment) -> None:
+    """Test `pip cache list --http-packages` with empty cache."""
+    result = script.pip("cache", "list", "--http-packages")
 
     # Should show no cached files message
     assert "No cached files." in result.stdout

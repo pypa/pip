@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import os
+import tarfile
 import textwrap
+import zipfile
 from optparse import Values
 from typing import Callable
+
+from pip._vendor import msgpack
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -34,7 +38,8 @@ class CacheCommand(Command):
     usage = """
         %prog dir
         %prog info
-        %prog list [<pattern>] [--format=[human, abspath]] [--http] [--all]
+        %prog list [<pattern>] [--format=[human, abspath]] [--http-packages]
+                   [--all-packages]
         %prog remove <pattern>
         %prog purge
     """
@@ -50,17 +55,17 @@ class CacheCommand(Command):
         )
 
         self.cmd_opts.add_option(
-            "--http",
+            "--http-packages",
             action="store_true",
-            dest="list_http",
+            dest="list_http_packages",
             default=False,
             help="List HTTP cached package files",
         )
 
         self.cmd_opts.add_option(
-            "--all",
+            "--all-packages",
             action="store_true",
-            dest="list_all",
+            dest="list_all_packages",
             default=False,
             help="List both HTTP cached and locally built package files",
         )
@@ -161,13 +166,13 @@ class CacheCommand(Command):
 
         # Determine what to show based on flags
         # Default: show only wheels (backward compatible)
-        # --http: show only HTTP cache
-        # --all: show both wheels and HTTP cache (unified)
-        if options.list_all:
+        # --http-packages: show only HTTP cache
+        # --all-packages: show both wheels and HTTP cache (unified)
+        if options.list_all_packages:
             show_wheels = True
             show_http = True
             unified = True
-        elif options.list_http:
+        elif options.list_http_packages:
             show_wheels = False
             show_http = True
             unified = False
@@ -392,10 +397,10 @@ class CacheCommand(Command):
         Returns a list of tuples: (cache_file_path, filename)
         Only returns files where a filename could be successfully extracted.
         """
-        from pip._vendor.cachecontrol.serialize import Serializer
-
         http_files = self._find_http_files(options)
         result = []
+
+        from pip._vendor.cachecontrol.serialize import Serializer
 
         serializer = Serializer()
 
@@ -406,29 +411,27 @@ class CacheCommand(Command):
 
             filename = None
             try:
-                # Read the cached metadata
                 with open(cache_file, "rb") as f:
                     cached_data = f.read()
 
-                # Try to parse it
                 if cached_data.startswith(f"cc={serializer.serde_version},".encode()):
-                    # Extract the msgpack data
-                    from pip._vendor import msgpack
-
                     data = cached_data[5:]  # Skip "cc=4,"
                     cached = msgpack.loads(data, raw=False)
-
                     headers = cached.get("response", {}).get("headers", {})
                     content_type = headers.get("content-type", "")
 
-                    # Extract filename from body content
                     body_file = cache_file + ".body"
                     if os.path.exists(body_file):
                         filename = self._extract_filename_from_body(
                             body_file, content_type
                         )
+            except (OSError, ValueError, KeyError):
+                # The cache file is unreadable or corrupted.
+                pass
             except Exception:
-                # If we can't read/parse the file, just skip trying to extract name
+                # Catching Exception because msgpack.loads can raise
+                # msgpack.exceptions.UnpackException, msgpack.exceptions.ExtraData and
+                # catching Exception avoids needing to import those explicit exceptions.
                 pass
 
             # Only include files where we successfully extracted a filename
@@ -444,65 +447,59 @@ class CacheCommand(Command):
 
         This works offline by examining the downloaded file structure.
         """
-        try:
-            # Check if it's a wheel file (ZIP format)
-            if "application/octet-stream" in content_type or not content_type:
-                # Try to read as a wheel (ZIP file)
-                import zipfile
+        # Check if it's a wheel file (ZIP format)
+        if "application/octet-stream" in content_type or not content_type:
+            # Try to read as a wheel (ZIP file)
 
-                try:
-                    with zipfile.ZipFile(body_file, "r") as zf:
-                        # Wheel files contain a .dist-info directory
-                        names = zf.namelist()
-                        dist_info_dir = None
-                        for name in names:
-                            if ".dist-info/" in name:
-                                dist_info_dir = name.split("/")[0]
-                                break
+            try:
+                with zipfile.ZipFile(body_file, "r") as zf:
+                    # Wheel files contain a .dist-info directory
+                    names = zf.namelist()
+                    dist_info_dir = None
+                    for name in names:
+                        if ".dist-info/" in name:
+                            dist_info_dir = name.split("/")[0]
+                            break
 
-                        if dist_info_dir and dist_info_dir.endswith(".dist-info"):
-                            # Read WHEEL metadata to get the full wheel name
-                            wheel_file = f"{dist_info_dir}/WHEEL"
-                            if wheel_file in names:
-                                wheel_content = zf.read(wheel_file).decode("utf-8")
-                                # Parse WHEEL file for Root-Is-Purelib and Tag
-                                tags = []
-                                for line in wheel_content.split("\n"):
-                                    if line.startswith("Tag:"):
-                                        tag = line.split(":", 1)[1].strip()
-                                        tags.append(tag)
+                    if dist_info_dir and dist_info_dir.endswith(".dist-info"):
+                        # Read WHEEL metadata to get the full wheel name
+                        wheel_file = f"{dist_info_dir}/WHEEL"
+                        if wheel_file in names:
+                            wheel_content = zf.read(wheel_file).decode("utf-8")
+                            # Parse WHEEL file for Root-Is-Purelib and Tag
+                            tags = []
+                            for line in wheel_content.split("\n"):
+                                if line.startswith("Tag:"):
+                                    tag = line.split(":", 1)[1].strip()
+                                    tags.append(tag)
 
-                                if tags:
-                                    # Use first tag to construct filename
-                                    # Format: {name}-{version}.dist-info
-                                    pkg_info = dist_info_dir[: -len(".dist-info")]
-                                    # Tags format: py3-none-any
-                                    tag = tags[0]
-                                    return f"{pkg_info}-{tag}.whl"
+                            if tags:
+                                # Use first tag to construct filename
+                                # Format: {name}-{version}.dist-info
+                                pkg_info = dist_info_dir[: -len(".dist-info")]
+                                # Tags format: py3-none-any
+                                tag = tags[0]
+                                return f"{pkg_info}-{tag}.whl"
 
-                            # Fallback: just use name-version.whl
-                            pkg_info = dist_info_dir[: -len(".dist-info")]
-                            return f"{pkg_info}.whl"
-                except (zipfile.BadZipFile, KeyError, UnicodeDecodeError):
-                    pass
+                        # Fallback: just use name-version.whl
+                        pkg_info = dist_info_dir[: -len(".dist-info")]
+                        return f"{pkg_info}.whl"
+            except (zipfile.BadZipFile, KeyError, UnicodeDecodeError, OSError):
+                pass
 
-                # Try to read as a tarball
-                import tarfile
+            # Try to read as a tarball
 
-                try:
-                    with tarfile.open(body_file, "r:*") as tf:
-                        # Get the first member to determine the package name
-                        members = tf.getmembers()
-                        if members:
-                            # Tarball usually has format: package-version/...
-                            first_name = members[0].name
-                            pkg_dir = first_name.split("/")[0]
-                            if pkg_dir and "-" in pkg_dir:
-                                return f"{pkg_dir}.tar.gz"
-                except (tarfile.TarError, KeyError):
-                    pass
-
-        except Exception:
-            pass
+            try:
+                with tarfile.open(body_file, "r:*") as tf:
+                    # Get the first member to determine the package name
+                    members = tf.getmembers()
+                    if members:
+                        # Tarball usually has format: package-version/...
+                        first_name = members[0].name
+                        pkg_dir = first_name.split("/")[0]
+                        if pkg_dir and "-" in pkg_dir:
+                            return f"{pkg_dir}.tar.gz"
+            except (tarfile.TarError, KeyError, OSError):
+                pass
 
         return None
