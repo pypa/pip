@@ -8,12 +8,11 @@ import logging
 import pathlib
 import sys
 import textwrap
+from unittest.mock import MagicMock
 
 import pytest
 
 from pip._vendor import rich
-
-from unittest.mock import MagicMock
 
 from pip._internal.exceptions import (
     DiagnosticPipError,
@@ -493,7 +492,7 @@ class TestUninstallMissingRecord:
         dist.raw_name = name
         dist.version = version
         dist.installer = installer
-        dist.__str__ = lambda self: f"{name} {version}"
+        dist.__str__ = MagicMock(return_value=f"{name} {version}")  # type: ignore[method-assign]
         return dist
 
     def test_pip_installed_hint_uses_ignore_installed(
