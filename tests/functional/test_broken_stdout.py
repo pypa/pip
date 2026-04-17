@@ -1,6 +1,10 @@
 import os
 import subprocess
+import sys
+import threading
 from pathlib import Path
+
+import pytest
 
 _BROKEN_STDOUT_RETURN_CODE = 120
 
@@ -79,19 +83,74 @@ def test_broken_stdout_pipe__verbose(deprecated_python: bool) -> None:
     assert returncode == _BROKEN_STDOUT_RETURN_CODE
 
 
+def _measure_pipe_capacity() -> int:
+    """How many bytes can we write to an anonymous pipe before it blocks?"""
+    child = subprocess.Popen(
+        [
+            sys.executable, "-c",
+            "import os, sys\n"
+            "try:\n"
+            "    for _ in range(1000):\n"
+            "        os.write(2, b'x' * 100)\n"
+            "except BrokenPipeError:\n"
+            "    pass\n",
+        ],
+        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+    )
+    try:
+        child.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        child.kill()
+        child.wait()
+    assert child.stderr is not None
+    return len(child.stderr.read())
+
+
+def _measure_pip_stderr(args: list[str]) -> int:
+    """Total bytes `pip <args>` writes to stderr, with a broken stdout."""
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert proc.stdout is not None and proc.stderr is not None
+    proc.stdout.close()
+    chunks: list[bytes] = []
+
+    def drain() -> None:
+        assert proc.stderr is not None
+        while True:
+            b = proc.stderr.read(8192)
+            if not b:
+                return
+            chunks.append(b)
+
+    t = threading.Thread(target=drain, daemon=True)
+    t.start()
+    proc.wait(timeout=60)
+    t.join(timeout=5)
+    return sum(len(c) for c in chunks)
+
+
 def test_broken_stdout_pipe__does_not_hang_on_undrained_stderr() -> None:
     """
     pip must still exit when the parent has closed stdout and is not
     draining stderr.
 
-    On Windows an anonymous pipe buffer holds only ~4KB. If pip's total
-    stderr output under ``-vv`` exceeds that, the ``BrokenStdoutLoggingError``
-    handler's ``traceback.print_exc(file=sys.stderr)`` blocks on a write to
-    the full pipe and the subprocess never exits.
+    If pip's total stderr output under ``-vv`` exceeds the OS's anonymous
+    pipe buffer, the ``BrokenStdoutLoggingError`` handler's
+    ``traceback.print_exc(file=sys.stderr)`` blocks on a write to the full
+    pipe and the subprocess never exits.
 
     A 30-second timeout turns any regression into an explicit failure
     instead of a hanging test run.
     """
+    buffer_size = _measure_pipe_capacity()
+    pip_stderr_size = _measure_pip_stderr(["pip", "-vv", "list"])
+    print(f"pipe buffer={buffer_size}B  pip -vv list stderr={pip_stderr_size}B")
+    if pip_stderr_size <= buffer_size:
+        pytest.skip(
+            f"pip -vv list only produces {pip_stderr_size}B of stderr on this "
+            f"environment, which fits in the {buffer_size}B pipe buffer; the "
+            f"undrained-stderr hang cannot manifest here."
+        )
+
     proc = subprocess.Popen(
         ["pip", "-vv", "list"],
         stdout=subprocess.PIPE,
