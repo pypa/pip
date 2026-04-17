@@ -19,7 +19,7 @@ from typing import (
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import InvalidVersion, Version, _BaseVersion
+from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
@@ -491,7 +491,6 @@ class CandidateEvaluator:
         else:
             allow_prereleases = None
         specifier = self._specifier
-
         # When using the pkg_resources backend we turn the version object into
         # a str here because otherwise when we're debundled but setuptools isn't,
         # Python will see packaging.version.Version and
@@ -499,22 +498,17 @@ class CandidateEvaluator:
         # types. This way we'll use a str as a common data interchange
         # format. If we stop using the pkg_resources provided specifier
         # and start using our own, we can drop the cast to str().
-        if select_backend().NAME == "pkg_resources":
-            candidates_and_versions: list[
-                tuple[InstallationCandidate, str | Version]
-            ] = [(c, str(c.version)) for c in candidates]
-        else:
-            candidates_and_versions = [(c, c.version) for c in candidates]
-        versions = set(
-            specifier.filter(
-                (v for _, v in candidates_and_versions),
-                prereleases=allow_prereleases,
-            )
+        applicable_candidates = specifier.filter(
+            candidates,
+            prereleases=allow_prereleases,
+            key=lambda c: (
+                str(c.version)
+                if select_backend().NAME == "pkg_resources"
+                else c.version
+            ),
         )
-
-        applicable_candidates = [c for c, v in candidates_and_versions if v in versions]
         filtered_applicable_candidates = filter_unallowed_hashes(
-            candidates=applicable_candidates,
+            candidates=list(applicable_candidates),
             hashes=self._hashes,
             project_name=self._project_name,
         )
