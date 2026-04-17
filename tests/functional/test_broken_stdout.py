@@ -77,3 +77,36 @@ def test_broken_stdout_pipe__verbose(deprecated_python: bool) -> None:
     assert 1 <= stderr.count("Traceback") <= 2
 
     assert returncode == _BROKEN_STDOUT_RETURN_CODE
+
+
+def test_broken_stdout_pipe__does_not_hang_on_undrained_stderr() -> None:
+    """
+    pip must still exit when the parent has closed stdout and is not
+    draining stderr.
+
+    On Windows an anonymous pipe buffer holds only ~4KB. If pip's total
+    stderr output under ``-vv`` exceeds that, the ``BrokenStdoutLoggingError``
+    handler's ``traceback.print_exc(file=sys.stderr)`` blocks on a write to
+    the full pipe and the subprocess never exits.
+
+    A 30-second timeout turns any regression into an explicit failure
+    instead of a hanging test run.
+    """
+    proc = subprocess.Popen(
+        ["pip", "-vv", "list"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert proc.stdout is not None
+    proc.stdout.close()
+    try:
+        returncode = proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+        raise AssertionError(
+            "pip -vv list did not exit within 30s with stdout closed and "
+            "stderr undrained; the BrokenStdoutLoggingError handler is "
+            "likely blocking on a write to a full pipe buffer"
+        )
+    assert returncode == _BROKEN_STDOUT_RETURN_CODE

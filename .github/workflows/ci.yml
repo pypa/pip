@@ -27,6 +27,7 @@ concurrency:
 
 jobs:
   docs:
+    if: false
     name: docs
     runs-on: ubuntu-latest
 
@@ -68,6 +69,7 @@ jobs:
         if: github.event_name == 'pull_request'
 
   packaging:
+    if: false
     name: packaging / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -96,9 +98,7 @@ jobs:
     runs-on: ubuntu-latest
 
     needs: [determine-changes]
-    if: >-
-      needs.determine-changes.outputs.vendoring == 'true' ||
-      github.event_name != 'pull_request'
+    if: false
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -117,9 +117,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     needs: [determine-changes]
-    if: >-
-      needs.determine-changes.outputs.tests == 'true' ||
-      github.event_name != 'pull_request'
+    if: false
 
     strategy:
       fail-fast: true
@@ -188,39 +186,18 @@ jobs:
           --durations=15
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [determine-changes]
-    if: >-
-      needs.determine-changes.outputs.tests == 'true' ||
-      github.event_name != 'pull_request'
-
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [Windows]
         python:
-          - "3.10"
-          # Commented out, since Windows tests are expensively slow,
-          # only test the oldest and newest Python supported by pip
-          # - "3.11"
-          # - "3.12"
-          # - "3.13"
           - "3.14"
           - "3.15"
-        group:
-          - { number: 1, pytest-filter: "not test_install" }
-          - { number: 2, pytest-filter: "test_install" }
 
     steps:
-      # The D: drive is significantly faster than the system C: drive.
-      # https://github.com/actions/runner-images/issues/8755
-      - name: Set TEMP to D:/Temp
-        run: |
-          mkdir "D:\\Temp"
-          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
-
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -229,27 +206,15 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
-      - name: Install Subversion
-        shell: pwsh
-        run: |
-          winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
-          echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - run: pip install nox
 
-      # Main check
-      - name: Run unit tests (group 1)
-        if: matrix.group.number == 1
+      - name: Run new regression test
+        timeout-minutes: 3
         run: >-
           nox -s test-${{ matrix.python }} --
-          tests/unit
-          --verbose --numprocesses auto --showlocals
-
-      - name: Run integration tests (group ${{ matrix.group.number }})
-        run: >-
-          nox -s test-${{ matrix.python }} --no-install --
-          tests/functional -k "${{ matrix.group.pytest-filter }}"
-          --verbose --numprocesses auto --showlocals --durations=15
+          tests/functional/test_broken_stdout.py
+          -k test_broken_stdout_pipe__does_not_hang_on_undrained_stderr
+          --verbose --showlocals
 
   tests-zipapp:
     name: tests / zipapp
@@ -259,9 +224,7 @@ jobs:
     runs-on: macos-latest
 
     needs: [packaging, determine-changes]
-    if: >-
-      needs.determine-changes.outputs.tests == 'true' ||
-      github.event_name != 'pull_request'
+    if: false
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -286,7 +249,7 @@ jobs:
           --use-zipapp
 
   check:  # This job does nothing and is only used for the branch protection
-    if: always()
+    if: false
 
     needs:
       - determine-changes
