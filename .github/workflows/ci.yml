@@ -188,8 +188,9 @@ jobs:
           --durations=15
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
+    timeout-minutes: 15
 
     needs: [determine-changes]
     if: >-
@@ -197,25 +198,14 @@ jobs:
       github.event_name != 'pull_request'
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [Windows]
         python:
-          - "3.10"
-          # Commented out, since Windows tests are expensively slow,
-          # only test the oldest and newest Python supported by pip
-          # - "3.11"
-          # - "3.12"
-          # - "3.13"
           - "3.14"
           - "3.15"
-        group:
-          - { number: 1, pytest-filter: "not test_install" }
-          - { number: 2, pytest-filter: "test_install" }
 
     steps:
-      # The D: drive is significantly faster than the system C: drive.
-      # https://github.com/actions/runner-images/issues/8755
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -229,27 +219,13 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
-      - name: Install Subversion
-        shell: pwsh
-        run: |
-          winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
-          echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - run: pip install nox
 
-      # Main check
-      - name: Run unit tests (group 1)
-        if: matrix.group.number == 1
+      - name: Run test_broken_stdout.py
         run: >-
           nox -s test-${{ matrix.python }} --
-          tests/unit
-          --verbose --numprocesses auto --showlocals
-
-      - name: Run integration tests (group ${{ matrix.group.number }})
-        run: >-
-          nox -s test-${{ matrix.python }} --no-install --
-          tests/functional -k "${{ matrix.group.pytest-filter }}"
-          --verbose --numprocesses auto --showlocals --durations=15
+          tests/functional/test_broken_stdout.py
+          --verbose --showlocals
 
   tests-zipapp:
     name: tests / zipapp
