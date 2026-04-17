@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import functools
 import logging
 from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -248,6 +249,7 @@ class Factory:
         hashes: Hashes,
         prefers_installed: bool,
         incompatible_ids: set[int],
+        constraint_hash_options: dict[str, list[str]] | None = None,
     ) -> Iterable[Candidate]:
         if not ireqs:
             return ()
@@ -258,6 +260,16 @@ class Factory:
         # Hopefully the Project model can correct this mismatch in the future.
         template = ireqs[0]
         assert template.req, "Candidates found on index must be PEP 508"
+        if (
+            constraint_hash_options
+            and not template.hash_options
+            and any(constraint_hash_options.values())
+        ):
+            template = copy.copy(template)
+            template.hash_options = {
+                k: list(v) for k, v in constraint_hash_options.items()
+            }
+        assert template.req  # to prevent mypy from being confused by the copy
         name = canonicalize_name(template.req.name)
 
         extras: frozenset[str] = frozenset()
@@ -453,6 +465,7 @@ class Factory:
                 constraint.hashes,
                 prefers_installed,
                 incompat_ids,
+                constraint.hash_options,
             )
 
         return (
