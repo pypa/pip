@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import logging.config
 import optparse
 import os
 import sys
 import traceback
+from collections.abc import Iterator
 from optparse import Values
 from typing import Callable
 
@@ -80,7 +82,8 @@ class Command(CommandContextMixIn):
     def add_options(self) -> None:
         pass
 
-    def handle_pip_version_check(self, options: Values) -> None:
+    @contextlib.contextmanager
+    def pip_version_check(self, options: Values) -> Iterator[None]:
         """
         This is a no-op so that commands by default do not do the pip version
         check.
@@ -88,16 +91,15 @@ class Command(CommandContextMixIn):
         # Make sure we do the pip version check if the index_group options
         # are present.
         assert not hasattr(options, "no_index")
+        yield
 
     def run(self, options: Values, args: list[str]) -> int:
         raise NotImplementedError
 
     def _run_wrapper(self, level_number: int, options: Values, args: list[str]) -> int:
         def _inner_run() -> int:
-            try:
+            with self.pip_version_check(options):
                 return self.run(options, args)
-            finally:
-                self.handle_pip_version_check(options)
 
         if options.debug_mode:
             rich_traceback.install(show_locals=True)
