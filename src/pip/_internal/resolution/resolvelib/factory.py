@@ -388,16 +388,28 @@ class Factory:
         This creates "fake" InstallRequirement objects that are basically clones
         of what "should" be the template, but with original_link set to link.
         """
+        extras: frozenset[str] = frozenset()
+        base_identifier = identifier
+        with contextlib.suppress(InvalidRequirement):
+            parsed_requirement = get_requirement(identifier)
+            if parsed_requirement.name != identifier:
+                base_identifier = canonicalize_name(parsed_requirement.name)
+                extras = frozenset(parsed_requirement.extras)
+
         for link in constraint.links:
             self._fail_if_link_is_unsupported_wheel(link)
-            candidate = self._make_base_candidate_from_link(
+            base_candidate = self._make_base_candidate_from_link(
                 link,
                 template=install_req_from_link_and_ireq(link, template),
-                name=canonicalize_name(identifier),
+                name=canonicalize_name(base_identifier),
                 version=None,
             )
-            if candidate:
-                yield candidate
+            if base_candidate is None:
+                continue
+            if extras:
+                yield self._make_extras_candidate(base_candidate, extras)
+            else:
+                yield base_candidate
 
     def find_candidates(
         self,

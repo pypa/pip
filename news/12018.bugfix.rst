@@ -1,0 +1,1 @@
+Allow URL constraints to apply to requirements with extras.
