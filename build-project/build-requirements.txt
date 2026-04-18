@@ -4,9 +4,9 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes build-requirements.in
 #
-build==1.4.2 \
-    --hash=sha256:35b14e1ee329c186d3f08466003521ed7685ec15ecffc07e68d706090bf161d1 \
-    --hash=sha256:7a4d8651ea877cb2a89458b1b198f2e69f536c95e89129dbf5d448045d60db88
+build==1.4.3 \
+    --hash=sha256:1bc22b19b383303de8f2c8554c9a32894a58d3f185fe3756b0b20d255bee9a38 \
+    --hash=sha256:5aa4231ae0e807efdf1fd0623e07366eca2ab215921345a2e38acdd5d0fa0a74
     # via -r build-requirements.in
 flit-core==3.12.0 \
     --hash=sha256:18f63100d6f94385c6ed57a72073443e1a71a4acb4339491615d0f16d6ff01b2 \
