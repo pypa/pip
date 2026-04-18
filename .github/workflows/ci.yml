@@ -215,6 +215,7 @@ jobs:
           # - "3.13"
           - "3.14"
           - "3.15"
+          - "3.14t"
         group:
           - { number: 1, pytest-filter: "not test_install" }
           - { number: 2, pytest-filter: "test_install" }
@@ -234,6 +235,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
+
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
+        run: |
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
       - name: Install Subversion
         shell: pwsh
