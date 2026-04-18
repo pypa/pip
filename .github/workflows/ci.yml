@@ -132,6 +132,7 @@ jobs:
           - "3.13"
           - "3.14"
           - "3.15"
+          - "3.14t"
         include:
           # Oldest patch release per minor version on ubuntu-latest,
           # to catch backport/bug fix regressions. Constrained by what
@@ -156,6 +157,11 @@ jobs:
         with:
           python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
+
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
+        run: |
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
       - name: Install Ubuntu dependencies
         if: runner.os == 'Linux'
