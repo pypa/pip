@@ -547,3 +547,120 @@ def test_check_priority(
     mock_untar.assert_called_once() if untar else mock_untar.assert_not_called()
     mock_zipfile.is_zipfile.assert_not_called()
     mock_tarfile.is_tarfile.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "filename, expect_unzip",
+    [
+        ("pkg.zip", True),
+        ("pkg.ZIP", True),
+        ("pkg-1.0-py3-none-any.whl", True),
+        ("pkg.tar.gz", False),
+        ("pkg.TAR.GZ", False),
+        ("pkg.tgz", False),
+        ("pkg.tar", False),
+        ("pkg.tar.bz2", False),
+        ("pkg.tbz", False),
+        ("pkg.tar.xz", False),
+        ("pkg.txz", False),
+        ("pkg.tlz", False),
+        ("pkg.tar.lz", False),
+        ("pkg.tar.lzma", False),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_filename_extension_routing(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    filename: str,
+    expect_unzip: bool,
+) -> None:
+    unpack_file(filename, "any-location", content_type=None)
+    (mock_unzip if expect_unzip else mock_untar).assert_called_once()
+    (mock_untar if expect_unzip else mock_unzip).assert_not_called()
+    mock_zipfile.is_zipfile.assert_not_called()
+    mock_tarfile.is_tarfile.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "content_type, filename, expect_unzip",
+    [
+        ("application/zip", "pkg.tar.gz", True),
+        ("application/x-gzip", "pkg.zip", False),
+        ("application/x-gzip", "pkg.whl", False),
+        ("application/octet-stream", "pkg.zip", True),
+        ("application/octet-stream", "pkg.tar.gz", False),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_content_type_vs_filename_priority(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    content_type: str,
+    filename: str,
+    expect_unzip: bool,
+) -> None:
+    unpack_file(filename, "any-location", content_type=content_type)
+    (mock_unzip if expect_unzip else mock_untar).assert_called_once()
+    (mock_untar if expect_unzip else mock_unzip).assert_not_called()
+    mock_zipfile.is_zipfile.assert_not_called()
+    mock_tarfile.is_tarfile.assert_not_called()
+
+
+@pytest.mark.parametrize("filename, flatten", [("pkg.whl", False), ("pkg.zip", True)])
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_flatten_only_for_non_whl(
+    mock_unzip: MagicMock, filename: str, flatten: bool
+) -> None:
+    unpack_file(filename, "any-location", content_type=None)
+    assert mock_unzip.call_args.kwargs["flatten"] is flatten
+
+
+def _write_polyglot(path: Path) -> None:
+    """Write a tar.gz with a zip appended; both views contain payload.txt."""
+    tar_buf = io.BytesIO()
+    with tarfile.open(fileobj=tar_buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo("pkg/payload.txt")
+        info.size = 8
+        tar.addfile(info, io.BytesIO(b"from-tar"))
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w") as zf:
+        zf.writestr("pkg/payload.txt", "from-zip")
+    path.write_bytes(tar_buf.getvalue() + zip_buf.getvalue())
+
+
+@pytest.mark.parametrize(
+    "filename, content_type, expected",
+    [
+        ("pkg.tar.gz", None, b"from-tar"),
+        ("pkg.tgz", None, b"from-tar"),
+        ("pkg.zip", None, b"from-zip"),
+        ("pkg.tar.gz", "application/zip", b"from-zip"),
+        ("pkg.unknown", "application/x-gzip", b"from-tar"),
+    ],
+)
+def test_polyglot_routing(
+    tmp_path: Path, filename: str, content_type: str | None, expected: bytes
+) -> None:
+    archive = tmp_path / filename
+    _write_polyglot(archive)
+    out = tmp_path / "out"
+    unpack_file(str(archive), str(out), content_type=content_type)
+    assert (out / "payload.txt").read_bytes() == expected
+
+
+def test_polyglot_ambiguous_name_rejected(tmp_path: Path) -> None:
+    archive = tmp_path / "pkg.bin"
+    _write_polyglot(archive)
+    with pytest.raises(InstallationError):
+        unpack_file(str(archive), str(tmp_path / "out"))

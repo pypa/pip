@@ -336,11 +336,14 @@ def unpack_file(
     location: str,
     content_type: str | None = None,
 ) -> None:
+    """Unpack ``filename`` into ``location``.
+
+    Archive format is chosen in order of decreasing reliability:
+    ``content_type``, then filename extension, then magic signature
+    (unambiguous matches only).
+    """
     filename = os.path.realpath(filename)
     zip_flatten = not filename.endswith(".whl")
-
-    ZIP = "zip"
-    TAR = "tar"
 
     def _unzip() -> None:
         unzip_file(filename, location, flatten=zip_flatten)
@@ -348,47 +351,26 @@ def unpack_file(
     def _untar() -> None:
         untar_file(filename, location)
 
-    unpack_function = {ZIP: _unzip, TAR: _untar}
+    if content_type == "application/zip":
+        return _unzip()
+    if content_type == "application/x-gzip":
+        return _untar()
 
-    # order checks from most to least reliable / explicit
-
-    content_check = (
-        ZIP
-        if content_type == "application/zip"
-        else TAR if content_type == "application/x-gzip" else None
-    )
-    if content_check:
-        return unpack_function[content_check]()
-
-    filename_check = (
-        ZIP
-        if filename.lower().endswith(ZIP_EXTENSIONS)
-        else (
-            TAR
-            if filename.lower().endswith(
-                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
-            )
-            else None
-        )
-    )
-    if filename_check:
-        return unpack_function[filename_check]()
+    if filename.lower().endswith(ZIP_EXTENSIONS):
+        return _unzip()
+    if filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS):
+        return _untar()
 
     # avoid ambiguous case where both signature checks return True
     is_zipfile = zipfile.is_zipfile(filename)
     is_tarfile = tarfile.is_tarfile(filename)
-    magic_sig_check = (
-        ZIP
-        if is_zipfile and not is_tarfile
-        else TAR if is_tarfile and not is_zipfile else None
-    )
-    if magic_sig_check:
-        return unpack_function[magic_sig_check]()
-    elif is_zipfile and is_tarfile:
+    if is_zipfile and not is_tarfile:
+        return _unzip()
+    if is_tarfile and not is_zipfile:
+        return _untar()
+    if is_zipfile and is_tarfile:
         logger.error("Ambiguous file signature in %s.", filename)
 
-    # FIXME: handle?
-    # FIXME: magic signatures?
     logger.critical(
         "Cannot unpack file %s (downloaded from %s, content-type: %s); "
         "cannot detect archive format",
