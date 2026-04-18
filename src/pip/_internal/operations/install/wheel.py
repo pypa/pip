@@ -406,15 +406,13 @@ def _raise_for_invalid_entrypoint(specification: str) -> None:
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
-    script_template = textwrap.dedent(
-        """\
+    script_template = textwrap.dedent("""\
         import sys
         from %(module)s import %(import_name)s
         if __name__ == '__main__':
             sys.argv[0] = sys.argv[0].removesuffix('.exe')
             sys.exit(%(func)s())
-"""
-    )
+""")
 
     def make(
         self, specification: str, options: dict[str, Any] | None = None

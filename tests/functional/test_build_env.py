@@ -61,8 +61,7 @@ def run_with_build_env(
     build_env_script = script.scratch_path / "build_env.py"
     scratch_path = str(script.scratch_path)
     build_env_script.write_text(
-        dedent(
-            f"""
+        dedent(f"""
             import subprocess
             import sys
 
@@ -104,17 +103,14 @@ def run_with_build_env(
                         wheel_cache=WheelCache(None),
                     )
                 build_env = BuildEnvironment(installer)
-            """
-        )
+            """)
         + indent(dedent(setup_script_contents), "    ")
         + indent(
-            dedent(
-                """
+            dedent("""
                 if len(sys.argv) > 1:
                     with build_env:
                         subprocess.check_call((sys.executable, sys.argv[1]))
-                """
-            ),
+                """),
             "    ",
         )
     )

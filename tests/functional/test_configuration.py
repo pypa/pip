@@ -104,17 +104,13 @@ class TestBasicLoading(ConfigurationMixin):
 
         config_file = script.scratch_path / "test-pip.cfg"
         script.environ["PIP_CONFIG_FILE"] = str(config_file)
-        config_file.write_text(
-            textwrap.dedent(
-                """\
+        config_file.write_text(textwrap.dedent("""\
             [global]
             timeout = 60
 
             [freeze]
             timeout = 10
-            """
-            )
-        )
+            """))
 
         result = script.pip("config", "debug")
         assert f"{config_file}, exists: True" in result.stdout
