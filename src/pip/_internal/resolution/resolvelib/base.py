@@ -78,10 +78,9 @@ class Constraint:
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
         # Reject if there are any mismatched URL constraints on this package.
-        # The editableness of links is ignored when matching, so equivalent links
-        # match if one is editable and the other is not.
         if self.links and not all(
-            _match_link(link.link, candidate) for link in self.links
+            _match_link(link.link, candidate) and link.editable == candidate.is_editable
+            for link in self.links
         ):
             return False
         # We can safely always allow prereleases here since PackageFinder
