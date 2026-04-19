@@ -58,10 +58,17 @@ def as_base_candidate(candidate: Candidate) -> BaseCandidate | None:
 
 
 def make_install_req_from_link(
-    link: Link, template: InstallRequirement
+    link: Link,
+    template: InstallRequirement,
+    version: Version | None = None,
 ) -> InstallRequirement:
     assert not template.editable, "template is editable"
-    if template.req:
+    if version is not None and template.req and template.hash_options:
+        # When hashes are provided via constraints for an unpinned requirement,
+        # the resulting install requirement must appear pinned so that the
+        # hash-checking logic does not reject it as HashUnpinned.
+        line = f"{template.req.name}=={version}"
+    elif template.req:
         line = str(template.req)
     else:
         line = link.url
@@ -288,7 +295,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
-        ireq = make_install_req_from_link(link, template)
+        ireq = make_install_req_from_link(link, template, version=version)
         assert ireq.link == link
         if ireq.link.is_wheel and not ireq.link.is_file:
             wheel = Wheel(ireq.link.filename)

@@ -14,7 +14,9 @@ from __future__ import annotations
 import logging
 import os
 import pathlib
+import re
 import textwrap
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
@@ -434,8 +436,9 @@ def _handle_uploaded_prior_to(
     """
     This is an optparse.Option callback for the --uploaded-prior-to option.
 
-    Parses an ISO 8601 datetime string. If no timezone is specified in the string,
-    local timezone is used.
+    Accepts either an ISO 8601 datetime string (e.g., '2023-01-01T00:00:00Z')
+    or a strict subset of ISO 8601 durations: PnD where n is a number of days
+    (e.g., 'P7D' for 7 days ago).
 
     Note: This option only works with indexes that provide upload-time metadata
     as specified in the simple repository API:
@@ -443,6 +446,18 @@ def _handle_uploaded_prior_to(
     """
     if value is None:
         return None
+
+    # Try ISO 8601 duration in PnD format. The leading 'P' disambiguates
+    # from absolute datetimes. Only whole days are supported; the format may
+    # be extended to more of the ISO 8601 duration syntax in the future if
+    # a real need is presented.
+    match = re.match(r"^P(\d+)D$", value, re.ASCII)
+    if match:
+        days = int(match.group(1))
+        parser.values.uploaded_prior_to = datetime.now(timezone.utc) - timedelta(
+            days=days
+        )
+        return
 
     try:
         uploaded_prior_to = parse_iso_datetime(value)
@@ -453,8 +468,9 @@ def _handle_uploaded_prior_to(
     except ValueError as exc:
         msg = (
             f"invalid value: {value!r}: {exc}. "
-            f"Expected an ISO 8601 datetime string, "
-            f"e.g '2023-01-01' or '2023-01-01T00:00:00Z'"
+            f"Expected an ISO 8601 datetime string "
+            f"(e.g., '2023-01-01' or '2023-01-01T00:00:00Z') "
+            f"or a duration in days (e.g., 'P3D')"
         )
         raise_option_error(parser, option=option, msg=msg)
 
@@ -463,15 +479,17 @@ def uploaded_prior_to() -> Option:
     return Option(
         "--uploaded-prior-to",
         dest="uploaded_prior_to",
-        metavar="datetime",
+        metavar="datetime_or_duration",
         action="callback",
         callback=_handle_uploaded_prior_to,
         type="str",
         help=(
-            "Only consider packages uploaded prior to the given date time. "
-            "Accepts ISO 8601 strings (e.g., '2023-01-01T00:00:00Z'). "
-            "Uses local timezone if none specified. Only effective when "
-            "installing from indexes that provide upload-time metadata."
+            "Only consider packages uploaded prior to the given value. "
+            "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
+            "uses local timezone if none specified) or a duration in days "
+            "(e.g., 'P3D' for packages uploaded at least 3 days ago). "
+            "Only effective when installing from indexes that provide "
+            "upload-time metadata."
         ),
     )
 

@@ -9,7 +9,9 @@ from tests.lib.venv import VirtualEnvironment
 
 
 @pytest.fixture
-def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
+def patch_check_externally_managed(
+    virtualenv: VirtualEnvironment, script: PipTestEnvironment
+) -> None:
     # Since the tests are run from a virtual environment, and we can't
     # guarantee access to the actual stdlib location (where EXTERNALLY-MANAGED
     # needs to go into), we patch the check to always raise a simple message.
@@ -24,6 +26,12 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
         misc.check_externally_managed = check_externally_managed
         """
     )
+    # The ubuntu-24.04 GitHub Actions runner has /etc/pip.conf that sets
+    # break-system-packages = true, which causes pip to skip the
+    # externally-managed check entirely. Override it here so the
+    # monkey-patched check is actually exercised.
+    # https://github.com/actions/runner-images/pull/10794
+    script.environ["PIP_BREAK_SYSTEM_PACKAGES"] = "0"
 
 
 @pytest.mark.parametrize(
