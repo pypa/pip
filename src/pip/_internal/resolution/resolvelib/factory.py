@@ -844,8 +844,8 @@ class Factory:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
         for key in relevant_constraints:
-            spec = constraints[key].specifier
-            msg += f"\n    The user requested (constraint) {key}{spec}"
+            constraint_text = f"{key}{constraints[key].format_for_error()}"
+            msg += f"\n    The user requested (constraint) {constraint_text}"
 
         # Check for causes that had no candidates
         causes = set()
