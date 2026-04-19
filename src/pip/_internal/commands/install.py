@@ -44,7 +44,7 @@ from pip._internal.req.req_install import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import test_writable_dir
-from pip._internal.utils.logging import getLogger
+from pip._internal.utils.logging import getLogger, redirect_stdout_logging_to_stderr
 from pip._internal.utils.misc import (
     check_externally_managed,
     ensure_dir,
@@ -273,8 +273,7 @@ class InstallCommand(RequirementCommand):
                 "Can be used in combination with --dry-run and --ignore-installed "
                 "to 'resolve' the requirements. "
                 "When - is used as file name it writes to stdout. "
-                "When writing to stdout, please combine with the --quiet option "
-                "to avoid mixing pip logging output with JSON output."
+                "Log messages are automatically redirected to stderr."
             ),
         )
 
@@ -282,6 +281,9 @@ class InstallCommand(RequirementCommand):
     def run(self, options: Values, args: list[str]) -> int:
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
+
+        if options.json_report_file == "-":
+            self.enter_context(redirect_stdout_logging_to_stderr())
 
         # Check whether the environment we're installing into is externally
         # managed, as specified in PEP 668. Specifying --root, --target, or
@@ -324,8 +326,8 @@ class InstallCommand(RequirementCommand):
             options.target_dir = os.path.abspath(options.target_dir)
             if (
                 # fmt: off
-                os.path.exists(options.target_dir) and
-                not os.path.isdir(options.target_dir)
+                os.path.exists(options.target_dir)
+                and not os.path.isdir(options.target_dir)
                 # fmt: on
             ):
                 raise CommandError(
@@ -736,8 +738,7 @@ def decide_user_install(
         return False
 
     logger.info(
-        "Defaulting to user installation because normal site-packages "
-        "is not writeable"
+        "Defaulting to user installation because normal site-packages is not writeable"
     )
     return True
 

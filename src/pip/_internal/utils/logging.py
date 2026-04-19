@@ -89,6 +89,34 @@ def capture_logging() -> Generator[StringIO, None, None]:
 
 
 @contextlib.contextmanager
+def redirect_stdout_logging_to_stderr() -> Generator[None, None, None]:
+    """Redirect stdout logging handlers to stderr temporarily.
+
+    This is useful when structured output (e.g. JSON) is being written
+    to stdout, to prevent log messages from mixing with it.
+    """
+    handlers = {}
+    for handler in logging.getLogger().handlers:
+        if (
+            isinstance(handler, RichPipStreamHandler)
+            and handler.console.file is sys.stdout
+        ):
+            handlers[handler] = handler.console
+
+    if not handlers:
+        yield
+        return
+
+    try:
+        for handler in handlers:
+            handler.console = _stderr_console
+        yield
+    finally:
+        for handler, original_console in handlers.items():
+            handler.console = original_console
+
+
+@contextlib.contextmanager
 def indent_log(num: int = 2) -> Generator[None, None, None]:
     """
     A context manager which will cause the log output to be indented for any
@@ -210,9 +238,9 @@ class RichPipStreamHandler(RichHandler):
         if getattr(record, "rich", False):
             assert isinstance(record.args, tuple)
             (rich_renderable,) = record.args
-            assert isinstance(
-                rich_renderable, (ConsoleRenderable, RichCast, str)
-            ), f"{rich_renderable} is not rich-console-renderable"
+            assert isinstance(rich_renderable, (ConsoleRenderable, RichCast, str)), (
+                f"{rich_renderable} is not rich-console-renderable"
+            )
 
             renderable: RenderableType = IndentedRenderable(
                 rich_renderable, indent=get_indentation()
