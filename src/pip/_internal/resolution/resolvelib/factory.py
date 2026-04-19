@@ -222,6 +222,10 @@ class Factory:
                     return None
 
             return self._editable_candidate_cache[link]
+        # If there is a pre-existing editable candidate for this link, use it
+        # (even if the link comes from a direct non-editable requirement).
+        elif link in self._editable_candidate_cache:
+            return self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
                 try:
