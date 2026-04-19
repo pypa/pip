@@ -1,0 +1,3 @@
+Allow unpinned requirements to use hashes from constraints. Constraints
+like ``{name}=={version} --hash=...`` feeds into hash verification for
+a corresponding requirement.

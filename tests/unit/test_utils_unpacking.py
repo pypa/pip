@@ -13,7 +13,12 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.unpacking import is_within_directory, untar_file, unzip_file
+from pip._internal.utils.unpacking import (
+    _get_default_mode_plus_executable,
+    is_within_directory,
+    untar_file,
+    unzip_file,
+)
 
 from tests.lib import TestData
 
@@ -42,6 +47,9 @@ class TestUnpackArchives:
         self.tempdir = tempfile.mkdtemp()
         self.old_mask = os.umask(0o022)
         self.symlink_expected_mode = None
+        self.default_file_mode = self._probe_created_file_mode()
+        self.default_dir_mode = self._probe_created_dir_mode()
+        self.executable_mode = _get_default_mode_plus_executable()
 
     def teardown_method(self) -> None:
         os.umask(self.old_mask)
@@ -50,18 +58,40 @@ class TestUnpackArchives:
     def mode(self, path: str) -> int:
         return stat.S_IMODE(os.stat(path).st_mode)
 
+    def _probe_created_file_mode(self) -> int:
+        path = os.path.join(self.tempdir, "probe_file_mode")
+        with open(path, "wb"):
+            pass
+        mode = self.mode(path)
+        os.remove(path)
+        return mode
+
+    def _probe_created_dir_mode(self) -> int:
+        path = os.path.join(self.tempdir, "probe_dir_mode")
+        os.mkdir(path)
+        mode = self.mode(path)
+        os.rmdir(path)
+        return mode
+
     def confirm_files(self) -> None:
-        # expectations based on 022 umask set above and the unpack logic that
-        # sets execute permissions, not preservation
+        # expectations based on the unpack logic that writes non-executable
+        # files/dirs with local defaults and sets executables to chmod +x.
+        # Some environments (e.g. with default ACLs) can alter the effective
+        # default mode even with a fixed umask, so probe defaults in tempdir.
         for fname, expected_mode, test, expected_contents in [
-            ("file.txt", 0o644, os.path.isfile, b"file\n"),
+            ("file.txt", self.default_file_mode, os.path.isfile, b"file\n"),
             # We don't test the "symlink.txt" contents for now.
-            ("symlink.txt", 0o644, os.path.isfile, None),
-            ("script_owner.sh", 0o755, os.path.isfile, b"file\n"),
-            ("script_group.sh", 0o755, os.path.isfile, b"file\n"),
-            ("script_world.sh", 0o755, os.path.isfile, b"file\n"),
-            ("dir", 0o755, os.path.isdir, None),
-            (os.path.join("dir", "dirfile"), 0o644, os.path.isfile, b""),
+            ("symlink.txt", self.default_file_mode, os.path.isfile, None),
+            ("script_owner.sh", self.executable_mode, os.path.isfile, b"file\n"),
+            ("script_group.sh", self.executable_mode, os.path.isfile, b"file\n"),
+            ("script_world.sh", self.executable_mode, os.path.isfile, b"file\n"),
+            ("dir", self.default_dir_mode, os.path.isdir, None),
+            (
+                os.path.join("dir", "dirfile"),
+                self.default_file_mode,
+                os.path.isfile,
+                b"",
+            ),
         ]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith("symlink.txt") and sys.platform == "win32":
@@ -74,7 +104,7 @@ class TestUnpackArchives:
                 assert contents == expected_contents, f"fname: {fname}"
             if sys.platform == "win32":
                 # the permissions tests below don't apply in windows
-                # due to os.chmod being a noop
+                # because os.chmod() ignores the execute bit
                 continue
             mode = self.mode(path)
             assert (
@@ -101,6 +131,16 @@ class TestUnpackArchives:
                 file_tarinfo = tarfile.TarInfo(item)
                 mytar.addfile(file_tarinfo, io.BytesIO(b"file content"))
         return test_tar
+
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="os.chmod() ignores execute bit on Windows"
+    )
+    def test_confirm_files_mode_preconditions(self) -> None:
+        assert self.executable_mode == 0o755
+        assert not (self.default_file_mode & 0o111), (
+            f"default_file_mode {self.default_file_mode:#o} has execute bits set; "
+            "the permission tests in confirm_files() would be meaningless"
+        )
 
     def test_unpack_tgz(self, data: TestData) -> None:
         """

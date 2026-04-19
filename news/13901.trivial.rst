@@ -1,0 +1,2 @@
+Fixed ``test_trailing_slash_directory_metadata`` to use a real temporary
+directory with metadata, for compatibility with Python 3.15.

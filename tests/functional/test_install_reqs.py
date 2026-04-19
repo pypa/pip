@@ -680,6 +680,35 @@ def test_install_with_extras_from_install(script: PipTestEnvironment) -> None:
     result.did_create(script.site_packages / "singlemodule.py")
 
 
+def test_install_with_extras_and_url_constraint(
+    script: PipTestEnvironment,
+) -> None:
+    """Regression test for https://github.com/pypa/pip/issues/12018.
+
+    A URL constraint for the base package plus a requirement that asks for
+    the same package with extras used to trigger an AssertionError in
+    LinkCandidate (``'name[extra]' != 'name' for wheel``).
+    """
+    create_basic_wheel_for_package(
+        script,
+        name="LocalExtras",
+        version="0.0.1",
+        extras={"baz": ["singlemodule"]},
+    )
+    wheel_path = next(script.scratch_path.glob("LocalExtras-0.0.1-*.whl"))
+    script.scratch_path.joinpath("constraints.txt").write_text(
+        f"LocalExtras @ {wheel_path.as_uri()}"
+    )
+    result = script.pip_install_local(
+        "--find-links",
+        script.scratch_path,
+        "-c",
+        script.scratch_path / "constraints.txt",
+        "LocalExtras[baz]",
+    )
+    result.did_create(script.site_packages / "singlemodule.py")
+
+
 def test_install_with_extras_joined(
     script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
 ) -> None:

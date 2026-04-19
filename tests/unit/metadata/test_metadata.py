@@ -135,15 +135,15 @@ def test_dist_found_in_zip(tmp_path: Path) -> None:
     assert Path(dist.location) == Path(location)
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        "/path/to/foo.egg-info".replace("/", os.path.sep),
-        # Tests issue fixed by https://github.com/pypa/pip/pull/2530
-        "/path/to/foo.egg-info/".replace("/", os.path.sep),
-    ],
-)
-def test_trailing_slash_directory_metadata(path: str) -> None:
+@pytest.mark.parametrize("trailing_slash", [False, True])
+def test_trailing_slash_directory_metadata(
+    tmp_path: Path, trailing_slash: bool
+) -> None:
+    # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+    egg_info = tmp_path / "foo.egg-info"
+    egg_info.mkdir()
+    (egg_info / "PKG-INFO").write_text("Metadata-Version: 1.0\nName: foo\n")
+    path = str(egg_info) + (os.sep if trailing_slash else "")
     dist = get_directory_distribution(path)
     assert dist.raw_name == dist.canonical_name == "foo"
-    assert dist.location == "/path/to".replace("/", os.path.sep)
+    assert dist.location == str(tmp_path)
