@@ -92,7 +92,11 @@ class Constraint:
     def format_for_error(self) -> str:
         s = str(self.specifier)
         if self.links:
-            s += f" (from {', '.join(str(link) for link in self.links)})"
+            links_text = ", ".join(
+                f"{'editable ' if link.editable else ''}{link.link}"
+                for link in self.links
+            )
+            s += f" (from {links_text})"
         return s
 
 
