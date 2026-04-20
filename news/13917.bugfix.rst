@@ -1,1 +1,1 @@
-Use ``packaging`` 26.1's new ``dependency_groups`` module, with better error handling, removing ``dependency-groups`` vendor.
+Show all errors instead of first error for faulty ``dependency_groups`` definitions.
