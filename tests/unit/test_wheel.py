@@ -364,7 +364,7 @@ class TestInstallUnpackedWheel:
         self.prep(data, tmpdir)
         direct_url = DirectUrl(
             url="file:///home/user/archive.tgz",
-            info=ArchiveInfo(),
+            archive_info=ArchiveInfo(),
         )
         wheel.install_wheel(
             self.name,

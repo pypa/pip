@@ -12,7 +12,6 @@ from pip._vendor.packaging.pylock import (
 )
 from pip._vendor.packaging.version import Version
 
-from pip._internal.models.direct_url import ArchiveInfo, DirInfo, VcsInfo
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.urls import url_to_path
@@ -32,16 +31,16 @@ def _pylock_package_from_install_requirement(
     package_sdist = None
     package_wheels = None
     if ireq.is_direct:
-        if isinstance(download_info.info, VcsInfo):
+        if download_info.vcs_info:
             package_vcs = PackageVcs(
-                type=download_info.info.vcs,
+                type=download_info.vcs_info.vcs,
                 url=download_info.url,
                 path=None,
-                requested_revision=download_info.info.requested_revision,
-                commit_id=download_info.info.commit_id,
+                requested_revision=download_info.vcs_info.requested_revision,
+                commit_id=download_info.vcs_info.commit_id,
                 subdirectory=download_info.subdirectory,
             )
-        elif isinstance(download_info.info, DirInfo):
+        elif download_info.dir_info:
             package_directory = PackageDirectory(
                 path=(
                     Path(url_to_path(download_info.url))
@@ -50,17 +49,19 @@ def _pylock_package_from_install_requirement(
                     .as_posix()
                 ),
                 editable=(
-                    download_info.info.editable if download_info.info.editable else None
+                    download_info.dir_info.editable
+                    if download_info.dir_info.editable
+                    else None
                 ),
                 subdirectory=download_info.subdirectory,
             )
-        elif isinstance(download_info.info, ArchiveInfo):
-            if not download_info.info.hashes:
+        elif download_info.archive_info:
+            if not download_info.archive_info.hashes:
                 raise NotImplementedError()
             package_archive = PackageArchive(
                 url=download_info.url,
                 path=None,
-                hashes=download_info.info.hashes,
+                hashes=download_info.archive_info.hashes,
                 subdirectory=download_info.subdirectory,
             )
         else:
@@ -68,8 +69,8 @@ def _pylock_package_from_install_requirement(
             raise NotImplementedError()
     else:
         package_version = dist.version
-        if isinstance(download_info.info, ArchiveInfo):
-            if not download_info.info.hashes:
+        if download_info.archive_info:
+            if not download_info.archive_info.hashes:
                 raise NotImplementedError()
             link = Link(download_info.url)
             if link.is_wheel:
@@ -77,14 +78,14 @@ def _pylock_package_from_install_requirement(
                     PackageWheel(
                         name=link.filename,
                         url=download_info.url,
-                        hashes=download_info.info.hashes,
+                        hashes=download_info.archive_info.hashes,
                     )
                 ]
             else:
                 package_sdist = PackageSdist(
                     name=link.filename,
                     url=download_info.url,
-                    hashes=download_info.info.hashes,
+                    hashes=download_info.archive_info.hashes,
                 )
         else:
             # should never happen
