@@ -1,0 +1,1 @@
+Suppress ``BrokenPipeError`` traceback when pip output is piped to a command that closes early (e.g. ``pip list | head``) by redirecting stdout to ``/dev/null`` and catching ``BrokenPipeError`` in the command's run wrapper.

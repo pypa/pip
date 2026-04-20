@@ -99,6 +99,23 @@ class TestCommand:
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
 
+    def test_raise_broken_pipe_direct(
+        self, capfd: pytest.CaptureFixture[str]
+    ) -> None:
+        """
+        Test that a raw BrokenPipeError (e.g. from Rich Console cleanup)
+        is caught and handled gracefully, not allowed to crash the process.
+        """
+
+        def raise_broken_pipe() -> NoReturn:
+            raise BrokenPipeError()
+
+        cmd = FakeCommand(run_func=raise_broken_pipe)
+        status = cmd.main([])
+        assert status == 1
+        stderr = capfd.readouterr().err
+        assert "ERROR: Pipe to stdout was broken" in stderr
+
 
 @patch("pip._internal.cli.index_command.Command.handle_pip_version_check")
 def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> None:
