@@ -53,7 +53,7 @@ class PipNewsInclude(rst.Directive):
 
         Dots in the version is converted into dash, and a ``v`` is prefixed.
         This makes Sphinx use them as HTML ``id`` verbatim without generating
-        auto numbering (which would make the the anchors unstable).
+        auto numbering (which would make the anchors unstable).
         """
         prev = None
         for line in lines:

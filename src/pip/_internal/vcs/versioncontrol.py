@@ -75,7 +75,7 @@ def find_path_to_project_root_from_repo_root(
     location: str, repo_root: str
 ) -> str | None:
     """
-    Find the the Python project's root by searching up the filesystem from
+    Find the Python project's root by searching up the filesystem from
     `location`. Return the path to project root relative to `repo_root`.
     Return None if the project root is `repo_root`, or cannot be found.
     """
