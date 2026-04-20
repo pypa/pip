@@ -75,6 +75,12 @@ class Constraint:
         # prerelease candidates if the user does not expect them.
         return self.specifier.contains(candidate.version, prereleases=True)
 
+    def format_for_error(self) -> str:
+        s = str(self.specifier)
+        if self.links:
+            s += f" (from {', '.join(str(link) for link in self.links)})"
+        return s
+
 
 class Requirement:
     @property
