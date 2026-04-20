@@ -138,7 +138,10 @@ class Command(CommandContextMixIn):
             try:
                 os.write(2, b"ERROR: Pipe to stdout was broken\n")
                 if level_number <= logging.DEBUG:
-                    os.write(2, traceback.format_exc().encode("utf-8", "replace"))
+                    encoding = sys.stderr.encoding or "utf-8"
+                    os.write(
+                        2, traceback.format_exc().encode(encoding, "backslashreplace")
+                    )
             except OSError:
                 pass
 
