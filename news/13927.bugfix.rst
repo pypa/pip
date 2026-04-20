@@ -1,0 +1,1 @@
+Fix a hang on Windows when stdout is closed during verbose output.
