@@ -99,22 +99,20 @@ class TestCommand:
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
 
-    def test_raise_broken_pipe_direct(
+    def test_raise_broken_stdout_no_ignored_exception(
         self, capfd: pytest.CaptureFixture[str]
     ) -> None:
         """
-        Test that a raw BrokenPipeError (e.g. from Rich Console cleanup)
-        is caught and handled gracefully, not allowed to crash the process.
+        Test that BrokenStdoutLoggingError does not produce
+        "Exception ignored on flushing sys.stdout: BrokenPipeError"
+        during process exit, by verifying that stdout is redirected
+        to /dev/null after the error is handled.
         """
+        stderr = self.call_main(capfd, [])
 
-        def raise_broken_pipe() -> NoReturn:
-            raise BrokenPipeError()
-
-        cmd = FakeCommand(run_func=raise_broken_pipe)
-        status = cmd.main([])
-        assert status == 1
-        stderr = capfd.readouterr().err
-        assert "ERROR: Pipe to stdout was broken" in stderr
+        assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
+        assert "BrokenPipeError" not in stderr
+        assert "Exception ignored" not in stderr
 
 
 @patch("pip._internal.cli.index_command.Command.handle_pip_version_check")

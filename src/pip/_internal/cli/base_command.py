@@ -155,22 +155,6 @@ class Command(CommandContextMixIn):
                 os.close(devnull)
 
             return ERROR
-        except BrokenPipeError:
-            # Catch any BrokenPipeError that bypasses the logging handler's
-            # conversion to BrokenStdoutLoggingError (e.g. from Rich Console
-            # cleanup or direct writes to stdout outside of logging).
-            try:
-                os.write(2, b"ERROR: Pipe to stdout was broken\n")
-            except OSError:
-                pass
-
-            devnull = os.open(os.devnull, os.O_WRONLY)
-            try:
-                os.dup2(devnull, sys.stdout.fileno())
-            finally:
-                os.close(devnull)
-
-            return ERROR
         except KeyboardInterrupt:
             logger.critical("Operation cancelled by user")
             logger.debug("Exception information:", exc_info=True)
