@@ -1,0 +1,1 @@
+Remove the adjacent __pycache__ directory when a .py file is removed.

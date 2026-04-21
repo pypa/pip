@@ -1,0 +1,1 @@
+Improve conflict reports that involve direct URLs.

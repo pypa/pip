@@ -28,7 +28,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -367,8 +367,8 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert req.download_info.info.hash
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes
 
     @pytest.mark.network
     def test_download_info_index_url(self) -> None:
@@ -380,7 +380,7 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert req.download_info.archive_info
 
     @pytest.mark.network
     def test_download_info_web_archive(self) -> None:
@@ -399,11 +399,12 @@ class TestRequirementSet:
                 req.download_info.url
                 == "https://github.com/pypa/pip-test-package/tarball/0.1.1"
             )
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert (
-                req.download_info.info.hash == "sha256="
-                "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
-            )
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {
+                "sha256": (
+                    "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+                )
+            }
 
     def test_download_info_archive_legacy_cache(
         self, tmp_path: Path, shared_data: TestData
@@ -424,8 +425,8 @@ class TestRequirementSet:
             assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert not req.download_info.info.hash
+            assert req.download_info.archive_info
+            assert not req.download_info.archive_info.hashes
 
     def test_download_info_archive_cache_with_origin(
         self, tmp_path: Path, shared_data: TestData
@@ -433,13 +434,15 @@ class TestRequirementSet:
         """Test download_info hash is set for a web archive with cache entry
         that has origin.json."""
         url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
-        hash = "sha256=ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+        hash = "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
         finder = make_test_finder()
         wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         Path(cache_entry_dir).joinpath("origin.json").write_text(
-            DirectUrl(url, ArchiveInfo(hash=hash)).to_json()
+            DirectUrl(
+                url=url, archive_info=ArchiveInfo(hashes={"sha256": hash})
+            ).to_json()
         )
         wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
         with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
@@ -451,8 +454,8 @@ class TestRequirementSet:
             assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert req.download_info.info.hash == hash
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {"sha256": hash}
 
     def test_download_info_archive_cache_with_invalid_origin(
         self, tmp_path: Path, shared_data: TestData, caplog: pytest.LogCaptureFixture
@@ -487,11 +490,12 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert (
-                req.download_info.info.hash == "sha256="
-                "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
-            )
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {
+                "sha256": (
+                    "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+                )
+            }
 
     def test_download_info_local_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local dir."""
@@ -504,7 +508,7 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, DirInfo)
+            assert req.download_info.dir_info
 
     def test_download_info_local_editable_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local editable dir."""
@@ -517,8 +521,8 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, DirInfo)
-            assert req.download_info.info.editable
+            assert req.download_info.dir_info
+            assert req.download_info.dir_info.editable
 
     @pytest.mark.network
     def test_download_info_vcs(self) -> None:
@@ -532,9 +536,9 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, VcsInfo)
+            assert req.download_info.vcs_info
             assert req.download_info.url == "https://github.com/pypa/pip-test-package"
-            assert req.download_info.info.vcs == "git"
+            assert req.download_info.vcs_info.vcs == "git"
 
 
 class TestInstallRequirement:

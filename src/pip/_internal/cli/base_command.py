@@ -132,11 +132,18 @@ class Command(CommandContextMixIn):
 
             return ERROR
         except BrokenStdoutLoggingError:
-            # Bypass our logger and write any remaining messages to
-            # stderr because stdout no longer works.
-            print("ERROR: Pipe to stdout was broken", file=sys.stderr)
-            if level_number <= logging.DEBUG:
-                traceback.print_exc(file=sys.stderr)
+            # stdout is broken; write to stderr directly. Use os.write, not
+            # sys.stderr.write, so a full pipe buffer returns EPIPE instead
+            # of deadlocking (Windows anonymous pipes are ~4KB).
+            try:
+                os.write(2, b"ERROR: Pipe to stdout was broken\n")
+                if level_number <= logging.DEBUG:
+                    encoding = getattr(sys.stderr, "encoding", None) or "utf-8"
+                    os.write(
+                        2, traceback.format_exc().encode(encoding, "backslashreplace")
+                    )
+            except OSError:
+                pass
 
             return ERROR
         except KeyboardInterrupt:
