@@ -1,1 +1,1 @@
-Add Python 3.14t to CI for Ubuntu and macOS.
+Add Python 3.14t to CI.
