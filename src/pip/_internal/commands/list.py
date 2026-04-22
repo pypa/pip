@@ -137,11 +137,11 @@ class ListCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @contextlib.contextmanager
-    def pip_version_check(self, options: Values) -> Iterator[None]:
+    def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
         if not (options.outdated or options.uptodate):
             yield
             return
-        with super().pip_version_check(options):
+        with super().pip_version_check(options, args):
             yield
 
     def _build_package_finder(

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from pip._vendor.packaging.utils import NormalizedName
 
     from pip._internal.network.session import PipSession
+    from pip._internal.self_outdated_check import UpgradePrompt
 
 logger = logging.getLogger(__name__)
 
@@ -136,16 +137,18 @@ class SessionCommandMixin(CommandContextMixIn):
         return session
 
 
-def _pip_self_version_check_fetch(session: PipSession, options: Values) -> str | None:
+def _pip_self_version_check_fetch(
+    session: PipSession, options: Values
+) -> UpgradePrompt | None:
     from pip._internal.self_outdated_check import pip_self_version_check_fetch
 
     return pip_self_version_check_fetch(session, options)
 
 
-def _pip_self_version_check_emit(remote_version_str: str | None) -> None:
+def _pip_self_version_check_emit(upgrade_prompt: UpgradePrompt | None) -> None:
     from pip._internal.self_outdated_check import pip_self_version_check_emit
 
-    pip_self_version_check_emit(remote_version_str)
+    pip_self_version_check_emit(upgrade_prompt)
 
 
 class IndexGroupCommand(Command, SessionCommandMixin):
@@ -173,7 +176,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         return True
 
     @contextlib.contextmanager
-    def pip_version_check(self, options: Values) -> Iterator[None]:
+    def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
         """
         Do the pip version check if not disabled.
 
@@ -186,7 +189,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             yield
             return
 
-        remote_version_str: str | None = None
+        upgrade_prompt: UpgradePrompt | None = None
         try:
             session = self._build_session(
                 options,
@@ -194,20 +197,16 @@ class IndexGroupCommand(Command, SessionCommandMixin):
                 timeout=min(5, options.timeout),
             )
             with session:
-                remote_version_str = _pip_self_version_check_fetch(session, options)
+                upgrade_prompt = _pip_self_version_check_fetch(session, options)
         except Exception:
             logger.warning("There was an error checking the latest version of pip.")
             logger.debug("See below for error", exc_info=True)
-
-        if remote_version_str is None:
-            yield
-            return
 
         try:
             yield
         finally:
             try:
-                _pip_self_version_check_emit(remote_version_str)
+                _pip_self_version_check_emit(upgrade_prompt)
             except Exception:
                 logger.warning("There was an error checking the latest version of pip.")
                 logger.debug("See below for error", exc_info=True)

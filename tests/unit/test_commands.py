@@ -126,12 +126,36 @@ def test_index_group_pip_version_check(
     if command_name == "list":
         expected_called = False
 
-    with command.pip_version_check(options):
+    with command.pip_version_check(options, []):
         pass
     if expected_called:
         mock_version_check.assert_called_once()
     else:
         mock_version_check.assert_not_called()
+
+
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")
+def test_install_pip_version_check_skipped_when_pip_is_a_requirement(
+    mock_version_check: mock.Mock,
+) -> None:
+    """``pip install pip`` must skip the self-version check: the running pip
+    may be replaced before emit."""
+    command = create_command("install")
+    options = command.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+
+    with command.pip_version_check(options, ["pip"]):
+        pass
+    mock_version_check.assert_not_called()
+
+    with command.pip_version_check(options, ["pip==25.0"]):
+        pass
+    mock_version_check.assert_not_called()
+
+    with command.pip_version_check(options, ["some-other-pkg"]):
+        pass
+    mock_version_check.assert_called_once()
 
 
 def test_requirement_commands() -> None:

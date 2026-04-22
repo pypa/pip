@@ -8,7 +8,6 @@ import optparse
 import os.path
 import sys
 from dataclasses import dataclass
-from typing import Callable
 
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
@@ -155,16 +154,6 @@ class UpgradePrompt:
         )
 
 
-def was_installed_by_pip(pkg: str) -> bool:
-    """Checks whether pkg was installed by pip
-
-    This is used not to display the upgrade message when pip is in fact
-    installed by system package manager, such as dnf on Fedora.
-    """
-    dist = get_default_environment().get_distribution(pkg)
-    return dist is not None and "pip" == dist.installer
-
-
 def _get_current_remote_pip_version(
     session: PipSession, options: optparse.Values
 ) -> str | None:
@@ -194,15 +183,14 @@ def _get_current_remote_pip_version(
 
 
 def _compute_upgrade_prompt(
-    local_version: Version, remote_version_str: str
+    local_version: Version, remote_version_str: str, installed_by_pip: bool
 ) -> UpgradePrompt | None:
     remote_version = parse_version(remote_version_str)
     logger.debug("Remote version of pip: %s", remote_version)
     logger.debug("Local version of pip:  %s", local_version)
+    logger.debug("Was pip installed by pip? %s", installed_by_pip)
 
-    pip_installed_by_pip = was_installed_by_pip("pip")
-    logger.debug("Was pip installed by pip? %s", pip_installed_by_pip)
-    if not pip_installed_by_pip:
+    if not installed_by_pip:
         return None  # Only suggest upgrade if pip is installed by pip.
 
     local_version_is_older = (
@@ -215,29 +203,17 @@ def _compute_upgrade_prompt(
     return None
 
 
-def _self_version_check_logic(
-    *,
-    state: SelfCheckState,
-    current_time: datetime.datetime,
-    local_version: Version,
-    get_remote_version: Callable[[], str | None],
-) -> UpgradePrompt | None:
-    remote_version_str = state.get(current_time)
-    if remote_version_str is None:
-        remote_version_str = get_remote_version()
-        if remote_version_str is None:
-            logger.debug("No remote pip version found")
-            return None
-        state.set(remote_version_str, current_time)
-    return _compute_upgrade_prompt(local_version, remote_version_str)
-
-
 def pip_self_version_check_fetch(
     session: PipSession, options: optparse.Values
-) -> str | None:
-    """Return the latest pip version from the index, or None.
+) -> UpgradePrompt | None:
+    """Compute the pip upgrade prompt, if any, before the command runs.
 
-    Pair with :func:`pip_self_version_check_emit`.
+    Limit the frequency of checks to once per week. State is stored either in
+    the active virtualenv or in the user's USER_CACHE_DIR keyed off the prefix
+    of the pip script path.
+
+    Pair with :func:`pip_self_version_check_emit`, which displays the prompt
+    after the command body runs.
     """
     installed_dist = get_default_environment().get_distribution("pip")
     if not installed_dist:
@@ -250,30 +226,21 @@ def pip_self_version_check_fetch(
     state = SelfCheckState(cache_dir=options.cache_dir)
     current_time = datetime.datetime.now(datetime.timezone.utc)
     remote_version_str = state.get(current_time)
-    if remote_version_str is not None:
-        return remote_version_str
-
-    remote_version_str = _get_current_remote_pip_version(session, options)
     if remote_version_str is None:
-        logger.debug("No remote pip version found")
-        return None
-    state.set(remote_version_str, current_time)
-    return remote_version_str
+        remote_version_str = _get_current_remote_pip_version(session, options)
+        if remote_version_str is None:
+            logger.debug("No remote pip version found")
+            return None
+        state.set(remote_version_str, current_time)
+
+    return _compute_upgrade_prompt(
+        local_version=installed_dist.version,
+        remote_version_str=remote_version_str,
+        installed_by_pip=installed_dist.installer == "pip",
+    )
 
 
-def pip_self_version_check_emit(remote_version_str: str | None) -> None:
-    """Emit the upgrade prompt if the installed pip is older than the remote."""
-    if remote_version_str is None:
-        return
-
-    installed_dist = get_default_environment().get_distribution("pip")
-    if not installed_dist:
-        return
-    try:
-        check_externally_managed()
-    except ExternallyManagedEnvironment:
-        return
-
-    upgrade_prompt = _compute_upgrade_prompt(installed_dist.version, remote_version_str)
+def pip_self_version_check_emit(upgrade_prompt: UpgradePrompt | None) -> None:
+    """Emit the upgrade prompt captured by :func:`pip_self_version_check_fetch`."""
     if upgrade_prompt is not None:
         logger.warning("%s", upgrade_prompt, extra={"rich": True})

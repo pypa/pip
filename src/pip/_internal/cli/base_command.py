@@ -83,7 +83,7 @@ class Command(CommandContextMixIn):
         pass
 
     @contextlib.contextmanager
-    def pip_version_check(self, options: Values) -> Iterator[None]:
+    def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
         """
         This is a no-op so that commands by default do not do the pip version
         check.
@@ -98,7 +98,7 @@ class Command(CommandContextMixIn):
 
     def _run_wrapper(self, level_number: int, options: Values, args: list[str]) -> int:
         def _inner_run() -> int:
-            with self.pip_version_check(options):
+            with self.pip_version_check(options, args):
                 return self.run(options, args)
 
         if options.debug_mode:
