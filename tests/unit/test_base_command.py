@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import time
 from collections.abc import Iterator
 from optparse import Values
@@ -69,16 +70,22 @@ class TestCommand:
         """
         Call command.main(), and return the command's stderr.
         """
+        # Save sys.stdout because the BrokenStdoutLoggingError handler
+        # replaces it with a devnull writer.
+        saved_stdout = sys.stdout
+        try:
 
-        def raise_broken_stdout() -> NoReturn:
-            raise BrokenStdoutLoggingError()
+            def raise_broken_stdout() -> NoReturn:
+                raise BrokenStdoutLoggingError()
 
-        cmd = FakeCommand(run_func=raise_broken_stdout)
-        status = cmd.main(args)
-        assert status == 1
-        stderr = capfd.readouterr().err
+            cmd = FakeCommand(run_func=raise_broken_stdout)
+            status = cmd.main(args)
+            assert status == 1
+            stderr = capfd.readouterr().err
 
-        return stderr
+            return stderr
+        finally:
+            sys.stdout = saved_stdout
 
     def test_raise_broken_stdout(self, capfd: pytest.CaptureFixture[str]) -> None:
         """
