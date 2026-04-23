@@ -18,6 +18,7 @@ from pip._vendor.packaging.pylock import (
 )
 from pip._vendor.packaging.version import Version
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import tomllib
@@ -238,10 +239,23 @@ def select_from_pylock_path_or_url(
         PackageVcs | PackageDirectory | PackageArchive | PackageWheel | PackageSdist,
     ]
 ]:
-    lock = Pylock.from_dict(
-        tomllib.loads(
-            _get_pylock_path_or_url_content(pylock_path_or_url, session),
-        )
-    )
-    # TODO: Exception handling on PylockValidationError and PylockSelectError
-    yield from lock.select()
+    try:
+        pylock_content = _get_pylock_path_or_url_content(pylock_path_or_url, session)
+    except Exception as exc:
+        raise InstallationError(
+            f"Error reading pylock file {pylock_path_or_url!r}: {exc}"
+        ) from exc
+
+    try:
+        lock = Pylock.from_dict(tomllib.loads(pylock_content))
+    except Exception as exc:
+        raise InstallationError(
+            f"Invalid pylock file {pylock_path_or_url!r}: {exc}"
+        ) from exc
+
+    try:
+        yield from lock.select()
+    except Exception as exc:
+        raise InstallationError(
+            f"Cannot select requirements from pylock file {pylock_path_or_url!r}: {exc}"
+        ) from exc

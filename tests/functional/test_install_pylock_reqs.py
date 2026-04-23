@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from tests.lib import PipTestEnvironment, TestData
 
 
@@ -59,3 +61,36 @@ def test_install_pylock_invalid_hash(
         "Got        3a084929238d13bcd3bb928af04f3bac7ca2357d419e29f01459dc848e2d69a4"
         in result.stderr
     )
+
+
+def test_install_pylock_not_found(
+    script: PipTestEnvironment,
+    tmp_path: Path,
+) -> None:
+    pylock_path = tmp_path / "pylock.doesnotexist.toml"
+    result = script.pip(
+        "install", "--no-index", "--dry-run", "-r", pylock_path, expect_error=True
+    )
+    assert "Error reading pylock file" in result.stderr
+
+
+def test_install_pylock_invalid_lockfile(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.invalid.toml")
+    result = script.pip(
+        "install", "--no-index", "--dry-run", "-r", pylock_path, expect_error=True
+    )
+    assert "Invalid pylock file" in result.stderr
+
+
+def test_install_pylock_select_error(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.oldpython.toml")
+    result = script.pip(
+        "install", "--no-index", "--dry-run", "-r", pylock_path, expect_error=True
+    )
+    assert "Cannot select requirements from pylock file" in result.stderr
