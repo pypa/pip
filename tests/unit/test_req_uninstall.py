@@ -458,3 +458,25 @@ class TestStashedUninstallPathSet:
         # link targets untouched
         assert os.path.isdir(adir)
         assert os.path.isfile(afile)
+
+
+def test_compress_for_output_listing_skips_files_under_removed_dir(tmpdir):
+    """Files inside a directory that's already in paths should not be listed as skipped."""
+    pkg_dir = tmpdir.join("lib", "mypkg")
+    pkg_dir.mkdir(parents=True)
+    pkg_dir.join("__init__.py").write("")
+    pycache = pkg_dir.join("__pycache__")
+    pycache.mkdir()
+    pycache.join("module.cpython-312.pyc").write("pyc")
+    pycache.join("stray_file.txt").write("stray")
+
+    paths = [
+        str(pkg_dir.join("__init__.py")),
+        str(pycache),
+    ]
+
+    will_remove, will_skip = compress_for_output_listing(paths)
+
+    assert str(pycache) in will_remove
+    assert str(pycache.join("module.cpython-312.pyc")) in will_remove
+    assert str(pycache.join("stray_file.txt")) not in will_skip

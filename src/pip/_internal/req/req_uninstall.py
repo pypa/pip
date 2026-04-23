@@ -181,6 +181,20 @@ def compress_for_output_listing(paths: Iterable[str]) -> tuple[set[str], set[str
                     os.path.isfile(file_)
                     and os.path.normcase(file_) not in _normcased_files
                 ):
+                    # Skip adding a file to will_skip if any ancestor directory
+                    # is already in paths (and thus will be removed).
+                    ancestor = dirpath
+                    skipped = False
+                    while ancestor:
+                        if os.path.normcase(ancestor) in _normcased_files:
+                            skipped = True
+                            break
+                        parent = os.path.dirname(ancestor)
+                        if parent == ancestor:
+                            break
+                        ancestor = parent
+                    if skipped:
+                        continue
                     # We are skipping this file. Add it to the set.
                     will_skip.add(file_)
 
