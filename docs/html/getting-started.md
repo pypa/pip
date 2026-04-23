@@ -11,7 +11,7 @@ installed. This can be done by running the following commands and making
 sure that the output looks similar.
 
 ```{pip-cli}
-$ python --version
+$ python3 --version
 Python 3.N.N
 $ pip --version
 pip X.Y.Z from ... (python 3.N.N)
