@@ -145,17 +145,13 @@ class Command(CommandContextMixIn):
             except OSError:
                 pass
 
-            # Close the broken stdout stream and replace sys.stdout
-            # with a devnull writer so that Python's exit cleanup does
-            # not produce "Exception ignored on flushing sys.stdout:
-            # BrokenPipeError". We avoid os.dup2 here because it
-            # permanently alters the OS-level file descriptor, which
-            # would break subsequent code in the same process (e.g.
-            # unit tests).
-            try:
-                sys.stdout.close()
-            except (BrokenPipeError, OSError):
-                pass
+            # Replace sys.stdout with a devnull writer so that Python's
+            # exit cleanup does not produce "Exception ignored on flushing
+            # sys.stdout: BrokenPipeError". We avoid os.dup2 here because it
+            # permanently alters the OS-level file descriptor, which would
+            # break subsequent code in the same process (e.g. unit tests).
+            # We also avoid closing the original stream because other code
+            # (e.g. pytest's capture fixture) may still hold a reference.
             try:
                 sys.stdout = open(os.devnull, "w")
             except OSError:
