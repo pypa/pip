@@ -358,6 +358,16 @@ class Version(_BaseVersion):
 
     :class:`Version` is immutable; use :meth:`__replace__` to change
     part of a version.
+
+    Instances are safe to serialize with :mod:`pickle`. They use a stable
+    format so the same pickle can be loaded in future packaging releases.
+
+    .. versionchanged:: 26.2
+
+        Added a stable pickle format. Pickles created with packaging 26.2+ can
+        be unpickled with future releases.  Backward compatibility with pickles
+        from pip._vendor.packaging < 26.2 is supported but may be removed in a future
+        release.
     """
 
     __slots__ = (
@@ -740,6 +750,73 @@ class Version(_BaseVersion):
             return NotImplemented
 
         return super().__ne__(other)
+
+    def __getstate__(
+        self,
+    ) -> tuple[
+        int,
+        tuple[int, ...],
+        tuple[str, int] | None,
+        tuple[str, int] | None,
+        tuple[str, int] | None,
+        LocalType | None,
+    ]:
+        # Return state as a 6-item tuple for compactness:
+        #   (epoch, release, pre, post, dev, local)
+        # Cache members are excluded and will be recomputed on demand
+        return (
+            self._epoch,
+            self._release,
+            self._pre,
+            self._post,
+            self._dev,
+            self._local,
+        )
+
+    def __setstate__(self, state: object) -> None:
+        # Always discard cached values — they may contain stale references
+        # (e.g. packaging._structures.InfinityType from pre-26.1 pickles)
+        # and will be recomputed on demand from the core fields above.
+        self._key_cache = None
+        self._hash_cache = None
+
+        if isinstance(state, tuple):
+            if len(state) == 6:
+                # New format (26.2+): (epoch, release, pre, post, dev, local)
+                (
+                    self._epoch,
+                    self._release,
+                    self._pre,
+                    self._post,
+                    self._dev,
+                    self._local,
+                ) = state
+                return
+            if len(state) == 2:
+                # Format (packaging 26.0-26.1): (None, {slot: value}).
+                _, slot_dict = state
+                if isinstance(slot_dict, dict):
+                    self._epoch = slot_dict["_epoch"]
+                    self._release = slot_dict["_release"]
+                    self._pre = slot_dict.get("_pre")
+                    self._post = slot_dict.get("_post")
+                    self._dev = slot_dict.get("_dev")
+                    self._local = slot_dict.get("_local")
+                    return
+        if isinstance(state, dict):
+            # Old format (packaging <= 25.x, no __slots__): state is a plain
+            # dict with "_version" (_Version NamedTuple) and "_key" entries.
+            version_nt = state.get("_version")
+            if version_nt is not None:
+                self._epoch = version_nt.epoch
+                self._release = version_nt.release
+                self._pre = version_nt.pre
+                self._post = version_nt.post
+                self._dev = version_nt.dev
+                self._local = version_nt.local
+                return
+
+        raise TypeError(f"Cannot restore Version from {state!r}")
 
     @property
     @_deprecated("Version._version is private and will be removed soon")

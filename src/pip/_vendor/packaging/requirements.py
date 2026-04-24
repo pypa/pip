@@ -33,6 +33,16 @@ class Requirement:
     Parse a given requirement string into its parts, such as name, specifier,
     URL, and extras. Raises InvalidRequirement on a badly-formed requirement
     string.
+
+    Instances are safe to serialize with :mod:`pickle`. They use a stable
+    format so the same pickle can be loaded in future packaging releases.
+
+    .. versionchanged:: 26.2
+
+        Added a stable pickle format. Pickles created with packaging 26.2+ can
+        be unpickled with future releases.  Backward compatibility with pickles
+        from pip._vendor.packaging < 26.2 is supported but may be removed in a future
+        release.
     """
 
     # TODO: Can we test whether something is contained within a requirement?
@@ -72,6 +82,30 @@ class Requirement:
 
         if self.marker:
             yield f"; {self.marker}"
+
+    def __getstate__(self) -> str:
+        # Return the requirement string for compactness and stability.
+        # Re-parsed on load to reconstruct all fields.
+        return str(self)
+
+    def __setstate__(self, state: object) -> None:
+        if isinstance(state, str):
+            # New format (26.2+): just the requirement string.
+            try:
+                tmp = Requirement(state)
+            except InvalidRequirement as exc:
+                raise TypeError(f"Cannot restore Requirement from {state!r}") from exc
+            self.name = tmp.name
+            self.url = tmp.url
+            self.extras = tmp.extras
+            self.specifier = tmp.specifier
+            self.marker = tmp.marker
+            return
+        if isinstance(state, dict):
+            # Old format (packaging <= 26.1, no __slots__): plain __dict__.
+            self.__dict__.update(state)
+            return
+        raise TypeError(f"Cannot restore Requirement from {state!r}")
 
     def __str__(self) -> str:
         return "".join(self._iter_parts(self.name))
