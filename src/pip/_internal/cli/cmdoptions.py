@@ -544,8 +544,8 @@ def requirements() -> Option:
         metavar="file",
         help=(
             "Install from the given requirements file. "
-            "The file or URL can be in pip's requirements.txt format "
-            "or pylock.toml format. "
+            "The file or URL can be in pip's requirements.txt format, "
+            "or pylock.toml format. pylock.toml support is experimental. "
             "This option can be used multiple times."
         ),
     )
