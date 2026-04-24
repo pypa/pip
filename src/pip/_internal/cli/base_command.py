@@ -145,18 +145,25 @@ class Command(CommandContextMixIn):
             except OSError:
                 pass
 
-            # Replace sys.stdout with a devnull writer so that Python's
-            # exit cleanup does not produce "Exception ignored on flushing
-            # sys.stdout: BrokenPipeError". We avoid os.dup2 here because it
-            # permanently alters the OS-level file descriptor, which would
-            # break subsequent code in the same process (e.g. unit tests).
-            # We also avoid closing the original stream because other code
-            # (e.g. pytest's capture fixture) may still hold a reference.
-            try:
-                sys.stdout = open(os.devnull, "w")
-            except OSError:
-                pass
+            # Prevent "Exception ignored on flushing sys.stdout: BrokenPipeError"
+            # during interpreter shutdown by replacing sys.stdout with a no-op
+            # writer that does not hold any file descriptor and will not raise
+            # on flush.  This avoids corrupting pytest capture or fd tables.
+            class _SafeStdout:
+                def write(self, s: str) -> int:
+                    return len(s)
 
+                def flush(self) -> None:
+                    pass
+
+                def close(self) -> None:
+                    pass
+
+                @property
+                def closed(self) -> bool:
+                    return False
+
+            sys.stdout = _SafeStdout()
             return ERROR
         except KeyboardInterrupt:
             logger.critical("Operation cancelled by user")

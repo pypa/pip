@@ -113,8 +113,14 @@ class TestCommand:
         Test that BrokenStdoutLoggingError does not produce
         "Exception ignored on flushing sys.stdout: BrokenPipeError"
         during process exit, by verifying that stdout is redirected
-        to /dev/null after the error is handled.
+        after the error is handled.
         """
+        # Clear stale handlers from previous tests so parse_args() logging
+        # does not attempt to write to closed consoles.
+        logging.shutdown()
+        for h in list(logging.getLogger().handlers):
+            logging.getLogger().removeHandler(h)
+
         stderr = self.call_main(capfd, [])
 
         assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
