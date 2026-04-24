@@ -210,7 +210,8 @@ class _InstallRequirementBackedCandidate(Candidate):
     def format_for_error(self) -> str:
         return (
             f"{self.name} {self.version} "
-            f"(from {self._link.file_path if self._link.is_file else self._link})"
+            f"(from {'editable ' if self.is_editable else ''}"
+            f"{self._link.file_path if self._link.is_file else self._link})"
         )
 
     def _prepare_distribution(self) -> BaseDistribution:

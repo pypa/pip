@@ -132,6 +132,7 @@ jobs:
           - "3.13"
           - "3.14"
           - "3.15"
+          - "3.14t"
         include:
           # Oldest patch release per minor version on ubuntu-latest,
           # to catch backport/bug fix regressions. Constrained by what
@@ -156,6 +157,11 @@ jobs:
         with:
           python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
+
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
+        run: |
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
       - name: Install Ubuntu dependencies
         if: runner.os == 'Linux'
@@ -209,6 +215,7 @@ jobs:
           # - "3.13"
           - "3.14"
           - "3.15"
+          - "3.14t"
         group:
           - { number: 1, pytest-filter: "not test_install" }
           - { number: 2, pytest-filter: "test_install" }
@@ -229,10 +236,20 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
+        run: |
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
+
       - name: Install Subversion
         shell: pwsh
         run: |
-          winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+          for ($i = 1; $i -le 3; $i++) {
+            winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($i -eq 3) { exit $LASTEXITCODE }
+            Start-Sleep -Seconds (10 * $i)
+          }
           echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox
