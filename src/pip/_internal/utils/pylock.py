@@ -147,6 +147,7 @@ def _package_dist_url(
     """
     if path is not None:
         if not os.path.isabs(path):
+            # relative path, join to pylock location
             if _is_url(pylock_path_or_url):
                 return urljoin(pylock_path_or_url, path)
             else:
@@ -154,6 +155,12 @@ def _package_dist_url(
                     os.path.join(os.path.dirname(pylock_path_or_url), path)
                 )
         else:
+            # absolute path, reject if pylock comes from a URL
+            if _is_url(pylock_path_or_url):
+                raise InstallationError(
+                    f"Absolute path are not supported in pylock file obtained "
+                    f"from a URL: {pylock_path_or_url!r}"
+                )
             return path_to_url(path)
     else:
         assert url is not None  # guaranteed by packaging.pylock validation
@@ -171,7 +178,11 @@ def package_vcs_requirement_url(
         + package_vcs.commit_id
     )
     if package_vcs.subdirectory:
-        assert "#" not in url  # TODO: prorper exception
+        if "#" in url:
+            raise InstallationError(
+                f"Package URL {url!r} cannot contain fragments in combination "
+                f"with subdirectory field (in {pylock_path_or_url!r})"
+            )
         url += "#subdirectory=" + package_vcs.subdirectory
     return url
 
@@ -183,7 +194,11 @@ def package_archive_requirement_url(
         pylock_path_or_url, package_archive.path, package_archive.url
     )
     if package_archive.subdirectory:
-        assert "#" not in url  # TODO: prorper exception
+        if "#" in url:
+            raise InstallationError(
+                f"Package URL {url!r} cannot contain fragments in combination "
+                f"with subdirectory field (in {pylock_path_or_url!r})"
+            )
         url += "#subdirectory=" + package_archive.subdirectory
     return url
 
@@ -192,7 +207,7 @@ def package_directory_requirement_url(
     pylock_path_or_url: str, package_directory: PackageDirectory
 ) -> str:
     url = _package_dist_url(pylock_path_or_url, package_directory.path, None)
-    assert url.startswith("file://")  # TODO: proper exception
+    assert url.startswith("file://")  # rejected in _package_dist_url
     if not url.endswith("/"):
         url += "/"
     if package_directory.subdirectory:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,7 @@ from pip._vendor.packaging.pylock import (
     PackageWheel,
 )
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.pylock import (
     _package_dist_url,
     package_archive_requirement_url,
@@ -72,6 +74,16 @@ def test_package_dist_url(
     assert _package_dist_url(pylock_filename_or_url, path, url) == _adapt_full_path_url(
         expected
     )
+
+
+def test_package_dist_url_abs_path_remote_lock_file() -> None:
+    """A remote lock file cannot have package with absolute paths."""
+    with pytest.raises(InstallationError):
+        _package_dist_url(
+            "https://example.com/pylock.toml",
+            path=str(Path("/here/pkg.tgz").absolute()),
+            url=None,
+        )
 
 
 @pytest.mark.parametrize(
