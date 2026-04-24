@@ -1,0 +1,2 @@
+Retry winget install of Slik.Subversion on Windows CI to tolerate transient
+source-refresh failures.
