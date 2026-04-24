@@ -920,8 +920,8 @@ Bug Fixes
 - Correctly report ``requested_extras`` in the installation report when extras are
   specified for a local directory installation. (`#11946 <https://github.com/pypa/pip/issues/11946>`_)
 - When installing an archive from a direct URL or local file, populate
-  ``download_info.info.hashes`` in the installation report, in addition to the legacy
-  ``download_info.info.hash`` key. (`#11948 <https://github.com/pypa/pip/issues/11948>`_)
+  ``download_info.archive_info.hashes`` in the installation report, in addition to the legacy
+  ``download_info.archive_info.hash`` key. (`#11948 <https://github.com/pypa/pip/issues/11948>`_)
 
 Vendored Libraries
 ------------------

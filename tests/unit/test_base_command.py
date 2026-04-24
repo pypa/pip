@@ -65,7 +65,7 @@ class FakeCommandWithUnicode(FakeCommand):
 
 
 class TestCommand:
-    def call_main(self, capsys: pytest.CaptureFixture[str], args: list[str]) -> str:
+    def call_main(self, capfd: pytest.CaptureFixture[str], args: list[str]) -> str:
         """
         Call command.main(), and return the command's stderr.
         """
@@ -76,25 +76,25 @@ class TestCommand:
         cmd = FakeCommand(run_func=raise_broken_stdout)
         status = cmd.main(args)
         assert status == 1
-        stderr = capsys.readouterr().err
+        stderr = capfd.readouterr().err
 
         return stderr
 
-    def test_raise_broken_stdout(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_raise_broken_stdout(self, capfd: pytest.CaptureFixture[str]) -> None:
         """
         Test raising BrokenStdoutLoggingError.
         """
-        stderr = self.call_main(capsys, [])
+        stderr = self.call_main(capfd, [])
 
         assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
 
     def test_raise_broken_stdout__debug_logging(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capfd: pytest.CaptureFixture[str]
     ) -> None:
         """
         Test raising BrokenStdoutLoggingError with debug logging enabled.
         """
-        stderr = self.call_main(capsys, ["-vv"])
+        stderr = self.call_main(capfd, ["-vv"])
 
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
