@@ -595,9 +595,9 @@ def install_req_from_pylock_package(
     ),
     pylock_path_or_url: str,
     format_control: FormatControl,
+    user_supplied: bool,
 ) -> InstallRequirement:
     pass
-    # TODO: user_supplied
     # TODO: validate file size
     if isinstance(package_dist, pylock.PackageVcs):
         return InstallRequirement(
@@ -606,6 +606,7 @@ def install_req_from_pylock_package(
                 f"{package_vcs_requirement_url(pylock_path_or_url, package_dist)}"
             ),
             comes_from=pylock_path_or_url,
+            user_supplied=user_supplied,
         )
     elif isinstance(package_dist, pylock.PackageArchive):
         return InstallRequirement(
@@ -615,17 +616,20 @@ def install_req_from_pylock_package(
             ),
             comes_from=pylock_path_or_url,
             hash_options=_pylock_hashes_to_hash_options(package_dist.hashes),
+            user_supplied=user_supplied,
         )
     elif isinstance(package_dist, pylock.PackageDirectory):
         if package_dist.editable:
             return install_req_from_editable(
                 package_directory_requirement_url(pylock_path_or_url, package_dist),
                 comes_from=pylock_path_or_url,
+                user_supplied=user_supplied,
             )
         else:
             return install_req_from_line(
                 package_directory_requirement_url(pylock_path_or_url, package_dist),
                 comes_from=pylock_path_or_url,
+                user_supplied=user_supplied,
             )
     else:
         # wheel or sdist
@@ -655,6 +659,7 @@ def install_req_from_pylock_package(
             comes_from=pylock_path_or_url,
             link=Link(requirement_url),
             hash_options=_pylock_hashes_to_hash_options(package_dist.hashes),
+            user_supplied=user_supplied,
         )
         ireq.original_link = None  # not a direct URL
         return ireq

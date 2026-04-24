@@ -362,7 +362,11 @@ class RequirementCommand(IndexGroupCommand):
                 ):
                     requirements.append(
                         install_req_from_pylock_package(
-                            package, package_dist, filename, options.format_control
+                            package,
+                            package_dist,
+                            filename,
+                            options.format_control,
+                            user_supplied=True,
                         )
                     )
                 continue
