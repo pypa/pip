@@ -11,7 +11,6 @@ from pathlib import Path
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
-from pip._vendor.rich import print_json
 
 # Eagerly import self_outdated_check to avoid crashes. Otherwise,
 # this module would be imported *after* pip was replaced, resulting
@@ -273,13 +272,34 @@ class InstallCommand(RequirementCommand):
                 "Can be used in combination with --dry-run and --ignore-installed "
                 "to 'resolve' the requirements. "
                 "When - is used as file name it writes to stdout. "
-                "When writing to stdout, please combine with the --quiet option "
-                "to avoid mixing pip logging output with JSON output."
+                "Log messages are automatically redirected to stderr in this case."
             ),
         )
 
+    @staticmethod
+    def _redirect_logs_to_stderr() -> None:
+        """Redirect the stdout log handler to stderr.
+
+        When ``--report -`` writes JSON to stdout, log messages must go
+        to stderr so the output is valid JSON.
+        """
+        import logging as _logging
+        import sys
+
+        from pip._internal.utils.logging import get_console
+
+        stderr_console = get_console(stderr=True)
+        for handler in _logging.getLogger().handlers:
+            if hasattr(handler, "console") and handler.console.file is sys.stdout:
+                handler.console = stderr_console
+
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:
+        # When --report writes to stdout, redirect log output to stderr
+        # so the JSON report is not mixed with log messages.
+        if options.json_report_file == "-":
+            self._redirect_logs_to_stderr()
+
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
@@ -396,7 +416,7 @@ class InstallCommand(RequirementCommand):
             if options.json_report_file:
                 report = InstallationReport(requirement_set.requirements_to_install)
                 if options.json_report_file == "-":
-                    print_json(data=report.to_dict())
+                    print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
                 else:
                     with open(options.json_report_file, "w", encoding="utf-8") as f:
                         json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)

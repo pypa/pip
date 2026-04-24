@@ -319,7 +319,7 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: str | None) -> 
     handlers = ["console", "console_errors", "console_subprocess"] + (
         ["user_log"] if include_user_log else []
     )
-    global _stdout_console, stderr_console
+    global _stdout_console, _stderr_console
     _stdout_console = PipConsole(file=sys.stdout, no_color=no_color, soft_wrap=True)
     _stderr_console = PipConsole(file=sys.stderr, no_color=no_color, soft_wrap=True)
 
