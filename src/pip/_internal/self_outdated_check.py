@@ -74,7 +74,7 @@ class SelfCheckState:
     def key(self) -> str:
         return sys.prefix
 
-    def get(self, current_time: datetime.datetime) -> str | None:
+    def get(self, current_time: datetime.datetime, current_pip_version: str) -> str | None:
         """Check if we have a not-outdated version loaded already."""
         if not self._state:
             return None
@@ -85,15 +85,20 @@ class SelfCheckState:
         if "pypi_version" not in self._state:
             return None
 
+        # If pip was upgraded since last check, treat cache as stale
+        if self._state.get("pip_version") != current_pip_version:
+            return None
+
         # Determine if we need to refresh the state
         last_check = parse_iso_datetime(self._state["last_check"])
         time_since_last_check = current_time - last_check
+
         if time_since_last_check > _WEEK:
             return None
-
+        
         return self._state["pypi_version"]
 
-    def set(self, pypi_version: str, current_time: datetime.datetime) -> None:
+    def set(self, pypi_version: str, current_time: datetime.datetime, current_pip_version: str) -> None:
         # If we do not have a path to cache in, don't bother saving.
         if not self._statefile_path:
             return
@@ -114,6 +119,7 @@ class SelfCheckState:
             "key": self.key,
             "last_check": current_time.isoformat(),
             "pypi_version": pypi_version,
+            "pip_version": current_pip_version
         }
 
         text = json.dumps(state, sort_keys=True, separators=(",", ":"))
@@ -201,13 +207,14 @@ def _self_version_check_logic(
     local_version: Version,
     get_remote_version: Callable[[], str | None],
 ) -> UpgradePrompt | None:
-    remote_version_str = state.get(current_time)
+    local_version_str = str(local_version)
+    remote_version_str = state.get(current_time, local_version_str)
     if remote_version_str is None:
         remote_version_str = get_remote_version()
         if remote_version_str is None:
             logger.debug("No remote pip version found")
             return None
-        state.set(remote_version_str, current_time)
+        state.set(remote_version_str, current_time, local_version_str)
 
     remote_version = parse_version(remote_version_str)
     logger.debug("Remote version of pip: %s", remote_version)
