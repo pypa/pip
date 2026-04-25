@@ -158,8 +158,8 @@ def _package_dist_url(
             # absolute path, reject if pylock comes from a URL
             if _is_url(pylock_path_or_url):
                 raise InstallationError(
-                    f"Absolute path are not supported in pylock file obtained "
-                    f"from a URL: {pylock_path_or_url!r}"
+                    f"Absolute path are not supported in pylock files obtained "
+                    f"from a URL: {path!r} in {pylock_path_or_url!r}"
                 )
             return path_to_url(path)
     else:
