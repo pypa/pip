@@ -333,6 +333,9 @@ markers = [
     "git: VCS: git",
     "search: tests for 'pip search'",
 ]
+filterwarnings = [
+  'error::pip._internal.utils.deprecation.PipDeprecationWarning:',
+]
 
 ######################################################################################
 # coverage
