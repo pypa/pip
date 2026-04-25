@@ -1,1 +1,1 @@
-Upgrade packaging to 26.1
+Upgrade packaging to 26.2

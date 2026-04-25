@@ -15,7 +15,6 @@ import sysconfig
 from importlib.machinery import EXTENSION_SUFFIXES
 from typing import (
     TYPE_CHECKING,
-    Any,
     Iterable,
     Iterator,
     Sequence,
@@ -92,6 +91,16 @@ class Tag:
 
     Instances are considered immutable and thus are hashable. Equality checking
     is also supported.
+
+    Instances are safe to serialize with :mod:`pickle`. They use a stable
+    format so the same pickle can be loaded in future packaging releases.
+
+    .. versionchanged:: 26.2
+
+        Added a stable pickle format. Pickles created with packaging 26.2+ can
+        be unpickled with future releases.  Backward compatibility with pickles
+        from pip._vendor.packaging < 26.2 is supported but may be removed in a future
+        release.
     """
 
     __slots__ = ["_abi", "_hash", "_interpreter", "_platform"]
@@ -158,12 +167,37 @@ class Tag:
     def __repr__(self) -> str:
         return f"<{self} @ {id(self)}>"
 
-    def __setstate__(self, state: tuple[None, dict[str, Any]]) -> None:
-        # The cached _hash is wrong when unpickling.
-        _, slots = state
-        for k, v in slots.items():
-            setattr(self, k, v)
-        self._hash = hash((self._interpreter, self._abi, self._platform))
+    def __getstate__(self) -> tuple[str, str, str]:
+        # Return state as a 3-item tuple: (interpreter, abi, platform).
+        # Cache member _hash is excluded and will be recomputed.
+        return (self._interpreter, self._abi, self._platform)
+
+    def __setstate__(self, state: object) -> None:
+        if isinstance(state, tuple):
+            if len(state) == 3 and all(isinstance(s, str) for s in state):
+                # New format (26.2+): (interpreter, abi, platform)
+                self._interpreter, self._abi, self._platform = state
+                self._hash = hash((self._interpreter, self._abi, self._platform))
+                return
+            if len(state) == 2 and isinstance(state[1], dict):
+                # Old format (packaging <= 26.1, __slots__): (None, {slot: value}).
+                _, slots = state
+                try:
+                    interpreter = slots["_interpreter"]
+                    abi = slots["_abi"]
+                    platform = slots["_platform"]
+                except KeyError:
+                    raise TypeError(f"Cannot restore Tag from {state!r}") from None
+                if not all(
+                    isinstance(value, str) for value in (interpreter, abi, platform)
+                ):
+                    raise TypeError(f"Cannot restore Tag from {state!r}")
+                self._interpreter = interpreter.lower()
+                self._abi = abi.lower()
+                self._platform = platform.lower()
+                self._hash = hash((self._interpreter, self._abi, self._platform))
+                return
+        raise TypeError(f"Cannot restore Tag from {state!r}")
 
 
 def parse_tag(tag: str, *, validate_order: bool = False) -> frozenset[Tag]:
@@ -749,9 +783,11 @@ def _linux_platforms(is_32bit: bool = _32_BIT_INTERPRETER) -> Iterator[str]:
 
 
 def _emscripten_platforms() -> Iterator[str]:
-    pyemscripten_abi_version = sysconfig.get_config_var("PYEMSCRIPTEN_ABI_VERSION")
-    if pyemscripten_abi_version:
-        yield f"pyemscripten_{pyemscripten_abi_version}_wasm32"
+    pyemscripten_platform_version = sysconfig.get_config_var(
+        "PYEMSCRIPTEN_PLATFORM_VERSION"
+    )
+    if pyemscripten_platform_version:
+        yield f"pyemscripten_{pyemscripten_platform_version}_wasm32"
     yield from _generic_platforms()
 
 

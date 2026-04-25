@@ -1,0 +1,2 @@
+Fix recovery hint for missing RECORD file to use --ignore-installed
+instead of --force-reinstall.
