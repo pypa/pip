@@ -1,0 +1,1 @@
+Handle BrokenPipeError when pip output is piped to a command that closes early.
