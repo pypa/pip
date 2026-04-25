@@ -322,6 +322,16 @@ class Marker:
 
     :param marker: The string representation of a marker expression.
     :raises InvalidMarker: If ``marker`` cannot be parsed.
+
+    Instances are safe to serialize with :mod:`pickle`. They use a stable
+    format so the same pickle can be loaded in future packaging releases.
+
+    .. versionchanged:: 26.2
+
+        Added a stable pickle format. Pickles created with packaging 26.2+ can
+        be unpickled with future releases.  Backward compatibility with pickles
+        from pip._vendor.packaging < 26.2 is supported but may be removed in a future
+        release.
     """
 
     __slots__ = ("_markers",)
@@ -380,6 +390,35 @@ class Marker:
             return NotImplemented
 
         return str(self) == str(other)
+
+    def __getstate__(self) -> str:
+        # Return the marker expression string for compactness and stability.
+        # Internal Node objects are excluded; the string is re-parsed on load.
+        return str(self)
+
+    def __setstate__(self, state: object) -> None:
+        if isinstance(state, str):
+            # New format (26.2+): just the marker expression string.
+            try:
+                self._markers = _normalize_extra_values(_parse_marker(state))
+            except ParserSyntaxError as exc:
+                raise TypeError(f"Cannot restore Marker from {state!r}") from exc
+            return
+        if isinstance(state, dict) and "_markers" in state:
+            # Old format (packaging <= 26.1, no __slots__): plain __dict__.
+            markers = state["_markers"]
+            if isinstance(markers, list):
+                self._markers = markers
+                return
+        if isinstance(state, tuple) and len(state) == 2:
+            # Old format (packaging <= 26.1, __slots__): (None, {slot: value}).
+            _, slot_dict = state
+            if isinstance(slot_dict, dict) and "_markers" in slot_dict:
+                markers = slot_dict["_markers"]
+                if isinstance(markers, list):
+                    self._markers = markers
+                    return
+        raise TypeError(f"Cannot restore Marker from {state!r}")
 
     def __and__(self, other: Marker) -> Marker:
         if not isinstance(other, Marker):
