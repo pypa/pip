@@ -78,8 +78,6 @@ _MISSING_MODULES: set[str] = set()
 _EAGER_IMPORTS: tuple[str, ...] = (
     # Used by rich when emitting output to a legacy Windows console.
     "pip._vendor.rich._windows_renderer",
-    # Optional stub that packaging imports while probing manylinux support.
-    "_manylinux",
 )
 
 
