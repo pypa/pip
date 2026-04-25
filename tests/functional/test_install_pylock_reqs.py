@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from tests.lib import PipTestEnvironment, TestData
@@ -13,13 +14,30 @@ def test_install_pylock(
         "--no-index",
         "--find-links",
         data.common_wheels,  # to obtain build backend to build sdist
+        "--quiet",
+        "--report",
+        "-",
         "--dry-run",
         "-r",
         pylock_path,
         allow_stderr_warning=True,
     )
     assert "experimental" in result.stderr
-    assert "Would install simple-2.0 simple2-3.0 simplewheel-2.0\n" in result.stdout
+    report = json.loads(result.stdout)
+    installed = sorted(report["install"], key=lambda r: r["metadata"]["name"])
+    assert [
+        (
+            r["metadata"]["name"],
+            r["metadata"]["version"],
+            r["is_direct"],
+            r["requested"],
+        )
+        for r in installed
+    ] == [
+        ("simple", "2.0", False, True),  # sdist
+        ("simple2", "3.0", True, True),  # archive (direct URL)
+        ("simplewheel", "2.0", False, True),  # wheel
+    ]
 
 
 def test_install_pylock_wheel_cache(
