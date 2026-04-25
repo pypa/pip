@@ -657,9 +657,9 @@ def install_req_from_pylock_package(
         ireq = InstallRequirement(
             req=Requirement(f"{package.name}=={version}"),
             comes_from=pylock_path_or_url,
-            link=Link(requirement_url),
+            locked_link=Link(requirement_url),
+            locked_version=version,
             hash_options=_pylock_hashes_to_hash_options(package_dist.hashes),
             user_supplied=user_supplied,
         )
-        ireq.original_link = None  # not a direct URL
         return ireq

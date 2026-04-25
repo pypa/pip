@@ -22,6 +22,30 @@ def test_install_pylock(
     assert "Would install simple-2.0 simple2-3.0 simplewheel-2.0\n" in result.stdout
 
 
+def test_install_pylock_wheel_cache(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """Installing the same sdist twice triggered a hash checking bug."""
+    pylock_path = data.lockfiles.joinpath("pylock.onesdist.toml")
+    args: list[str | Path] = [
+        "--no-index",
+        "--find-links",
+        data.common_wheels,  # to obtain build backend to build sdist
+        "-r",
+        pylock_path,
+    ]
+    result = script.pip("install", *args, allow_stderr_warning=True)
+    assert "experimental" in result.stderr
+    assert "Successfully installed simple-2.0" in result.stdout
+    result = script.pip("install", *args, allow_stderr_warning=True)
+    assert "Requirement already satisfied: simple==2.0" in result.stdout
+    result = script.pip(
+        "install", *args, "--ignore-installed", allow_stderr_warning=True
+    )
+    assert "Successfully installed simple-2.0" in result.stdout
+
+
 def test_install_pylock_directory(
     script: PipTestEnvironment,
     data: TestData,
