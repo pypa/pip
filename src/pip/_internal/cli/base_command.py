@@ -147,6 +147,12 @@ class Command(CommandContextMixIn):
             except OSError:
                 pass
 
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            try:
+                os.dup2(devnull, sys.stdout.fileno())
+            finally:
+                os.close(devnull)
+
             return ERROR
         except KeyboardInterrupt:
             logger.critical("Operation cancelled by user")

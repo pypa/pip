@@ -87,6 +87,7 @@ class TestCommand:
         stderr = self.call_main(capfd, [])
 
         assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
     def test_raise_broken_stdout__debug_logging(
         self, capfd: pytest.CaptureFixture[str]
@@ -98,6 +99,7 @@ class TestCommand:
 
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
 
 @patch("pip._internal.cli.index_command.Command.pip_version_check")
