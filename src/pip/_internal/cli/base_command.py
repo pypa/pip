@@ -147,9 +147,11 @@ class Command(CommandContextMixIn):
             except OSError:
                 pass
 
+            # redirect stdout to os.devnull so that the exit cleanup doesn't 
+            # produce "BrokenPipeError" when exiting.
             devnull = os.open(os.devnull, os.O_WRONLY)
             try:
-                os.dup2(devnull, sys.stdout.fileno())
+                os.dup2(devnull, 1)
             finally:
                 os.close(devnull)
 
