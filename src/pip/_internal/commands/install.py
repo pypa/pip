@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import contextlib
 import errno
 import json
 import operator
 import os
 import shutil
 import site
+from collections.abc import Iterator
 from optparse import SUPPRESS_HELP, Values
 from pathlib import Path
 
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
 from pip._vendor.rich import print_json
@@ -61,6 +64,14 @@ from pip._internal.utils.virtualenv import (
 from pip._internal.wheel_builder import build
 
 logger = getLogger(__name__)
+
+
+def _arg_refers_to_pip(arg: str) -> bool:
+    try:
+        req = Requirement(arg)
+    except InvalidRequirement:
+        return False
+    return canonicalize_name(req.name) == "pip"
 
 
 class InstallCommand(RequirementCommand):
@@ -277,6 +288,17 @@ class InstallCommand(RequirementCommand):
                 "to avoid mixing pip logging output with JSON output."
             ),
         )
+
+    @contextlib.contextmanager
+    def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
+        # Skip the self-version check when pip itself is a requirement. The
+        # running pip may be replaced mid-command, and the upgrade prompt
+        # is redundant.
+        if any(_arg_refers_to_pip(arg) for arg in args):
+            yield
+            return
+        with super().pip_version_check(options, args):
+            yield
 
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:

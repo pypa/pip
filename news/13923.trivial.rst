@@ -1,0 +1,2 @@
+Split the pip self-version check into a fetch phase before the command
+body and an emit phase afterwards.
