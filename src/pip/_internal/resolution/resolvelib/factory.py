@@ -221,8 +221,6 @@ class Factory:
                     return None
 
             return self._editable_candidate_cache[link]
-        elif link in self._editable_candidate_cache:
-            return self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
                 try:
