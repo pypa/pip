@@ -22,6 +22,7 @@ from tests.lib import (
     need_svn,
 )
 from tests.lib.local_repos import local_checkout, local_repo
+from tests.lib.wheel import make_wheel
 
 
 def test_basic_uninstall(script: PipTestEnvironment, data: TestData) -> None:
@@ -545,6 +546,81 @@ def test_uninstall_wheel(script: PipTestEnvironment, data: TestData) -> None:
     result.did_create(dist_info_folder)
     result2 = script.pip("uninstall", "simple.dist", "-y")
     assert_all_changes(result, result2, [])
+
+
+def test_uninstall_wheel_ignores_phantom_record_entries(
+    script: PipTestEnvironment,
+) -> None:
+    package = "recordpoc"
+    version = "1.0"
+    info_dir = f"{package}-{version}.dist-info"
+
+    target_path = script.bin_path / "recordpoc-target"
+    target_path.write_text("poc\n")
+
+    rel = os.path.relpath(target_path, script.site_packages_path).replace(
+        os.path.sep, "/"
+    )
+    record = "\n".join(
+        [
+            f"{package}/__init__.py,,",
+            f"{info_dir}/WHEEL,,",
+            f"{info_dir}/METADATA,,",
+            f"{info_dir}/RECORD,,",
+            f"{rel},,",
+            "",
+        ]
+    )
+
+    wheel_path = make_wheel(
+        package,
+        version,
+        extra_files={f"{package}/__init__.py": "# installed\n"},
+        record=record,
+    ).save_to_dir(script.scratch_path)
+
+    result = script.pip("install", wheel_path, "--no-index")
+    result.did_create(script.site_packages / info_dir)
+    installed_record = (script.site_packages_path / info_dir / "RECORD").read_text()
+    assert rel not in installed_record
+
+    uninstall_result = script.pip("uninstall", package, "-y")
+    assert target_path not in uninstall_result.files_deleted
+    assert target_path.is_file()
+    script.assert_not_installed(package)
+
+
+def test_uninstall_old_wheel_rejects_record_entries_outside_scheme(
+    script: PipTestEnvironment,
+) -> None:
+    package = "recordfallback"
+    version = "1.0"
+    info_dir = f"{package}-{version}.dist-info"
+
+    wheel_path = make_wheel(
+        package,
+        version,
+        extra_files={f"{package}/__init__.py": "# installed\n"},
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", wheel_path, "--no-index")
+
+    target_path = script.scratch_path / "recordfallback-target"
+    target_path.write_text("poc\n")
+
+    dist_info = script.site_packages_path / info_dir
+    install_scheme_metadata = dist_info / "pip-install-scheme.json"
+    install_scheme_metadata.unlink()
+
+    record_path = dist_info / "RECORD"
+    rel = os.path.relpath(target_path, script.site_packages_path).replace(
+        os.path.sep, "/"
+    )
+    with open(record_path, "a") as f:
+        f.write(f"{rel},,\n")
+
+    uninstall_result = script.pip("uninstall", package, "-y", expect_stderr=True)
+    assert target_path not in uninstall_result.files_deleted
+    assert target_path.is_file()
 
 
 @pytest.mark.parametrize(
