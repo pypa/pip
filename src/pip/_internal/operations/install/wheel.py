@@ -246,7 +246,18 @@ def get_csv_rows_for_installed(
         if len(row) > 3:
             logger.warning("RECORD line has more than three elements: %s", row)
         old_record_path = cast("RecordPath", row[0])
-        new_record_path = installed.pop(old_record_path, old_record_path)
+        new_record_path = installed.pop(old_record_path, None)
+        if new_record_path is None:
+            # Directory entries are not tracked in `installed`; preserve them.
+            if old_record_path.endswith("/"):
+                installed_rows.append((old_record_path, "", ""))
+                continue
+            # Phantom entry — no matching zip member; skip it.
+            logger.warning(
+                "RECORD entry has no corresponding installed file, skipping: %s",
+                old_record_path,
+            )
+            continue
         if new_record_path in changed:
             digest, length = rehash(_record_to_fs_path(new_record_path, lib_dir))
         else:
