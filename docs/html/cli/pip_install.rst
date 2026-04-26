@@ -292,6 +292,30 @@ Examples
          py -m pip install "SomePackage==1.0.4"   # specific version
          py -m pip install "SomePackage>=1.0.4"   # minimum version
 
+#. Install packages into a specified directory instead of the default
+   site-packages location.
+
+   .. warning::
+
+      The ``--target`` option is intended for specialized scenarios, such as
+      embedding Python where a new, empty directory is explicitly added to
+      ``sys.path``. Using it for general-purpose installation can lead to unexpected
+      behavior, since ``pip`` is designed to install packages into standard
+      environments.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install requests numpy \
+             --target ./extern/python_deps
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install requests numpy ^
+             --target .\extern\python_deps
 
 #. Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
 
