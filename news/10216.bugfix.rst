@@ -1,2 +1,0 @@
-Allow installing a package as editable alongside another package that
-depends on it, via a direct URL reference to the same location.
