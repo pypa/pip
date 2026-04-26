@@ -139,7 +139,17 @@ class Command(CommandContextMixIn):
             # sys.stderr.write, so a full pipe buffer returns EPIPE instead
             # of deadlocking (Windows anonymous pipes are ~4KB).
             try:
-                os.write(2, b"ERROR: Pipe to stdout was broken\n")
+                if sys.stdout.fileno() == 1:
+                    # redirect stdout to os.devnull so
+                    # that the exit cleanup doesn't
+                    # produce "BrokenPipeError" when exiting.
+                    devnull = os.open(os.devnull, os.O_WRONLY)
+                    try:
+                        os.dup2(devnull, 1)
+                    finally:
+                        os.close(devnull)
+                        os.write(2, b"ERROR: Pipe to stdout was broken\n")
+
                 if level_number <= logging.DEBUG:
                     encoding = getattr(sys.stderr, "encoding", None) or "utf-8"
                     os.write(
@@ -147,15 +157,6 @@ class Command(CommandContextMixIn):
                     )
             except OSError:
                 pass
-
-            # redirect stdout to os.devnull so that the exit cleanup doesn't
-            # produce "BrokenPipeError" when exiting.
-            devnull = os.open(os.devnull, os.O_WRONLY)
-            try:
-                os.dup2(devnull, 1)
-            finally:
-                os.close(devnull)
-
             return BROKEN_STDOUT
         except KeyboardInterrupt:
             logger.critical("Operation cancelled by user")
