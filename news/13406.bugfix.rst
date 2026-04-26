@@ -1,0 +1,1 @@
+Fail package upgrade when the package index cannot be accessed.
