@@ -187,6 +187,16 @@ def test_package_directory_requirement_url(
     ) == _adapt_full_path_url(expected)
 
 
+def test_package_directory_requirement_remote_url() -> None:
+    with pytest.raises(
+        InstallationError,
+        match="Directory entries are not supported in remote pylock.toml ",
+    ):
+        package_directory_requirement_url(
+            "https://example.com/pylock.toml", PackageDirectory(path="dir")
+        )
+
+
 @pytest.mark.parametrize(
     "pylock_path_or_url,package_sdist,expected",
     [
