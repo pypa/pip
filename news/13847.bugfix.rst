@@ -1,1 +1,1 @@
-Use a path-segment prefix comparison, not char-by-char.
+Common path prefixes are determined by path segment, not character by character.
