@@ -22,6 +22,7 @@ from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
 from typing import Any, Callable
 
+from pip._vendor.packaging import pylock
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
@@ -101,6 +102,15 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             raise CommandError(
                 "Can not use any platform or abi specific options unless "
                 "installing via '--target' or using '--dry-run'"
+            )
+
+    for filename in options.requirements:
+        # TODO: filename may be a URL, so pathlib.Path may not be entirely correct
+        if dist_restriction_set and pylock.is_valid_pylock_path(pathlib.Path(filename)):
+            raise CommandError(
+                "Patform and interpreter constraints using "
+                "--python-version, --platform, --abi, or --implementation, "
+                f"are not supported when selecting requirements from {filename!r}"
             )
 
 

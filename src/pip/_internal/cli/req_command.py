@@ -337,6 +337,7 @@ class RequirementCommand(IndexGroupCommand):
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
+            # TODO: filename may be a URL, so pathlib.Path may not be entirely correct
             if pylock.is_valid_pylock_path(Path(filename)):
                 logger.warning(
                     "Using pylock.toml as a requirements source "
@@ -344,19 +345,6 @@ class RequirementCommand(IndexGroupCommand):
                     "It may be removed/changed in a future release "
                     "without prior warning."
                 )
-                if any(
-                    [
-                        options.python_version,
-                        options.platforms,
-                        options.abis,
-                        options.implementation,
-                    ]
-                ):
-                    raise CommandError(
-                        "Patform and interpreter constraints using "
-                        "--python-version, --platform, --abi, or --implementation, "
-                        f"are not supported when installing from {filename!r}"
-                    )
                 for package, package_dist in select_from_pylock_path_or_url(
                     filename, session=session
                 ):
