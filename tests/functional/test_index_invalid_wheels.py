@@ -23,16 +23,12 @@ def _create_test_index_with_invalid_wheels(
     index_dir = tmpdir / "test_index"
     index_dir.mkdir()
 
-    (index_dir / "index.html").write_text(
-        textwrap.dedent(
-            f"""\
+    (index_dir / "index.html").write_text(textwrap.dedent(f"""\
         <!DOCTYPE html>
         <html>
           <body><a href="{package_name}/index.html">{package_name}</a></body>
         </html>
-        """
-        )
-    )
+        """))
 
     pkg_dir = index_dir / package_name
     pkg_dir.mkdir()
@@ -59,18 +55,14 @@ def _create_test_index_with_invalid_wheels(
     links = [
         f'<a href="{wheel_name}">{wheel_name}</a><br/>' for wheel_name, _ in all_wheels
     ]
-    (pkg_dir / "index.html").write_text(
-        textwrap.dedent(
-            f"""\
+    (pkg_dir / "index.html").write_text(textwrap.dedent(f"""\
         <!DOCTYPE html>
         <html>
           <body>
             {''.join(links)}
           </body>
         </html>
-        """
-        )
-    )
+        """))
 
     return index_dir
 

@@ -96,15 +96,11 @@ def test_lock_local_directory(
 ) -> None:
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            """\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent("""\
             [project]
             name = "pkga"
             version = "1.0"
-            """
-        )
-    )
+            """))
     result = script.pip(
         "lock",
         ".",
@@ -131,16 +127,12 @@ def test_lock_local_editable_with_dep(
 ) -> None:
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            """\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent("""\
             [project]
             name = "pkga"
             version = "1.0"
             dependencies = ["simplewheel==2.0"]
-            """
-        )
-    )
+            """))
     result = script.pip(
         "lock",
         "-e",

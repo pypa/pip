@@ -388,12 +388,10 @@ def test_install_exit_status_code_when_empty_dependency_group(
     """
     Test install exit status code is 0 when empty dependency group specified
     """
-    script.scratch_path.joinpath("pyproject.toml").write_text(
-        """\
+    script.scratch_path.joinpath("pyproject.toml").write_text("""\
 [dependency-groups]
 empty = []
-"""
-    )
+""")
     script.pip("install", "--group", "empty")
 
 
@@ -407,12 +405,10 @@ def test_install_dependency_group_bad_filename_error(
     """
     if file_exists:
         script.scratch_path.joinpath("not-pyproject.toml").write_text(
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                 [dependency-groups]
                 publish = ["twine"]
-                """
-            )
+                """)
         )
     result = script.pip(
         "install", "--group", "not-pyproject.toml:publish", expect_error=True
@@ -785,16 +781,12 @@ def test_link_hash_in_dep_fails_require_hashes(
     )
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            f"""\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent(f"""\
             [project]
             name = "pkga"
             version = "1.0"
             dependencies = ["simple @ {simple_url_with_hash}"]
-            """
-        )
-    )
+            """))
     # Build a wheel for pkga and compute its hash.
     wheelhouse = tmp_path / "wheehouse"
     wheelhouse.mkdir()
@@ -829,16 +821,12 @@ def test_bad_link_hash_in_dep_install_failure(
     url = f"{url}#sha256=invalidhash"
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            f"""\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent(f"""\
             [project]
             name = "pkga"
             version = "1.0"
             dependencies = ["simple @ {url}"]
-            """
-        )
-    )
+            """))
     result = script.pip_install_local(
         "--no-build-isolation", project_path, expect_error=True
     )
@@ -1091,12 +1079,10 @@ def test_install_package_with_same_name_in_curdir(
     result.did_create(dist_info_folder)
 
 
-mock100_setup_py = textwrap.dedent(
-    """\
+mock100_setup_py = textwrap.dedent("""\
                         from setuptools import setup
                         setup(name='mock',
-                              version='100.1')"""
-)
+                              version='100.1')""")
 
 
 def test_install_folder_using_dot_slash(script: PipTestEnvironment) -> None:
@@ -1293,9 +1279,7 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(
     target_dir = script.scratch_path / "target"
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
@@ -1304,16 +1288,10 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(
                   'console_scripts': ['pkga=pkga:main']
               }
         )
-    """
-        )
-    )
-    pkga_path.joinpath("pkga.py").write_text(
-        textwrap.dedent(
-            """
+    """))
+    pkga_path.joinpath("pkga.py").write_text(textwrap.dedent("""
         def main(): pass
-    """
-        )
-    )
+    """))
     result = script.pip("install", "--no-build-isolation", opt, target_dir, pkga_path)
     # This assertion isn't actually needed, if we get the script warning
     # the script.pip() call will fail with "stderr not expected". But we
@@ -1424,17 +1402,13 @@ def _test_install_editable_with_prefix(
 def test_install_editable_with_target(script: PipTestEnvironment) -> None:
     pkg_path = script.scratch_path / "pkg"
     pkg_path.mkdir()
-    pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(
             name='pkg',
             install_requires=['simplewheel==2.0']
         )
-    """
-        )
-    )
+    """))
 
     target = script.scratch_path / "target"
     target.mkdir()
@@ -1676,31 +1650,23 @@ def test_install_upgrade_editable_depending_on_other_editable(
 ) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1')
-    """
-        )
-    )
+    """))
     script.pip("install", "--no-build-isolation", "--editable", pkga_path)
     result = script.pip("list", "--format=freeze")
     assert "pkga==0.1" in result.stdout
 
     script.scratch_path.joinpath("pkgb").mkdir()
     pkgb_path = script.scratch_path / "pkgb"
-    pkgb_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkgb_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkgb',
               version='0.1',
               install_requires=['pkga'])
-    """
-        )
-    )
+    """))
     script.pip(
         "install",
         "--no-build-isolation",
@@ -1903,15 +1869,11 @@ def test_install_editable_with_wrong_egg_name(
 ) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1')
-    """
-        )
-    )
+    """))
     result = script.pip(
         "install",
         "--no-build-isolation",
@@ -1989,16 +1951,12 @@ def _get_expected_error_text() -> str:
 def test_install_incompatible_python_requires(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='<1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     result = script.pip("install", "--no-build-isolation", pkga_path, expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
 
@@ -2008,16 +1966,12 @@ def test_install_incompatible_python_requires_editable(
 ) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='<1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     result = script.pip(
         "install", "--no-build-isolation", f"--editable={pkga_path}", expect_error=True
     )
@@ -2027,16 +1981,12 @@ def test_install_incompatible_python_requires_editable(
 def test_install_incompatible_python_requires_wheel(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='<1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     script.run(
         "python",
         "setup.py",
@@ -2053,16 +2003,12 @@ def test_install_incompatible_python_requires_wheel(script: PipTestEnvironment) 
 def test_install_compatible_python_requires(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='>1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     res = script.pip("install", "--no-build-isolation", pkga_path)
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
@@ -2226,14 +2172,10 @@ def test_target_install_ignores_distutils_config_install_prefix(
     distutils_config = Path.home().joinpath(
         "pydistutils.cfg" if sys.platform == "win32" else ".pydistutils.cfg",
     )
-    distutils_config.write_text(
-        textwrap.dedent(
-            f"""
+    distutils_config.write_text(textwrap.dedent(f"""
         [install]
         prefix={prefix}
-        """
-        )
-    )
+        """))
     target = script.scratch_path / "target"
     result = script.pip_install_local("simplewheel", "-t", target)
 
@@ -2622,8 +2564,7 @@ def test_install_dry_run_nothing_installed(
     reason="3.11 required to find distributions via importlib metadata",
 )
 def test_install_existing_memory_distribution(script: PipTestEnvironment) -> None:
-    sitecustomize_text = textwrap.dedent(
-        """
+    sitecustomize_text = textwrap.dedent("""
         import sys
         from importlib.metadata import Distribution, DistributionFinder
 
@@ -2649,8 +2590,7 @@ def test_install_existing_memory_distribution(script: PipTestEnvironment) -> Non
 
 
         sys.meta_path.append(CustomFinder())
-        """
-    )
+        """)
     with open(script.site_packages_path / "sitecustomize.py", "w") as sitecustomize:
         sitecustomize.write(sitecustomize_text)
 
@@ -2786,13 +2726,11 @@ def test_install_sdist_links(
         add_file(
             sdist_tar,
             "PKG-INFO",
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                     Metadata-Version: 2.1
                     Name: linktest
                     Version: 1.0
-                """
-            ),
+                """),
         )
 
         add_file(sdist_tar, "src/linktest/__init__.py", "")
@@ -2825,8 +2763,7 @@ def test_install_sdist_links(
         add_file(
             sdist_tar,
             "pyproject.toml",
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                     [build-system]
                     requires = ["setuptools"]
                     build-backend = "setuptools.build_meta"
@@ -2839,15 +2776,13 @@ def test_install_sdist_links(
                     where = ["src"]
                     [tool.setuptools.package-data]
                     "*" = ["*.dat"]
-                """
-            ),
+                """),
         )
 
         add_file(
             sdist_tar,
             "src/linktest/__main__.py",
-            textwrap.dedent(
-                f"""
+            textwrap.dedent(f"""
                     from pathlib import Path
                     linknames = {linknames!r}
 
@@ -2859,8 +2794,7 @@ def test_install_sdist_links(
                         data_text = res_path.joinpath(name).read_text()
                         assert data_text == "Data"
                     print(str(len(linknames)) + ' files checked')
-                """
-            ),
+                """),
         )
 
     # Show sdist content, for debugging the test

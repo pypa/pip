@@ -78,14 +78,10 @@ def test_pip_wheel_success_with_dependency_group(
     Test 'pip wheel' success.
     """
     pyproject = script.scratch_path / "pyproject.toml"
-    pyproject.write_text(
-        textwrap.dedent(
-            """\
+    pyproject.write_text(textwrap.dedent("""\
             [dependency-groups]
             simple = ["simple==3.0"]
-            """
-        )
-    )
+            """))
     result = script.pip(
         "wheel",
         "--no-build-isolation",
