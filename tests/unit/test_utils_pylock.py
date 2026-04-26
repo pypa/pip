@@ -78,7 +78,7 @@ def test_package_dist_url(
 
 def test_package_dist_url_abs_path_remote_lock_file() -> None:
     """A remote lock file cannot have package with absolute paths."""
-    with pytest.raises(InstallationError, match="Absolute path are not supported"):
+    with pytest.raises(InstallationError, match="Absolute paths are not supported"):
         _package_dist_url(
             "https://example.com/pylock.toml",
             path=str(Path("/here/pkg.tgz").absolute()),

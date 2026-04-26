@@ -245,6 +245,31 @@ class Factory:
                     return None
             return self._link_candidate_cache[link]
 
+    def _get_locked_installation_candidate(
+        self, ireqs: Sequence[InstallRequirement], name: str, specifier: SpecifierSet
+    ) -> InstallationCandidate | None:
+        locked_ireqs = [ireq for ireq in ireqs if ireq.locked_link]
+        if not locked_ireqs:
+            return None
+        if len(locked_ireqs) > 1:
+            raise InstallationError(
+                f"Multiple locks provided for package {name!r} in "
+                f"{', '.join(str(lir.comes_from) for lir in locked_ireqs)}"
+            )
+        locked_ireq = locked_ireqs[0]
+        assert locked_ireq.locked_link
+        assert locked_ireq.locked_version
+        if not specifier.contains(locked_ireq.locked_version):
+            raise InstallationError(
+                f"Locked version {locked_ireq.locked_version!s} "
+                f"for package {name!r} from {locked_ireq.comes_from!r} "
+                f"is not compatible with other requirements "
+                f"for the same package ({specifier!s})"
+            )
+        return InstallationCandidate(
+            name, str(locked_ireq.locked_version), locked_ireq.locked_link
+        )
+
     def _iter_found_candidates(
         self,
         ireqs: Sequence[InstallRequirement],
@@ -312,31 +337,13 @@ class Factory:
             return candidate
 
         def iter_index_candidate_infos() -> Iterator[IndexCandidateInfo]:
-            locked_ireqs = [ireq for ireq in ireqs if ireq.locked_link]
-            if locked_ireqs:
+            if locked_ican := self._get_locked_installation_candidate(
+                ireqs, name, specifier
+            ):
                 # Locked InstallRequirements must behave as if they would have
                 # been found on an index, except the link is already known, so we don't
-                # ask the finder for the best candidate.
-                if len(locked_ireqs) > 1:
-                    raise InstallationError(
-                        f"Multiple locks provided for package {name!r} in "
-                        f"{', '.join(str(lir.comes_from) for lir in locked_ireqs)}"
-                    )
-                locked_ireq = locked_ireqs[0]
-                assert locked_ireq.locked_link
-                assert locked_ireq.locked_version
-                if not specifier.contains(locked_ireq.locked_version):
-                    raise InstallationError(
-                        f"Locked version {locked_ireq.locked_version!s} "
-                        f"for package {name!r} from {locked_ireq.comes_from!r} "
-                        f"is not compatible with other constraints "
-                        f"for the same package ({specifier!s})"
-                    )
-                icans = [
-                    InstallationCandidate(
-                        name, str(locked_ireq.locked_version), locked_ireq.locked_link
-                    )
-                ]
+                # ask the finder for the best candidate in that case.
+                icans = [locked_ican]
             else:
                 result = self._finder.find_best_candidate(
                     project_name=name,
@@ -760,8 +767,7 @@ class Factory:
                 version_type = "final version"
 
         logger.critical(
-            "Could not find a %s that satisfies the requirement %s "
-            "(from versions: %s)",
+            "Could not find a %s that satisfies the requirement %s (from versions: %s)",
             version_type,
             req_disp,
             ", ".join(versions) or "none",

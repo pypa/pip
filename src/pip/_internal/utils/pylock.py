@@ -136,9 +136,7 @@ def _is_url(s: str) -> bool:
 
 
 def _package_dist_url(
-    pylock_path_or_url: str,
-    path: str | None,
-    url: str | None,
+    pylock_path_or_url: str, path: str | None, url: str | None
 ) -> str:
     """Compute an url from a Pylock package path and url.
 
@@ -158,7 +156,7 @@ def _package_dist_url(
             # absolute path, reject if pylock comes from a URL
             if _is_url(pylock_path_or_url):
                 raise InstallationError(
-                    f"Absolute path are not supported in pylock files obtained "
+                    f"Absolute paths are not supported in pylock files obtained "
                     f"from a URL: {path!r} in {pylock_path_or_url!r}"
                 )
             return path_to_url(path)
@@ -170,13 +168,8 @@ def _package_dist_url(
 def package_vcs_requirement_url(
     pylock_path_or_url: str, package_vcs: PackageVcs
 ) -> str:
-    url = (
-        package_vcs.type
-        + "+"
-        + _package_dist_url(pylock_path_or_url, package_vcs.path, package_vcs.url)
-        + "@"
-        + package_vcs.commit_id
-    )
+    dist_url = _package_dist_url(pylock_path_or_url, package_vcs.path, package_vcs.url)
+    url = f"{package_vcs.type}+{dist_url}@{package_vcs.commit_id}"
     if package_vcs.subdirectory:
         if "#" in url:
             raise InstallationError(

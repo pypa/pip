@@ -619,15 +619,16 @@ def install_req_from_pylock_package(
             user_supplied=user_supplied,
         )
     elif isinstance(package_dist, pylock.PackageDirectory):
+        req = package_directory_requirement_url(pylock_path_or_url, package_dist)
         if package_dist.editable:
             return install_req_from_editable(
-                package_directory_requirement_url(pylock_path_or_url, package_dist),
+                req,
                 comes_from=pylock_path_or_url,
                 user_supplied=user_supplied,
             )
         else:
             return install_req_from_line(
-                package_directory_requirement_url(pylock_path_or_url, package_dist),
+                req,
                 comes_from=pylock_path_or_url,
                 user_supplied=user_supplied,
             )
