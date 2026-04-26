@@ -15,17 +15,18 @@ from pip._vendor.packaging.pylock import (
     PackageVcs,
     PackageWheel,
     Pylock,
+    is_valid_pylock_path,
 )
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.link import Link
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import tomllib
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 if TYPE_CHECKING:
     from pip._internal.network.session import PipSession
+    from pip._internal.req.req_install import InstallRequirement
 
 
 def _pylock_package_from_install_requirement(
@@ -133,6 +134,14 @@ _SCHEME_RE = re.compile("^(http|https|file)://", re.IGNORECASE)
 
 def _is_url(s: str) -> bool:
     return bool(_SCHEME_RE.match(s))
+
+
+def is_valid_pylock_filename(filename: str) -> bool:
+    if _is_url(filename):
+        path = Path(urlsplit(filename).path.rpartition("/")[-1])
+    else:
+        path = Path(filename)
+    return is_valid_pylock_path(path)
 
 
 def _package_dist_url(

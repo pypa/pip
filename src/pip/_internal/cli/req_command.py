@@ -11,10 +11,7 @@ import logging
 import os
 from functools import partial
 from optparse import Values
-from pathlib import Path
 from typing import Any, Callable, TypeVar
-
-from pip._vendor.packaging import pylock
 
 from pip._internal.build_env import (
     BuildEnvironmentInstaller,
@@ -51,7 +48,10 @@ from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.packaging import check_requires_python
-from pip._internal.utils.pylock import select_from_pylock_path_or_url
+from pip._internal.utils.pylock import (
+    is_valid_pylock_filename,
+    select_from_pylock_path_or_url,
+)
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -337,8 +337,7 @@ class RequirementCommand(IndexGroupCommand):
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
-            # TODO: filename may be a URL, so pathlib.Path may not be entirely correct
-            if pylock.is_valid_pylock_path(Path(filename)):
+            if is_valid_pylock_filename(filename):
                 logger.warning(
                     "Using pylock.toml as a requirements source "
                     "is an experimental feature. "

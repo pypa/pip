@@ -22,7 +22,6 @@ from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
 from typing import Any, Callable
 
-from pip._vendor.packaging import pylock
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.parser import ConfigOptionParser
@@ -32,6 +31,7 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.target_python import TargetPython
+from pip._internal.utils import pylock as pylock_utils
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
@@ -105,8 +105,7 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             )
 
     for filename in options.requirements:
-        # TODO: filename may be a URL, so pathlib.Path may not be entirely correct
-        if dist_restriction_set and pylock.is_valid_pylock_path(pathlib.Path(filename)):
+        if dist_restriction_set and pylock_utils.is_valid_pylock_filename(filename):
             raise CommandError(
                 "Patform and interpreter constraints using "
                 "--python-version, --platform, --abi, or --implementation, "
