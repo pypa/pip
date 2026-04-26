@@ -401,7 +401,7 @@ An in-depth write up on how the pip personas were created, and how they can be a
 
 In any UX project, it is important to prototype and test interfaces with real users. This provides the team with a feedback loop, and ensures that the solution shipped to the end user meets their needs.
 
-Prototyping CLIs can be a challenge. See [Creating rapid CLI prototypes with cli-output](https://www.ei8fdb.org/prototyping-command-line-interfaces-with-cli-output/) for recommendations.
+Prototyping CLIs can be a challenge. See [Creating rapid CLI prototypes with cli-output](https://web.archive.org/web/2024/https://www.ei8fdb.org/prototyping-command-line-interfaces-with-cli-output/) for recommendations.
 
 #### Copywriting Style Guides
 
@@ -409,12 +409,12 @@ Given pip's interface is text, it is particularly important that clear and consi
 
 The following copywriting Style Guides may be useful to the pip team:
 
-- [Warehouse (PyPI) copywriting styleguide and glossary of terms](https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology)
+- [Warehouse (PyPI) copywriting styleguide and glossary of terms](https://web.archive.org/web/2024/https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology)
 - Firefox:
   - [Voice and Tone](https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fdesign.firefox.com%2Fphoton%2Fcopy%2Fvoice-and-tone.html)
   - [Writing for users](https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fdesign.firefox.com%2Fphoton%2Fcopy%2Fwriting-for-users.html)
 - [Heroku CLI](https://devcenter.heroku.com/articles/cli-style-guide) (very specific to Heroku's CLI tools)
-- [Redhat Pattern Fly style guide](https://www.patternfly.org/v4/ux-writing/about)
+- [Redhat Pattern Fly style guide](https://www.patternfly.org/ux-writing/about/)
 - [Writing for UIs from Simply Secure](https://simplysecure.org/blog/writing-for-uis)
 
 ### General Resources
@@ -422,7 +422,7 @@ The following copywriting Style Guides may be useful to the pip team:
 - Heroku talk on design of their CLI tools ([video](https://www.youtube.com/watch?v=PHiDG-_XoRk) transcript)
 - [Simply Secure: UX Starter Pack](https://simplysecure.org/ux-starter-pack/)
 - [Simply Secure: Feedback Gathering Guide](https://simplysecure.org/blog/feedback-gathering-guide)
-- [Simply Secure: Getting Quick Tool Feedback](https://simplysecure.org/blog/design-spot-tool-feedback)
+- [Simply Secure: Getting Quick Tool Feedback](https://web.archive.org/web/2024/https://simplysecure.org/blog/design-spot-tool-feedback)
 - [Internews: UX Feedback Collection Guidebook](https://globaltech.internews.org/our-resources/ux-feedback-collection-guidebook)
 - [Simply Secure: Knowledge Base](http://simplysecure.org/knowledge-base/)
 - [Open Source Design](https://opensourcedesign.net/resources/)

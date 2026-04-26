@@ -22,7 +22,7 @@ This work was made possible through the [pip donor funded roadmap](https://wiki.
 
 ## Outreach
 
-We [recruited participants](https://www.ei8fdb.org/thoughts/2020/03/pip-ux-study-recruitment/) for a user research panel that we could contact when we wanted to run surveys and interviews about pip. In total 472 people signed up to the panel, although some unsubscribed during the research period.
+We recruited participants for a user research panel that we could contact when we wanted to run surveys and interviews about pip. In total 472 people signed up to the panel, although some unsubscribed during the research period.
 
 At the end of the 2020 research, we asked users to opt-in to a [long-term panel](https://mail.python.org/mailman3/lists/pip-ux-studies.python.org/), where they can be contacted for future UX studies. Should the pip team wish to continue to build this panel, we recommend translating the sign-up form into multiple languages and better leveraging local communities and outreach groups (e.g. PyLadies) to increase the diversity of the participants.
 
@@ -66,7 +66,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           Pip research panel survey
         </td>
         <td>
-          Recruit pip users to participate in user research, user tests and participate in future surveys. See <a href="https://bit.ly/pip-ux-studies">associated blog post</a> for more information.
+          Recruit pip users to participate in user research, user tests and participate in future surveys. See <a href="https://web.archive.org/web/2024/https://www.ei8fdb.org/pip-ux-studies-response-data/">associated blog post</a> for more information.
         </td>
         <td>
           472 full sign-ups
@@ -88,7 +88,7 @@ We **published 10 surveys** to gather feedback about pip's users and their prefe
           How should pip handle conflicts with already installed packages when updating other packages?
         </td>
         <td>
-          Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
+          Determine if the way that pip handles package upgrades is in-line with user's expectations/needs. See <a href="https://web.archive.org/web/2024/https://www.ei8fdb.org/thoughts/2020/07/how-should-pip-handle-conflicts-when-updating-already-installed-packages/">related blog post</a> and <a href="https://github.com/pypa/pip/issues/7744">GitHub issue</a> for more information.
         </td>
         <td>
           See <a href="pip-upgrade-conflict">write up, including recommendations</a>
@@ -194,10 +194,10 @@ improving-pips-documentation
 - [Pip team midyear report (blog, July 2020)](https://pyfound.blogspot.com/2020/07/pip-team-midyear-report.html)
 - [Creating rapid CLI prototypes with cli-output (blog, Oct 2020)](https://www.ei8fdb.org/prototyping-command-line-interfaces-with-cli-output/)
 - [Changes are coming to pip (video)](https://www.youtube.com/watch?v=B4GQCBBsuNU)
-- [How should pip handle dependency conflicts when updating already installed packages? (blog, July 2020)](https://www.ei8fdb.org/how-should-pip-handle-conflicts-when-updating-already-installed-packages/)
-- [Test pip's alpha resolver and help us document dependency conflicts (blog, May 2020)](https://www.ei8fdb.org/test-pips-alpha-resolver-and-help-us-document-dependency-conflicts/)
-- [How do you deal with conflicting dependencies caused by pip installs? (blog, April 2020)](https://www.ei8fdb.org/how-do-you-deal-with-conflicting-dependencies-caused-by-pip-installs/)
-- [pip UX studies: response data (blog, March 2020)](https://www.ei8fdb.org/pip-ux-studies-response-data/)
+- [How should pip handle dependency conflicts when updating already installed packages? (blog, July 2020)](https://web.archive.org/web/2024/https://www.ei8fdb.org/how-should-pip-handle-conflicts-when-updating-already-installed-packages/)
+- Test pip's alpha resolver and help us document dependency conflicts (blog, May 2020)
+- [How do you deal with conflicting dependencies caused by pip installs? (blog, April 2020)](https://web.archive.org/web/2024/https://www.ei8fdb.org/how-do-you-deal-with-conflicting-dependencies-caused-by-pip-installs/)
+- [pip UX studies: response data (blog, March 2020)](https://web.archive.org/web/2024/https://www.ei8fdb.org/pip-ux-studies-response-data/)
 
 Other PyPA UX work:
 

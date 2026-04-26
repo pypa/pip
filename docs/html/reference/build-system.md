@@ -57,7 +57,7 @@ reference packages with URLs. For example:
 
 ```toml
 [build-system]
-requires = ["setuptools @ git+https://github.com/pypa/setuptools.git@main"]
+requires = ["setuptools @ git+https://github.com/pypa/setuptools"]
 ```
 
 ### Metadata Generation

@@ -517,7 +517,7 @@ _Page purpose:_
 _Suggested content:_
 
 - This guide
-- Writing styleguide / glossary of terms - see the [Warehouse documentation](https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology) for an example.
+- Writing styleguide / glossary of terms - see the [Warehouse documentation](https://web.archive.org/web/2024/https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology) for an example.
 
 </details>
 
