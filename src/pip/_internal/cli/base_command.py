@@ -22,6 +22,7 @@ from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFor
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
+    SUCCESS,
     UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
@@ -35,7 +36,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import get_prog, normalize_path
+from pip._internal.utils.misc import get_pip_version, get_prog, normalize_path
 from pip._internal.utils.temp_dir import TempDirectoryTypeRegistry as TempDirRegistry
 from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -179,6 +180,11 @@ class Command(CommandContextMixIn):
         self.enter_context(global_tempdir_manager())
 
         options, args = self.parse_args(args)
+
+        if options.version:
+            sys.stdout.write(get_pip_version())
+            sys.stdout.write(os.linesep)
+            return SUCCESS
 
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet

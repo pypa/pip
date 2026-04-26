@@ -216,3 +216,17 @@ def test_base_command_local_tempdir_cleanup(kind: str, exists: bool) -> None:
     c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
+
+
+@patch("pip._internal.cli.base_command.get_pip_version")
+def test_version_flag_exits(mock_get_pip_version: Mock, capfd: pytest.CaptureFixture[str]) -> None:
+    """
+    Test that --version exits with SUCCESS and prints version.
+    """
+    mock_get_pip_version.return_value = "pip 26.0.1"
+    cmd = Command("fake", "fake")
+    status = cmd.main(["fake", "--version"])
+    assert status == SUCCESS
+    out = capfd.readouterr().out
+    assert "pip 26.0.1" in out
+    assert "fake" not in out
