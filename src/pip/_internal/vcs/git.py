@@ -268,7 +268,14 @@ class Git(VersionControl):
             # Then avoid an unnecessary subprocess call.
             return False
 
-        return cls.get_revision(dest) == name
+        current_rev = cls._get_head_commit(dest)
+
+        # HEAD does not point at a commit. This happens if a repo that has no
+        # branches, a valid (if not unusual repository).
+        if current_rev is None:
+            return False
+
+        return current_rev == name
 
     def fetch_new(
         self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
@@ -473,6 +480,35 @@ class Git(VersionControl):
             cwd=location,
         )
         return current_rev.strip()
+
+    @classmethod
+    def _get_head_commit(cls, location: str) -> str | None:
+        """
+        Returns the commit sha pointed to by HEAD.
+
+        Returns `None` if HEAD does not point at a commit. This happens if a
+        repo that has no branches, a valid (if not unusual repository).
+        """
+
+        # `git-rev-parse -q --verify` exits with empty stdout and exit code 1 if
+        # HEAD does not point at a commit.
+        current_rev = cls.run_command(
+            ["rev-parse", "-q", "--verify", "HEAD"],
+            show_stdout=False,
+            stdout_only=True,
+            extra_ok_returncodes=(1,),
+            cwd=location,
+        )
+
+        current_rev = current_rev.strip()
+
+        if not current_rev:
+            logger.warning(
+                "Repository '%s' does not have a currently checked out commit", location
+            )
+            return None
+
+        return current_rev
 
     @classmethod
     def get_subdirectory(cls, location: str) -> str | None:
