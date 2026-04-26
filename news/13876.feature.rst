@@ -1,1 +1,0 @@
-Add experimental support to read requirements from standardized pylock.toml files (``-r pylock.toml``).

@@ -1,1 +1,0 @@
-Show all errors instead of first error for faulty ``dependency_groups`` definitions.

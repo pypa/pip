@@ -1,1 +1,0 @@
-Force UTF-8 encoding for :pep:`723` metadata.
