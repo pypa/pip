@@ -1,1 +1,0 @@
-Common path prefixes are determined by path segment, not character by character.
