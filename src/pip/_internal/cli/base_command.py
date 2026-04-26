@@ -20,6 +20,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.cli.status_codes import (
+    BROKEN_STDOUT,
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
     UNKNOWN_ERROR,
@@ -155,7 +156,7 @@ class Command(CommandContextMixIn):
             finally:
                 os.close(devnull)
 
-            return ERROR
+            return BROKEN_STDOUT
         except KeyboardInterrupt:
             logger.critical("Operation cancelled by user")
             logger.debug("Exception information:", exc_info=True)
