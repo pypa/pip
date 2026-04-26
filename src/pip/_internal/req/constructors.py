@@ -634,8 +634,19 @@ def install_req_from_pylock_package(
             )
     else:
         # wheel or sdist
-        allow_binary = "binary" in format_control.get_allowed_formats(package.name)
-        if isinstance(package_dist, pylock.PackageWheel) and not allow_binary:
+        allowed_formats = format_control.get_allowed_formats(package.name)
+        if (
+            isinstance(package_dist, pylock.PackageSdist)
+            and "source" not in allowed_formats
+        ):
+            raise InstallationError(
+                f"source distributions are not permitted for package {package.name!r} "
+                f"and there is no compatible wheel for it in {pylock_path_or_url!r}"
+            )
+        if (
+            isinstance(package_dist, pylock.PackageWheel)
+            and "binary" not in allowed_formats
+        ):
             if not package.sdist:
                 raise InstallationError(
                     f"binaries are not permitted for package {package.name!r} and "

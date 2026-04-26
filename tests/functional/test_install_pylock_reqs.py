@@ -136,3 +136,64 @@ def test_install_pylock_select_error(
         "install", "--no-index", "--dry-run", "-r", pylock_path, expect_error=True
     )
     assert "Cannot select requirements from pylock file" in result.stderr
+
+
+def test_install_pylock_no_binary(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.onewheel.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--no-binary=simplewheel",
+        expect_error=True,
+    )
+    assert (
+        "binaries are not permitted for package 'simplewheel' and "
+        "there is no source distribution for it in" in result.stderr
+    )
+
+
+def test_install_pylock_only_binary(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.onesdist.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--only-binary=:all:",
+        expect_error=True,
+    )
+    assert (
+        "source distributions are not permitted for package 'simple' and "
+        "there is no compatible wheel for it in" in result.stderr
+    )
+
+
+def test_install_pylock_only_binary_ignored_for_archives(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """--only-binary is ignored for direct URL"""
+    pylock_path = data.lockfiles.joinpath("pylock.onearchive.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        data.common_wheels,  # to obtain build backend to build sdist
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--only-binary=simple2,simplewheel",
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install simple2-3.0" in result.stdout
