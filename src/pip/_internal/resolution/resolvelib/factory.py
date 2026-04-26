@@ -694,7 +694,7 @@ class Factory:
             req_disp = str(req)
         else:
             req_disp = f"{req} (from {parent.name})"
-        req_disp = re.sub(r';\s*extra\s*==\s*".*?"', "", str(req_disp)).strip()
+        req_disp = re.sub(r';\s*extra\s*==\s*".*?"', "", req_disp).strip()
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
 
