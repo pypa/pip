@@ -796,8 +796,6 @@ def check_invalid_constraint_type(req: InstallRequirement) -> str:
     problem = ""
     if not req.name:
         problem = "Unnamed requirements are not allowed as constraints"
-    elif req.editable:
-        problem = "Editable requirements are not allowed as constraints"
     elif req.extras:
         problem = "Constraints cannot have extras"
 

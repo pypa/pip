@@ -260,9 +260,6 @@ def install_req_from_editable(
     permit_editable_wheels: bool = False,
     config_settings: dict[str, str | list[str]] | None = None,
 ) -> InstallRequirement:
-    if constraint:
-        raise InstallationError("Editable requirements are not allowed as constraints")
-
     parts = parse_req_from_editable(editable_req)
     return InstallRequirement(
         parts.requirement,
