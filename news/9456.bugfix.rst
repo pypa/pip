@@ -1,0 +1,1 @@
+Fix ``--version`` flag handling in subcommand parser so ``pip <cmd> --version`` prints the version and exits successfully instead of ignoring the flag.
