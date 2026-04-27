@@ -1,0 +1,5 @@
+created-by = "pip"
+
+[[packages]]
+name = "simple"
+version = "2.0"

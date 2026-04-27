@@ -1,1 +1,0 @@
-Speed up dependency resolution when there are complex conflicts.

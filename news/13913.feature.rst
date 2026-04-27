@@ -1,1 +1,0 @@
-Use ``slots=True`` for dataclasses now Python 3.9 has been dropped.

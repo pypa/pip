@@ -1,2 +1,0 @@
-Use ``packaging.direct_url`` to manipulate ``direct_url.json``. Besides difference
-in validation error messages, there should be no user-visible change.
