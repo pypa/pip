@@ -9,6 +9,65 @@
 
 .. towncrier release notes start
 
+26.1 (2026-04-26)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Drop support for Python 3.9. (`#13795 <https://github.com/pypa/pip/issues/13795>`_)
+
+Features
+--------
+
+- Add experimental support to read requirements from standardized pylock.toml files (``-r pylock.toml``). (`#13876 <https://github.com/pypa/pip/issues/13876>`_)
+- Allow ``--uploaded-prior-to`` to accept a duration in days (e.g., ``P3D`` for 3 days ago). (`#13674 <https://github.com/pypa/pip/issues/13674>`_)
+
+Enhancements
+------------
+
+- Speed up dependency resolution when there are complex conflicts. (`#13859 <https://github.com/pypa/pip/issues/13859>`_)
+- Reduce memory usage when resolving large dependency trees. (`#13843 <https://github.com/pypa/pip/issues/13843>`_)
+- Emit a deprecation warning when pip imports an unexpected module after
+  installation of a distribution has started. (`#13912 <https://github.com/pypa/pip/issues/13912>`_)
+- Allow URL constraints to apply to requirements with extras. (`#12018 <https://github.com/pypa/pip/issues/12018>`_)
+- Allow unpinned requirements to use hashes from constraints. Constraints
+  like ``{name}=={version} --hash=...`` feeds into hash verification for
+  a corresponding requirement. (`#9243 <https://github.com/pypa/pip/issues/9243>`_)
+- Improve conflict reports that involve direct URLs. (`#13932 <https://github.com/pypa/pip/issues/13932>`_)
+- Show all errors instead of first error for faulty ``dependency_groups`` definitions. (`#13917 <https://github.com/pypa/pip/issues/13917>`_)
+
+Bug Fixes
+---------
+
+- Fix recovery hint for missing RECORD file to use ``--ignore-installed``
+  instead of ``--force-reinstall``. (`#12645 <https://github.com/pypa/pip/issues/12645>`_)
+- Fix misleading error message when a constraint file cannot be opened. (`#13226 <https://github.com/pypa/pip/issues/13226>`_)
+- Show the filename rather than the full URL when downloading files from non-PyPI indexes in non-verbose mode. (`#13494 <https://github.com/pypa/pip/issues/13494>`_)
+- Remove the adjacent ``__pycache__`` directory when a .py file is removed. (`#13725 <https://github.com/pypa/pip/issues/13725>`_)
+- Force UTF-8 encoding for :pep:`723` metadata. (`#13861 <https://github.com/pypa/pip/issues/13861>`_)
+- Minor performance improvement when filtering candidates during resolution. (`#13916 <https://github.com/pypa/pip/issues/13916>`_)
+- Fix a hang on Windows when stdout is closed during verbose output. (`#13927 <https://github.com/pypa/pip/issues/13927>`_)
+- Common path prefixes are determined by path segment, not character by character. (`#13847 <https://github.com/pypa/pip/issues/13847>`_)
+- Fix installing ``.tar.gz`` source distributions that look like a zip file. (`#13867 <https://github.com/pypa/pip/issues/13867>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2026.2.25
+- Upgrade packaging to 26.2
+- Upgrade requests to 2.33.1
+- Upgrade tomli to 2.3.1
+- Upgrade urllib3 to 2.6.3
+- Use ``packaging`` 26.1's new ``dependency_groups`` module, removing ``dependency-groups`` vendor.
+- Use ``packaging.direct_url`` to manipulate ``direct_url.json``. Besides difference
+  in validation error messages, there should be no user-visible change.
+
+Process
+-------
+
+- Add an explicit AI policy.
+
 26.0.1 (2026-02-04)
 ===================
 

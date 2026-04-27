@@ -463,3 +463,46 @@ def test_legacy_wheels_are_not_confused_with_other_files(
     wheel_file_name = f"simplewheel-1.0-py{pyversion[0]}-none-any.whl"
     wheel_file_path = script.scratch / wheel_file_name
     result.did_create(wheel_file_path)
+
+
+def test_wheel_pylock(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.toml")
+    result = script.pip(
+        "wheel",
+        "--no-index",
+        "--no-build-isolation",  # to use pre-installed setuptools
+        "-w",
+        tmp_path,
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert sorted(p.name for p in tmp_path.glob("*.whl")) == [
+        "simple-2.0-py3-none-any.whl",
+        "simple2-3.0-py3-none-any.whl",
+        "simplewheel-2.0-1-py2.py3-none-any.whl",
+    ]
+
+
+def test_wheel_pylock_directories(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.directory.toml")
+    result = script.pip(
+        "wheel",
+        "--no-index",
+        "--no-build-isolation",  # to use pre-installed setuptools
+        "-w",
+        tmp_path,
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert sorted(p.name for p in tmp_path.glob("*.whl")) == [
+        "simplewheel-2.0-py3-none-any.whl",
+        "singlemodule-0.0.1-py2.py3-none-any.whl",
+    ]

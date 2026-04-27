@@ -1,1 +1,0 @@
-Fix misleading error message when a constraint file cannot be opened.
