@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.cli.status_codes import BROKEN_STDOUT, SUCCESS
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
@@ -75,7 +75,7 @@ class TestCommand:
 
         cmd = FakeCommand(run_func=raise_broken_stdout)
         status = cmd.main(args)
-        assert status == 1
+        assert status == BROKEN_STDOUT
         stderr = capfd.readouterr().err
 
         return stderr
@@ -87,6 +87,7 @@ class TestCommand:
         stderr = self.call_main(capfd, [])
 
         assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
     def test_raise_broken_stdout__debug_logging(
         self, capfd: pytest.CaptureFixture[str]
@@ -98,6 +99,7 @@ class TestCommand:
 
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
 
 @patch("pip._internal.cli.index_command.Command.pip_version_check")
