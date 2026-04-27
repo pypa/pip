@@ -1,0 +1,1 @@
+Fixed handling of invalid HTTP 304 responses when no cached file is available.

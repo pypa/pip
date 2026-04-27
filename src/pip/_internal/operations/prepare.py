@@ -25,6 +25,7 @@ from pip._internal.exceptions import (
     MetadataInconsistent,
     NetworkConnectionError,
     VcsHashUnsupported,
+    NetworkConnectionError,
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
@@ -117,8 +118,13 @@ def get_http_url(
         from_path = already_downloaded_path
         content_type = None
     else:
+        # Remember here.
         # let's download to a tmp dir
         from_path, content_type = download(link, temp_dir.path)
+        if not link.is_vcs and os.path.getsize(from_path) == 0:
+                raise NetworkConnectionError(
+                    "empty download (invalid HTTP 304 response)"
+                )
         if hashes:
             hashes.check_against_path(from_path)
 
@@ -202,7 +208,6 @@ def _check_download_dir(
     If a correct file is found return its path else None
     """
     download_path = os.path.join(download_dir, link.filename)
-
     if not os.path.exists(download_path):
         return None
 
