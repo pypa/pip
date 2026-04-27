@@ -1,0 +1,1 @@
+Add `--force-metadata-refresh`` to send `max-age=0`` in the request headers; otherwise, respect the HTML server’s `max-age` value.
