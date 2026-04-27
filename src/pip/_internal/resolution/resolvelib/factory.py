@@ -4,6 +4,7 @@ import contextlib
 import copy
 import functools
 import logging
+import re
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -725,7 +726,7 @@ class Factory:
             req_disp = str(req)
         else:
             req_disp = f"{req} (from {parent.name})"
-
+        req_disp = re.sub(r';\s*extra\s*==\s*".*?"', "", req_disp).strip()
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
 
@@ -777,8 +778,7 @@ class Factory:
                 "using the '-r' flag to install the packages listed in "
                 "requirements.txt"
             )
-
-        return DistributionNotFound(f"No matching distribution found for {req}")
+        return DistributionNotFound(f"No matching distribution found for {req_disp}")
 
     def _has_any_candidates(self, project_name: str) -> bool:
         """
