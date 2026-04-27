@@ -957,6 +957,15 @@ no_deps: Callable[..., Option] = partial(
     help="Don't install package dependencies.",
 )
 
+force_metadata_refresh: Callable[..., Option] = partial(
+    Option,
+    "--force-metadata-refresh",
+    dest="force_metadata_refresh",
+    action="store_true",
+    default=False,
+    help=("Revalidate package index metadata instead of using cached responses."),
+)
+
 
 def _handle_dependency_group(
     option: Option, opt: str, value: str, parser: OptionParser
@@ -1280,6 +1289,7 @@ index_group: dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
+        force_metadata_refresh,
         find_links,
         uploaded_prior_to,
     ],

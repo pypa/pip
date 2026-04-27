@@ -123,32 +123,21 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
 
     logger.debug("Getting page %s", redact_auth_from_url(url))
 
-    resp = session.get(
-        url,
-        headers={
-            "Accept": ", ".join(
-                [
-                    "application/vnd.pypi.simple.v1+json",
-                    "application/vnd.pypi.simple.v1+html; q=0.1",
-                    "text/html; q=0.01",
-                ]
-            ),
-            # We don't want to blindly returned cached data for
-            # /simple/, because authors generally expecting that
-            # twine upload && pip install will function, but if
-            # they've done a pip install in the last ~10 minutes
-            # it won't. Thus by setting this to zero we will not
-            # blindly use any cached data, however the benefit of
-            # using max-age=0 instead of no-cache, is that we will
-            # still support conditional requests, so we will still
-            # minimize traffic sent in cases where the page hasn't
-            # changed at all, we will just always incur the round
-            # trip for the conditional GET now instead of only
-            # once per 10 minutes.
-            # For more information, please see pypa/pip#5670.
-            "Cache-Control": "max-age=0",
-        },
-    )
+    headers = {
+        "Accept": ", ".join(
+            [
+                "application/vnd.pypi.simple.v1+json",
+                "application/vnd.pypi.simple.v1+html; q=0.1",
+                "text/html; q=0.01",
+            ]
+        ),
+    }
+
+    if session.force_metadata_refresh:
+        logger.debug("Forcing metadata to be refreshed.")
+        headers["Cache-Control"] = "max-age=0"
+
+    resp = session.get(url, headers=headers)
     raise_for_status(resp)
 
     # The check for archives above only works if the url ends with
