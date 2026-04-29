@@ -73,7 +73,7 @@ def main(args: list[str] | None = None) -> int:
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
-    # Needed for locale.getpreferredencoding(False) to work
+    # Needed for locale encoding detection to work
     # in pip._internal.utils.encoding.auto_decode
     try:
         locale.setlocale(locale.LC_ALL, "")

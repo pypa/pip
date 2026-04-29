@@ -16,7 +16,7 @@ from tests.lib import PipTestEnvironment
         "sys.executable: ",
         "sys.getdefaultencoding: ",
         "sys.getfilesystemencoding: ",
-        "locale.getpreferredencoding: ",
+        "locale.getencoding: ",
         "sys.platform: ",
         "sys.implementation:",
         "'cert' config value: ",
