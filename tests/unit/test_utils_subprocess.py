@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
 
@@ -380,8 +379,10 @@ class TestCallSubprocess:
 
 
 def test_unicode_decode_error(caplog: pytest.LogCaptureFixture) -> None:
-    if locale.getpreferredencoding() != "UTF-8":
-        pytest.skip("locale.getpreferredencoding() is not UTF-8")
+    from pip._internal.utils.compat import locale_getencoding
+
+    if locale_getencoding() != "UTF-8":
+        pytest.skip("locale encoding is not UTF-8")
     caplog.set_level(INFO)
     call_subprocess(
         [
