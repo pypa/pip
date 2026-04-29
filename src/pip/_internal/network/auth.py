@@ -6,6 +6,7 @@ providing credentials in the context of network requests.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
@@ -47,8 +48,8 @@ class Credentials(NamedTuple):
     password: str
 
 
-class KeyRingBaseProvider(ABC):
-    """Keyring base provider interface"""
+class BaseCredentialProvider(ABC):
+    """Base credential provider interface"""
 
     has_keyring: bool
 
@@ -57,6 +58,13 @@ class KeyRingBaseProvider(ABC):
 
     @abstractmethod
     def save_auth_info(self, url: str, username: str, password: str) -> None: ...
+
+    @abstractmethod
+    def erase_auth_info(self, url: str, username: str | None) -> None: ...
+
+
+# For backward compatibility
+KeyRingBaseProvider = BaseCredentialProvider
 
 
 class KeyRingNullProvider(KeyRingBaseProvider):
@@ -68,6 +76,9 @@ class KeyRingNullProvider(KeyRingBaseProvider):
         return None
 
     def save_auth_info(self, url: str, username: str, password: str) -> None:
+        return None
+
+    def erase_auth_info(self, url: str, username: str | None) -> None:
         return None
 
 
@@ -102,6 +113,13 @@ class KeyRingPythonProvider(KeyRingBaseProvider):
     def save_auth_info(self, url: str, username: str, password: str) -> None:
         self.keyring.set_password(url, username, password)
 
+    def erase_auth_info(self, url: str, username: str | None) -> None:
+        if username:
+            try:
+                self.keyring.delete_password(url, username)
+            except Exception:
+                pass
+
 
 class KeyRingCliProvider(KeyRingBaseProvider):
     """Provider which uses `keyring` cli
@@ -129,6 +147,10 @@ class KeyRingCliProvider(KeyRingBaseProvider):
     def save_auth_info(self, url: str, username: str, password: str) -> None:
         return self._set_password(url, username, password)
 
+    def erase_auth_info(self, url: str, username: str | None) -> None:
+        # keyring cli doesn't have a standard erase/delete command across all versions
+        pass
+
     def _get_password(self, service_name: str, username: str) -> str | None:
         """Mirror the implementation of keyring.get_password using cli"""
         if self.keyring is None:
@@ -140,7 +162,7 @@ class KeyRingCliProvider(KeyRingBaseProvider):
         res = subprocess.run(
             cmd,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             env=env,
         )
         if res.returncode:
@@ -160,6 +182,71 @@ class KeyRingCliProvider(KeyRingBaseProvider):
             check=True,
         )
         return None
+
+
+class CredentialHelperProvider(KeyRingBaseProvider):
+    """Provider which uses an external credential helper command.
+
+    The command is called with 'get', 'store' or 'erase' as the first argument.
+    For 'get', it receives a JSON object on stdin: {"url": "...", "username": "..."}
+    and should return a JSON object on stdout: {"username": "...", "password": "..."}
+    or null/empty if not found.
+    """
+
+    has_keyring = True
+
+    def __init__(self, cmd: str) -> None:
+        self.cmd = cmd
+
+    def get_auth_info(self, url: str, username: str | None) -> AuthInfo | None:
+        import shlex
+
+        cmd = shlex.split(self.cmd)
+        input_data = json.dumps({"url": url, "username": username})
+        try:
+            res = subprocess.run(
+                cmd + ["get"],
+                input=input_data.encode(),
+                capture_output=True,
+                check=True,
+            )
+            output = res.stdout.decode("utf-8").strip()
+            if not output:
+                return None
+            data = json.loads(output)
+            if data and "username" in data and "password" in data:
+                return data["username"], data["password"]
+        except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+            logger.debug("Credential helper %s failed: %s", self.cmd, exc)
+        return None
+
+    def save_auth_info(self, url: str, username: str, password: str) -> None:
+        import shlex
+
+        cmd = shlex.split(self.cmd)
+        input_data = json.dumps({"url": url, "username": username, "password": password})
+        try:
+            subprocess.run(
+                cmd + ["store"],
+                input=input_data.encode(),
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            logger.debug("Credential helper %s store failed: %s", self.cmd, exc)
+
+    def erase_auth_info(self, url: str, username: str | None) -> None:
+        import shlex
+
+        cmd = shlex.split(self.cmd)
+        input_data = json.dumps({"url": url, "username": username})
+        try:
+            subprocess.run(
+                cmd + ["erase"],
+                input=input_data.encode(),
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            logger.debug("Credential helper %s erase failed: %s", self.cmd, exc)
 
 
 @cache
@@ -230,10 +317,12 @@ class MultiDomainBasicAuth(AuthBase):
         prompting: bool = True,
         index_urls: list[str] | None = None,
         keyring_provider: str = "auto",
+        credential_helper: str | None = None,
     ) -> None:
         self.prompting = prompting
         self.index_urls = index_urls
         self.keyring_provider = keyring_provider
+        self.credential_helper = credential_helper
         self.passwords: dict[str, AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
@@ -244,6 +333,8 @@ class MultiDomainBasicAuth(AuthBase):
 
     @property
     def keyring_provider(self) -> KeyRingBaseProvider:
+        if self.credential_helper:
+            return CredentialHelperProvider(self.credential_helper)
         return get_keyring_provider(self._keyring_provider)
 
     @keyring_provider.setter
@@ -257,8 +348,10 @@ class MultiDomainBasicAuth(AuthBase):
     @property
     def use_keyring(self) -> bool:
         # We won't use keyring when --no-input is passed unless
-        # a specific provider is requested because it might require
+        # a specific provider or helper is requested because it might require
         # user interaction
+        if self.credential_helper:
+            return True
         return self.prompting or self._keyring_provider not in ["auto", "disabled"]
 
     def _get_keyring_auth(
