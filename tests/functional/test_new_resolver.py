@@ -301,6 +301,28 @@ def test_new_resolver_no_dist_message(script: PipTestEnvironment) -> None:
     assert "No matching distribution found for B" in result.stderr, str(result)
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="sys.stdlib_module_names only available in Python 3.10+",
+)
+def test_new_resolver_stdlib_module_hint(script: PipTestEnvironment) -> None:
+    """
+    Test that pip shows a warning when the user tries to install
+    a standard library module name.
+    """
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "os",  # stdlib module
+        expect_error=True,
+        expect_stderr=True,
+    )
+
+    assert "No matching distribution found for os" in result.stderr, str(result)
+    assert "is a Python standard library module name" in result.stderr, str(result)
+
+
 def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(
         script,
