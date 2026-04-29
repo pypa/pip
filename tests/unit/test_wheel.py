@@ -463,6 +463,72 @@ class TestInstallUnpackedWheel:
         assert entrypoint in exc_text
 
 
+
+class TestRecordHashVerification:
+    """Tests for RECORD hash verification during wheel installation (PEP 427)."""
+
+    def test_tampered_wheel_raises_error(self, tmp_path: Path) -> None:
+        """A wheel with a file whose hash doesn't match RECORD should fail."""
+        import zipfile
+
+        tmpdir = str(tmp_path)
+        # Create a valid wheel
+        wheel_path = make_wheel(
+            "sample",
+            "1.0.0",
+            extra_files={"sample/__init__.py": "original content"},
+        ).save_to_dir(tmpdir)
+
+        # Tamper with a file inside the wheel without updating RECORD
+        with zipfile.ZipFile(wheel_path, "a") as zf:
+            zf.writestr("sample/__init__.py", "tampered content!!!")
+
+        scheme = Scheme(
+            purelib=os.path.join(tmpdir, "lib"),
+            platlib=os.path.join(tmpdir, "lib"),
+            headers=os.path.join(tmpdir, "headers"),
+            scripts=os.path.join(tmpdir, "bin"),
+            data=os.path.join(tmpdir, "data"),
+        )
+
+        with pytest.raises(InstallationError, match="RECORD hash mismatch"):
+            wheel.install_wheel(
+                "sample",
+                str(wheel_path),
+                scheme=scheme,
+                req_description="sample==1.0.0",
+            )
+
+    def test_valid_wheel_installs_successfully(self, tmp_path: Path) -> None:
+        """A valid wheel with correct RECORD hashes should install fine."""
+        tmpdir = str(tmp_path)
+        wheel_path = make_wheel(
+            "sample",
+            "1.0.0",
+            extra_files={"sample/__init__.py": "valid content"},
+        ).save_to_dir(tmpdir)
+
+        scheme = Scheme(
+            purelib=os.path.join(tmpdir, "lib"),
+            platlib=os.path.join(tmpdir, "lib"),
+            headers=os.path.join(tmpdir, "headers"),
+            scripts=os.path.join(tmpdir, "bin"),
+            data=os.path.join(tmpdir, "data"),
+        )
+
+        # Should not raise
+        wheel.install_wheel(
+            "sample",
+            str(wheel_path),
+            scheme=scheme,
+            req_description="sample==1.0.0",
+        )
+
+        # Verify the file was actually installed
+        installed_init = os.path.join(tmpdir, "lib", "sample", "__init__.py")
+        assert os.path.isfile(installed_init)
+
+
 class TestMessageAboutScriptsNotOnPATH:
     tilde_warning_msg = (
         "NOTE: The current PATH contains path(s) starting with `~`, "
