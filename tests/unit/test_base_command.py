@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Callable, NoReturn
+from typing import NoReturn
 from unittest.mock import Mock, patch
 
 import pytest

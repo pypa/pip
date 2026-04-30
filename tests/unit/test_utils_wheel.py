@@ -1,10 +1,9 @@
 import os
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import ExitStack
 from email import message_from_string
 from io import BytesIO
 from pathlib import Path
-from typing import Callable
 from zipfile import ZipFile
 
 import pytest
