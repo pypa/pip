@@ -112,30 +112,69 @@ def compress_for_rename(paths: Iterable[str]) -> set[str]:
     This set may include directories when the original sequence of paths
     included every file on disk.
     """
-    case_map = {os.path.normcase(p): p for p in paths}
-    remaining = set(case_map)
-    unchecked = sorted({os.path.split(p)[0] for p in case_map.values()}, key=len)
+
+    # key = comparison string (case insensitive on Windows), value = displayable string
+    # Typically the list of paths passed in are already normcased
+    case_map: dict[str, str] = {}
+
+    # Currently used as part of user display so must be displayable strings
     wildcards: set[str] = set()
+    _normcase_wildcards: set[str] = set()
+
+    # Immediately add directories from `paths` to the list of wildcards
+    for path in paths:
+        if os.path.isdir(path) and not os.path.islink(path):
+            _path = os.path.join(path, "")
+            wildcards.add(_path)
+            _normcase_wildcards.add(os.path.normcase(_path))
+        else:
+            case_map[os.path.normcase(path)] = path
+
+    # The remaining list of paths (files/symlinks due to directory filter) in normcase
+    remaining = set(case_map)
+
+    # These are directories we are checking for files missing from the path list.
+    # Situations may include files added via a caching mechanism like __pycache__
+    # or files created/installed that are not tracked via RECORD. For the sake of
+    # comparison with the wildcards, ensure these paths end with a separator.
+    unchecked = {
+        path: os.path.normcase(path)
+        for path in sorted(
+            {os.path.split(p)[0] + os.sep for p in case_map.values()}, key=len
+        )
+    }
 
     def norm_join(*a: str) -> str:
         return os.path.normcase(os.path.join(*a))
 
-    for root in unchecked:
-        if any(os.path.normcase(root).startswith(w) for w in wildcards):
+    for root, _norm_root in unchecked.items():
+        if any(_norm_root.startswith(w) for w in _normcase_wildcards):
             # This directory has already been handled.
             continue
 
         all_files: set[str] = set()
-        all_subdirs: set[str] = set()
+
         for dirname, subdirs, files in os.walk(root):
-            all_subdirs.update(norm_join(root, dirname, d) for d in subdirs)
+            # Counter to the note about consistency across wildcards and root,
+            # the returned case when walking the directory may be inconsistent
+            # with our expectations and lead to comparison failures.
+            # We explicitly exclude paths that are in the wildcard list and only
+            # permit paths in the unchecked list so that we do not recurse into
+            # other packages if a file was installed directly in {pure,path}lib.
+            subdirs[:] = [
+                d
+                for d in subdirs
+                if norm_join(dirname, d, "") not in _normcase_wildcards
+                and norm_join(dirname, d, "") in unchecked.values()
+            ]
             all_files.update(norm_join(root, dirname, f) for f in files)
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
         # for the directory.
         if not (all_files - remaining):
             remaining.difference_update(all_files)
-            wildcards.add(root + os.sep)
+            wildcards.add(root)
+            _normcase_wildcards.add(_norm_root)
 
     return set(map(case_map.__getitem__, remaining)) | wildcards
 
@@ -166,12 +205,24 @@ def compress_for_output_listing(paths: Iterable[str]) -> tuple[set[str], set[str
 
     _normcased_files = set(map(os.path.normcase, files))
 
+    _scheduled_dirs = {
+        os.path.normcase(p)
+        for p in will_remove
+        if os.path.isdir(p) and not os.path.islink(p)
+    }
+
     folders = compact(folders)
 
     # This walks the tree using os.walk to not miss extra folders
     # that might get added.
     for folder in folders:
-        for dirpath, _, dirfiles in os.walk(folder):
+        for dirpath, subdirs, dirfiles in os.walk(folder):
+            subdirs[:] = [
+                d
+                for d in subdirs
+                if os.path.normcase(os.path.join(dirpath, d)) not in _scheduled_dirs
+            ]
+
             for fname in dirfiles:
                 if fname.endswith(".pyc"):
                     continue
