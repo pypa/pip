@@ -68,7 +68,6 @@ def _get_prepared_distribution(
     build_env_installer: BuildEnvironmentInstaller,
     build_isolation: bool,
     check_build_deps: bool,
-    only_dpendencies: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
@@ -79,7 +78,6 @@ def _get_prepared_distribution(
                 build_env_installer,
                 build_isolation,
                 check_build_deps,
-                only_dpendencies,
             )
     return abstract_dist.get_metadata_distribution()
 
@@ -229,7 +227,7 @@ def _check_download_dir(
 class RequirementPreparer:
     """Prepares a Requirement"""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         *,
         build_dir: str,
@@ -238,7 +236,6 @@ class RequirementPreparer:
         build_isolation: bool,
         build_isolation_installer: BuildEnvironmentInstaller,
         check_build_deps: bool,
-        only_dependencies: bool,
         build_tracker: BuildTracker,
         session: PipSession,
         progress_bar: BarType,
@@ -268,9 +265,6 @@ class RequirementPreparer:
 
         # Should check build dependencies?
         self.check_build_deps = check_build_deps
-
-        # Should only install runtime dependencies?
-        self.only_dependencies = only_dependencies
 
         # Should hash-checking be required?
         self.require_hashes = require_hashes
@@ -668,7 +662,6 @@ class RequirementPreparer:
             self.build_env_installer,
             self.build_isolation,
             self.check_build_deps,
-            self.only_dependencies,
         )
         return dist
 
@@ -725,7 +718,6 @@ class RequirementPreparer:
                 self.build_env_installer,
                 self.build_isolation,
                 self.check_build_deps,
-                self.only_dependencies,
             )
 
             req.check_if_exists(self.use_user_site)

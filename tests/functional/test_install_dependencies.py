@@ -54,6 +54,7 @@ def test_install_only_deps(
     result = script.pip(
         "install",
         "--disable-pip-version-check",
+        "--no-build-isolation",  # requires setuptools
         "--no-index",
         "--find-links",
         str(shared_data.packages),
@@ -75,6 +76,7 @@ def test_install_only_deps_does_not_prepare_a_build_env(
         "--verbose",
         "install",
         "--disable-pip-version-check",
+        "--no-build-isolation",  # requires setuptools
         "--no-index",
         "--find-links",
         str(shared_data.packages),
@@ -96,6 +98,7 @@ def test_install_only_deps_and_optional_deps(
     result = script.pip(
         "install",
         "--disable-pip-version-check",
+        "--no-build-isolation",  # requires setuptools
         "--no-index",
         "--find-links",
         str(shared_data.packages),
@@ -116,6 +119,7 @@ def test_install_only_deps_for_wheel(
         "--verbose",
         "install",
         "--disable-pip-version-check",
+        "--no-build-isolation",  # requires setuptools
         "--no-index",
         "--find-links",
         str(shared_data.packages),

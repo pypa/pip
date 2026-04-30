@@ -107,7 +107,6 @@ class TestRequirementSet:
                 build_isolation=build_isolation,
                 build_isolation_installer=installer,
                 check_build_deps=False,
-                only_dependencies=False,
                 build_tracker=tracker,
                 session=session,
                 progress_bar="on",

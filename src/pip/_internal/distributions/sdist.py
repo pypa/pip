@@ -37,13 +37,12 @@ class SourceDistribution(AbstractDistribution):
         build_env_installer: BuildEnvironmentInstaller,
         build_isolation: bool,
         check_build_deps: bool,
-        only_dependencies: bool,
     ) -> None:
         # Load pyproject.toml
         self.req.load_pyproject_toml()
 
         # Set up the build isolation, if this requirement should be isolated
-        if build_isolation and not only_dependencies:
+        if build_isolation:
             # Setup an isolated environment and install the build backend static
             # requirements in it.
             self._prepare_build_backend(build_env_installer)

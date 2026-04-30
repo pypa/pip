@@ -214,7 +214,6 @@ class RequirementCommand(IndexGroupCommand):
             build_isolation=options.build_isolation,
             build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
-            only_dependencies=options.only_dependencies,
             build_tracker=build_tracker,
             session=session,
             progress_bar=options.progress_bar,
