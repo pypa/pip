@@ -65,6 +65,28 @@ def make_option_group(group: dict[str, Any], parser: ConfigOptionParser) -> Opti
     return option_group
 
 
+def check_deps_opts_do_not_conflict(options: Values) -> None:
+    """Function for determining if --no-deps and --only-deps are both specified.
+
+    :param options: The OptionParser options.
+    """
+    if options.ignore_dependencies and options.only_dependencies:
+        raise CommandError("Cannot use '--no-deps' in combination with '--only-deps'")
+
+
+def check_no_deps_does_not_use_legacy_resolver(options: Values) -> None:
+    """Function to fail if --use-deprecated and --only-deps are both specified.
+
+    Only the resolvelib supports --only-deps.
+
+    :param options: The OptionParser options.
+    """
+    if options.deprecated_features_enabled and options.only_dependencies:
+        raise CommandError(
+            "Cannot use '--use-deprecated' in combination with '--only-deps'"
+        )
+
+
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     """Function for determining if custom platform options are allowed.
 
@@ -955,6 +977,20 @@ no_deps: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help="Don't install package dependencies.",
+)
+
+
+only_deps: Callable[..., Option] = partial(
+    Option,
+    "--only-deps",
+    "--only-dependencies",
+    dest="only_dependencies",
+    action="store_true",
+    default=False,
+    help=(
+        "Install only the dependencies of the provided requirements, not the "
+        "requirements themselves. Cannot be used in combination with --no-deps."
+    ),
 )
 
 

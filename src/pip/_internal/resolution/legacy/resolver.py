@@ -124,6 +124,7 @@ class Resolver(BaseResolver):
         make_install_req: InstallRequirementProvider,
         use_user_site: bool,
         ignore_dependencies: bool,
+        only_dependencies: bool,  # unused, for compatibility with new resolver
         ignore_installed: bool,
         ignore_requires_python: bool,
         force_reinstall: bool,

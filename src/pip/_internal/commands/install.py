@@ -165,6 +165,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -391,6 +392,8 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
+        cmdoptions.check_deps_opts_do_not_conflict(options)
+        cmdoptions.check_no_deps_does_not_use_legacy_resolver(options)
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
         cmdoptions.check_release_control_exclusive(options)

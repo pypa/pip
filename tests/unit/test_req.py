@@ -125,6 +125,7 @@ class TestRequirementSet:
                 use_user_site=False,
                 upgrade_strategy="to-satisfy-only",
                 ignore_dependencies=False,
+                only_dependencies=False,
                 ignore_installed=False,
                 ignore_requires_python=False,
                 force_reinstall=False,
