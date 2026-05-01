@@ -72,6 +72,7 @@ def test_compressed_listing(tmpdir: Path) -> None:
             "lib/mypkg/__init__.py",
             "lib/mypkg/my_awesome_code.py",
             "lib/mypkg/__pycache__/my_awesome_code-magic.pyc",
+            "lib/mypkg/__pycache__/.skip.garbage",
             "lib/mypkg/support/support_file.py",
             "lib/mypkg/support/more_support.py",
             "lib/mypkg/support/would_be_skipped.skip.py",
