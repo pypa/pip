@@ -78,6 +78,12 @@ def test_compressed_listing(tmpdir: Path) -> None:
             "lib/mypkg/support/__pycache__/support_file-magic.pyc",
             "lib/random_other_place/file_without_a_dot_pyc",
             "bin/mybin",
+            # Test to ensure files added outside of a "RECORD" that are in a
+            # directory marked for removal (__pycache__) get rolled up into
+            # an appropriate wildcard
+            "lib/mypkg2/__init__.py",
+            "lib/mypkg2/my_awesome_code.py",
+            "lib/mypkg2/__pycache__/my_awesome_code-magic.skip.pyc",
         ]
     )
 
@@ -88,12 +94,24 @@ def test_compressed_listing(tmpdir: Path) -> None:
     # Remove the files to be skipped from the paths
     sample = [path for path in sample if ".skip." not in path]
 
+    # UninstallPathSet adds adjacent __pycache__ entries to capture pyc files
+    sample.extend(
+        in_tmpdir(
+            [
+                "lib/mypkg/__pycache__",
+                "lib/mypkg/support/__pycache__",
+                "lib/mypkg2/__pycache__",
+            ]
+        )
+    )
+
     expected_remove = in_tmpdir(
         [
             "bin/mybin",
             "lib/mypkg.dist-info/*",
             "lib/mypkg/*",
             "lib/random_other_place/file_without_a_dot_pyc",
+            "lib/mypkg2/*",
         ]
     )
 
@@ -116,6 +134,7 @@ def test_compressed_listing(tmpdir: Path) -> None:
             "lib/mypkg/support/more_support.py",
             "lib/mypkg/support/__pycache__/",
             "lib/random_other_place/",
+            "lib/mypkg2/",
         ]
     )
 
