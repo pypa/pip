@@ -126,9 +126,7 @@ def compress_for_rename(paths: Iterable[str]) -> set[str]:
             continue
 
         all_files: set[str] = set()
-        all_subdirs: set[str] = set()
-        for dirname, subdirs, files in os.walk(root):
-            all_subdirs.update(norm_join(root, dirname, d) for d in subdirs)
+        for dirname, _, files in os.walk(root):
             all_files.update(norm_join(root, dirname, f) for f in files)
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
