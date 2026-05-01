@@ -192,12 +192,24 @@ def compress_for_output_listing(paths: Iterable[str]) -> tuple[set[str], set[str
 
     _normcased_files = set(map(os.path.normcase, files))
 
+    _scheduled_dirs = {
+        os.path.normcase(p)
+        for p in will_remove
+        if os.path.isdir(p) and not os.path.islink(p)
+    }
+
     folders = compact(folders)
 
     # This walks the tree using os.walk to not miss extra folders
     # that might get added.
     for folder in folders:
-        for dirpath, _, dirfiles in os.walk(folder):
+        for dirpath, subdirs, dirfiles in os.walk(folder):
+            subdirs[:] = [
+                d
+                for d in subdirs
+                if os.path.normcase(os.path.join(dirpath, d)) not in _scheduled_dirs
+            ]
+
             for fname in dirfiles:
                 if fname.endswith(".pyc"):
                     continue
