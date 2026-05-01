@@ -115,13 +115,14 @@ def compress_for_rename(paths: Iterable[str]) -> set[str]:
     case_map = {os.path.normcase(p): p for p in paths}
     remaining = set(case_map)
     unchecked = sorted({os.path.join(os.path.dirname(p), "") for p in case_map.values()}, key=len)
-    wildcards: set[str] = set()
+    wildcards: dict[str, str] = {}
 
     def norm_join(*a: str) -> str:
         return os.path.normcase(os.path.join(*a))
 
     for root in unchecked:
-        if any(os.path.normcase(root).startswith(w) for w in wildcards):
+        norm_root = os.path.normcase(root)
+        if any(norm_root.startswith(w) for w in wildcards):
             # This directory has already been handled.
             continue
 
@@ -133,9 +134,9 @@ def compress_for_rename(paths: Iterable[str]) -> set[str]:
         # for the directory.
         if not (all_files - remaining):
             remaining.difference_update(all_files)
-            wildcards.add(root)
+            wildcards[norm_root] = root
 
-    return set(map(case_map.__getitem__, remaining)) | wildcards
+    return set(map(case_map.__getitem__, remaining)) | set(wildcards.values())
 
 
 def compress_for_output_listing(paths: Iterable[str]) -> tuple[set[str], set[str]]:
