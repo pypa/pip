@@ -306,43 +306,7 @@ class TestStashedUninstallPathSet:
     ]
 
     @classmethod
-    def mock_walk(cls, root: str) -> Iterator[tuple[str, list[str], list[str]]]:
-        for dirname, subdirs, files in cls.WALK_RESULT:
-            dirname = os.path.sep.join(dirname.split("/"))
-            if dirname.startswith(root):
-                yield dirname[len(root) + 1 :], subdirs, files
-
-    def test_compress_for_rename(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        paths = [
-            os.path.sep.join(p.split("/"))
-            for p in [
-                "A/B/b.py",
-                "A/B/D/c.py",
-                "A/C/d.py",
-                "A/E/f.py",
-                "A/G/g.py",
-            ]
-        ]
-
-        expected_paths = [
-            os.path.sep.join(p.split("/"))
-            for p in [
-                "A/B/",  # selected everything below A/B
-                "A/C/d.py",  # did not select everything below A/C
-                "A/E/",  # only empty folders remain under A/E
-                "A/G/g.py",  # non-empty folder remains under A/G
-            ]
-        ]
-
-        monkeypatch.setattr("os.walk", self.mock_walk)
-
-        actual_paths = compress_for_rename(paths)
-        assert set(expected_paths) == set(actual_paths)
-
-    @classmethod
-    def make_stash(
-        cls, tmpdir: Path, paths: list[str]
-    ) -> tuple[StashedUninstallPathSet, list[tuple[str, str]]]:
+    def make_files(cls, tmpdir: Path) -> None:
         for dirname, subdirs, files in cls.WALK_RESULT:
             root = os.path.join(tmpdir, *dirname.split("/"))
             if not os.path.exists(root):
@@ -352,6 +316,50 @@ class TestStashedUninstallPathSet:
             for f in files:
                 with open(os.path.join(root, f), "wb"):
                     pass
+
+    def test_compress_for_rename(self, tmpdir: Path) -> None:
+        def in_tmpdir(paths: list[str]) -> list[str]:
+            return [
+                str(os.path.join(tmpdir, path.replace("/", os.path.sep)))
+                for path in paths
+            ]
+
+        self.make_files(tmpdir)
+
+        paths = in_tmpdir(
+            [
+                os.path.sep.join(p.split("/"))
+                for p in [
+                    "A/B/b.py",
+                    "A/B/D/c.py",
+                    "A/C/d.py",
+                    "A/E/f.py",
+                    "A/G/g.py",
+                ]
+            ]
+        )
+
+        expected_paths = in_tmpdir(
+            [
+                os.path.sep.join(p.split("/"))
+                for p in [
+                    "A/B/",  # selected everything below A/B
+                    "A/C/d.py",  # did not select everything below A/C
+                    "A/E/",  # only empty folders remain under A/E
+                    "A/G/g.py",  # non-empty folder remains under A/G
+                ]
+            ]
+        )
+
+        actual_paths = compress_for_rename(paths)
+        assert set(expected_paths) == set(actual_paths)
+
+    @classmethod
+    def make_stash(
+        cls, tmpdir: Path, paths: list[str]
+    ) -> tuple[StashedUninstallPathSet, list[tuple[str, str]]]:
+
+        cls.make_files(tmpdir)
 
         pathset = StashedUninstallPathSet()
 
