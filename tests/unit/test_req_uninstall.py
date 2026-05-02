@@ -335,6 +335,7 @@ class TestStashedUninstallPathSet:
                     "A/C/d.py",
                     "A/E/f.py",
                     "A/G/g.py",
+                    "A/B/D",
                 ]
             ]
         )
@@ -347,6 +348,7 @@ class TestStashedUninstallPathSet:
                     "A/C/d.py",  # did not select everything below A/C
                     "A/E/",  # only empty folders remain under A/E
                     "A/G/g.py",  # non-empty folder remains under A/G
+                    "A/B/D/",  # selected due to directory in list
                 ]
             ]
         )
