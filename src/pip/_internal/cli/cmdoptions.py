@@ -646,7 +646,7 @@ def no_binary() -> Option:
         callback=_handle_no_binary,
         type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
+        help="Do not download binary packages. Cached binary packages may still be used. Can be supplied multiple times, and "
         'each time adds to the existing value. Accepts either ":all:" to '
         'disable all binary packages, ":none:" to empty the set (notice '
         "the colons), or one or more package names with commas between "
