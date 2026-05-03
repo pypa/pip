@@ -40,7 +40,6 @@ from pip._internal.req.req_install import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     check_externally_managed,
@@ -549,13 +548,6 @@ def get_lib_location_guesses(
         prefix=prefix,
     )
     return [scheme.purelib, scheme.platlib]
-
-
-def site_packages_writable(root: str | None, isolated: bool) -> bool:
-    return all(
-        test_writable_dir(d)
-        for d in set(get_lib_location_guesses(root=root, isolated=isolated))
-    )
 
 
 def create_os_error_message(
