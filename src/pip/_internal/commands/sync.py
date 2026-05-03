@@ -228,6 +228,7 @@ class SyncCommand(RequirementCommand):
         #  --all-extras              Include all optional dependencies
         #  --no-extra <NO_EXTRA>     Exclude the specified optional dependencies,
         #                            if `--all-extras` is supplied
+
         # TODO: select groups (adapt --group to reject path:group form), uv has these
         #  --no-dev                  Disable the development dependency group
         #  --only-dev                Only include the development dependency group
@@ -239,11 +240,16 @@ class SyncCommand(RequirementCommand):
         #                            dependency group
         #  --all-groups              Include dependencies from all dependency groups
 
+        # TODO: option to control uninstallation of superfluous packages
+        #  uv sync has --inexact
+        #  I propose --(no-)uninstall-unneeded (default: ask the user)
+
     @contextlib.contextmanager
     def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
         # Skip the self-version check when pip itself is a requirement. The
         # running pip may be replaced mid-command, and the upgrade prompt
         # is redundant.
+        # TODO: _arg_refers_to_pip does not make sense here
         if any(_arg_refers_to_pip(arg) for arg in args):
             yield
             return
