@@ -149,20 +149,14 @@ def text_html_response(text: str) -> "WSGIApplication":
 
 
 def html5_page(text: str) -> str:
-    return (
-        dedent(
-            """
+    return dedent("""
     <!DOCTYPE html>
     <html>
       <body>
         {}
       </body>
     </html>
-    """
-        )
-        .strip()
-        .format(text)
-    )
+    """).strip().format(text)
 
 
 def package_page(spec: dict[str, str]) -> "WSGIApplication":

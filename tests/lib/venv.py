@@ -167,8 +167,7 @@ class VirtualEnvironment:
             contents = ""
         else:
             # Enable user site (before system).
-            contents = textwrap.dedent(
-                f"""
+            contents = textwrap.dedent(f"""
                 import os, site, sys
                 if not os.environ.get('PYTHONNOUSERSITE', False):
                     site.ENABLE_USER_SITE = {self._user_site_packages}
@@ -188,8 +187,7 @@ class VirtualEnvironment:
                     # Third, add back system-sites related paths.
                     for path in site.getsitepackages():
                         site.addsitedir(path)
-                """
-            ).strip()
+                """).strip()
         if self._sitecustomize is not None:
             contents += "\n" + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
