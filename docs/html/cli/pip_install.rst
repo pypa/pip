@@ -544,4 +544,23 @@ Examples
 
          py -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
+#. Install packages into a specific directory.
+
+   This is useful for creating a portable Python environment. By default,
+   ``--target`` will not replace existing files; use ``--upgrade`` to overwrite.
+
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install --target ./vendor SomePackage
+         python -m pip install --target ./vendor SomePackage --upgrade
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install --target ./vendor SomePackage
+         py -m pip install --target ./vendor SomePackage --upgrade
+
 .. _PyPI: https://pypi.org/
