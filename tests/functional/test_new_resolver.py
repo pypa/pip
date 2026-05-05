@@ -814,12 +814,10 @@ def test_new_resolver_constraint_only_marker_match(script: PipTestEnvironment) -
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "3.0")
 
-    constraints_content = textwrap.dedent(
-        """
+    constraints_content = textwrap.dedent("""
         pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
         pkg==2.0; python_version < "0"  # Never satisfies.
-        """
-    ).format(ver=sys.version_info)
+        """).format(ver=sys.version_info)
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(constraints_content)
 
