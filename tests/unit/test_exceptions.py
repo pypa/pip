@@ -8,12 +8,29 @@ import logging
 import pathlib
 import sys
 import textwrap
+from typing import cast
+from unittest import mock
 
 import pytest
 
 from pip._vendor import rich
+from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.version import InvalidVersion
 
-from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
+from pip._internal.exceptions import (
+    BuildDependencyInstallError,
+    DiagnosticPipError,
+    ExternallyManagedEnvironment,
+    IncompleteDownloadError,
+    InstallWheelBuildError,
+    InvalidInstalledPackage,
+    LegacyDistutilsInstall,
+    MetadataGenerationFailed,
+    MissingPyProjectBuildRequires,
+    ResolutionTooDeepError,
+    UninstallMissingRecord,
+)
+from pip._internal.req.req_install import InstallRequirement
 
 
 class TestDiagnosticPipErrorCreation:
@@ -654,3 +671,336 @@ class TestExternallyManagedEnvironment:
             exc = ExternallyManagedEnvironment.from_config(marker)
         assert not caplog.records
         assert str(exc.context) == "最後"
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared by the concrete-exception tests below
+# ---------------------------------------------------------------------------
+
+def _make_fake_dist(
+    raw_name: str = "my-package",
+    version: str = "1.0",
+    installer: str = "pip",
+    installed_location: str | None = "/fake/location",
+) -> mock.MagicMock:
+    """Return a minimal mock that satisfies BaseDistribution's interface."""
+    dist = mock.MagicMock()
+    dist.raw_name = raw_name
+    dist.version = version
+    dist.installer = installer
+    dist.installed_location = installed_location
+    dist.configure_mock(**{"__str__.return_value": f"{raw_name} {version}"})
+    return dist
+
+
+def _make_fake_ireq(name: str = "mypackage") -> mock.MagicMock:
+    """Return a minimal mock that satisfies InstallRequirement's interface."""
+    ireq = mock.MagicMock()
+    ireq.configure_mock(**{"__str__.return_value": name})
+    ireq.name = name
+    return ireq
+
+
+def _make_fake_link(url: str = "https://example.com/pkg.tar.gz") -> mock.MagicMock:
+    link = mock.MagicMock()
+    link.redacted_url = url
+    return link
+
+
+# ---------------------------------------------------------------------------
+# Tests for concrete DiagnosticPipError subclasses
+# ---------------------------------------------------------------------------
+
+
+class TestMissingPyProjectBuildRequires:
+    def test_message_contains_package_name(self) -> None:
+        err = MissingPyProjectBuildRequires(package="mypackage")
+        assert "mypackage" in rendered(err)
+
+    def test_reference(self) -> None:
+        err = MissingPyProjectBuildRequires(package="mypackage")
+        assert err.reference == "missing-pyproject-build-system-requires"
+
+    def test_note_blames_package_not_pip(self) -> None:
+        err = MissingPyProjectBuildRequires(package="mypackage")
+        output = rendered(err)
+        assert "not pip" in output
+
+    def test_hint_references_pep518(self) -> None:
+        err = MissingPyProjectBuildRequires(package="mypackage")
+        assert "PEP 518" in rendered(err)
+
+
+class TestResolutionTooDeepError:
+    def test_reference(self) -> None:
+        err = ResolutionTooDeepError()
+        assert err.reference == "resolution-too-deep"
+
+    def test_message_mentions_depth(self) -> None:
+        err = ResolutionTooDeepError()
+        output = rendered(err)
+        assert "depth" in output.lower()
+
+    def test_includes_docs_link(self) -> None:
+        err = ResolutionTooDeepError()
+        assert err.link is not None
+        assert "pip.pypa.io" in err.link
+
+    def test_hint_suggests_lower_bounds(self) -> None:
+        err = ResolutionTooDeepError()
+        output = rendered(err)
+        assert "lower bounds" in output
+
+
+class TestUninstallMissingRecord:
+    def test_reference(self) -> None:
+        dist = _make_fake_dist()
+        err = UninstallMissingRecord(distribution=dist)
+        assert err.reference == "uninstall-no-record-file"
+
+    def test_message_contains_distribution(self) -> None:
+        dist = _make_fake_dist(raw_name="badpkg", version="2.0")
+        err = UninstallMissingRecord(distribution=dist)
+        output = rendered(err)
+        assert "badpkg" in output
+
+    def test_hint_for_pip_installer_suggests_reinstall(self) -> None:
+        dist = _make_fake_dist(installer="pip")
+        err = UninstallMissingRecord(distribution=dist)
+        output = rendered(err)
+        assert "pip install" in output
+
+    def test_hint_for_other_installer_names_installer(self) -> None:
+        dist = _make_fake_dist(installer="conda")
+        err = UninstallMissingRecord(distribution=dist)
+        output = rendered(err)
+        assert "conda" in output
+
+    def test_hint_for_empty_installer_suggests_reinstall(self) -> None:
+        # An empty installer string should be treated the same as "pip".
+        dist = _make_fake_dist(installer="")
+        err = UninstallMissingRecord(distribution=dist)
+        output = rendered(err)
+        assert "pip install" in output
+
+
+class TestLegacyDistutilsInstall:
+    def test_reference(self) -> None:
+        dist = _make_fake_dist()
+        err = LegacyDistutilsInstall(distribution=dist)
+        assert err.reference == "uninstall-distutils-installed-package"
+
+    def test_message_contains_distribution(self) -> None:
+        dist = _make_fake_dist(raw_name="legacypkg", version="0.1")
+        err = LegacyDistutilsInstall(distribution=dist)
+        output = rendered(err)
+        assert "legacypkg" in output
+
+    def test_context_mentions_distutils(self) -> None:
+        dist = _make_fake_dist()
+        err = LegacyDistutilsInstall(distribution=dist)
+        assert err.context is not None
+        assert "distutils" in str(err.context)
+
+
+class TestInvalidInstalledPackage:
+    def test_reference(self) -> None:
+        dist = _make_fake_dist()
+        exc = InvalidRequirement("bad requirement")
+        err = InvalidInstalledPackage(dist=dist, invalid_exc=exc)
+        assert err.reference == "invalid-installed-package"
+
+    def test_message_with_invalid_requirement(self) -> None:
+        dist = _make_fake_dist(raw_name="badpkg", version="1.0")
+        exc = InvalidRequirement("bad requirement")
+        err = InvalidInstalledPackage(dist=dist, invalid_exc=exc)
+        output = rendered(err)
+        assert "badpkg" in output
+        assert "requirement" in output
+
+    def test_message_with_invalid_version(self) -> None:
+        dist = _make_fake_dist(raw_name="badpkg", version="1.0")
+        exc = InvalidVersion("not-a-version")
+        err = InvalidInstalledPackage(dist=dist, invalid_exc=exc)
+        output = rendered(err)
+        assert "badpkg" in output
+        assert "version" in output
+
+    def test_hint_suggests_uninstall(self) -> None:
+        dist = _make_fake_dist()
+        exc = InvalidRequirement("bad")
+        err = InvalidInstalledPackage(dist=dist, invalid_exc=exc)
+        output = rendered(err)
+        assert "uninstall" in output.lower()
+
+    def test_installed_location_included_when_present(self) -> None:
+        dist = _make_fake_dist(installed_location="/some/path")
+        exc = InvalidRequirement("bad")
+        err = InvalidInstalledPackage(dist=dist, invalid_exc=exc)
+        output = rendered(err)
+        assert "/some/path" in output
+
+    def test_no_location_when_absent(self) -> None:
+        dist = _make_fake_dist(installed_location=None)
+        exc = InvalidRequirement("bad")
+        err = InvalidInstalledPackage(dist=dist, invalid_exc=exc)
+        # Should not crash, location line should simply be absent
+        output = rendered(err)
+        assert "None" not in output
+
+
+class TestMetadataGenerationFailed:
+    def test_reference(self) -> None:
+        err = MetadataGenerationFailed(package_details="mypackage 1.0")
+        assert err.reference == "metadata-generation-failed"
+
+    def test_message_is_generic(self) -> None:
+        err = MetadataGenerationFailed(package_details="mypackage 1.0")
+        output = rendered(err)
+        assert "metadata" in output.lower()
+
+    def test_package_details_in_context(self) -> None:
+        err = MetadataGenerationFailed(package_details="mypackage 1.0")
+        assert "mypackage" in str(err.context)
+
+    def test_str_representation(self) -> None:
+        err = MetadataGenerationFailed(package_details="mypackage 1.0")
+        assert "metadata generation failed" in str(err)
+
+
+class TestInstallWheelBuildError:
+    def _make_ireq(self, name: str) -> InstallRequirement:
+        ireq = mock.MagicMock(spec=InstallRequirement)
+        ireq.name = name
+        return cast(InstallRequirement, ireq)
+
+    def test_reference(self) -> None:
+        err = InstallWheelBuildError(failed=[self._make_ireq("pkgA")])
+        assert err.reference == "failed-wheel-build-for-install"
+
+    def test_context_lists_failed_packages(self) -> None:
+        ireqs = [self._make_ireq("pkgA"), self._make_ireq("pkgB")]
+        err = InstallWheelBuildError(failed=ireqs)
+        output = rendered(err)
+        assert "pkgA" in output
+        assert "pkgB" in output
+
+    def test_message_mentions_pyproject(self) -> None:
+        err = InstallWheelBuildError(failed=[self._make_ireq("pkgA")])
+        output = rendered(err)
+        assert "pyproject.toml" in output
+
+
+class TestIncompleteDownloadError:
+    def _make_download(
+        self,
+        *,
+        bytes_received: int = 500,
+        size: int = 1000,
+        reattempts: int = 0,
+        url: str = "https://example.com/pkg.tar.gz",
+    ) -> mock.MagicMock:
+        download = mock.MagicMock()
+        download.bytes_received = bytes_received
+        download.size = size
+        download.reattempts = reattempts
+        download.link.redacted_url = url
+        return download
+
+    def test_reference(self) -> None:
+        err = IncompleteDownloadError(self._make_download())
+        assert err.reference == "incomplete-download"
+
+    def test_url_in_context(self) -> None:
+        err = IncompleteDownloadError(
+            self._make_download(url="https://example.com/foo.whl")
+        )
+        assert "https://example.com/foo.whl" in str(err.context)
+
+    def test_hint_without_retries_suggests_enabling_resume(self) -> None:
+        err = IncompleteDownloadError(self._make_download(reattempts=0))
+        assert err.hint_stmt is not None
+        assert "resume" in str(err.hint_stmt).lower()
+
+    def test_hint_with_retries_suggests_configuring_limit(self) -> None:
+        err = IncompleteDownloadError(self._make_download(reattempts=3))
+        assert err.hint_stmt is not None
+        assert "resume-retries" in str(err.hint_stmt)
+
+    def test_note_blames_network(self) -> None:
+        err = IncompleteDownloadError(self._make_download())
+        assert err.note_stmt is not None
+        assert "network" in str(err.note_stmt).lower()
+
+
+class TestBuildDependencyInstallError:
+    def test_reference(self) -> None:
+        cause = Exception("something went wrong")
+        err = BuildDependencyInstallError(
+            req=None,
+            build_reqs=["setuptools>=40"],
+            cause=cause,
+            log_lines=None,
+        )
+        assert err.reference == "failed-build-dependency-install"
+
+    def test_message_when_no_req(self) -> None:
+        cause = Exception("oops")
+        err = BuildDependencyInstallError(
+            req=None,
+            build_reqs=["wheel"],
+            cause=cause,
+            log_lines=None,
+        )
+        output = rendered(err)
+        assert "build dependencies" in output.lower()
+
+    def test_message_includes_req_when_present(self) -> None:
+        ireq = _make_fake_ireq("mypkg")
+        cause = Exception("oops")
+        err = BuildDependencyInstallError(
+            req=ireq,
+            build_reqs=["wheel"],
+            cause=cause,
+            log_lines=None,
+        )
+        output = rendered(err)
+        assert "mypkg" in output
+
+    def test_note_for_unexpected_exception_asks_to_file_issue(self) -> None:
+        cause = RuntimeError("unexpected")
+        err = BuildDependencyInstallError(
+            req=None,
+            build_reqs=["wheel"],
+            cause=cause,
+            log_lines=None,
+        )
+        assert err.note_stmt is not None
+        assert "issue" in str(err.note_stmt).lower()
+
+    def test_note_for_pip_error_says_not_pip_problem(self) -> None:
+        from pip._internal.exceptions import PipError
+
+        cause = PipError("a pip error")
+        err = BuildDependencyInstallError(
+            req=None,
+            build_reqs=["wheel"],
+            cause=cause,
+            log_lines=None,
+        )
+        assert err.note_stmt is not None
+        assert "not a problem with pip" in str(err.note_stmt).lower()
+
+    def test_log_lines_appear_in_context(self) -> None:
+        from pip._internal.exceptions import PipError
+
+        cause = PipError("detail error")
+        err = BuildDependencyInstallError(
+            req=None,
+            build_reqs=["wheel"],
+            cause=cause,
+            log_lines=["step 1 output", "step 2 output"],
+        )
+        context_str = str(err.context)
+        assert "step 1 output" in context_str
+        assert "step 2 output" in context_str
