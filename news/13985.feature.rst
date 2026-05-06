@@ -1,0 +1,4 @@
+Speed up package collection by skipping the URL-path cleaning round-trip
+when every character of the path is already in ``urllib.parse.quote``'s
+always-safe set, which is the common case for links returned by the
+Simple-API JSON response.

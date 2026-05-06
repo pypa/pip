@@ -302,6 +302,30 @@ def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    "path",
+    [
+        pytest.param("", id="empty"),
+        pytest.param("/", id="just-slash"),
+        pytest.param(
+            "/packages/12/34/567/somepackage-1.2.3-py3-none-any.whl",
+            id="typical-pypi-wheel-path",
+        ),
+        pytest.param("/path/with~tilde/and-hyphens.tar.gz", id="tilde-and-hyphens"),
+        pytest.param("/p_a_t_h/v.e.r.s.i.o.n/file_name.whl", id="underscores-and-dots"),
+        pytest.param("////", id="repeated-slashes"),
+    ],
+)
+def test_clean_url_path_idempotent_for_safe_paths(path: str) -> None:
+    """The cleaning round-trip is a no-op for paths containing only the
+    characters that ``urllib.parse.quote`` leaves untouched and no
+    ``%``-escapes for ``urllib.parse.unquote`` to decode. The function MUST
+    return the input unchanged for these paths so callers can rely on it as
+    an identity (the implementation may take a fast path here).
+    """
+    assert _clean_url_path(path, is_local_path=False) == path
+
+
+@pytest.mark.parametrize(
     "path, expected",
     [
         # Test a VCS path with a Windows drive letter and revision.

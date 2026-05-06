@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
     Any,
+    Final,
     NamedTuple,
 )
 
@@ -140,11 +141,24 @@ def _clean_file_url_path(part: str) -> str:
 # percent-encoded:                   /
 _reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
 
+# Characters that survive a ``quote(unquote(part))`` round-trip unchanged in a
+# URL path: ``urllib.parse.quote``'s default-safe alphabet (alphanum and
+# ``_.-~``) plus ``/`` (the default of the ``safe`` argument). When every
+# character of a URL path is in this set, the cleaning round-trip is a no-op
+# and the work below can be skipped.
+_UNSAFE_URL_PATH_CHARS_RE: Final[re.Pattern[str]] = re.compile(r"[^A-Za-z0-9_./~\-]")
+
 
 def _clean_url_path(path: str, is_local_path: bool) -> str:
     """
     Clean the path portion of a URL.
     """
+    # Fast path: when the path contains only characters that ``quote`` would
+    # leave untouched and no ``%``-escapes for ``unquote`` to decode, the
+    # cleaning round-trip below would return the input unchanged.
+    if not is_local_path and _UNSAFE_URL_PATH_CHARS_RE.search(path) is None:
+        return path
+
     if is_local_path:
         clean_func = _clean_file_url_path
     else:
