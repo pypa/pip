@@ -475,6 +475,11 @@ class Link:
     )
 
     def _egg_fragment(self) -> str | None:
+        # Cheap pre-check: the regex below cannot match unless ``egg=`` appears
+        # somewhere in the URL, which it never does for the bulk of links a
+        # Simple-API response carries.
+        if "egg=" not in self._url:
+            return None
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
@@ -491,6 +496,9 @@ class Link:
 
     @property
     def subdirectory_fragment(self) -> str | None:
+        # Cheap pre-check: same shape as ``_egg_fragment`` above.
+        if "subdirectory=" not in self._url:
+            return None
         match = self._subdirectory_fragment_re.search(self._url)
         if not match:
             return None
