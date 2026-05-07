@@ -87,7 +87,7 @@ def test_log_download(
     caplog.set_level(logging.INFO)
     resp = MockResponse(b"")
     resp.url = url
-    resp.headers = headers
+    resp.headers.update(headers)
     if from_cache:
         resp.from_cache = from_cache
     link = Link(url)
@@ -322,7 +322,7 @@ def test_downloader(
     responses = []
     for headers, status_code, body in mock_responses:
         resp = MockResponse(body)
-        resp.headers = headers
+        resp.headers.update(headers)
         resp.status_code = status_code
         responses.append(resp)
     _http_get_mock = MagicMock(side_effect=responses)
@@ -361,11 +361,11 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
 
     # Mock an incomplete download followed by a successful resume
     incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
-    incomplete_resp.headers = {"content-length": "36"}
+    incomplete_resp.headers.update({"content-length": "36"})
     incomplete_resp.status_code = 200
 
     resume_resp = MockResponse(b"f2561d5dfd89")
-    resume_resp.headers = {"content-length": "12"}
+    resume_resp.headers.update({"content-length": "12"})
     resume_resp.status_code = 206
 
     responses = [incomplete_resp, resume_resp]
