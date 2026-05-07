@@ -560,14 +560,14 @@ class Session(SessionRedirectMixin):
         url: _t.UriType,
         params: _t.ParamsType = None,
         data: _t.DataType = None,
-        headers: Mapping[str, str | bytes] | None = None,
+        headers: _t.HeadersType = None,
         cookies: RequestsCookieJar | CookieJar | dict[str, str] | None = None,
         files: _t.FilesType = None,
         auth: _t.AuthType = None,
         timeout: _t.TimeoutType = None,
         allow_redirects: bool = True,
         proxies: dict[str, str] | None = None,
-        hooks: _t.HooksType = None,
+        hooks: _t.HooksInputType | None = None,
         stream: bool | None = None,
         verify: _t.VerifyType | None = None,
         cert: _t.CertType = None,
@@ -652,16 +652,23 @@ class Session(SessionRedirectMixin):
 
         return resp
 
-    def get(self, url: _t.UriType, **kwargs: Unpack[_t.GetKwargs]) -> Response:
+    def get(
+        self,
+        url: _t.UriType,
+        params: _t.ParamsType = None,
+        **kwargs: Unpack[_t.GetKwargs],
+    ) -> Response:
         r"""Sends a GET request. Returns :class:`Response` object.
 
         :param url: URL for the new :class:`Request` object.
+        :param params: (optional) Dictionary, list of tuples or bytes to send
+        in the query string for the :class:`Request`.
         :param \*\*kwargs: Optional arguments that ``request`` takes.
         :rtype: requests.Response
         """
 
         kwargs.setdefault("allow_redirects", True)
-        return self.request("GET", url, **kwargs)
+        return self.request("GET", url, params=params, **kwargs)
 
     def options(self, url: _t.UriType, **kwargs: Unpack[_t.RequestKwargs]) -> Response:
         r"""Sends a OPTIONS request. Returns :class:`Response` object.

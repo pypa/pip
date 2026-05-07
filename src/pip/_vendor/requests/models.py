@@ -83,6 +83,7 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
     from http.cookiejar import CookieJar
 
     from typing_extensions import Self
@@ -310,7 +311,7 @@ class Request(RequestHooksMixin):
 
     method: str | None
     url: _t.UriType | None
-    headers: CaseInsensitiveDict[str] | Mapping[str, str | bytes] | None
+    headers: MutableMapping[str, str | bytes]
     files: _t.FilesType
     data: _t.DataType
     json: _t.JsonType
@@ -322,7 +323,7 @@ class Request(RequestHooksMixin):
         self,
         method: str | None = None,
         url: _t.UriType | None = None,
-        headers: Mapping[str, str | bytes] | None = None,
+        headers: _t.HeadersType = None,
         files: _t.FilesType = None,
         data: _t.DataType = None,
         params: _t.ParamsType = None,
@@ -596,9 +597,9 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             if not isinstance(body, bytes):
                 body = body.encode("utf-8")
 
-        if isinstance(data, Iterable) and not isinstance(
-            data, (str, bytes, list, tuple, Mapping)
-        ):
+        # data that proxies attributes to underlying objects needs hasattr
+        is_iterable = isinstance(data, Iterable) or hasattr(data, "__iter__")
+        if is_iterable and not isinstance(data, (str, bytes, list, tuple, Mapping)):
             try:
                 length = super_len(data)
             except (TypeError, AttributeError, UnsupportedOperation):
@@ -741,7 +742,7 @@ class Response:
     url: str
     encoding: str | None
     history: list[Response]
-    reason: str | None
+    reason: str
     cookies: RequestsCookieJar
     elapsed: datetime.timedelta
     request: PreparedRequest
@@ -790,7 +791,7 @@ class Response:
         self.history = []
 
         #: Textual reason of responded HTTP Status, e.g. "Not Found" or "OK".
-        self.reason = None
+        self.reason = None  # type: ignore[assignment]
 
         #: A CookieJar of Cookies the server sent back.
         self.cookies = cookiejar_from_dict({})

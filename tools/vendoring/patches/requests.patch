@@ -2,14 +2,18 @@ diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__i
 index ad842400b..2156a4d1d 100644
 --- a/src/pip/_vendor/requests/__init__.py
 +++ b/src/pip/_vendor/requests/__init__.py
-@@ -51,10 +51,7 @@ try:
- except ImportError:
-     charset_normalizer_version = None
+@@ -48,13 +48,6 @@ from .exceptions import RequestsDependencyWarning
  
+-try:
+-    from charset_normalizer import __version__ as charset_normalizer_version
+-except ImportError:
+-    charset_normalizer_version = None
+-
 -try:
 -    from chardet import __version__ as chardet_version  # type: ignore[import-not-found]
 -except ImportError:
 -    chardet_version = None
++charset_normalizer_version = None
 +chardet_version = None
  
  

@@ -9,7 +9,7 @@ by external code.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, MutableMapping
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,6 +20,8 @@ from typing import (
 )
 
 _T_co = TypeVar("_T_co", covariant=True)
+_KT_co = TypeVar("_KT_co", covariant=True)
+_VT_co = TypeVar("_VT_co", covariant=True)
 
 
 @runtime_checkable
@@ -28,8 +30,8 @@ class SupportsRead(Protocol[_T_co]):
 
 
 @runtime_checkable
-class SupportsItems(Protocol):
-    def items(self) -> Iterable[tuple[Any, Any]]: ...
+class SupportsItems(Protocol[_KT_co, _VT_co]):
+    def items(self) -> Iterable[tuple[_KT_co, _VT_co]]: ...
 
 
 # These are needed at runtime for default_hooks() return type
@@ -79,7 +81,7 @@ if TYPE_CHECKING:
         str | bytes | int | float | Iterable[str | bytes | int | float] | None
     )
     ParamsType: TypeAlias = (
-        Mapping[_ParamsMappingKeyType, _ParamsMappingValueType]
+        SupportsItems[_ParamsMappingKeyType, _ParamsMappingValueType]
         | tuple[tuple[_ParamsMappingKeyType, _ParamsMappingValueType], ...]
         | Iterable[tuple[_ParamsMappingKeyType, _ParamsMappingValueType]]
         | str
@@ -87,7 +89,7 @@ if TYPE_CHECKING:
         | None
     )
 
-    KVDataType: TypeAlias = Iterable[tuple[Any, Any]] | Mapping[Any, Any]
+    KVDataType: TypeAlias = Iterable[tuple[Any, Any]] | SupportsItems[Any, Any]
 
     RawDataType: TypeAlias = KVDataType | str | bytes
     StreamDataType: TypeAlias = SupportsRead[str | bytes]
@@ -107,8 +109,7 @@ if TYPE_CHECKING:
         bytes | str | Iterable[bytes | str] | SupportsRead[bytes | str] | None
     )
 
-    HeadersType: TypeAlias = CaseInsensitiveDict[str] | Mapping[str, str | bytes]
-    HeadersUpdateType: TypeAlias = Mapping[str, str | bytes | None]
+    HeadersType: TypeAlias = MutableMapping[str, str | bytes] | None
 
     CookiesType: TypeAlias = RequestsCookieJar | Mapping[str, str]
 
@@ -137,20 +138,26 @@ if TYPE_CHECKING:
     VerifyType: TypeAlias = bool | str
     CertType: TypeAlias = str | tuple[str, str] | None
     JsonType: TypeAlias = (
-        None | bool | int | float | str | list["JsonType"] | dict[str, "JsonType"]
+        None
+        | bool
+        | int
+        | float
+        | str
+        | Sequence["JsonType"]
+        | Mapping[str, "JsonType"]
     )
 
     # TypedDicts for Unpack kwargs (PEP 692)
 
     class BaseRequestKwargs(TypedDict, total=False):
-        headers: Mapping[str, str | bytes] | None
+        headers: HeadersType
         cookies: RequestsCookieJar | CookieJar | dict[str, str] | None
         files: FilesType
         auth: AuthType
         timeout: TimeoutType
         allow_redirects: bool
         proxies: dict[str, str] | None
-        hooks: HooksType
+        hooks: HooksInputType | None
         stream: bool | None
         verify: VerifyType | None
         cert: CertType
