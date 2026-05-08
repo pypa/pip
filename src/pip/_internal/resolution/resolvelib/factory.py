@@ -4,6 +4,7 @@ import contextlib
 import copy
 import functools
 import logging
+from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -30,7 +31,7 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
-from pip._internal.index.package_finder import PackageFinder
+from pip._internal.index.package_finder import LinkType, PackageFinder
 from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
@@ -718,6 +719,21 @@ class Factory:
             message += f"\n{specifier!r} (required by {package})"
         return UnsupportedPythonVersion(message)
 
+    def _link_type_description(self, link_type: LinkType) -> str:
+        """Return a user-friendly description for each LinkType."""
+        descriptions = {
+            LinkType.candidate: "candidate (should not appear here)",
+            LinkType.different_project: "wrong project name",
+            LinkType.yanked: "yanked",
+            LinkType.format_unsupported: "unsupported format",
+            LinkType.format_invalid: "invalid format",
+            LinkType.platform_mismatch: "incompatible platform/tags",
+            LinkType.requires_python_mismatch: "incompatible Python version",
+            LinkType.upload_too_late: "uploaded after cutoff time",
+            LinkType.upload_time_missing: "missing upload time",
+        }
+        return descriptions.get(link_type, str(link_type))
+
     def _report_single_requirement_conflict(
         self, req: Requirement, parent: Candidate | None
     ) -> DistributionNotFound:
@@ -728,7 +744,7 @@ class Factory:
 
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
-
+        _skipped_links = self._finder._skipped_links
         versions_set: set[Version] = set()
         yanked_versions_set: set[Version] = set()
         for c in cands:
@@ -770,6 +786,24 @@ class Factory:
             req_disp,
             ", ".join(versions) or "none",
         )
+        if _skipped_links:
+            grouped: dict[LinkType, list[tuple[Link, str]]] = defaultdict(list)
+            for link, link_type, detail in _skipped_links:
+                grouped[link_type].append((link, detail))
+
+            total = len(_skipped_links)
+            logger.info(
+                "Skipped %d unsuitable distribution(s)",
+                total,
+            )
+            for link_type, items in grouped.items():
+                count = len(items)
+                logger.info("  %d: %s", count, self._link_type_description(link_type))
+                for link, _detail in items[:3]:
+                    logger.info("    - %s", link.filename)
+                if count > 3:
+                    logger.info("    ... and %d more", count - 3)
+
         if str(req) == "requirements.txt":
             logger.info(
                 "HINT: You are attempting to install a package literally "
