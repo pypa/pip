@@ -40,6 +40,11 @@ if TYPE_CHECKING:
     from pip._internal.operations.build.build_tracker import BuildTracker
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import BaseResolver
+    from pip._internal.resolution.resolvelib.candidates import (
+        EditableCandidate,
+        LinkCandidate,
+    )
+    from pip._internal.resolution.resolvelib.factory import Cache
 
     class ExtraEnviron(TypedDict, total=False):
         extra_environ: dict[str, str]
@@ -103,6 +108,13 @@ class BuildEnvironmentInstaller(Protocol):
     environment.
     """
 
+    # Cache pair the main resolver can share with the build-env installer.
+    # ``None`` means the installer does not share state with the caller's
+    # resolver — e.g. ``SubprocessBuildEnvironmentInstaller`` runs builds in
+    # a separate pip process so the dicts would be useless across the boundary.
+    link_candidate_cache: Cache[LinkCandidate] | None
+    editable_candidate_cache: Cache[EditableCandidate] | None
+
     def install(
         self,
         requirements: Iterable[str],
@@ -117,6 +129,12 @@ class SubprocessBuildEnvironmentInstaller:
     """
     Install build dependencies by calling pip in a subprocess.
     """
+
+    # Subprocess builds run in a separate pip process so candidate caches
+    # cannot cross the boundary; the Protocol attribute is wired but always
+    # ``None``.
+    link_candidate_cache: Cache[LinkCandidate] | None = None
+    editable_candidate_cache: Cache[EditableCandidate] | None = None
 
     def __init__(
         self,
@@ -292,6 +310,14 @@ class InprocessBuildEnvironmentInstaller:
         self._build_constraints = build_constraints
         self._wheel_cache = wheel_cache
         self._level = 0
+        # A pip install with multiple buildable sdists / editable installs runs
+        # this resolver once per build env. Build deps overlap heavily across
+        # those builds (setuptools, wheel, hatchling, etc.) and frequently
+        # overlap with the user's runtime requirements too, so the same dict
+        # pair is shared with the main resolver via the Protocol surface so a
+        # candidate built once is reused everywhere within one ``pip install``.
+        self.link_candidate_cache: Cache[LinkCandidate] | None = {}
+        self.editable_candidate_cache: Cache[EditableCandidate] | None = {}
 
         build_dir = TempDirectory(kind="build-env-install", globally_managed=True)
         self._preparer = RequirementPreparer(
@@ -423,6 +449,8 @@ class InprocessBuildEnvironmentInstaller:
             preparer=self._preparer,
             finder=self._finder,
             wheel_cache=self._wheel_cache,
+            link_candidate_cache=self.link_candidate_cache,
+            editable_candidate_cache=self.editable_candidate_cache,
             # Hard-coded options (that should NOT be inherited).
             ignore_requires_python=False,
             use_user_site=False,

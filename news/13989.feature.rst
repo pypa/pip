@@ -1,0 +1,5 @@
+Reuse the in-process build-environment installer's candidate cache across
+build environments. When ``pip install`` builds more than one source
+distribution or editable install with overlapping build dependencies, the
+shared cache amortises candidate construction across the per-build
+resolutions.
