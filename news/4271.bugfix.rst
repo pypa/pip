@@ -1,1 +1,1 @@
-Show an error message when ``pip install --upgrade`` fails with network issues.
+Show an error message when ``pip install`` fails with network issues.
