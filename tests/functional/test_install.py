@@ -361,6 +361,7 @@ def test_install_warns_on_unexpected_post_install_import(
     )
     assert "run_install.py:7)" in result.stderr
 
+
 def test_install_401_error(script: PipTestEnvironment, data: TestData) -> None:
     server = make_mock_server()
     server.mock.side_effect = lambda _, __: authorization_response(
@@ -371,11 +372,11 @@ def test_install_401_error(script: PipTestEnvironment, data: TestData) -> None:
         result = script.pip(
             "install",
             "--no-input",
-            "--index-url", index_url,
+            "--index-url",
+            index_url,
             "simple",
             expect_error=True,
         )
-    breakpoint()
     assert result.returncode != 0
     assert "401 Client Error" in result.stderr
 
