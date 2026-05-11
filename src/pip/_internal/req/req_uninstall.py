@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
+import site
 import sys
 import sysconfig
 from collections.abc import Generator, Iterable
@@ -10,12 +11,14 @@ from typing import Any, Callable
 
 from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
 from pip._internal.locations import get_bin_prefix, get_bin_user
+from pip._internal.locations.base import user_site as _user_site_packages
 from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
 from pip._internal.utils.misc import ask, normalize_path, renames, rmtree
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
+from pip._internal.utils.unpacking import is_within_directory
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = getLogger(__name__)
@@ -78,6 +81,14 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
 
     for entry in entries:
         path = os.path.join(location, entry)
+        # Reject RECORD entries with path traversal (e.g. "../../etc/passwd").
+        if not is_within_directory(location, path):
+            logger.warning(
+                "Skipping RECORD entry that resolves outside the installation "
+                "location: %s",
+                entry,
+            )
+            continue
         yield path
         if path.endswith(".py"):
             dn, fn = os.path.split(path)
@@ -316,10 +327,24 @@ class UninstallPathSet:
         remove/modify, False otherwise.
 
         """
-        # aka is_local, but caching normalized sys.prefix
-        if not running_under_virtualenv():
-            return True
-        return path.startswith(self._normalize_path_cached(sys.prefix))
+        if running_under_virtualenv():
+            return path.startswith(self._normalize_path_cached(sys.prefix))
+
+        # Outside a virtualenv, only permit removal within known
+        # installation-related directories.
+        allowed_roots: list[str] = [sys.prefix]
+        dist_location = self._dist.location
+        if dist_location is not None:
+            allowed_roots.append(dist_location)
+        if _user_site_packages is not None:
+            allowed_roots.append(_user_site_packages)
+        user_base = site.getuserbase()
+        if user_base:
+            allowed_roots.append(user_base)
+        return any(
+            path.startswith(self._normalize_path_cached(root))
+            for root in allowed_roots
+        )
 
     def add(self, path: str) -> None:
         head, tail = os.path.split(path)

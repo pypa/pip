@@ -153,13 +153,15 @@ def test_get_csv_rows_for_installed(
     )
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
+    # "a" is in `installed` and maps to "z", so it is included.
+    # "d" is NOT in `installed` (phantom entry) and is dropped with a warning.
     expected = [
         ("z", "b", "c"),
-        ("d", "e", "f"),
     ]
     assert outrows == expected
-    # Check there were no warnings.
-    assert len(caplog.records) == 0
+    # Check that a warning was issued for the phantom entry.
+    assert len(caplog.records) == 1
+    assert "no corresponding installed file" in caplog.records[0].message
 
 
 def test_get_csv_rows_for_installed__long_lines(
@@ -173,17 +175,46 @@ def test_get_csv_rows_for_installed__long_lines(
     """
     )
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
+    # "a" maps to "z" in installed; "e" and "h" are phantom entries (dropped).
     assert outrows == [
         ("z", "b", "c"),
-        ("e", "f", "g"),
-        ("h", "i", "j"),
     ]
 
     messages = [rec.message for rec in caplog.records]
-    assert messages == [
-        "RECORD line has more than three elements: ['a', 'b', 'c', 'd']",
-        "RECORD line has more than three elements: ['h', 'i', 'j', 'k']",
+    assert "RECORD line has more than three elements: ['a', 'b', 'c', 'd']" in messages
+    assert any("no corresponding installed file" in m for m in messages)
+
+
+def test_get_csv_rows_for_installed__phantom_path_traversal(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Regression test: phantom RECORD entries with path traversal must not
+    be carried forward to the on-disk RECORD, where they could later cause
+    arbitrary file deletion at uninstall time.
+    """
+    text = textwrap.dedent(
+        """\
+    a,b,c
+    ../../../../../../etc/passwd,,
+    ../../../home/user/.ssh/authorized_keys,,
+    """
+    )
+    outrows = call_get_csv_rows_for_installed(tmpdir, text)
+
+    # Only the entry backed by an actually-installed file survives.
+    assert outrows == [("z", "b", "c")]
+
+    # Each phantom traversal entry produced a warning.
+    phantom_warnings = [
+        r for r in caplog.records if "no corresponding installed file" in r.message
     ]
+    assert len(phantom_warnings) == 2
+
+    # Traversal paths are NOT present in the output RECORD.
+    for row in outrows:
+        assert ".." not in row[0]
+        assert "passwd" not in row[0]
+        assert "authorized_keys" not in row[0]
 
 
 @pytest.mark.parametrize(
