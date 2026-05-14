@@ -1,0 +1,1 @@
+Abort installation when PEP 658 sidecar metadata differs from wheel metadata.
