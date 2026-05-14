@@ -746,6 +746,8 @@ class FakePackage:
     metadata: MetadataKind
     # This will override any dependencies specified in the actual dist's METADATA.
     requires_dist: tuple[str, ...] = ()
+    # This will override the Provides-Extra entries in the actual dist's METADATA.
+    provides_extra: tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
     metadata_name: str | None = None
 
@@ -766,23 +768,17 @@ class FakePackage:
         checksum = sha256(self.generate_metadata()).hexdigest()
         return f'data-dist-info-metadata="sha256={checksum}"'
 
-    def requires_str(self) -> str:
-        if not self.requires_dist:
-            return ""
-        joined = " and ".join(self.requires_dist)
-        return f"Requires-Dist: {joined}"
-
     def generate_metadata(self) -> bytes:
         """This is written to `self.metadata_filename()` and will override the actual
         dist's METADATA, unless `self.metadata == MetadataKind.NoFile`."""
-        return dedent(
-            f"""\
-        Metadata-Version: 2.1
-        Name: {self.metadata_name or self.name}
-        Version: {self.version}
-        {self.requires_str()}
-        """
-        ).encode("utf-8")
+        lines = [
+            "Metadata-Version: 2.1",
+            f"Name: {self.metadata_name or self.name}",
+            f"Version: {self.version}",
+        ]
+        lines.extend(f"Requires-Dist: {entry}" for entry in self.requires_dist)
+        lines.extend(f"Provides-Extra: {extra}" for extra in self.provides_extra)
+        return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 @pytest.fixture(scope="session")
@@ -827,8 +823,8 @@ def fake_packages() -> dict[str, list[FakePackage]]:
             ),
         ],
         "compilewheel": [
-            # Ensure we can override the dependencies of a wheel file by injecting PEP
-            # 658 metadata.
+            # The sidecar declares a dependency the wheel's embedded METADATA
+            # does not, which must be rejected as a Requires-Dist mismatch.
             FakePackage(
                 "compilewheel",
                 "1.0",
@@ -864,12 +860,16 @@ def fake_packages() -> dict[str, list[FakePackage]]:
             ),
         ],
         "requires-simple-extra": [
-            # Metadata name is not canonicalized.
+            # Metadata name is not canonicalized. The sidecar mirrors the
+            # wheel's embedded Requires-Dist and Provides-Extra so the
+            # post-download metadata reconciliation accepts it.
             FakePackage(
                 "requires-simple-extra",
                 "0.1",
                 "requires_simple_extra-0.1-py2.py3-none-any.whl",
                 MetadataKind.Sha256,
+                requires_dist=("simple==1.0; extra == 'extra'",),
+                provides_extra=("extra",),
                 metadata_name="Requires_Simple.Extra",
             ),
         ],
