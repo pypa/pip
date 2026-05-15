@@ -30,6 +30,9 @@ def reqs_test_package(tmp_path: Path) -> Path:
             ]
             [project.optional-dependencies]
             doc = ["simple2==2.0"]
+
+            [dependency-groups]
+            dev = ["child==0.1"]
             """
         )
     )
@@ -51,13 +54,7 @@ def test_install_only_deps(
     script: PipTestEnvironment, reqs_test_package: Path, shared_data: TestData
 ) -> None:
     """Test installing project dependencies."""
-    result = script.pip(
-        "install",
-        "--disable-pip-version-check",
-        "--no-build-isolation",  # requires setuptools
-        "--no-index",
-        "--find-links",
-        str(shared_data.packages),
+    result = script.pip_install_local(
         "--only-deps",
         str(reqs_test_package),
     )
@@ -66,20 +63,15 @@ def test_install_only_deps(
         result.assert_installed("pkga", editable=False, editable_vcs=False)
     with pytest.raises(TestFailure):
         result.assert_installed("simple2", editable=False, editable_vcs=False)
+    with pytest.raises(TestFailure):
+        result.assert_installed("child", editable=False, editable_vcs=False)
 
 
 def test_install_only_deps_does_not_prepare_a_build_env(
     script: PipTestEnvironment, reqs_test_package: Path, shared_data: TestData
 ) -> None:
     """Test installing project dependencies."""
-    result = script.pip(
-        "--verbose",
-        "install",
-        "--disable-pip-version-check",
-        "--no-build-isolation",  # requires setuptools
-        "--no-index",
-        "--find-links",
-        str(shared_data.packages),
+    result = script.pip_install_local(
         "--only-deps",
         str(reqs_test_package),
     )
@@ -89,19 +81,15 @@ def test_install_only_deps_does_not_prepare_a_build_env(
         result.assert_installed("pkga", editable=False, editable_vcs=False)
     with pytest.raises(TestFailure):
         result.assert_installed("simple2", editable=False, editable_vcs=False)
+    with pytest.raises(TestFailure):
+        result.assert_installed("child", editable=False, editable_vcs=False)
 
 
-def test_install_only_deps_and_optional_deps(
+def test_install_only_deps_and_extras(
     script: PipTestEnvironment, reqs_test_package: Path, shared_data: TestData
 ) -> None:
-    """Test installing project and optional dependencies."""
-    result = script.pip(
-        "install",
-        "--disable-pip-version-check",
-        "--no-build-isolation",  # requires setuptools
-        "--no-index",
-        "--find-links",
-        str(shared_data.packages),
+    """Test installing project and extras."""
+    result = script.pip_install_local(
         "--only-deps",
         str(reqs_test_package) + "[doc]",
     )
@@ -109,20 +97,15 @@ def test_install_only_deps_and_optional_deps(
     result.assert_installed("simple2", editable=False, editable_vcs=False)
     with pytest.raises(TestFailure):
         result.assert_installed("pkga", editable=False, editable_vcs=False)
+    with pytest.raises(TestFailure):
+        result.assert_installed("child", editable=False, editable_vcs=False)
 
 
 def test_install_only_deps_for_wheel(
     script: PipTestEnvironment, reqs_test_package_wheel: Path, shared_data: TestData
 ) -> None:
     """Test installing project dependencies."""
-    result = script.pip(
-        "--verbose",
-        "install",
-        "--disable-pip-version-check",
-        "--no-build-isolation",  # requires setuptools
-        "--no-index",
-        "--find-links",
-        str(shared_data.packages),
+    result = script.pip_install_local(
         "--only-deps",
         str(reqs_test_package_wheel),
     )
@@ -131,6 +114,8 @@ def test_install_only_deps_for_wheel(
         result.assert_installed("pkga", editable=False, editable_vcs=False)
     with pytest.raises(TestFailure):
         result.assert_installed("simple2", editable=False, editable_vcs=False)
+    with pytest.raises(TestFailure):
+        result.assert_installed("child", editable=False, editable_vcs=False)
 
 
 def test_install_dependency_options_are_mutually_exclusive(
@@ -138,10 +123,7 @@ def test_install_dependency_options_are_mutually_exclusive(
     reqs_test_package: Path,
 ) -> None:
     """Test dependency options are mutually exclusive."""
-    result = script.pip(
-        "install",
-        "--disable-pip-version-check",
-        "--no-index",
+    result = script.pip_install_local(
         "--no-deps",
         "--only-deps",
         str(reqs_test_package),
@@ -151,16 +133,29 @@ def test_install_dependency_options_are_mutually_exclusive(
     assert "--only-deps" in result.stderr
 
 
+def test_install_group_options_conflict_with_only_deps(
+    script: PipTestEnvironment,
+    reqs_test_package: Path,
+) -> None:
+    """Test dependency options are mutually exclusive."""
+    # TODO: change working directory because reasons
+    result = script.pip_install_local(
+        "--no-deps",
+        "--group",
+        "dev",
+        str(reqs_test_package),
+        expect_error=True,
+    )
+    assert "--no-deps" in result.stderr
+    assert "--group" in result.stderr
+
+
 def test_install_only_deps_incompatible_with_legacy_resolver(
     script: PipTestEnvironment,
     reqs_test_package: Path,
 ) -> None:
     """Test legacy resolver options conflict with only-deps."""
-    result = script.pip(
-        "install",
-        "--disable-pip-version-check",
-        "--no-index",
-        "--no-deps",
+    result = script.pip_install_local(
         "--use-deprecated",
         "--only-deps",
         str(reqs_test_package),
