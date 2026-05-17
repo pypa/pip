@@ -1,0 +1,1 @@
+Prevent raw tracebacks on missing or unreadable script files passed to --requirements-from-script, raising a proper CommandError instead.
