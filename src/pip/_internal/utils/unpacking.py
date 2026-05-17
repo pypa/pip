@@ -288,11 +288,11 @@ def _untar_without_filter(
         elif member.issym():
             if not is_symlink_target_in_tar(tar, member):
                 message = (
-                    "The tar file ({}) has a file ({}) trying to install "
-                    "outside target directory ({})"
+                    "The tar file ({}) has a symlink ({}) pointing to ({}) "
+                    "which resolves outside the target directory ({})"
                 )
                 raise InstallationError(
-                    message.format(filename, member.name, member.linkname)
+                    message.format(filename, member.name, member.linkname, location)
                 )
             try:
                 tar._extract_member(member, path)

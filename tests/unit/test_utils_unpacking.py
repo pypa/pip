@@ -381,10 +381,10 @@ class TestUnpackArchives:
             untar_file(tar_filepath, extract_path)
 
         msg = (
-            "The tar file ({}) has a file ({}) trying to install outside "
-            "target directory ({})"
+            "The tar file ({}) has a symlink ({}) pointing to ({}) "
+            "which resolves outside the target directory ({})"
         )
-        assert msg.format(tar_filepath, "evil_symlink", import_filepath) in str(e.value)
+        assert msg.format(tar_filepath, "evil_symlink", import_filepath, extract_path) in str(e.value)
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
 
@@ -418,10 +418,10 @@ class TestUnpackArchives:
             untar_file(tar_filepath, extract_path)
 
         msg = (
-            "The tar file ({}) has a file ({}) trying to install outside "
-            "target directory ({})"
+            "The tar file ({}) has a symlink ({}) pointing to ({}) "
+            "which resolves outside the target directory ({})"
         )
-        assert msg.format(tar_filepath, "evil_symlink", link_path) in str(e.value)
+        assert msg.format(tar_filepath, "evil_symlink", link_path, extract_path) in str(e.value)
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
 
