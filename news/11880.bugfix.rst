@@ -1,0 +1,1 @@
+Report why ``pip config set`` cannot modify a configuration file.

@@ -378,9 +378,28 @@ class Configuration:
         assert self.load_only
         parsers = self._parsers[self.load_only]
         if not parsers:
-            # This should not happen if everything works correctly.
+            env_config_file = os.environ.get("PIP_CONFIG_FILE")
+            if env_config_file == os.devnull:
+                reason = (
+                    f"PIP_CONFIG_FILE is set to {os.devnull!r}, which disables "
+                    "loading configuration files"
+                )
+            elif (
+                self.load_only == kinds.USER
+                and env_config_file
+                and os.path.exists(env_config_file)
+            ):
+                reason = (
+                    f"PIP_CONFIG_FILE is set to {env_config_file!r}, which "
+                    "disables loading the user configuration file"
+                )
+            elif self.load_only == kinds.USER and self.isolated:
+                reason = "isolated mode disables loading the user configuration file"
+            else:
+                reason = "no configuration files were loaded for this level"
+
             raise ConfigurationError(
-                "Fatal Internal error [id=2]. Please report as a bug."
+                f"Cannot modify {self.load_only} configuration because {reason}."
             )
 
         # Use the highest priority parser.

@@ -271,6 +271,8 @@ class ConfigurationCommand(Command):
         # configuration.
         try:
             self.configuration.save()
+        except PipError:
+            raise
         except Exception:
             logger.exception(
                 "Unable to save configuration. Please report this as a bug."

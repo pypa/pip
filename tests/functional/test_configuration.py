@@ -80,6 +80,32 @@ class TestBasicLoading(ConfigurationMixin):
         result = script.pip("config", "set", "isolated", "true", expect_error=True)
         assert "global.isolated" in result.stderr
 
+    def test_set_with_devnull_pip_config_file_errors_clearly(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.environ["PIP_CONFIG_FILE"] = os.devnull
+
+        result = script.pip("config", "set", "global.foo", "bar", expect_error=True)
+
+        assert "Cannot modify user configuration" in result.stderr
+        assert "PIP_CONFIG_FILE is set to" in result.stderr
+        assert "disables loading configuration files" in result.stderr
+        assert "Fatal Internal error" not in result.stderr
+
+    def test_set_with_existing_pip_config_file_errors_clearly(
+        self, script: PipTestEnvironment
+    ) -> None:
+        config_file = script.scratch_path / "pip.conf"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip("config", "set", "global.foo", "bar", expect_error=True)
+
+        assert "Cannot modify user configuration" in result.stderr
+        assert "PIP_CONFIG_FILE is set to" in result.stderr
+        assert "disables loading the user configuration file" in result.stderr
+        assert "Fatal Internal error" not in result.stderr
+
     def test_env_var_values(self, script: PipTestEnvironment) -> None:
         """Test that pip configuration set with environment variables
         is correctly displayed under "env_var".
