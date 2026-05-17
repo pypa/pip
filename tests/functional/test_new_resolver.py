@@ -328,53 +328,6 @@ def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
     script.assert_installed_editable("dep")
 
 
-def test_new_resolver_editable_satisfies_direct_url_dep(
-    script: PipTestEnvironment,
-) -> None:
-    """Regression test for https://github.com/pypa/pip/issues/10216.
-
-    Installing ``-e A -e B`` used to fail with ``ResolutionImpossible`` when ``A``
-    depends on ``B`` via a direct URL (PEP 440) reference pointing at the same
-    location as the editable ``B``:
-
-    > Cannot install package-a and package-b because these package versions have
-    > conflicting dependencies.
-
-    This was because the resolver created both an ``EditableCandidate`` (from the
-    user-supplied ``-e B``) and a ``LinkCandidate`` (from ``A``'s transitive
-    direct-URL dependency) for the same link, and treated them as conflicting.
-    """
-    dep_path = create_test_package_with_setup(script, name="dep", version="0.1.0")
-    dep_url = dep_path.as_uri()
-    base_path = script.scratch_path / "base"
-    base_path.mkdir()
-    base_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            f"""
-            from setuptools import setup
-            setup(
-                name="base",
-                version="0.1.0",
-                install_requires=["dep @ {dep_url}"],
-            )
-            """
-        )
-    )
-    script.pip(
-        "install",
-        "--no-build-isolation",
-        "--no-cache-dir",
-        "--no-index",
-        "-e",
-        base_path,
-        "-e",
-        dep_path,
-    )
-    script.assert_installed(base="0.1.0", dep="0.1.0")
-    script.assert_installed_editable("base")
-    script.assert_installed_editable("dep")
-
-
 @pytest.mark.parametrize(
     "requires_python, ignore_requires_python, dep_version",
     [

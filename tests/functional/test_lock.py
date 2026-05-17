@@ -1,5 +1,6 @@
 import textwrap
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -235,3 +236,44 @@ def test_lock_archive(script: PipTestEnvironment, shared_data: TestData) -> None
             },
         },
     ]
+
+
+def test_lock_roundtrip(script: PipTestEnvironment, data: TestData) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.toml")
+    pylock_result_path = pylock_path.parent / "pylock.result.toml"
+    script.pip(
+        "lock",
+        "--quiet",
+        "--no-build-isolation",  # to use the pre-installed setuptools
+        "--no-index",
+        "-r",
+        pylock_path,
+        "--output",
+        pylock_result_path,
+        expect_stderr=True,  # for the experimental warning
+    )
+
+    def simplify_path_and_url(d: dict[str, Any]) -> None:
+        """Keep last part of path/url as filename key"""
+        if path := d.get("path"):
+            d["filename"] = path.rpartition("/")[-1]
+            del d["path"]
+        if url := d.get("url"):
+            d["filename"] = url.rpartition("/")[-1]
+            del d["url"]
+
+    def simplify_paths_and_urls(d: dict[str, Any]) -> None:
+        for p in d["packages"]:
+            if "archive" in p:
+                simplify_path_and_url(p["archive"])
+            elif "sdist" in p:
+                simplify_path_and_url(p["sdist"])
+            elif "wheels" in p:
+                for wheel in p["wheels"]:
+                    simplify_path_and_url(wheel)
+
+    pylock = tomllib.loads(pylock_path.read_text(encoding="utf-8"))
+    simplify_paths_and_urls(pylock)
+    pylock_result = tomllib.loads(pylock_result_path.read_text(encoding="utf-8"))
+    simplify_paths_and_urls(pylock_result)
+    assert pylock_result == pylock

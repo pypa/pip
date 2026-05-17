@@ -1,2 +1,0 @@
-Emit a deprecation warning when pip imports an unexpected module after
-installation of a distribution has started.

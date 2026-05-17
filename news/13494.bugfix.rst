@@ -1,1 +1,0 @@
-Show the filename rather than the full URL when downloading files from non-PyPI indexes in non-verbose mode.

@@ -242,6 +242,7 @@ Dimitri Papadopoulos
 Dimitri Papadopoulos Orfanos
 Dirk Stolle
 dkjsone
+Dmitrii Sutiagin
 Dmitry Gladkov
 Dmitry Volodin
 Domen Kožar
@@ -309,7 +310,9 @@ George Margaritis
 George Song
 Georgi Valkov
 Georgy Pchelkin
+Gertjan van Zwieten
 ghost
+Giancarlo Cicellyn Comneno
 Giftlin Rajaiah
 gizmoguy1
 gkdoc
@@ -460,6 +463,7 @@ Kevin Burke
 Kevin Carter
 Kevin Frommelt
 Kevin R Patterson
+Kevin Turcios
 Kexuan Sun
 Kit Randel
 Klaas van Schelven
@@ -591,6 +595,7 @@ Nitesh Sharma
 Niyas Sait
 Noah
 Noah Gorny
+Norbert Manthey
 Nothing-991
 Nowell Strite
 NtaleGrey
@@ -816,6 +821,7 @@ Vikram - Google
 Viktor Szépe
 Ville Skyttä
 Vinay Sajip
+Vincent Fazio
 Vincent Philippon
 Vinicyus Macedo
 Vipul Kumar
@@ -850,6 +856,7 @@ Yu Jian
 Yuan Jing Vincent Yan
 Yuki Kobayashi
 Yusuke Hayashi
+Zachary Ware
 zackzack38
 Zearin
 Zhiping Deng
