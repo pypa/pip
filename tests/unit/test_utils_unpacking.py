@@ -380,11 +380,12 @@ class TestUnpackArchives:
         with pytest.raises(InstallationError) as e:
             untar_file(tar_filepath, extract_path)
 
-        msg = (
-            "The tar file ({}) has a symlink ({}) pointing to ({}) "
-            "which resolves outside the target directory ({})"
+        expected_msg = (
+            f"The tar file ({tar_filepath}) has a symlink (evil_symlink) "
+            f"pointing to ({import_filepath}) "
+            f"which resolves outside the target directory ({extract_path})"
         )
-        assert msg.format(tar_filepath, "evil_symlink", import_filepath, extract_path) in str(e.value)
+        assert expected_msg in str(e.value)
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
 
@@ -417,11 +418,12 @@ class TestUnpackArchives:
         with pytest.raises(InstallationError) as e:
             untar_file(tar_filepath, extract_path)
 
-        msg = (
-            "The tar file ({}) has a symlink ({}) pointing to ({}) "
-            "which resolves outside the target directory ({})"
+        expected_msg = (
+            f"The tar file ({tar_filepath}) has a symlink (evil_symlink) "
+            f"pointing to ({link_path}) "
+            f"which resolves outside the target directory ({extract_path})"
         )
-        assert msg.format(tar_filepath, "evil_symlink", link_path, extract_path) in str(e.value)
+        assert expected_msg in str(e.value)
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
 

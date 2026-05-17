@@ -1,0 +1,1 @@
+Corrected the error message formatting when a tar archive contains a symlink pointing outside the extraction target directory in the fallback extraction code path.
