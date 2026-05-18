@@ -199,10 +199,11 @@ class ResourceFinder(object):
                         else:
                             new_name = '/'.join([rname, name])
                         child = self.find(new_name)
-                        if child.is_container:
-                            todo.append(child)
-                        else:
-                            yield child
+                        if child is not None:
+                            if child.is_container:
+                                todo.append(child)
+                            else:
+                                yield child
 
 
 class ZipResourceFinder(ResourceFinder):
