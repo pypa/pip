@@ -1,0 +1,1 @@
+Add a fail-safe for cases where a file is detected but does not actually exist.
