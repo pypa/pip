@@ -82,6 +82,33 @@ class TestLink:
         assert "subdir" == Link(url).subdirectory_fragment
 
     @pytest.mark.parametrize(
+        "url",
+        [
+            pytest.param(
+                "https://files.pythonhosted.org/packages/12/34/foo-1.0-py3-none-any.whl",
+                id="pypi-wheel",
+            ),
+            pytest.param(
+                "https://files.pythonhosted.org/packages/12/34/foo-1.0-py3-none-any.whl#sha256=abc",
+                id="pypi-wheel-with-hash",
+            ),
+            pytest.param("https://example.com/path/to/file.tar.gz", id="archive"),
+            pytest.param(
+                "https://example.com/path/to/file.tar.gz?build=1",
+                id="archive-with-query",
+            ),
+        ],
+    )
+    def test_fragments_absent_for_typical_links(self, url: str) -> None:
+        """Links served by a Simple-API response have no ``egg=`` or
+        ``subdirectory=`` fragment. The accessors MUST return ``None`` for
+        them (the implementation may take a fast path here).
+        """
+        link = Link(url)
+        assert link.egg_fragment is None
+        assert link.subdirectory_fragment is None
+
+    @pytest.mark.parametrize(
         "fragment",
         [
             # Package names in egg fragments must be in PEP 508 form.

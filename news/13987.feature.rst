@@ -1,0 +1,4 @@
+Speed up ``Link`` construction by skipping the ``egg=`` and
+``subdirectory=`` fragment regex searches when the corresponding marker is
+absent from the URL, which is the common case for links returned by the
+Simple-API JSON response.
