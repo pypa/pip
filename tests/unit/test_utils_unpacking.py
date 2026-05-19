@@ -458,6 +458,14 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
         (("parent/", "parent/../sub"), False),
         # Test target sub-string of parent
         (("parent/child", "parent/childfoo"), False),
+        # Test target equal to the directory
+        (("/srv/env/bin", "/srv/env/bin"), True),
+        # Test target within a doubled-slash directory
+        (("//srv/env/bin", "//srv/env/bin/pip"), True),
+        # Test target outside a doubled-slash directory
+        (("//srv/env/bin", "//srv/env/outside"), False),
+        # Test target on a different drive
+        (("C:\\env\\bin", "D:\\outside"), False),
     ],
 )
 def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:
