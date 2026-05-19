@@ -1,0 +1,2 @@
+Fix installation incorrectly failing when the target path contains a doubled
+slash, such as with ``pip install --root //...``.
