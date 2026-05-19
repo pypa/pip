@@ -542,6 +542,7 @@ def test_process_project_url(data: TestData) -> None:
     actual = finder.process_project_url(
         project_url,
         link_evaluator=link_evaluator,
+        error_context=None,
     )
 
     assert len(actual) == 1
