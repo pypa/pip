@@ -649,7 +649,7 @@ class PackageFinder:
         self._link_collector = link_collector
         self._target_python = target_python
         self._uploaded_prior_to = uploaded_prior_to
-
+        self._skipped_links: list[tuple[Link, LinkType, str]] = []
         self.format_control = format_control
 
         # Collects the detail strings for links skipped due to Requires-Python
@@ -801,6 +801,7 @@ class PackageFinder:
     def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
         # Put the link at the end so the reason is more visible and because
         # the link string is usually very long.
+        self._skipped_links.append((link, result, detail))
         logger.debug("Skipping link: %s: %s", detail, link)
         if result == LinkType.requires_python_mismatch:
             self._requires_python_skipped.add(detail)

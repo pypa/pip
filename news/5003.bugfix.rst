@@ -1,0 +1,1 @@
+Add more detail on ``No matching distribution found`` errors to include information on why each candidate was unsuitable.
