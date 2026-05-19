@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pip._internal.exceptions import HashMismatch
+from pip._internal.exceptions import HashMismatch, NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
@@ -55,6 +55,31 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
         }
     finally:
         rmtree(temp_dir)
+
+
+def test_unpack_url_raises_network_error_on_empty_download(tmp_path: Path) -> None:
+    """Empty download (e.g. from invalid 304) should raise NetworkConnectionError."""
+    session = Mock()
+    session.resume_retries = 0
+    empty_response = MockResponse(b"")
+    empty_response.url = "http://example.com/pkg.tar.gz"
+    empty_response.headers = {"content-type": "application/octet-stream"}
+    session.get.return_value = empty_response
+
+    downloader = Downloader(session, progress_bar="off")
+    link = Link("http://example.com/pkg.tar.gz")
+    extract_dir = tmp_path / "extract"
+    extract_dir.mkdir()
+    with pytest.raises(
+        NetworkConnectionError, match="empty download.*invalid HTTP 304"
+    ):
+        unpack_url(
+            link,
+            str(extract_dir),
+            download=downloader,
+            download_dir=None,
+            verbosity=0,
+        )
 
 
 @patch("pip._internal.network.download.raise_for_status")
