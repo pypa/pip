@@ -46,6 +46,38 @@ from tests.lib.server import (
 )
 
 
+def test_force_metadata_refresh_sends_cache_control_header(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check if --force-metadata-refresh adds max-age=0 to the request headers.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page(
+            {
+                "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+            }
+        ),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--force-metadata-refresh",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+        )
+    call_args = server.mock.call_args_list[0].args
+    environ = call_args[0]
+    assert "HTTP_CACHE_CONTROL" in environ
+    assert environ["HTTP_CACHE_CONTROL"] == "max-age=0"
+
+
 @pytest.mark.parametrize("command", ["install", "wheel"])
 @pytest.mark.parametrize("variant", ["missing_setuptools", "bad_setuptools"])
 def test_pep518_uses_build_env(

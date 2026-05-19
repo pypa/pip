@@ -335,6 +335,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
         ssl_context: SSLContext | None = None,
+        force_metadata_refresh: str | None = "default",
         **kwargs: Any,
     ) -> None:
         """
@@ -347,6 +348,7 @@ class PipSession(requests.Session):
         # possible conflicts with the base class.
         self.pip_trusted_origins: list[tuple[str, int | None]] = []
         self.pip_proxy = None
+        self.force_metadata_refresh = force_metadata_refresh
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
