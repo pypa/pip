@@ -76,7 +76,13 @@ def install_given_reqs(
             if requirement.should_reinstall:
                 logger.info("Attempting uninstall: %s", req_name)
                 with indent_log():
-                    uninstalled_pathset = requirement.uninstall(auto_confirm=True)
+                    uninstalled_pathset = requirement.uninstall(
+                        auto_confirm=True,
+                        use_user_site=use_user_site,
+                        home=home,
+                        root=root,
+                        prefix=prefix,
+                    )
             else:
                 uninstalled_pathset = None
 

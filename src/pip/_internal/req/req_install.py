@@ -21,7 +21,11 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
 from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
-from pip._internal.exceptions import InstallationError, PreviousBuildDirError
+from pip._internal.exceptions import (
+    InstallationError,
+    PreviousBuildDirError,
+    UninstallMissingRecord,
+)
 from pip._internal.locations import get_scheme
 from pip._internal.metadata import (
     BaseDistribution,
@@ -46,6 +50,7 @@ from pip._internal.utils.misc import (
     display_path,
     hide_url,
     is_installable_dir,
+    normalize_path,
     redact_auth_from_requirement,
     redact_auth_from_url,
 )
@@ -660,7 +665,13 @@ class InstallRequirement:
 
     # Top-level Actions
     def uninstall(
-        self, auto_confirm: bool = False, verbose: bool = False
+        self,
+        auto_confirm: bool = False,
+        verbose: bool = False,
+        use_user_site: bool = False,
+        home: str | None = None,
+        root: str | None = None,
+        prefix: str | None = None,
     ) -> UninstallPathSet | None:
         """
         Uninstall the distribution currently satisfying this requirement.
@@ -680,8 +691,31 @@ class InstallRequirement:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
         logger.info("Found existing installation: %s", dist)
+        try:
+            uninstalled_pathset = UninstallPathSet.from_dist(dist)
+        except UninstallMissingRecord as e:
+            existing_location = normalize_path(dist.location) if dist.location else None
+            scheme = get_scheme(
+                self.req.name,
+                user=use_user_site,
+                home=home,
+                root=root,
+                isolated=self.isolated,
+                prefix=prefix,
+            )
+            target_location = normalize_path(scheme.purelib)
+            if existing_location != target_location:
+                logger.info(
+                    "Skipping uninstall of %s at %s (no RECORD file found), "
+                    "new version will install to %s",
+                    dist.canonical_name,
+                    existing_location,
+                    target_location,
+                )
+                return None
+            else:
+                raise e
 
-        uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
         return uninstalled_pathset
 
