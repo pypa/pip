@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import locale
 import logging
 import os
 import sys
@@ -18,7 +17,7 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.configuration import Configuration
 from pip._internal.metadata import get_environment
-from pip._internal.utils.compat import open_text_resource
+from pip._internal.utils.compat import locale_getencoding, open_text_resource
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
 
@@ -177,8 +176,8 @@ class DebugCommand(Command):
         show_value("sys.getdefaultencoding", sys.getdefaultencoding())
         show_value("sys.getfilesystemencoding", sys.getfilesystemencoding())
         show_value(
-            "locale.getpreferredencoding",
-            locale.getpreferredencoding(),
+            "locale.getencoding",
+            locale_getencoding(),
         )
         show_value("sys.platform", sys.platform)
         show_sys_implementation()

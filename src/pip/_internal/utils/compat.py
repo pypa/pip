@@ -2,12 +2,13 @@
 distributions."""
 
 import importlib.resources
+import locale
 import logging
 import os
 import sys
 from typing import IO
 
-__all__ = ["get_path_uid", "stdlib_pkgs", "tomllib", "WINDOWS"]
+__all__ = ["get_path_uid", "locale_getencoding", "stdlib_pkgs", "tomllib", "WINDOWS"]
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,18 @@ def has_tls() -> bool:
     from pip._vendor.urllib3.util import IS_PYOPENSSL
 
     return IS_PYOPENSSL
+
+
+def locale_getencoding() -> str:
+    """Return the locale encoding.
+
+    Use ``locale.getencoding()`` when available (Python 3.11+) to avoid the
+    ``EncodingWarning`` that ``locale.getpreferredencoding(False)`` raises
+    under UTF-8 Mode in Python 3.15+.
+    """
+    if sys.version_info >= (3, 11):
+        return locale.getencoding()
+    return locale.getpreferredencoding(False)
 
 
 def get_path_uid(path: str) -> int:

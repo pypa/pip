@@ -1,0 +1,2 @@
+Replace ``locale.getpreferredencoding()`` with ``locale.getencoding()``
+(Python 3.11+) to avoid ``EncodingWarning`` under UTF-8 Mode on Python 3.15+.
