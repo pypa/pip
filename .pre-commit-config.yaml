@@ -17,18 +17,18 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 25.12.0
+  rev: 26.3.1
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.10
+  rev: v0.15.12
   hooks:
     - id: ruff-check
       args: [--fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.20.0
+  rev: v1.20.2
   hooks:
   - id: mypy
     exclude: tests/data
@@ -67,7 +67,7 @@ repos:
       args: ["--ignore-words", tools/codespell-ignore.txt]
 
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: v1.23.1
+  rev: v1.24.1
   hooks:
   - id: zizmor
     args: ["--fix=all"]
