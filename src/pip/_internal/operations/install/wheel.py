@@ -397,10 +397,30 @@ class MissingCallableSuffix(InstallationError):
         )
 
 
-def _raise_for_invalid_entrypoint(specification: str) -> None:
+def _script_within_dir(name: str, scripts_dir: str) -> bool:
+    """Return whether script ``name`` resolves to a path inside the ``scripts_dir``.
+
+    distlib joins the entry point name onto the scripts directory, so a name
+    with path separators or ``..`` components can resolve elsewhere.
+    """
+    root = os.path.normpath(scripts_dir)
+    dest = os.path.normpath(os.path.join(scripts_dir, name))
+    return dest.startswith(root + os.sep)
+
+
+def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
     entry = get_export_entry(specification)
-    if entry is not None and entry.suffix is None:
+    if entry is None:
+        return
+
+    if entry.suffix is None:
         raise MissingCallableSuffix(str(entry))
+
+    if not _script_within_dir(entry.name, scripts_dir):
+        raise InstallationError(
+            f"Invalid script entry point name {entry.name!r}: the script "
+            f"would be installed outside the scripts directory ({scripts_dir})."
+        )
 
 
 class PipScriptMaker(ScriptMaker):
@@ -419,7 +439,7 @@ class PipScriptMaker(ScriptMaker):
     def make(
         self, specification: str, options: dict[str, Any] | None = None
     ) -> list[str]:
-        _raise_for_invalid_entrypoint(specification)
+        _raise_for_invalid_entrypoint(specification, self.target_dir)
         return super().make(specification, options)
 
 
