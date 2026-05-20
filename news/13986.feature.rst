@@ -1,0 +1,4 @@
+Speed up package collection by skipping the ``urlsplit`` + ``urlunsplit``
+round-trip in ``_ensure_quoted_url`` when the URL's path component is
+already in ``urllib.parse.quote``'s always-safe set, which is the common
+case for links returned by the Simple-API JSON response.
