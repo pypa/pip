@@ -11,7 +11,6 @@ from typing import Any
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
-from pip._internal.metadata import get_default_environment
 
 
 def autocomplete() -> None:
@@ -51,6 +50,8 @@ def autocomplete() -> None:
             "uninstall",
         ]
         if should_list_installed:
+            from pip._internal.metadata import get_default_environment
+
             env = get_default_environment()
             lc = current.lower()
             installed = [
