@@ -1,0 +1,2 @@
+Verify file hashes in wheel RECORD during installation, rejecting tampered
+or corrupted wheels per PEP 427.
