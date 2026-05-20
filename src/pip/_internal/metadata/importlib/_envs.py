@@ -73,6 +73,27 @@ class _DistributionFinder:
                 continue
             if name in self._found_names:
                 continue
+
+            # Skip .egg-info directories that are build metadata rather than
+            # installed packages. Build metadata lacks installation records
+            # (installed-files.txt or RECORD) and will cause uninstall to fail.
+            # This happens when running pip from a directory containing .egg-info
+            # created by 'pip install .'
+            # See: https://github.com/pypa/pip/issues/13459
+            if info_location is not None and str(info_location).endswith(".egg-info"):
+                if isinstance(info_location, pathlib.Path):
+                    has_installed_files = (
+                        info_location / "installed-files.txt"
+                    ).exists()
+                    has_record = (info_location / "RECORD").exists()
+                    if not has_installed_files and not has_record:
+                        logger.debug(
+                            "Skipping %s as it appears to be build metadata "
+                            "(no installation records found)",
+                            info_location,
+                        )
+                        continue
+
             self._found_names.add(name)
             yield dist, info_location
 
