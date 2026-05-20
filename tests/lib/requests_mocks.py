@@ -6,6 +6,8 @@ from collections.abc import Iterator
 from io import BytesIO
 from typing import Any, Callable
 
+from pip._vendor.requests.models import Response
+
 _Hook = Callable[["MockResponse"], None]
 
 
@@ -23,18 +25,18 @@ class FakeStream:
         pass
 
 
-class MockResponse:
-    request: MockRequest
-    connection: MockConnection
-    url: str
+class MockResponse(Response):
+    request: MockRequest  # type: ignore[assignment]
+    connection: MockConnection  # type: ignore[assignment]
 
     def __init__(self, contents: bytes) -> None:
+        super().__init__()
         self.raw = FakeStream(contents)
-        self.content = contents
+        self._content = contents
         self.reason = "OK"
         self.status_code = 200
-        self.headers = {"Content-Length": str(len(contents))}
-        self.history: list[MockResponse] = []
+        self.headers["Content-Length"] = str(len(contents))
+        self.history: list[Response] = []
         self.from_cache = False
 
 
