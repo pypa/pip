@@ -310,15 +310,18 @@ def test_git_resolve_revision_not_found_warning(
         (None, False),
     ],
 )
-@mock.patch("pip._internal.vcs.git.Git.get_revision")
+@mock.patch("pip._internal.vcs.git.Git._get_head_commit")
 def test_git_is_commit_id_equal(
-    mock_get_revision: mock.Mock, rev_name: str | None, result: bool
+    mock_get_head_commit: mock.Mock, rev_name: str | None, result: bool
 ) -> None:
     """
     Test Git.is_commit_id_equal().
     """
-    mock_get_revision.return_value = "5547fa909e83df8bd743d3978d6667497983a4b7"
+    mock_get_head_commit.return_value = "5547fa909e83df8bd743d3978d6667497983a4b7"
     assert Git.is_commit_id_equal("/path", rev_name) is result
+
+    mock_get_head_commit.return_value = None
+    assert Git.is_commit_id_equal("/path", rev_name) is False
 
 
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test
