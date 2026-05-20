@@ -22,6 +22,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
+from pip._internal.utils.compat import warn_stdlib_module
 from pip._internal.utils.misc import write_output
 
 logger = logging.getLogger(__name__)
@@ -139,6 +140,7 @@ class IndexCommand(IndexGroupCommand):
             versions = set(versions)
 
             if not versions:
+                warn_stdlib_module(query)
                 raise DistributionNotFound(
                     f"No matching distribution found for {query}"
                 )

@@ -1,0 +1,2 @@
+Show a helpful hint when attempting to install a standard library module,
+informing users that the module is built-in and can be imported directly.
