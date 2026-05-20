@@ -99,6 +99,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -126,6 +128,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             {esc("1;35")}note{esc("0")}: You did something wrong.
             {esc("1;36")}hint{esc("0")}: Do it better next time, by trying harder.
+
+            For more details, see {esc("4;94")}https://pip.pypa.io/en/stable/errors/#test-diagnostic{esc("0")}
             """
         )
 
@@ -147,6 +151,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -170,6 +176,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             very wrong.
 
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -193,6 +201,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             very wrong.
 
             note: You did something wrong, which is what caused this error.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -213,6 +223,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             It broke. :(
 
             note: You did something wrong, which is what caused this error.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -233,6 +245,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             It broke. :(
 
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -254,6 +268,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             Something went wrong
             very wrong.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -272,6 +288,8 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             Oh no!
             It broke. :(
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -308,6 +326,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -334,6 +354,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
 
             {esc("1;35")}note{esc("0")}: You did something wrong.
             {esc("1;36")}hint{esc("0")}: Do it better next time, by trying harder.
+
+            For more details, see {esc("4;94")}https://pip.pypa.io/en/stable/errors/#test-diagnostic{esc("0")}
             """
         )
 
@@ -355,6 +377,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -377,6 +401,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
                 very wrong.
 
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -399,6 +425,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
                 very wrong.
 
             note: You did something wrong, which is what caused this error.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -419,6 +447,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
               It broke. :(
 
             note: You did something wrong, which is what caused this error.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -439,6 +469,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
               It broke. :(
 
             hint: Do it better next time, by trying harder.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -459,6 +491,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             │ It broke. :(
             ╰─> Something went wrong
                 very wrong.
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
@@ -477,6 +511,8 @@ class TestDiagnosticPipErrorPresentation_Unicode:
 
             × Oh no!
               It broke. :(
+
+            For more details, see https://pip.pypa.io/en/stable/errors/#test-diagnostic
             """
         )
 
