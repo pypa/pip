@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.build_env import BuildEnvironmentInstaller
@@ -23,6 +24,7 @@ from pip._internal.exceptions import (
     HashUnpinned,
     InstallationError,
     MetadataInconsistent,
+    MetadataInvalid,
     NetworkConnectionError,
     VcsHashUnsupported,
 )
@@ -220,6 +222,81 @@ def _check_download_dir(
             os.unlink(download_path)
             return None
     return download_path
+
+
+def _canonicalize_requirement(raw: str) -> str:
+    """Return a normalized form of a PEP 508 requirement string.
+
+    Used to compare ``Requires-Dist`` entries from two sources of metadata
+    for the same distribution without being confused by superficial
+    differences in name casing, extra casing, or extras ordering. May raise
+    ``InvalidRequirement`` if ``raw`` is not a valid PEP 508 string.
+    """
+    parsed = Requirement(raw)
+    parts: list[str] = [canonicalize_name(parsed.name)]
+    if parsed.extras:
+        normalized_extras = sorted(canonicalize_name(e) for e in parsed.extras)
+        parts.append(f"[{','.join(normalized_extras)}]")
+    if parsed.specifier:
+        parts.append(str(parsed.specifier))
+    if parsed.url:
+        parts.append(f" @ {parsed.url}")
+    if parsed.marker:
+        parts.append(f"; {parsed.marker}")
+    return "".join(parts)
+
+
+def _reconcile_metadata_against_wheel(
+    req: InstallRequirement,
+    sidecar_dist: BaseDistribution,
+    wheel_dist: BaseDistribution,
+) -> None:
+    """Verify a PEP 658 sidecar's resolver-affecting fields match the wheel.
+
+    The PEP 658 sidecar at ``<wheel>.metadata`` is fetched ahead of the
+    wheel itself and drives dependency resolution. The wheel's own
+    ``.dist-info/METADATA`` is the canonical source for the artifact pip
+    is actually about to install. When an index serves a sidecar without
+    a hash (PEP 658 explicitly permits this), the two are not transitively
+    bound by the wheel's hash check.
+
+    Compare ``Requires-Dist``, ``Requires-Python`` and ``Provides-Extra``
+    between the two and abort the install on any mismatch.
+    """
+
+    def _canonical_requires(dist: BaseDistribution) -> frozenset[str]:
+        canonical: set[str] = set()
+        for raw in dist.iter_raw_dependencies():
+            try:
+                canonical.add(_canonicalize_requirement(raw))
+            except InvalidRequirement as e:
+                raise MetadataInvalid(req, str(e))
+        return frozenset(canonical)
+
+    sidecar_requires = _canonical_requires(sidecar_dist)
+    wheel_requires = _canonical_requires(wheel_dist)
+    if sidecar_requires != wheel_requires:
+        raise MetadataInconsistent(
+            req,
+            "Requires-Dist",
+            ", ".join(sorted(sidecar_requires)),
+            ", ".join(sorted(wheel_requires)),
+        )
+
+    sidecar_python = str(sidecar_dist.requires_python)
+    wheel_python = str(wheel_dist.requires_python)
+    if sidecar_python != wheel_python:
+        raise MetadataInconsistent(req, "Requires-Python", sidecar_python, wheel_python)
+
+    sidecar_extras = frozenset(sidecar_dist.iter_provided_extras())
+    wheel_extras = frozenset(wheel_dist.iter_provided_extras())
+    if sidecar_extras != wheel_extras:
+        raise MetadataInconsistent(
+            req,
+            "Provides-Extra",
+            ", ".join(sorted(sidecar_extras)),
+            ", ".join(sorted(wheel_extras)),
+        )
 
 
 class RequirementPreparer:
@@ -665,6 +742,20 @@ class RequirementPreparer:
             self.build_isolation,
             self.check_build_deps,
         )
+
+        # If a PEP 658 sidecar drove resolution for this wheel, reconcile its
+        # dependency-relevant fields against the wheel's embedded METADATA now
+        # that the wheel is on disk and hash-verified. The sidecar itself may
+        # have been served without a hash, so this is the only point at which
+        # the two can be cross-checked.
+        if (
+            link.is_wheel
+            and req._distribution is not None
+            and req._distribution is not dist
+            and link.metadata_link() is not None
+        ):
+            _reconcile_metadata_against_wheel(req, req._distribution, dist)
+
         return dist
 
     def save_linked_requirement(self, req: InstallRequirement) -> None:
