@@ -22,12 +22,18 @@ def format_name(project: NormalizedName, extras: frozenset[NormalizedName]) -> s
     return f"{project}[{extras_expr}]"
 
 
+@dataclass(slots=True, eq=True, frozen=True)
+class ConstraintLink:
+    link: Link
+    editable: bool
+
+
 @dataclass(frozen=True)
 class Constraint:
     specifier: SpecifierSet
     hashes: Hashes
     hash_options: dict[str, list[str]]
-    links: frozenset[Link]
+    links: frozenset[ConstraintLink]
 
     @classmethod
     def empty(cls) -> Constraint:
@@ -35,7 +41,11 @@ class Constraint:
 
     @classmethod
     def from_ireq(cls, ireq: InstallRequirement) -> Constraint:
-        links = frozenset([ireq.link]) if ireq.link else frozenset()
+        links = (
+            frozenset([ConstraintLink(ireq.link, ireq.editable)])
+            if ireq.link
+            else frozenset()
+        )
         hash_options = {alg: list(v) for alg, v in ireq.hash_options.items()}
         return Constraint(
             ireq.specifier,
@@ -63,12 +73,15 @@ class Constraint:
             }
         links = self.links
         if other.link:
-            links = links.union([other.link])
+            links = links.union([ConstraintLink(other.link, other.editable)])
         return Constraint(specifier, hashes, hash_options, links)
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
         # Reject if there are any mismatched URL constraints on this package.
-        if self.links and not all(_match_link(link, candidate) for link in self.links):
+        if self.links and not all(
+            _match_link(link.link, candidate) and link.editable == candidate.is_editable
+            for link in self.links
+        ):
             return False
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
@@ -78,7 +91,11 @@ class Constraint:
     def format_for_error(self) -> str:
         s = str(self.specifier)
         if self.links:
-            s += f" (from {', '.join(str(link) for link in self.links)})"
+            links_text = ", ".join(
+                f"{'editable ' if link.editable else ''}{link.link}"
+                for link in self.links
+            )
+            s += f" (from {links_text})"
         return s
 
 

@@ -482,7 +482,6 @@ def test_constraints_only_causes_error(
 def test_constraints_local_editable_install_causes_error(
     script: PipTestEnvironment,
     data: TestData,
-    resolver_variant: ResolverVariant,
 ) -> None:
     script.scratch_path.joinpath("constraints.txt").write_text("singlemodule==0.0.0")
     to_install = data.src.joinpath("singlemodule")
@@ -515,7 +514,6 @@ def test_constraints_local_editable_install_pep518(
 def test_constraints_local_install_causes_error(
     script: PipTestEnvironment,
     data: TestData,
-    resolver_variant: ResolverVariant,
 ) -> None:
     script.scratch_path.joinpath("constraints.txt").write_text("singlemodule==0.0.0")
     to_install = data.src.joinpath("singlemodule")
@@ -537,31 +535,22 @@ def test_constraints_local_install_causes_error(
 def test_constraints_constrain_to_local_editable(
     script: PipTestEnvironment,
     data: TestData,
-    resolver_variant: ResolverVariant,
 ) -> None:
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        f"-e {to_install.as_uri()}#egg=singlemodule"
+        f'-e "singlemodule @ {to_install.as_uri()}"'
     )
-    result = script.pip(
-        "install",
-        "--no-index",
-        "-f",
-        data.find_links,
+    script.pip_install_local(
         "-c",
         script.scratch_path / "constraints.txt",
         "singlemodule",
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "resolvelib"),
     )
-    if resolver_variant == "resolvelib":
-        assert "Editable requirements are not allowed as constraints" in result.stderr
-    else:
-        assert "Running setup.py develop for singlemodule" in result.stdout
+    script.assert_installed_editable("singlemodule")
 
 
 def test_constraints_constrain_to_local(
-    script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
+    script: PipTestEnvironment, data: TestData
 ) -> None:
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -735,7 +724,7 @@ def test_install_with_extras_editable_joined(
 ) -> None:
     to_install = data.packages.joinpath("LocalExtras")
     file = script.temporary_file(
-        "constraints.txt", f"-e LocalExtras[bar] @ {to_install.as_uri()}"
+        "constraints.txt", f'-e "LocalExtras[bar] @ {to_install.as_uri()}"'
     )
     result = script.pip_install_local(
         "-c",
@@ -745,7 +734,7 @@ def test_install_with_extras_editable_joined(
         expect_error=(resolver_variant == "resolvelib"),
     )
     if resolver_variant == "resolvelib":
-        assert "Editable requirements are not allowed as constraints" in result.stderr
+        assert "Constraints cannot have extras" in result.stderr
     else:
         result.did_create(script.site_packages / "simple")
         result.did_create(script.site_packages / "singlemodule.py")
@@ -943,6 +932,48 @@ def test_config_settings_local_to_package(
     assert "--verbose" not in simple3_args
     simple2_args = simple2_sdist.args()
     assert "--verbose" not in simple2_args
+
+
+def test_editable_constraints(script: PipTestEnvironment, tmp_path: Path) -> None:
+    pkgs_path = tmp_path / "pkgs"
+    pkgs_path.mkdir()
+    pkga_path = pkgs_path / "pkga"
+    pkga_path.mkdir()
+    pkga_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [project]
+            name = "pkga"
+            version = "1.1"
+            dependencies = ["pkgb"]
+            """
+        )
+    )
+    pkgb_path = pkgs_path / "pkgb"
+    pkgb_path.mkdir()
+    pkgb_path.joinpath("pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [project]
+            name = "pkgb"
+            version = "1.2"
+            dependencies = ["singlemodule==0.0.1"]
+            """
+        )
+    )
+    constraints_path = tmp_path / "constraints.txt"
+    constraints_path.write_text(
+        textwrap.dedent(
+            f"""\
+            -e "pkga @ {pkga_path.as_uri()}"
+            -e "pkgb @ {pkgb_path.as_uri()}"
+            """
+        )
+    )
+    script.pip_install_local("pkga", "-c", constraints_path)
+    script.assert_installed(singlemodule="0.0.1")
+    script.assert_installed_editable("pkga")
+    script.assert_installed_editable("pkgb")
 
 
 class TestEditableDirectURL:
