@@ -20,6 +20,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.cli.status_codes import (
+    BROKEN_STDOUT,
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
     UNKNOWN_ERROR,
@@ -147,7 +148,15 @@ class Command(CommandContextMixIn):
             except OSError:
                 pass
 
-            return ERROR
+            # redirect stdout to os.devnull so that the exit cleanup doesn't
+            # produce "BrokenPipeError" when exiting.
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            try:
+                os.dup2(devnull, 1)
+            finally:
+                os.close(devnull)
+
+            return BROKEN_STDOUT
         except KeyboardInterrupt:
             logger.critical("Operation cancelled by user")
             logger.debug("Exception information:", exc_info=True)
