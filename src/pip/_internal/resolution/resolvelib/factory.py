@@ -100,6 +100,8 @@ class Factory:
         ignore_installed: bool,
         ignore_requires_python: bool,
         py_version_info: tuple[int, ...] | None = None,
+        link_candidate_cache: Cache[LinkCandidate] | None = None,
+        editable_candidate_cache: Cache[EditableCandidate] | None = None,
     ) -> None:
         self._finder = finder
         self.preparer = preparer
@@ -111,8 +113,16 @@ class Factory:
         self._ignore_requires_python = ignore_requires_python
 
         self._build_failures: Cache[InstallationError] = {}
-        self._link_candidate_cache: Cache[LinkCandidate] = {}
-        self._editable_candidate_cache: Cache[EditableCandidate] = {}
+        # The candidate caches are normally owned by this Factory but can be
+        # injected so a caller driving multiple resolutions in one process can
+        # amortise candidate construction across them. ``pip install`` itself
+        # runs one resolution per invocation and never sets these.
+        self._link_candidate_cache: Cache[LinkCandidate] = (
+            link_candidate_cache if link_candidate_cache is not None else {}
+        )
+        self._editable_candidate_cache: Cache[EditableCandidate] = (
+            editable_candidate_cache if editable_candidate_cache is not None else {}
+        )
         self._installed_candidate_cache: dict[str, AlreadyInstalledCandidate] = {}
         self._extras_candidate_cache: dict[
             tuple[int, frozenset[NormalizedName]], ExtrasCandidate

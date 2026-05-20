@@ -258,6 +258,12 @@ class RequirementCommand(IndexGroupCommand):
         if resolver_variant == "resolvelib":
             import pip._internal.resolution.resolvelib.resolver
 
+            # Share candidate caches with the build-env installer when one is
+            # available. A package that's both a runtime dep of the user's
+            # request and a build dep of an sdist they're installing is then
+            # constructed once and reused across the main resolver and every
+            # build-env resolver.
+            installer = preparer.build_env_installer
             return pip._internal.resolution.resolvelib.resolver.Resolver(
                 preparer=preparer,
                 finder=finder,
@@ -270,6 +276,8 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
+                link_candidate_cache=installer.link_candidate_cache,
+                editable_candidate_cache=installer.editable_candidate_cache,
             )
         import pip._internal.resolution.legacy.resolver
 
