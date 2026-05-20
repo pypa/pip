@@ -16,6 +16,7 @@ user_guide
 topics/index
 reference/index
 cli/index
+errors
 ```
 
 ```{toctree}

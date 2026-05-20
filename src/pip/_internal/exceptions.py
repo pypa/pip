@@ -78,6 +78,7 @@ class DiagnosticPipError(PipError):
     """
 
     reference: str
+    docs_index = "https://pip.pypa.io/en/stable/errors/#{reference}"
 
     def __init__(
         self,
@@ -106,6 +107,9 @@ class DiagnosticPipError(PipError):
         self.hint_stmt = hint_stmt
 
         self.link = link
+        self.details_link: str | None = self.__class__.docs_index.format(
+            reference=reference
+        )
 
         super().__init__(f"<{self.__class__.__name__}: {self.reference}>")
 
@@ -116,7 +120,8 @@ class DiagnosticPipError(PipError):
             f"message={self.message!r}, "
             f"context={self.context!r}, "
             f"note_stmt={self.note_stmt!r}, "
-            f"hint_stmt={self.hint_stmt!r}"
+            f"hint_stmt={self.hint_stmt!r}, "
+            f"details_link={self.details_link!r}"
             ")>"
         )
 
@@ -179,6 +184,10 @@ class DiagnosticPipError(PipError):
         if self.link is not None:
             yield ""
             yield f"Link: {self.link}"
+
+        if self.details_link is not None:
+            yield ""
+            yield f"For more details, see {self.details_link}"
 
 
 #
