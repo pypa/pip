@@ -75,7 +75,9 @@ def _get_prepared_distribution(
     if tracker_id is not None:
         with build_tracker.track(req, tracker_id):
             abstract_dist.prepare_distribution_metadata(
-                build_env_installer, build_isolation, check_build_deps
+                build_env_installer,
+                build_isolation,
+                check_build_deps,
             )
     return abstract_dist.get_metadata_distribution()
 

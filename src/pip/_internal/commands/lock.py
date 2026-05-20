@@ -62,6 +62,7 @@ class LockCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
 
         self.cmd_opts.add_option(cmdoptions.editable())
 
@@ -103,6 +104,8 @@ class LockCommand(RequirementCommand):
 
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_release_control_exclusive(options)
+        cmdoptions.check_deps_opts_do_not_conflict(options)
+        cmdoptions.check_no_deps_does_not_use_legacy_resolver(options)
 
         session = self.get_default_session(options)
 
