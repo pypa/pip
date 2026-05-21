@@ -1,0 +1,1 @@
+Honor ``--only-final`` when sourcing requirements with ``-r pylock.toml``.
