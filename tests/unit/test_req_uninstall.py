@@ -239,6 +239,79 @@ class TestUninstallPathSet:
         ups.add(path2)
         assert ups._paths == {path1}
 
+    def test_from_dist_setuptools_flat_top_level_fallback(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
+
+        dist_location = os.fspath(tmp_path / "site-packages")
+        os.makedirs(dist_location)
+
+        info_location = os.path.join(dist_location, "mypkg-flat-layout.egg-info")
+        create_file(info_location, "metadata")
+
+        pkg_path = os.path.join(dist_location, "pkg")
+        create_file(pkg_path, "")
+        create_file(f"{pkg_path}.py", "")
+        create_file(f"{pkg_path}.pyc", "")
+        create_file(f"{pkg_path}.pyo", "")
+
+        namespace_pkg_path = os.path.join(dist_location, "namespace_pkg")
+        create_file(namespace_pkg_path, "")
+        create_file(f"{namespace_pkg_path}.py", "")
+        create_file(f"{namespace_pkg_path}.pyc", "")
+        create_file(f"{namespace_pkg_path}.pyo", "")
+
+        dist = Mock()
+        dist.location = dist_location
+        dist.info_location = info_location
+        dist.local = True
+        dist.canonical_name = "mypkg"
+        dist.raw_name = "mypkg"
+        dist.installed_with_setuptools_egg_info = True
+        dist.setuptools_filename = "mypkg"
+        dist.installed_by_distutils = False
+        dist.installed_as_egg = False
+        dist.installed_with_dist_info = False
+        dist.in_usersite = False
+        dist.iter_declared_entries.return_value = None
+        dist.iter_distutils_script_names.return_value = []
+        dist.iter_entry_points.return_value = []
+        dist.is_file.side_effect = lambda filename: filename == "top_level.txt"
+
+        def read_text(filename: str) -> str:
+            if filename == "namespace_packages.txt":
+                return "namespace_pkg"
+            if filename == "top_level.txt":
+                return "pkg\nnamespace_pkg\n"
+            raise FileNotFoundError(filename)
+
+        dist.read_text.side_effect = read_text
+
+        uninstall_pathset = UninstallPathSet.from_dist(dist)
+        normalized_paths = {os.path.normcase(path) for path in uninstall_pathset._paths}
+
+        expected_present = {
+            os.path.normcase(info_location),
+            os.path.normcase(pkg_path),
+            os.path.normcase(f"{pkg_path}.py"),
+            os.path.normcase(f"{pkg_path}.pyc"),
+            os.path.normcase(f"{pkg_path}.pyo"),
+        }
+        expected_absent = {
+            os.path.normcase(namespace_pkg_path),
+            os.path.normcase(f"{namespace_pkg_path}.py"),
+            os.path.normcase(f"{namespace_pkg_path}.pyc"),
+            os.path.normcase(f"{namespace_pkg_path}.pyo"),
+        }
+
+        assert expected_present.issubset(normalized_paths)
+        assert expected_absent.isdisjoint(normalized_paths)
+
 
 class TestStashedUninstallPathSet:
     WALK_RESULT: list[tuple[str, list[str], list[str]]] = [
