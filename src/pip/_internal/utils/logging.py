@@ -175,6 +175,20 @@ class IndentedRenderable:
 
 
 class PipConsole(Console):
+    try:
+        import ctypes
+    except ImportError:
+        ctypes = None
+
+    def __init__(self, **kwargs):
+        # To support environments where ctypes is not available,
+        # Disable legacy Windows console rendering if ctypes is unavailable
+        # (LegacyWindowsTerm requires ctypes for Windows API calls)
+        if "legacy_windows" not in kwargs:
+            if PipConsole.ctypes is None:
+                kwargs["legacy_windows"] = False
+        super().__init__(**kwargs)
+
     def on_broken_pipe(self) -> None:
         # Reraise the original exception, rich 13.8.0+ exits by default
         # instead, preventing our handler from firing.
