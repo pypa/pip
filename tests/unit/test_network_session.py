@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -15,6 +15,8 @@ from pip import __version__
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
     CI_ENVIRONMENT_VARIABLES,
+    InsecureCacheControlAdapter,
+    InsecureHTTPAdapter,
     PipSession,
     user_agent,
 )
@@ -90,6 +92,22 @@ class TestPipSession:
         session = PipSession(cache=os.fspath(tmpdir.joinpath("test-cache")))
 
         assert not hasattr(session.adapters["http://"], "cache")
+
+    @pytest.mark.parametrize(
+        "adapter_cls",
+        [InsecureHTTPAdapter, InsecureCacheControlAdapter],
+    )
+    def test_insecure_adapters_build_connection_without_tls_verification(
+        self, adapter_cls: type[InsecureHTTPAdapter | InsecureCacheControlAdapter]
+    ) -> None:
+        request = requests.Request("GET", "https://example.com/simple/").prepare()
+        adapter = adapter_cls()
+
+        connection = cast(
+            Any, adapter.get_connection_with_tls_context(request, verify=True)
+        )
+
+        assert connection.cert_reqs == "CERT_NONE"
 
     def test_trusted_hosts_adapter(self, tmpdir: Path) -> None:
         session = PipSession(

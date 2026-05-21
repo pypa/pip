@@ -302,6 +302,17 @@ class CacheControlAdapter(_SSLContextAdapterMixin, _BaseCacheControlAdapter):
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
+    def get_connection_with_tls_context(
+        self,
+        request: PreparedRequest,
+        verify: bool | str,
+        proxies: Mapping[str, str] | None = None,
+        cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
+    ) -> ConnectionPool:
+        return super().get_connection_with_tls_context(
+            request=request, verify=False, proxies=proxies, cert=cert
+        )
+
     def cert_verify(
         self,
         conn: ConnectionPool,
@@ -313,6 +324,17 @@ class InsecureHTTPAdapter(HTTPAdapter):
 
 
 class InsecureCacheControlAdapter(CacheControlAdapter):
+    def get_connection_with_tls_context(
+        self,
+        request: PreparedRequest,
+        verify: bool | str,
+        proxies: Mapping[str, str] | None = None,
+        cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
+    ) -> ConnectionPool:
+        return super().get_connection_with_tls_context(
+            request=request, verify=False, proxies=proxies, cert=cert
+        )
+
     def cert_verify(
         self,
         conn: ConnectionPool,
