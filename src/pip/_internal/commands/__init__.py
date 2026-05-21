@@ -30,6 +30,11 @@ commands_dict: dict[str, CommandInfo] = {
         "LockCommand",
         "Generate a lock file.",
     ),
+    "sync": CommandInfo(
+        "pip._internal.commands.sync",
+        "SyncCommand",
+        "Synchronize the current environment with a lock file.",
+    ),
     "download": CommandInfo(
         "pip._internal.commands.download",
         "DownloadCommand",
