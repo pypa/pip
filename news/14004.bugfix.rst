@@ -1,0 +1,1 @@
+Reject tar symlinks that escape the extraction directory in fallback extraction.

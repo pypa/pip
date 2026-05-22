@@ -262,6 +262,14 @@ def is_symlink_target_in_tar(tar: tarfile.TarFile, tarinfo: tarfile.TarInfo) -> 
         return False
 
 
+def is_symlink_target_within_directory(
+    location: str, path: str, tarinfo: tarfile.TarInfo
+) -> bool:
+    """Check if a symbolic link points inside the extraction directory."""
+    link_target = os.path.join(os.path.dirname(path), tarinfo.linkname)
+    return is_within_directory(location, link_target)
+
+
 def _untar_without_filter(
     filename: str,
     location: str,
@@ -287,6 +295,14 @@ def _untar_without_filter(
             ensure_dir(path)
         elif member.issym():
             if not is_symlink_target_in_tar(tar, member):
+                message = (
+                    "The tar file ({}) has a file ({}) trying to install "
+                    "outside target directory ({})"
+                )
+                raise InstallationError(
+                    message.format(filename, member.name, member.linkname)
+                )
+            if not is_symlink_target_within_directory(location, path, member):
                 message = (
                     "The tar file ({}) has a file ({}) trying to install "
                     "outside target directory ({})"

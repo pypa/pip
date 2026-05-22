@@ -425,6 +425,49 @@ class TestUnpackArchives:
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
 
+    def test_unpack_tar_link_target_member_cannot_escape_no_data_filter(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        """
+        Test that an archive member matching the symlink target is not enough
+        to allow writes through the symlink outside the extraction directory.
+        """
+        if hasattr(tarfile, "data_filter"):
+            monkeypatch.delattr("tarfile.data_filter")
+
+        tar_filename = "test_tar_link_escape_no_data_filter.tar"
+        tar_filepath = os.path.join(self.tempdir, tar_filename)
+
+        extract_path = os.path.join(self.tempdir, "extract_path")
+        escaped_path = os.path.join(self.tempdir, "escaped_file")
+
+        with tarfile.open(tar_filepath, "w") as tar:
+            info = tarfile.TarInfo("dir")
+            info.type = tarfile.SYMTYPE
+            info.linkpath = ".."
+            tar.addfile(info)
+
+            file_data = io.BytesIO(b"escaped\n")
+            escaped_file = tarfile.TarInfo("dir/escaped_file")
+            escaped_file.size = len(file_data.getbuffer())
+            tar.addfile(escaped_file, fileobj=file_data)
+
+            target = tarfile.TarInfo("..")
+            target.type = tarfile.DIRTYPE
+            tar.addfile(target)
+
+        with pytest.raises(InstallationError) as e:
+            untar_file(tar_filepath, extract_path)
+
+        msg = (
+            "The tar file ({}) has a file ({}) trying to install outside "
+            "target directory ({})"
+        )
+        assert msg.format(tar_filepath, "dir", "..") in str(e.value)
+
+        assert not os.path.exists(os.path.join(extract_path, "dir"))
+        assert not os.path.exists(escaped_path)
+
 
 def test_unpack_tar_unicode(tmpdir: Path) -> None:
     test_tar = tmpdir / "test.tar"
