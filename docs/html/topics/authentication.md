@@ -42,6 +42,10 @@ URL's hostname from the user's `.netrc` file. This behaviour comes from the
 underlying use of {pypi}`requests`, which in turn delegates it to the
 [Python standard library's `netrc` module][netrc-std-lib].
 
+By default, pip looks for `.netrc` or `_netrc` in the user's home directory.
+To use a different file, set the `NETRC` environment variable to the file's
+path before running pip.
+
 ```{note}
 As mentioned in the [standard library documentation for netrc][netrc-std-lib],
 only ASCII characters are allowed in `.netrc` files. Whitespace and
