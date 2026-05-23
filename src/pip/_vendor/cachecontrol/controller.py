@@ -14,7 +14,7 @@ import re
 import time
 import weakref
 from email.utils import parsedate_tz
-from typing import TYPE_CHECKING, Collection, Mapping
+from typing import TYPE_CHECKING, Collection, Mapping, cast
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
@@ -161,10 +161,15 @@ class CacheController:
         else:
             body_file = None
 
-        result = self.serializer.loads(request, cache_data, body_file)
+        result = self.serializer.loads_with_vary_mismatch(
+            request, cache_data, body_file
+        )
+        if result is self.serializer.vary_mismatch:
+            logger.debug("Cached response ignored: request headers do not match vary")
+            return None
         if result is None:
             logger.warning("Cache entry deserialization failed, entry ignored")
-        return result
+        return cast("HTTPResponse | None", result)
 
     def cached_request(self, request: PreparedRequest) -> HTTPResponse | Literal[False]:
         """

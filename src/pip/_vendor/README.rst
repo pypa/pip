@@ -100,7 +100,8 @@ Modifications
 * ``packaging`` has been modified to import its dependencies from
   ``pip._vendor``.
 * ``CacheControl`` has been modified to import its dependencies from
-  ``pip._vendor``.
+  ``pip._vendor`` and to distinguish cache deserialization failures from
+  vary-header mismatches when loading cache entries.
 * ``requests`` has been modified to import its other dependencies from
   ``pip._vendor`` and to *not* load ``simplejson`` (all platforms) and
   ``pyopenssl`` (Windows).

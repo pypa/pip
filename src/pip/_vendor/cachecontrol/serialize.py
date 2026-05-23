@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 class Serializer:
     serde_version = "4"
+    vary_mismatch = object()
 
     def dumps(
         self,
@@ -68,6 +69,27 @@ class Serializer:
         data: bytes,
         body_file: IO[bytes] | None = None,
     ) -> HTTPResponse | None:
+        return cast(
+            HTTPResponse | None,
+            self._loads(request, data, body_file, return_vary_mismatch=False),
+        )
+
+    def loads_with_vary_mismatch(
+        self,
+        request: PreparedRequest,
+        data: bytes,
+        body_file: IO[bytes] | None = None,
+    ) -> HTTPResponse | object | None:
+        return self._loads(request, data, body_file, return_vary_mismatch=True)
+
+    def _loads(
+        self,
+        request: PreparedRequest,
+        data: bytes,
+        body_file: IO[bytes] | None = None,
+        *,
+        return_vary_mismatch: bool,
+    ) -> HTTPResponse | object | None:
         # Short circuit if we've been given an empty set of data
         if not data:
             return None
@@ -78,14 +100,18 @@ class Serializer:
             return None
 
         data = data[5:]
-        return self._loads_v4(request, data, body_file)
+        return self._loads_v4(
+            request, data, body_file, return_vary_mismatch=return_vary_mismatch
+        )
 
     def prepare_response(
         self,
         request: PreparedRequest,
         cached: Mapping[str, Any],
         body_file: IO[bytes] | None = None,
-    ) -> HTTPResponse | None:
+        *,
+        return_vary_mismatch: bool = False,
+    ) -> HTTPResponse | object | None:
         """Verify our vary headers match and construct a real urllib3
         HTTPResponse object.
         """
@@ -94,13 +120,13 @@ class Serializer:
         # This case is also handled in the controller code when creating
         # a cache entry, but is left here for backwards compatibility.
         if "*" in cached.get("vary", {}):
-            return None
+            return self.vary_mismatch if return_vary_mismatch else None
 
         # Ensure that the Vary headers for the cached response match our
         # request
         for header, value in cached.get("vary", {}).items():
             if request.headers.get(header, None) != value:
-                return None
+                return self.vary_mismatch if return_vary_mismatch else None
 
         body_raw = cached["response"].pop("body")
 
@@ -137,10 +163,14 @@ class Serializer:
         request: PreparedRequest,
         data: bytes,
         body_file: IO[bytes] | None = None,
-    ) -> HTTPResponse | None:
+        *,
+        return_vary_mismatch: bool = False,
+    ) -> HTTPResponse | object | None:
         try:
             cached = msgpack.loads(data, raw=False)
         except ValueError:
             return None
 
-        return self.prepare_response(request, cached, body_file)
+        return self.prepare_response(
+            request, cached, body_file, return_vary_mismatch=return_vary_mismatch
+        )

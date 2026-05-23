@@ -1,0 +1,2 @@
+Avoid warning about cache deserialization when a cached response only misses
+because of its Vary headers.

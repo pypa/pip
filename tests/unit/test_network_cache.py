@@ -4,7 +4,11 @@ from unittest.mock import Mock
 
 import pytest
 
+from pip._vendor.cachecontrol.cache import DictCache
 from pip._vendor.cachecontrol.caches import FileCache
+from pip._vendor.cachecontrol.controller import CacheController
+from pip._vendor.requests import Request
+from pip._vendor.urllib3 import HTTPResponse
 
 from pip._internal.network.cache import SafeFileCache
 
@@ -113,3 +117,40 @@ class TestSafeFileCache:
             cache = SafeFileCache(os.fspath(cache_tmpdir))
             cache.set(key, b"bar")
         assert (os.stat(cache._get_cache_path(key)).st_mode & 0o777) == 0o600
+
+
+def test_vary_mismatch_does_not_warn_about_deserialization(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    cache = DictCache()
+    controller = CacheController(cache=cache)
+    request = Request(
+        "GET",
+        "https://example.com/packages/example.whl",
+        headers={"Accept-Encoding": "gzip"},
+    ).prepare()
+    response = HTTPResponse(
+        body=b"cached wheel",
+        headers={
+            "Cache-Control": "max-age=600",
+            "Date": "Thu, 01 Jan 1970 00:00:00 GMT",
+            "Vary": "Accept-Encoding",
+        },
+        status=200,
+    )
+    assert request.url is not None
+    cache.set(
+        request.url,
+        controller.serializer.dumps(request, response, body=b"cached wheel"),
+    )
+
+    changed_request = Request(
+        "GET",
+        request.url,
+        headers={"Accept-Encoding": "gzip, zstd"},
+    ).prepare()
+
+    with caplog.at_level("WARNING", logger="pip._vendor.cachecontrol.controller"):
+        assert controller.cached_request(changed_request) is False
+
+    assert "Cache entry deserialization failed" not in caplog.text
