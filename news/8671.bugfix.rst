@@ -1,0 +1,1 @@
+Stop user from soft-locking themselves by adding an invalid ``use-feature`` value.

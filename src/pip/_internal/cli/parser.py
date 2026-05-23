@@ -212,7 +212,7 @@ class ConfigOptionParser(CustomOptionParser):
     ) -> None:
         self.name = name
         self.config = Configuration(isolated)
-        self.invalid_variables = []
+        self.invalid_variables: list[Any] = []
         assert self.name
         super().__init__(*args, **kwargs)
 
@@ -222,9 +222,7 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            logger.warning(
-                "Ignoring configuration key %s: %s", key, exc
-            )
+            logger.warning("Ignoring configuration key %s: %s", key, exc)
             self.invalid_variables.append(val)
             return None
 
