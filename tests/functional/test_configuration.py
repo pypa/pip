@@ -57,6 +57,15 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "unset", "test.blah")
         script.pip("config", "get", "test.blah", expect_error=True)
 
+    def test_invalid_use_feature_doesnt_softlock(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.pip("config", "set", "global.use-feature", "blah")
+
+        result = script.pip("config", "list")
+        assert "Ignoring configuration key" in result.stderr
+        assert result.returncode == 0
+
     def test_listing_is_correct(self, script: PipTestEnvironment) -> None:
         script.pip("config", "set", "test.listing-beta", "2")
         script.pip("config", "set", "test.listing-alpha", "1")
