@@ -1,0 +1,1 @@
+Document how to move isolated build temporary directories.

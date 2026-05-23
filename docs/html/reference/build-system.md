@@ -35,6 +35,13 @@ For example, a project that needs an older version of setuptools to build can
 still be installed, even if the user has a newer version installed (and
 without silently replacing that version).
 
+pip creates these temporary directories using Python's standard temporary file
+handling. To place them under a different root directory, set the standard
+temporary-directory environment variable for your platform before running pip
+(`TMPDIR` on Unix, or `TEMP`/`TMP` on Windows). The directory must already
+exist; Python may fall back to another temporary location if the configured
+directory is missing or unusable.
+
 ### Build-time dependencies
 
 Introduced in {pep}`518`, the `build-system.requires` key in the
