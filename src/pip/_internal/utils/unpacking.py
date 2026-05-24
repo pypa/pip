@@ -79,6 +79,7 @@ def has_leading_dir(paths: Iterable[str]) -> bool:
 def is_within_directory(directory: str, target: str) -> bool:
     """
     Return true if the absolute path of target is within the directory
+    (including when target is equal to the directory).
     """
     abs_directory = os.path.abspath(directory)
     abs_target = os.path.abspath(target)
