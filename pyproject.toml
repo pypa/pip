@@ -160,6 +160,8 @@ substitute = [
   { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexers." },
 ]
 drop = [
+  # Don't include dist-info directories in the vendored code
+  "*.dist-info/",
   # contains unnecessary scripts
   "bin/",
   # interpreter and OS specific msgpack libs
