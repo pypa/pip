@@ -83,6 +83,7 @@ class InstallRequirement:
         permit_editable_wheels: bool = False,
         locked_link: Link | None = None,
         locked_version: Version | None = None,
+        explicit_no_default_extras: bool = False,
     ) -> None:
         assert req is None or isinstance(req, Requirement), req
         self.req = req
@@ -137,6 +138,11 @@ class InstallRequirement:
             self.extras = req.extras
         else:
             self.extras = set()
+        # PEP 771: True when the user wrote ``pkg[]`` (or its dependency-spec
+        # equivalent), explicitly suppressing this distribution's default
+        # extras. Distinct from ``not self.extras`` (which can also mean
+        # "no extras specified, fall back to defaults").
+        self.explicit_no_default_extras = explicit_no_default_extras
         if markers is None and req:
             markers = req.marker
         self.markers = markers

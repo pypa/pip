@@ -84,6 +84,7 @@ def make_install_req_from_link(
     ireq.original_link = template.original_link
     ireq.link = link
     ireq.extras = template.extras
+    ireq.explicit_no_default_extras = template.explicit_no_default_extras
     return ireq
 
 
@@ -106,6 +107,7 @@ def make_install_req_from_editable(
         config_settings=template.config_settings,
     )
     ireq.extras = template.extras
+    ireq.explicit_no_default_extras = template.explicit_no_default_extras
     return ireq
 
 
@@ -128,6 +130,7 @@ def _make_install_req_from_dist(
         config_settings=template.config_settings,
     )
     ireq.satisfied_by = dist
+    ireq.explicit_no_default_extras = template.explicit_no_default_extras
     return ireq
 
 
@@ -272,9 +275,13 @@ class _InstallRequirementBackedCandidate(Candidate):
         # Emit the Requires-Python requirement first to fail fast on
         # unsupported candidates and avoid pointless downloads/preparation.
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
-        requires = self.dist.iter_dependencies() if with_requires else ()
-        for r in requires:
-            yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
+        if not with_requires:
+            return
+        extras = self._factory._effective_extras(self._ireq, self.dist)
+        for r in self.dist.iter_dependencies(extras):
+            yield from self._factory.make_requirements_from_spec(
+                str(r), self._ireq, extras
+            )
 
     def get_install_requirement(self) -> InstallRequirement | None:
         return self._ireq
@@ -423,8 +430,11 @@ class AlreadyInstalledCandidate(Candidate):
             return
 
         try:
-            for r in self.dist.iter_dependencies():
-                yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
+            extras = self._factory._effective_extras(self._ireq, self.dist)
+            for r in self.dist.iter_dependencies(extras):
+                yield from self._factory.make_requirements_from_spec(
+                    str(r), self._ireq, extras
+                )
         except InvalidRequirement as exc:
             raise InvalidInstalledPackage(dist=self.dist, invalid_exc=exc) from None
 
