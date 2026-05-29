@@ -62,7 +62,7 @@ class TestBasicLoading(ConfigurationMixin):
     ) -> None:
         script.pip("config", "set", "global.use-feature", "blah")
 
-        result = script.pip("config", "list")
+        result = script.pip("list")
         assert "Ignoring configuration key" in result.stderr
         assert result.returncode == 0
 
