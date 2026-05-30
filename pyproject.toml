@@ -166,9 +166,6 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
-  # optional accelerator extension libraries
-  "*mypyc*.so",
-  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
