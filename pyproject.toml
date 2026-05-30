@@ -148,6 +148,7 @@ type = [
 destination = "src/pip/_vendor/"
 requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
+sbom-file = "src/pip/_vendor/bom.cdx.json"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
 patches-dir = "tools/vendoring/patches"
