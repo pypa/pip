@@ -543,6 +543,8 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
         # Make sure we get UTF-8 on output, even on Windows...
         environ["PYTHONIOENCODING"] = "UTF-8"
+        # Custom env flag so pip knows it's running in test environment
+        environ["PIP_TEST_ENV"] = "1"
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
