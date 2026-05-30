@@ -9,6 +9,15 @@
 
 .. towncrier release notes start
 
+26.1.1 (2026-05-04)
+===================
+
+Bug Fixes
+---------
+
+- Fix issue where uninstallation left behind empty directories. Revert the
+  removal of the adjacent ``__pycache__`` directory when a .py file is removed. (`#13973 <https://github.com/pypa/pip/issues/13973>`_)
+
 26.1 (2026-04-26)
 =================
 
