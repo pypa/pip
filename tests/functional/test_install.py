@@ -351,15 +351,16 @@ def test_install_warns_on_unexpected_post_install_import(
         )
     )
 
-    # We're promoting PipDeprecationWarnings into error when running pip test suite
+    # Make sure PipDeprecationWarnings don't turn into errors
+    script.environ["PIP_TEST_ENV"] = ""
     result = script.run(
-        "python", str(runner), str(wheel_path.parent), expect_error=True
+        "python", str(runner), str(wheel_path.parent), expect_stderr=True
     )
     assert (
         "Unexpected import of 'pip_unexpected_module_xyz' "
         "after pip install started" in result.stderr
     )
-    assert "line 7, in _patched_get_environment"
+    assert "run_install.py:7)" in result.stderr
 
 
 def test_install_exit_status_code_when_no_requirements(
