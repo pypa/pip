@@ -532,8 +532,9 @@ class ExtrasCandidate(Candidate):
 
         # The user may have specified extras that the candidate doesn't
         # support. We ignore any unsupported extras here.
-        valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
-        invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
+        provided_extras = set(self.base.dist.iter_provided_extras())
+        valid_extras = self.extras.intersection(provided_extras)
+        invalid_extras = self.extras.difference(provided_extras)
         for extra in sorted(invalid_extras):
             logger.warning(
                 "%s %s does not provide the extra '%s'",
