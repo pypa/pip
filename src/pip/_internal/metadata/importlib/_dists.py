@@ -109,6 +109,7 @@ class Distribution(BaseDistribution):
         self._dist = dist
         self._info_location = info_location
         self._installed_location = installed_location
+        self._parsed_requirements: dict[str, Requirement] = {}
 
     @classmethod
     def from_directory(cls, directory: str) -> BaseDistribution:
@@ -226,7 +227,12 @@ class Distribution(BaseDistribution):
         for req_string in self.metadata.get_all("Requires-Dist", []):
             # strip() because email.message.Message.get_all() may return a leading \n
             # in case a long header was wrapped.
-            req = get_requirement(req_string.strip())
+            stripped = req_string.strip()
+            try:
+                req = self._parsed_requirements[stripped]
+            except KeyError:
+                req = get_requirement(stripped)
+                self._parsed_requirements[stripped] = req
             if not req.marker:
                 yield req
             elif not extras and req.marker.evaluate({"extra": ""}):

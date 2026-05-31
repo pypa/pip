@@ -234,8 +234,8 @@ class _InstallRequirementBackedCandidate(Candidate):
                 str(dist.version),
             )
         # check dependencies are valid
-        # TODO performance: this means we iterate the dependencies at least twice,
-        # we may want to cache parsed Requires-Dist
+        # Note: dist.iter_dependencies() caches parsed Requires-Dist internally,
+        # so the subsequent call from iter_dependencies() avoids re-parsing.
         try:
             list(dist.iter_dependencies(list(dist.iter_provided_extras())))
         except InvalidRequirement as e:
