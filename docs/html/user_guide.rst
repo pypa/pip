@@ -714,8 +714,8 @@ reference pages.
 Searching for Packages
 ======================
 
-pip can search remote indexes that provide an XML-RPC search API (such as
-Artifactory) for packages using the ``pip search`` command:
+pip can search remote indexes that provide an XML-RPC search API for
+packages using the ``pip search`` command:
 
 .. tab:: Unix/macOS
 
