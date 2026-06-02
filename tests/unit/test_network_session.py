@@ -33,6 +33,12 @@ def test_user_agent() -> None:
     assert user_agent.startswith(f"pip/{__version__}")
 
 
+def test_accept_encoding_is_fixed() -> None:
+    # Pinned so it doesn't vary with zstd availability, which would break cache
+    # reuse across interpreters (pypa/pip#13979).
+    assert PipSession().headers["Accept-Encoding"] == "gzip, deflate"
+
+
 @pytest.mark.parametrize(
     "name, expected_like_ci",
     [
