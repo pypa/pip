@@ -6,7 +6,7 @@ from logging import DEBUG, ERROR, INFO, WARNING
 
 import pytest
 
-from pip._internal.cli.spinners import SpinnerInterface
+from pip._internal.cli.ui import SpinnerInterface
 from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import hide_value
