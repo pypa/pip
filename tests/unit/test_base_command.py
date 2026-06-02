@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.cli.status_codes import SUCCESS, VIRTUALENV_NOT_FOUND
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
@@ -64,6 +64,10 @@ class FakeCommandWithUnicode(FakeCommand):
         return SUCCESS
 
 
+class FakeCommandIgnoringRequireVenv(FakeCommand):
+    ignore_require_venv = True
+
+
 class TestCommand:
     def call_main(self, capfd: pytest.CaptureFixture[str], args: list[str]) -> str:
         """
@@ -98,6 +102,52 @@ class TestCommand:
 
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
+
+    def test_require_virtualenv_exits_when_not_in_venv(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "pip._internal.cli.base_command.running_under_virtualenv",
+            lambda: False,
+        )
+        run_func = Mock(return_value=SUCCESS)
+
+        with pytest.raises(SystemExit) as excinfo:
+            FakeCommand(run_func=run_func).main(["--require-virtualenv"])
+
+        assert excinfo.value.code == VIRTUALENV_NOT_FOUND
+        run_func.assert_not_called()
+
+    def test_require_virtualenv_runs_when_in_venv(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "pip._internal.cli.base_command.running_under_virtualenv",
+            lambda: True,
+        )
+        run_func = Mock(return_value=SUCCESS)
+
+        assert FakeCommand(run_func=run_func).main(["--require-virtualenv"]) == SUCCESS
+
+        run_func.assert_called_once()
+
+    def test_require_virtualenv_can_be_ignored(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "pip._internal.cli.base_command.running_under_virtualenv",
+            lambda: False,
+        )
+        run_func = Mock(return_value=SUCCESS)
+
+        assert (
+            FakeCommandIgnoringRequireVenv(run_func=run_func).main(
+                ["--require-virtualenv"]
+            )
+            == SUCCESS
+        )
+
+        run_func.assert_called_once()
 
 
 @patch("pip._internal.cli.index_command.Command.pip_version_check")
