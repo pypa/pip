@@ -9,7 +9,7 @@ from typing import Any, Callable, Literal, Union
 
 from pip._vendor.rich.markup import escape
 
-from pip._internal.cli.spinners import SpinnerInterface, open_spinner
+from pip._internal.cli import ui
 from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.logging import VERBOSE, subprocess_logger
 from pip._internal.utils.misc import HiddenText
@@ -64,7 +64,6 @@ def call_subprocess(
     extra_ok_returncodes: Iterable[int] | None = None,
     extra_environ: Mapping[str, Any] | None = None,
     unset_environ: Iterable[str] | None = None,
-    spinner: SpinnerInterface | None = None,
     log_failed_cmd: bool | None = True,
     stdout_only: bool | None = False,
     *,
@@ -115,10 +114,6 @@ def call_subprocess(
     # Whether the subprocess will be visible in the console.
     showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
 
-    # Only use the spinner if we're not showing the subprocess output
-    # and we have a spinner.
-    use_spinner = not showing_subprocess and spinner is not None
-
     log_subprocess("Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
@@ -159,10 +154,6 @@ def call_subprocess(
 
             # Show the line immediately.
             log_subprocess(line)
-            # Update the spinner.
-            if use_spinner:
-                assert spinner
-                spinner.spin()
         try:
             proc.wait()
         finally:
@@ -183,12 +174,6 @@ def call_subprocess(
         output = out
 
     proc_had_error = proc.returncode and proc.returncode not in extra_ok_returncodes
-    if use_spinner:
-        assert spinner
-        if proc_had_error:
-            spinner.finish("error")
-        else:
-            spinner.finish("done")
     if proc_had_error:
         if on_returncode == "raise":
             error = InstallationSubprocessError(
@@ -236,13 +221,12 @@ def runner_with_spinner_message(message: str) -> Callable[..., None]:
         cwd: str | None = None,
         extra_environ: Mapping[str, Any] | None = None,
     ) -> None:
-        with open_spinner(message) as spinner:
+        with ui.status(message):
             call_subprocess(
                 cmd,
                 command_desc=message,
                 cwd=cwd,
                 extra_environ=extra_environ,
-                spinner=spinner,
             )
 
     return runner
