@@ -15,7 +15,7 @@ from typing import (
     Optional,
 )
 
-from pip._internal.cli.spinners import SpinnerInterface
+from pip._internal.cli.ui import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
     HiddenText,
