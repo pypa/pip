@@ -1,0 +1,1 @@
+Consolidate spinner and progress bar functionality into a unified ``ui`` module and switch to Rich's ``Status`` context manager for proper spinner rendering. This improves performance by eliminating per-line syscall overhead and enabling Rich's optimized terminal batching, while fixing issues with ANSI codes appearing in test output.
