@@ -226,8 +226,7 @@ class TestCallSubprocess:
             call_subprocess(
                 args,
                 command_desc="test info logging with subprocess error",
-                )
-        result = None
+            )
         exception = exc.value
         assert exception.reference == "subprocess-exited-with-error"
         assert "exit code: 1" in exception.message
@@ -316,7 +315,7 @@ class TestCallSubprocess:
                 command_desc="spinner go spinny",
                 show_stdout=show_stdout,
                 extra_ok_returncodes=extra_ok_returncodes,
-                )
+            )
         except Exception as exc:
             exc_type = type(exc)
         else:
