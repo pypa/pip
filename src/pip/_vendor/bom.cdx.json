@@ -22,11 +22,11 @@
       "version": "2026.2.25"
     },
     {
-      "bom-ref": "pkg:pypi/distlib@0.4.0",
+      "bom-ref": "pkg:pypi/distlib@0.4.1",
       "name": "distlib",
-      "purl": "pkg:pypi/distlib@0.4.0",
+      "purl": "pkg:pypi/distlib@0.4.1",
       "type": "library",
-      "version": "0.4.0"
+      "version": "0.4.1"
     },
     {
       "bom-ref": "pkg:pypi/distro@1.9.0",
@@ -139,7 +139,7 @@
       "dependsOn": [
         "pkg:pypi/CacheControl@0.14.4",
         "pkg:pypi/certifi@2026.2.25",
-        "pkg:pypi/distlib@0.4.0",
+        "pkg:pypi/distlib@0.4.1",
         "pkg:pypi/distro@1.9.0",
         "pkg:pypi/idna@3.11",
         "pkg:pypi/msgpack@1.1.2",
@@ -165,7 +165,7 @@
       "ref": "pkg:pypi/certifi@2026.2.25"
     },
     {
-      "ref": "pkg:pypi/distlib@0.4.0"
+      "ref": "pkg:pypi/distlib@0.4.1"
     },
     {
       "ref": "pkg:pypi/distro@1.9.0"

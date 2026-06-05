@@ -1982,3 +1982,12 @@ def get_platform():
     if cross_compilation_target not in _TARGET_TO_PLAT:
         return get_host_platform()
     return _TARGET_TO_PLAT[cross_compilation_target]
+
+
+def is_in_directory(path, target):
+    """
+    Check if a path is inside a target directory. This doesn't check case (might be an issue on Windows)
+    """
+    path = os.path.abspath(path)
+    target = os.path.abspath(target)
+    return path == target or path.startswith(target + os.sep)
