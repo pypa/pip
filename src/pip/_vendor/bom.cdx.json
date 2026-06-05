@@ -127,11 +127,11 @@
       "version": "0.10.4"
     },
     {
-      "bom-ref": "pkg:pypi/urllib3@2.6.3",
+      "bom-ref": "pkg:pypi/urllib3@2.7.0",
       "name": "urllib3",
-      "purl": "pkg:pypi/urllib3@2.6.3",
+      "purl": "pkg:pypi/urllib3@2.7.0",
       "type": "library",
-      "version": "2.6.3"
+      "version": "2.7.0"
     }
   ],
   "dependencies": [
@@ -154,7 +154,7 @@
         "pkg:pypi/tomli@2.3.1",
         "pkg:pypi/tomli-w@1.2.0",
         "pkg:pypi/truststore@0.10.4",
-        "pkg:pypi/urllib3@2.6.3"
+        "pkg:pypi/urllib3@2.7.0"
       ],
       "ref": "bom-ref:pip"
     },
@@ -210,7 +210,7 @@
       "ref": "pkg:pypi/truststore@0.10.4"
     },
     {
-      "ref": "pkg:pypi/urllib3@2.6.3"
+      "ref": "pkg:pypi/urllib3@2.7.0"
     }
   ],
   "metadata": {
