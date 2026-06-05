@@ -64,11 +64,11 @@
       "version": "4.5.1"
     },
     {
-      "bom-ref": "pkg:pypi/pygments@2.19.2",
+      "bom-ref": "pkg:pypi/pygments@2.20.0",
       "name": "pygments",
-      "purl": "pkg:pypi/pygments@2.19.2",
+      "purl": "pkg:pypi/pygments@2.20.0",
       "type": "library",
-      "version": "2.19.2"
+      "version": "2.20.0"
     },
     {
       "bom-ref": "pkg:pypi/pyproject-hooks@1.2.0",
@@ -145,7 +145,7 @@
         "pkg:pypi/msgpack@1.1.2",
         "pkg:pypi/packaging@26.2",
         "pkg:pypi/platformdirs@4.5.1",
-        "pkg:pypi/pygments@2.19.2",
+        "pkg:pypi/pygments@2.20.0",
         "pkg:pypi/pyproject-hooks@1.2.0",
         "pkg:pypi/requests@2.33.1",
         "pkg:pypi/resolvelib@1.2.1",
@@ -183,7 +183,7 @@
       "ref": "pkg:pypi/platformdirs@4.5.1"
     },
     {
-      "ref": "pkg:pypi/pygments@2.19.2"
+      "ref": "pkg:pypi/pygments@2.20.0"
     },
     {
       "ref": "pkg:pypi/pyproject-hooks@1.2.0"
