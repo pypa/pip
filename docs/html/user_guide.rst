@@ -714,8 +714,8 @@ reference pages.
 Searching for Packages
 ======================
 
-pip can search `PyPI`_ for packages using the ``pip search``
-command:
+pip can search remote indexes that provide an XML-RPC search API for
+packages using the ``pip search`` command:
 
 .. tab:: Unix/macOS
 
@@ -731,6 +731,12 @@ command:
 
 The query will be used to search the names and summaries of all
 packages.
+
+.. note::
+
+   `PyPI`_ has removed its XML-RPC search API, so ``pip search`` no longer
+   works against PyPI. To search for packages on PyPI, use the
+   `PyPI search page <https://pypi.org/search/>`_ in a browser instead.
 
 For more information and examples, see the :ref:`pip search` reference.
 
