@@ -1,2 +1,0 @@
-Clarify in the user guide that ``pip search`` relies on the XML-RPC search
-API, which PyPI has removed, and point users to the PyPI search page instead.
