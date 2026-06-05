@@ -36,11 +36,11 @@
       "version": "1.9.0"
     },
     {
-      "bom-ref": "pkg:pypi/idna@3.11",
+      "bom-ref": "pkg:pypi/idna@3.18",
       "name": "idna",
-      "purl": "pkg:pypi/idna@3.11",
+      "purl": "pkg:pypi/idna@3.18",
       "type": "library",
-      "version": "3.11"
+      "version": "3.18"
     },
     {
       "bom-ref": "pkg:pypi/msgpack@1.1.2",
@@ -141,7 +141,7 @@
         "pkg:pypi/certifi@2026.5.20",
         "pkg:pypi/distlib@0.4.1",
         "pkg:pypi/distro@1.9.0",
-        "pkg:pypi/idna@3.11",
+        "pkg:pypi/idna@3.18",
         "pkg:pypi/msgpack@1.1.2",
         "pkg:pypi/packaging@26.2",
         "pkg:pypi/platformdirs@4.5.1",
@@ -171,7 +171,7 @@
       "ref": "pkg:pypi/distro@1.9.0"
     },
     {
-      "ref": "pkg:pypi/idna@3.11"
+      "ref": "pkg:pypi/idna@3.18"
     },
     {
       "ref": "pkg:pypi/msgpack@1.1.2"
