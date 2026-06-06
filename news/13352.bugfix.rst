@@ -1,0 +1,1 @@
+Show the reason when pip's self-version check fails while accessing local files.

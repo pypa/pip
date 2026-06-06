@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Callable
 from unittest import mock
@@ -132,6 +133,119 @@ def test_index_group_pip_version_check(
         mock_version_check.assert_called_once()
     else:
         mock_version_check.assert_not_called()
+
+
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")
+def test_index_group_pip_version_check_shows_os_error_reason(
+    mock_version_check: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    command = create_command("download")
+    options = command.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+    mock_version_check.side_effect = OSError("failed to read cache")
+
+    with caplog.at_level(logging.WARNING):
+        with command.pip_version_check(options, []):
+            pass
+
+    assert caplog.messages == [
+        "There was an error checking the latest version of pip. (failed to read cache)",
+    ]
+
+
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")
+def test_index_group_pip_version_check_hides_empty_os_error_reason(
+    mock_version_check: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    command = create_command("download")
+    options = command.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+    mock_version_check.side_effect = OSError()
+
+    with caplog.at_level(logging.WARNING):
+        with command.pip_version_check(options, []):
+            pass
+
+    assert caplog.messages == [
+        "There was an error checking the latest version of pip.",
+    ]
+
+
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")
+def test_index_group_pip_version_check_hides_non_os_error_reason(
+    mock_version_check: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    command = create_command("download")
+    options = command.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+    mock_version_check.side_effect = RuntimeError("token=secret")
+
+    with caplog.at_level(logging.WARNING):
+        with command.pip_version_check(options, []):
+            pass
+
+    assert caplog.messages == [
+        "There was an error checking the latest version of pip.",
+    ]
+
+
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")
+def test_index_group_pip_version_check_keeps_debug_traceback(
+    mock_version_check: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    command = create_command("download")
+    options = command.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+    mock_version_check.side_effect = OSError("failed to read cache")
+
+    with caplog.at_level(logging.DEBUG, logger="pip._internal.cli.index_command"):
+        with command.pip_version_check(options, []):
+            pass
+
+    assert [
+        record.message
+        for record in caplog.records
+        if record.name == "pip._internal.cli.index_command"
+    ] == [
+        "There was an error checking the latest version of pip. (failed to read cache)",
+        "See below for error",
+    ]
+    debug_record = caplog.records[-1]
+    assert debug_record.levelno == logging.DEBUG
+    assert debug_record.exc_info is not None
+
+
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check_emit")
+@mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")
+def test_index_group_pip_version_check_emit_shows_os_error_reason(
+    mock_version_check: mock.Mock,
+    mock_emit: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    command = create_command("download")
+    options = command.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+    mock_version_check.return_value = mock.sentinel.upgrade_prompt
+    mock_emit.side_effect = OSError("failed to write cache")
+
+    with caplog.at_level(logging.WARNING):
+        with command.pip_version_check(options, []):
+            pass
+
+    mock_emit.assert_called_once_with(mock.sentinel.upgrade_prompt)
+    assert caplog.messages == [
+        "There was an error checking the latest version of pip. "
+        "(failed to write cache)",
+    ]
 
 
 @mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")

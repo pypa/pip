@@ -151,6 +151,19 @@ def _pip_self_version_check_emit(upgrade_prompt: UpgradePrompt | None) -> None:
     pip_self_version_check_emit(upgrade_prompt)
 
 
+def _log_pip_self_version_check_error(error: Exception) -> None:
+    message = "There was an error checking the latest version of pip."
+    if isinstance(error, OSError):
+        reason = str(error)
+        if reason:
+            logger.warning("%s (%s)", message, reason)
+            logger.debug("See below for error", exc_info=True)
+            return
+
+    logger.warning(message)
+    logger.debug("See below for error", exc_info=True)
+
+
 class IndexGroupCommand(Command, SessionCommandMixin):
     """
     Abstract base class for commands with the index_group options.
@@ -198,15 +211,13 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             )
             with session:
                 upgrade_prompt = _pip_self_version_check_fetch(session, options)
-        except Exception:
-            logger.warning("There was an error checking the latest version of pip.")
-            logger.debug("See below for error", exc_info=True)
+        except Exception as error:
+            _log_pip_self_version_check_error(error)
 
         try:
             yield
         finally:
             try:
                 _pip_self_version_check_emit(upgrade_prompt)
-            except Exception:
-                logger.warning("There was an error checking the latest version of pip.")
-                logger.debug("See below for error", exc_info=True)
+            except Exception as error:
+                _log_pip_self_version_check_error(error)
