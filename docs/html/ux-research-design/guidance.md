@@ -409,7 +409,7 @@ Given pip's interface is text, it is particularly important that clear and consi
 
 The following copywriting Style Guides may be useful to the pip team:
 
-- [Warehouse (PyPI) copywriting styleguide and glossary of terms](https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology)
+- [Warehouse (PyPI) copywriting styleguide and glossary of terms](https://warehouse.pypa.io/ui-principles/#4-write-clearly-with-consistent-style-and-terminology)
 - Firefox:
   - [Voice and Tone](https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fdesign.firefox.com%2Fphoton%2Fcopy%2Fvoice-and-tone.html)
   - [Writing for users](https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fdesign.firefox.com%2Fphoton%2Fcopy%2Fwriting-for-users.html)
