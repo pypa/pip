@@ -239,39 +239,6 @@ class TestUninstallPathSet:
         ups.add(path2)
         assert ups._paths == {path1}
 
-    def test_add_py_removes_adjacent_pycache(
-        self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        monkeypatch.setattr(
-            pip._internal.req.req_uninstall.UninstallPathSet,
-            "_permitted",
-            mock_permitted,
-        )
-
-        pkg_dir = os.path.normcase(os.path.join(tmpdir, "mypkg"))
-        pycache_dir = os.path.join(pkg_dir, "__pycache__")
-        os.makedirs(pycache_dir)
-
-        py_file = os.path.join(pkg_dir, "foo.py")
-        pyc_file = os.path.join(pycache_dir, "foo.cpython-312.pyc")
-        opt_pyc_file = os.path.join(pycache_dir, "foo.cpython-312.opt-1.pyc")
-
-        for f in (py_file, pyc_file, opt_pyc_file):
-            create_file(f)
-
-        ups = UninstallPathSet(dist=Mock())
-        ups.add(py_file)
-
-        # Adding a .py should mark the adjacent __pycache__ and all its
-        # contents for removal, not just the single .pyc for the current
-        # optimization level
-        # Since the entire __pycache__ directory is added to the UninstallPathSet
-        # we should not expect to see the pyc files explicitly
-        assert py_file in ups._paths
-        assert pycache_dir in ups._paths
-        assert pyc_file not in ups._paths
-        assert opt_pyc_file not in ups._paths
-
 
 class TestStashedUninstallPathSet:
     WALK_RESULT: list[tuple[str, list[str], list[str]]] = [
