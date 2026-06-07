@@ -28,9 +28,14 @@ from tests.lib.venv import VirtualEnvironment
 distribute_re = re.compile("^distribute==[0-9.]+\n", re.MULTILINE)
 
 
+def _python_version_comment() -> str:
+    return f"# Python {sys.version.split()[0]}\n"
+
+
 def _check_output(result: str, expected: str) -> None:
     checker = OutputChecker()
     actual = str(result)
+    expected = _python_version_comment() + expected
 
     # FIXME!  The following is a TOTAL hack.  For some reason the
     # __str__ result for pkg_resources.Requirement gets downcased on
@@ -53,6 +58,11 @@ def _check_output(result: str, expected: str) -> None:
     assert checker.check_output(expected, actual, ELLIPSIS), (
         banner("EXPECTED") + expected + banner("ACTUAL") + actual + banner(6 * "=")
     )
+
+
+def test_freeze_outputs_python_version_comment(script: PipTestEnvironment) -> None:
+    result = script.pip("freeze")
+    assert result.stdout.splitlines()[0] == _python_version_comment().rstrip()
 
 
 def test_basic_freeze(script: PipTestEnvironment) -> None:

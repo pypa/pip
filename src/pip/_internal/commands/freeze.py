@@ -94,6 +94,7 @@ class FreezeCommand(Command):
 
         cmdoptions.check_list_path_option(options)
 
+        sys.stdout.write(f"# Python {sys.version.split()[0]}\n")
         for line in freeze(
             requirement=options.requirements,
             local_only=options.local,
