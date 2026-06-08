@@ -1,2 +1,0 @@
-Send a consistent ``Accept-Encoding`` header to avoid a spurious ``Cache entry
-deserialization failed`` warning.

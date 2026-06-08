@@ -174,11 +174,13 @@ class VirtualEnvironment:
                     site.ENABLE_USER_SITE = {self._user_site_packages}
                     # First, drop system-sites related paths.
                     original_sys_path = sys.path[:]
+                    # To discover system-sites related paths, clear sys.path
+                    # and build a new one with only system paths.
+                    sys.path = []
                     known_paths = set()
                     for path in site.getsitepackages():
                         site.addsitedir(path, known_paths=known_paths)
-                    system_paths = sys.path[len(original_sys_path):]
-                    for path in system_paths:
+                    for path in sys.path:
                         if path in original_sys_path:
                             original_sys_path.remove(path)
                     sys.path = original_sys_path
