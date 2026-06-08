@@ -940,9 +940,15 @@ class PackageFinder:
             if project_name == "requirements-txt":
                 pass
             else:
+                for url, exc in error_context.network_errors:
+                    logger.warning("Failed to fetch %s: %s", url, exc)
                 raise InstallationError(
-                    f"Could not verify {project_name}:"
-                    f"{error_context.network_errors[-1][-1]}"
+                    f"Could not find a version of {project_name} due to network errors."
+                    + (
+                        " See above for details."
+                        if logger.isEnabledFor(logging.WARNING)
+                        else ""
+                    )
                 )
 
         return self._all_candidates[project_name]

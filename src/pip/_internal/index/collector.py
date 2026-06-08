@@ -362,13 +362,12 @@ def _get_index_content(
 
     try:
         resp = _get_simple_response(url, session=session)
-    except _NotHTTP as exc:
+    except _NotHTTP:
         logger.warning(
             "Skipping page %s because it looks like an archive, and cannot "
             "be checked by a HTTP HEAD request.",
             link,
         )
-        _record_error_if_present(error_context, str(link.url), exc)
     except _NotAPIContent as exc:
         logger.warning(
             "Skipping page %s because the %s request got Content-Type: %s. "
@@ -378,7 +377,6 @@ def _get_index_content(
             exc.request_desc,
             exc.content_type,
         )
-        _record_error_if_present(error_context, str(link.url), exc)
     except NetworkConnectionError as exc:
         _handle_get_simple_fail(link, exc)
         _record_error_if_present(error_context, str(link.url), exc)
