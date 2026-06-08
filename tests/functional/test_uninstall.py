@@ -595,7 +595,7 @@ def test_uninstall_without_record_fails(
     if not isinstance(installer, str) or not installer.strip() or installer == "pip":
         hint = (
             "You might be able to recover from this via: "
-            "pip install --force-reinstall --no-deps simple.dist==0.1"
+            "pip install --ignore-installed --no-deps simple.dist==0.1"
         )
     elif installer:
         hint = f"The package was installed by {installer}."

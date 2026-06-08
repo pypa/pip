@@ -19,7 +19,7 @@ from typing import (
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import InvalidVersion, Version, _BaseVersion
+from pip._vendor.packaging.version import InvalidVersion, _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
@@ -137,7 +137,7 @@ class LinkEvaluator:
         formats: frozenset[str],
         target_python: TargetPython,
         allow_yanked: bool,
-        ignore_requires_python: bool | None = None,
+        ignore_requires_python: bool = False,
         uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
@@ -159,8 +159,6 @@ class LinkEvaluator:
         :param uploaded_prior_to: If set, only allow links uploaded prior to
             the given datetime.
         """
-        if ignore_requires_python is None:
-            ignore_requires_python = False
 
         self._allow_yanked = allow_yanked
         self._canonical_name = canonical_name
@@ -493,7 +491,6 @@ class CandidateEvaluator:
         else:
             allow_prereleases = None
         specifier = self._specifier
-
         # When using the pkg_resources backend we turn the version object into
         # a str here because otherwise when we're debundled but setuptools isn't,
         # Python will see packaging.version.Version and
@@ -501,22 +498,17 @@ class CandidateEvaluator:
         # types. This way we'll use a str as a common data interchange
         # format. If we stop using the pkg_resources provided specifier
         # and start using our own, we can drop the cast to str().
-        if select_backend().NAME == "pkg_resources":
-            candidates_and_versions: list[
-                tuple[InstallationCandidate, str | Version]
-            ] = [(c, str(c.version)) for c in candidates]
-        else:
-            candidates_and_versions = [(c, c.version) for c in candidates]
-        versions = set(
-            specifier.filter(
-                (v for _, v in candidates_and_versions),
-                prereleases=allow_prereleases,
-            )
+        applicable_candidates = specifier.filter(
+            candidates,
+            prereleases=allow_prereleases,
+            key=lambda c: (
+                str(c.version)
+                if select_backend().NAME == "pkg_resources"
+                else c.version
+            ),
         )
-
-        applicable_candidates = [c for c, v in candidates_and_versions if v in versions]
         filtered_applicable_candidates = filter_unallowed_hashes(
-            candidates=applicable_candidates,
+            candidates=list(applicable_candidates),
             hashes=self._hashes,
             project_name=self._project_name,
         )
@@ -633,7 +625,7 @@ class PackageFinder:
         allow_yanked: bool,
         format_control: FormatControl | None = None,
         candidate_prefs: CandidatePreferences | None = None,
-        ignore_requires_python: bool | None = None,
+        ignore_requires_python: bool = False,
         uploaded_prior_to: datetime.datetime | None = None,
     ) -> None:
         """
@@ -660,8 +652,10 @@ class PackageFinder:
 
         self.format_control = format_control
 
-        # These are boring links that have already been logged somehow.
-        self._logged_links: set[tuple[Link, LinkType, str]] = set()
+        # Collects the detail strings for links skipped due to Requires-Python
+        # incompatibility.  Used by requires_python_skipped_reasons() to build
+        # the error message when resolution fails.
+        self._requires_python_skipped: set[str] = set()
 
         # Cache of the result of finding candidates
         self._all_candidates: dict[str, list[InstallationCandidate]] = {}
@@ -772,12 +766,7 @@ class PackageFinder:
         return self._uploaded_prior_to
 
     def requires_python_skipped_reasons(self) -> list[str]:
-        reasons = {
-            detail
-            for _, result, detail in self._logged_links
-            if result == LinkType.requires_python_mismatch
-        }
-        return sorted(reasons)
+        return sorted(self._requires_python_skipped)
 
     def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
@@ -810,12 +799,11 @@ class PackageFinder:
         return no_eggs + eggs
 
     def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
-        entry = (link, result, detail)
-        if entry not in self._logged_links:
-            # Put the link at the end so the reason is more visible and because
-            # the link string is usually very long.
-            logger.debug("Skipping link: %s: %s", detail, link)
-            self._logged_links.add(entry)
+        # Put the link at the end so the reason is more visible and because
+        # the link string is usually very long.
+        logger.debug("Skipping link: %s: %s", detail, link)
+        if result == LinkType.requires_python_mismatch:
+            self._requires_python_skipped.add(detail)
 
     def get_install_candidate(
         self, link_evaluator: LinkEvaluator, link: Link

@@ -292,6 +292,43 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     script.assert_not_installed("base", "other")
 
 
+def test_new_resolver_unpinned_requirement_with_pinned_hash_constraint(
+    script: PipTestEnvironment,
+) -> None:
+    """Regression test for https://github.com/pypa/pip/issues/9243.
+
+    An unpinned requirement combined with a constraints file that supplies both an
+    ``==`` pin and ``--hash`` for that distribution used to fail with ``HashUnpinned``:
+
+    > In --require-hashes mode, all requirements must have their versions pinned with ==
+
+    This was because "is_pinned" could not be true for the unpinned requirement, even
+    though the constraint did have a pin that was being enforced.
+    """
+    find_links = _create_find_links(script)
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text("base\n")
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(f"base==0.1.0 --hash=sha256:{find_links.wheel_hash}\n")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-deps",
+        "--no-index",
+        "--find-links",
+        find_links.index_html,
+        "--constraint",
+        constraints_txt,
+        "--requirement",
+        requirements_txt,
+    )
+
+    script.assert_installed(base="0.1.0")
+
+
 def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
     parent_with_extra_path = create_basic_wheel_for_package(
         script, "parent_with_extra", "0.1.0", depends=["child[extra]"]

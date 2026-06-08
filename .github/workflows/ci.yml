@@ -113,7 +113,7 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python.key || matrix.python }} / ${{ matrix.os }}
+    name: tests / ${{ matrix.python.version || matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     needs: [determine-changes]
@@ -126,13 +126,28 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python:
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
           - "3.14"
           - "3.15"
+          - "3.14t"
+        include:
+          # Oldest patch release per minor version on ubuntu-latest,
+          # to catch backport/bug fix regressions. Constrained by what
+          # actions/setup-python ships for the runner OS (ubuntu-24.04).
+          # See: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+          - os: ubuntu-latest
+            python: { key: "3.10", version: "3.10.4" }
+          - os: ubuntu-latest
+            python: { key: "3.11", version: "3.11.0" }
+          - os: ubuntu-latest
+            python: { key: "3.12", version: "3.12.0" }
+          - os: ubuntu-latest
+            python: { key: "3.13", version: "3.13.0" }
+          - os: ubuntu-latest
+            python: { key: "3.14", version: "3.14.0" }
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -140,8 +155,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
+
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
+        run: |
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
       - name: Install Ubuntu dependencies
         if: runner.os == 'Linux'
@@ -187,15 +207,15 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - "3.9"
+          - "3.10"
           # Commented out, since Windows tests are expensively slow,
           # only test the oldest and newest Python supported by pip
-          # - "3.10"
           # - "3.11"
           # - "3.12"
           # - "3.13"
           - "3.14"
           - "3.15"
+          - "3.14t"
         group:
           - { number: 1, pytest-filter: "not test_install" }
           - { number: 2, pytest-filter: "test_install" }
@@ -216,10 +236,20 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
+        run: |
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
+
       - name: Install Subversion
         shell: pwsh
         run: |
-          winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+          for ($i = 1; $i -le 3; $i++) {
+            winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($i -eq 3) { exit $LASTEXITCODE }
+            Start-Sleep -Seconds (10 * $i)
+          }
           echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox

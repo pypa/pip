@@ -1,7 +1,5 @@
 import pytest
 
-from pip._internal.models.direct_url import VcsInfo
-
 from tests.lib import PipTestEnvironment, TestData, _create_test_package
 
 
@@ -18,8 +16,8 @@ def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None
     direct_url = result.get_created_direct_url("testpkg")
     assert direct_url
     assert direct_url.url == url
-    assert isinstance(direct_url.info, VcsInfo)
-    assert direct_url.info.vcs == "git"
+    assert direct_url.vcs_info
+    assert direct_url.vcs_info.vcs == "git"
 
 
 def test_install_archive_direct_url(script: PipTestEnvironment, data: TestData) -> None:

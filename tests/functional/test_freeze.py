@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import sys
@@ -8,8 +9,6 @@ from pathlib import Path
 import pytest
 
 from pip._vendor.packaging.utils import canonicalize_name
-
-from pip._internal.models.direct_url import DirectUrl, DirInfo
 
 from tests.lib import (
     PipTestEnvironment,
@@ -1023,7 +1022,7 @@ def test_freeze_include_work_dir_pkg(script: PipTestEnvironment) -> None:
 def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     """
     Test that a package installed with a direct_url.json with editable=true
-    is correctly frozeon as editable.
+    is correctly frozen as editable.
     """
     pkg_path = _create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", "--no-build-isolation", pkg_path)
@@ -1031,10 +1030,10 @@ def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     assert direct_url_path
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:
-        direct_url = DirectUrl.from_json(f.read())
-    assert isinstance(direct_url.info, DirInfo)
-    direct_url.info.editable = True
+        direct_url_dict = json.load(f)
+    assert "dir_info" in direct_url_dict
+    direct_url_dict["dir_info"]["editable"] = True
     with open(direct_url_path, "w") as f:
-        f.write(direct_url.to_json())
+        json.dump(direct_url_dict, f)
     result = script.pip("freeze")
     assert "# Editable Git install with no remote (testpkg==0.1)" in result.stdout
