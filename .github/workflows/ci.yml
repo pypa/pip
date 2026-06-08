@@ -244,42 +244,13 @@ jobs:
       - name: Install Subversion
         shell: pwsh
         run: |
-          $svn = Get-Command svn -ErrorAction SilentlyContinue
-          $svnadmin = Get-Command svnadmin -ErrorAction SilentlyContinue
-          if ($svn -and $svnadmin) {
-            exit 0
-          }
-
-          $installed = $false
           for ($i = 1; $i -le 3; $i++) {
-            winget install --accept-source-agreements --accept-package-agreements --disable-interactivity -e --id Slik.Subversion
-            if ($LASTEXITCODE -eq 0) {
-              $installed = $true
-              break
-            }
-            if ($i -eq 3) { break }
+            winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($i -eq 3) { exit $LASTEXITCODE }
             Start-Sleep -Seconds (10 * $i)
           }
-
-          if (-not $installed) {
-            choco install sliksvn --yes --no-progress
-            if ($LASTEXITCODE -eq 0) {
-              $installed = $true
-            }
-          }
-
-          if (-not $installed) {
-            exit 1
-          }
-
-          if (Test-Path "C:\Program Files\SlikSvn\bin") {
-            $env:PATH = "C:\Program Files\SlikSvn\bin;$env:PATH"
-            "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          }
-
-          if (-not (Get-Command svn -ErrorAction SilentlyContinue) -or -not (Get-Command svnadmin -ErrorAction SilentlyContinue)) {
-            exit 1
-          }
+          echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox
 
