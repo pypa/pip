@@ -4,6 +4,7 @@ import contextlib
 import functools
 import logging
 import sys
+import time
 from collections.abc import Generator, Iterable, Iterator
 from contextlib import AbstractContextManager
 from typing import IO, TYPE_CHECKING, Callable, Literal, TypeVar
@@ -24,6 +25,7 @@ from pip._vendor.rich.progress import (
 )
 from pip._vendor.rich.status import Status
 
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import (
     PipConsole,
     _detect_no_color,
@@ -127,8 +129,6 @@ def _raw_progress_bar(
     size: int | None,
     initial_progress: int | None = None,
 ) -> Generator[bytes, None, None]:
-    import time
-
     def write_progress(current: int, total: int) -> None:
         sys.stdout.write(f"Progress {current} of {total}\n")
         sys.stdout.flush()
@@ -150,7 +150,6 @@ def _raw_progress_bar(
 @contextlib.contextmanager
 def hidden_cursor(file: IO[str]) -> Generator[None, None, None]:
     """Hide cursor if output is a TTY (ANSI codes not supported on Windows)."""
-    from pip._internal.utils.compat import WINDOWS
 
     if WINDOWS or not getattr(file, "isatty", lambda: False)():
         yield
