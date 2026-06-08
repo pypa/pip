@@ -255,12 +255,6 @@ def typecheck(session: nox.Session) -> None:
     for stubs_directory in stubs_dir.glob("*-stubs"):
         stubs_directory.rename(pip_vendor_dir / stubs_directory.name.split("-stubs")[0])
 
-    # Tweak the urllib3 stubs, which missed the urllib3.util.IS_PYOPENSSL attribute.
-    with (pip_vendor_dir / "urllib3" / "util" / "__init__.pyi").open(
-        "at", encoding="utf-8"
-    ) as f:
-        f.write("\n".join(["", "# pip tweak", "IS_PYOPENSSL: bool"]))
-
     # Clean up anything that is left over.
     for item in stubs_dir.iterdir():
         if item != pip_stubs_dir and item.is_dir():
