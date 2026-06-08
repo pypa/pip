@@ -1,0 +1,1 @@
+Adding a details_link to the DiagnosticPipError to link to the relevant documentation for the error.

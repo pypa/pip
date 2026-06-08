@@ -171,7 +171,7 @@ Building Documentation
 ======================
 
 pip's documentation is built using :pypi:`Sphinx`. The documentation is written
-in reStructuredText.
+in reStructuredText and markdown.
 
 To build it locally, run:
 
