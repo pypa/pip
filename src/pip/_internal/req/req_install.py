@@ -180,6 +180,8 @@ class InstallRequirement:
         self.requirements_to_check: list[str] = []
 
         # The PEP 517 backend we should use to build the project
+        self._pep517_backend_spec: str
+        self._pep517_backend_path: str | None
         self.pep517_backend: BuildBackendHookCaller | None = None
 
         # This requirement needs more preparation before it can be built
@@ -496,11 +498,21 @@ class InstallRequirement:
         requires, backend, check, backend_path = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
+        self._pep517_backend_spec = backend
+        self._pep517_backend_path = backend_path
+
+    def configure_backend(self, python_executable: str) -> None:
+        """Set up the build backend hook caller.
+
+        This is done separately after pyproject.toml loading as the backend
+        need to be called with the build environment's Python executable,
+        which can vary."""
         self.pep517_backend = ConfiguredBuildBackendHookCaller(
             self,
             self.unpacked_source_directory,
-            backend,
-            backend_path=backend_path,
+            self._pep517_backend_spec,
+            backend_path=self._pep517_backend_path,
+            python_executable=python_executable,
         )
 
     def editable_sanity_check(self) -> None:

@@ -1,0 +1,3 @@
+Add experimental support for isolating build subprocesses by creating standard
+virtual environments. The feature can be enabled via ``--use-feature=venv-isolation``
+and will be enabled by default in a future release.

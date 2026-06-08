@@ -93,15 +93,22 @@ class SubprocessBuildEnvironmentInstaller:
     ) -> None:
         self._deprecation_constraint_check()
 
+        if prefix.venv_executable:
+            base_args = [prefix.venv_executable, get_runnable_pip(), "install"]
+        else:
+            base_args = [
+                sys.executable,
+                get_runnable_pip(),
+                "install",
+                "--prefix",
+                prefix.path,
+                "--ignore-installed",
+            ]
+
         finder = self.finder
         args: list[str] = [
-            sys.executable,
-            get_runnable_pip(),
-            "install",
-            "--ignore-installed",
+            *base_args,
             "--no-user",
-            "--prefix",
-            prefix.path,
             "--no-warn-script-location",
             "--disable-pip-version-check",
             # As the build environment is ephemeral, it's wasteful to
@@ -191,7 +198,7 @@ class SubprocessBuildEnvironmentInstaller:
 
 class InprocessBuildEnvironmentInstaller:
     """
-    Build dependency installer that runs in the same pip process.
+    Install build dependencies via the already running pip process.
 
     This contains a stripped down version of the install command with
     only the logic necessary for installing build dependencies. The
@@ -202,6 +209,10 @@ class InprocessBuildEnvironmentInstaller:
     they don't make sense for build dependencies (in which case, they
     are hard-coded, see comments below).
     """
+
+    # TODO: this plays poorly with venv-based build environments, but cannot be
+    # fixed until pip gains better support for operating within a Python
+    # environment that isn't the running environment.
 
     def __init__(
         self,

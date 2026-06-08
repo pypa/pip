@@ -10,9 +10,11 @@ from typing import Literal
 import pytest
 
 from pip._internal.build_env import (
+    BuildEnvironment,
     BuildEnvironmentInstaller,
     InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
+    VenvBuildEnvironment,
     VirtualBuildEnvironment,
 )
 from pip._internal.build_env.virtual import get_system_sitepackages
@@ -22,19 +24,33 @@ from pip._internal.operations.build.build_tracker import get_build_tracker
 
 from tests.lib import (
     PipTestEnvironment,
+    TestData,
     TestPipResult,
     create_basic_wheel_for_package,
     make_test_finder,
 )
+from tests.lib.wheel import make_wheel
 
 InstallMethod = Literal["subprocess", "inprocess"]
+IsolationMethod = Literal["virtual", "venv"]
 with_both_installers = pytest.mark.parametrize(
     "install_method", ["subprocess", "inprocess"]
+)
+with_both_isolation_methods = pytest.mark.parametrize(
+    "isolation_method", ["virtual", "venv"]
 )
 
 
 def indent(text: str, prefix: str) -> str:
     return "\n".join((prefix if line else "") + line for line in text.split("\n"))
+
+
+@pytest.fixture(params=["virtual", "venv"])
+def env_factory(request: pytest.FixtureRequest) -> Generator[type[BuildEnvironment]]:
+    if request.param == "virtual":
+        yield VirtualBuildEnvironment
+    else:
+        yield VenvBuildEnvironment
 
 
 @contextmanager
@@ -57,6 +73,7 @@ def run_with_build_env(
     setup_script_contents: str,
     test_script_contents: str | None = None,
     install_method: InstallMethod = "subprocess",
+    isolation_method: IsolationMethod = "virtual",
 ) -> TestPipResult:
     build_env_script = script.scratch_path / "build_env.py"
     scratch_path = str(script.scratch_path)
@@ -66,9 +83,10 @@ def run_with_build_env(
             import sys
 
             from pip._internal.build_env import (
+                VenvBuildEnvironment,
+                VirtualBuildEnvironment,
                 InprocessBuildEnvironmentInstaller,
                 SubprocessBuildEnvironmentInstaller,
-                VirtualBuildEnvironment,
             )
             from pip._internal.cache import WheelCache
             from pip._internal.index.collector import LinkCollector
@@ -102,14 +120,21 @@ def run_with_build_env(
                         build_tracker=tracker,
                         wheel_cache=WheelCache(None),
                     )
-                build_env = VirtualBuildEnvironment(installer)
+                if "{isolation_method}" == "venv":
+                    build_env = VenvBuildEnvironment(installer)
+                elif "{isolation_method}" == "virtual":
+                    build_env = VirtualBuildEnvironment(installer)
+                else:
+                    assert False, "isolation method must be virtual or venv"
             """)
         + indent(dedent(setup_script_contents), "    ")
         + indent(
             dedent("""
                 if len(sys.argv) > 1:
                     with build_env:
-                        subprocess.check_call((sys.executable, sys.argv[1]))
+                        subprocess.check_call((
+                            build_env.python_executable, sys.argv[1]
+                        ))
                 """),
             "    ",
         )
@@ -124,20 +149,35 @@ def run_with_build_env(
 
 @with_both_installers
 def test_build_env_allow_empty_requirements_install(
-    install_method: InstallMethod,
+    install_method: InstallMethod, env_factory: type[BuildEnvironment]
 ) -> None:
     finder = make_test_finder()
     with make_test_build_env_installer(install_method, finder) as installer:
-        build_env = VirtualBuildEnvironment(installer)
+        build_env = env_factory(installer)
         for prefix in ("normal", "overlay"):
             build_env.install_requirements(
                 [], prefix, kind="Installing build dependencies"
             )
 
 
+def test_build_env_restores_unset_path_variables(
+    monkeypatch: pytest.MonkeyPatch, env_factory: type[BuildEnvironment]
+) -> None:
+    monkeypatch.delenv("PATH", raising=False)
+    monkeypatch.delenv("PYTHONPATH", raising=False)
+
+    with make_test_build_env_installer("inprocess", make_test_finder()) as installer:
+        with env_factory(installer):
+            pass
+
+    assert "PATH" not in os.environ
+    assert "PYTHONPATH" not in os.environ
+
+
 @with_both_installers
 def test_build_env_allow_only_one_install(
-    script: PipTestEnvironment, install_method: InstallMethod
+    script: PipTestEnvironment,
+    install_method: InstallMethod,
 ) -> None:
     create_basic_wheel_for_package(script, "foo", "1.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
@@ -158,7 +198,10 @@ def test_build_env_allow_only_one_install(
                 )
 
 
-def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
+@with_both_isolation_methods
+def test_build_env_requirements_check(
+    script: PipTestEnvironment, isolation_method: IsolationMethod
+) -> None:
     create_basic_wheel_for_package(script, "foo", "2.0")
     create_basic_wheel_for_package(script, "bar", "1.0")
     create_basic_wheel_for_package(script, "bar", "3.0")
@@ -178,6 +221,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
         r = build_env.check_requirements(['foo>3.0', 'bar>=2.5'])
         assert r == (set(), {'foo>3.0', 'bar>=2.5'}), repr(r)
         """,
+        isolation_method=isolation_method,
     )
 
     run_with_build_env(
@@ -195,6 +239,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
         r = build_env.check_requirements(['foo>3.0', 'bar>=2.5'])
         assert r == ({('foo==2.0', 'foo>3.0')}, set()), repr(r)
         """,
+        isolation_method=isolation_method,
     )
 
     run_with_build_env(
@@ -215,6 +260,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
         assert r == ({('bar==1.0', 'bar>=2.5'), ('foo==2.0', 'foo>3.0')}, \
             set()), repr(r)
         """,
+        isolation_method=isolation_method,
     )
 
     run_with_build_env(
@@ -234,6 +280,7 @@ def test_build_env_requirements_check(script: PipTestEnvironment) -> None:
         )
         assert r == (set(), set()), repr(r)
         """,
+        isolation_method=isolation_method,
     )
 
 
@@ -285,9 +332,12 @@ else:
 
 
 @with_both_installers
+@with_both_isolation_methods
 @pytest.mark.usefixtures("enable_user_site")
 def test_build_env_isolation(
-    script: PipTestEnvironment, install_method: InstallMethod
+    script: PipTestEnvironment,
+    install_method: InstallMethod,
+    isolation_method: IsolationMethod,
 ) -> None:
     # Create dummy `pkg` wheel.
     pkg_whl = create_basic_wheel_for_package(script, "pkg", "1.0")
@@ -335,4 +385,66 @@ def test_build_env_isolation(
             f"{{system_path}} found in {{normalized_path}}"
         """,
         install_method=install_method,
+        isolation_method=isolation_method,
     )
+
+
+def test_build_env_can_still_access_python_tools_on_system_path(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Ensure that backend subprocesses can still run system Python tools available
+    on PATH and that those tools can import their own dependencies from the system
+    Python.
+
+    This is a regression test for https://github.com/pypa/pip/issues/13222 where
+    our legacy sitecustomize.py trick for achieving isolation broke this use-case.
+    """
+    script.pip_install_local("cmake", find_links=[data.common_wheels])
+    script.pip_install_local(
+        data.src / "python-cmake-issue-13222",
+        "--use-feature=inprocess-build-deps",
+        "--use-feature=venv-isolation",
+        find_links=[data.common_wheels],
+        build_isolation=True,
+    )
+
+
+@pytest.mark.xfail(strict=True)
+@pytest.mark.skipif(sys.platform == "win32", reason="Unix-only test")
+def test_venv_build_env_inprocess_scripts_use_venv_python(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    When venv and the inprocess installer are used, it's important that the
+    build environment console scripts are lkinked with the temporary venv's
+    Python executable (and not the parent executable).
+    """
+    make_wheel(
+        name="scripted",
+        version="1.0",
+        extra_files={
+            "scripted/__init__.py": dedent("""
+                def main():
+                    return 0
+            """),
+        },
+        console_scripts=["scripted = scripted:main"],
+    ).save_to(script.scratch_path / "scripted-1.0-py2.py3-none-any.whl")
+
+    finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
+    with make_test_build_env_installer("inprocess", finder) as installer:
+        build_env = VenvBuildEnvironment(installer)
+        build_env.install_requirements(
+            ["scripted==1.0"], "normal", kind="script dependency"
+        )
+
+    script_path = os.path.join(build_env._bin_path, "scripted")
+    with open(script_path, "rb") as f:
+        # distlib uses UTF-8 for the shehang.
+        shebang = f.readline().rstrip().decode("utf-8")
+
+    # distlib may wrap the executable if there are spaces in the path. This is
+    # annoying to check, but rare in practice, so just don't bother checking.
+    if "/bin/sh" not in shebang:
+        assert f"{build_env.python_executable}" in shebang
