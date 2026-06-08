@@ -6,7 +6,6 @@ import shutil
 import subprocess
 import sys
 import sysconfig
-import textwrap
 import venv as _venv
 from pathlib import Path
 from typing import Literal
@@ -14,6 +13,48 @@ from typing import Literal
 import virtualenv as _virtualenv
 
 VirtualEnvironmentType = Literal["virtualenv", "venv"]
+
+
+# sitecustomize for test venvs: enable user-site and order it before the
+# system sites. To do that the system-site paths are dropped and then re-added
+# after user-site. The paths a system site contributes (its directory plus any
+# its .pth files add) are read from the .pth files directly; this mirrors
+# pip._internal.build_env._get_system_paths.
+_USER_SITE_CUSTOMIZE_TEMPLATE = """\
+import os, site, sys
+
+if not os.environ.get("PYTHONNOUSERSITE", False):
+    site.ENABLE_USER_SITE = {user_site}
+
+    system_paths = set()
+    for sitedir in site.getsitepackages():
+        system_paths.add(os.path.normcase(sitedir))
+        try:
+            names = os.listdir(sitedir)
+        except OSError:
+            continue
+        for name in names:
+            if name.startswith(".") or not name.endswith(".pth"):
+                continue
+            try:
+                with open(os.path.join(sitedir, name), "rb") as f:
+                    content = f.read()
+            except OSError:
+                continue
+            for line in content.decode("utf-8-sig", "replace").splitlines():
+                line = line.strip()
+                if not line or line.startswith(("#", "import ", "import\\t")):
+                    continue
+                path = os.path.abspath(os.path.join(sitedir, line))
+                system_paths.add(os.path.normcase(path))
+
+    sys.path = [p for p in sys.path if os.path.normcase(p) not in system_paths]
+
+    if {user_site}:
+        site.addsitedir(site.getusersitepackages())
+    for path in site.getsitepackages():
+        site.addsitedir(path)
+"""
 
 
 class VirtualEnvironment:
@@ -166,30 +207,9 @@ class VirtualEnvironment:
         if self._legacy_virtualenv:
             contents = ""
         else:
-            # Enable user site (before system).
-            contents = textwrap.dedent(
-                f"""
-                import os, site, sys
-                if not os.environ.get('PYTHONNOUSERSITE', False):
-                    site.ENABLE_USER_SITE = {self._user_site_packages}
-                    # First, drop system-sites related paths.
-                    original_sys_path = sys.path[:]
-                    known_paths = set()
-                    for path in site.getsitepackages():
-                        site.addsitedir(path, known_paths=known_paths)
-                    system_paths = sys.path[len(original_sys_path):]
-                    for path in system_paths:
-                        if path in original_sys_path:
-                            original_sys_path.remove(path)
-                    sys.path = original_sys_path
-                    # Second, add user-site.
-                    if {self._user_site_packages}:
-                        site.addsitedir(site.getusersitepackages())
-                    # Third, add back system-sites related paths.
-                    for path in site.getsitepackages():
-                        site.addsitedir(path)
-                """
-            ).strip()
+            contents = _USER_SITE_CUSTOMIZE_TEMPLATE.format(
+                user_site=self._user_site_packages
+            )
         if self._sitecustomize is not None:
             contents += "\n" + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
