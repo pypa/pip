@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import locale
 import logging
 import os
 import pathlib
@@ -95,6 +96,67 @@ def _get_system_sitepackages() -> set[str]:
         # where getsitepackages() has been removed (inside a virtualenv)
         system_sites = [get_purelib(), get_platlib()]
     return {os.path.normcase(path) for path in system_sites}
+
+
+def _get_system_paths() -> set[str]:
+    """Get the system paths to exclude from an isolated build environment.
+
+    These are the paths the system site directories contribute to ``sys.path``:
+    the site directories themselves, plus any directories added by their .pth
+    files.
+
+    Returns a normalized set of strings.
+    """
+    # Read each site directory's .pth files directly, the way CPython's
+    # site.addpackage() does. We parse them ourselves instead of calling
+    # site.addsitedir() because since Python 3.15 (PEP 829) site no longer
+    # re-adds a path already on sys.path (so observing what it appends finds
+    # nothing), and calling it would re-run .pth import lines and .start entry
+    # points.
+    paths = set()
+    for sitedir in _get_system_sitepackages():
+        # The site directory itself is on sys.path.
+        paths.add(os.path.normcase(sitedir))
+
+        # Inspect the directory's .pth files for the paths they add.
+        try:
+            names = os.listdir(sitedir)
+        except OSError:
+            continue
+
+        for name in names:
+            # Only .pth files add paths; skip hidden files, as site does.
+            if name.startswith(".") or not name.endswith(".pth"):
+                continue
+
+            try:
+                with open(os.path.join(sitedir, name), "rb") as f:
+                    content = f.read()
+            except OSError:
+                continue
+
+            # site reads .pth files as UTF-8 (accepting a BOM) since Python
+            # 3.15; older Pythons fall back to the locale encoding, so do the
+            # same here for parity.
+            try:
+                lines = content.decode("utf-8-sig").splitlines()
+            except UnicodeDecodeError:
+                lines = content.decode(
+                    locale.getpreferredencoding(False), "replace"
+                ).splitlines()
+
+            for line in lines:
+                line = line.strip()
+                # A line names a path to add, unless it is blank, a comment, or
+                # an "import" line, which site runs as code rather than a path.
+                if not line or line.startswith(("#", "import ", "import\t")):
+                    continue
+
+                # Relative lines are resolved against the site directory.
+                path = os.path.abspath(os.path.join(sitedir, line))
+                paths.add(os.path.normcase(path))
+
+    return paths
 
 
 class BuildEnvironmentInstaller(Protocol):
@@ -455,7 +517,7 @@ class BuildEnvironment:
         # Customize site to:
         # - ensure .pth files are honored
         # - prevent access to system site packages
-        system_sites = _get_system_sitepackages()
+        system_paths = _get_system_paths()
 
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
@@ -468,28 +530,21 @@ class BuildEnvironment:
                     """
                 import os, site, sys
 
-                # First, drop system-sites related paths.
-                original_sys_path = sys.path[:]
-                known_paths = set()
-                for path in {system_sites!r}:
-                    site.addsitedir(path, known_paths=known_paths)
-                system_paths = set(
-                    os.path.normcase(path)
-                    for path in sys.path[len(original_sys_path):]
-                )
-                original_sys_path = [
-                    path for path in original_sys_path
+                # First, drop the system site paths (computed by pip; see
+                # build_env._get_system_paths).
+                system_paths = {system_paths!r}
+                sys.path = [
+                    path for path in sys.path
                     if os.path.normcase(path) not in system_paths
                 ]
-                sys.path = original_sys_path
 
-                # Second, add lib directories.
-                # ensuring .pth file are processed.
+                # Second, add lib directories, ensuring .pth files are
+                # processed.
                 for path in {lib_dirs!r}:
-                    assert not path in sys.path
+                    assert path not in sys.path
                     site.addsitedir(path)
                 """
-                ).format(system_sites=system_sites, lib_dirs=self._lib_dirs)
+                ).format(system_paths=system_paths, lib_dirs=self._lib_dirs)
             )
 
     def __enter__(self) -> None:
