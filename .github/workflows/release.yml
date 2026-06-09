@@ -18,6 +18,9 @@ jobs:
       - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v6.0.2
         with:
           persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.x"
       - name: Build a binary wheel and a source tarball
         run: ./build-project/build-project.py
       - name: Store the distribution packages
