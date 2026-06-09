@@ -1045,7 +1045,7 @@ class TestParseRequirements:
         with (
             caplog.at_level(logging.WARNING),
             mock.patch(
-                "pip._internal.req.req_file.locale_getencoding",
+                "pip._internal.req.req_file.get_locale_encoding",
                 return_value=locale_encoding,
             ),
         ):
@@ -1081,7 +1081,7 @@ class TestParseRequirements:
         with (
             pytest.raises(UnicodeDecodeError),
             mock.patch(
-                "pip._internal.req.req_file.locale_getencoding", return_value=encoding
+                "pip._internal.req.req_file.get_locale_encoding", return_value=encoding
             ),
         ):
             next(parse_reqfile(req_file.resolve(), session=session))

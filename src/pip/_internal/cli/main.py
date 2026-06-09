@@ -75,6 +75,7 @@ def main(args: list[str] | None = None) -> int:
 
     # Needed for locale encoding detection to work
     # in pip._internal.utils.encoding.auto_decode
+    # TODO: Re-evaluate whether this is still needed once pip drops Python 3.10.
     try:
         locale.setlocale(locale.LC_ALL, "")
     except locale.Error as e:

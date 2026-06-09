@@ -7,6 +7,7 @@ import pytest
 
 from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import InstallationSubprocessError
+from pip._internal.utils.compat import get_locale_encoding
 from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import hide_value
 from pip._internal.utils.subprocess import (
@@ -379,9 +380,7 @@ class TestCallSubprocess:
 
 
 def test_unicode_decode_error(caplog: pytest.LogCaptureFixture) -> None:
-    from pip._internal.utils.compat import locale_getencoding
-
-    if locale_getencoding() != "UTF-8":
+    if get_locale_encoding() != "UTF-8":
         pytest.skip("locale encoding is not UTF-8")
     caplog.set_level(INFO)
     call_subprocess(
