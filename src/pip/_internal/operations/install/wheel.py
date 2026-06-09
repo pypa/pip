@@ -15,17 +15,15 @@ import sys
 import textwrap
 import warnings
 from base64 import urlsafe_b64encode
-from collections.abc import Generator, Iterable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from email.message import Message
 from itertools import chain, filterfalse, starmap
 from typing import (
     IO,
     Any,
     BinaryIO,
-    Callable,
     NewType,
     Protocol,
-    Union,
     cast,
 )
 from zipfile import ZipFile, ZipInfo
@@ -66,7 +64,7 @@ class File(Protocol):
 logger = logging.getLogger(__name__)
 
 RecordPath = NewType("RecordPath", str)
-InstalledCSVRow = tuple[RecordPath, str, Union[int, str]]
+InstalledCSVRow = tuple[RecordPath, str, int | str]
 
 
 def rehash(path: str, blocksize: int = 1 << 20) -> tuple[str, str]:

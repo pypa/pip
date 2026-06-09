@@ -11,7 +11,7 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
-from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial
 from io import StringIO
@@ -21,8 +21,6 @@ from types import FunctionType, TracebackType
 from typing import (
     Any,
     BinaryIO,
-    Callable,
-    Optional,
     TextIO,
     TypeVar,
     cast,
@@ -60,7 +58,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 ExcInfo = tuple[type[BaseException], BaseException, TracebackType]
 VersionInfo = tuple[int, int, int]
-NetlocTuple = tuple[str, tuple[Optional[str], Optional[str]]]
+NetlocTuple = tuple[str, tuple[str | None, str | None]]
 OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 

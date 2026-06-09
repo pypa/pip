@@ -11,13 +11,13 @@ import subprocess
 import sys
 import textwrap
 from base64 import urlsafe_b64encode
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO, StringIO
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, AnyStr, Callable, Literal, Protocol, Union, cast
+from typing import Any, AnyStr, Literal, Protocol, cast
 from urllib.request import pathname2url
 from zipfile import ZipFile
 
@@ -51,7 +51,7 @@ pyversion = get_major_minor_version()
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
 _Test = Callable[..., None]
-_FilesState = dict[str, Union[FoundDir, FoundFile]]
+_FilesState = dict[str, FoundDir | FoundFile]
 
 
 def make_test_search_scope(
@@ -227,7 +227,7 @@ class TestFailure(AssertionError):
     """
 
 
-StrPath = Union[str, pathlib.Path]
+StrPath = str | pathlib.Path
 
 
 class FoundFiles(Mapping[StrPath, FoundFile]):

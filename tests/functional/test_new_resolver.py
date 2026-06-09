@@ -2,7 +2,8 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Protocol
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Protocol
 
 import pytest
 

@@ -9,9 +9,8 @@ import optparse
 import os
 import sys
 import traceback
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from optparse import Values
-from typing import Callable
 
 from pip._vendor.rich import reconfigure
 from pip._vendor.rich import traceback as rich_traceback

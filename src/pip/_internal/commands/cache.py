@@ -1,7 +1,7 @@
 import os
 import textwrap
+from collections.abc import Callable
 from optparse import Values
-from typing import Callable
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
