@@ -335,7 +335,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
         ssl_context: SSLContext | None = None,
-        force_metadata_refresh: str | None = "default",
+        force_metadata_refresh: bool = False,
         **kwargs: Any,
     ) -> None:
         """

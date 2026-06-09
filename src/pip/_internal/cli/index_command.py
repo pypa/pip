@@ -107,9 +107,7 @@ class SessionCommandMixin(CommandContextMixIn):
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
             ssl_context=ssl_context,
-            force_metadata_refresh=(
-                "refresh" if "force_metadata_refresh" in dir(options) else "default"
-            ),
+            force_metadata_refresh=getattr(options, "force_metadata_refresh", False),
         )
 
         # Handle custom ca-bundles from the user
