@@ -22,8 +22,6 @@ from collections.abc import Generator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
-    Union,
 )
 
 from pip._vendor import requests, urllib3
@@ -56,7 +54,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SecureOrigin = tuple[str, str, Optional[Union[int, str]]]
+SecureOrigin = tuple[str, str, int | str | None]
 
 
 # Ignore warning raised when using --trusted-host.

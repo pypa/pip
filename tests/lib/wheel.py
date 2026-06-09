@@ -27,7 +27,7 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 
 # As would be used in metadata
-HeaderValue = Union[str, list[str]]
+HeaderValue = str | list[str]
 
 
 File = namedtuple("File", ["name", "contents"])
@@ -43,7 +43,7 @@ _default = Default.token
 T = TypeVar("T")
 
 # A type which may be defaulted.
-Defaulted = Union[Default, T]
+Defaulted = Union[Default, T]  # noqa: UP007
 
 
 def ensure_binary(value: bytes | str) -> bytes:
