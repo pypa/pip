@@ -16,11 +16,12 @@ import os
 import pathlib
 import re
 import textwrap
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -646,12 +647,13 @@ def no_binary() -> Option:
         callback=_handle_no_binary,
         type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
-        'each time adds to the existing value. Accepts either ":all:" to '
-        'disable all binary packages, ":none:" to empty the set (notice '
-        "the colons), or one or more package names with commas between "
-        "them (no colons). Note that some packages are tricky to compile "
-        "and may fail to install when this option is used on them.",
+        help="Do not download binary packages. Cached binary packages may still "
+        "be used. Can be supplied multiple times, and each time adds to "
+        "the existing value. Accepts either ':all:' to disable all binary "
+        "packages, ':none:' to empty the set (notice the colons), or one "
+        "or more package names with commas between them (no colons). "
+        "Note that some packages are tricky to compile and may fail to "
+        "install when this option is used on them.",
     )
 
 
@@ -821,15 +823,13 @@ python_version: Callable[..., Option] = partial(
     callback=_handle_python_version,
     type="str",
     default=None,
-    help=dedent(
-        """\
+    help=dedent("""\
     The Python interpreter version to use for wheel and "Requires-Python"
     compatibility checks. Defaults to a version derived from the running
     interpreter. The version can be specified using up to three dot-separated
     integers (e.g. "3" for 3.0.0, "3.7" for 3.7.0, or "3.7.3"). A major-minor
     version can also be given as a string without dots (e.g. "37" for 3.7.0).
-    """
-    ),
+    """),
 )
 
 

@@ -15,17 +15,15 @@ import sys
 import textwrap
 import warnings
 from base64 import urlsafe_b64encode
-from collections.abc import Generator, Iterable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from email.message import Message
 from itertools import chain, filterfalse, starmap
 from typing import (
     IO,
     Any,
     BinaryIO,
-    Callable,
     NewType,
     Protocol,
-    Union,
     cast,
 )
 from zipfile import ZipFile, ZipInfo
@@ -66,7 +64,7 @@ class File(Protocol):
 logger = logging.getLogger(__name__)
 
 RecordPath = NewType("RecordPath", str)
-InstalledCSVRow = tuple[RecordPath, str, Union[int, str]]
+InstalledCSVRow = tuple[RecordPath, str, int | str]
 
 
 def rehash(path: str, blocksize: int = 1 << 20) -> tuple[str, str]:
@@ -420,15 +418,13 @@ def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
-    script_template = textwrap.dedent(
-        """\
+    script_template = textwrap.dedent("""\
         import sys
         from %(module)s import %(import_name)s
         if __name__ == '__main__':
             sys.argv[0] = sys.argv[0].removesuffix('.exe')
             sys.exit(%(func)s())
-"""
-    )
+""")
 
     def make(
         self, specification: str, options: dict[str, Any] | None = None
