@@ -148,6 +148,7 @@ type = [
 destination = "src/pip/_vendor/"
 requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
+sbom-file = "src/pip/_vendor/bom.cdx.json"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
 patches-dir = "tools/vendoring/patches"
@@ -160,13 +161,12 @@ substitute = [
   { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexers." },
 ]
 drop = [
+  # Don't include dist-info directories in the vendored code
+  "*.dist-info/",
   # contains unnecessary scripts
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
-  # optional accelerator extension libraries
-  "*mypyc*.so",
-  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
