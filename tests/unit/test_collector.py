@@ -424,6 +424,36 @@ def test_ensure_quoted_url(url: str, clean_url: str) -> None:
     assert _ensure_quoted_url(url) == clean_url
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        pytest.param(
+            "https://files.pythonhosted.org/packages/12/34/somepackage-1.2.3-py3-none-any.whl",
+            id="typical-pypi-wheel",
+        ),
+        pytest.param(
+            "https://files.pythonhosted.org/packages/12/34/somepackage-1.2.3-py3-none-any.whl#sha256=abc",
+            id="pypi-wheel-with-fragment",
+        ),
+        pytest.param(
+            "http://localhost:8181/simple/foo/",
+            id="http-localhost-with-port",
+        ),
+        pytest.param(
+            "https://example.com/path/to/file.tar.gz?build=1",
+            id="https-with-query",
+        ),
+    ],
+)
+def test_ensure_quoted_url_idempotent_for_clean_urls(url: str) -> None:
+    """http(s):// URLs that are pure ASCII with no whitespace and no
+    %-escapes already pass through urlsplit() + urlunsplit() unchanged.
+    The function MUST return the input unchanged for them so callers can rely
+    on it as an identity (the implementation may take a fast path here).
+    """
+    assert _ensure_quoted_url(url) == url
+
+
 def _test_parse_links_data_attribute(
     anchor_html: str, attr: str, expected: str | None
 ) -> Link:

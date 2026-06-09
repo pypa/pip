@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
     Any,
+    Final,
     NamedTuple,
 )
 
@@ -140,6 +141,11 @@ def _clean_file_url_path(part: str) -> str:
 # percent-encoded:                   /
 _reserved_chars_re = re.compile("(@|%2F)", re.IGNORECASE)
 
+# Characters that survive a quote(unquote(part)) round-trip unchanged in a
+# URL path: quote()'s always-safe alphabet plus '/' (the default of the safe
+# argument).
+_UNSAFE_URL_PATH_CHARS_RE: Final[re.Pattern[str]] = re.compile(r"[^A-Za-z0-9_./~\-]")
+
 
 def _clean_url_path(path: str, is_local_path: bool) -> str:
     """
@@ -169,6 +175,17 @@ def _ensure_quoted_url(url: str) -> str:
     For example, if ' ' occurs in the URL, it will be replaced with "%20",
     and without double-quoting other characters.
     """
+    # Fast path: skip quoting round-trip if the path component of a http(s):// link
+    # only contains characters that quote() would leave untouched AND has no %-escapes
+    # for unquote().
+    #
+    # NOTE: we check everything after the scheme because calling urlsplit() to get just
+    # the path component is too costly here.
+    if url.startswith(("https://", "http://")):
+        url_no_scheme = url.removeprefix("https:").removeprefix("http:")
+        if _UNSAFE_URL_PATH_CHARS_RE.search(url_no_scheme) is None:
+            return url
+
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)
