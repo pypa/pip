@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: "3.x"
       - name: Build a binary wheel and a source tarball
-        run: ./build-project/build-project.py
+        run: python build-project/build-project.py
       - name: Store the distribution packages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
