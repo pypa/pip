@@ -25,6 +25,7 @@ jobs:
         with:
           persist-credentials: true  # because we'll git push
 
+      # remove this step when the GitHub runner has pip>=26.1
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
