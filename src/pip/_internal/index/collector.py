@@ -214,21 +214,22 @@ def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
     return wrapper_wrapper
 
 
-@with_cached_index_content
-def parse_links(page: IndexContent) -> Iterable[Link]:
-    """
-    Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
-    """
+def parse_index_response(page: IndexContent) -> tuple[list[Link], ProjectStatus]:
+    """Parse a Simple API's Index Content in a single pass.
 
+    Returns the page's anchor elements as Link objects together with the
+    project's PEP 792 status. Parsing both at once avoids decoding and
+    deserializing the (potentially large) page twice.
+    """
     content_type_l = page.content_type.lower()
     if content_type_l.startswith("application/vnd.pypi.simple.v1+json"):
         data = json.loads(page.content)
+        links = []
         for file in data.get("files", []):
             link = Link.from_json(file, page.url)
-            if link is None:
-                continue
-            yield link
-        return
+            if link is not None:
+                links.append(link)
+        return links, _project_status_from_json(data)
 
     parser = HTMLLinkParser(page.url)
     encoding = page.encoding or "utf-8"
@@ -236,11 +237,59 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
 
     url = page.url
     base_url = parser.base_url or url
+    links = []
     for anchor in parser.anchors:
         link = Link.from_element(anchor, page_url=url, base_url=base_url)
-        if link is None:
-            continue
-        yield link
+        if link is not None:
+            links.append(link)
+    return links, _project_status_from_parser(parser)
+
+
+@with_cached_index_content
+def parse_links(page: IndexContent) -> Iterable[Link]:
+    """
+    Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
+    """
+    return parse_index_response(page)[0]
+
+
+@dataclass(frozen=True)
+class ProjectStatus:
+    """The status of a project on an index, as defined by PEP 792.
+
+    https://packaging.python.org/en/latest/specifications/project-status-markers/
+    """
+
+    status: str = "active"
+    reason: str | None = None
+
+
+def _project_status_from_json(data: object) -> ProjectStatus:
+    """Extract a PEP 792 status from a parsed JSON Simple API response.
+
+    Absent or malformed status information is treated as "active", per the
+    specification.
+    """
+    project_status = data.get("project-status") if isinstance(data, dict) else None
+    if not isinstance(project_status, dict):
+        return ProjectStatus()
+    status = project_status.get("status", "active")
+    if not isinstance(status, str):
+        return ProjectStatus()
+    reason = project_status.get("reason")
+    if not isinstance(reason, str):
+        reason = None
+    return ProjectStatus(status=status, reason=reason)
+
+
+def _project_status_from_parser(parser: HTMLLinkParser) -> ProjectStatus:
+    """Extract a PEP 792 status from a fed HTML Simple API parser."""
+    if parser.project_status is None:
+        return ProjectStatus()
+    return ProjectStatus(
+        status=parser.project_status,
+        reason=parser.project_status_reason,
+    )
 
 
 @dataclass(frozen=True)
@@ -276,6 +325,8 @@ class HTMLLinkParser(HTMLParser):
         self.url: str = url
         self.base_url: str | None = None
         self.anchors: list[dict[str, str | None]] = []
+        self.project_status: str | None = None
+        self.project_status_reason: str | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "base" and self.base_url is None:
@@ -284,6 +335,15 @@ class HTMLLinkParser(HTMLParser):
                 self.base_url = href
         elif tag == "a":
             self.anchors.append(dict(attrs))
+        elif tag == "meta":
+            attributes = dict(attrs)
+            content = attributes.get("content")
+            if content is None:
+                return
+            if attributes.get("name") == "pypi:project-status":
+                self.project_status = content
+            elif attributes.get("name") == "pypi:project-status-reason":
+                self.project_status_reason = content
 
     def get_href(self, attrs: list[tuple[str, str | None]]) -> str | None:
         for name, value in attrs:

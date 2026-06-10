@@ -29,6 +29,7 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
+from pip._internal.index.collector import ProjectStatus
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.candidate import InstallationCandidate
@@ -79,6 +80,28 @@ logger = logging.getLogger(__name__)
 
 C = TypeVar("C")
 Cache = dict[Link, C]
+
+# Explanations of the PEP 792 project statuses that warrant informing the
+# user, phrased after the specification's definitions. Unrecognized statuses
+# must be treated as "active", i.e. not reported.
+_PROJECT_STATUS_NOTES = {
+    "archived": "it is not expected to be updated in the future",
+    "deprecated": (
+        "it is considered obsolete and may have been superseded by another project"
+    ),
+    "quarantined": "it is considered generally unsafe for use",
+}
+
+
+def _format_project_status(name: str, project_status: ProjectStatus) -> str | None:
+    """Return a user-facing message for a project's status, if warranted."""
+    note = _PROJECT_STATUS_NOTES.get(project_status.status)
+    if note is None:
+        return None
+    message = f"Project {name!r} is {project_status.status}: {note}"
+    if project_status.reason:
+        message += f" (reason: {project_status.reason})"
+    return message
 
 
 class CollectedRootRequirements(NamedTuple):
@@ -717,6 +740,21 @@ class Factory:
             message += f"\n{specifier!r} (required by {package})"
         return UnsupportedPythonVersion(message)
 
+    def _project_status_messages(self, project_names: Iterable[str]) -> Iterator[str]:
+        """Yield user-facing messages for projects with a non-active status."""
+        for name in dict.fromkeys(project_names):
+            project_status = self._finder.get_project_status(name)
+            if project_status is None:
+                continue
+            message = _format_project_status(name, project_status)
+            if message is not None:
+                yield message
+
+    def warn_about_project_statuses(self, project_names: Iterable[str]) -> None:
+        """Warn about projects with a non-active PEP 792 status."""
+        for message in self._project_status_messages(project_names):
+            logger.warning(message)
+
     def _report_single_requirement_conflict(
         self, req: Requirement, parent: Candidate | None
     ) -> DistributionNotFound:
@@ -769,6 +807,12 @@ class Factory:
             req_disp,
             ", ".join(versions) or "none",
         )
+
+        # A non-active PEP 792 project status may explain the lack of
+        # candidates; a quarantined project, notably, offers no files at all.
+        for message in self._project_status_messages([req.project_name]):
+            logger.critical(message)
+
         if str(req) == "requirements.txt":
             logger.info(
                 "HINT: You are attempting to install a package literally "
@@ -894,6 +938,16 @@ class Factory:
                 + "\n    "
                 + "\n    ".join(sorted(no_candidates))
             )
+
+        # A non-active PEP 792 project status may explain a conflict, e.g. a
+        # quarantined project offers no files at all.
+        status_messages = list(
+            self._project_status_messages(
+                sorted({req.project_name for req, _ in e.causes})
+            )
+        )
+        if status_messages:
+            msg = msg + "\n\n" + "\n".join(status_messages)
 
         msg = (
             msg
