@@ -1,0 +1,4 @@
+Support :pep:`792` project status markers. When a user-requested project is
+marked as ``archived``, ``deprecated``, or ``quarantined`` on the index, a
+warning is emitted during resolution, and resolution errors mention the
+project's status.

@@ -1024,8 +1024,9 @@ def test_install_pre__setup_requires_with_pyproject(
 def test_upgrade_argparse_shadowed(script: PipTestEnvironment) -> None:
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
-    script.pip("install", "argparse==1.3")
-    result = script.pip("install", "argparse>=1.4")
+    # argparse is archived on PyPI, so pip warns about its project status.
+    script.pip("install", "argparse==1.3", allow_stderr_warning=True)
+    result = script.pip("install", "argparse>=1.4", allow_stderr_warning=True)
     assert "Not uninstalling argparse" not in result.stdout
 
 
