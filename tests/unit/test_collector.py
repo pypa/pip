@@ -631,22 +631,16 @@ def test_parse_links__yanked_reason(anchor_html: str, expected: str | None) -> N
         ({"status": "archived"}, ProjectStatus(status="archived", reason=None)),
         # Test an empty dictionary defaults to active.
         ({}, ProjectStatus(status="active", reason=None)),
-        # Test malformed (non-dict) data defaults to active.
-        ("quarantined", ProjectStatus(status="active", reason=None)),
-        # Test a malformed (non-string) status defaults to active.
-        ({"status": 123}, ProjectStatus(status="active", reason=None)),
-        # Test a malformed (unhashable) status defaults to active.
-        ({"status": {"x": 1}}, ProjectStatus(status="active", reason=None)),
-        # Test a malformed (non-string) reason is dropped.
-        (
-            {"status": "archived", "reason": ["gone", "fishing"]},
-            ProjectStatus(status="archived", reason=None),
-        ),
     ],
 )
 def test_parse_project_status_json(
-    project_status: dict[str, str] | str | None, expected: ProjectStatus
+    project_status: dict[str, str] | None, expected: ProjectStatus
 ) -> None:
+    page = _make_project_status_json_page(project_status)
+    assert parse_index_response(page)[1] == expected
+
+
+def _make_project_status_json_page(project_status: object) -> IndexContent:
     data: dict[str, object] = {
         "meta": {"api-version": "1.4"},
         "name": "holygrail",
@@ -654,13 +648,42 @@ def test_parse_project_status_json(
     }
     if project_status is not None:
         data["project-status"] = project_status
-    page = IndexContent(
+    return IndexContent(
         json.dumps(data).encode("utf8"),
         "application/vnd.pypi.simple.v1+json",
         encoding=None,
         url="https://example.com/simple/holygrail/",
     )
-    assert parse_index_response(page)[1] == expected
+
+
+@pytest.mark.parametrize(
+    "project_status",
+    [
+        # A non-dict project-status value.
+        "quarantined",
+        # A non-string status.
+        {"status": 123},
+        {"status": {"x": 1}},
+        # A non-string reason.
+        {"status": "archived", "reason": ["gone", "fishing"]},
+    ],
+)
+def test_parse_project_status_json_malformed(project_status: object) -> None:
+    """A structurally invalid project-status is an error, per PEP 792."""
+    page = _make_project_status_json_page(project_status)
+    with pytest.raises(ValueError, match="project-status"):
+        parse_index_response(page)
+
+
+def test_parse_project_status_json_unknown_status(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An unrecognized status value falls back to active, with a warning."""
+    caplog.set_level(logging.WARNING)
+    page = _make_project_status_json_page({"status": "haunted", "reason": "spooky"})
+    assert parse_index_response(page)[1] == ProjectStatus(status="active", reason=None)
+    assert "haunted" in caplog.text
+    assert "https://example.com/simple/holygrail/" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -693,18 +716,70 @@ def test_parse_project_status_json(
     ],
 )
 def test_parse_project_status_html(meta_html: str, expected: ProjectStatus) -> None:
+    page = _make_project_status_html_page(meta_html)
+    assert parse_index_response(page)[1] == expected
+
+
+def _make_project_status_html_page(meta_html: str) -> IndexContent:
     html = (
         "<!DOCTYPE html>"
         f'<html><head><meta charset="utf-8">{meta_html}</head>'
         '<body><a href="/pkg-1.0.tar.gz"></a></body></html>'
     )
-    page = IndexContent(
+    return IndexContent(
         html.encode("utf-8"),
         "text/html",
         encoding=None,
         url="https://example.com/simple/pkg/",
     )
-    assert parse_index_response(page)[1] == expected
+
+
+def test_parse_project_status_html_unknown_status(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An unrecognized status value falls back to active, with a warning."""
+    caplog.set_level(logging.WARNING)
+    page = _make_project_status_html_page(
+        '<meta name="pypi:project-status" content="haunted">'
+        '<meta name="pypi:project-status-reason" content="spooky">'
+    )
+    assert parse_index_response(page)[1] == ProjectStatus(status="active", reason=None)
+    assert "haunted" in caplog.text
+    assert "https://example.com/simple/pkg/" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "reason, expected",
+    [
+        # Newlines and other whitespace runs collapse to single spaces.
+        ("gone\nfishing", "gone fishing"),
+        (" gone \t fishing ", "gone fishing"),
+        # Terminal escape sequences and other control characters are dropped.
+        ("\x1b[31mboo\x1b[0m", "[31mboo [0m"),
+        # Non-ASCII characters are dropped.
+        ("touch\xe9 ☕", "touch"),
+        # A reason with no printable ASCII at all is treated as absent.
+        ("\x07\x1b鬼", None),
+    ],
+)
+def test_parse_project_status_reason_sanitized(
+    reason: str, expected: str | None
+) -> None:
+    """The free-form reason is reduced to a single line of printable ASCII
+    before being stored, as it is later echoed to the user's terminal."""
+    json_page = _make_project_status_json_page({"status": "archived", "reason": reason})
+    assert parse_index_response(json_page)[1] == ProjectStatus(
+        status="archived", reason=expected
+    )
+
+    escaped = reason.replace("&", "&amp;").replace('"', "&quot;")
+    html_page = _make_project_status_html_page(
+        '<meta name="pypi:project-status" content="archived">'
+        f'<meta name="pypi:project-status-reason" content="{escaped}">'
+    )
+    assert parse_index_response(html_page)[1] == ProjectStatus(
+        status="archived", reason=expected
+    )
 
 
 def test_parse_index_response_json() -> None:

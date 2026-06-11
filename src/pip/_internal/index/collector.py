@@ -17,8 +17,11 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
+    Literal,
     NamedTuple,
     Protocol,
+    cast,
+    get_args,
 )
 
 from pip._vendor import requests
@@ -229,7 +232,7 @@ def parse_index_response(page: IndexContent) -> tuple[list[Link], ProjectStatus]
             link = Link.from_json(file, page.url)
             if link is not None:
                 links.append(link)
-        return links, _project_status_from_json(data)
+        return links, _project_status_from_json(data, page.url)
 
     parser = HTMLLinkParser(page.url)
     encoding = page.encoding or "utf-8"
@@ -253,6 +256,12 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
     return parse_index_response(page)[0]
 
 
+# The project statuses defined by PEP 792. Future PEPs may define more; an
+# unrecognized status is treated as "active" (with a warning).
+ProjectStatusValue = Literal["active", "archived", "quarantined", "deprecated"]
+_KNOWN_PROJECT_STATUSES = frozenset(get_args(ProjectStatusValue))
+
+
 @dataclass(frozen=True)
 class ProjectStatus:
     """The status of a project on an index, as defined by PEP 792.
@@ -260,35 +269,60 @@ class ProjectStatus:
     https://packaging.python.org/en/latest/specifications/project-status-markers/
     """
 
-    status: str = "active"
+    status: ProjectStatusValue = "active"
     reason: str | None = None
 
 
-def _project_status_from_json(data: object) -> ProjectStatus:
+def _sanitize_status_reason(reason: str) -> str | None:
+    """Reduce a free-form status reason to a single line of printable ASCII.
+
+    The reason is echoed to the user's terminal, so control characters and
+    other unprintable content supplied by the index must not pass through.
+    """
+    printable = "".join(
+        char if char.isascii() and char.isprintable() else " " for char in reason
+    )
+    return " ".join(printable.split()) or None
+
+
+def _make_project_status(status: str, reason: str | None, url: str) -> ProjectStatus:
+    """Build a ProjectStatus from raw index-supplied values."""
+    if status not in _KNOWN_PROJECT_STATUSES:
+        logger.warning("Ignoring unknown project status %r reported by %s", status, url)
+        return ProjectStatus()
+    return ProjectStatus(
+        status=cast(ProjectStatusValue, status),
+        reason=_sanitize_status_reason(reason) if reason else None,
+    )
+
+
+def _project_status_from_json(data: object, url: str) -> ProjectStatus:
     """Extract a PEP 792 status from a parsed JSON Simple API response.
 
-    Absent or malformed status information is treated as "active", per the
-    specification.
+    An absent status is treated as "active", per the specification, and an
+    unrecognized status value as "active" with a warning. Structurally
+    invalid status information is an error.
     """
     project_status = data.get("project-status") if isinstance(data, dict) else None
-    if not isinstance(project_status, dict):
+    if project_status is None:
         return ProjectStatus()
+    if not isinstance(project_status, dict):
+        raise ValueError(f"Invalid project-status in API response from {url}")
     status = project_status.get("status", "active")
     if not isinstance(status, str):
-        return ProjectStatus()
+        raise ValueError(f"Invalid project-status.status in API response from {url}")
     reason = project_status.get("reason")
-    if not isinstance(reason, str):
-        reason = None
-    return ProjectStatus(status=status, reason=reason)
+    if reason is not None and not isinstance(reason, str):
+        raise ValueError(f"Invalid project-status.reason in API response from {url}")
+    return _make_project_status(status, reason, url)
 
 
 def _project_status_from_parser(parser: HTMLLinkParser) -> ProjectStatus:
     """Extract a PEP 792 status from a fed HTML Simple API parser."""
     if parser.project_status is None:
         return ProjectStatus()
-    return ProjectStatus(
-        status=parser.project_status,
-        reason=parser.project_status_reason,
+    return _make_project_status(
+        parser.project_status, parser.project_status_reason, parser.url
     )
 
 

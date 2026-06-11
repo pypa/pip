@@ -82,8 +82,8 @@ C = TypeVar("C")
 Cache = dict[Link, C]
 
 # Explanations of the PEP 792 project statuses that warrant informing the
-# user, phrased after the specification's definitions. Unrecognized statuses
-# must be treated as "active", i.e. not reported.
+# user, phrased after the specification's definitions. "active" is not
+# reported.
 _PROJECT_STATUS_NOTES = {
     "archived": "it is not expected to be updated in the future",
     "deprecated": (
