@@ -49,12 +49,15 @@ def test_warn_about_project_statuses(
     _record_project_status(finder, "spam", "deprecated", "use ham instead")
     _record_project_status(finder, "eggs", "archived")
     _record_project_status(finder, "brian", "quarantined", "the project is haunted")
-    # Unrecognized status markers must not produce warnings.
+    # An unrecognized status marker is warned about at parse time, treated
+    # as active, and not reported again.
     _record_project_status(finder, "patsy", "on-holiday")
 
     factory.warn_about_project_statuses(["spam", "eggs", "brian", "patsy", "arthur"])
 
     assert [record.getMessage() for record in caplog.records] == [
+        "Ignoring unknown project status 'on-holiday' reported by "
+        "https://example.com/simple/patsy/",
         "Project 'spam' is deprecated: it is considered obsolete and may have "
         "been superseded by another project (reason: use ham instead)",
         "Project 'eggs' is archived: it is not expected to be updated in the future",
