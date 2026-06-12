@@ -616,11 +616,26 @@ class BaseEnvironment:
                 flags=re.IGNORECASE,
             )
             if not project_name_valid:
-                logger.warning(
-                    "Ignoring invalid distribution %s (%s)",
-                    dist.canonical_name,
-                    dist.location,
+                # Check the directory name rather than the distribution name,
+                # since the pkg_resources backend normalizes the leading tilde
+                # to a dash.
+                info_location = dist.info_location
+                leftover_name = (
+                    pathlib.Path(info_location).name if info_location else ""
                 )
+                if leftover_name.startswith("~"):
+                    logger.warning(
+                        "Ignoring incompletely removed distribution %s (%s); "
+                        "'~'-prefixed leftover directories are safe to delete",
+                        leftover_name,
+                        dist.location,
+                    )
+                else:
+                    logger.warning(
+                        "Ignoring invalid distribution %s (%s)",
+                        dist.canonical_name,
+                        dist.location,
+                    )
                 continue
             yield dist
 
