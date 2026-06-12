@@ -147,3 +147,29 @@ def test_trailing_slash_directory_metadata(
     dist = get_directory_distribution(path)
     assert dist.raw_name == dist.canonical_name == "foo"
     assert dist.location == str(tmp_path)
+
+
+def test_iter_all_distributions_warns_on_incomplete_removal(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    valid_info = tmp_path / "valid-1.0.dist-info"
+    valid_info.mkdir()
+    valid_info.joinpath("METADATA").write_text("Metadata-Version: 1.0\nName: valid\n")
+
+    leftover_info = tmp_path / "~eftover-1.0.dist-info"
+    leftover_info.mkdir()
+    leftover_info.joinpath("METADATA").write_text(
+        "Metadata-Version: 1.0\nName: leftover\n"
+    )
+
+    env = get_environment([os.fspath(tmp_path)])
+    with caplog.at_level(logging.WARNING):
+        dists = list(env.iter_all_distributions())
+
+    assert [dist.canonical_name for dist in dists] == ["valid"]
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert message.startswith(
+        "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
+    )
+    assert "safe to delete" in message
