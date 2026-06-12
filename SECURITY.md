@@ -9,6 +9,13 @@ the Python Security Response Team responsibly.
 
 To reach the response team, email `security at python dot org`.
 
+pip relies on the Python Security Response Team (PSRT) to triage
+and respond to security reports. PSRT members balance security
+work against many other responsibilities, so please be thoughtful
+about the time and attention your report requires. Reports that
+repeatedly disregard this policy may be rejected regardless of
+technical merit.
+
 ## What is not a pip vulnerability
 
 Due to the design of the Python packaging ecosystem, pip has no way
@@ -31,9 +38,9 @@ following are not pip vulnerabilities:
 
 A bug in a step that already runs arbitrary code is also not a
 vulnerability and can be reported as a normal bug on the
-[issue tracker](https://github.com/pypa/pip/issues). And ideas
-for hardening any of these processes can be reported as feature
-requests.
+[issue tracker](https://github.com/pypa/pip/issues). Any ideas
+for improving the security of these processes can be reported
+as feature requests.
 
 ## Vendored libraries
 
@@ -41,3 +48,6 @@ pip ships its own copies of its dependencies in `pip/_vendor`. A
 vulnerability in one of them is not a vulnerability in pip unless
 pip's use of the library is affected. Report the library's bug to
 that library's project.
+
+Updates to vendored libraries, including security fixes, are
+defined in pip's [release process](https://pip.pypa.io/en/stable/development/release-process/#release-cadence).
