@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from typing import (
     Any,
     Literal,
-    Optional,
 )
 
 from pip._internal.exceptions import BadCommand, InstallationError
@@ -38,7 +37,7 @@ __all__ = ["vcs"]
 
 logger = logging.getLogger(__name__)
 
-AuthInfo = tuple[Optional[str], Optional[str]]
+AuthInfo = tuple[str | None, str | None]
 
 
 def is_url(name: str) -> bool:

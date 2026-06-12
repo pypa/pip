@@ -16,11 +16,12 @@ import os
 import pathlib
 import re
 import textwrap
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -822,15 +823,13 @@ python_version: Callable[..., Option] = partial(
     callback=_handle_python_version,
     type="str",
     default=None,
-    help=dedent(
-        """\
+    help=dedent("""\
     The Python interpreter version to use for wheel and "Requires-Python"
     compatibility checks. Defaults to a version derived from the running
     interpreter. The version can be specified using up to three dot-separated
     integers (e.g. "3" for 3.0.0, "3.7" for 3.7.0, or "3.7.3"). A major-minor
     version can also be given as a string without dots (e.g. "37" for 3.7.0).
-    """
-    ),
+    """),
 )
 
 

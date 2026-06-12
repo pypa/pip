@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from io import BytesIO
-from typing import Any, Callable
+from typing import Any
 
 _Hook = Callable[["MockResponse"], None]
 

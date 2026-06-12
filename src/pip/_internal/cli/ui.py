@@ -5,9 +5,9 @@ import functools
 import logging
 import sys
 import time
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import Callable, Generator, Iterable, Iterator
 from contextlib import AbstractContextManager
-from typing import IO, TYPE_CHECKING, Callable, Literal, TypeVar
+from typing import IO, TYPE_CHECKING, Literal, TypeVar
 
 from pip._vendor.rich.console import Console
 from pip._vendor.rich.progress import (
