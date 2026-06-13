@@ -3,11 +3,17 @@ name: Update documentation redirects
 on:
   push:
     branches: [main]
+    paths:
+      - ".readthedocs-custom-redirects.yml"
+      - ".readthedocs.yml"
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
 
 env:
   FORCE_COLOR: "1"
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -18,11 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: RTD Deploys
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.11"
-      - run: pip install httpx pyyaml rich
-      - run: python tools/update-rtd-redirects.py
+      - run: pipx run tools/update-rtd-redirects.py
         env:
           RTD_API_TOKEN: ${{ secrets.RTD_API_TOKEN }}

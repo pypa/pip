@@ -8,16 +8,22 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
+from __future__ import annotations
+
+import copy
 import logging
 import os
 import re
-from typing import Dict, List, Optional, Set, Tuple, Union
+from collections.abc import Collection, Mapping
+from dataclasses import dataclass
 
+from pip._vendor.packaging import pylock
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
-from pip._vendor.packaging.specifiers import Specifier
+from pip._vendor.packaging.utils import parse_sdist_filename, parse_wheel_filename
 
 from pip._internal.exceptions import InstallationError
+from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
@@ -26,6 +32,13 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
 from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.pylock import (
+    package_archive_requirement_url,
+    package_directory_requirement_url,
+    package_sdist_requirement_url,
+    package_vcs_requirement_url,
+    package_wheel_requirement_url,
+)
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
 
@@ -36,14 +49,17 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-operators = Specifier._operators.keys()
+
+# All standard version specifier operators
+# https://packaging.python.org/en/latest/specifications/version-specifiers/#id5
+operators = ("~=", "==", "!=", "<=", ">=", "<", ">", "===")
 
 
-def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
+def _strip_extras(path: str) -> tuple[str, str | None]:
     m = re.match(r"^(.+)(\[[^\]]+\])$", path)
     extras = None
     if m:
-        path_no_extras = m.group(1)
+        path_no_extras = m.group(1).rstrip()
         extras = m.group(2)
     else:
         path_no_extras = path
@@ -51,23 +67,56 @@ def _strip_extras(path: str) -> Tuple[str, Optional[str]]:
     return path_no_extras, extras
 
 
-def convert_extras(extras: Optional[str]) -> Set[str]:
+def convert_extras(extras: str | None) -> set[str]:
     if not extras:
         return set()
     return get_requirement("placeholder" + extras.lower()).extras
 
 
-def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
-    """Parses an editable requirement into:
-        - a requirement name
-        - an URL
-        - extras
-        - editable options
-    Accepted requirements:
-        svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
-        .[some_extra]
+def _set_requirement_extras(req: Requirement, new_extras: set[str]) -> Requirement:
     """
+    Returns a new requirement based on the given one, with the supplied extras. If the
+    given requirement already has extras those are replaced (or dropped if no new extras
+    are given).
+    """
+    match: re.Match[str] | None = re.fullmatch(
+        # see https://peps.python.org/pep-0508/#complete-grammar
+        r"([\w\t .-]+)(\[[^\]]*\])?(.*)",
+        str(req),
+        flags=re.ASCII,
+    )
+    # ireq.req is a valid requirement so the regex should always match
+    assert (
+        match is not None
+    ), f"regex match on requirement {req} failed, this should never happen"
+    pre: str | None = match.group(1)
+    post: str | None = match.group(3)
+    assert (
+        pre is not None and post is not None
+    ), f"regex group selection for requirement {req} failed, this should never happen"
+    extras: str = "[{}]".format(",".join(sorted(new_extras)) if new_extras else "")
+    return get_requirement(f"{pre}{extras}{post}")
 
+
+def _parse_direct_url_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
+    try:
+        req = Requirement(editable_req)
+    except InvalidRequirement:
+        pass
+    else:
+        if req.url:
+            # Join the marker back into the name part. This will be parsed out
+            # later into a Requirement again.
+            if req.marker:
+                name = f"{req.name} ; {req.marker}"
+            else:
+                name = req.name
+            return (name, req.url, req.extras)
+
+    raise ValueError
+
+
+def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
     url = editable_req
 
     # If a file path is specified with extras, strip off the extras.
@@ -93,9 +142,27 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
             url = f"{version_control}+{url}"
             break
 
+    return Link(url).egg_fragment, url, set()
+
+
+def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
+    """Parses an editable requirement into:
+        - a requirement name with environment markers
+        - an URL
+        - extras
+    Accepted requirements:
+        - svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
+        - local_path[some_extra]
+        - Foobar[extra] @ svn+http://blahblah@rev#subdirectory=subdir ; markers
+    """
+    try:
+        package_name, url, extras = _parse_direct_url_editable(editable_req)
+    except ValueError:
+        package_name, url, extras = _parse_pip_syntax_editable(editable_req)
+
     link = Link(url)
 
-    if not link.is_vcs:
+    if not link.is_vcs and not link.url.startswith("file:"):
         backends = ", ".join(vcs.all_schemes)
         raise InstallationError(
             f"{editable_req} is not a valid editable requirement. "
@@ -103,13 +170,13 @@ def parse_editable(editable_req: str) -> Tuple[Optional[str], str, Set[str]]:
             f"(beginning with {backends})."
         )
 
-    package_name = link.egg_fragment
-    if not package_name:
+    # The project name can be inferred from local file URIs easily.
+    if not package_name and not link.url.startswith("file:"):
         raise InstallationError(
-            "Could not detect requirement name for '{}', please specify one "
-            "with #egg=your_package_name".format(editable_req)
+            f"Could not detect requirement name for '{editable_req}', "
+            "please specify one with your_package_name @ URL"
         )
-    return package_name, url, set()
+    return package_name, url, extras
 
 
 def check_first_requirement_in_file(filename: str) -> None:
@@ -136,7 +203,7 @@ def check_first_requirement_in_file(filename: str) -> None:
             # If there is a line continuation, drop it, and append the next line.
             if line.endswith("\\"):
                 line = line[:-2].strip() + next(lines, "")
-            Requirement(line)
+            get_requirement(line)
             return
 
 
@@ -165,18 +232,12 @@ def deduce_helpful_msg(req: str) -> str:
     return msg
 
 
+@dataclass(frozen=True)
 class RequirementParts:
-    def __init__(
-        self,
-        requirement: Optional[Requirement],
-        link: Optional[Link],
-        markers: Optional[Marker],
-        extras: Set[str],
-    ):
-        self.requirement = requirement
-        self.link = link
-        self.markers = markers
-        self.extras = extras
+    requirement: Requirement | None
+    link: Link | None
+    markers: Marker | None
+    extras: set[str]
 
 
 def parse_req_from_editable(editable_req: str) -> RequirementParts:
@@ -184,9 +245,9 @@ def parse_req_from_editable(editable_req: str) -> RequirementParts:
 
     if name is not None:
         try:
-            req: Optional[Requirement] = Requirement(name)
-        except InvalidRequirement:
-            raise InstallationError(f"Invalid requirement: '{name}'")
+            req: Requirement | None = get_requirement(name)
+        except InvalidRequirement as exc:
+            raise InstallationError(f"Invalid requirement: {name!r}: {exc}")
     else:
         req = None
 
@@ -200,19 +261,19 @@ def parse_req_from_editable(editable_req: str) -> RequirementParts:
 
 def install_req_from_editable(
     editable_req: str,
-    comes_from: Optional[Union[InstallRequirement, str]] = None,
+    comes_from: InstallRequirement | str | None = None,
     *,
-    use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    hash_options: dict[str, list[str]] | None = None,
     constraint: bool = False,
     user_supplied: bool = False,
     permit_editable_wheels: bool = False,
-    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    config_settings: dict[str, str | list[str]] | None = None,
 ) -> InstallRequirement:
-    parts = parse_req_from_editable(editable_req)
+    if constraint:
+        raise InstallationError("Editable requirements are not allowed as constraints")
 
+    parts = parse_req_from_editable(editable_req)
     return InstallRequirement(
         parts.requirement,
         comes_from=comes_from,
@@ -221,9 +282,7 @@ def install_req_from_editable(
         permit_editable_wheels=permit_editable_wheels,
         link=parts.link,
         constraint=constraint,
-        use_pep517=use_pep517,
         isolated=isolated,
-        global_options=global_options,
         hash_options=hash_options,
         config_settings=config_settings,
         extras=parts.extras,
@@ -249,7 +308,7 @@ def _looks_like_path(name: str) -> bool:
     return False
 
 
-def _get_url_from_path(path: str, name: str) -> Optional[str]:
+def _get_url_from_path(path: str, name: str) -> str | None:
     """
     First, it checks whether a provided path is an installable directory. If it
     is, returns the path.
@@ -283,7 +342,7 @@ def _get_url_from_path(path: str, name: str) -> Optional[str]:
     return path_to_url(path)
 
 
-def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementParts:
+def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     if is_url(name):
         marker_sep = "; "
     else:
@@ -338,8 +397,8 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
     def _parse_req_string(req_as_string: str) -> Requirement:
         try:
-            req = get_requirement(req_as_string)
-        except InvalidRequirement:
+            return get_requirement(req_as_string)
+        except InvalidRequirement as exc:
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
                 add_msg += deduce_helpful_msg(req_as_string)
@@ -349,24 +408,13 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
                 add_msg = ""
-            msg = with_source(f"Invalid requirement: {req_as_string!r}")
+            msg = with_source(f"Invalid requirement: {req_as_string!r}: {exc}")
             if add_msg:
                 msg += f"\nHint: {add_msg}"
             raise InstallationError(msg)
-        else:
-            # Deprecate extras after specifiers: "name>=1.0[extras]"
-            # This currently works by accident because _strip_extras() parses
-            # any extras in the end of the string and those are saved in
-            # RequirementParts
-            for spec in req.specifier:
-                spec_str = str(spec)
-                if spec_str.endswith("]"):
-                    msg = f"Extras after version '{spec_str}'."
-                    raise InstallationError(msg)
-        return req
 
     if req_as_string is not None:
-        req: Optional[Requirement] = _parse_req_string(req_as_string)
+        req: Requirement | None = _parse_req_string(req_as_string)
     else:
         req = None
 
@@ -375,16 +423,14 @@ def parse_req_from_line(name: str, line_source: Optional[str]) -> RequirementPar
 
 def install_req_from_line(
     name: str,
-    comes_from: Optional[Union[str, InstallRequirement]] = None,
+    comes_from: str | InstallRequirement | None = None,
     *,
-    use_pep517: Optional[bool] = None,
     isolated: bool = False,
-    global_options: Optional[List[str]] = None,
-    hash_options: Optional[Dict[str, List[str]]] = None,
+    hash_options: dict[str, list[str]] | None = None,
     constraint: bool = False,
-    line_source: Optional[str] = None,
+    line_source: str | None = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    config_settings: dict[str, str | list[str]] | None = None,
 ) -> InstallRequirement:
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -399,9 +445,7 @@ def install_req_from_line(
         comes_from,
         link=parts.link,
         markers=parts.markers,
-        use_pep517=use_pep517,
         isolated=isolated,
-        global_options=global_options,
         hash_options=hash_options,
         config_settings=config_settings,
         constraint=constraint,
@@ -412,15 +456,14 @@ def install_req_from_line(
 
 def install_req_from_req_string(
     req_string: str,
-    comes_from: Optional[InstallRequirement] = None,
+    comes_from: InstallRequirement | None = None,
     isolated: bool = False,
-    use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
 ) -> InstallRequirement:
     try:
         req = get_requirement(req_string)
-    except InvalidRequirement:
-        raise InstallationError(f"Invalid requirement: '{req_string}'")
+    except InvalidRequirement as exc:
+        raise InstallationError(f"Invalid requirement: {req_string!r}: {exc}")
 
     domains_not_allowed = [
         PyPI.file_storage_domain,
@@ -436,14 +479,13 @@ def install_req_from_req_string(
         raise InstallationError(
             "Packages installed from PyPI cannot depend on packages "
             "which are not also hosted on PyPI.\n"
-            "{} depends on {} ".format(comes_from.name, req)
+            f"{comes_from.name} depends on {req} "
         )
 
     return InstallRequirement(
         req,
         comes_from,
         isolated=isolated,
-        use_pep517=use_pep517,
         user_supplied=user_supplied,
     )
 
@@ -451,15 +493,13 @@ def install_req_from_req_string(
 def install_req_from_parsed_requirement(
     parsed_req: ParsedRequirement,
     isolated: bool = False,
-    use_pep517: Optional[bool] = None,
     user_supplied: bool = False,
-    config_settings: Optional[Dict[str, Union[str, List[str]]]] = None,
+    config_settings: dict[str, str | list[str]] | None = None,
 ) -> InstallRequirement:
     if parsed_req.is_editable:
         req = install_req_from_editable(
             parsed_req.requirement,
             comes_from=parsed_req.comes_from,
-            use_pep517=use_pep517,
             constraint=parsed_req.constraint,
             isolated=isolated,
             user_supplied=user_supplied,
@@ -470,13 +510,7 @@ def install_req_from_parsed_requirement(
         req = install_req_from_line(
             parsed_req.requirement,
             comes_from=parsed_req.comes_from,
-            use_pep517=use_pep517,
             isolated=isolated,
-            global_options=(
-                parsed_req.options.get("global_options", [])
-                if parsed_req.options
-                else []
-            ),
             hash_options=(
                 parsed_req.options.get("hashes", {}) if parsed_req.options else {}
             ),
@@ -497,10 +531,147 @@ def install_req_from_link_and_ireq(
         editable=ireq.editable,
         link=link,
         markers=ireq.markers,
-        use_pep517=ireq.use_pep517,
         isolated=ireq.isolated,
-        global_options=ireq.global_options,
         hash_options=ireq.hash_options,
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
     )
+
+
+def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
+    """
+    Creates a new InstallationRequirement using the given template but without
+    any extras. Sets the original requirement as the new one's parent
+    (comes_from).
+    """
+    return InstallRequirement(
+        req=(
+            _set_requirement_extras(ireq.req, set()) if ireq.req is not None else None
+        ),
+        comes_from=ireq,
+        editable=ireq.editable,
+        link=ireq.link,
+        markers=ireq.markers,
+        isolated=ireq.isolated,
+        hash_options=ireq.hash_options,
+        constraint=ireq.constraint,
+        extras=[],
+        config_settings=ireq.config_settings,
+        user_supplied=ireq.user_supplied,
+        permit_editable_wheels=ireq.permit_editable_wheels,
+    )
+
+
+def install_req_extend_extras(
+    ireq: InstallRequirement,
+    extras: Collection[str],
+) -> InstallRequirement:
+    """
+    Returns a copy of an installation requirement with some additional extras.
+    Makes a shallow copy of the ireq object.
+    """
+    result = copy.copy(ireq)
+    result.extras = {*ireq.extras, *extras}
+    result.req = (
+        _set_requirement_extras(ireq.req, result.extras)
+        if ireq.req is not None
+        else None
+    )
+    return result
+
+
+def _pylock_hashes_to_hash_options(hashes: Mapping[str, str]) -> dict[str, list[str]]:
+    return {k: [v] for k, v in hashes.items()}
+
+
+def install_req_from_pylock_package(
+    package: pylock.Package,
+    package_dist: (
+        pylock.PackageVcs
+        | pylock.PackageArchive
+        | pylock.PackageDirectory
+        | pylock.PackageSdist
+        | pylock.PackageWheel
+    ),
+    pylock_path_or_url: str,
+    format_control: FormatControl,
+    user_supplied: bool,
+) -> InstallRequirement:
+    pass
+    # TODO: validate file size
+    if isinstance(package_dist, pylock.PackageVcs):
+        return InstallRequirement(
+            req=Requirement(
+                f"{package.name} @ "
+                f"{package_vcs_requirement_url(pylock_path_or_url, package_dist)}"
+            ),
+            comes_from=pylock_path_or_url,
+            user_supplied=user_supplied,
+        )
+    elif isinstance(package_dist, pylock.PackageArchive):
+        return InstallRequirement(
+            req=Requirement(
+                f"{package.name} @ "
+                f"{package_archive_requirement_url(pylock_path_or_url, package_dist)}"
+            ),
+            comes_from=pylock_path_or_url,
+            hash_options=_pylock_hashes_to_hash_options(package_dist.hashes),
+            user_supplied=user_supplied,
+        )
+    elif isinstance(package_dist, pylock.PackageDirectory):
+        req = package_directory_requirement_url(pylock_path_or_url, package_dist)
+        if package_dist.editable:
+            return install_req_from_editable(
+                req,
+                comes_from=pylock_path_or_url,
+                user_supplied=user_supplied,
+            )
+        else:
+            return install_req_from_line(
+                req,
+                comes_from=pylock_path_or_url,
+                user_supplied=user_supplied,
+            )
+    else:
+        # wheel or sdist
+        allowed_formats = format_control.get_allowed_formats(package.name)
+        if (
+            isinstance(package_dist, pylock.PackageSdist)
+            and "source" not in allowed_formats
+        ):
+            raise InstallationError(
+                f"source distributions are not permitted for package {package.name!r} "
+                f"and there is no compatible wheel for it in {pylock_path_or_url!r}"
+            )
+        if (
+            isinstance(package_dist, pylock.PackageWheel)
+            and "binary" not in allowed_formats
+        ):
+            if not package.sdist:
+                raise InstallationError(
+                    f"binaries are not permitted for package {package.name!r} and "
+                    f"there is no source distribution for it in {pylock_path_or_url!r}"
+                )
+            package_dist = package.sdist
+        version = package.version
+        if isinstance(package_dist, pylock.PackageWheel):
+            if not version:
+                _, version, _, _ = parse_wheel_filename(package_dist.filename)
+            requirement_url = package_wheel_requirement_url(
+                pylock_path_or_url, package_dist
+            )
+        elif isinstance(package_dist, pylock.PackageSdist):
+            if not version:
+                _, version = parse_sdist_filename(package_dist.filename)
+            requirement_url = package_sdist_requirement_url(
+                pylock_path_or_url, package_dist
+            )
+        ireq = InstallRequirement(
+            req=Requirement(f"{package.name}=={version}"),
+            comes_from=pylock_path_or_url,
+            locked_link=Link(requirement_url),
+            locked_version=version,
+            hash_options=_pylock_hashes_to_hash_options(package_dist.hashes),
+            user_supplied=user_supplied,
+        )
+        return ireq

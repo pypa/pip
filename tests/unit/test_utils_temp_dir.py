@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import itertools
 import os
 import stat
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union
+from typing import Any
+from unittest import mock
 
 import pytest
 
@@ -232,9 +236,7 @@ not_deleted_kind = "not-deleted"
         (False, "unspecified", True),
     ],
 )
-def test_tempdir_registry(
-    delete: Union[bool, _Default], kind: str, exists: bool
-) -> None:
+def test_tempdir_registry(delete: bool | _Default, kind: str, exists: bool) -> None:
     with tempdir_registry() as registry:
         registry.set_delete(deleted_kind, True)
         registry.set_delete(not_deleted_kind, False)
@@ -247,7 +249,7 @@ def test_tempdir_registry(
 
 @pytest.mark.parametrize("delete,exists", [(_default, True), (None, False)])
 def test_temp_dir_does_not_delete_explicit_paths_by_default(
-    tmpdir: Path, delete: Optional[_Default], exists: bool
+    tmpdir: Path, delete: _Default | None, exists: bool
 ) -> None:
     p = tmpdir / "example"
     p.mkdir()
@@ -274,3 +276,25 @@ def test_tempdir_registry_lazy(should_delete: bool) -> None:
             registry.set_delete("test-for-lazy", should_delete)
             assert os.path.exists(path)
         assert os.path.exists(path) == (not should_delete)
+
+
+def test_tempdir_cleanup_ignore_errors() -> None:
+    os_unlink = os.unlink
+
+    # mock os.unlink to fail with EACCES for a specific filename to simulate
+    # how removing a loaded exe/dll behaves.
+    def unlink(name: str, *args: Any, **kwargs: Any) -> None:
+        if "bomb" in name:
+            raise PermissionError(name)
+        else:
+            os_unlink(name)
+
+    with mock.patch("os.unlink", unlink):
+        with TempDirectory(ignore_cleanup_errors=True) as tmp_dir:
+            path = tmp_dir.path
+            with open(os.path.join(path, "bomb"), "a"):
+                pass
+
+    filename = os.path.join(path, "bomb")
+    assert os.path.isfile(filename)
+    os.unlink(filename)

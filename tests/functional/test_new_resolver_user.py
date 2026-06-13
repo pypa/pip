@@ -27,7 +27,7 @@ def test_new_resolver_install_user_satisfied_by_global_site(
     script: PipTestEnvironment,
 ) -> None:
     """
-    An install a matching version to user site should re-use a global site
+    An install a matching version to user site should reuse a global site
     installation if it satisfies.
     """
     create_basic_wheel_for_package(script, "base", "1.0.0")
@@ -91,21 +91,19 @@ def test_new_resolver_install_user_conflict_in_user_site(
     result.did_not_create(base_2_dist_info)
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # Since the tests are run from a virtualenv, and to avoid the "Will not
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch `pip._internal.utils.misc.dist_in_site_packages`
     # so it's possible to install a conflicting distribution in the user site.
-    virtualenv.sitecustomize = textwrap.dedent(
-        """
+    virtualenv.sitecustomize = textwrap.dedent("""
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.metadata.base import BaseDistribution
         BaseDistribution.in_site_packages = property(dist_in_site_packages)
-    """
-    )
+    """)
 
 
 @pytest.mark.usefixtures("enable_user_site", "patch_dist_in_site_packages")

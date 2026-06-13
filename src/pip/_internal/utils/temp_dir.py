@@ -1,10 +1,18 @@
+from __future__ import annotations
+
 import errno
 import itertools
 import logging
 import os.path
 import tempfile
+import traceback
+from collections.abc import Callable, Generator
 from contextlib import ExitStack, contextmanager
-from typing import Any, Dict, Generator, Optional, TypeVar, Union
+from pathlib import Path
+from typing import (
+    Any,
+    TypeVar,
+)
 
 from pip._internal.utils.misc import enum, rmtree
 
@@ -22,7 +30,7 @@ tempdir_kinds = enum(
 )
 
 
-_tempdir_manager: Optional[ExitStack] = None
+_tempdir_manager: ExitStack | None = None
 
 
 @contextmanager
@@ -40,7 +48,7 @@ class TempDirectoryTypeRegistry:
     """Manages temp directory behavior"""
 
     def __init__(self) -> None:
-        self._should_delete: Dict[str, bool] = {}
+        self._should_delete: dict[str, bool] = {}
 
     def set_delete(self, kind: str, value: bool) -> None:
         """Indicate whether a TempDirectory of the given kind should be
@@ -55,7 +63,7 @@ class TempDirectoryTypeRegistry:
         return self._should_delete.get(kind, True)
 
 
-_tempdir_registry: Optional[TempDirectoryTypeRegistry] = None
+_tempdir_registry: TempDirectoryTypeRegistry | None = None
 
 
 @contextmanager
@@ -102,10 +110,11 @@ class TempDirectory:
 
     def __init__(
         self,
-        path: Optional[str] = None,
-        delete: Union[bool, None, _Default] = _default,
+        path: str | None = None,
+        delete: bool | None | _Default = _default,
         kind: str = "temp",
         globally_managed: bool = False,
+        ignore_cleanup_errors: bool = True,
     ):
         super().__init__()
 
@@ -128,6 +137,7 @@ class TempDirectory:
         self._deleted = False
         self.delete = delete
         self.kind = kind
+        self.ignore_cleanup_errors = ignore_cleanup_errors
 
         if globally_managed:
             assert _tempdir_manager is not None
@@ -170,7 +180,44 @@ class TempDirectory:
         self._deleted = True
         if not os.path.exists(self._path):
             return
-        rmtree(self._path)
+
+        errors: list[BaseException] = []
+
+        def onerror(
+            func: Callable[..., Any],
+            path: Path,
+            exc_val: BaseException,
+        ) -> None:
+            """Log a warning for a `rmtree` error and continue"""
+            formatted_exc = "\n".join(
+                traceback.format_exception_only(type(exc_val), exc_val)
+            )
+            formatted_exc = formatted_exc.rstrip()  # remove trailing new line
+            if func in (os.unlink, os.remove, os.rmdir):
+                logger.debug(
+                    "Failed to remove a temporary file '%s' due to %s.\n",
+                    path,
+                    formatted_exc,
+                )
+            else:
+                logger.debug("%s failed with %s.", func.__qualname__, formatted_exc)
+            errors.append(exc_val)
+
+        if self.ignore_cleanup_errors:
+            try:
+                # first try with @retry; retrying to handle ephemeral errors
+                rmtree(self._path, ignore_errors=False)
+            except OSError:
+                # last pass ignore/log all errors
+                rmtree(self._path, onexc=onerror)
+            if errors:
+                logger.warning(
+                    "Failed to remove contents in a temporary directory '%s'.\n"
+                    "You can safely remove it manually.",
+                    self._path,
+                )
+        else:
+            rmtree(self._path)
 
 
 class AdjacentTempDirectory(TempDirectory):
@@ -195,7 +242,7 @@ class AdjacentTempDirectory(TempDirectory):
     # with leading '-' and invalid metadata
     LEADING_CHARS = "-~.=%0123456789"
 
-    def __init__(self, original: str, delete: Optional[bool] = None) -> None:
+    def __init__(self, original: str, delete: bool | None = None) -> None:
         self.original = original.rstrip("/\\")
         super().__init__(delete=delete)
 

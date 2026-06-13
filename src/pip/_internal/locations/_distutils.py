@@ -9,6 +9,8 @@
 #
 # See https://github.com/pypa/pip/issues/8761 for the original discussion and
 # rationale for why this is done within pip.
+from __future__ import annotations
+
 try:
     __import__("_distutils_hack").remove_shim()
 except (ImportError, AttributeError):
@@ -21,7 +23,6 @@ from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
 from distutils.sysconfig import get_python_lib
-from typing import Dict, List, Optional, Union, cast
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -35,19 +36,19 @@ logger = logging.getLogger(__name__)
 def distutils_scheme(
     dist_name: str,
     user: bool = False,
-    home: Optional[str] = None,
-    root: Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
     *,
     ignore_config_files: bool = False,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Return a distutils install scheme
     """
     from distutils.dist import Distribution
 
-    dist_args: Dict[str, Union[str, List[str]]] = {"name": dist_name}
+    dist_args: dict[str, str | list[str]] = {"name": dist_name}
     if isolated:
         dist_args["script_args"] = ["--no-user-cfg"]
 
@@ -56,16 +57,15 @@ def distutils_scheme(
         try:
             d.parse_config_files()
         except UnicodeDecodeError:
-            # Typeshed does not include find_config_files() for some reason.
-            paths = d.find_config_files()  # type: ignore
+            paths = d.find_config_files()
             logger.warning(
                 "Ignore distutils configs in %s due to encoding errors.",
                 ", ".join(os.path.basename(p) for p in paths),
             )
-    obj: Optional[DistutilsCommand] = None
+    obj: DistutilsCommand | None = None
     obj = d.get_command_obj("install", create=True)
     assert obj is not None
-    i = cast(distutils_install_command, obj)
+    i: distutils_install_command = obj
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
@@ -79,7 +79,7 @@ def distutils_scheme(
     i.root = root or i.root
     i.finalize_options()
 
-    scheme = {}
+    scheme: dict[str, str] = {}
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, "install_" + key)
 
@@ -89,7 +89,7 @@ def distutils_scheme(
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
     if "install_lib" in d.get_option_dict("install"):
-        scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
+        scheme.update({"purelib": i.install_lib, "platlib": i.install_lib})
 
     if running_under_virtualenv():
         if home:
@@ -116,10 +116,10 @@ def distutils_scheme(
 def get_scheme(
     dist_name: str,
     user: bool = False,
-    home: Optional[str] = None,
-    root: Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
 ) -> Scheme:
     """
     Get the "scheme" corresponding to the input parameters. The distutils

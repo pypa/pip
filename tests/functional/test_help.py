@@ -1,12 +1,16 @@
+import functools
 from unittest.mock import Mock
 
 import pytest
 
+from pip._vendor.rich.text import Text
+
+import pip._internal.cli.parser
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.exceptions import CommandError
-from tests.conftest import InMemoryPip
-from tests.lib import PipTestEnvironment
+
+from tests.lib import InMemoryPip, PipTestEnvironment
 
 
 def test_run_method_should_return_success_when_finds_command_name() -> None:
@@ -102,8 +106,8 @@ def test_help_commands_equally_functional(in_memory_pip: InMemoryPip) -> None:
     results = list(map(in_memory_pip.pip, ("help", "--help")))
     results.append(in_memory_pip.pip())
 
-    out = map(lambda x: x.stdout, results)
-    ret = map(lambda x: x.returncode, results)
+    out = (x.stdout for x in results)
+    ret = (x.returncode for x in results)
 
     msg = '"pip --help" != "pip help" != "pip"'
     assert len(set(out)) == 1, "output of: " + msg
@@ -116,3 +120,41 @@ def test_help_commands_equally_functional(in_memory_pip: InMemoryPip) -> None:
             == in_memory_pip.pip(name, "--help").stdout
             != ""
         )
+
+
+@pytest.mark.parametrize("envvar", ["", "NO_COLOR", "PIP_NO_COLOR"])
+def test_help_command_colors(
+    in_memory_pip: InMemoryPip, monkeypatch: pytest.MonkeyPatch, envvar: str
+) -> None:
+    """
+    Test if color disables correctly.
+    """
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("PIP_NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+
+    PipConsole = pip._internal.cli.parser.PipConsole
+
+    TestConsole = functools.partial(
+        PipConsole, force_terminal=True, color_system="standard", width=80
+    )
+    monkeypatch.setattr(pip._internal.cli.parser, "PipConsole", TestConsole)
+
+    if envvar:
+        monkeypatch.setenv(envvar, "1")
+
+    res = in_memory_pip.pip("help")
+    text = Text.from_ansi(res.stdout)
+
+    bold_spans = [s for s in text.spans if getattr(s.style, "bold", None)]
+    bold_text = [text.plain[s.start : s.end] for s in bold_spans]
+
+    assert bold_text == ["Usage:", "Commands:", "General Options:"]
+
+    for span in bold_spans:
+        style = span.style
+        assert not isinstance(style, str)
+        if envvar:
+            assert style.color is None
+        else:
+            assert style.color is not None

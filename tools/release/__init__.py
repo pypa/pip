@@ -3,17 +3,20 @@
 These are written according to the order they are called in.
 """
 
+from __future__ import annotations
+
 import contextlib
 import os
 import pathlib
 import subprocess
 import tempfile
-from typing import Iterator, List, Optional, Set
+import unicodedata
+from collections.abc import Iterator
 
 from nox.sessions import Session
 
 
-def get_version_from_arguments(session: Session) -> Optional[str]:
+def get_version_from_arguments(session: Session) -> str | None:
     """Checks the arguments passed to `nox -s release`.
 
     If there is only 1 argument that looks like a pip version, returns that.
@@ -45,7 +48,35 @@ def modified_files_in_git(*args: str) -> int:
     ).returncode
 
 
-def get_author_list() -> List[str]:
+def strip_rtl_ltr_overrides(a: str) -> str:
+    """Strip RIGHT-TO-LEFT OVERRIDE and LEFT-TO-RIGHT OVERRIDE characters
+    from author names.
+    Reorder the characters in between them to preserve the perception.
+    See https://github.com/pypa/pip/issues/12467 for more info."""
+    rtl = "\N{RIGHT-TO-LEFT OVERRIDE}"
+    ltr = "\N{LEFT-TO-RIGHT OVERRIDE}"
+
+    # If there are no overrides to RIGHT-TO-LEFT,
+    # only strip useless LEFT-TO-RIGHT overrides.
+    # This returns the original for most of the authors.
+    # It also serves as a termination condition for recursive calls.
+    if rtl not in a:
+        return a.replace(ltr, "")
+
+    prefix = a[: a.index(rtl)].replace(ltr, "")
+    rest = a[: a.index(rtl) : -1]
+    if ltr not in rest:
+        rest = rest.replace(rtl, "")
+    else:
+        rest = a[a.index(ltr) - 1 : a.index(rtl) : -1].replace(rtl, "")
+        rest += a[a.index(ltr) + 1 :]
+    combined = prefix + strip_rtl_ltr_overrides(rest)
+    assert rtl not in combined, f"RIGHT-TO-LEFT OVERRIDE in {combined!r}"
+    assert ltr not in combined, f"LEFT-TO-RIGHT OVERRIDE in {combined!r}"
+    return combined
+
+
+def get_author_list() -> list[str]:
     """Get the list of authors from Git commits."""
     # subprocess because session.run doesn't give us stdout
     # only use names in list of Authors
@@ -57,9 +88,11 @@ def get_author_list() -> List[str]:
 
     # Create a unique list.
     authors = []
-    seen_authors: Set[str] = set()
+    seen_authors: set[str] = set()
     for author in result.stdout.splitlines():
         author = author.strip()
+        author = strip_rtl_ltr_overrides(author)
+        author = unicodedata.normalize("NFC", author)
         if author.lower() not in seen_authors:
             seen_authors.add(author.lower())
             authors.append(author)

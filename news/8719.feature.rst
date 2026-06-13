@@ -1,1 +1,0 @@
-Add ``--keyring-provider`` flag. See the Authentication page in the documentation for more info.

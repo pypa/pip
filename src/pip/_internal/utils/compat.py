@@ -1,11 +1,13 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
 
+import importlib.resources
 import logging
 import os
 import sys
+from typing import IO
 
-__all__ = ["get_path_uid", "stdlib_pkgs", "WINDOWS"]
+__all__ = ["get_path_uid", "stdlib_pkgs", "tomllib", "WINDOWS"]
 
 
 logger = logging.getLogger(__name__)
@@ -49,6 +51,26 @@ def get_path_uid(path: str) -> int:
             # raise OSError for parity with os.O_NOFOLLOW above
             raise OSError(f"{path} is a symlink; Will not return uid for symlinks")
     return file_uid
+
+
+# The importlib.resources.open_text function was deprecated in 3.11 with suggested
+# replacement we use below.
+if sys.version_info < (3, 11):
+    open_text_resource = importlib.resources.open_text
+else:
+
+    def open_text_resource(
+        package: str, resource: str, encoding: str = "utf-8", errors: str = "strict"
+    ) -> IO[str]:
+        return (importlib.resources.files(package) / resource).open(
+            "r", encoding=encoding, errors=errors
+        )
+
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    from pip._vendor import tomli as tomllib
 
 
 # packages in the stdlib that may have installation metadata, but should not be

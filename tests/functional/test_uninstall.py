@@ -2,16 +2,18 @@ import logging
 import os
 import sys
 import textwrap
+from collections.abc import Iterator
 from os.path import join, normpath
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import Any, Iterator
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
+
 from tests.lib import (
     PipTestEnvironment,
     TestData,
@@ -22,21 +24,23 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout, local_repo
 
 
-@pytest.mark.network
-def test_basic_uninstall(script: PipTestEnvironment) -> None:
+def test_basic_uninstall(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test basic install and uninstall.
-
     """
-    result = script.pip("install", "INITools==0.2")
-    result.did_create(join(script.site_packages, "initools"))
+    result = script.pip_install_local("six", "-f", data.pypi_packages)
+    result.did_create(join(script.site_packages, "six.py"))
     # the import forces the generation of __pycache__ if the version of python
     # supports it
-    script.run("python", "-c", "import initools")
-    result2 = script.pip("uninstall", "INITools", "-y")
+    script.run("python", "-c", "import six")
+    result2 = script.pip("uninstall", "six", "-y")
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="distutils is no longer available in Python 3.12+",
+)
 def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     Test basic install and uninstall.
@@ -44,30 +48,30 @@ def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     script.scratch_path.joinpath("distutils_install").mkdir()
     pkg_path = script.scratch_path / "distutils_install"
-    pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from distutils.core import setup
         setup(
             name='distutils-install',
             version='0.1',
         )
-    """
-        )
-    )
+    """))
     result = script.run("python", os.fspath(pkg_path / "setup.py"), "install")
     result = script.pip("list", "--format=json")
     script.assert_installed(distutils_install="0.1")
     result = script.pip(
         "uninstall", "distutils_install", "-y", expect_stderr=True, expect_error=True
     )
+    assert "Cannot uninstall distutils-install 0.1" in result.stderr
     assert (
-        "Cannot uninstall 'distutils-install'. It is a distutils installed "
-        "project and thus we cannot accurately determine which files belong "
-        "to it which would lead to only a partial uninstall."
+        "It is a distutils installed project and thus we cannot accurately determine "
+        "which files belong to it which would lead to only a partial uninstall."
     ) in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_basic_uninstall_with_scripts(script: PipTestEnvironment) -> None:
     """
@@ -101,6 +105,10 @@ def test_uninstall_invalid_parameter(
     assert expected_message in result.stderr
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None:
     """
@@ -126,6 +134,10 @@ def test_uninstall_easy_install_after_import(script: PipTestEnvironment) -> None
     )
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_trailing_newline(script: PipTestEnvironment) -> None:
     """
@@ -192,9 +204,9 @@ def test_uninstall_overlapping_package(
     parent_pkg = data.packages.joinpath("parent-0.1.tar.gz")
     child_pkg = data.packages.joinpath("child-0.1.tar.gz")
 
-    result1 = script.pip("install", parent_pkg)
+    result1 = script.pip("install", "--no-build-isolation", parent_pkg)
     result1.did_create(join(script.site_packages, "parent"))
-    result2 = script.pip("install", child_pkg)
+    result2 = script.pip("install", "--no-build-isolation", child_pkg)
     result2.did_create(join(script.site_packages, "child"))
     result2.did_create(
         normpath(join(script.site_packages, "parent/plugins/child_plugin.py"))
@@ -222,12 +234,8 @@ def test_uninstall_overlapping_package(
     "console_scripts",
     [
         "test_ = distutils_install:test",
-        pytest.param(
-            "test_:test_ = distutils_install:test_test",
-            marks=pytest.mark.xfail(
-                reason="colon not supported in wheel entry point name?"
-            ),
-        ),
+        ",test_ = distutils_install:test_test",
+        ", = distutils_install:test_test",
     ],
 )
 def test_uninstall_entry_point_colon_in_name(
@@ -255,7 +263,7 @@ def test_uninstall_entry_point_colon_in_name(
     script_name = script.bin_path.joinpath(console_scripts.split("=")[0].strip())
     if sys.platform == "win32":
         script_name = script_name.with_suffix(".exe")
-    script.pip("install", pkg_path)
+    script.pip("install", "--no-build-isolation", pkg_path)
     assert script_name.exists()
     script.assert_installed(ep_install="0.1")
 
@@ -282,7 +290,7 @@ def test_uninstall_gui_scripts(script: PipTestEnvironment) -> None:
     script_name = script.bin_path.joinpath("test_")
     if sys.platform == "win32":
         script_name = script_name.with_suffix(".exe")
-    script.pip("install", pkg_path)
+    script.pip("install", "--no-build-isolation", pkg_path)
     assert script_name.exists()
     script.pip("uninstall", pkg_name, "-y")
     assert not script_name.exists()
@@ -299,7 +307,7 @@ def test_uninstall_console_scripts(script: PipTestEnvironment) -> None:
         version="0.1",
         entry_points={"console_scripts": ["discover = discover:main"]},
     )
-    result = script.pip("install", pkg_path)
+    result = script.pip("install", "--no-build-isolation", pkg_path)
     result.did_create(script.bin / f"discover{script.exe}")
     result2 = script.pip("uninstall", "discover", "-y")
     assert_all_changes(
@@ -330,13 +338,17 @@ def test_uninstall_console_scripts_uppercase_name(script: PipTestEnvironment) ->
     )
     script_name = script.bin_path.joinpath("Test" + script.exe)
 
-    script.pip("install", pkg_path)
+    script.pip("install", "--no-build-isolation", pkg_path)
     assert script_name.exists()
 
     script.pip("uninstall", "ep_install", "-y")
     assert not script_name.exists()
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="Setuptools<64 does not support Python 3.12+",
+)
 @pytest.mark.network
 def test_uninstall_easy_installed_console_scripts(script: PipTestEnvironment) -> None:
     """
@@ -419,7 +431,7 @@ def _test_uninstall_editable_with_source_outside_venv(
         temp_pkg_dir,
         expect_stderr=True,
     )
-    result2 = script.pip("install", "-e", temp_pkg_dir)
+    result2 = script.run("python", "setup.py", "develop", cwd=temp_pkg_dir)
     result2.did_create(join(script.site_packages, "pip-test-package.egg-link"))
     result3 = script.pip("uninstall", "-y", "pip-test-package")
     assert_all_changes(
@@ -441,19 +453,13 @@ def test_uninstall_from_reqs_file(script: PipTestEnvironment, tmpdir: Path) -> N
         "svn+http://svn.colorstudy.com/INITools",
         tmpdir,
     )
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
             -e {url}#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """
-        ).format(url=local_svn_url)
-    )
+        """).format(url=local_svn_url))
     result = script.pip("install", "-r", "test-req.txt")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
             # -f, -i, and --extra-index-url should all be ignored by uninstall
             -f http://www.example.com
             -i http://www.example.com
@@ -462,9 +468,7 @@ def test_uninstall_from_reqs_file(script: PipTestEnvironment, tmpdir: Path) -> N
             -e {url}#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """
-        ).format(url=local_svn_url)
-    )
+        """).format(url=local_svn_url))
     result2 = script.pip("uninstall", "-r", "test-req.txt", "-y")
     assert_all_changes(
         result,
@@ -574,20 +578,16 @@ def test_uninstall_without_record_fails(
             installer_path.write_text(installer + os.linesep)
 
     result2 = script.pip("uninstall", "simple.dist", "-y", expect_error=True)
-    expected_error_message = (
-        "ERROR: Cannot uninstall simple.dist 0.1, RECORD file not found."
-    )
+    assert "Cannot uninstall simple.dist 0.1" in result2.stderr
+    assert "no RECORD file was found for simple.dist" in result2.stderr
     if not isinstance(installer, str) or not installer.strip() or installer == "pip":
-        expected_error_message += (
-            " You might be able to recover from this via: "
-            "'pip install --force-reinstall --no-deps "
-            "simple.dist==0.1'."
+        hint = (
+            "You might be able to recover from this via: "
+            "pip install --ignore-installed --no-deps simple.dist==0.1"
         )
     elif installer:
-        expected_error_message += " Hint: The package was installed by {}.".format(
-            installer
-        )
-    assert result2.stderr.rstrip() == expected_error_message
+        hint = f"The package was installed by {installer}."
+    assert f"hint: {hint}" in result2.stderr
     assert_all_changes(result.files_after, result2, ignore_changes)
 
 
@@ -625,11 +625,19 @@ def test_uninstall_setuptools_develop_install(
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
-    assert any(p.suffix == ".egg" for p in uninstall.files_deleted), str(uninstall)
     uninstall2 = script.pip("uninstall", "FSPkg", "-y")
-    assert (
+    # Depending on the metadata backend, the egg-link will be uninstalled first
+    # or second, so we use xor in the assertions below.
+    assert (join(script.site_packages, "FSPkg.egg-link") in uninstall.files_deleted) ^ (
         join(script.site_packages, "FSPkg.egg-link") in uninstall2.files_deleted
-    ), str(uninstall2)
+    )
+    assert any(
+        p.name.startswith("FSPkg") and p.suffix == ".egg"
+        for p in uninstall.files_deleted
+    ) ^ any(
+        p.name.startswith("FSPkg") and p.suffix == ".egg"
+        for p in uninstall2.files_deleted
+    )
     script.assert_not_installed("FSPkg")
 
 
@@ -643,9 +651,16 @@ def test_uninstall_editable_and_pip_install(
     script.environ["SETUPTOOLS_SYS_PATH_TECHNIQUE"] = "raw"
 
     pkg_path = data.packages.joinpath("FSPkg")
-    script.pip("install", "-e", ".", expect_stderr=True, cwd=pkg_path)
+    script.run("python", "setup.py", "develop", expect_stderr=True, cwd=pkg_path)
     # ensure both are installed with --ignore-installed:
-    script.pip("install", "--ignore-installed", ".", expect_stderr=True, cwd=pkg_path)
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--ignore-installed",
+        ".",
+        expect_stderr=True,
+        cwd=pkg_path,
+    )
     script.assert_installed(FSPkg="0.1.dev0")
     # Uninstall both develop and install
     uninstall = script.pip("uninstall", "FSPkg", "-y")
@@ -657,7 +672,7 @@ def test_uninstall_editable_and_pip_install(
     script.assert_not_installed("FSPkg")
 
 
-@pytest.fixture()
+@pytest.fixture
 def move_easy_install_pth(script: PipTestEnvironment) -> Iterator[None]:
     """Move easy-install.pth out of the way for testing easy_install."""
     easy_install_pth = join(script.site_packages_path, "easy-install.pth")
@@ -680,7 +695,7 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
 
     # Install FSPkg
     pkg_path = data.packages.joinpath("FSPkg")
-    script.pip("install", "-e", ".", expect_stderr=True, cwd=pkg_path)
+    script.run("python", "setup.py", "develop", expect_stderr=True, cwd=pkg_path)
 
     # Rename easy-install.pth to pip-test-fspkg.pth
     easy_install_pth = join(script.site_packages_path, "easy-install.pth")

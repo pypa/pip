@@ -8,6 +8,15 @@ Pip's internals
 We have an in-progress guide to the
 :ref:`architecture-pip-internals`. It might be helpful as you dive in.
 
+AI Policy
+=========
+
+While we do not dictate what tools contributors use to create pull requests,
+LLM (Large Language Model) tools are often used to generate code that the
+human contributor does not fully understand, and may not even be legally
+considered the owner of. Therefore, contributors wishing to use LLM tools
+should read and follow the project `AI policy`_.
+
 Submitting Pull Requests
 ========================
 
@@ -35,6 +44,12 @@ Examples include re-flowing text in comments or documentation, or adding or
 removing blank lines or whitespace within lines. Such changes can be made
 separately, as a "formatting cleanup" PR, if needed.
 
+.. attention::
+
+   While contributors may use whatever tools they like when developing a pull
+   request, it is the contributor's responsibility to ensure that submitted
+   code meets the project requirements, and that they understand the submitted
+   code well enough to respond to review comments.
 
 Automated Testing
 =================
@@ -112,7 +127,7 @@ the ``news/`` directory with the extension of ``.trivial.rst``. If you are on a
 POSIX like operating system, one can be added by running
 ``touch news/$(uuidgen).trivial.rst``. On Windows, the same result can be
 achieved in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial.rst"``.
-Core committers may also add a "trivial" label to the PR which will accomplish
+Core committers may also add a "skip news" label to the PR which will accomplish
 the same thing.
 
 Upgrading, removing, or adding a new vendored library gets a special mention
@@ -261,7 +276,8 @@ will initiate a vote among the existing maintainers.
     - CI Administration capabilities
     - ReadTheDocs Administration capabilities
 
-.. _`Studies have shown`: https://www.kessler.de/prd/smartbear/BestPracticesForPeerCodeReview.pdf
+.. _`AI policy`: https://github.com/pypa/pip/blob/main/AI_POLICY.md
+.. _`Studies have shown`: https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
 .. _`GitHub Actions`: https://github.com/features/actions
 .. _`.github/workflows`: https://github.com/pypa/pip/blob/main/.github/workflows

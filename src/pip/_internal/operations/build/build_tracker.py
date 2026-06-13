@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import contextlib
 import hashlib
 import logging
 import os
+from collections.abc import Generator
 from types import TracebackType
-from typing import Dict, Generator, Optional, Set, Type, Union
 
-from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -18,7 +19,7 @@ def update_env_context_manager(**changes: str) -> Generator[None, None, None]:
 
     # Save values from the target and change them.
     non_existent_marker = object()
-    saved_values: Dict[str, Union[object, str]] = {}
+    saved_values: dict[str, object | str] = {}
     for name, new_value in changes.items():
         try:
             saved_values[name] = target[name]
@@ -39,7 +40,7 @@ def update_env_context_manager(**changes: str) -> Generator[None, None, None]:
 
 
 @contextlib.contextmanager
-def get_build_tracker() -> Generator["BuildTracker", None, None]:
+def get_build_tracker() -> Generator[BuildTracker, None, None]:
     root = os.environ.get("PIP_BUILD_TRACKER")
     with contextlib.ExitStack() as ctx:
         if root is None:
@@ -51,34 +52,45 @@ def get_build_tracker() -> Generator["BuildTracker", None, None]:
             yield tracker
 
 
+class TrackerId(str):
+    """Uniquely identifying string provided to the build tracker."""
+
+
 class BuildTracker:
+    """Ensure that an sdist cannot request itself as a setup requirement.
+
+    When an sdist is prepared, it identifies its setup requirements in the
+    context of ``BuildTracker.track()``. If a requirement shows up recursively, this
+    raises an exception.
+
+    This stops fork bombs embedded in malicious packages."""
+
     def __init__(self, root: str) -> None:
         self._root = root
-        self._entries: Set[InstallRequirement] = set()
+        self._entries: dict[TrackerId, InstallRequirement] = {}
         logger.debug("Created build tracker: %s", self._root)
 
-    def __enter__(self) -> "BuildTracker":
+    def __enter__(self) -> BuildTracker:
         logger.debug("Entered build tracker: %s", self._root)
         return self
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         self.cleanup()
 
-    def _entry_path(self, link: Link) -> str:
-        hashed = hashlib.sha224(link.url_without_fragment.encode()).hexdigest()
+    def _entry_path(self, key: TrackerId) -> str:
+        hashed = hashlib.sha224(key.encode()).hexdigest()
         return os.path.join(self._root, hashed)
 
-    def add(self, req: InstallRequirement) -> None:
+    def add(self, req: InstallRequirement, key: TrackerId) -> None:
         """Add an InstallRequirement to build tracking."""
 
-        assert req.link
         # Get the file to write information about this requirement.
-        entry_path = self._entry_path(req.link)
+        entry_path = self._entry_path(key)
 
         # Try reading from the file. If it exists and can be read from, a build
         # is already in progress, so a LookupError is raised.
@@ -88,37 +100,41 @@ class BuildTracker:
         except FileNotFoundError:
             pass
         else:
-            message = "{} is already being built: {}".format(req.link, contents)
+            message = f"{req.link} is already being built: {contents}"
             raise LookupError(message)
 
         # If we're here, req should really not be building already.
-        assert req not in self._entries
+        assert key not in self._entries
 
         # Start tracking this requirement.
         with open(entry_path, "w", encoding="utf-8") as fp:
             fp.write(str(req))
-        self._entries.add(req)
+        self._entries[key] = req
 
         logger.debug("Added %s to build tracker %r", req, self._root)
 
-    def remove(self, req: InstallRequirement) -> None:
+    def remove(self, req: InstallRequirement, key: TrackerId) -> None:
         """Remove an InstallRequirement from build tracking."""
 
-        assert req.link
-        # Delete the created file and the corresponding entries.
-        os.unlink(self._entry_path(req.link))
-        self._entries.remove(req)
+        # Delete the created file and the corresponding entry.
+        os.unlink(self._entry_path(key))
+        del self._entries[key]
 
         logger.debug("Removed %s from build tracker %r", req, self._root)
 
     def cleanup(self) -> None:
-        for req in set(self._entries):
-            self.remove(req)
+        for key, req in list(self._entries.items()):
+            self.remove(req, key)
 
         logger.debug("Removed build tracker: %r", self._root)
 
     @contextlib.contextmanager
-    def track(self, req: InstallRequirement) -> Generator[None, None, None]:
-        self.add(req)
+    def track(self, req: InstallRequirement, key: str) -> Generator[None, None, None]:
+        """Ensure that `key` cannot install itself as a setup requirement.
+
+        :raises LookupError: If `key` was already provided in a parent invocation of
+                             the context introduced by this method."""
+        tracker_id = TrackerId(key)
+        self.add(req, tracker_id)
         yield
-        self.remove(req)
+        self.remove(req, tracker_id)

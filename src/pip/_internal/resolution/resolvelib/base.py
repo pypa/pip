@@ -1,55 +1,72 @@
-from typing import FrozenSet, Iterable, Optional, Tuple, Union
+from __future__ import annotations
+
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Optional
 
 from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import LegacyVersion, Version
+from pip._vendor.packaging.utils import NormalizedName
+from pip._vendor.packaging.version import Version
 
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import Hashes
 
-CandidateLookup = Tuple[Optional["Candidate"], Optional[InstallRequirement]]
-CandidateVersion = Union[LegacyVersion, Version]
+CandidateLookup = tuple[Optional["Candidate"], InstallRequirement | None]
 
 
-def format_name(project: str, extras: FrozenSet[str]) -> str:
+def format_name(project: NormalizedName, extras: frozenset[NormalizedName]) -> str:
     if not extras:
         return project
-    canonical_extras = sorted(canonicalize_name(e) for e in extras)
-    return "{}[{}]".format(project, ",".join(canonical_extras))
+    extras_expr = ",".join(sorted(extras))
+    return f"{project}[{extras_expr}]"
 
 
+@dataclass(frozen=True)
 class Constraint:
-    def __init__(
-        self, specifier: SpecifierSet, hashes: Hashes, links: FrozenSet[Link]
-    ) -> None:
-        self.specifier = specifier
-        self.hashes = hashes
-        self.links = links
+    specifier: SpecifierSet
+    hashes: Hashes
+    hash_options: dict[str, list[str]]
+    links: frozenset[Link]
 
     @classmethod
-    def empty(cls) -> "Constraint":
-        return Constraint(SpecifierSet(), Hashes(), frozenset())
+    def empty(cls) -> Constraint:
+        return Constraint(SpecifierSet(), Hashes(), {}, frozenset())
 
     @classmethod
-    def from_ireq(cls, ireq: InstallRequirement) -> "Constraint":
+    def from_ireq(cls, ireq: InstallRequirement) -> Constraint:
         links = frozenset([ireq.link]) if ireq.link else frozenset()
-        return Constraint(ireq.specifier, ireq.hashes(trust_internet=False), links)
+        hash_options = {alg: list(v) for alg, v in ireq.hash_options.items()}
+        return Constraint(
+            ireq.specifier,
+            ireq.hashes(trust_internet=False),
+            hash_options,
+            links,
+        )
 
     def __bool__(self) -> bool:
         return bool(self.specifier) or bool(self.hashes) or bool(self.links)
 
-    def __and__(self, other: InstallRequirement) -> "Constraint":
+    def __and__(self, other: InstallRequirement) -> Constraint:
         if not isinstance(other, InstallRequirement):
             return NotImplemented
         specifier = self.specifier & other.specifier
         hashes = self.hashes & other.hashes(trust_internet=False)
+        if not self.hash_options:
+            hash_options = {alg: list(v) for alg, v in other.hash_options.items()}
+        elif not other.hash_options:
+            hash_options = {alg: list(v) for alg, v in self.hash_options.items()}
+        else:
+            hash_options = {
+                alg: [v for v in other.hash_options[alg] if v in self.hash_options[alg]]
+                for alg in self.hash_options.keys() & other.hash_options.keys()
+            }
         links = self.links
         if other.link:
             links = links.union([other.link])
-        return Constraint(specifier, hashes, links)
+        return Constraint(specifier, hashes, hash_options, links)
 
-    def is_satisfied_by(self, candidate: "Candidate") -> bool:
+    def is_satisfied_by(self, candidate: Candidate) -> bool:
         # Reject if there are any mismatched URL constraints on this package.
         if self.links and not all(_match_link(link, candidate) for link in self.links):
             return False
@@ -57,6 +74,12 @@ class Constraint:
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
         return self.specifier.contains(candidate.version, prereleases=True)
+
+    def format_for_error(self) -> str:
+        s = str(self.specifier)
+        if self.links:
+            s += f" (from {', '.join(str(link) for link in self.links)})"
+        return s
 
 
 class Requirement:
@@ -79,7 +102,7 @@ class Requirement:
         """
         raise NotImplementedError("Subclass should override")
 
-    def is_satisfied_by(self, candidate: "Candidate") -> bool:
+    def is_satisfied_by(self, candidate: Candidate) -> bool:
         return False
 
     def get_candidate_lookup(self) -> CandidateLookup:
@@ -89,7 +112,7 @@ class Requirement:
         raise NotImplementedError("Subclass should override")
 
 
-def _match_link(link: Link, candidate: "Candidate") -> bool:
+def _match_link(link: Link, candidate: Candidate) -> bool:
     if candidate.source_link:
         return links_equivalent(link, candidate.source_link)
     return False
@@ -116,7 +139,7 @@ class Candidate:
         raise NotImplementedError("Override in subclass")
 
     @property
-    def version(self) -> CandidateVersion:
+    def version(self) -> Version:
         raise NotImplementedError("Override in subclass")
 
     @property
@@ -128,13 +151,13 @@ class Candidate:
         raise NotImplementedError("Override in subclass")
 
     @property
-    def source_link(self) -> Optional[Link]:
+    def source_link(self) -> Link | None:
         raise NotImplementedError("Override in subclass")
 
-    def iter_dependencies(self, with_requires: bool) -> Iterable[Optional[Requirement]]:
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         raise NotImplementedError("Override in subclass")
 
-    def get_install_requirement(self) -> Optional[InstallRequirement]:
+    def get_install_requirement(self) -> InstallRequirement | None:
         raise NotImplementedError("Override in subclass")
 
     def format_for_error(self) -> str:

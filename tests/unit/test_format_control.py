@@ -1,5 +1,4 @@
 from optparse import Values
-from typing import FrozenSet, List, Set
 
 import pytest
 
@@ -17,7 +16,7 @@ class SimpleCommand(Command):
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         self.options = options
         return SUCCESS
 
@@ -67,7 +66,7 @@ def test_comma_separated_values() -> None:
     ],
 )
 def test_fmt_ctl_matches(
-    no_binary: Set[str], only_binary: Set[str], argument: str, expected: FrozenSet[str]
+    no_binary: set[str], only_binary: set[str], argument: str, expected: frozenset[str]
 ) -> None:
     fmt = FormatControl(no_binary, only_binary)
     assert fmt.get_allowed_formats(argument) == expected

@@ -2,11 +2,10 @@ import json
 
 import pytest
 
-from tests.conftest import ScriptFactory
-from tests.lib import PipTestEnvironment, TestData
+from tests.lib import PipTestEnvironment, ScriptFactory, TestData
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def simple_script(
     tmpdir_factory: pytest.TempPathFactory,
     script_factory: ScriptFactory,
@@ -30,14 +29,13 @@ def test_inspect_basic(simple_script: PipTestEnvironment) -> None:
     """
     result = simple_script.pip("inspect")
     report = json.loads(result.stdout)
-    installed = report["installed"]
-    assert len(installed) == 5
-    installed_by_name = {i["metadata"]["name"]: i for i in installed}
+    installed_by_name = {i["metadata"]["name"]: i for i in report["installed"]}
+    # Coverage is only installed if test coverage is being collected.
+    installed_by_name.pop("coverage", None)
+    assert len(installed_by_name) == 3
     assert installed_by_name.keys() == {
         "pip",
         "setuptools",
-        "wheel",
-        "coverage",
         "simplewheel",
     }
     assert installed_by_name["simplewheel"]["metadata"]["version"] == "1.0"

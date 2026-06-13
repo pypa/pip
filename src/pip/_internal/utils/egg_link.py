@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
 import re
 import sys
-from typing import List, Optional
 
 from pip._internal.locations import site_packages, user_site
 from pip._internal.utils.virtualenv import (
@@ -15,28 +16,35 @@ __all__ = [
 ]
 
 
-def _egg_link_name(raw_name: str) -> str:
+def _egg_link_names(raw_name: str) -> list[str]:
     """
     Convert a Name metadata value to a .egg-link name, by applying
     the same substitution as pkg_resources's safe_name function.
     Note: we cannot use canonicalize_name because it has a different logic.
+
+    We also look for the raw name (without normalization) as setuptools 69 changed
+    the way it names .egg-link files (https://github.com/pypa/setuptools/issues/4167).
     """
-    return re.sub("[^A-Za-z0-9.]+", "-", raw_name) + ".egg-link"
+    return [
+        re.sub("[^A-Za-z0-9.]+", "-", raw_name) + ".egg-link",
+        f"{raw_name}.egg-link",
+    ]
 
 
-def egg_link_path_from_sys_path(raw_name: str) -> Optional[str]:
+def egg_link_path_from_sys_path(raw_name: str) -> str | None:
     """
     Look for a .egg-link file for project name, by walking sys.path.
     """
-    egg_link_name = _egg_link_name(raw_name)
+    egg_link_names = _egg_link_names(raw_name)
     for path_item in sys.path:
-        egg_link = os.path.join(path_item, egg_link_name)
-        if os.path.isfile(egg_link):
-            return egg_link
+        for egg_link_name in egg_link_names:
+            egg_link = os.path.join(path_item, egg_link_name)
+            if os.path.isfile(egg_link):
+                return egg_link
     return None
 
 
-def egg_link_path_from_location(raw_name: str) -> Optional[str]:
+def egg_link_path_from_location(raw_name: str) -> str | None:
     """
     Return the path for the .egg-link file if it exists, otherwise, None.
 
@@ -54,7 +62,7 @@ def egg_link_path_from_location(raw_name: str) -> Optional[str]:
 
     This method will just return the first one found.
     """
-    sites: List[str] = []
+    sites: list[str] = []
     if running_under_virtualenv():
         sites.append(site_packages)
         if not virtualenv_no_global() and user_site:
@@ -64,9 +72,10 @@ def egg_link_path_from_location(raw_name: str) -> Optional[str]:
             sites.append(user_site)
         sites.append(site_packages)
 
-    egg_link_name = _egg_link_name(raw_name)
+    egg_link_names = _egg_link_names(raw_name)
     for site in sites:
-        egglink = os.path.join(site, egg_link_name)
-        if os.path.isfile(egglink):
-            return egglink
+        for egg_link_name in egg_link_names:
+            egglink = os.path.join(site, egg_link_name)
+            if os.path.isfile(egglink):
+                return egglink
     return None

@@ -2,6 +2,8 @@
 The main purpose of this module is to expose LinkCollector.collect_sources().
 """
 
+from __future__ import annotations
+
 import collections
 import email.message
 import functools
@@ -10,21 +12,13 @@ import json
 import logging
 import os
 import urllib.parse
-import urllib.request
+from collections.abc import Callable, Iterable, MutableMapping, Sequence
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    MutableMapping,
     NamedTuple,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
+    Protocol,
 )
 
 from pip._vendor import requests
@@ -38,21 +32,17 @@ from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import redact_auth_from_url
+from pip._internal.utils.urls import url_to_path
 from pip._internal.vcs import vcs
 
 from .sources import CandidatesFromPage, LinkSource, build_source
-
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    Protocol = object
 
 logger = logging.getLogger(__name__)
 
 ResponseHeaders = MutableMapping[str, str]
 
 
-def _match_vcs_scheme(url: str) -> Optional[str]:
+def _match_vcs_scheme(url: str) -> str | None:
     """Look for VCS schemes in the URL.
 
     Returns the matched VCS scheme, or None if there's no match.
@@ -89,7 +79,7 @@ def _ensure_api_header(response: Response) -> None:
     ):
         return
 
-    raise _NotAPIContent(content_type, response.request.method)
+    raise _NotAPIContent(content_type, response.request.method)  # type: ignore[arg-type]
 
 
 class _NotHTTP(Exception):
@@ -177,7 +167,7 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
     return resp
 
 
-def _get_encoding_from_headers(headers: ResponseHeaders) -> Optional[str]:
+def _get_encoding_from_headers(headers: ResponseHeaders) -> str | None:
     """Determine if we have any encoding information in our headers."""
     if headers and "Content-Type" in headers:
         m = email.message.Message()
@@ -189,7 +179,7 @@ def _get_encoding_from_headers(headers: ResponseHeaders) -> Optional[str]:
 
 
 class CacheablePageContent:
-    def __init__(self, page: "IndexContent") -> None:
+    def __init__(self, page: IndexContent) -> None:
         assert page.cache_link_parsing
         self.page = page
 
@@ -201,8 +191,7 @@ class CacheablePageContent:
 
 
 class ParseLinks(Protocol):
-    def __call__(self, page: "IndexContent") -> Iterable[Link]:
-        ...
+    def __call__(self, page: IndexContent) -> Iterable[Link]: ...
 
 
 def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
@@ -212,12 +201,12 @@ def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
     `page` has `page.cache_link_parsing == False`.
     """
 
-    @functools.lru_cache(maxsize=None)
-    def wrapper(cacheable_page: CacheablePageContent) -> List[Link]:
+    @functools.cache
+    def wrapper(cacheable_page: CacheablePageContent) -> list[Link]:
         return list(fn(cacheable_page.page))
 
     @functools.wraps(fn)
-    def wrapper_wrapper(page: "IndexContent") -> List[Link]:
+    def wrapper_wrapper(page: IndexContent) -> list[Link]:
         if page.cache_link_parsing:
             return wrapper(CacheablePageContent(page))
         return list(fn(page))
@@ -226,7 +215,7 @@ def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
 
 
 @with_cached_index_content
-def parse_links(page: "IndexContent") -> Iterable[Link]:
+def parse_links(page: IndexContent) -> Iterable[Link]:
     """
     Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
     """
@@ -254,29 +243,22 @@ def parse_links(page: "IndexContent") -> Iterable[Link]:
         yield link
 
 
+@dataclass(frozen=True)
 class IndexContent:
-    """Represents one response (or page), along with its URL"""
+    """Represents one response (or page), along with its URL.
 
-    def __init__(
-        self,
-        content: bytes,
-        content_type: str,
-        encoding: Optional[str],
-        url: str,
-        cache_link_parsing: bool = True,
-    ) -> None:
-        """
-        :param encoding: the encoding to decode the given content.
-        :param url: the URL from which the HTML was downloaded.
-        :param cache_link_parsing: whether links parsed from this page's url
-                                   should be cached. PyPI index urls should
-                                   have this set to False, for example.
-        """
-        self.content = content
-        self.content_type = content_type
-        self.encoding = encoding
-        self.url = url
-        self.cache_link_parsing = cache_link_parsing
+    :param encoding: the encoding to decode the given content.
+    :param url: the URL from which the HTML was downloaded.
+    :param cache_link_parsing: whether links parsed from this page's url
+                               should be cached. PyPI index urls should
+                               have this set to False, for example.
+    """
+
+    content: bytes
+    content_type: str
+    encoding: str | None
+    url: str
+    cache_link_parsing: bool = True
 
     def __str__(self) -> str:
         return redact_auth_from_url(self.url)
@@ -292,10 +274,10 @@ class HTMLLinkParser(HTMLParser):
         super().__init__(convert_charrefs=True)
 
         self.url: str = url
-        self.base_url: Optional[str] = None
-        self.anchors: List[Dict[str, Optional[str]]] = []
+        self.base_url: str | None = None
+        self.anchors: list[dict[str, str | None]] = []
 
-    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "base" and self.base_url is None:
             href = self.get_href(attrs)
             if href is not None:
@@ -303,7 +285,7 @@ class HTMLLinkParser(HTMLParser):
         elif tag == "a":
             self.anchors.append(dict(attrs))
 
-    def get_href(self, attrs: List[Tuple[str, Optional[str]]]) -> Optional[str]:
+    def get_href(self, attrs: list[tuple[str, str | None]]) -> str | None:
         for name, value in attrs:
             if name == "href":
                 return value
@@ -312,8 +294,8 @@ class HTMLLinkParser(HTMLParser):
 
 def _handle_get_simple_fail(
     link: Link,
-    reason: Union[str, Exception],
-    meth: Optional[Callable[..., None]] = None,
+    reason: str | Exception,
+    meth: Callable[..., None] | None = None,
 ) -> None:
     if meth is None:
         meth = logger.debug
@@ -333,7 +315,7 @@ def _make_index_content(
     )
 
 
-def _get_index_content(link: Link, *, session: PipSession) -> Optional["IndexContent"]:
+def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
@@ -347,8 +329,7 @@ def _get_index_content(link: Link, *, session: PipSession) -> Optional["IndexCon
         return None
 
     # Tack index.html onto file:// URLs that point to directories
-    scheme, _, path, _, _, _ = urllib.parse.urlparse(url)
-    if scheme == "file" and os.path.isdir(urllib.request.url2pathname(path)):
+    if url.startswith("file:") and os.path.isdir(url_to_path(url)):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
         if not url.endswith("/"):
@@ -395,12 +376,11 @@ def _get_index_content(link: Link, *, session: PipSession) -> Optional["IndexCon
 
 
 class CollectedSources(NamedTuple):
-    find_links: Sequence[Optional[LinkSource]]
-    index_urls: Sequence[Optional[LinkSource]]
+    find_links: Sequence[LinkSource | None]
+    index_urls: Sequence[LinkSource | None]
 
 
 class LinkCollector:
-
     """
     Responsible for collecting Link objects from all configured locations,
     making network requests as needed.
@@ -422,7 +402,7 @@ class LinkCollector:
         session: PipSession,
         options: Values,
         suppress_no_index: bool = False,
-    ) -> "LinkCollector":
+    ) -> LinkCollector:
         """
         :param session: The Session to use to make requests.
         :param suppress_no_index: Whether to ignore the --no-index option
@@ -451,10 +431,10 @@ class LinkCollector:
         return link_collector
 
     @property
-    def find_links(self) -> List[str]:
+    def find_links(self) -> list[str]:
         return self.search_scope.find_links
 
-    def fetch_response(self, location: Link) -> Optional[IndexContent]:
+    def fetch_response(self, location: Link) -> IndexContent | None:
         """
         Fetch an HTML page containing package links.
         """
@@ -473,6 +453,7 @@ class LinkCollector:
                 page_validator=self.session.is_secure_origin,
                 expand_dir=False,
                 cache_link_parsing=False,
+                project_name=project_name,
             )
             for loc in self.search_scope.get_index_urls_locations(project_name)
         ).values()
@@ -483,6 +464,7 @@ class LinkCollector:
                 page_validator=self.session.is_secure_origin,
                 expand_dir=True,
                 cache_link_parsing=True,
+                project_name=project_name,
             )
             for loc in self.find_links
         ).values()

@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+import datetime
 import logging
-from typing import FrozenSet, List, Optional, Set, Tuple
 
 import pytest
+
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import (
@@ -19,12 +23,14 @@ from pip._internal.index.package_finder import (
     filter_unallowed_hashes,
 )
 from pip._internal.models.link import Link
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
+
 from tests.lib import CURRENT_PY_VERSION_INFO
 from tests.lib.index import make_mock_candidate
 
@@ -80,7 +86,7 @@ def check_caplog(
 def test_check_link_requires_python__incompatible_python(
     caplog: pytest.LogCaptureFixture,
     ignore_requires_python: bool,
-    expected: Tuple[bool, str, str],
+    expected: tuple[bool, str, str],
 ) -> None:
     """
     Test an incompatible Python.
@@ -130,7 +136,7 @@ class TestLinkEvaluator:
                 False,
                 (
                     LinkType.requires_python_mismatch,
-                    "1.12 Requires-Python == 3.6.5",
+                    "1.12 Requires-Python ==3.6.5,!=3.13.3",
                 ),
                 id="requires-python-mismatch",
             ),
@@ -144,14 +150,14 @@ class TestLinkEvaluator:
     )
     def test_evaluate_link(
         self,
-        py_version_info: Tuple[int, int, int],
+        py_version_info: tuple[int, int, int],
         ignore_requires_python: bool,
-        expected: Tuple[LinkType, str],
+        expected: tuple[LinkType, str],
     ) -> None:
         target_python = TargetPython(py_version_info=py_version_info)
         evaluator = LinkEvaluator(
             project_name="twine",
-            canonical_name="twine",
+            canonical_name=canonicalize_name("twine"),
             formats=frozenset(["source"]),
             target_python=target_python,
             allow_yanked=True,
@@ -159,7 +165,7 @@ class TestLinkEvaluator:
         )
         link = Link(
             "https://example.com/#egg=twine-1.12",
-            requires_python="== 3.6.5",
+            requires_python="!= 3.13.3, == 3.6.5",
         )
         actual = evaluator.evaluate_link(link)
         assert actual == expected
@@ -197,12 +203,12 @@ class TestLinkEvaluator:
         self,
         yanked_reason: str,
         allow_yanked: bool,
-        expected: Tuple[LinkType, str],
+        expected: tuple[LinkType, str],
     ) -> None:
         target_python = TargetPython(py_version_info=(3, 6, 4))
         evaluator = LinkEvaluator(
             project_name="twine",
-            canonical_name="twine",
+            canonical_name=canonicalize_name("twine"),
             formats=frozenset(["source"]),
             target_python=target_python,
             allow_yanked=allow_yanked,
@@ -223,7 +229,7 @@ class TestLinkEvaluator:
         target_python._valid_tags = []
         evaluator = LinkEvaluator(
             project_name="sample",
-            canonical_name="sample",
+            canonical_name=canonicalize_name("sample"),
             formats=frozenset(["binary"]),
             target_python=target_python,
             allow_yanked=True,
@@ -246,7 +252,7 @@ class TestLinkEvaluator:
         (64 * "c", ["1.0", "1.1", "1.2"]),
     ],
 )
-def test_filter_unallowed_hashes(hex_digest: str, expected_versions: List[str]) -> None:
+def test_filter_unallowed_hashes(hex_digest: str, expected_versions: list[str]) -> None:
     candidates = [
         make_mock_candidate("1.0"),
         make_mock_candidate("1.1", hex_digest=(64 * "a")),
@@ -361,6 +367,159 @@ def test_filter_unallowed_hashes__log_message_with_no_match(
     check_caplog(caplog, "DEBUG", expected_message)
 
 
+class TestLinkEvaluatorUploadedPriorTo:
+    """Test the uploaded_prior_to functionality in LinkEvaluator.
+
+    Only effective with indexes that provide upload-time metadata.
+    """
+
+    def make_test_link_evaluator(
+        self, uploaded_prior_to: datetime.datetime | None = None
+    ) -> LinkEvaluator:
+        """Create a LinkEvaluator for testing."""
+        target_python = TargetPython()
+        return LinkEvaluator(
+            project_name="myproject",
+            canonical_name=canonicalize_name("myproject"),
+            formats=frozenset(["source", "binary"]),
+            target_python=target_python,
+            allow_yanked=True,
+            uploaded_prior_to=uploaded_prior_to,
+        )
+
+    @pytest.mark.parametrize(
+        "upload_time, uploaded_prior_to, expected_result",
+        [
+            # Test case: upload time is before the cutoff (should be accepted)
+            (
+                datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (LinkType.candidate, "1.0"),
+            ),
+            # Test case: upload time is after the cutoff (should be rejected)
+            (
+                datetime.datetime(2023, 8, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (
+                    LinkType.upload_too_late,
+                    "Upload time 2023-08-01 12:00:00+00:00 not prior to "
+                    "2023-06-01 00:00:00+00:00",
+                ),
+            ),
+            # Test case: upload time equals the cutoff (should be rejected)
+            (
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (
+                    LinkType.upload_too_late,
+                    "Upload time 2023-06-01 00:00:00+00:00 not prior to "
+                    "2023-06-01 00:00:00+00:00",
+                ),
+            ),
+            # Test case: no uploaded_prior_to set (should be accepted)
+            (
+                datetime.datetime(2023, 8, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                None,
+                (LinkType.candidate, "1.0"),
+            ),
+            # Test case: no upload time with filter set (should be rejected)
+            (
+                None,
+                datetime.datetime(2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                (
+                    LinkType.upload_time_missing,
+                    "does not provide upload-time metadata",
+                ),
+            ),
+        ],
+    )
+    def test_evaluate_link_uploaded_prior_to(
+        self,
+        upload_time: datetime.datetime | None,
+        uploaded_prior_to: datetime.datetime | None,
+        expected_result: tuple[LinkType, str],
+    ) -> None:
+        """Test that links are properly filtered by upload time."""
+        evaluator = self.make_test_link_evaluator(uploaded_prior_to)
+        link = Link(
+            "https://example.com/myproject-1.0.tar.gz",
+            upload_time=upload_time,
+        )
+
+        actual = evaluator.evaluate_link(link)
+        if expected_result[0] == LinkType.upload_time_missing:
+            # For upload_time_missing, just check the type and
+            # that the message contains expected text
+            assert actual[0] == expected_result[0]
+            assert expected_result[1] in actual[1]
+        else:
+            assert actual == expected_result
+
+    def test_evaluate_link_no_upload_time_no_filter(self) -> None:
+        """Test that links with no upload time are accepted when no filter is set."""
+        # No uploaded_prior_to filter set
+        evaluator = self.make_test_link_evaluator(uploaded_prior_to=None)
+
+        # Link with no upload_time should be accepted when no filter is set
+        link = Link("https://example.com/myproject-1.0.tar.gz")
+        actual = evaluator.evaluate_link(link)
+
+        # Should be accepted as candidate (assuming no other issues)
+        assert actual[0] == LinkType.candidate
+        assert actual[1] == "1.0"
+
+    def test_evaluate_link_timezone_handling(self) -> None:
+        """Test that timezone-aware datetimes are handled correctly."""
+        # Set cutoff time in UTC
+        uploaded_prior_to = datetime.datetime(
+            2023, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
+        )
+        evaluator = self.make_test_link_evaluator(uploaded_prior_to)
+
+        # Test upload time in different timezone (earlier in UTC)
+        upload_time_est = datetime.datetime(
+            *(2023, 6, 1, 10, 0, 0),
+            tzinfo=datetime.timezone(datetime.timedelta(hours=-5)),  # EST
+        )
+        link = Link(
+            "https://example.com/myproject-1.0.tar.gz",
+            upload_time=upload_time_est,
+        )
+
+        actual = evaluator.evaluate_link(link)
+        # 10:00 EST = 15:00 UTC, which is after 12:00 UTC cutoff
+        assert actual[0] == LinkType.upload_too_late
+
+    @pytest.mark.parametrize(
+        "uploaded_prior_to",
+        [
+            datetime.datetime(2023, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+            datetime.datetime(
+                *(2023, 6, 1, 12, 0, 0),
+                tzinfo=datetime.timezone(datetime.timedelta(hours=2)),
+            ),
+        ],
+    )
+    def test_uploaded_prior_to_different_timezone_formats(
+        self, uploaded_prior_to: datetime.datetime
+    ) -> None:
+        """Test that different timezone formats for uploaded_prior_to work."""
+        evaluator = self.make_test_link_evaluator(uploaded_prior_to)
+
+        # Create a link with upload time clearly after the cutoff
+        upload_time = datetime.datetime(
+            2023, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc
+        )
+        link = Link(
+            "https://example.com/myproject-1.0.tar.gz",
+            upload_time=upload_time,
+        )
+
+        actual = evaluator.evaluate_link(link)
+        # Should be rejected regardless of timezone format
+        assert actual[0] == LinkType.upload_too_late
+
+
 class TestCandidateEvaluator:
     @pytest.mark.parametrize(
         "allow_all_prereleases, prefer_binary",
@@ -375,14 +534,20 @@ class TestCandidateEvaluator:
         target_python = TargetPython()
         target_python._valid_tags = [Tag("py36", "none", "any")]
         specifier = SpecifierSet()
+
+        # Convert allow_all_prereleases to release_control
+        release_control = ReleaseControl()
+        if allow_all_prereleases:
+            release_control.all_releases.add(":all:")
+
         evaluator = CandidateEvaluator.create(
             project_name="my-project",
             target_python=target_python,
-            allow_all_prereleases=allow_all_prereleases,
+            release_control=release_control,
             prefer_binary=prefer_binary,
             specifier=specifier,
         )
-        assert evaluator._allow_all_prereleases == allow_all_prereleases
+        assert evaluator._release_control == release_control
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._specifier is specifier
         assert evaluator._supported_tags == [Tag("py36", "none", "any")]
@@ -432,7 +597,7 @@ class TestCandidateEvaluator:
     def test_get_applicable_candidates__hashes(
         self,
         specifier: SpecifierSet,
-        expected_versions: List[str],
+        expected_versions: list[str],
     ) -> None:
         """
         Test a non-None hashes value.
@@ -465,13 +630,13 @@ class TestCandidateEvaluator:
         )
         result = evaluator.compute_best_candidate(candidates)
 
-        assert result._candidates == candidates
+        assert result.all_candidates == candidates
         expected_applicable = candidates[:2]
         assert [str(c.version) for c in expected_applicable] == [
             "1.10",
             "1.11",
         ]
-        assert result._applicable_candidates == expected_applicable
+        assert result.applicable_candidates == expected_applicable
 
         assert result.best_candidate is expected_applicable[1]
 
@@ -488,8 +653,8 @@ class TestCandidateEvaluator:
         )
         result = evaluator.compute_best_candidate(candidates)
 
-        assert result._candidates == candidates
-        assert result._applicable_candidates == []
+        assert result.all_candidates == candidates
+        assert result.applicable_candidates == []
         assert result.best_candidate is None
 
     @pytest.mark.parametrize(
@@ -503,7 +668,7 @@ class TestCandidateEvaluator:
             (64 * "b", 0),
         ],
     )
-    def test_sort_key__hash(self, hex_digest: Optional[str], expected: int) -> None:
+    def test_sort_key__hash(self, hex_digest: str | None, expected: int) -> None:
         """
         Test the effect of the link's hash on _sort_key()'s return value.
         """
@@ -528,7 +693,7 @@ class TestCandidateEvaluator:
         ],
     )
     def test_sort_key__is_yanked(
-        self, yanked_reason: Optional[str], expected: int
+        self, yanked_reason: str | None, expected: int
     ) -> None:
         """
         Test the effect of is_yanked on _sort_key()'s return value.
@@ -595,9 +760,15 @@ class TestPackageFinder:
             session=PipSession(),
             search_scope=SearchScope([], [], False),
         )
+
+        # Convert allow_all_prereleases to release_control
+        release_control = ReleaseControl()
+        if allow_all_prereleases:
+            release_control.all_releases.add(":all:")
+
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
-            allow_all_prereleases=allow_all_prereleases,
+            release_control=release_control,
             prefer_binary=prefer_binary,
         )
         finder = PackageFinder.create(
@@ -605,7 +776,7 @@ class TestPackageFinder:
             selection_prefs=selection_prefs,
         )
         candidate_prefs = finder._candidate_prefs
-        assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
+        assert candidate_prefs.release_control == release_control
         assert candidate_prefs.prefer_binary == prefer_binary
 
     def test_create__link_collector(self) -> None:
@@ -734,8 +905,8 @@ class TestPackageFinder:
         self,
         allow_yanked: bool,
         ignore_requires_python: bool,
-        only_binary: Set[str],
-        expected_formats: FrozenSet[str],
+        only_binary: set[str],
+        expected_formats: frozenset[str],
     ) -> None:
         # Create a test TargetPython that we can check for.
         target_python = TargetPython(py_version_info=(3, 7))
@@ -787,9 +958,15 @@ class TestPackageFinder:
     ) -> None:
         target_python = TargetPython()
         target_python._valid_tags = [Tag("py36", "none", "any")]
+
+        # Convert allow_all_prereleases to release_control
+        release_control = ReleaseControl()
+        if allow_all_prereleases:
+            release_control.all_releases.add(":all:")
+
         candidate_prefs = CandidatePreferences(
             prefer_binary=prefer_binary,
-            allow_all_prereleases=allow_all_prereleases,
+            release_control=release_control,
         )
         link_collector = LinkCollector(
             session=PipSession(),
@@ -810,7 +987,7 @@ class TestPackageFinder:
             specifier=specifier,
             hashes=hashes,
         )
-        assert evaluator._allow_all_prereleases == allow_all_prereleases
+        assert evaluator._release_control == release_control
         assert evaluator._hashes == hashes
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._project_name == "my-project"
@@ -819,7 +996,7 @@ class TestPackageFinder:
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name", "expected"),
+    "fragment, canonical_name, expected",
     [
         # Trivial.
         ("pip-18.0", "pip", 3),
@@ -851,7 +1028,7 @@ def test_find_name_version_sep(
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name"),
+    "fragment, canonical_name",
     [
         # A dash must follow the package name.
         ("zope.interface4.5.0", "zope-interface"),
@@ -868,7 +1045,7 @@ def test_find_name_version_sep_failure(fragment: str, canonical_name: str) -> No
 
 
 @pytest.mark.parametrize(
-    ("fragment", "canonical_name", "expected"),
+    "fragment, canonical_name, expected",
     [
         # Trivial.
         ("pip-18.0", "pip", "18.0"),
@@ -897,7 +1074,7 @@ def test_find_name_version_sep_failure(fragment: str, canonical_name: str) -> No
     ],
 )
 def test_extract_version_from_fragment(
-    fragment: str, canonical_name: str, expected: Optional[str]
+    fragment: str, canonical_name: str, expected: str | None
 ) -> None:
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected

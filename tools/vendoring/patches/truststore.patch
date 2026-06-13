@@ -1,0 +1,20 @@
+diff --git a/src/pip/_vendor/truststore/_api.py b/src/pip/_vendor/truststore/_api.py
+index 47b7a63ab..d09d3096f 100644
+--- a/src/pip/_vendor/truststore/_api.py
++++ b/src/pip/_vendor/truststore/_api.py
+@@ -48,12 +48,12 @@ def inject_into_ssl() -> None:
+     # the truststore patched instance
+     # also see https://github.com/psf/requests/pull/6667
+     try:
+-        import requests.adapters
++        from pip._vendor.requests import adapters as requests_adapters
+
+-        preloaded_context = getattr(requests.adapters, "_preloaded_ssl_context", None)
++        preloaded_context = getattr(requests_adapters, "_preloaded_ssl_context", None)
+         if preloaded_context is not None:
+             setattr(
+-                requests.adapters,
++                requests_adapters,
+                 "_preloaded_ssl_context",
+                 SSLContext(ssl.PROTOCOL_TLS_CLIENT),
+             )

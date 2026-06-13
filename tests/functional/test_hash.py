@@ -1,4 +1,5 @@
 """Tests for the ``pip hash`` command"""
+
 from pathlib import Path
 
 from tests.lib import PipTestEnvironment

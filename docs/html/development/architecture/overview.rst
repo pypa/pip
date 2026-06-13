@@ -42,13 +42,13 @@ In sequence, what does pip do?:
    user-given requirements, and where to get them from.
 
    a. this step is convoluted - also exploratory, involves dependency
-         resolution -- we need to get to the index, see what versions
-         are available
+      resolution -- we need to get to the index, see what versions
+      are available
 
    b. Sometimes you need to build the package itself in order to get
-         dependency information, which means fetching the package from
-         package index, which means knowing whether it exists. For a
-         single package,
+      dependency information, which means fetching the package from
+      package index, which means knowing whether it exists. For a
+      single package,
 
 4. Install the actual items to be installed.
 
@@ -101,7 +101,7 @@ IN OTHER WORDS
 While all dependencies have not been resolved, do the following:
 
 1.  Following the API defined in :pep:`503`, fetch the index page from
-    `http://{pypi_index}/simple/{package_name <http://pypi.org/simple/%7Bpackage_name>`__}
+    `https://{pypi_index}/simple/{package_name} <https://pypi.org/simple/{package_name}>`_
 2.  Parse all of the file links from the page.
 3.  Select a single file to download from the list of links.
 4.  Extract the metadata from the downloaded package.
@@ -134,9 +134,9 @@ Once it has those, it selects one file and downloads it.
 cannot….should not be …. ? I want only the Flask …. Why am I getting the
 whole list?
 
-Answer: It's not every file, just files of Flask. No API for getting alllllll
+Answer: It's not every file, just files of Flask. No API for getting all
 files on PyPI. It’s for getting all files of Flask.)
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _PyPI: https://pypi.org/
-.. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
+.. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/

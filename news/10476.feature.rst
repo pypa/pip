@@ -1,1 +1,0 @@
-Specify egg-link location in assertion message when it does not match installed location to provide better error message for debugging.

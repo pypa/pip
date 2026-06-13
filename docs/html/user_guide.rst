@@ -127,6 +127,10 @@ Logically, a Requirements file is just a list of :ref:`pip install` arguments
 placed in a file. Note that you should not rely on the items in the file being
 installed by pip in any particular order.
 
+Requirements files can also be served via a URL, e.g.
+http://example.com/requirements.txt besides as local files, so that they can
+be stored and served in a centralized place.
+
 In practice, there are 4 common uses of Requirements files:
 
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
@@ -179,7 +183,7 @@ In practice, there are 4 common uses of Requirements files:
    ``sometag``.  You'd reference it in your requirements file with a line like
    so::
 
-     git+https://myvcs.com/some_dependency@sometag#egg=SomeDependency
+     SomeDependency @ git+https://myvcs.com/some_dependency@sometag
 
    If ``SomeDependency`` was previously a top-level requirement in your
    requirements file, then **replace** that line with the new line. If
@@ -187,8 +191,7 @@ In practice, there are 4 common uses of Requirements files:
 
 
 It's important to be clear that pip determines package dependencies using
-`install_requires metadata
-<https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html>`_,
+the project metadata (typically in ``pyproject.toml`` or ``setup.py``),
 not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
@@ -248,6 +251,281 @@ undocumented and unsupported quirks from the previous implementation,
 and stripped constraints files down to being purely a way to specify
 global (version) limits for packages.
 
+Same as requirements files, constraints files can also be served via a URL,
+e.g. http://example.com/constraints.txt, so that your organization can store and
+serve them in a centralized place.
+
+
+.. _`Build Constraints`:
+
+Build Constraints
+-----------------
+
+.. versionadded:: 25.3
+
+Build constraints are a type of constraints file that applies only to isolated
+build environments used for building packages from source. Unlike regular
+constraints, which affect the packages installed in your environment, build
+constraints only influence the versions of packages available during the
+build process.
+
+This is useful when you need to constrain build dependencies
+(such as ``setuptools``, ``cython``, etc.) without affecting the
+final installed environment.
+
+Use build constraints like so:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --build-constraint build-constraints.txt SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --build-constraint build-constraints.txt SomePackage
+
+Example build constraints file (``build-constraints.txt``):
+
+.. code-block:: text
+
+   # Constrain setuptools version during build
+   setuptools>=45,<80
+   # Pin Cython for packages that use it to build
+   cython==0.29.24
+
+Controlling Pre-release Installation
+=====================================
+
+.. versionadded:: 26.0
+
+By default, pip installs stable versions of packages, unless their specifier includes
+a pre-release version (e.g., ``SomePackage>=1.0a1``) or if there are no stable versions
+available that satisfy the requirement. The ``--all-releases`` and ``--only-final``
+options provide per-package control over pre-release selection.
+
+Use ``--all-releases`` to allow pre-releases for specific packages:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --all-releases=DependencyPackage SomePackage
+      python -m pip install --all-releases=:all: SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --all-releases=DependencyPackage SomePackage
+      py -m pip install --all-releases=:all: SomePackage
+
+Use ``--only-final`` to explicitly disable pre-releases for specific packages:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --only-final=DependencyPackage SomePackage
+      python -m pip install --only-final=:all: SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --only-final=DependencyPackage SomePackage
+      py -m pip install --only-final=:all: SomePackage
+
+Both options accept ``:all:`` to apply to all packages, ``:none:`` to clear
+the setting, or comma-separated package names. Package-specific settings
+override ``:all:``. These options can also be used in requirements files.
+
+.. note::
+
+   The ``--pre`` flag is equivalent to ``--all-releases :all:`` but cannot
+   be combined with ``--all-releases`` or ``--only-final``.
+
+
+.. _`Filtering by Upload Time`:
+
+Filtering by Upload Time
+=========================
+
+.. versionadded:: 26.0
+
+The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
+to an index, only considering packages that were uploaded before a specified value.
+This can be useful for creating reproducible builds by ensuring you only install
+packages that were available at a known point in time.
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      python -m pip install --uploaded-prior-to=P3D SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      py -m pip install --uploaded-prior-to=P3D SomePackage
+
+The option accepts ISO 8601 datetime strings in several formats:
+
+* ``2025-03-16`` - Date in local timezone
+* ``2025-03-16T12:30:00`` - Datetime in local timezone
+* ``2025-03-16T12:30:00Z`` - Datetime in UTC
+* ``2025-03-16T12:30:00+05:00`` - Datetime in UTC offset
+
+For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
+format (with timezone offset like '+05:00'). Local timezone formats may produce different
+results on different machines.
+
+.. versionchanged:: 26.1
+
+``--uploaded-prior-to`` also accepts a duration in the ``PnD`` format, where ``n`` is
+the number of days. This only considers packages uploaded at least ``n`` days ago.
+A day is always 24 hours; daylight savings and other time zone transitions are ignored.
+
+* ``P3D`` - uploaded at least 3 days ago
+* ``P7D`` - uploaded at least 7 days ago
+* ``P30D`` - uploaded at least 30 days ago
+
+To override a duration set in configuration, pass ``P0D`` on the command line.
+
+.. warning::
+
+    While a duration can help protect against supply chain attacks by avoiding
+    newly published packages, it will also delay security fixes reaching your
+    environment. If you use this option, pair it with a vulnerability scanning
+    tool such as Dependabot or pip-audit so that you are notified of security
+    issues independently of your update schedule.
+
+.. note::
+
+    This option only applies to packages from remote indexes, not local files or VCS
+    requirements. Local package files are allowed regardless of the
+    ``--uploaded-prior-to`` setting, e.g. ``pip install /path/to/package.whl``,
+    packages from ``--find-links`` directories, or VCS requirements like
+    ``git+https://...``.
+
+    This option requires package indexes that provide upload-time metadata
+    (such as PyPI). If the index does not provide upload-time metadata for a
+    package file, pip will fail immediately with an error message indicating
+    that upload-time metadata is required when using ``--uploaded-prior-to``.
+
+You can combine this option with other filtering mechanisms like constraints files:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
+
+
+.. _`Dependency Groups`:
+
+
+Dependency Groups
+=================
+
+.. versionadded:: 25.1
+
+"Dependency Groups" are lists of items to be installed stored in a
+``pyproject.toml`` file.
+
+A dependency group is logically just a list of requirements, similar to the
+contents of :ref:`Requirements Files`. Unlike requirements files, dependency
+groups cannot contain non-package arguments for :ref:`pip install`.
+
+Groups can be declared like so:
+
+.. code-block:: toml
+
+    # pyproject.toml
+    [dependency-groups]
+    groupA = [
+        "pkg1",
+        "pkg2",
+    ]
+
+and installed with :ref:`pip install` like so:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group groupA
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group groupA
+
+Full details on the contents of ``[dependency-groups]`` and more examples are
+available in :ref:`the specification documentation <pypug:dependency-groups>`.
+
+.. note::
+
+    Dependency Groups are defined by a standard, and therefore do not support
+    ``pip``-specific syntax for requirements, only :ref:`standard dependency
+    specifiers <pypug:dependency-specifiers>`.
+
+``pip`` does not search projects or directories to discover ``pyproject.toml``
+files. The ``--group`` option is used to pass the path to the file,
+and if the path is omitted, as in the example above, it defaults to
+``pyproject.toml`` in the current directory. Using explicit paths,
+:ref:`pip install` can use a file from another directory. For example:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group './project/subproject/pyproject.toml:groupA'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group './project/subproject/pyproject.toml:groupA'
+
+
+This also makes it possible to install groups from multiple different projects
+at once. For example, with a directory structure like so::
+
+    + project/
+      + sub1/
+        - pyproject.toml
+      + sub2/
+        - pyproject.toml
+
+it is possible to install, from the ``project/`` directory, groups from the
+subprojects thusly:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group './sub1/pyproject.toml:groupA' --group './sub2/pyproject.toml:groupB'
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group './sub1/pyproject.toml:groupA' --group './sub2/pyproject.toml:groupB'
+
+
 .. _`Installing from Wheels`:
 
 
@@ -256,7 +534,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
+:ref:`specification <pypug:binary-distribution-format>`.
 
 pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -298,14 +576,11 @@ name:
 .. note::
 
     In the future, the ``path[extras]`` syntax may become deprecated. It is
-    recommended to use PEP 508 syntax wherever possible.
+    recommended to use :ref:`standard <pypug:dependency-specifiers>`
+    syntax wherever possible.
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
-
-:ref:`pip wheel` requires the `wheel package
-<https://pypi.org/project/wheel/>`_ to be installed, which provides the
-"bdist_wheel" setuptools extension that it uses.
 
 To build wheels for your requirements and all their dependencies to a local
 directory:
@@ -439,8 +714,8 @@ reference pages.
 Searching for Packages
 ======================
 
-pip can search `PyPI`_ for packages using the ``pip search``
-command:
+pip can search remote indexes that provide an XML-RPC search API for
+packages using the ``pip search`` command:
 
 .. tab:: Unix/macOS
 
@@ -456,6 +731,12 @@ command:
 
 The query will be used to search the names and summaries of all
 packages.
+
+.. note::
+
+   `PyPI`_ has removed its XML-RPC search API, so ``pip search`` no longer
+   works against PyPI. To search for packages on PyPI, use the
+   `PyPI search page <https://pypi.org/search/>`_ in a browser instead.
 
 For more information and examples, see the :ref:`pip search` reference.
 
@@ -621,7 +902,7 @@ User Installs
 =============
 
 With Python 2.6 came the `"user scheme" for installation
-<https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
+<https://docs.python.org/3/library/sysconfig.html#sysconfig-user-scheme>`_,
 which means that all Python distributions support an alternative install
 location that is specific to a user.  The default location for each OS is
 explained in the python documentation for the `site.USER_BASE
@@ -847,6 +1128,12 @@ We are using `freeze`_ here which outputs installed packages in requirements for
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 
+To programmatically monitor download progress use the ``--progress-bar=raw`` option.
+This will print lines to stdout in the format ``Progress CURRENT of TOTAL``, where
+``CURRENT`` and ``TOTAL`` are integers and the unit is bytes.
+If the real total is unknown then ``TOTAL`` is set to ``0``. Be aware that the
+specific formatting of pip's outputs are *not* guaranteed to be the same in future versions.
+
 If you don't want to use pip's command line functionality, but are rather
 trying to implement code that works with Python packages, their metadata, or
 PyPI, then you should consider other, supported, packages that offer this type
@@ -855,7 +1142,7 @@ of ability. Some examples that you could consider include:
 * ``packaging`` - Utilities to work with standard package metadata (versions,
   requirements, etc.)
 
-* ``setuptools`` (specifically ``pkg_resources``) - Functions for querying what
+* ``importlib.metadata`` in the Python stdlib - Functions for querying what
   packages the user has installed on their system.
 
 * ``distlib`` - Packaging and distribution utilities (including functions for
@@ -1125,6 +1412,13 @@ Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
 Policy`.
 
+.. attention::
+
+    The legacy resolver is deprecated and unsupported. New features, such
+    as :doc:`reference/installation-report`, will not work with the
+    legacy resolver and this resolver will be removed in a future
+    release.
+
 Context and followup
 --------------------
 
@@ -1139,7 +1433,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _issue 8661: https://github.com/pypa/pip/issues/8661
-.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _our announcement on the PSF blog: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _two-minute video explanation: https://www.youtube.com/watch?v=B4GQCBBsuNU
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/

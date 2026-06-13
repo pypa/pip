@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+import codecs
 import collections
 import logging
 import os
+import re
 import textwrap
+from collections.abc import Iterator
 from optparse import Values
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Protocol
 from unittest import mock
 
 import pytest
@@ -27,13 +32,8 @@ from pip._internal.req.req_file import (
     preprocess,
 )
 from pip._internal.req.req_install import InstallRequirement
-from tests.lib import TestData, make_test_finder, requirements_file
 
-if TYPE_CHECKING:
-    from typing import Protocol
-else:
-    # Protocol was introduced in Python 3.8.
-    Protocol = object
+from tests.lib import TestData, make_test_finder
 
 
 @pytest.fixture
@@ -57,10 +57,10 @@ def options(session: PipSession) -> mock.Mock:
 
 
 def parse_reqfile(
-    filename: Union[Path, str],
+    filename: Path | str,
     session: PipSession,
-    finder: Optional[PackageFinder] = None,
-    options: Optional[Values] = None,
+    finder: PackageFinder | None = None,
+    options: Values | None = None,
     constraint: bool = False,
     isolated: bool = False,
 ) -> Iterator[InstallRequirement]:
@@ -76,10 +76,23 @@ def parse_reqfile(
         yield install_req_from_parsed_requirement(
             parsed_req,
             isolated=isolated,
-            config_settings=parsed_req.options.get("config_settings")
-            if parsed_req.options
-            else None,
+            config_settings=(
+                parsed_req.options.get("config_settings")
+                if parsed_req.options
+                else None
+            ),
         )
+
+
+def test_missing_constraint_file_message_mentions_constraints(
+    tmp_path: Path, session: PipSession
+) -> None:
+    missing = tmp_path / "does-not-exist.txt"
+
+    with pytest.raises(InstallationError) as exc:
+        list(parse_reqfile(missing, session=session, constraint=True))
+
+    assert "Could not open constraint file:" in str(exc.value)
 
 
 def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
@@ -102,34 +115,28 @@ class TestPreprocess:
     """tests for `preprocess`"""
 
     def test_comments_and_joins_case1(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment \\
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
     def test_comments_and_joins_case2(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1\\
           # comment
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1")]
 
     def test_comments_and_joins_case3(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
@@ -198,12 +205,11 @@ class LineProcessor(Protocol):
         line: str,
         filename: str,
         line_number: int,
-        finder: Optional[PackageFinder] = None,
-        options: Optional[Values] = None,
-        session: Optional[PipSession] = None,
+        finder: PackageFinder | None = None,
+        options: Values | None = None,
+        session: PipSession | None = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]:
-        ...
+    ) -> list[InstallRequirement]: ...
 
 
 @pytest.fixture
@@ -212,11 +218,11 @@ def line_processor(monkeypatch: pytest.MonkeyPatch, tmpdir: Path) -> LineProcess
         line: str,
         filename: str,
         line_number: int,
-        finder: Optional[PackageFinder] = None,
-        options: Optional[Values] = None,
-        session: Optional[PipSession] = None,
+        finder: PackageFinder | None = None,
+        options: Values | None = None,
+        session: PipSession | None = None,
         constraint: bool = False,
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         if session is None:
             session = PipSession()
 
@@ -274,8 +280,10 @@ class TestProcessLine:
             )
 
         expected = (
-            "Invalid requirement: 'my-package=1.0' "
-            "(from line 3 of path/requirements.txt)\n"
+            "Invalid requirement: 'my-package=1.0': "
+            "Expected semicolon (after name with no version specifier) or end\n"
+            "    my-package=1.0\n"
+            "              ^ (from line 3 of path/requirements.txt)\n"
             "Hint: = is not a valid operator. Did you mean == ?"
         )
         assert str(exc.value) == expected
@@ -297,7 +305,7 @@ class TestProcessLine:
     def test_yield_line_constraint(self, line_processor: LineProcessor) -> None:
         line = "SomeProject"
         filename = "filename"
-        comes_from = "-c {} (line {})".format(filename, 1)
+        comes_from = f"-c {filename} (line {1})"
         req = install_req_from_line(line, comes_from=comes_from, constraint=True)
         found_req = line_processor(line, filename, 1, constraint=True)[0]
         assert repr(found_req) == repr(req)
@@ -322,16 +330,6 @@ class TestProcessLine:
         req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
-    def test_yield_editable_constraint(self, line_processor: LineProcessor) -> None:
-        url = "git+https://url#egg=SomeProject"
-        line = f"-e {url}"
-        filename = "filename"
-        comes_from = "-c {} (line {})".format(filename, 1)
-        req = install_req_from_editable(url, comes_from=comes_from, constraint=True)
-        found_req = line_processor(line, filename, 1, constraint=True)[0]
-        assert repr(found_req) == repr(req)
-        assert found_req.constraint is True
-
     def test_nested_constraints_file(
         self, monkeypatch: pytest.MonkeyPatch, tmpdir: Path, session: PipSession
     ) -> None:
@@ -348,14 +346,80 @@ class TestProcessLine:
         assert reqs[0].name == req_name
         assert reqs[0].constraint
 
-    def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
-        line = (
-            'SomeProject --global-option="yo3" --global-option "yo4" '
-            '--config-settings="yo3=yo4" --config-settings "yo1=yo2"'
+    def test_repeated_requirement_files(
+        self, tmp_path: Path, session: PipSession
+    ) -> None:
+        # Test that the same requirements file can be included multiple times
+        # as long as there is no recursion. https://github.com/pypa/pip/issues/13046
+        tmp_path.joinpath("a.txt").write_text("requests")
+        tmp_path.joinpath("b.txt").write_text("-r a.txt")
+        tmp_path.joinpath("c.txt").write_text("-r a.txt\n-r b.txt")
+        parsed = parse_requirements(
+            filename=os.fspath(tmp_path.joinpath("c.txt")), session=session
         )
+        assert [r.requirement for r in parsed] == ["requests", "requests"]
+
+    def test_recursive_requirements_file(
+        self, tmpdir: Path, session: PipSession
+    ) -> None:
+        req_files: list[Path] = []
+        req_file_count = 4
+        for i in range(req_file_count):
+            req_file = tmpdir / f"{i}.txt"
+            req_file.write_text(f"-r {(i+1) % req_file_count}.txt")
+            req_files.append(req_file)
+
+        # When the passed requirements file recursively references itself
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(req_files[0]))} recursively references itself"
+                f" in {re.escape(str(req_files[req_file_count - 1]))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
+        # When one of other the requirements file recursively references itself
+        req_files[req_file_count - 1].write_text(
+            # Just name since they are in the same folder
+            f"-r {req_files[req_file_count - 2].name}"
+        )
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(req_files[req_file_count - 2]))} recursively"
+                " references itself in"
+                f" {re.escape(str(req_files[req_file_count - 1]))} and again in"
+                f" {re.escape(str(req_files[req_file_count - 3]))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(req_files[0]), session=session))
+
+    def test_recursive_relative_requirements_file(
+        self, tmpdir: Path, session: PipSession
+    ) -> None:
+        root_req_file = tmpdir / "root.txt"
+        (tmpdir / "nest" / "nest").mkdir(parents=True)
+        level_1_req_file = tmpdir / "nest" / "level_1.txt"
+        level_2_req_file = tmpdir / "nest" / "nest" / "level_2.txt"
+
+        root_req_file.write_text("-r nest/level_1.txt")
+        level_1_req_file.write_text("-r nest/level_2.txt")
+        level_2_req_file.write_text("-r ../../root.txt")
+
+        with pytest.raises(
+            RequirementsFileParseError,
+            match=(
+                f"{re.escape(str(root_req_file))} recursively references itself in"
+                f" {re.escape(str(level_2_req_file))}"
+            ),
+        ):
+            list(parse_requirements(filename=str(root_req_file), session=session))
+
+    def test_options_on_a_requirement_line(self, line_processor: LineProcessor) -> None:
+        line = 'SomeProject --config-settings="yo3=yo4" --config-settings "yo1=yo2"'
         filename = "filename"
         req = line_processor(line, filename, 1)[0]
-        assert req.global_options == ["yo3", "yo4"]
         assert req.config_settings == {"yo3": "yo4", "yo1": "yo2"}
 
     def test_hash_options(self, line_processor: LineProcessor) -> None:
@@ -458,7 +522,39 @@ class TestProcessLine:
         self, line_processor: LineProcessor, finder: PackageFinder
     ) -> None:
         line_processor("--pre", "file", 1, finder=finder)
-        assert finder.allow_all_prereleases
+        # --pre should add :all: to release_control.all_releases
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_all_releases(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--all-releases :all:", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_all_releases_specific_package(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--all-releases pkg1,pkg2", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert "pkg1" in finder._candidate_prefs.release_control.all_releases
+        assert "pkg2" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_only_final(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--only-final :all:", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.only_final
+
+    def test_set_finder_only_final_specific_package(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--only-final pkg1,pkg2", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert "pkg1" in finder._candidate_prefs.release_control.only_final
+        assert "pkg2" in finder._candidate_prefs.release_control.only_final
 
     def test_use_feature(
         self, line_processor: LineProcessor, options: mock.Mock
@@ -471,9 +567,7 @@ class TestProcessLine:
     ) -> None:
         """--use-feature triggers error when parsing requirements files."""
         with pytest.raises(RequirementsFileParseError):
-            line_processor(
-                "--use-feature=2020-resolver", "filename", 1, options=options
-            )
+            line_processor("--use-feature=resolvelib", "filename", 1, options=options)
 
     def test_relative_local_find_links(
         self,
@@ -519,12 +613,12 @@ class TestProcessLine:
 
         def get_file_content(
             filename: str, *args: Any, **kwargs: Any
-        ) -> Tuple[None, str]:
+        ) -> tuple[None, str]:
             if filename == req_file:
                 return None, "-r reqs.txt"
             elif filename == "http://me.com/me/reqs.txt":
                 return None, req_name
-            assert False, f"Unexpected file requested {filename}"
+            pytest.fail(f"Unexpected file requested {filename}")
 
         monkeypatch.setattr(
             pip._internal.req.req_file, "get_file_content", get_file_content
@@ -588,12 +682,12 @@ class TestProcessLine:
 
         def get_file_content(
             filename: str, *args: Any, **kwargs: Any
-        ) -> Tuple[None, str]:
+        ) -> tuple[None, str]:
             if filename == str(req_file):
                 return None, f"-r {nested_req_file}"
             elif filename == nested_req_file:
                 return None, req_name
-            assert False, f"Unexpected file requested {filename}"
+            pytest.fail(f"Unexpected file requested {filename}")
 
         monkeypatch.setattr(
             pip._internal.req.req_file, "get_file_content", get_file_content
@@ -854,39 +948,127 @@ class TestParseRequirements:
         Test parsing a requirements file without a finder
         """
         with open(tmpdir.joinpath("req.txt"), "w") as fp:
-            fp.write(
-                """
+            fp.write("""
     --find-links https://example.com/
     --index-url https://example.com/
     --extra-index-url https://two.example.com/
     --no-use-wheel
     --no-index
-            """
-            )
+            """)
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 
-    def test_install_requirements_with_options(
+    @pytest.mark.parametrize(
+        "raw_req_file,expected_name,expected_spec",
+        [
+            pytest.param(
+                b"Django==1.4.2",
+                "Django",
+                "==1.4.2",
+                id="defaults to UTF-8",
+            ),
+            pytest.param(
+                "# coding=latin1\nDjango==1.4.2 # Pas trop de café".encode("latin-1"),
+                "Django",
+                "==1.4.2",
+                id="decodes based on PEP-263 style headers",
+            ),
+        ],
+    )
+    def test_general_decoding(
+        self,
+        raw_req_file: bytes,
+        expected_name: str,
+        expected_spec: str,
+        tmpdir: Path,
+        session: PipSession,
+    ) -> None:
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(raw_req_file)
+
+        reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
+
+        assert len(reqs) == 1
+        assert reqs[0].name == expected_name
+        assert reqs[0].specifier == expected_spec
+
+    @pytest.mark.parametrize(
+        "bom,encoding",
+        [
+            (codecs.BOM_UTF8, "utf-8"),
+            (codecs.BOM_UTF16_BE, "utf-16-be"),
+            (codecs.BOM_UTF16_LE, "utf-16-le"),
+            (codecs.BOM_UTF32_BE, "utf-32-be"),
+            (codecs.BOM_UTF32_LE, "utf-32-le"),
+            # BOM automatically added when encoding byte-order dependent encodings
+            (b"", "utf-16"),
+            (b"", "utf-32"),
+        ],
+    )
+    def test_decoding_with_BOM(
+        self, bom: bytes, encoding: str, tmpdir: Path, session: PipSession
+    ) -> None:
+        req_name = "Django"
+        req_specifier = "==1.4.2"
+        encoded_contents = bom + f"{req_name}{req_specifier}".encode(encoding)
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(encoded_contents)
+
+        reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
+
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert reqs[0].specifier == req_specifier
+
+    def test_warns_and_falls_back_to_locale_on_utf8_decode_fail(
         self,
         tmpdir: Path,
-        finder: PackageFinder,
         session: PipSession,
-        options: mock.Mock,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
-        global_option = "--dry-run"
+        # \xff is valid in latin-1 but not UTF-8
+        data = b"pip<=24.0 # some comment\xff\n"
+        locale_encoding = "latin-1"
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(data)
 
-        content = """
-        --only-binary :all:
-        INITools==2.0 --global-option="{global_option}"
-        """.format(
-            global_option=global_option
+        # it's hard to rely on a locale definitely existing for testing
+        # so patch things out for simplicity
+        with (
+            caplog.at_level(logging.WARNING),
+            mock.patch("locale.getpreferredencoding", return_value=locale_encoding),
+        ):
+            reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
+
+        assert len(caplog.records) == 1
+        assert (
+            caplog.records[0].msg
+            == "unable to decode data from %s with default encoding %s, "
+            "falling back to encoding from locale: %s. "
+            "If this is intentional you should specify the encoding with a "
+            "PEP-263 style comment, e.g. '# -*- coding: %s -*-'"
+        )
+        assert caplog.records[0].args == (
+            str(req_file),
+            "utf-8",
+            locale_encoding,
+            locale_encoding,
         )
 
-        with requirements_file(content, tmpdir) as reqs_file:
-            req = next(
-                parse_reqfile(
-                    reqs_file.resolve(), finder=finder, options=options, session=session
-                )
-            )
+        assert len(reqs) == 1
+        assert reqs[0].name == "pip"
+        assert str(reqs[0].specifier) == "<=24.0"
 
-        assert req.global_options == [global_option]
+    @pytest.mark.parametrize("encoding", ["utf-8", "gbk"])
+    def test_errors_on_non_decodable_data(
+        self, encoding: str, tmpdir: Path, session: PipSession
+    ) -> None:
+        data = b"\xff"
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(data)
+
+        with (
+            pytest.raises(UnicodeDecodeError),
+            mock.patch("locale.getpreferredencoding", return_value=encoding),
+        ):
+            next(parse_reqfile(req_file.resolve(), session=session))

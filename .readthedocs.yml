@@ -1,10 +1,14 @@
 version: 2
 
-sphinx:
-  builder: htmldir
-  configuration: docs/html/conf.py
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+  jobs:
+    install:
+      - pip install .
+      - pip install --group docs
 
-python:
-  version: 3.8
-  install:
-    - requirements: docs/requirements.txt
+sphinx:
+  builder: dirhtml
+  configuration: docs/html/conf.py

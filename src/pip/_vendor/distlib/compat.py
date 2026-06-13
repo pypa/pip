@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2013-2017 Vinay Sajip.
+# Copyright (C) 2013-2026 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 import os
 import re
+import shutil
 import sys
 
 try:
@@ -23,8 +24,8 @@ if sys.version_info[0] < 3:  # pragma: no cover
     import __builtin__ as builtins
     import ConfigParser as configparser
     from urlparse import urlparse, urlunparse, urljoin, urlsplit, urlunsplit
-    from urllib import (urlretrieve, quote as _quote, unquote, url2pathname,
-                        pathname2url, ContentTooShortError, splittype)
+    from urllib import (urlretrieve, quote as _quote, unquote, url2pathname, pathname2url, ContentTooShortError,
+                        splittype)
 
     def quote(s):
         if isinstance(s, unicode):
@@ -32,10 +33,8 @@ if sys.version_info[0] < 3:  # pragma: no cover
         return _quote(s)
 
     import urllib2
-    from urllib2 import (Request, urlopen, URLError, HTTPError,
-                         HTTPBasicAuthHandler, HTTPPasswordMgr,
-                         HTTPHandler, HTTPRedirectHandler,
-                         build_opener)
+    from urllib2 import (Request, urlopen, URLError, HTTPError, HTTPBasicAuthHandler, HTTPPasswordMgr, HTTPHandler,
+                         HTTPRedirectHandler, build_opener)
     if ssl:
         from urllib2 import HTTPSHandler
     import httplib
@@ -50,15 +49,15 @@ if sys.version_info[0] < 3:  # pragma: no cover
     # Leaving this around for now, in case it needs resurrecting in some way
     # _userprog = None
     # def splituser(host):
-        # """splituser('user[:passwd]@host[:port]') --> 'user[:passwd]', 'host[:port]'."""
-        # global _userprog
-        # if _userprog is None:
-            # import re
-            # _userprog = re.compile('^(.*)@(.*)$')
+    # """splituser('user[:passwd]@host[:port]') --> 'user[:passwd]', 'host[:port]'."""
+    # global _userprog
+    # if _userprog is None:
+    # import re
+    # _userprog = re.compile('^(.*)@(.*)$')
 
-        # match = _userprog.match(host)
-        # if match: return match.group(1, 2)
-        # return None, host
+    # match = _userprog.match(host)
+    # if match: return match.group(1, 2)
+    # return None, host
 
 else:  # pragma: no cover
     from io import StringIO
@@ -67,14 +66,9 @@ else:  # pragma: no cover
     from io import TextIOWrapper as file_type
     import builtins
     import configparser
-    import shutil
-    from urllib.parse import (urlparse, urlunparse, urljoin, quote,
-                              unquote, urlsplit, urlunsplit, splittype)
-    from urllib.request import (urlopen, urlretrieve, Request, url2pathname,
-                                pathname2url,
-                                HTTPBasicAuthHandler, HTTPPasswordMgr,
-                                HTTPHandler, HTTPRedirectHandler,
-                                build_opener)
+    from urllib.parse import (urlparse, urlunparse, urljoin, quote, unquote, urlsplit, urlunsplit, splittype)
+    from urllib.request import (urlopen, urlretrieve, Request, url2pathname, pathname2url, HTTPBasicAuthHandler,
+                                HTTPPasswordMgr, HTTPHandler, HTTPRedirectHandler, build_opener)
     if ssl:
         from urllib.request import HTTPSHandler
     from urllib.error import HTTPError, URLError, ContentTooShortError
@@ -88,13 +82,12 @@ else:  # pragma: no cover
     from itertools import filterfalse
     filter = filter
 
-
 try:
     from ssl import match_hostname, CertificateError
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
+
     class CertificateError(ValueError):
         pass
-
 
     def _dnsname_match(dn, hostname, max_wildcards=1):
         """Matching according to RFC 6125, section 6.4.3
@@ -114,8 +107,7 @@ except ImportError: # pragma: no cover
             # than one wildcard per fragment.  A survey of established
             # policy among SSL implementations showed it to be a
             # reasonable choice.
-            raise CertificateError(
-                "too many wildcards in certificate DNS name: " + repr(dn))
+            raise CertificateError('Too many wildcards in certificate DNS name: %r' % dn)
 
         # speed up common case w/o wildcards
         if not wildcards:
@@ -144,7 +136,6 @@ except ImportError: # pragma: no cover
 
         pat = re.compile(r'\A' + r'\.'.join(pats) + r'\Z', re.IGNORECASE)
         return pat.match(hostname)
-
 
     def match_hostname(cert, hostname):
         """Verify that *cert* (in decoded format as returned by
@@ -178,24 +169,24 @@ except ImportError: # pragma: no cover
                         dnsnames.append(value)
         if len(dnsnames) > 1:
             raise CertificateError("hostname %r "
-                "doesn't match either of %s"
-                % (hostname, ', '.join(map(repr, dnsnames))))
+                                   "doesn't match either of %s" % (hostname, ', '.join(map(repr, dnsnames))))
         elif len(dnsnames) == 1:
             raise CertificateError("hostname %r "
-                "doesn't match %r"
-                % (hostname, dnsnames[0]))
+                                   "doesn't match %r" % (hostname, dnsnames[0]))
         else:
             raise CertificateError("no appropriate commonName or "
-                "subjectAltName fields were found")
+                                   "subjectAltName fields were found")
 
 
 try:
     from types import SimpleNamespace as Container
 except ImportError:  # pragma: no cover
+
     class Container(object):
         """
         A generic container for when multiple values need to be returned
         """
+
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
 
@@ -214,12 +205,12 @@ except ImportError:  # pragma: no cover
         path.
 
         """
+
         # Check that a given file can be accessed with the correct mode.
         # Additionally check that `file` is not a directory, as on Windows
         # directories pass the os.access check.
         def _access_check(fn, mode):
-            return (os.path.exists(fn) and os.access(fn, mode)
-                    and not os.path.isdir(fn))
+            return (os.path.exists(fn) and os.access(fn, mode) and not os.path.isdir(fn))
 
         # If we're given a path with a directory part, look it up directly rather
         # than referring to PATH directories. This includes checking relative to the
@@ -237,7 +228,7 @@ except ImportError:  # pragma: no cover
 
         if sys.platform == "win32":
             # The current directory takes precedence on Windows.
-            if not os.curdir in path:
+            if os.curdir not in path:
                 path.insert(0, os.curdir)
 
             # PATHEXT is necessary to check on Windows.
@@ -258,7 +249,7 @@ except ImportError:  # pragma: no cover
         seen = set()
         for dir in path:
             normdir = os.path.normcase(dir)
-            if not normdir in seen:
+            if normdir not in seen:
                 seen.add(normdir)
                 for thefile in files:
                     name = os.path.join(dir, thefile)
@@ -277,6 +268,7 @@ else:  # pragma: no cover
     from zipfile import ZipExtFile as BaseZipExtFile
 
     class ZipExtFile(BaseZipExtFile):
+
         def __init__(self, base):
             self.__dict__.update(base.__dict__)
 
@@ -288,6 +280,7 @@ else:  # pragma: no cover
             # return None, so if an exception occurred, it will propagate
 
     class ZipFile(BaseZipFile):
+
         def __enter__(self):
             return self
 
@@ -299,9 +292,11 @@ else:  # pragma: no cover
             base = BaseZipFile.open(self, *args, **kwargs)
             return ZipExtFile(base)
 
+
 try:
     from platform import python_implementation
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
+
     def python_implementation():
         """Return a string identifying the Python implementation."""
         if 'PyPy' in sys.version:
@@ -312,12 +307,12 @@ except ImportError: # pragma: no cover
             return 'IronPython'
         return 'CPython'
 
-import shutil
+
 import sysconfig
 
 try:
     callable = callable
-except NameError:   # pragma: no cover
+except NameError:  # pragma: no cover
     from collections.abc import Callable
 
     def callable(obj):
@@ -346,8 +341,7 @@ except AttributeError:  # pragma: no cover
         elif isinstance(filename, text_type):
             return filename.encode(_fsencoding, _fserrors)
         else:
-            raise TypeError("expect bytes or str, not %s" %
-                            type(filename).__name__)
+            raise TypeError("expect bytes or str, not %s" % type(filename).__name__)
 
     def fsdecode(filename):
         if isinstance(filename, text_type):
@@ -355,14 +349,13 @@ except AttributeError:  # pragma: no cover
         elif isinstance(filename, bytes):
             return filename.decode(_fsencoding, _fserrors)
         else:
-            raise TypeError("expect bytes or str, not %s" %
-                            type(filename).__name__)
+            raise TypeError("expect bytes or str, not %s" % type(filename).__name__)
+
 
 try:
     from tokenize import detect_encoding
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     from codecs import BOM_UTF8, lookup
-    import re
 
     cookie_re = re.compile(r"coding[:=]\s*([-\w.]+)")
 
@@ -401,6 +394,7 @@ except ImportError: # pragma: no cover
         bom_found = False
         encoding = None
         default = 'utf-8'
+
         def read_or_stop():
             try:
                 return readline()
@@ -430,17 +424,16 @@ except ImportError: # pragma: no cover
                 if filename is None:
                     msg = "unknown encoding: " + encoding
                 else:
-                    msg = "unknown encoding for {!r}: {}".format(filename,
-                            encoding)
+                    msg = "unknown encoding for {!r}: {}".format(filename, encoding)
                 raise SyntaxError(msg)
 
             if bom_found:
                 if codec.name != 'utf-8':
                     # This behaviour mimics the Python interpreter
                     if filename is None:
-                        msg = 'encoding problem: utf-8'
+                        msg = 'Encoding problem: utf-8'
                     else:
-                        msg = 'encoding problem for {!r}: utf-8'.format(filename)
+                        msg = 'Encoding problem for %r: utf-8' % filename
                     raise SyntaxError(msg)
                 encoding += '-sig'
             return encoding
@@ -467,6 +460,7 @@ except ImportError: # pragma: no cover
 
         return default, [first, second]
 
+
 # For converting & <-> &amp; etc.
 try:
     from html import escape
@@ -479,12 +473,13 @@ else:
 
 try:
     from collections import ChainMap
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     from collections import MutableMapping
 
     try:
         from reprlib import recursive_repr as _recursive_repr
     except ImportError:
+
         def _recursive_repr(fillvalue='...'):
             '''
             Decorator to make a repr function return fillvalue for a recursive
@@ -515,7 +510,8 @@ except ImportError: # pragma: no cover
             return decorating_function
 
     class ChainMap(MutableMapping):
-        ''' A ChainMap groups multiple dicts (or other mappings) together
+        '''
+        A ChainMap groups multiple dicts (or other mappings) together
         to create a single, updateable view.
 
         The underlying mappings are stored in a list.  That list is public and can
@@ -524,7 +520,6 @@ except ImportError: # pragma: no cover
         Lookups search the underlying mappings successively until a key is found.
         In contrast, writes, updates, and deletions only operate on the first
         mapping.
-
         '''
 
         def __init__(self, *maps):
@@ -532,7 +527,7 @@ except ImportError: # pragma: no cover
             If no mappings are provided, a single empty dictionary is used.
 
             '''
-            self.maps = list(maps) or [{}]          # always at least one map
+            self.maps = list(maps) or [{}]  # always at least one map
 
         def __missing__(self, key):
             raise KeyError(key)
@@ -540,16 +535,16 @@ except ImportError: # pragma: no cover
         def __getitem__(self, key):
             for mapping in self.maps:
                 try:
-                    return mapping[key]             # can't use 'key in mapping' with defaultdict
+                    return mapping[key]  # can't use 'key in mapping' with defaultdict
                 except KeyError:
                     pass
-            return self.__missing__(key)            # support subclasses that define __missing__
+            return self.__missing__(key)  # support subclasses that define __missing__
 
         def get(self, key, default=None):
             return self[key] if key in self else default
 
         def __len__(self):
-            return len(set().union(*self.maps))     # reuses stored hash values if possible
+            return len(set().union(*self.maps))  # reuses stored hash values if possible
 
         def __iter__(self):
             return iter(set().union(*self.maps))
@@ -562,8 +557,7 @@ except ImportError: # pragma: no cover
 
         @_recursive_repr()
         def __repr__(self):
-            return '{0.__class__.__name__}({1})'.format(
-                self, ', '.join(map(repr, self.maps)))
+            return '{0.__class__.__name__}({1})'.format(self, ', '.join(map(repr, self.maps)))
 
         @classmethod
         def fromkeys(cls, iterable, *args):
@@ -576,12 +570,12 @@ except ImportError: # pragma: no cover
 
         __copy__ = copy
 
-        def new_child(self):                        # like Django's Context.push()
+        def new_child(self):  # like Django's Context.push()
             'New ChainMap with a new dict followed by all previous maps.'
             return self.__class__({}, *self.maps)
 
         @property
-        def parents(self):                          # like Django's Context.pop()
+        def parents(self):  # like Django's Context.pop()
             'New ChainMap from maps[1:].'
             return self.__class__(*self.maps[1:])
 
@@ -612,10 +606,12 @@ except ImportError: # pragma: no cover
             'Clear maps[0], leaving maps[1:] intact.'
             self.maps[0].clear()
 
+
 try:
     from importlib.util import cache_from_source  # Python >= 3.4
 except ImportError:  # pragma: no cover
-    def cache_from_source(path, debug_override=None):
+
+    def cache_from_source(path, debug_override=None, optimization=None):
         assert path.endswith('.py')
         if debug_override is None:
             debug_override = __debug__
@@ -625,12 +621,13 @@ except ImportError:  # pragma: no cover
             suffix = 'o'
         return path + suffix
 
+
 try:
     from collections import OrderedDict
-except ImportError: # pragma: no cover
-## {{{ http://code.activestate.com/recipes/576693/ (r9)
-# Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
-# Passes Python2.7's test suite and incorporates all the latest updates.
+except ImportError:  # pragma: no cover
+    # {{{ http://code.activestate.com/recipes/576693/ (r9)
+    # Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
+    # Passes Python2.7's test suite and incorporates all the latest updates.
     try:
         from thread import get_ident as _get_ident
     except ImportError:
@@ -641,9 +638,9 @@ except ImportError: # pragma: no cover
     except ImportError:
         pass
 
-
     class OrderedDict(dict):
         'Dictionary that remembers insertion order'
+
         # An inherited dict maps keys to values.
         # The inherited dict provides __getitem__, __len__, __contains__, and get.
         # The remaining methods are order-aware.
@@ -665,7 +662,7 @@ except ImportError: # pragma: no cover
             try:
                 self.__root
             except AttributeError:
-                self.__root = root = []                     # sentinel node
+                self.__root = root = []  # sentinel node
                 root[:] = [root, root, None]
                 self.__map = {}
             self.__update(*args, **kwds)
@@ -779,7 +776,7 @@ except ImportError: # pragma: no cover
             '''
             if len(args) > 2:
                 raise TypeError('update() takes at most 2 positional '
-                                'arguments (%d given)' % (len(args),))
+                                'arguments (%d given)' % (len(args), ))
             elif not args:
                 raise TypeError('update() takes at least 1 argument (0 given)')
             self = args[0]
@@ -825,14 +822,15 @@ except ImportError: # pragma: no cover
 
         def __repr__(self, _repr_running=None):
             'od.__repr__() <==> repr(od)'
-            if not _repr_running: _repr_running = {}
+            if not _repr_running:
+                _repr_running = {}
             call_key = id(self), _get_ident()
             if call_key in _repr_running:
                 return '...'
             _repr_running[call_key] = 1
             try:
                 if not self:
-                    return '%s()' % (self.__class__.__name__,)
+                    return '%s()' % (self.__class__.__name__, )
                 return '%s(%r)' % (self.__class__.__name__, self.items())
             finally:
                 del _repr_running[call_key]
@@ -844,8 +842,8 @@ except ImportError: # pragma: no cover
             for k in vars(OrderedDict()):
                 inst_dict.pop(k, None)
             if inst_dict:
-                return (self.__class__, (items,), inst_dict)
-            return self.__class__, (items,)
+                return (self.__class__, (items, ), inst_dict)
+            return self.__class__, (items, )
 
         def copy(self):
             'od.copy() -> a shallow copy of od'
@@ -868,7 +866,7 @@ except ImportError: # pragma: no cover
 
             '''
             if isinstance(other, OrderedDict):
-                return len(self)==len(other) and self.items() == other.items()
+                return len(self) == len(other) and self.items() == other.items()
             return dict.__eq__(self, other)
 
         def __ne__(self, other):
@@ -888,18 +886,17 @@ except ImportError: # pragma: no cover
             "od.viewitems() -> a set-like object providing a view on od's items"
             return ItemsView(self)
 
+
 try:
     from logging.config import BaseConfigurator, valid_ident
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     IDENTIFIER = re.compile('^[a-z_][a-z0-9_]*$', re.I)
-
 
     def valid_ident(s):
         m = IDENTIFIER.match(s)
         if not m:
             raise ValueError('Not a valid Python identifier: %r' % s)
         return True
-
 
     # The ConvertingXXX classes are wrappers around standard Python containers,
     # and they serve to convert any suitable values in the container. The
@@ -916,11 +913,10 @@ except ImportError: # pragma: no cover
         def __getitem__(self, key):
             value = dict.__getitem__(self, key)
             result = self.configurator.convert(value)
-            #If the converted value is different, save for next time
+            # If the converted value is different, save for next time
             if value is not result:
                 self[key] = result
-                if type(result) in (ConvertingDict, ConvertingList,
-                                    ConvertingTuple):
+                if type(result) in (ConvertingDict, ConvertingList, ConvertingTuple):
                     result.parent = self
                     result.key = key
             return result
@@ -928,11 +924,10 @@ except ImportError: # pragma: no cover
         def get(self, key, default=None):
             value = dict.get(self, key, default)
             result = self.configurator.convert(value)
-            #If the converted value is different, save for next time
+            # If the converted value is different, save for next time
             if value is not result:
                 self[key] = result
-                if type(result) in (ConvertingDict, ConvertingList,
-                                    ConvertingTuple):
+                if type(result) in (ConvertingDict, ConvertingList, ConvertingTuple):
                     result.parent = self
                     result.key = key
             return result
@@ -941,22 +936,21 @@ except ImportError: # pragma: no cover
         value = dict.pop(self, key, default)
         result = self.configurator.convert(value)
         if value is not result:
-            if type(result) in (ConvertingDict, ConvertingList,
-                                ConvertingTuple):
+            if type(result) in (ConvertingDict, ConvertingList, ConvertingTuple):
                 result.parent = self
                 result.key = key
         return result
 
     class ConvertingList(list):
         """A converting list wrapper."""
+
         def __getitem__(self, key):
             value = list.__getitem__(self, key)
             result = self.configurator.convert(value)
-            #If the converted value is different, save for next time
+            # If the converted value is different, save for next time
             if value is not result:
                 self[key] = result
-                if type(result) in (ConvertingDict, ConvertingList,
-                                    ConvertingTuple):
+                if type(result) in (ConvertingDict, ConvertingList, ConvertingTuple):
                     result.parent = self
                     result.key = key
             return result
@@ -965,19 +959,18 @@ except ImportError: # pragma: no cover
             value = list.pop(self, idx)
             result = self.configurator.convert(value)
             if value is not result:
-                if type(result) in (ConvertingDict, ConvertingList,
-                                    ConvertingTuple):
+                if type(result) in (ConvertingDict, ConvertingList, ConvertingTuple):
                     result.parent = self
             return result
 
     class ConvertingTuple(tuple):
         """A converting tuple wrapper."""
+
         def __getitem__(self, key):
             value = tuple.__getitem__(self, key)
             result = self.configurator.convert(value)
             if value is not result:
-                if type(result) in (ConvertingDict, ConvertingList,
-                                    ConvertingTuple):
+                if type(result) in (ConvertingDict, ConvertingList, ConvertingTuple):
                     result.parent = self
                     result.key = key
             return result
@@ -995,8 +988,8 @@ except ImportError: # pragma: no cover
         DIGIT_PATTERN = re.compile(r'^\d+$')
 
         value_converters = {
-            'ext' : 'ext_convert',
-            'cfg' : 'cfg_convert',
+            'ext': 'ext_convert',
+            'cfg': 'cfg_convert',
         }
 
         # We might want to use a different one, e.g. importlib
@@ -1042,7 +1035,6 @@ except ImportError: # pragma: no cover
             else:
                 rest = rest[m.end():]
                 d = self.config[m.groups()[0]]
-                #print d, rest
                 while rest:
                     m = self.DOT_PATTERN.match(rest)
                     if m:
@@ -1055,7 +1047,7 @@ except ImportError: # pragma: no cover
                                 d = d[idx]
                             else:
                                 try:
-                                    n = int(idx) # try as number first (most likely)
+                                    n = int(idx)  # try as number first (most likely)
                                     d = d[n]
                                 except TypeError:
                                     d = d[idx]
@@ -1064,7 +1056,7 @@ except ImportError: # pragma: no cover
                     else:
                         raise ValueError('Unable to convert '
                                          '%r at %r' % (value, rest))
-            #rest should be empty
+            # rest should be empty
             return d
 
         def convert(self, value):
@@ -1079,8 +1071,7 @@ except ImportError: # pragma: no cover
             elif not isinstance(value, ConvertingList) and isinstance(value, list):
                 value = ConvertingList(value)
                 value.configurator = self
-            elif not isinstance(value, ConvertingTuple) and\
-                     isinstance(value, tuple):
+            elif not isinstance(value, ConvertingTuple) and isinstance(value, tuple):
                 value = ConvertingTuple(value)
                 value.configurator = self
             elif isinstance(value, string_types):

@@ -5,7 +5,8 @@ from typing import cast
 from unittest import mock
 
 import pytest
-from pip._vendor.packaging.utils import NormalizedName
+
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata import (
     BaseDistribution,
@@ -14,7 +15,8 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.metadata.base import FilesystemWheel
-from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, ArchiveInfo
+from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME
+
 from tests.lib.wheel import make_wheel
 
 
@@ -23,7 +25,7 @@ def test_dist_get_direct_url_no_metadata(mock_read_text: mock.Mock) -> None:
     class FakeDistribution(BaseDistribution):
         pass
 
-    dist = FakeDistribution()
+    dist = FakeDistribution()  # type: ignore
     assert dist.direct_url is None
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)
 
@@ -35,7 +37,7 @@ def test_dist_get_direct_url_invalid_json(
     class FakeDistribution(BaseDistribution):
         canonical_name = cast(NormalizedName, "whatever")  # Needed for error logging.
 
-    dist = FakeDistribution()
+    dist = FakeDistribution()  # type: ignore
     with caplog.at_level(logging.WARNING):
         assert dist.direct_url is None
 
@@ -84,12 +86,12 @@ def test_dist_get_direct_url_valid_metadata(mock_read_text: mock.Mock) -> None:
     class FakeDistribution(BaseDistribution):
         pass
 
-    dist = FakeDistribution()
+    dist = FakeDistribution()  # type: ignore
     direct_url = dist.direct_url
     assert direct_url is not None
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)
     assert direct_url.url == "https://e.c/p.tgz"
-    assert isinstance(direct_url.info, ArchiveInfo)
+    assert direct_url.archive_info
 
 
 def test_metadata_dict(tmp_path: Path) -> None:
@@ -100,7 +102,7 @@ def test_metadata_dict(tmp_path: Path) -> None:
     """
     wheel_path = make_wheel(name="pkga", version="1.0.1").save_to_dir(tmp_path)
     wheel = FilesystemWheel(wheel_path)
-    dist = get_wheel_distribution(wheel, "pkga")
+    dist = get_wheel_distribution(wheel, canonicalize_name("pkga"))
     metadata_dict = dist.metadata_dict
     assert metadata_dict["name"] == "pkga"
     assert metadata_dict["version"] == "1.0.1"
@@ -119,7 +121,8 @@ def test_dist_found_in_directory_named_whl(tmp_path: Path) -> None:
     info_path.joinpath("METADATA").write_text("Name: pkg")
     location = os.fspath(dir_path)
     dist = get_environment([location]).get_distribution("pkg")
-    assert dist is not None and dist.location is not None
+    assert dist is not None
+    assert dist.location is not None
     assert Path(dist.location) == Path(location)
 
 
@@ -127,5 +130,20 @@ def test_dist_found_in_zip(tmp_path: Path) -> None:
     location = os.fspath(tmp_path.joinpath("pkg.zip"))
     make_wheel(name="pkg", version="1").save_to(location)
     dist = get_environment([location]).get_distribution("pkg")
-    assert dist is not None and dist.location is not None
+    assert dist is not None
+    assert dist.location is not None
     assert Path(dist.location) == Path(location)
+
+
+@pytest.mark.parametrize("trailing_slash", [False, True])
+def test_trailing_slash_directory_metadata(
+    tmp_path: Path, trailing_slash: bool
+) -> None:
+    # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+    egg_info = tmp_path / "foo.egg-info"
+    egg_info.mkdir()
+    (egg_info / "PKG-INFO").write_text("Metadata-Version: 1.0\nName: foo\n")
+    path = str(egg_info) + (os.sep if trailing_slash else "")
+    dist = get_directory_distribution(path)
+    assert dist.raw_name == dist.canonical_name == "foo"
+    assert dist.location == str(tmp_path)

@@ -2,9 +2,11 @@
 A module that implements tooling to enable easy warnings about deprecations.
 """
 
+from __future__ import annotations
+
 import logging
 import warnings
-from typing import Any, Optional, TextIO, Type, Union
+from typing import Any, TextIO
 
 from pip._vendor.packaging.version import parse
 
@@ -14,7 +16,7 @@ DEPRECATION_MSG_PREFIX = "DEPRECATION: "
 
 
 class PipDeprecationWarning(Warning):
-    pass
+    include_source: bool = False
 
 
 _original_showwarning: Any = None
@@ -22,12 +24,12 @@ _original_showwarning: Any = None
 
 # Warnings <-> Logging Integration
 def _showwarning(
-    message: Union[Warning, str],
-    category: Type[Warning],
+    message: Warning | str,
+    category: type[Warning],
     filename: str,
     lineno: int,
-    file: Optional[TextIO] = None,
-    line: Optional[str] = None,
+    file: TextIO | None = None,
+    line: str | None = None,
 ) -> None:
     if file is not None:
         if _original_showwarning is not None:
@@ -36,7 +38,10 @@ def _showwarning(
         # We use a specially named logger which will handle all of the
         # deprecation messages for pip.
         logger = logging.getLogger("pip._internal.deprecations")
-        logger.warning(message)
+        if isinstance(message, PipDeprecationWarning) and message.include_source:
+            logger.warning("%s (%s:%s)", message, filename, lineno)
+        else:
+            logger.warning(message)
     else:
         _original_showwarning(message, category, filename, lineno, file, line)
 
@@ -55,10 +60,12 @@ def install_warning_logger() -> None:
 def deprecated(
     *,
     reason: str,
-    replacement: Optional[str],
-    gone_in: Optional[str],
-    feature_flag: Optional[str] = None,
-    issue: Optional[int] = None,
+    replacement: str | None,
+    gone_in: str | None,
+    feature_flag: str | None = None,
+    issue: int | None = None,
+    stacklevel: int = 2,
+    include_source: bool = False,
 ) -> None:
     """Helper to deprecate existing functionality.
 
@@ -78,6 +85,12 @@ def deprecated(
     issue:
         Issue number on the tracker that would serve as a useful place for
         users to find related discussion and provide feedback.
+    stacklevel:
+        How many frames up the call stack to attribute the warning to.
+        Defaults to 2 (the caller of deprecated()).
+    include_source:
+        If True, include the source filename and line number in the warning
+        output. Useful when the warning originates from external code.
     """
 
     # Determine whether or not the feature is already gone in this version.
@@ -87,9 +100,11 @@ def deprecated(
         (reason, f"{DEPRECATION_MSG_PREFIX}{{}}"),
         (
             gone_in,
-            "pip {} will enforce this behaviour change."
-            if not is_gone
-            else "Since pip {}, this is no longer supported.",
+            (
+                "pip {} will enforce this behaviour change."
+                if not is_gone
+                else "Since pip {}, this is no longer supported."
+            ),
         ),
         (
             replacement,
@@ -97,9 +112,11 @@ def deprecated(
         ),
         (
             feature_flag,
-            "You can use the flag --use-feature={} to test the upcoming behaviour."
-            if not is_gone
-            else None,
+            (
+                "You can use the flag --use-feature={} to test the upcoming behaviour."
+                if not is_gone
+                else None
+            ),
         ),
         (
             issue,
@@ -117,4 +134,6 @@ def deprecated(
     if is_gone:
         raise PipDeprecationWarning(message)
 
-    warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
+    warning = PipDeprecationWarning(message)
+    warning.include_source = include_source
+    warnings.warn(warning, stacklevel=stacklevel)

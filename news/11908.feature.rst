@@ -1,1 +1,0 @@
-Reduce the number of resolver rounds, since backjumping makes the resolver more efficient in finding solutions. This also makes pathological cases fail quicker.

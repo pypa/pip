@@ -1,2 +1,0 @@
-Remove ``setup.py install`` fallback when building a wheel failed for projects without
-``pyproject.toml``.

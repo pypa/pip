@@ -10,6 +10,16 @@ on:
   pull_request:
   schedule:
     - cron: 0 0 * * MON # Run every Monday at 00:00 UTC
+  workflow_dispatch:
+    # allow manual runs on branches without a PR
+
+env:
+  # The "FORCE_COLOR" variable, when set to 1,
+  # tells Nox to colorize itself.
+  FORCE_COLOR: "1"
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -21,8 +31,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
       - run: pip install nox
@@ -35,7 +47,7 @@ jobs:
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
           filters: |
@@ -50,15 +62,23 @@ jobs:
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              # The test suite should also run when cutting a release
+              # (which is the only time this file is modified).
+              - "NEWS.rst"
         if: github.event_name == 'pull_request'
 
   packaging:
-    name: packaging
-    runs-on: ubuntu-latest
+    name: packaging / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
       - name: Set up git credentials
@@ -69,7 +89,7 @@ jobs:
       - run: pip install nox
       - run: nox -s prepare-release -- 99.9
       - run: nox -s build-release -- 99.9
-      - run: pipx run check-manifest
+      - run: pipx run check-sdist
 
   vendoring:
     name: vendoring
@@ -81,8 +101,10 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
 
@@ -91,10 +113,10 @@ jobs:
       - run: git diff --exit-code
 
   tests-unix:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+    name: tests / ${{ matrix.python.version || matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -102,48 +124,80 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [Ubuntu, MacOS]
+        os: [ubuntu-latest, macos-latest]
         python:
-          - "3.7"
-          - "3.8"
-          - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+          - "3.15"
+          - "3.14t"
+        include:
+          # Oldest patch release per minor version on ubuntu-latest,
+          # to catch backport/bug fix regressions. Constrained by what
+          # actions/setup-python ships for the runner OS (ubuntu-24.04).
+          # See: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+          - os: ubuntu-latest
+            python: { key: "3.10", version: "3.10.4" }
+          - os: ubuntu-latest
+            python: { key: "3.11", version: "3.11.0" }
+          - os: ubuntu-latest
+            python: { key: "3.12", version: "3.12.0" }
+          - os: ubuntu-latest
+            python: { key: "3.13", version: "3.13.0" }
+          - os: ubuntu-latest
+            python: { key: "3.14", version: "3.14.0" }
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          python-version: ${{ matrix.python }}
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: ${{ matrix.python.version || matrix.python }}
+          allow-prereleases: true
+
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
+        run: |
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'Ubuntu'
-        run: sudo apt-get install bzr
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install brz subversion
 
       - name: Install MacOS dependencies
-        if: matrix.os == 'MacOS'
-        run: brew install breezy
+        if: runner.os == 'macOS'
+        run: |
+          DEPS=breezy
+          if ! which svn; then
+            DEPS="${DEPS} subversion"
+          fi
+          brew install ${DEPS}
 
       - run: pip install nox
 
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python }} --
-          -m unit
+          nox -s test-${{ matrix.python.key || matrix.python }} --
+          tests/unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration
+          nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
+          tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
     runs-on: ${{ matrix.os }}-latest
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
@@ -153,70 +207,73 @@ jobs:
       matrix:
         os: [Windows]
         python:
-          - "3.7"
-          # Commented out, since Windows tests are expensively slow.
-          # - "3.8"
-          # - "3.9"
-          # - "3.10"
-          - "3.11"
-        group: [1, 2]
+          - "3.10"
+          # Commented out, since Windows tests are expensively slow,
+          # only test the oldest and newest Python supported by pip
+          # - "3.11"
+          # - "3.12"
+          # - "3.13"
+          - "3.14"
+          - "3.15"
+          - "3.14t"
+        group:
+          - { number: 1, pytest-filter: "not test_install" }
+          - { number: 2, pytest-filter: "test_install" }
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      # The D: drive is significantly faster than the system C: drive.
+      # https://github.com/actions/runner-images/issues/8755
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
+
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
 
-      # We use a RAMDisk on Windows, since filesystem IO is a big slowdown
-      # for our tests.
-      - name: Create a RAMDisk
-        run: ./tools/ci/New-RAMDisk.ps1 -Drive R -Size 1GB
-
-      - name: Setup RAMDisk permissions
+      - name: Set PYTHON_GIL
+        if: endsWith(matrix.python-version, 't')
         run: |
-          mkdir R:\Temp
-          $acl = Get-Acl "R:\Temp"
-          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-              "Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
-          )
-          $acl.AddAccessRule($rule)
-          Set-Acl "R:\Temp" $acl
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
+
+      - name: Install Subversion
+        shell: pwsh
+        run: |
+          for ($i = 1; $i -le 3; $i++) {
+            winget install --accept-source-agreements --accept-package-agreements -e --id Slik.Subversion
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($i -eq 3) { exit $LASTEXITCODE }
+            Start-Sleep -Seconds (10 * $i)
+          }
+          echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: pip install nox
-        env:
-          TEMP: "R:\\Temp"
 
       # Main check
-      - name: Run unit tests
-        if: matrix.group == 1
+      - name: Run unit tests (group 1)
+        if: matrix.group.number == 1
         run: >-
           nox -s test-${{ matrix.python }} --
-          -m unit
+          tests/unit
           --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "R:\\Temp"
 
-      - name: Run integration tests (group 1)
-        if: matrix.group == 1
+      - name: Run integration tests (group ${{ matrix.group.number }})
         run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration -k "not test_install"
-          --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "R:\\Temp"
-
-      - name: Run integration tests (group 2)
-        if: matrix.group == 2
-        run: >-
-          nox -s test-${{ matrix.python }} --
-          -m integration -k "test_install"
-          --verbose --numprocesses auto --showlocals
-        env:
-          TEMP: "R:\\Temp"
+          nox -s test-${{ matrix.python }} --no-install --
+          tests/functional -k "${{ matrix.group.pytest-filter }}"
+          --verbose --numprocesses auto --showlocals --durations=15
 
   tests-zipapp:
     name: tests / zipapp
-    runs-on: ubuntu-latest
+    # The macos-latest (M1) runners are the fastest available on GHA, even
+    # beating out the ubuntu-latest runners. The zipapp tests are slow by
+    # nature, and we don't care where they run, so we pick the fastest one.
+    runs-on: macos-latest
 
     needs: [packaging, determine-changes]
     if: >-
@@ -224,23 +281,25 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.10"
 
-      - name: Install Ubuntu dependencies
-        run: sudo apt-get install bzr
+      - name: Install MacOS dependencies
+        run: brew install breezy subversion
 
-      - run: pip install nox 'virtualenv<20' 'setuptools != 60.6.0'
+      - run: pip install nox
 
       # Main check
       - name: Run integration tests
         run: >-
           nox -s test-3.10 --
-          -m integration
+          tests/functional
           --verbose --numprocesses auto --showlocals
-          --durations=5
+          --durations=15
           --use-zipapp
 
   check:  # This job does nothing and is only used for the branch protection
@@ -259,7 +318,7 @@ jobs:
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # release/v1
         with:
           allowed-skips: >-
             ${{

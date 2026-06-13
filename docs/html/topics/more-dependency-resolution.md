@@ -8,7 +8,7 @@ and this article is intended to help readers understand what is happening
 ```{note}
 This document is a work in progress. The details included are accurate (at the
 time of writing), but there is additional information, in particular around
-pip's interface with resolvelib, which have not yet been included.
+pip's interface with resolvelib, which has not yet been included.
 
 Contributions to improve this document are welcome.
 ```
@@ -26,7 +26,7 @@ The practical implication of that is that there will always be some situations
 where pip cannot determine what to install in a reasonable length of time. We
 make every effort to ensure that such situations happen rarely, but eliminating
 them altogether isn't even theoretically possible. We'll discuss what options
-yopu have if you hit a problem situation like this a little later.
+you have if you hit a problem situation like this a little later.
 
 ## Python specific issues
 
@@ -97,10 +97,10 @@ feeding candidates to the resolver, and has a key role to play in selecting
 suitable candidates.
 
 Note that the resolver is *only* relevant for packages fetched from an index.
-Candidates coming from other sources (local source directories, PEP 508
-direct URL references) do *not* go through the finder, and are merged with the
-candidates provided by the finder as part of the resolver's "provider"
-implementation.
+Candidates coming from other sources (local source directories, {ref}`direct
+URL references <pypug:dependency-specifiers>`) do *not* go through the finder,
+and are merged with the candidates provided by the finder as part of the resolver's
+"provider" implementation.
 
 As well as determining what versions exist in the index for a given project,
 the finder selects the best distribution file to use for that candidate. This
@@ -132,20 +132,22 @@ operations:
 * `get_preference` - this provides information to the resolver to help it choose
   which requirement to look at "next" when working through the resolution
   process.
+* `narrow_requirement_selection` - this provides a way to limit the number of
+  identifiers passed to `get_preference`.
 * `find_matches` - given a set of constraints, determine what candidates exist
   that satisfy them. This is essentially where the finder interacts with the
   resolver.
 * `is_satisfied_by` - checks if a candidate satisfies a requirement. This is
-  basically the implementation of what a requirement meams.
+  basically the implementation of what a requirement means.
 * `get_dependencies` - get the dependency metadata for a candidate. This is
   the implementation of the process of getting and reading package metadata.
 
-Of these methods, the only non-trivial one is the `get_preference` method. This
-implements the heuristics used to guide the resolution, telling it which
-requirement to try to satisfy next. It's this method that is responsible for
-trying to guess which route through the dependency tree will be most productive.
-As noted above, it's doing this with limited information. See the following
-diagram
+Of these methods, the only non-trivial ones are the `get_preference` and
+`narrow_requirement_selection` methods. These implement heuristics used
+to guide the resolution, telling it which requirement to try to satisfy next.
+It's these methods that are responsible for trying to guess which route through
+the dependency tree will be most productive. As noted above, it's doing this
+with limited information. See the following diagram:
 
 ![](deps.png)
 
@@ -153,16 +155,32 @@ When the provider is asked to choose between the red requirements (A->B and
 A->C) it doesn't know anything about the dependencies of B or C (i.e., the
 grey parts of the graph).
 
-Pip's current implementation of the provider implements `get_preference` as
-follows:
+Pip's current implementation of the provider implements
+`narrow_requirement_selection` as follows:
 
-* Prefer if any of the known requirements is "direct", e.g. points to an
-    explicit URL.
-* If equal, prefer if any requirement is "pinned", i.e. contains
-    operator ``===`` or ``==``.
-* If equal, calculate an approximate "depth" and resolve requirements
-    closer to the user-specified requirements first.
-* Order user-specified requirements by the order they are specified.
-* If equal, prefers "non-free" requirements, i.e. contains at least one
-    operator, such as ``>=`` or ``<``.
-* If equal, order alphabetically for consistency (helps debuggability).
+* If Requires-Python is present only consider that
+* If there are causes of resolution conflict (backtrack causes) then
+    only consider them until there are no longer any resolution conflicts
+* If any identifiers have appeared unresolved in backtrack causes at
+    least 5 times, only consider those so they get pinned before other
+    packages pick a version
+
+Pip's current implementation of the provider implements `get_preference`
+for known requirements with the following preferences in the following order:
+
+* Any requirement that has appeared in repeated conflicts (see
+    ``narrow_requirement_selection`` above).
+* Any requirement that is "direct", e.g., points to an explicit URL.
+* Any requirement that is "pinned", i.e., contains the operator ``===``
+    or ``==`` without a wildcard.
+* Any requirement that imposes an upper version limit, i.e., contains the
+    operator ``<``, ``<=``, ``~=``, or ``==`` with a wildcard. Because
+    pip prioritizes the latest version, preferring explicit upper bounds
+    can rule out infeasible candidates sooner. This does not imply that
+    upper bounds are good practice; they can make dependency management
+    and resolution harder.
+* Order user-specified requirements as they are specified, placing
+    other requirements afterward.
+* Any "non-free" requirement, i.e., one that contains at least one
+    operator, such as ``>=`` or ``!=``.
+* Alphabetical order for consistency (aids debuggability).

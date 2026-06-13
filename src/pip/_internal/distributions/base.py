@@ -1,8 +1,13 @@
-import abc
+from __future__ import annotations
 
-from pip._internal.index.package_finder import PackageFinder
+import abc
+from typing import TYPE_CHECKING
+
 from pip._internal.metadata.base import BaseDistribution
 from pip._internal.req import InstallRequirement
+
+if TYPE_CHECKING:
+    from pip._internal.build_env import BuildEnvironmentInstaller
 
 
 class AbstractDistribution(metaclass=abc.ABCMeta):
@@ -19,11 +24,22 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
 
      - we must be able to create a Distribution object exposing the
        above metadata.
+
+     - if we need to do work in the build tracker, we must be able to generate a unique
+       string to identify the requirement in the build tracker.
     """
 
     def __init__(self, req: InstallRequirement) -> None:
         super().__init__()
         self.req = req
+
+    @abc.abstractproperty
+    def build_tracker_id(self) -> str | None:
+        """A string that uniquely identifies this requirement to the build tracker.
+
+        If None, then this dist has no work to do in the build tracker, and
+        ``.prepare_distribution_metadata()`` will not be called."""
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def get_metadata_distribution(self) -> BaseDistribution:
@@ -32,7 +48,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def prepare_distribution_metadata(
         self,
-        finder: PackageFinder,
+        build_env_installer: BuildEnvironmentInstaller,
         build_isolation: bool,
         check_build_deps: bool,
     ) -> None:

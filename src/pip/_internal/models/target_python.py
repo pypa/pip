@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import sys
-from typing import List, Optional, Tuple
 
 from pip._vendor.packaging.tags import Tag
 
@@ -8,7 +9,6 @@ from pip._internal.utils.misc import normalize_version_info
 
 
 class TargetPython:
-
     """
     Encapsulates the properties of a Python interpreter one is targeting
     for a package install, download, etc.
@@ -22,14 +22,15 @@ class TargetPython:
         "py_version",
         "py_version_info",
         "_valid_tags",
+        "_valid_tags_set",
     ]
 
     def __init__(
         self,
-        platforms: Optional[List[str]] = None,
-        py_version_info: Optional[Tuple[int, ...]] = None,
-        abis: Optional[List[str]] = None,
-        implementation: Optional[str] = None,
+        platforms: list[str] | None = None,
+        py_version_info: tuple[int, ...] | None = None,
+        abis: list[str] | None = None,
+        implementation: str | None = None,
     ) -> None:
         """
         :param platforms: A list of strings or None. If None, searches for
@@ -61,8 +62,9 @@ class TargetPython:
         self.py_version = py_version
         self.py_version_info = py_version_info
 
-        # This is used to cache the return value of get_tags().
-        self._valid_tags: Optional[List[Tag]] = None
+        # This is used to cache the return value of get_(un)sorted_tags.
+        self._valid_tags: list[Tag] | None = None
+        self._valid_tags_set: set[Tag] | None = None
 
     def format_given(self) -> str:
         """
@@ -84,7 +86,7 @@ class TargetPython:
             f"{key}={value!r}" for key, value in key_values if value is not None
         )
 
-    def get_tags(self) -> List[Tag]:
+    def get_sorted_tags(self) -> list[Tag]:
         """
         Return the supported PEP 425 tags to check wheel candidates against.
 
@@ -108,3 +110,13 @@ class TargetPython:
             self._valid_tags = tags
 
         return self._valid_tags
+
+    def get_unsorted_tags(self) -> set[Tag]:
+        """Exactly the same as get_sorted_tags, but returns a set.
+
+        This is important for performance.
+        """
+        if self._valid_tags_set is None:
+            self._valid_tags_set = set(self.get_sorted_tags())
+
+        return self._valid_tags_set

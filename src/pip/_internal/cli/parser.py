@@ -1,15 +1,24 @@
 """Base option parser setup"""
 
+from __future__ import annotations
+
 import logging
 import optparse
+import os
+import re
 import shutil
 import sys
 import textwrap
+from collections.abc import Generator
 from contextlib import suppress
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, NoReturn
+
+from pip._vendor.rich.markup import escape
+from pip._vendor.rich.theme import Theme
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
+from pip._internal.utils.logging import PipConsole
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
 
 logger = logging.getLogger(__name__)
@@ -17,6 +26,17 @@ logger = logging.getLogger(__name__)
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
+
+    styles = {
+        "optparse.shortargs": "green",
+        "optparse.longargs": "cyan",
+        "optparse.groups": "bold blue",
+        "optparse.metavar": "yellow",
+    }
+    highlights = {
+        r"\s(-{1}[\w]+[\w-]*)": "shortargs",  # highlight -letter as short args
+        r"\s(-{2}[\w]+[\w-]*)": "longargs",  # highlight --words as long args
+    }
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # help position must be aligned with __init__.parseopts.description
@@ -26,71 +46,99 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         super().__init__(*args, **kwargs)
 
     def format_option_strings(self, option: optparse.Option) -> str:
-        return self._format_option_strings(option)
-
-    def _format_option_strings(
-        self, option: optparse.Option, mvarfmt: str = " <{}>", optsep: str = ", "
-    ) -> str:
-        """
-        Return a comma-separated list of option strings and metavars.
-
-        :param option:  tuple of (short opt, long opt), e.g: ('-f', '--format')
-        :param mvarfmt: metavar format string
-        :param optsep:  separator
-        """
+        """Return a comma-separated list of option strings and metavars."""
         opts = []
 
         if option._short_opts:
-            opts.append(option._short_opts[0])
+            opts.append(f"[optparse.shortargs]{option._short_opts[0]}[/]")
         if option._long_opts:
-            opts.append(option._long_opts[0])
+            opts.append(f"[optparse.longargs]{option._long_opts[0]}[/]")
         if len(opts) > 1:
-            opts.insert(1, optsep)
+            opts.insert(1, ", ")
 
         if option.takes_value():
             assert option.dest is not None
             metavar = option.metavar or option.dest.lower()
-            opts.append(mvarfmt.format(metavar.lower()))
+            opts.append(f" [optparse.metavar]<{escape(metavar.lower())}>[/]")
 
         return "".join(opts)
+
+    def format_option(self, option: optparse.Option) -> str:
+        """Overridden method with Rich support."""
+        # fmt: off
+        result = []
+        opts = self.option_strings[option]
+        opt_width = self.help_position - self.current_indent - 2
+        # Remove the rich style tags before calculating width during
+        # text wrap calculations. Also store the length removed to adjust
+        # the padding in the else branch.
+        stripped = re.sub(r"(\[[a-z.]+\])|(\[\/\])", "", opts)
+        style_tag_length = len(opts) - len(stripped)
+        if len(stripped) > opt_width:
+            opts = "%*s%s\n" % (self.current_indent, "", opts)  # noqa: UP031
+            indent_first = self.help_position
+        else:                       # start help on same line as opts
+            opts = "%*s%-*s  " % (self.current_indent, "",      # noqa: UP031
+                                  opt_width + style_tag_length, opts)
+            indent_first = 0
+        result.append(opts)
+        if option.help:
+            help_text = self.expand_default(option)
+            help_lines = textwrap.wrap(help_text, self.help_width)
+            result.append("%*s%s\n" % (indent_first, "", help_lines[0]))  # noqa: UP031
+            result.extend(["%*s%s\n" % (self.help_position, "", line)     # noqa: UP031
+                           for line in help_lines[1:]])
+        elif opts[-1] != "\n":
+            result.append("\n")
+        return "".join(result)
+        # fmt: on
 
     def format_heading(self, heading: str) -> str:
         if heading == "Options":
             return ""
-        return heading + ":\n"
+        return "[optparse.groups]" + escape(heading) + ":[/]\n"
 
     def format_usage(self, usage: str) -> str:
         """
         Ensure there is only one newline between usage and the first heading
         if there is no description.
         """
-        msg = "\nUsage: {}\n".format(self.indent_lines(textwrap.dedent(usage), "  "))
+        contents = self.indent_lines(textwrap.dedent(usage), "  ")
+        msg = f"\n[optparse.groups]Usage:[/] {escape(contents)}\n"
         return msg
 
-    def format_description(self, description: str) -> str:
+    def format_description(self, description: str | None) -> str:
         # leave full control over description to us
         if description:
             if hasattr(self.parser, "main"):
-                label = "Commands"
+                label = "[optparse.groups]Commands:[/]"
             else:
-                label = "Description"
+                label = "[optparse.groups]Description:[/]"
+
             # some doc strings have initial newlines, some don't
             description = description.lstrip("\n")
             # some doc strings have final newlines and spaces, some don't
             description = description.rstrip()
             # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
-            description = f"{label}:\n{description}\n"
+            description = f"{label}\n{description}\n"
             return description
         else:
             return ""
 
-    def format_epilog(self, epilog: str) -> str:
+    def format_epilog(self, epilog: str | None) -> str:
         # leave full control over epilog to us
         if epilog:
-            return epilog
+            return escape(epilog)
         else:
             return ""
+
+    def expand_default(self, option: optparse.Option) -> str:
+        """Overridden HelpFormatter.expand_default() which colorizes flags."""
+        help = escape(super().expand_default(option))
+        for regex, style in self.highlights.items():
+            help = re.sub(regex, rf"[optparse.{style}] \1[/]", help)
+        return help
 
     def indent_lines(self, text: str, indent: str) -> str:
         new_lines = [indent + line for line in text.split("\n")]
@@ -142,7 +190,7 @@ class CustomOptionParser(optparse.OptionParser):
         return group
 
     @property
-    def option_list_all(self) -> List[optparse.Option]:
+    def option_list_all(self) -> list[optparse.Option]:
         """Get a list of all options, including those in option groups."""
         res = self.option_list[:]
         for i in self.option_groups:
@@ -177,33 +225,36 @@ class ConfigOptionParser(CustomOptionParser):
 
     def _get_ordered_configuration_items(
         self,
-    ) -> Generator[Tuple[str, Any], None, None]:
+    ) -> Generator[tuple[str, Any], None, None]:
         # Configuration gives keys in an unordered manner. Order them.
         override_order = ["global", self.name, ":env:"]
 
         # Pool the options into different groups
-        section_items: Dict[str, List[Tuple[str, Any]]] = {
-            name: [] for name in override_order
+        # Use a dict because we need to implement the fallthrough logic after PR 12201
+        # was merged which removed the fallthrough logic for options
+        section_items_dict: dict[str, dict[str, Any]] = {
+            name: {} for name in override_order
         }
-        for section_key, val in self.config.items():
-            # ignore empty values
-            if not val:
-                logger.debug(
-                    "Ignoring configuration key '%s' as it's value is empty.",
-                    section_key,
-                )
-                continue
 
-            section, key = section_key.split(".", 1)
-            if section in override_order:
-                section_items[section].append((key, val))
+        for _, value in self.config.items():
+            for section_key, val in value.items():
+
+                section, key = section_key.split(".", 1)
+                if section in override_order:
+                    section_items_dict[section][key] = val
+
+        # Now that we a dict of items per section, convert to list of tuples
+        # Make sure we completely remove empty values again
+        section_items = {
+            name: [(k, v) for k, v in section_items_dict[name].items() if v]
+            for name in override_order
+        }
 
         # Yield each group in their override order
         for section in override_order:
-            for key, val in section_items[section]:
-                yield key, val
+            yield from section_items[section]
 
-    def _update_defaults(self, defaults: Dict[str, Any]) -> Dict[str, Any]:
+    def _update_defaults(self, defaults: dict[str, Any]) -> dict[str, Any]:
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
         options (lists)."""
@@ -229,9 +280,9 @@ class ConfigOptionParser(CustomOptionParser):
                     val = strtobool(val)
                 except ValueError:
                     self.error(
-                        "{} is not a valid value for {} option, "  # noqa
+                        f"{val} is not a valid value for {key} option, "
                         "please specify a boolean value like yes/no, "
-                        "true/false or 1/0 instead.".format(val, key)
+                        "true/false or 1/0 instead."
                     )
             elif option.action == "count":
                 with suppress(ValueError):
@@ -240,10 +291,10 @@ class ConfigOptionParser(CustomOptionParser):
                     val = int(val)
                 if not isinstance(val, int) or val < 0:
                     self.error(
-                        "{} is not a valid value for {} option, "  # noqa
+                        f"{val} is not a valid value for {key} option, "
                         "please instead specify either a non-negative integer "
                         "or a boolean value like yes/no or false/true "
-                        "which is equivalent to 1/0.".format(val, key)
+                        "which is equivalent to 1/0."
                     )
             elif option.action == "append":
                 val = val.split()
@@ -289,6 +340,19 @@ class ConfigOptionParser(CustomOptionParser):
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
 
-    def error(self, msg: str) -> None:
+    def error(self, msg: str) -> NoReturn:
         self.print_usage(sys.stderr)
         self.exit(UNKNOWN_ERROR, f"{msg}\n")
+
+    def print_help(self, file: Any = None) -> None:
+        # This is unfortunate but necessary since arguments may have not been
+        # parsed yet at this point, so detect --no-color manually.
+        no_color = (
+            "--no-color" in sys.argv
+            or bool(strtobool(os.environ.get("PIP_NO_COLOR", "no") or "no"))
+            or "NO_COLOR" in os.environ
+        )
+        console = PipConsole(
+            theme=Theme(PrettyHelpFormatter.styles), no_color=no_color, file=file
+        )
+        console.print(self.format_help().rstrip(), highlight=False)

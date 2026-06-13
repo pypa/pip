@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import compileall
 import os
 import shutil
@@ -7,17 +9,11 @@ import sysconfig
 import textwrap
 import venv as _venv
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional, Union
+from typing import Literal
 
 import virtualenv as _virtualenv
 
-if TYPE_CHECKING:
-    # Literal was introduced in Python 3.8.
-    from typing import Literal
-
-    VirtualEnvironmentType = Literal["virtualenv", "venv"]
-else:
-    VirtualEnvironmentType = str
+VirtualEnvironmentType = Literal["virtualenv", "venv"]
 
 
 class VirtualEnvironment:
@@ -29,8 +25,8 @@ class VirtualEnvironment:
     def __init__(
         self,
         location: Path,
-        template: Optional["VirtualEnvironment"] = None,
-        venv_type: Optional[VirtualEnvironmentType] = None,
+        template: VirtualEnvironment | None = None,
+        venv_type: VirtualEnvironmentType | None = None,
     ) -> None:
         self.location = location
         assert template is None or venv_type is None
@@ -43,7 +39,7 @@ class VirtualEnvironment:
             self._venv_type = "virtualenv"
         self._user_site_packages = False
         self._template = template
-        self._sitecustomize: Optional[str] = None
+        self._sitecustomize: str | None = None
         self._update_paths()
         self._create()
 
@@ -54,7 +50,7 @@ class VirtualEnvironment:
         return int(_virtualenv.__version__.split(".", 1)[0]) < 20
 
     def __update_paths_legacy(self) -> None:
-        home, lib, inc, bin = _virtualenv.path_locations(self.location)
+        home, lib, inc, bin = _virtualenv.path_locations(self.location)  # type: ignore[attr-defined]
         self.bin = Path(bin)
         self.site = Path(lib) / "site-packages"
         # Workaround for https://github.com/pypa/virtualenv/issues/306
@@ -117,14 +113,13 @@ class VirtualEnvironment:
                 _virtualenv.cli_run(
                     [
                         "--no-pip",
-                        "--no-wheel",
                         "--no-setuptools",
                         os.fspath(self.location),
                     ],
                 )
             elif self._venv_type == "venv":
                 builder = _venv.EnvBuilder()
-                context = builder.ensure_directories(self.location)
+                context = builder.ensure_directories(os.fspath(self.location))
                 builder.create_configuration(context)
                 builder.setup_python(context)
                 self.site.mkdir(parents=True, exist_ok=True)
@@ -172,18 +167,19 @@ class VirtualEnvironment:
             contents = ""
         else:
             # Enable user site (before system).
-            contents = textwrap.dedent(
-                f"""
+            contents = textwrap.dedent(f"""
                 import os, site, sys
                 if not os.environ.get('PYTHONNOUSERSITE', False):
                     site.ENABLE_USER_SITE = {self._user_site_packages}
                     # First, drop system-sites related paths.
                     original_sys_path = sys.path[:]
+                    # To discover system-sites related paths, clear sys.path
+                    # and build a new one with only system paths.
+                    sys.path = []
                     known_paths = set()
                     for path in site.getsitepackages():
                         site.addsitedir(path, known_paths=known_paths)
-                    system_paths = sys.path[len(original_sys_path):]
-                    for path in system_paths:
+                    for path in sys.path:
                         if path in original_sys_path:
                             original_sys_path.remove(path)
                     sys.path = original_sys_path
@@ -193,8 +189,7 @@ class VirtualEnvironment:
                     # Third, add back system-sites related paths.
                     for path in site.getsitepackages():
                         site.addsitedir(path)
-                """
-            ).strip()
+                """).strip()
         if self._sitecustomize is not None:
             contents += "\n" + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
@@ -202,7 +197,7 @@ class VirtualEnvironment:
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
-    def _rewrite_pyvenv_cfg(self, replacements: Dict[str, str]) -> None:
+    def _rewrite_pyvenv_cfg(self, replacements: dict[str, str]) -> None:
         pyvenv_cfg = self.location.joinpath("pyvenv.cfg")
         lines = pyvenv_cfg.read_text(encoding="utf-8").splitlines()
 
@@ -220,17 +215,17 @@ class VirtualEnvironment:
     def clear(self) -> None:
         self._create(clear=True)
 
-    def move(self, location: Union[Path, str]) -> None:
+    def move(self, location: Path | str) -> None:
         shutil.move(os.fspath(self.location), location)
         self.location = Path(location)
         self._update_paths()
 
     @property
-    def sitecustomize(self) -> Optional[str]:
+    def sitecustomize(self) -> str | None:
         return self._sitecustomize
 
     @sitecustomize.setter
-    def sitecustomize(self, value: str) -> None:
+    def sitecustomize(self, value: str | None) -> None:
         self._sitecustomize = value
         self._customize_site()
 

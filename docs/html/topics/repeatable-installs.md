@@ -90,10 +90,3 @@ across machines.
 Hash-checking mode can also be used along with this method (since this uses a
 requirements file as well), to ensure that future archives are built with
 identical packages.
-
-```{warning}
-Beware of the `setup_requires` keyword arg in {file}`setup.py`. The (rare)
-packages that use it will cause those dependencies to be downloaded by
-setuptools directly, skipping pip's protections. If you need to use such a
-package, see {ref}`Controlling setup_requires <controlling-setup_requires>`.
-```

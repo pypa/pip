@@ -1,1 +1,0 @@
-Fix grammar by changing "A new release of pip available:" to "A new release of pip is available:" in the notice used for indicating that.

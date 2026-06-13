@@ -1,4 +1,0 @@
-Stop propagating CLI ``--config-settings`` to the build dependencies. They already did
-not propagate to requirements provided in requirement files. To pass the same config
-settings to several requirements, users should provide the requirements as CLI
-arguments.

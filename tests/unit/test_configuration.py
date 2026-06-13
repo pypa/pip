@@ -1,5 +1,4 @@
-"""Tests for all things related to the configuration
-"""
+"""Tests for all things related to the configuration"""
 
 import re
 from unittest.mock import MagicMock
@@ -8,6 +7,7 @@ import pytest
 
 from pip._internal.configuration import get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError
+
 from tests.lib.configuration_helpers import ConfigurationMixin
 
 
@@ -24,17 +24,11 @@ class TestConfigurationLoading(ConfigurationMixin):
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "2"
 
-    def test_base_loading(self) -> None:
-        self.patch_configuration(kinds.BASE, {"test.hello": "3"})
+    def test_site_loading(self) -> None:
+        self.patch_configuration(kinds.SITE, {"test.hello": "3"})
 
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
-
-    def test_site_loading(self) -> None:
-        self.patch_configuration(kinds.SITE, {"test.hello": "4"})
-
-        self.configuration.load()
-        assert self.configuration.get_value("test.hello") == "4"
 
     def test_environment_config_loading(self, monkeypatch: pytest.MonkeyPatch) -> None:
         contents = """
@@ -113,77 +107,54 @@ class TestConfigurationLoading(ConfigurationMixin):
         with pytest.raises(ConfigurationError, match=pat):
             self.configuration.get_value("global.index-url")
 
-    def test_overrides_normalization(self) -> None:
-        # Check that normalized names are used in precedence calculations.
-        # Reminder: USER has higher precedence than GLOBAL.
-        self.patch_configuration(kinds.USER, {"test.hello-world": "1"})
-        self.patch_configuration(kinds.GLOBAL, {"test.hello_world": "0"})
-        self.configuration.load()
-
-        assert self.configuration.get_value("test.hello_world") == "1"
-
 
 class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of
     # configuration options
 
-    def test_env_overides_site(self) -> None:
+    def test_env_overrides_site(self) -> None:
         self.patch_configuration(kinds.SITE, {"test.hello": "1"})
         self.patch_configuration(kinds.ENV, {"test.hello": "0"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "0"
 
-    def test_env_overides_user(self) -> None:
+    def test_env_overrides_user(self) -> None:
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
         self.patch_configuration(kinds.ENV, {"test.hello": "0"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "0"
 
-    def test_env_overides_global(self) -> None:
+    def test_env_overrides_global(self) -> None:
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
         self.patch_configuration(kinds.ENV, {"test.hello": "0"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "0"
 
-    def test_site_overides_base(self) -> None:
-        self.patch_configuration(kinds.BASE, {"test.hello": "2"})
-        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
-        self.configuration.load()
-
-        assert self.configuration.get_value("test.hello") == "1"
-
-    def test_site_overides_user(self) -> None:
+    def test_site_overrides_user(self) -> None:
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
         self.patch_configuration(kinds.SITE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
 
-    def test_site_overides_global(self) -> None:
+    def test_site_overrides_global(self) -> None:
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
         self.patch_configuration(kinds.SITE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
 
-    def test_base_overides_user(self) -> None:
-        self.patch_configuration(kinds.USER, {"test.hello": "2"})
-        self.patch_configuration(kinds.BASE, {"test.hello": "1"})
-        self.configuration.load()
-
-        assert self.configuration.get_value("test.hello") == "1"
-
-    def test_user_overides_global(self) -> None:
+    def test_user_overrides_global(self) -> None:
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "2"
 
-    def test_env_not_overriden_by_environment_var(
+    def test_env_not_overridden_by_environment_var(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         self.patch_configuration(kinds.ENV, {"test.hello": "1"})
@@ -194,7 +165,7 @@ class TestConfigurationPrecedence(ConfigurationMixin):
         assert self.configuration.get_value("test.hello") == "1"
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    def test_site_not_overriden_by_environment_var(
+    def test_site_not_overridden_by_environment_var(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         self.patch_configuration(kinds.SITE, {"test.hello": "2"})
@@ -205,7 +176,7 @@ class TestConfigurationPrecedence(ConfigurationMixin):
         assert self.configuration.get_value("test.hello") == "2"
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    def test_user_not_overriden_by_environment_var(
+    def test_user_not_overridden_by_environment_var(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         self.patch_configuration(kinds.USER, {"test.hello": "3"})
@@ -216,7 +187,7 @@ class TestConfigurationPrecedence(ConfigurationMixin):
         assert self.configuration.get_value("test.hello") == "3"
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    def test_global_not_overriden_by_environment_var(
+    def test_global_not_overridden_by_environment_var(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "4"})
@@ -244,7 +215,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock  # type: ignore[method-assign]
 
         self.configuration.set_value("test.hello", "10")
 
@@ -260,7 +231,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock  # type: ignore[method-assign]
 
         self.configuration.set_value("test.hello", "10")
 
@@ -279,7 +250,7 @@ class TestConfigurationModification(ConfigurationMixin):
         # Mock out the method
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         # https://github.com/python/mypy/issues/2427
-        self.configuration._mark_as_modified = mymock  # type: ignore[assignment]
+        self.configuration._mark_as_modified = mymock  # type: ignore[method-assign]
 
         self.configuration.set_value("test.hello", "10")
 

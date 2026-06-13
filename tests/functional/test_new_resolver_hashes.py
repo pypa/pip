@@ -23,20 +23,11 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
     wheel_hash = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
 
     index_html = script.scratch_path / "index.html"
-    index_html.write_text(
-        """
+    index_html.write_text(f"""
         <!DOCTYPE html>
-        <a href="{sdist_url}#sha256={sdist_hash}">{sdist_path.stem}</a>
-        <a href="{wheel_url}#sha256={wheel_hash}">{wheel_path.stem}</a>
-        """.format(
-            sdist_url=sdist_path.as_uri(),
-            sdist_hash=sdist_hash,
-            sdist_path=sdist_path,
-            wheel_url=wheel_path.as_uri(),
-            wheel_hash=wheel_hash,
-            wheel_path=wheel_path,
-        ).strip()
-    )
+        <a href="{sdist_path.as_uri()}#sha256={sdist_hash}">{sdist_path.stem}</a>
+        <a href="{wheel_path.as_uri()}#sha256={wheel_hash}">{wheel_path.stem}</a>
+        """.strip())
 
     return _FindLinks(index_html, sdist_hash, wheel_hash)
 
@@ -79,6 +70,7 @@ def test_new_resolver_hash_intersect(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
@@ -96,25 +88,20 @@ def test_new_resolver_hash_intersect_from_constraint(
     script: PipTestEnvironment,
 ) -> None:
     find_links = _create_find_links(script)
+    sdist_hash = find_links.sdist_hash
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text(
-        "base==0.1.0 --hash=sha256:{sdist_hash}".format(
-            sdist_hash=find_links.sdist_hash,
-        ),
-    )
+    constraints_txt.write_text(f"base==0.1.0 --hash=sha256:{sdist_hash}")
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
-        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
-        """.format(
-            sdist_hash=find_links.sdist_hash,
-            wheel_hash=find_links.wheel_hash,
-        ),
+        f"""
+        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{find_links.wheel_hash}
+        """,
     )
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
@@ -176,6 +163,7 @@ def test_new_resolver_hash_intersect_empty(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
@@ -200,13 +188,10 @@ def test_new_resolver_hash_intersect_empty_from_constraint(
 
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(
-        """
-        base==0.1.0 --hash=sha256:{sdist_hash}
-        base==0.1.0 --hash=sha256:{wheel_hash}
-        """.format(
-            sdist_hash=find_links.sdist_hash,
-            wheel_hash=find_links.wheel_hash,
-        ),
+        f"""
+        base==0.1.0 --hash=sha256:{find_links.sdist_hash}
+        base==0.1.0 --hash=sha256:{find_links.wheel_hash}
+        """,
     )
 
     result = script.pip(
@@ -240,19 +225,15 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_succeed(
 
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
+        f"""
         base==0.1.0 --hash=sha256:{wheel_hash}
-        """.format(
-            wheel_hash=wheel_hash,
-        ),
+        """,
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
+    constraint_text = f"base @ {wheel_path.as_uri()}\n"
     if constrain_by_hash:
-        constraint_text += "base==0.1.0 --hash=sha256:{wheel_hash}\n".format(
-            wheel_hash=wheel_hash,
-        )
+        constraint_text += f"base==0.1.0 --hash=sha256:{wheel_hash}\n"
     constraints_txt.write_text(constraint_text)
 
     script.pip(
@@ -280,19 +261,15 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
 
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
+        f"""
         base==0.1.0 --hash=sha256:{other_hash}
-        """.format(
-            other_hash=other_hash,
-        ),
+        """,
     )
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraint_text = "base @ {wheel_url}\n".format(wheel_url=wheel_path.as_uri())
+    constraint_text = f"base @ {wheel_path.as_uri()}\n"
     if constrain_by_hash:
-        constraint_text += "base==0.1.0 --hash=sha256:{other_hash}\n".format(
-            other_hash=other_hash,
-        )
+        constraint_text += f"base==0.1.0 --hash=sha256:{other_hash}\n"
     constraints_txt.write_text(constraint_text)
 
     result = script.pip(
@@ -311,6 +288,43 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     ) in result.stderr, str(result)
 
     script.assert_not_installed("base", "other")
+
+
+def test_new_resolver_unpinned_requirement_with_pinned_hash_constraint(
+    script: PipTestEnvironment,
+) -> None:
+    """Regression test for https://github.com/pypa/pip/issues/9243.
+
+    An unpinned requirement combined with a constraints file that supplies both an
+    ``==`` pin and ``--hash`` for that distribution used to fail with ``HashUnpinned``:
+
+    > In --require-hashes mode, all requirements must have their versions pinned with ==
+
+    This was because "is_pinned" could not be true for the unpinned requirement, even
+    though the constraint did have a pin that was being enforced.
+    """
+    find_links = _create_find_links(script)
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text("base\n")
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(f"base==0.1.0 --hash=sha256:{find_links.wheel_hash}\n")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-deps",
+        "--no-index",
+        "--find-links",
+        find_links.index_html,
+        "--constraint",
+        constraints_txt,
+        "--requirement",
+        requirements_txt,
+    )
+
+    script.assert_installed(base="0.1.0")
 
 
 def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
@@ -343,17 +357,12 @@ def test_new_resolver_hash_with_extras(script: PipTestEnvironment) -> None:
 
     requirements_txt = script.scratch_path / "requirements.txt"
     requirements_txt.write_text(
-        """
+        f"""
         child[extra]==0.1.0 --hash=sha256:{child_hash}
         parent_with_extra==0.1.0 --hash=sha256:{parent_with_extra_hash}
         parent_without_extra==0.1.0 --hash=sha256:{parent_without_extra_hash}
         extra==0.1.0 --hash=sha256:{extra_hash}
-        """.format(
-            child_hash=child_hash,
-            parent_with_extra_hash=parent_with_extra_hash,
-            parent_without_extra_hash=parent_without_extra_hash,
-            extra_hash=extra_hash,
-        ),
+        """,
     )
 
     script.pip(

@@ -1,10 +1,9 @@
-"""xmlrpclib.Transport implementation
-"""
+"""xmlrpclib.Transport implementation"""
 
 import logging
 import urllib.parse
 import xmlrpc.client
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.network.session import PipSession
@@ -12,6 +11,8 @@ from pip._internal.network.utils import raise_for_status
 
 if TYPE_CHECKING:
     from xmlrpc.client import _HostType, _Marshallable
+
+    from _typeshed import SizedBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,9 @@ class PipXmlrpcTransport(xmlrpc.client.Transport):
         self,
         host: "_HostType",
         handler: str,
-        request_body: bytes,
+        request_body: "SizedBuffer",
         verbose: bool = False,
-    ) -> Tuple["_Marshallable", ...]:
+    ) -> tuple["_Marshallable", ...]:
         assert isinstance(host, str)
         parts = (self._scheme, host, handler, None, None, None)
         url = urllib.parse.urlunparse(parts)

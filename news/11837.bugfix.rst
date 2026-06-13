@@ -1,1 +1,0 @@
-More consistent resolution backtracking by removing legacy hack related to setuptools resolution

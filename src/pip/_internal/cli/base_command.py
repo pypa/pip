@@ -1,21 +1,25 @@
 """Base Command class, and related routines"""
 
-import functools
+from __future__ import annotations
+
+import contextlib
 import logging
 import logging.config
 import optparse
 import os
 import sys
 import traceback
+from collections.abc import Callable, Iterator
 from optparse import Values
-from typing import Any, Callable, List, Optional, Tuple
 
+from pip._vendor.rich import reconfigure
 from pip._vendor.rich import traceback as rich_traceback
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.cli.status_codes import (
+    BROKEN_STDOUT,
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
     UNKNOWN_ERROR,
@@ -28,7 +32,6 @@ from pip._internal.exceptions import (
     InstallationError,
     NetworkConnectionError,
     PreviousBuildDirError,
-    UninstallationError,
 )
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
@@ -61,7 +64,7 @@ class Command(CommandContextMixIn):
             isolated=isolated,
         )
 
-        self.tempdir_registry: Optional[TempDirRegistry] = None
+        self.tempdir_registry: TempDirRegistry | None = None
 
         # Commands should add options to this option group
         optgroup_name = f"{self.name.capitalize()} Options"
@@ -79,7 +82,8 @@ class Command(CommandContextMixIn):
     def add_options(self) -> None:
         pass
 
-    def handle_pip_version_check(self, options: Values) -> None:
+    @contextlib.contextmanager
+    def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
         """
         This is a no-op so that commands by default do not do the pip version
         check.
@@ -87,22 +91,93 @@ class Command(CommandContextMixIn):
         # Make sure we do the pip version check if the index_group options
         # are present.
         assert not hasattr(options, "no_index")
+        yield
 
-    def run(self, options: Values, args: List[str]) -> int:
+    def run(self, options: Values, args: list[str]) -> int:
         raise NotImplementedError
 
-    def parse_args(self, args: List[str]) -> Tuple[Values, List[str]]:
+    def _run_wrapper(self, level_number: int, options: Values, args: list[str]) -> int:
+        def _inner_run() -> int:
+            with self.pip_version_check(options, args):
+                return self.run(options, args)
+
+        if options.debug_mode:
+            rich_traceback.install(show_locals=True)
+            return _inner_run()
+
+        try:
+            status = _inner_run()
+            assert isinstance(status, int)
+            return status
+        except DiagnosticPipError as exc:
+            logger.error("%s", exc, extra={"rich": True})
+            logger.debug("Exception information:", exc_info=True)
+
+            return ERROR
+        except PreviousBuildDirError as exc:
+            logger.critical(str(exc))
+            logger.debug("Exception information:", exc_info=True)
+
+            return PREVIOUS_BUILD_DIR_ERROR
+        except (
+            InstallationError,
+            BadCommand,
+            NetworkConnectionError,
+        ) as exc:
+            logger.critical(str(exc))
+            logger.debug("Exception information:", exc_info=True)
+
+            return ERROR
+        except CommandError as exc:
+            logger.critical("%s", exc)
+            logger.debug("Exception information:", exc_info=True)
+
+            return ERROR
+        except BrokenStdoutLoggingError:
+            # stdout is broken; write to stderr directly. Use os.write, not
+            # sys.stderr.write, so a full pipe buffer returns EPIPE instead
+            # of deadlocking (Windows anonymous pipes are ~4KB).
+            try:
+                os.write(2, b"ERROR: Pipe to stdout was broken\n")
+                if level_number <= logging.DEBUG:
+                    encoding = getattr(sys.stderr, "encoding", None) or "utf-8"
+                    os.write(
+                        2, traceback.format_exc().encode(encoding, "backslashreplace")
+                    )
+            except OSError:
+                pass
+
+            # redirect stdout to os.devnull so that the exit cleanup doesn't
+            # produce "BrokenPipeError" when exiting.
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            try:
+                os.dup2(devnull, 1)
+            finally:
+                os.close(devnull)
+
+            return BROKEN_STDOUT
+        except KeyboardInterrupt:
+            logger.critical("Operation cancelled by user")
+            logger.debug("Exception information:", exc_info=True)
+
+            return ERROR
+        except BaseException:
+            logger.critical("Exception:", exc_info=True)
+
+            return UNKNOWN_ERROR
+
+    def parse_args(self, args: list[str]) -> tuple[Values, list[str]]:
         # factored out for testability
         return self.parser.parse_args(args)
 
-    def main(self, args: List[str]) -> int:
+    def main(self, args: list[str]) -> int:
         try:
             with self.main_context():
                 return self._main(args)
         finally:
             logging.shutdown()
 
-    def _main(self, args: List[str]) -> int:
+    def _main(self, args: list[str]) -> int:
         # We must initialize this before the tempdir manager, otherwise the
         # configuration would not be accessible by the time we clean up the
         # tempdir manager.
@@ -115,7 +190,13 @@ class Command(CommandContextMixIn):
 
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet
+        if options.debug_mode:
+            self.verbosity = 2
 
+        if hasattr(options, "progress_bar") and options.progress_bar == "auto":
+            options.progress_bar = "on" if self.verbosity >= 0 else "off"
+
+        reconfigure(no_color=options.no_color)
         level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,
@@ -130,6 +211,17 @@ class Command(CommandContextMixIn):
                 "The following features are always enabled: %s. ",
                 ", ".join(sorted(always_enabled_features)),
             )
+
+        # Make sure that the --python argument isn't specified after the
+        # subcommand. We can tell, because if --python was specified,
+        # we should only reach this point if we're running in the created
+        # subprocess, which has the _PIP_RUNNING_IN_SUBPROCESS environment
+        # variable set.
+        if options.python and "_PIP_RUNNING_IN_SUBPROCESS" not in os.environ:
+            logger.critical(
+                "The --python option must be placed before the pip subcommand name"
+            )
+            sys.exit(ERROR)
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
@@ -160,66 +252,21 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
-        def intercepts_unhandled_exc(
-            run_func: Callable[..., int]
-        ) -> Callable[..., int]:
-            @functools.wraps(run_func)
-            def exc_logging_wrapper(*args: Any) -> int:
-                try:
-                    status = run_func(*args)
-                    assert isinstance(status, int)
-                    return status
-                except DiagnosticPipError as exc:
-                    logger.error("[present-rich] %s", exc)
-                    logger.debug("Exception information:", exc_info=True)
+        if (
+            "inprocess-build-deps" in options.features_enabled
+            and os.environ.get("PIP_CONSTRAINT", "")
+            and "build-constraint" not in options.features_enabled
+        ):
+            logger.warning(
+                "In-process build dependencies are enabled, "
+                "PIP_CONSTRAINT will have no effect for build dependencies"
+            )
+            options.features_enabled.append("build-constraint")
 
-                    return ERROR
-                except PreviousBuildDirError as exc:
-                    logger.critical(str(exc))
-                    logger.debug("Exception information:", exc_info=True)
+        return self._run_wrapper(level_number, options, args)
 
-                    return PREVIOUS_BUILD_DIR_ERROR
-                except (
-                    InstallationError,
-                    UninstallationError,
-                    BadCommand,
-                    NetworkConnectionError,
-                ) as exc:
-                    logger.critical(str(exc))
-                    logger.debug("Exception information:", exc_info=True)
-
-                    return ERROR
-                except CommandError as exc:
-                    logger.critical("%s", exc)
-                    logger.debug("Exception information:", exc_info=True)
-
-                    return ERROR
-                except BrokenStdoutLoggingError:
-                    # Bypass our logger and write any remaining messages to
-                    # stderr because stdout no longer works.
-                    print("ERROR: Pipe to stdout was broken", file=sys.stderr)
-                    if level_number <= logging.DEBUG:
-                        traceback.print_exc(file=sys.stderr)
-
-                    return ERROR
-                except KeyboardInterrupt:
-                    logger.critical("Operation cancelled by user")
-                    logger.debug("Exception information:", exc_info=True)
-
-                    return ERROR
-                except BaseException:
-                    logger.critical("Exception:", exc_info=True)
-
-                    return UNKNOWN_ERROR
-
-            return exc_logging_wrapper
-
-        try:
-            if not options.debug_mode:
-                run = intercepts_unhandled_exc(self.run)
-            else:
-                run = self.run
-                rich_traceback.install(show_locals=True)
-            return run(options, args)
-        finally:
-            self.handle_pip_version_check(options)
+    def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
+        """
+        map of names to handler actions for commands with sub-actions
+        """
+        return {}

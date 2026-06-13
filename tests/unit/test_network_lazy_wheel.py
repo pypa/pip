@@ -1,7 +1,9 @@
-from typing import Iterator
+from collections.abc import Iterator
 
+import pytest
+
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
-from pytest import fixture, mark, raises
 
 from pip._internal.exceptions import InvalidWheel
 from pip._internal.network.lazy_wheel import (
@@ -9,6 +11,7 @@ from pip._internal.network.lazy_wheel import (
     dist_from_wheel_url,
 )
 from pip._internal.network.session import PipSession
+
 from tests.lib import TestData
 from tests.lib.server import MockServer, file_response
 
@@ -25,12 +28,12 @@ MYPY_0_782_REQS = {
 }
 
 
-@fixture
+@pytest.fixture
 def session() -> PipSession:
     return PipSession()
 
 
-@fixture
+@pytest.fixture
 def mypy_whl_no_range(mock_server: MockServer, shared_data: TestData) -> Iterator[str]:
     mypy_whl = shared_data.packages / "mypy-0.782-py3-none-any.whl"
     mock_server.set_responses([file_response(mypy_whl)])
@@ -40,10 +43,10 @@ def mypy_whl_no_range(mock_server: MockServer, shared_data: TestData) -> Iterato
     mock_server.stop()
 
 
-@mark.network
+@pytest.mark.network
 def test_dist_from_wheel_url(session: PipSession) -> None:
     """Test if the acquired distribution contain correct information."""
-    dist = dist_from_wheel_url("mypy", MYPY_0_782_WHL, session)
+    dist = dist_from_wheel_url(canonicalize_name("mypy"), MYPY_0_782_WHL, session)
     assert dist.canonical_name == "mypy"
     assert dist.version == Version("0.782")
     extras = list(dist.iter_provided_extras())
@@ -55,12 +58,14 @@ def test_dist_from_wheel_url_no_range(
     session: PipSession, mypy_whl_no_range: str
 ) -> None:
     """Test handling when HTTP range requests are not supported."""
-    with raises(HTTPRangeRequestUnsupported):
-        dist_from_wheel_url("mypy", mypy_whl_no_range, session)
+    with pytest.raises(HTTPRangeRequestUnsupported):
+        dist_from_wheel_url(canonicalize_name("mypy"), mypy_whl_no_range, session)
 
 
-@mark.network
+@pytest.mark.network
 def test_dist_from_wheel_url_not_zip(session: PipSession) -> None:
     """Test handling with the given URL does not point to a ZIP."""
-    with raises(InvalidWheel):
-        dist_from_wheel_url("python", "https://www.python.org/", session)
+    with pytest.raises(InvalidWheel):
+        dist_from_wheel_url(
+            canonicalize_name("python"), "https://www.python.org/", session
+        )

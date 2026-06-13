@@ -1,2 +1,0 @@
-Quote extras in the pip install docs to guard shells with default glob
-qualifiers, like zsh.
