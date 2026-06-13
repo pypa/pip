@@ -37,6 +37,8 @@ prefix:
 : which area of `pip` functionality a feature request or issue is related to
 
 **kind**
+: for notable traits like crashes or backwards-incompatible changes
+
 **OS - Operating System**
 : for issues that are OS-specific
 
@@ -82,8 +84,8 @@ Issues created on the issue tracker are automatically given the
 label when an issue has been categorized.
 
 When an issue needs feedback from the author we can label it with
-`S: awaiting response`. When the author responds, the
-[no-response](https://github.com/apps/no-response) bot removes the label.
+`S: awaiting response`. The label is removed manually once the author
+responds.
 
 After an issue has been closed for 30 days, the
 [lock-threads](https://github.com/dessant/lock-threads) GitHub Action
