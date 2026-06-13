@@ -9,7 +9,7 @@ the Python Security Response Team responsibly.
 
 To reach the response team, email `security at python dot org`.
 
-pip relies on the Python Security Response Team (PSRT) to triage
+Pip relies on the Python Security Response Team (PSRT) to triage
 and respond to security reports. PSRT members balance security
 work against many other responsibilities, so please be thoughtful
 about the time and attention your report requires. Reports that
