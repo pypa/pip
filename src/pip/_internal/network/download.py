@@ -19,7 +19,6 @@ from pip._vendor.urllib3.exceptions import ReadTimeoutError
 
 from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
-from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
@@ -51,10 +50,10 @@ def _log_download(
     total_length: int | None,
     range_start: int | None = 0,
 ) -> Iterable[bytes]:
-    if link.netloc == PyPI.file_storage_domain:
-        url = link.show_url
-    else:
+    if logger.getEffectiveLevel() > logging.INFO:
         url = link.url_without_fragment
+    else:
+        url = link.show_url
 
     logged_url = redact_auth_from_url(url)
 
@@ -167,14 +166,13 @@ class Downloader:
         self,
         session: PipSession,
         progress_bar: BarType,
-        resume_retries: int,
     ) -> None:
-        assert (
-            resume_retries >= 0
-        ), "Number of max resume retries must be bigger or equal to zero"
         self._session = session
         self._progress_bar = progress_bar
-        self._resume_retries = resume_retries
+        self._resume_retries = session.resume_retries
+        assert (
+            self._resume_retries >= 0
+        ), "Number of max resume retries must be bigger or equal to zero"
 
     def batch(
         self, links: Iterable[Link], location: str

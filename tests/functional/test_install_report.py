@@ -50,6 +50,7 @@ def test_install_report_dep(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "require_simple",
         "--dry-run",
         "--no-index",
@@ -75,6 +76,7 @@ def test_yanked_version(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "simple==3.0",
         "--index-url",
         data.index_url("yanked"),
@@ -102,6 +104,7 @@ def test_skipped_yanked_version(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "simple",
         "--index-url",
         data.index_url("yanked"),
@@ -302,18 +305,14 @@ def test_install_report_local_path_with_extras(
     """Test report remote editable."""
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            """\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent("""\
             [project]
             name = "pkga"
             version = "1.0"
 
             [project.optional-dependencies]
             test = ["simple"]
-            """
-        )
-    )
+            """))
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
@@ -346,18 +345,14 @@ def test_install_report_editable_local_path_with_extras(
     """Test report remote editable."""
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            """\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent("""\
             [project]
             name = "pkga"
             version = "1.0"
 
             [project.optional-dependencies]
             test = ["simple"]
-            """
-        )
-    )
+            """))
     report_path = tmp_path / "report.json"
     script.pip(
         "install",

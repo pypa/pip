@@ -2,10 +2,10 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Protocol
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Protocol
 
 import pytest
-from packaging.utils import canonicalize_name
 
 from tests.conftest import ScriptFactory
 from tests.lib import (
@@ -14,25 +14,10 @@ from tests.lib import (
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
-from tests.lib.direct_url import get_created_direct_url
 from tests.lib.venv import VirtualEnvironment
 from tests.lib.wheel import make_wheel
 
 MakeFakeWheel = Callable[[str, str, str], pathlib.Path]
-
-
-def assert_editable(script: PipTestEnvironment, *args: str) -> None:
-    # This simply checks whether all of the listed packages have a
-    # corresponding .egg-link file installed.
-    # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = {f"{canonicalize_name(arg)}.egg-link" for arg in args}
-    actual_egg_links = {
-        f"{canonicalize_name(p.stem)}.egg-link"
-        for p in script.site_packages_path.glob("*.egg-link")
-    }
-    assert (
-        egg_links <= actual_egg_links
-    ), f"{args!r} not all found in {script.site_packages_path!r}"
 
 
 @pytest.fixture
@@ -331,6 +316,7 @@ def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
     )
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -340,7 +326,7 @@ def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
         source_dir,
     )
     script.assert_installed(base="0.1.0", dep="0.1.0")
-    assert_editable(script, "dep")
+    script.assert_installed_editable("dep")
 
 
 @pytest.mark.parametrize(
@@ -380,6 +366,7 @@ def test_new_resolver_requires_python(
 
     args = [
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -536,6 +523,7 @@ def test_new_resolver_only_builds_sdists_when_needed(
     # We only ever need to check dep 0.2.0 as it's the latest version
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -745,6 +733,8 @@ def test_new_resolver_constraint_no_specifier(script: PipTestEnvironment) -> Non
 def test_new_resolver_constraint_reject_invalid(
     script: PipTestEnvironment, constraint: str, error: str
 ) -> None:
+    # Make sure PipDeprecationWarnings don't turn into errors
+    script.environ["_PIP_TEST_ENV"] = ""
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(constraint)
@@ -807,6 +797,7 @@ def test_new_resolver_constraint_on_path_empty(
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "-c",
@@ -826,12 +817,10 @@ def test_new_resolver_constraint_only_marker_match(script: PipTestEnvironment) -
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "3.0")
 
-    constraints_content = textwrap.dedent(
-        """
+    constraints_content = textwrap.dedent("""
         pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
         pkg==2.0; python_version < "0"  # Never satisfies.
-        """
-    ).format(ver=sys.version_info)
+        """).format(ver=sys.version_info)
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(constraints_content)
 
@@ -1045,6 +1034,7 @@ class TestExtraMerge:
 
         script.pip(
             "install",
+            "--no-build-isolation",
             "--no-cache-dir",
             "--no-index",
             "--find-links",
@@ -1089,6 +1079,7 @@ def test_new_resolver_build_directory_error_zazo_19(script: PipTestEnvironment) 
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -1184,6 +1175,7 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(
     # Install the version that's not on the index.
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         local_pkg,
@@ -1192,6 +1184,7 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(
     # Now --upgrade should still pick the local version because it's "better".
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -1303,6 +1296,7 @@ def test_new_resolver_does_reinstall_local_sdists(script: PipTestEnvironment) ->
     )
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         archive_path,
@@ -1311,6 +1305,7 @@ def test_new_resolver_does_reinstall_local_sdists(script: PipTestEnvironment) ->
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         archive_path,
@@ -1324,6 +1319,7 @@ def test_new_resolver_does_reinstall_local_paths(script: PipTestEnvironment) -> 
     pkg = create_test_package_with_setup(script, name="pkg", version="1.0")
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         pkg,
@@ -1332,6 +1328,7 @@ def test_new_resolver_does_reinstall_local_paths(script: PipTestEnvironment) -> 
 
     result = script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         pkg,
@@ -1350,6 +1347,7 @@ def test_new_resolver_does_not_reinstall_when_from_a_local_index(
     )
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -1863,6 +1861,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "-c",
@@ -1872,7 +1871,7 @@ def test_new_resolver_succeeds_on_matching_constraint_and_requirement(
 
     script.assert_installed(test_pkg="0.1.0")
     if editable:
-        assert_editable(script, "test_pkg")
+        script.assert_installed_editable("test_pkg")
 
 
 def test_new_resolver_applies_url_constraint_to_dep(script: PipTestEnvironment) -> None:
@@ -2155,9 +2154,9 @@ def test_new_resolver_direct_url_with_extras(
     )
 
     script.assert_installed(pkg1="1", pkg2="1", pkg3="1")
-    assert not get_created_direct_url(result, "pkg1")
-    assert get_created_direct_url(result, "pkg2")
-    assert not get_created_direct_url(result, "pkg3")
+    assert not result.get_created_direct_url("pkg1")
+    assert result.get_created_direct_url("pkg2")
+    assert not result.get_created_direct_url("pkg3")
 
 
 def test_new_resolver_modifies_installed_incompatible(
@@ -2215,6 +2214,7 @@ def test_new_resolver_transitively_depends_on_unnamed_local(
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
@@ -2268,6 +2268,7 @@ def test_new_resolver_file_url_normalize(
 
     script.pip(
         "install",
+        "--no-build-isolation",
         "--no-cache-dir",
         "--no-index",
         format_input(lib_a),
@@ -2479,7 +2480,7 @@ def test_new_resolver_constraint_on_link_with_extra_indirect(
 def test_new_resolver_do_not_backtrack_on_build_failure(
     script: PipTestEnvironment,
 ) -> None:
-    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_build=True)
     create_basic_wheel_for_package(script, "pkg1", "1.0")
 
     result = script.pip(
@@ -2492,14 +2493,14 @@ def test_new_resolver_do_not_backtrack_on_build_failure(
         expect_error=True,
     )
 
-    assert "egg_info" in result.stderr
+    assert "Failed to build 'pkg1'" in result.stderr
 
 
 def test_new_resolver_works_when_failing_package_builds_are_disallowed(
     script: PipTestEnvironment,
 ) -> None:
     create_basic_wheel_for_package(script, "pkg2", "1.0", depends=["pkg1"])
-    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_egg_info=True)
+    create_basic_sdist_for_package(script, "pkg1", "2.0", fails_build=True)
     create_basic_wheel_for_package(script, "pkg1", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text("pkg1 != 2.0")

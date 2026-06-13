@@ -28,7 +28,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -90,11 +90,11 @@ class TestRequirementSet:
         finder: PackageFinder,
         require_hashes: bool = False,
         wheel_cache: WheelCache | None = None,
+        build_isolation: bool = True,
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
             isolated=False,
-            use_pep517=None,
         )
         session = PipSession()
 
@@ -104,7 +104,7 @@ class TestRequirementSet:
                 build_dir=os.path.join(self.tempdir, "build"),
                 src_dir=os.path.join(self.tempdir, "src"),
                 download_dir=None,
-                build_isolation=True,
+                build_isolation=build_isolation,
                 build_isolation_installer=installer,
                 check_build_deps=False,
                 build_tracker=tracker,
@@ -116,7 +116,6 @@ class TestRequirementSet:
                 lazy_wheel=False,
                 verbosity=0,
                 legacy_resolver=True,
-                resume_retries=0,
             )
             yield Resolver(
                 preparer=preparer,
@@ -166,7 +165,7 @@ class TestRequirementSet:
         req.user_supplied = True
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             reqset = resolver.resolve(reqset.all_requirements, True)
         assert not reqset.has_requirement("simple")
 
@@ -319,7 +318,9 @@ class TestRequirementSet:
             )
         )
 
-        with self._basic_resolver(finder, require_hashes=True) as resolver:
+        with self._basic_resolver(
+            finder, require_hashes=True, build_isolation=False
+        ) as resolver:
             with pytest.raises(
                 HashErrors,
                 match=(
@@ -360,14 +361,14 @@ class TestRequirementSet:
     def test_download_info_find_links(self, data: TestData) -> None:
         """Test that download_info is set for requirements via find_links."""
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line("simple")
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert req.download_info.info.hash
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes
 
     @pytest.mark.network
     def test_download_info_index_url(self) -> None:
@@ -379,13 +380,13 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert req.download_info.archive_info
 
     @pytest.mark.network
     def test_download_info_web_archive(self) -> None:
         """Test that download_info is set for requirements from a web archive."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ "
                 "https://github.com/pypa/pip-test-package/tarball/0.1.1"
@@ -398,11 +399,12 @@ class TestRequirementSet:
                 req.download_info.url
                 == "https://github.com/pypa/pip-test-package/tarball/0.1.1"
             )
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert (
-                req.download_info.info.hash == "sha256="
-                "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
-            )
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {
+                "sha256": (
+                    "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+                )
+            }
 
     def test_download_info_archive_legacy_cache(
         self, tmp_path: Path, shared_data: TestData
@@ -423,8 +425,8 @@ class TestRequirementSet:
             assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert not req.download_info.info.hash
+            assert req.download_info.archive_info
+            assert not req.download_info.archive_info.hashes
 
     def test_download_info_archive_cache_with_origin(
         self, tmp_path: Path, shared_data: TestData
@@ -432,13 +434,15 @@ class TestRequirementSet:
         """Test download_info hash is set for a web archive with cache entry
         that has origin.json."""
         url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
-        hash = "sha256=ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+        hash = "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
         finder = make_test_finder()
         wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         Path(cache_entry_dir).joinpath("origin.json").write_text(
-            DirectUrl(url, ArchiveInfo(hash=hash)).to_json()
+            DirectUrl(
+                url=url, archive_info=ArchiveInfo(hashes={"sha256": hash})
+            ).to_json()
         )
         wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
         with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
@@ -450,8 +454,8 @@ class TestRequirementSet:
             assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert req.download_info.info.hash == hash
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {"sha256": hash}
 
     def test_download_info_archive_cache_with_invalid_origin(
         self, tmp_path: Path, shared_data: TestData, caplog: pytest.LogCaptureFixture
@@ -486,16 +490,17 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert (
-                req.download_info.info.hash == "sha256="
-                "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
-            )
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {
+                "sha256": (
+                    "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+                )
+            }
 
     def test_download_info_local_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
             reqset = resolver.resolve([ireq], True)
@@ -503,12 +508,12 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, DirInfo)
+            assert req.download_info.dir_info
 
     def test_download_info_local_editable_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local editable dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
             reqset = resolver.resolve([ireq], True)
@@ -516,14 +521,14 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, DirInfo)
-            assert req.download_info.info.editable
+            assert req.download_info.dir_info
+            assert req.download_info.dir_info.editable
 
     @pytest.mark.network
     def test_download_info_vcs(self) -> None:
         """Test that download_info is set for requirements from git."""
         finder = make_test_finder()
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, build_isolation=False) as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ git+https://github.com/pypa/pip-test-package"
             )
@@ -531,9 +536,9 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, VcsInfo)
+            assert req.download_info.vcs_info
             assert req.download_info.url == "https://github.com/pypa/pip-test-package"
-            assert req.download_info.info.vcs == "git"
+            assert req.download_info.vcs_info.vcs == "git"
 
 
 class TestInstallRequirement:
@@ -700,7 +705,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_line_url_requirement(self) -> None:
-        line = "git+https://url#egg=SomeProject[ex1,ex2]"
+        line = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_line(line, comes_from=comes_from)
@@ -716,7 +721,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_editable_url_requirement(self) -> None:
-        url = "git+https://url#egg=SomeProject[ex1,ex2]"
+        url = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_editable(url, comes_from=comes_from)
@@ -764,7 +769,7 @@ class TestInstallRequirement:
             ("pkg ; python_version<='3.6'", "pkg"),
             ("pkg[ext]", "pkg"),
             ("pkg [ ext1, ext2 ]", "pkg"),
-            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg@ https://example.com/"),
+            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg @ https://example.com/"),
             ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
             ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
             ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
@@ -792,9 +797,7 @@ class TestInstallRequirement:
         # all else should be the same
         assert without_extras.link == req.link
         assert without_extras.markers == req.markers
-        assert without_extras.use_pep517 == req.use_pep517
         assert without_extras.isolated == req.isolated
-        assert without_extras.global_options == req.global_options
         assert without_extras.hash_options == req.hash_options
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
@@ -815,7 +818,7 @@ class TestInstallRequirement:
             (
                 "pkg-all.allowed_chars0 [ ext1 ] @ https://example.com/",
                 {"ext2"},
-                "pkg-all.allowed_chars0[ext1,ext2]@ https://example.com/",
+                "pkg-all.allowed_chars0[ext1,ext2] @ https://example.com/",
             ),
         ],
     )
@@ -841,14 +844,31 @@ class TestInstallRequirement:
         # all else should be the same
         assert extended.link == req.link
         assert extended.markers == req.markers
-        assert extended.use_pep517 == req.use_pep517
         assert extended.isolated == req.isolated
-        assert extended.global_options == req.global_options
         assert extended.hash_options == req.hash_options
         assert extended.constraint == req.constraint
         assert extended.config_settings == req.config_settings
         assert extended.user_supplied == req.user_supplied
         assert extended.permit_editable_wheels == req.permit_editable_wheels
+
+
+@pytest.mark.parametrize(
+    "req_str, expected",
+    [
+        (
+            'foo[extra] @ svn+http://foo ; os_name == "nt"',
+            ('foo ; os_name == "nt"', "svn+http://foo", {"extra"}),
+        ),
+        (
+            "foo @ svn+http://foo",
+            ("foo", "svn+http://foo", set()),
+        ),
+    ],
+)
+def test_parse_editable_pep508(
+    req_str: str, expected: tuple[str, str, set[str]]
+) -> None:
+    assert parse_editable(req_str) == expected
 
 
 @mock.patch("pip._internal.req.req_install.os.path.abspath")
@@ -878,10 +898,10 @@ def test_parse_editable_explicit_vcs() -> None:
 
 
 def test_parse_editable_vcs_extras() -> None:
-    assert parse_editable("svn+https://foo#egg=foo[extras]") == (
-        "foo[extras]",
-        "svn+https://foo#egg=foo[extras]",
-        set(),
+    assert parse_editable("foo[extras] @ svn+https://foo") == (
+        "foo",
+        "svn+https://foo",
+        {"extras"},
     )
 
 

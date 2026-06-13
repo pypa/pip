@@ -5,7 +5,7 @@ import pytest
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import create_command
 
-from tests.lib import PipTestEnvironment
+from tests.lib import PipTestEnvironment, make_wheel
 
 
 @pytest.mark.network
@@ -106,3 +106,59 @@ def test_list_all_versions_returns_matches_found_when_name_is_exact() -> None:
         options, args = command.parse_args(cmdline.split())
         status = command.run(options, args)
     assert status == SUCCESS
+
+
+def test_index_versions_all_releases_for_package(script: PipTestEnvironment) -> None:
+    """Test that --all-releases shows prereleases for specific package."""
+    # Create fake local package index with prerelease
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.0").save_to_dir(wheelhouse_path)
+    make_wheel("simple", "2.0a1").save_to_dir(wheelhouse_path)
+
+    # Without --all-releases, should only show stable versions
+    result = script.pip(
+        "index",
+        "versions",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "simple",
+    )
+    assert "1.0" in result.stdout
+    assert "2.0a1" not in result.stdout
+
+    # With --all-releases for simple, should show prereleases
+    result = script.pip(
+        "index",
+        "versions",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--all-releases=simple",
+        "simple",
+    )
+    assert "1.0" in result.stdout
+    assert "2.0a1" in result.stdout
+
+
+def test_index_versions_only_final_for_package(script: PipTestEnvironment) -> None:
+    """Test that --only-final filters prereleases for specific package."""
+    # Create fake local package index with prerelease
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.0").save_to_dir(wheelhouse_path)
+    make_wheel("simple", "2.0a1").save_to_dir(wheelhouse_path)
+
+    # With --only-final for simple, should not show prereleases (same as default)
+    result = script.pip(
+        "index",
+        "versions",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--only-final=simple",
+        "simple",
+    )
+    assert "1.0" in result.stdout
+    assert "2.0a1" not in result.stdout

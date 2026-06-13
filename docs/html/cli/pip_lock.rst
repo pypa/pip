@@ -31,11 +31,13 @@ Options
 
 .. pip-index-options:: lock
 
+.. pip-package-selection-options:: lock
+
 
 Examples
 ========
 
-#. Emit a ``pylock.toml`` for the the project in the current directory
+#. Emit a ``pylock.toml`` for the project in the current directory
 
    .. tab:: Unix/macOS
 

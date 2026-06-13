@@ -28,7 +28,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
-from pip._internal.models.direct_url import ArchiveInfo
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import Downloader
@@ -225,7 +225,7 @@ def _check_download_dir(
 class RequirementPreparer:
     """Prepares a Requirement"""
 
-    def __init__(  # noqa: PLR0913 (too many parameters)
+    def __init__(
         self,
         *,
         build_dir: str,
@@ -243,7 +243,6 @@ class RequirementPreparer:
         lazy_wheel: bool,
         verbosity: int,
         legacy_resolver: bool,
-        resume_retries: int,
     ) -> None:
         super().__init__()
 
@@ -251,7 +250,7 @@ class RequirementPreparer:
         self.build_dir = build_dir
         self.build_tracker = build_tracker
         self._session = session
-        self._download = Downloader(session, progress_bar, resume_retries)
+        self._download = Downloader(session, progress_bar)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -444,7 +443,7 @@ class RequirementPreparer:
             return None
 
         wheel = Wheel(link.filename)
-        name = canonicalize_name(wheel.name)
+        name = wheel.name
         logger.info(
             "Obtaining dependency information from %s %s",
             name,
@@ -531,6 +530,12 @@ class RequirementPreparer:
                 metadata_dist = self._fetch_metadata_only(req)
                 if metadata_dist is not None:
                     req.needs_more_preparation = True
+                    req.set_dist(metadata_dist)
+                    # Ensure download_info is available even in dry-run mode
+                    if req.download_info is None:
+                        req.download_info = direct_url_from_link(
+                            req.link, req.source_dir
+                        )
                     return metadata_dist
 
             # None of the optimizations worked, fully prepare the requirement
@@ -581,9 +586,9 @@ class RequirementPreparer:
             # We need to verify hashes, and we have found the requirement in the cache
             # of locally built wheels.
             if (
-                isinstance(req.download_info.info, ArchiveInfo)
-                and req.download_info.info.hashes
-                and hashes.has_one_of(req.download_info.info.hashes)
+                req.download_info.archive_info
+                and req.download_info.archive_info.hashes
+                and hashes.has_one_of(req.download_info.archive_info.hashes)
             ):
                 # At this point we know the requirement was built from a hashable source
                 # artifact, and we verified that the cache entry's hash of the original
@@ -635,14 +640,18 @@ class RequirementPreparer:
             # compute it from the downloaded file.
             # FIXME: https://github.com/pypa/pip/issues/11943
             if (
-                isinstance(req.download_info.info, ArchiveInfo)
-                and not req.download_info.info.hashes
+                req.download_info.archive_info
+                and not req.download_info.archive_info.hashes
                 and local_file
             ):
                 hash = hash_file(local_file.path)[0].hexdigest()
-                # We populate info.hash for backward compatibility.
-                # This will automatically populate info.hashes.
-                req.download_info.info.hash = f"sha256={hash}"
+                # We populate archive_info.hashes. For backward compatibility,
+                # the legacy hash field will be generated when converting to JSON.
+                req.download_info = DirectUrl(
+                    url=req.download_info.url,
+                    archive_info=ArchiveInfo(hashes={"sha256": hash}),
+                    subdirectory=req.download_info.subdirectory,
+                )
 
         # For use in later processing,
         # preserve the file path on the requirement.

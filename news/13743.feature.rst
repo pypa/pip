@@ -1,2 +1,0 @@
-Building pip itself from source now uses flit-core instead of setuptools.
-This does not affect how pip installs or builds packages you use.

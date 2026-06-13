@@ -5,13 +5,14 @@ import getpass
 import hashlib
 import logging
 import os
+import pathlib
 import posixpath
 import shutil
 import stat
 import sys
 import sysconfig
 import urllib.parse
-from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial
 from io import StringIO
@@ -21,8 +22,6 @@ from types import FunctionType, TracebackType
 from typing import (
     Any,
     BinaryIO,
-    Callable,
-    Optional,
     TextIO,
     TypeVar,
     cast,
@@ -31,6 +30,7 @@ from typing import (
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller
 
+from pip import __file__ as pip_location
 from pip import __version__
 from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
 from pip._internal.locations import get_major_minor_version
@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 ExcInfo = tuple[type[BaseException], BaseException, TracebackType]
 VersionInfo = tuple[int, int, int]
-NetlocTuple = tuple[str, tuple[Optional[str], Optional[str]]]
+NetlocTuple = tuple[str, tuple[str | None, str | None]]
 OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 
@@ -72,6 +72,22 @@ def get_pip_version() -> str:
     pip_pkg_dir = os.path.abspath(pip_pkg_dir)
 
     return f"pip {__version__} from {pip_pkg_dir} (python {get_major_minor_version()})"
+
+
+def get_runnable_pip() -> str:
+    """Get a file to pass to a Python executable, to run the currently-running pip.
+
+    This is used to run a pip subprocess, for installing requirements into the build
+    environment.
+    """
+    source = pathlib.Path(pip_location).resolve().parent
+
+    if not source.is_dir():
+        # This would happen if someone is using pip from inside a zip file. In that
+        # case, we can use that directly.
+        return str(source)
+
+    return os.fsdecode(source / "__pip-runner__.py")
 
 
 def normalize_version_info(py_version_info: tuple[int, ...]) -> tuple[int, int, int]:
@@ -182,10 +198,12 @@ def rmtree_errorhandler(
 def display_path(path: str) -> str:
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
-    path = os.path.normcase(os.path.abspath(path))
-    if path.startswith(os.getcwd() + os.path.sep):
-        path = "." + path[len(os.getcwd()) :]
-    return path
+    try:
+        relative = Path(path).relative_to(Path.cwd())
+    except ValueError:
+        # If the path isn't relative to the CWD, leave it alone
+        return path
+    return os.path.join(".", relative)
 
 
 def backup_dir(dir: str, ext: str = ".bak") -> str:
@@ -541,14 +559,18 @@ class HiddenText:
     def __str__(self) -> str:
         return self.redacted
 
-    # This is useful for testing.
-    def __eq__(self, other: Any) -> bool:
-        if type(self) is not type(other):
-            return False
+    def __eq__(self, other: object) -> bool:
+        # Equality is particularly useful for testing.
+        if type(self) is type(other):
+            # The string being used for redaction doesn't also have to match,
+            # just the raw, original string.
+            return self.secret == other.secret
+        return NotImplemented
 
-        # The string being used for redaction doesn't also have to match,
-        # just the raw, original string.
-        return self.secret == other.secret
+    # Disable hashing, since we have a custom __eq__ and don't need hash-ability
+    # (yet). The only required property of hashing is that objects which compare
+    # equal have the same hash value.
+    __hash__ = None  # type: ignore[assignment]
 
 
 def hide_value(value: str) -> HiddenText:

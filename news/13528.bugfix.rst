@@ -1,1 +1,0 @@
-Ensure the self-check files in the cache has same permissions as the rest of the cache.

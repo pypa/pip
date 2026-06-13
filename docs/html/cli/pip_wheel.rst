@@ -28,7 +28,7 @@ Description
 .. _`1-build-system-interface`:
 .. rubric:: Build System Interface
 
-This is now covered in :doc:`../reference/build-system/index`.
+This is now covered in :doc:`../reference/build-system`.
 
 Differences to ``build``
 ------------------------
@@ -45,6 +45,8 @@ Options
 .. pip-command-options:: wheel
 
 .. pip-index-options:: wheel
+
+.. pip-package-selection-options:: wheel
 
 
 Examples

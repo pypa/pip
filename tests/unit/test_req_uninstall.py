@@ -19,7 +19,7 @@ from pip._internal.req.req_uninstall import (
     uninstallation_paths,
 )
 
-from tests.lib import create_file
+from tests.lib.filesystem import create_file
 
 
 # Pretend all files are local, so UninstallPathSet accepts files in the tmpdir,

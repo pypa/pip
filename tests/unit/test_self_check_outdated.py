@@ -7,7 +7,7 @@ import os
 import sys
 from optparse import Values
 from pathlib import Path
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -15,8 +15,20 @@ from freezegun import freeze_time
 from pip._vendor.packaging.version import Version
 
 from pip._internal import self_outdated_check
-from pip._internal.self_outdated_check import UpgradePrompt, pip_self_version_check
+from pip._internal.self_outdated_check import (
+    UpgradePrompt,
+    pip_self_version_check_emit,
+    pip_self_version_check_fetch,
+)
 from pip._internal.utils.misc import ExternallyManagedEnvironment
+
+
+def _make_installed_dist(version: str, installer: str = "pip") -> Mock:
+    """Build a stand-in for the installed pip distribution."""
+    installed_dist = Mock()
+    installed_dist.version = Version(version)
+    installed_dist.installer = installer
+    return installed_dist
 
 
 @pytest.mark.parametrize(
@@ -37,32 +49,60 @@ def test_get_statefile_name_known_values(key: str, expected: str) -> None:
 
 
 @freeze_time("1970-01-02T11:00:00Z")
-@patch("pip._internal.self_outdated_check._self_version_check_logic")
+@patch("pip._internal.self_outdated_check._get_current_remote_pip_version")
 @patch("pip._internal.self_outdated_check.SelfCheckState")
+@patch("pip._internal.self_outdated_check.get_default_environment")
 @patch("pip._internal.self_outdated_check.check_externally_managed", new=lambda: None)
-def test_pip_self_version_check_calls_underlying_implementation(
-    mocked_state: Mock, mocked_function: Mock, tmpdir: Path
+def test_pip_self_version_check_fetch_calls_underlying_implementation(
+    mocked_env: Mock, mocked_state: Mock, mocked_get_remote: Mock, tmpdir: Path
 ) -> None:
     # GIVEN
     mock_session = Mock()
     fake_options = Values({"cache_dir": str(tmpdir)})
-    mocked_function.return_value = None
+    mocked_env.return_value.get_distribution.return_value = _make_installed_dist("1.0")
+    mocked_state.return_value.get.return_value = None
+    mocked_get_remote.return_value = "5.0"
 
     # WHEN
-    self_outdated_check.pip_self_version_check(mock_session, fake_options)
+    result = pip_self_version_check_fetch(mock_session, fake_options)
 
     # THEN
+    assert result == UpgradePrompt(old="1.0", new="5.0")
     mocked_state.assert_called_once_with(cache_dir=str(tmpdir))
-    mocked_function.assert_called_once_with(
-        state=mocked_state(cache_dir=str(tmpdir)),
-        current_time=datetime.datetime(
-            1970, 1, 2, 11, 0, 0, tzinfo=datetime.timezone.utc
-        ),
-        local_version=ANY,
-        get_remote_version=ANY,
+    mocked_get_remote.assert_called_once_with(mock_session, fake_options)
+    mocked_state.return_value.set.assert_called_once_with(
+        "5.0",
+        datetime.datetime(1970, 1, 2, 11, 0, 0, tzinfo=datetime.timezone.utc),
     )
 
 
+def test_pip_self_version_check_emit_logs_prompt(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # GIVEN
+    prompt = UpgradePrompt(old="1.0", new="2.0")
+
+    # WHEN
+    with caplog.at_level(logging.WARNING):
+        pip_self_version_check_emit(prompt)
+
+    # THEN
+    assert len(caplog.records) == 1
+    assert caplog.records[0].levelno == logging.WARNING
+
+
+def test_pip_self_version_check_emit_no_prompt_is_silent(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # WHEN
+    with caplog.at_level(logging.WARNING):
+        pip_self_version_check_emit(None)
+
+    # THEN
+    assert caplog.records == []
+
+
+@freeze_time("2000-01-01T00:00:00Z")
 @pytest.mark.parametrize(
     [  # noqa: PT006 - String representation is too long
         "installed_version",
@@ -94,27 +134,41 @@ def test_core_logic(
     should_show_prompt: bool,
     caplog: pytest.LogCaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
+    tmpdir: Path,
 ) -> None:
     # GIVEN
-    monkeypatch.setattr(
-        self_outdated_check, "was_installed_by_pip", lambda _: installed_by_pip
+    installed_dist = _make_installed_dist(
+        installed_version, installer="pip" if installed_by_pip else "apt"
     )
-    mock_state = Mock()
-    mock_state.get.return_value = stored_version
-    fake_time = datetime.datetime(2000, 1, 1, 0, 0, 0)
+    monkeypatch.setattr(
+        self_outdated_check,
+        "get_default_environment",
+        lambda: Mock(get_distribution=Mock(return_value=installed_dist)),
+    )
+    monkeypatch.setattr(self_outdated_check, "check_externally_managed", lambda: None)
+    monkeypatch.setattr(
+        self_outdated_check,
+        "_get_current_remote_pip_version",
+        lambda session, options: remote_version,
+    )
+    mock_state_instance = Mock()
+    mock_state_instance.get.return_value = stored_version
+    monkeypatch.setattr(
+        self_outdated_check,
+        "SelfCheckState",
+        Mock(return_value=mock_state_instance),
+    )
+    fake_time = datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
     version_that_should_be_checked = stored_version or remote_version
 
     # WHEN
     with caplog.at_level(logging.DEBUG):
-        return_value = self_outdated_check._self_version_check_logic(
-            state=mock_state,
-            current_time=fake_time,
-            local_version=Version(installed_version),
-            get_remote_version=lambda: remote_version,
+        return_value = pip_self_version_check_fetch(
+            session=Mock(), options=Values({"cache_dir": str(tmpdir)})
         )
 
     # THEN
-    mock_state.get.assert_called_once_with(fake_time)
+    mock_state_instance.get.assert_called_once_with(fake_time)
     assert caplog.messages == [
         f"Remote version of pip: {version_that_should_be_checked}",
         f"Local version of pip:  {installed_version}",
@@ -122,9 +176,9 @@ def test_core_logic(
     ]
 
     if stored_version:
-        mock_state.set.assert_not_called()
+        mock_state_instance.set.assert_not_called()
     else:
-        mock_state.set.assert_called_once_with(
+        mock_state_instance.set.assert_called_once_with(
             version_that_should_be_checked, fake_time
         )
 
@@ -196,13 +250,29 @@ class TestSelfCheckState:
         assert statefile_permissions == selfcheckdir_permissions == cache_permissions
 
 
-@patch("pip._internal.self_outdated_check._self_version_check_logic")
-def test_suppressed_by_externally_managed(mocked_function: Mock, tmpdir: Path) -> None:
-    mocked_function.return_value = UpgradePrompt(old="1.0", new="2.0")
+@patch("pip._internal.self_outdated_check._get_current_remote_pip_version")
+@patch("pip._internal.self_outdated_check.get_default_environment")
+def test_fetch_suppressed_by_externally_managed(
+    mocked_env: Mock, mocked_get_remote: Mock, tmpdir: Path
+) -> None:
+    mocked_env.return_value.get_distribution.return_value = _make_installed_dist("1.0")
     fake_options = Values({"cache_dir": str(tmpdir)})
     with patch(
         "pip._internal.self_outdated_check.check_externally_managed",
         side_effect=ExternallyManagedEnvironment("nope"),
     ):
-        pip_self_version_check(session=Mock(), options=fake_options)
-    mocked_function.assert_not_called()
+        result = pip_self_version_check_fetch(session=Mock(), options=fake_options)
+    assert result is None
+    mocked_get_remote.assert_not_called()
+
+
+@patch("pip._internal.self_outdated_check._get_current_remote_pip_version")
+@patch("pip._internal.self_outdated_check.get_default_environment")
+def test_fetch_skipped_when_pip_not_installed(
+    mocked_env: Mock, mocked_get_remote: Mock, tmpdir: Path
+) -> None:
+    mocked_env.return_value.get_distribution.return_value = None
+    fake_options = Values({"cache_dir": str(tmpdir)})
+    result = pip_self_version_check_fetch(session=Mock(), options=fake_options)
+    assert result is None
+    mocked_get_remote.assert_not_called()

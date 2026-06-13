@@ -63,7 +63,7 @@ class TestInstallRequirementFrom:
 
         assert str(excinfo.value) == (
             "Invalid requirement: 'http:/this/is/invalid': "
-            "Expected end or semicolon (after name and no valid version specifier)\n"
+            "Expected semicolon (after name with no version specifier) or end\n"
             "    http:/this/is/invalid\n"
             "        ^"
         )

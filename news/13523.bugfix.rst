@@ -1,1 +1,0 @@
-Permit spaces between a filepath and extras in an install requirement.
