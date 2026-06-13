@@ -35,7 +35,6 @@ class MockResponse(Response):
         self._content = contents
         self.reason = "OK"
         self.status_code = 200
-        self.headers["Content-Length"] = str(len(contents))
         self.history: list[Response] = []
         self.from_cache = False
 

@@ -352,6 +352,29 @@ def test_downloader(
     _http_get_mock.assert_has_calls(calls)
 
 
+def test_downloader_without_content_length(tmpdir: Path) -> None:
+    """A response without a Content-Length header should be treated as an
+    unknown size and still download fully.
+
+    This guards against MockResponse inventing its own Content-Length, which
+    would hide the unknown-size download path from the tests.
+    """
+    body = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+    resp = MockResponse(body)
+    resp.status_code = 200
+
+    assert _get_http_response_size(resp) is None
+
+    session = PipSession(resume_retries=0)
+    downloader = Downloader(session, "on")
+    link = Link("http://example.com/foo.tgz")
+    with patch.object(Downloader, "_http_get", MagicMock(return_value=resp)):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    with open(filepath, "rb") as downloaded_file:
+        assert downloaded_file.read() == body
+
+
 def test_resumed_download_caching(tmpdir: Path) -> None:
     """Test that resumed downloads are cached properly for future use."""
     cache_dir = tmpdir / "cache"
