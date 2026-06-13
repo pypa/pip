@@ -5,6 +5,7 @@ A module that implements tooling to enable easy warnings about deprecations.
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from typing import Any, TextIO
 
@@ -16,7 +17,7 @@ DEPRECATION_MSG_PREFIX = "DEPRECATION: "
 
 
 class PipDeprecationWarning(Warning):
-    pass
+    include_source: bool = False
 
 
 _original_showwarning: Any = None
@@ -38,14 +39,21 @@ def _showwarning(
         # We use a specially named logger which will handle all of the
         # deprecation messages for pip.
         logger = logging.getLogger("pip._internal.deprecations")
-        logger.warning(message)
+        if isinstance(message, PipDeprecationWarning) and message.include_source:
+            logger.warning("%s (%s:%s)", message, filename, lineno)
+        else:
+            logger.warning(message)
     else:
         _original_showwarning(message, category, filename, lineno, file, line)
 
 
 def install_warning_logger() -> None:
     # Enable our Deprecation Warnings
-    warnings.simplefilter("default", PipDeprecationWarning, append=True)
+    # If we're running pip test suite, promote the PipDeprecationWarning into errors.
+    if os.environ.get("_PIP_TEST_ENV", None):
+        warnings.simplefilter("error", PipDeprecationWarning)
+    else:
+        warnings.simplefilter("default", PipDeprecationWarning, append=True)
 
     global _original_showwarning
 
@@ -61,6 +69,8 @@ def deprecated(
     gone_in: str | None,
     feature_flag: str | None = None,
     issue: int | None = None,
+    stacklevel: int = 2,
+    include_source: bool = False,
 ) -> None:
     """Helper to deprecate existing functionality.
 
@@ -80,6 +90,12 @@ def deprecated(
     issue:
         Issue number on the tracker that would serve as a useful place for
         users to find related discussion and provide feedback.
+    stacklevel:
+        How many frames up the call stack to attribute the warning to.
+        Defaults to 2 (the caller of deprecated()).
+    include_source:
+        If True, include the source filename and line number in the warning
+        output. Useful when the warning originates from external code.
     """
 
     # Determine whether or not the feature is already gone in this version.
@@ -123,4 +139,6 @@ def deprecated(
     if is_gone:
         raise PipDeprecationWarning(message)
 
-    warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
+    warning = PipDeprecationWarning(message)
+    warning.include_source = include_source
+    warnings.warn(warning, stacklevel=stacklevel)

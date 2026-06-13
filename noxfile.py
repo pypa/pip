@@ -44,7 +44,14 @@ def run_with_protected_pip(session: nox.Session, *arguments: str) -> None:
     session.run_install(*command, env=env, silent=True)
 
 
-def should_update_common_wheels() -> bool:
+def should_update_common_wheels(session: nox.Session) -> bool:
+    """Determine if the common wheels cache needs to be updated.
+
+    The cache is invalidated if:
+    1. It doesn't exist yet
+    2. pyproject.toml was modified after the cache was created
+    3. The cached wheels cannot satisfy the current Python version's requirements
+    """
     # If the cache hasn't been created, create it.
     if not os.path.exists(LOCATIONS["common-wheels"]):
         return True
@@ -54,6 +61,34 @@ def should_update_common_wheels() -> bool:
     pyproject_updated_at = os.path.getmtime("pyproject.toml")
     need_to_repopulate = pyproject_updated_at > cache_last_populated_at
 
+    if not need_to_repopulate:
+        # Check all common wheels are available for the current Python version,
+        # by using --ignore-installed and --dry-run against the common-wheels
+        # directory.
+        result = session.run(
+            "python",
+            LOCATIONS["protected-pip"],
+            "install",
+            "--dry-run",
+            "--ignore-installed",
+            "--no-index",
+            "--find-links",
+            LOCATIONS["common-wheels"],
+            "--group",
+            "test-common-wheels",
+            env={"VIRTUAL_ENV": session.virtualenv.location},
+            silent=True,
+            success_codes=[0, 1],  # Accept both success and failure and check result
+        )
+
+        # Result is the stdout of the pip install command.
+        if result is None or "Would install" not in result:
+            session.log(
+                "Regenerating common wheels as cached wheels "
+                "cannot satisfy test-common-wheels"
+            )
+            need_to_repopulate = True
+
     # Clear the stale cache.
     if need_to_repopulate:
         shutil.rmtree(LOCATIONS["common-wheels"], ignore_errors=True)
@@ -61,13 +96,9 @@ def should_update_common_wheels() -> bool:
     return need_to_repopulate
 
 
-# -----------------------------------------------------------------------------
-# Development Commands
-# -----------------------------------------------------------------------------
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3"])
-def test(session: nox.Session) -> None:
-    # Get the common wheels.
-    if should_update_common_wheels():
+def get_common_wheels(session: nox.Session) -> None:
+    """Build the common wheels needed by tests."""
+    if should_update_common_wheels(session):
         # fmt: off
         run_with_protected_pip(
             session,
@@ -80,6 +111,21 @@ def test(session: nox.Session) -> None:
         msg = f"Reusing existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
 
+
+# -----------------------------------------------------------------------------
+# Development Commands
+# -----------------------------------------------------------------------------
+@nox.session(name="common-wheels")
+def common_wheels(session: nox.Session) -> None:
+    """Build the common wheels needed by tests."""
+    get_common_wheels(session)
+
+
+@nox.session(python=["3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "3.14t", "pypy3"])
+def test(session: nox.Session) -> None:
+    # Get the common wheels.
+    get_common_wheels(session)
+
     # Build source distribution
     # HACK: we want to skip building and installing pip when nox's --no-install
     # flag is given (to save time when running tests back to back with different
@@ -90,7 +136,9 @@ def test(session: nox.Session) -> None:
     if not no_install and os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
-    run_with_protected_pip(session, "install", "build")
+    # build 1.4.1 doesn't fall back to virtualenv when pip is missing,
+    # breaking the uninstall workaround below. See pypa/build#1003.
+    run_with_protected_pip(session, "install", "build<1.4.1")
     # build uses the pip present in the outer environment (aka the nox environment)
     # as an optimization. This will crash if the last test run installed a broken
     # pip, so uninstall pip to force build to provision a known good version of pip.
@@ -194,19 +242,13 @@ def lint(session: nox.Session) -> None:
 # git reset --hard origin/main
 @nox.session
 def vendoring(session: nox.Session) -> None:
-    # Ensure that the session Python is running 3.10+
-    # so that truststore can be installed correctly.
-    session.run(
-        "python", "-c", "import sys; sys.exit(1 if sys.version_info < (3, 10) else 0)"
-    )
-
     parser = argparse.ArgumentParser(prog="nox -s vendoring")
     parser.add_argument("--upgrade-all", action="store_true")
     parser.add_argument("--upgrade", action="append", default=[])
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
 
-    session.install("vendoring~=1.2.0")
+    session.install("vendoring~=1.4.0")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
@@ -230,7 +272,7 @@ def vendoring(session: nox.Session) -> None:
             continue
 
         # update requirements.txt
-        session.run("vendoring", "update", ".", name)
+        session.run("vendoring", "update", name)
 
         # get the updated version
         new_version = old_version
@@ -247,7 +289,7 @@ def vendoring(session: nox.Session) -> None:
             continue  # no change, nothing more to do here.
 
         # synchronize the contents
-        session.run("vendoring", "sync", ".")
+        session.run("vendoring", "sync")
 
         # Determine the correct message
         message = f"Upgrade {name} to {new_version}"

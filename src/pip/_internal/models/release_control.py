@@ -7,8 +7,7 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._internal.exceptions import CommandError
 
 
-# TODO: add slots=True when Python 3.9 is dropped
-@dataclass
+@dataclass(slots=True)
 class ReleaseControl:
     """Helper for managing which release types can be installed."""
 

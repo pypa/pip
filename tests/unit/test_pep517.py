@@ -12,15 +12,11 @@ from pip._internal.req import InstallRequirement
     "spec", [("./foo",), ("git+https://example.com/pkg@dev#egg=myproj",)]
 )
 def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: tuple[str]) -> None:
-    tmpdir.joinpath("pyproject.toml").write_text(
-        dedent(
-            f"""
+    tmpdir.joinpath("pyproject.toml").write_text(dedent(f"""
             [build-system]
             requires = [{spec[0]!r}]
             build-backend = "foo"
-            """
-        )
-    )
+            """))
     req = InstallRequirement(None, None)
     req.source_dir = os.fspath(tmpdir)  # make req believe it has been unpacked
 

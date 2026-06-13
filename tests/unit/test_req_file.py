@@ -84,6 +84,17 @@ def parse_reqfile(
         )
 
 
+def test_missing_constraint_file_message_mentions_constraints(
+    tmp_path: Path, session: PipSession
+) -> None:
+    missing = tmp_path / "does-not-exist.txt"
+
+    with pytest.raises(InstallationError) as exc:
+        list(parse_reqfile(missing, session=session, constraint=True))
+
+    assert "Could not open constraint file:" in str(exc.value)
+
+
 def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")
@@ -104,34 +115,28 @@ class TestPreprocess:
     """tests for `preprocess`"""
 
     def test_comments_and_joins_case1(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment \\
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
     def test_comments_and_joins_case2(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1\\
           # comment
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1")]
 
     def test_comments_and_joins_case3(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
@@ -943,15 +948,13 @@ class TestParseRequirements:
         Test parsing a requirements file without a finder
         """
         with open(tmpdir.joinpath("req.txt"), "w") as fp:
-            fp.write(
-                """
+            fp.write("""
     --find-links https://example.com/
     --index-url https://example.com/
     --extra-index-url https://two.example.com/
     --no-use-wheel
     --no-index
-            """
-            )
+            """)
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 
@@ -1017,7 +1020,7 @@ class TestParseRequirements:
         assert reqs[0].name == req_name
         assert reqs[0].specifier == req_specifier
 
-    def test_warns_and_fallsback_to_locale_on_utf8_decode_fail(
+    def test_warns_and_falls_back_to_locale_on_utf8_decode_fail(
         self,
         tmpdir: Path,
         session: PipSession,
