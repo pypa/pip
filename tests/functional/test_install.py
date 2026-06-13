@@ -352,7 +352,7 @@ def test_install_warns_on_unexpected_post_install_import(
     )
 
     # Make sure PipDeprecationWarnings don't turn into errors
-    script.environ["PIP_TEST_ENV"] = ""
+    script.environ["_PIP_TEST_ENV"] = ""
     result = script.run(
         "python", str(runner), str(wheel_path.parent), expect_stderr=True
     )

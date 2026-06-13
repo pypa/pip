@@ -50,7 +50,7 @@ def _showwarning(
 def install_warning_logger() -> None:
     # Enable our Deprecation Warnings
     # If we're running pip test suite, promote the PipDeprecationWarning into errors.
-    if os.environ.get("PIP_TEST_ENV", None):
+    if os.environ.get("_PIP_TEST_ENV", None):
         warnings.simplefilter("error", PipDeprecationWarning)
     else:
         warnings.simplefilter("default", PipDeprecationWarning, append=True)

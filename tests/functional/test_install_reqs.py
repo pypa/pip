@@ -646,7 +646,7 @@ def test_install_with_extras_from_constraints(
     script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
 ) -> None:
     # Make sure PipDeprecationWarnings don't turn into errors
-    script.environ["PIP_TEST_ENV"] = ""
+    script.environ["_PIP_TEST_ENV"] = ""
     to_install = data.packages.joinpath("LocalExtras")
     file = script.temporary_file(
         "constraints.txt", f"LocalExtras[bar] @ {to_install.as_uri()}"
@@ -715,7 +715,7 @@ def test_install_with_extras_joined(
     script: PipTestEnvironment, data: TestData, resolver_variant: ResolverVariant
 ) -> None:
     # Make sure PipDeprecationWarnings don't turn into errors
-    script.environ["PIP_TEST_ENV"] = ""
+    script.environ["_PIP_TEST_ENV"] = ""
     to_install = data.packages.joinpath("LocalExtras")
     file = script.temporary_file(
         "constraints.txt", f"LocalExtras[bar] @ {to_install.as_uri()}"
@@ -783,7 +783,7 @@ def test_install_distribution_union_with_constraints(
     resolver_variant: ResolverVariant,
 ) -> None:
     # Make sure PipDeprecationWarnings don't turn into errors
-    script.environ["PIP_TEST_ENV"] = ""
+    script.environ["_PIP_TEST_ENV"] = ""
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(f"{to_install}[bar]")
     result = script.pip_install_local(
