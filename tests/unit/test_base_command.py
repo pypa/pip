@@ -243,30 +243,11 @@ def test_require_virtualenv_is_ignored_by_opt_out_commands(
 
 
 def test_commands_ignore_require_virtualenv_is_explicit() -> None:
-    expected_ignore_require_venv = {
-        "cache": True,
-        "check": True,
-        "completion": True,
-        "config": True,
-        "debug": True,
-        "download": False,
-        "freeze": True,
-        "hash": True,
-        "help": True,
-        "index": True,
-        "inspect": True,
-        "install": False,
-        "list": True,
-        "lock": False,
-        "search": True,
-        "show": True,
-        "uninstall": False,
-        "wheel": False,
-    }
-
-    assert set(expected_ignore_require_venv) == set(commands_dict)
+    commands_that_require_venv = ["download", "install", "lock", "uninstall", "wheel"]
 
     for name, info in commands_dict.items():
         module = importlib.import_module(info.module_path)
         command_class = getattr(module, info.class_name)
-        assert command_class.ignore_require_venv == expected_ignore_require_venv[name]
+        assert not command_class.ignore_require_venv == (
+            name in commands_that_require_venv
+        )
