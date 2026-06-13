@@ -13,14 +13,10 @@ def test_parse_simple_dependency_groups(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
-    pyproject.write_text(
-        textwrap.dedent(
-            """\
+    pyproject.write_text(textwrap.dedent("""\
             [dependency-groups]
             foo = ["bar"]
-            """
-        )
-    )
+            """))
     monkeypatch.chdir(tmp_path)
 
     result = list(parse_dependency_groups([("pyproject.toml", "foo")]))
@@ -33,15 +29,11 @@ def test_parse_cyclic_dependency_groups(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
-    pyproject.write_text(
-        textwrap.dedent(
-            """\
+    pyproject.write_text(textwrap.dedent("""\
             [dependency-groups]
             foo = [{include-group="bar"}]
             bar = [{include-group="foo"}]
-            """
-        )
-    )
+            """))
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(
@@ -86,14 +78,10 @@ def test_parse_with_malformed_pyproject_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
-    pyproject.write_text(
-        textwrap.dedent(
-            """\
+    pyproject.write_text(textwrap.dedent("""\
             [dependency-groups  # no closing bracket
             foo = ["bar"]
-            """
-        )
-    )
+            """))
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(InstallationError, match=r"Error parsing pyproject\.toml"):
@@ -104,14 +92,10 @@ def test_parse_gets_unexpected_oserror(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pyproject = tmp_path.joinpath("pyproject.toml")
-    pyproject.write_text(
-        textwrap.dedent(
-            """\
+    pyproject.write_text(textwrap.dedent("""\
             [dependency-groups]
             foo = ["bar"]
-            """
-        )
-    )
+            """))
     monkeypatch.chdir(tmp_path)
 
     # inject an implementation of `tomli.load()` which emits an 'OSError(EPIPE, ...)'

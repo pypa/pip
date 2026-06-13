@@ -1,1 +1,0 @@
-Fix installing ``.tar.gz`` source distributions that look like a zip file.

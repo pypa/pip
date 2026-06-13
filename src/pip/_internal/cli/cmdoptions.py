@@ -16,11 +16,12 @@ import os
 import pathlib
 import re
 import textwrap
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -31,6 +32,7 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.target_python import TargetPython
+from pip._internal.utils import pylock as pylock_utils
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
@@ -101,6 +103,14 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
             raise CommandError(
                 "Can not use any platform or abi specific options unless "
                 "installing via '--target' or using '--dry-run'"
+            )
+
+    for filename in options.requirements:
+        if dist_restriction_set and pylock_utils.is_valid_pylock_filename(filename):
+            raise CommandError(
+                "Patform and interpreter constraints using "
+                "--python-version, --platform, --abi, or --implementation, "
+                f"are not supported when selecting requirements from {filename!r}"
             )
 
 
@@ -542,8 +552,12 @@ def requirements() -> Option:
         action="append",
         default=[],
         metavar="file",
-        help="Install from the given requirements file. "
-        "This option can be used multiple times.",
+        help=(
+            "Install from the given requirements file. "
+            "The file or URL can be in pip's requirements.txt format, "
+            "or pylock.toml format. pylock.toml support is experimental. "
+            "This option can be used multiple times."
+        ),
     )
 
 
@@ -554,7 +568,7 @@ def requirements_from_scripts() -> Option:
         default=[],
         dest="requirements_from_scripts",
         metavar="file",
-        help="Install dependencies of the given script file"
+        help="Install dependencies of the given script file "
         "as defined by PEP 723 inline metadata. ",
     )
 
@@ -633,12 +647,13 @@ def no_binary() -> Option:
         callback=_handle_no_binary,
         type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
-        'each time adds to the existing value. Accepts either ":all:" to '
-        'disable all binary packages, ":none:" to empty the set (notice '
-        "the colons), or one or more package names with commas between "
-        "them (no colons). Note that some packages are tricky to compile "
-        "and may fail to install when this option is used on them.",
+        help="Do not download binary packages. Cached binary packages may still "
+        "be used. Can be supplied multiple times, and each time adds to "
+        "the existing value. Accepts either ':all:' to disable all binary "
+        "packages, ':none:' to empty the set (notice the colons), or one "
+        "or more package names with commas between them (no colons). "
+        "Note that some packages are tricky to compile and may fail to "
+        "install when this option is used on them.",
     )
 
 
@@ -808,15 +823,13 @@ python_version: Callable[..., Option] = partial(
     callback=_handle_python_version,
     type="str",
     default=None,
-    help=dedent(
-        """\
+    help=dedent("""\
     The Python interpreter version to use for wheel and "Requires-Python"
     compatibility checks. Defaults to a version derived from the running
     interpreter. The version can be specified using up to three dot-separated
     integers (e.g. "3" for 3.0.0, "3.7" for 3.7.0, or "3.7.3"). A major-minor
     version can also be given as a string without dots (e.g. "37" for 3.7.0).
-    """
-    ),
+    """),
 )
 
 

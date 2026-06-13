@@ -1,1 +1,1 @@
-Upgrade requests to 2.33.1
+Upgrade requests to 2.34.2

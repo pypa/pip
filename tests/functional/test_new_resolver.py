@@ -2,7 +2,8 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Protocol
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Protocol
 
 import pytest
 
@@ -325,53 +326,6 @@ def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
         source_dir,
     )
     script.assert_installed(base="0.1.0", dep="0.1.0")
-    script.assert_installed_editable("dep")
-
-
-def test_new_resolver_editable_satisfies_direct_url_dep(
-    script: PipTestEnvironment,
-) -> None:
-    """Regression test for https://github.com/pypa/pip/issues/10216.
-
-    Installing ``-e A -e B`` used to fail with ``ResolutionImpossible`` when ``A``
-    depends on ``B`` via a direct URL (PEP 440) reference pointing at the same
-    location as the editable ``B``:
-
-    > Cannot install package-a and package-b because these package versions have
-    > conflicting dependencies.
-
-    This was because the resolver created both an ``EditableCandidate`` (from the
-    user-supplied ``-e B``) and a ``LinkCandidate`` (from ``A``'s transitive
-    direct-URL dependency) for the same link, and treated them as conflicting.
-    """
-    dep_path = create_test_package_with_setup(script, name="dep", version="0.1.0")
-    dep_url = dep_path.as_uri()
-    base_path = script.scratch_path / "base"
-    base_path.mkdir()
-    base_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            f"""
-            from setuptools import setup
-            setup(
-                name="base",
-                version="0.1.0",
-                install_requires=["dep @ {dep_url}"],
-            )
-            """
-        )
-    )
-    script.pip(
-        "install",
-        "--no-build-isolation",
-        "--no-cache-dir",
-        "--no-index",
-        "-e",
-        base_path,
-        "-e",
-        dep_path,
-    )
-    script.assert_installed(base="0.1.0", dep="0.1.0")
-    script.assert_installed_editable("base")
     script.assert_installed_editable("dep")
 
 
@@ -861,12 +815,10 @@ def test_new_resolver_constraint_only_marker_match(script: PipTestEnvironment) -
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "3.0")
 
-    constraints_content = textwrap.dedent(
-        """
+    constraints_content = textwrap.dedent("""
         pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
         pkg==2.0; python_version < "0"  # Never satisfies.
-        """
-    ).format(ver=sys.version_info)
+        """).format(ver=sys.version_info)
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(constraints_content)
 

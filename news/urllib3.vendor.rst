@@ -1,1 +1,1 @@
-Upgrade urllib3 to 2.6.3
+Upgrade urllib3 to 2.7.0

@@ -14,7 +14,6 @@ from typing import (
     Any,
     NamedTuple,
     Protocol,
-    Union,
 )
 
 from pip._vendor.packaging.requirements import Requirement
@@ -36,7 +35,7 @@ from pip._internal.utils.urls import url_to_path
 
 from ._json import msg_to_json
 
-InfoPath = Union[str, pathlib.PurePath]
+InfoPath = str | pathlib.PurePath
 
 logger = logging.getLogger(__name__)
 

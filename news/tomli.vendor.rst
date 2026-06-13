@@ -1,1 +1,1 @@
-Upgrade tomli to 2.3.1
+Upgrade tomli to 2.4.1
