@@ -356,7 +356,7 @@ Filtering by Upload Time
 .. versionadded:: 26.0
 
 The ``--uploaded-prior-to`` option allows you to filter packages by their upload time
-to an index, only considering packages that were uploaded before a specified datetime.
+to an index, only considering packages that were uploaded before a specified value.
 This can be useful for creating reproducible builds by ensuring you only install
 packages that were available at a known point in time.
 
@@ -365,12 +365,14 @@ packages that were available at a known point in time.
    .. code-block:: shell
 
       python -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      python -m pip install --uploaded-prior-to=P3D SomePackage
 
 .. tab:: Windows
 
    .. code-block:: shell
 
       py -m pip install --uploaded-prior-to=2025-03-16T00:00:00Z SomePackage
+      py -m pip install --uploaded-prior-to=P3D SomePackage
 
 The option accepts ISO 8601 datetime strings in several formats:
 
@@ -382,6 +384,26 @@ The option accepts ISO 8601 datetime strings in several formats:
 For consistency across machines, use either UTC format (with 'Z' suffix) or UTC offset
 format (with timezone offset like '+05:00'). Local timezone formats may produce different
 results on different machines.
+
+.. versionchanged:: 26.1
+
+``--uploaded-prior-to`` also accepts a duration in the ``PnD`` format, where ``n`` is
+the number of days. This only considers packages uploaded at least ``n`` days ago.
+A day is always 24 hours; daylight savings and other time zone transitions are ignored.
+
+* ``P3D`` - uploaded at least 3 days ago
+* ``P7D`` - uploaded at least 7 days ago
+* ``P30D`` - uploaded at least 30 days ago
+
+To override a duration set in configuration, pass ``P0D`` on the command line.
+
+.. warning::
+
+    While a duration can help protect against supply chain attacks by avoiding
+    newly published packages, it will also delay security fixes reaching your
+    environment. If you use this option, pair it with a vulnerability scanning
+    tool such as Dependabot or pip-audit so that you are notified of security
+    issues independently of your update schedule.
 
 .. note::
 
@@ -692,8 +714,8 @@ reference pages.
 Searching for Packages
 ======================
 
-pip can search `PyPI`_ for packages using the ``pip search``
-command:
+pip can search remote indexes that provide an XML-RPC search API for
+packages using the ``pip search`` command:
 
 .. tab:: Unix/macOS
 
@@ -709,6 +731,12 @@ command:
 
 The query will be used to search the names and summaries of all
 packages.
+
+.. note::
+
+   `PyPI`_ has removed its XML-RPC search API, so ``pip search`` no longer
+   works against PyPI. To search for packages on PyPI, use the
+   `PyPI search page <https://pypi.org/search/>`_ in a browser instead.
 
 For more information and examples, see the :ref:`pip search` reference.
 
@@ -1405,7 +1433,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _issue 8661: https://github.com/pypa/pip/issues/8661
-.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _our announcement on the PSF blog: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _two-minute video explanation: https://www.youtube.com/watch?v=B4GQCBBsuNU
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/

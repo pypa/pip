@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import os
 import shutil
@@ -8,12 +10,19 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.unpacking import is_within_directory, untar_file, unzip_file
+from pip._internal.utils.unpacking import (
+    _get_default_mode_plus_executable,
+    is_within_directory,
+    unpack_file,
+    untar_file,
+    unzip_file,
+)
 
 from tests.lib import TestData
 
@@ -42,6 +51,9 @@ class TestUnpackArchives:
         self.tempdir = tempfile.mkdtemp()
         self.old_mask = os.umask(0o022)
         self.symlink_expected_mode = None
+        self.default_file_mode = self._probe_created_file_mode()
+        self.default_dir_mode = self._probe_created_dir_mode()
+        self.executable_mode = _get_default_mode_plus_executable()
 
     def teardown_method(self) -> None:
         os.umask(self.old_mask)
@@ -50,18 +62,40 @@ class TestUnpackArchives:
     def mode(self, path: str) -> int:
         return stat.S_IMODE(os.stat(path).st_mode)
 
+    def _probe_created_file_mode(self) -> int:
+        path = os.path.join(self.tempdir, "probe_file_mode")
+        with open(path, "wb"):
+            pass
+        mode = self.mode(path)
+        os.remove(path)
+        return mode
+
+    def _probe_created_dir_mode(self) -> int:
+        path = os.path.join(self.tempdir, "probe_dir_mode")
+        os.mkdir(path)
+        mode = self.mode(path)
+        os.rmdir(path)
+        return mode
+
     def confirm_files(self) -> None:
-        # expectations based on 022 umask set above and the unpack logic that
-        # sets execute permissions, not preservation
+        # expectations based on the unpack logic that writes non-executable
+        # files/dirs with local defaults and sets executables to chmod +x.
+        # Some environments (e.g. with default ACLs) can alter the effective
+        # default mode even with a fixed umask, so probe defaults in tempdir.
         for fname, expected_mode, test, expected_contents in [
-            ("file.txt", 0o644, os.path.isfile, b"file\n"),
+            ("file.txt", self.default_file_mode, os.path.isfile, b"file\n"),
             # We don't test the "symlink.txt" contents for now.
-            ("symlink.txt", 0o644, os.path.isfile, None),
-            ("script_owner.sh", 0o755, os.path.isfile, b"file\n"),
-            ("script_group.sh", 0o755, os.path.isfile, b"file\n"),
-            ("script_world.sh", 0o755, os.path.isfile, b"file\n"),
-            ("dir", 0o755, os.path.isdir, None),
-            (os.path.join("dir", "dirfile"), 0o644, os.path.isfile, b""),
+            ("symlink.txt", self.default_file_mode, os.path.isfile, None),
+            ("script_owner.sh", self.executable_mode, os.path.isfile, b"file\n"),
+            ("script_group.sh", self.executable_mode, os.path.isfile, b"file\n"),
+            ("script_world.sh", self.executable_mode, os.path.isfile, b"file\n"),
+            ("dir", self.default_dir_mode, os.path.isdir, None),
+            (
+                os.path.join("dir", "dirfile"),
+                self.default_file_mode,
+                os.path.isfile,
+                b"",
+            ),
         ]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith("symlink.txt") and sys.platform == "win32":
@@ -74,7 +108,7 @@ class TestUnpackArchives:
                 assert contents == expected_contents, f"fname: {fname}"
             if sys.platform == "win32":
                 # the permissions tests below don't apply in windows
-                # due to os.chmod being a noop
+                # because os.chmod() ignores the execute bit
                 continue
             mode = self.mode(path)
             assert (
@@ -101,6 +135,16 @@ class TestUnpackArchives:
                 file_tarinfo = tarfile.TarInfo(item)
                 mytar.addfile(file_tarinfo, io.BytesIO(b"file content"))
         return test_tar
+
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="os.chmod() ignores execute bit on Windows"
+    )
+    def test_confirm_files_mode_preconditions(self) -> None:
+        assert self.executable_mode == 0o755
+        assert not (self.default_file_mode & 0o111), (
+            f"default_file_mode {self.default_file_mode:#o} has execute bits set; "
+            "the permission tests in confirm_files() would be meaningless"
+        )
 
     def test_unpack_tgz(self, data: TestData) -> None:
         """
@@ -414,8 +458,217 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
         (("parent/", "parent/../sub"), False),
         # Test target sub-string of parent
         (("parent/child", "parent/childfoo"), False),
+        # Test target equal to the directory
+        (("/srv/env/bin", "/srv/env/bin"), True),
+        # Test target within a doubled-slash directory
+        (("//srv/env/bin", "//srv/env/bin/pip"), True),
+        # Test target outside a doubled-slash directory
+        (("//srv/env/bin", "//srv/env/outside"), False),
+        # Test target on a different drive
+        (("C:\\env\\bin", "D:\\outside"), False),
     ],
 )
 def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:
     result = is_within_directory(*args)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "is_zip, is_tar, unzip, untar, exception",
+    [
+        # zip file
+        (True, False, True, False, False),
+        # tar file
+        (False, True, False, True, False),
+        # neither zip nor tar
+        (False, False, False, False, True),
+        # ambiguous (both zip and tar)
+        (True, True, False, False, True),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_magic_signature_check_logic(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    is_zip: bool,
+    is_tar: bool,
+    unzip: bool,
+    untar: bool,
+    exception: bool,
+) -> None:
+    """
+    Test that pip throws an error if file is identified as both zip and tar
+    and all other checks came out undeterministic.
+    """
+    mock_tarfile.is_tarfile.return_value = is_tar
+    mock_zipfile.is_zipfile.return_value = is_zip
+    filename = "ambiguous-file.unknown-extension"
+
+    if exception:
+        with pytest.raises(InstallationError):
+            unpack_file(filename, "any-location", content_type=None)
+    else:
+        unpack_file(filename, "any-location", content_type=None)
+
+    mock_unzip.assert_called_once() if unzip else mock_unzip.assert_not_called()
+    mock_untar.assert_called_once() if untar else mock_untar.assert_not_called()
+    mock_tarfile.is_tarfile.assert_called_once()
+    mock_zipfile.is_zipfile.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "filename, content_type, unzip, untar",
+    [
+        # content_type check
+        ("noname", "application/zip", True, False),
+        ("noname", "application/x-gzip", False, True),
+        # filename check
+        ("ok.zip", None, True, False),
+        ("ok.tar.gz", None, False, True),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_check_priority(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    filename: str,
+    content_type: str | None,
+    unzip: bool,
+    untar: bool,
+) -> None:
+    """
+    Test the order of priority of checks to ensure
+    we don't use magic signature check unless we have to.
+    """
+    unpack_file(filename, "any-location", content_type=content_type)
+    mock_unzip.assert_called_once() if unzip else mock_unzip.assert_not_called()
+    mock_untar.assert_called_once() if untar else mock_untar.assert_not_called()
+    mock_zipfile.is_zipfile.assert_not_called()
+    mock_tarfile.is_tarfile.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "filename, expect_unzip",
+    [
+        ("pkg.zip", True),
+        ("pkg.ZIP", True),
+        ("pkg-1.0-py3-none-any.whl", True),
+        ("pkg.tar.gz", False),
+        ("pkg.TAR.GZ", False),
+        ("pkg.tgz", False),
+        ("pkg.tar", False),
+        ("pkg.tar.bz2", False),
+        ("pkg.tbz", False),
+        ("pkg.tar.xz", False),
+        ("pkg.txz", False),
+        ("pkg.tlz", False),
+        ("pkg.tar.lz", False),
+        ("pkg.tar.lzma", False),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_filename_extension_routing(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    filename: str,
+    expect_unzip: bool,
+) -> None:
+    unpack_file(filename, "any-location", content_type=None)
+    (mock_unzip if expect_unzip else mock_untar).assert_called_once()
+    (mock_untar if expect_unzip else mock_unzip).assert_not_called()
+    mock_zipfile.is_zipfile.assert_not_called()
+    mock_tarfile.is_tarfile.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "content_type, filename, expect_unzip",
+    [
+        ("application/zip", "pkg.tar.gz", True),
+        ("application/x-gzip", "pkg.zip", False),
+        ("application/x-gzip", "pkg.whl", False),
+        ("application/octet-stream", "pkg.zip", True),
+        ("application/octet-stream", "pkg.tar.gz", False),
+    ],
+)
+@patch("pip._internal.utils.unpacking.tarfile")
+@patch("pip._internal.utils.unpacking.zipfile")
+@patch("pip._internal.utils.unpacking.untar_file")
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_content_type_vs_filename_priority(
+    mock_unzip: MagicMock,
+    mock_untar: MagicMock,
+    mock_zipfile: MagicMock,
+    mock_tarfile: MagicMock,
+    content_type: str,
+    filename: str,
+    expect_unzip: bool,
+) -> None:
+    unpack_file(filename, "any-location", content_type=content_type)
+    (mock_unzip if expect_unzip else mock_untar).assert_called_once()
+    (mock_untar if expect_unzip else mock_unzip).assert_not_called()
+    mock_zipfile.is_zipfile.assert_not_called()
+    mock_tarfile.is_tarfile.assert_not_called()
+
+
+@pytest.mark.parametrize("filename, flatten", [("pkg.whl", False), ("pkg.zip", True)])
+@patch("pip._internal.utils.unpacking.unzip_file")
+def test_flatten_only_for_non_whl(
+    mock_unzip: MagicMock, filename: str, flatten: bool
+) -> None:
+    unpack_file(filename, "any-location", content_type=None)
+    assert mock_unzip.call_args.kwargs["flatten"] is flatten
+
+
+def _write_polyglot(path: Path) -> None:
+    """Write a tar.gz with a zip appended; both views contain payload.txt."""
+    tar_buf = io.BytesIO()
+    with tarfile.open(fileobj=tar_buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo("pkg/payload.txt")
+        info.size = 8
+        tar.addfile(info, io.BytesIO(b"from-tar"))
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w") as zf:
+        zf.writestr("pkg/payload.txt", "from-zip")
+    path.write_bytes(tar_buf.getvalue() + zip_buf.getvalue())
+
+
+@pytest.mark.parametrize(
+    "filename, content_type, expected",
+    [
+        ("pkg.tar.gz", None, b"from-tar"),
+        ("pkg.tgz", None, b"from-tar"),
+        ("pkg.zip", None, b"from-zip"),
+        ("pkg.tar.gz", "application/zip", b"from-zip"),
+        ("pkg.unknown", "application/x-gzip", b"from-tar"),
+    ],
+)
+def test_polyglot_routing(
+    tmp_path: Path, filename: str, content_type: str | None, expected: bytes
+) -> None:
+    archive = tmp_path / filename
+    _write_polyglot(archive)
+    out = tmp_path / "out"
+    unpack_file(str(archive), str(out), content_type=content_type)
+    assert (out / "payload.txt").read_bytes() == expected
+
+
+def test_polyglot_ambiguous_name_rejected(tmp_path: Path) -> None:
+    archive = tmp_path / "pkg.bin"
+    _write_polyglot(archive)
+    with pytest.raises(InstallationError):
+        unpack_file(str(archive), str(tmp_path / "out"))

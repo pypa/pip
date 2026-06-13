@@ -370,7 +370,7 @@ Examples
 
          python -m pip install -e 'SomePackage @ git+https://git.repo/some_pkg.git'          # from git
          python -m pip install -e 'SomePackage @ hg+https://hg.repo/some_pkg.git'            # from mercurial
-         python -m pip install -e 'SomePakcage @ svn+svn://svn.repo/some_pkg/trunk/'         # from svn
+         python -m pip install -e 'SomePackage @ svn+svn://svn.repo/some_pkg/trunk/'         # from svn
          python -m pip install -e 'SomePackage @ git+https://git.repo/some_pkg.git@feature'  # from 'feature' branch
          python -m pip install -e 'SomePackage @ git+https://git.repo/some_repo.git#subdirectory=subdir_path' # install a python package from a repo subdirectory
 

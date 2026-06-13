@@ -4,17 +4,17 @@ import importlib
 import logging
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Callable, NoReturn
+from typing import NoReturn
 from unittest.mock import Mock, patch
 
 import pytest
 
 from pip._internal.cli import base_command
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import SUCCESS, VIRTUALENV_NOT_FOUND
+from pip._internal.cli.status_codes import BROKEN_STDOUT, SUCCESS, VIRTUALENV_NOT_FOUND
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
@@ -68,7 +68,7 @@ class FakeCommandWithUnicode(FakeCommand):
 
 
 class TestCommand:
-    def call_main(self, capsys: pytest.CaptureFixture[str], args: list[str]) -> str:
+    def call_main(self, capfd: pytest.CaptureFixture[str], args: list[str]) -> str:
         """
         Call command.main(), and return the command's stderr.
         """
@@ -78,39 +78,41 @@ class TestCommand:
 
         cmd = FakeCommand(run_func=raise_broken_stdout)
         status = cmd.main(args)
-        assert status == 1
-        stderr = capsys.readouterr().err
+        assert status == BROKEN_STDOUT
+        stderr = capfd.readouterr().err
 
         return stderr
 
-    def test_raise_broken_stdout(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_raise_broken_stdout(self, capfd: pytest.CaptureFixture[str]) -> None:
         """
         Test raising BrokenStdoutLoggingError.
         """
-        stderr = self.call_main(capsys, [])
+        stderr = self.call_main(capfd, [])
 
         assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
     def test_raise_broken_stdout__debug_logging(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capfd: pytest.CaptureFixture[str]
     ) -> None:
         """
         Test raising BrokenStdoutLoggingError with debug logging enabled.
         """
-        stderr = self.call_main(capsys, ["-vv"])
+        stderr = self.call_main(capfd, ["-vv"])
 
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
 
-@patch("pip._internal.cli.index_command.Command.handle_pip_version_check")
-def test_handle_pip_version_check_called(mock_handle_version_check: Mock) -> None:
+@patch("pip._internal.cli.index_command.Command.pip_version_check")
+def test_pip_version_check_called(mock_version_check: Mock) -> None:
     """
-    Check that Command.handle_pip_version_check() is called.
+    Check that ``Command.pip_version_check()`` wraps the command body.
     """
     cmd = FakeCommand()
     cmd.main([])
-    mock_handle_version_check.assert_called_once()
+    mock_version_check.assert_called_once()
 
 
 def test_debug_enables_verbose_logs() -> None:

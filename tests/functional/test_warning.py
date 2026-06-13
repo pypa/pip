@@ -1,5 +1,4 @@
 import os
-import sys
 import textwrap
 from pathlib import Path
 
@@ -11,9 +10,7 @@ from tests.lib import PipTestEnvironment
 @pytest.fixture
 def warnings_demo(tmpdir: Path) -> Path:
     demo = tmpdir.joinpath("warnings_demo.py")
-    demo.write_text(
-        textwrap.dedent(
-            """
+    demo.write_text(textwrap.dedent("""
         from logging import basicConfig
         from pip._internal.utils import deprecation
 
@@ -21,9 +18,7 @@ def warnings_demo(tmpdir: Path) -> Path:
         basicConfig()
 
         deprecation.deprecated(reason="deprecated!", replacement=None, gone_in=None)
-    """
-        )
-    )
+    """))
     return demo
 
 
@@ -59,11 +54,3 @@ def test_flag_does_nothing_if_python_version_is_not_2(
     script: PipTestEnvironment,
 ) -> None:
     script.pip("list", "--no-python-version-warning")
-
-
-@pytest.mark.skipif(
-    sys.version_info >= (3, 10), reason="distutils is deprecated in 3.10+"
-)
-def test_pip_works_with_warnings_as_errors(script: PipTestEnvironment) -> None:
-    script.environ["PYTHONWARNINGS"] = "error"
-    script.pip("--version")
