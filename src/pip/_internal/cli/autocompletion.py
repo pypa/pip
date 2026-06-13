@@ -50,6 +50,8 @@ def autocomplete() -> None:
             "uninstall",
         ]
         if should_list_installed:
+            # NOTE: this import is deferred until absolutely necessary as it's slow,
+            # and it's important that autocompletion is fast.
             from pip._internal.metadata import get_default_environment
 
             env = get_default_environment()
