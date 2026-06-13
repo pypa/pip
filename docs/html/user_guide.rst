@@ -714,8 +714,8 @@ reference pages.
 Searching for Packages
 ======================
 
-pip can search `PyPI`_ for packages using the ``pip search``
-command:
+pip can search remote indexes that provide an XML-RPC search API for
+packages using the ``pip search`` command:
 
 .. tab:: Unix/macOS
 
@@ -731,6 +731,12 @@ command:
 
 The query will be used to search the names and summaries of all
 packages.
+
+.. note::
+
+   `PyPI`_ has removed its XML-RPC search API, so ``pip search`` no longer
+   works against PyPI. To search for packages on PyPI, use the
+   `PyPI search page <https://pypi.org/search/>`_ in a browser instead.
 
 For more information and examples, see the :ref:`pip search` reference.
 
@@ -1427,7 +1433,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _issue 8661: https://github.com/pypa/pip/issues/8661
-.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _our announcement on the PSF blog: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _two-minute video explanation: https://www.youtube.com/watch?v=B4GQCBBsuNU
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/

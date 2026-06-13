@@ -2,8 +2,8 @@ import json
 import os
 import re
 import shutil
+from collections.abc import Callable
 from glob import glob
-from typing import Callable
 
 import pytest
 

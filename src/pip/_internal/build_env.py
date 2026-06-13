@@ -463,20 +463,22 @@ class BuildEnvironment:
         with open(
             os.path.join(self._site_dir, "sitecustomize.py"), "w", encoding="utf-8"
         ) as fp:
-            fp.write(
-                textwrap.dedent(
-                    """
+            fp.write(textwrap.dedent("""
                 import os, site, sys
 
-                # First, drop system-sites related paths.
+                # First, discover all system-sites related paths.
                 original_sys_path = sys.path[:]
+                # Clear sys.path so addsitedir() will add system site paths and paths
+                # added by contained .pth files to sys.path reliably. This is necessary
+                # since Python 3.15, which notably no longer re-executes .pth files for
+                # known paths.
+                sys.path = []
                 known_paths = set()
                 for path in {system_sites!r}:
                     site.addsitedir(path, known_paths=known_paths)
-                system_paths = set(
-                    os.path.normcase(path)
-                    for path in sys.path[len(original_sys_path):]
-                )
+                system_paths = set(os.path.normcase(path) for path in sys.path)
+
+                # Drop discovered system-sites related paths.
                 original_sys_path = [
                     path for path in original_sys_path
                     if os.path.normcase(path) not in system_paths
@@ -488,9 +490,7 @@ class BuildEnvironment:
                 for path in {lib_dirs!r}:
                     assert not path in sys.path
                     site.addsitedir(path)
-                """
-                ).format(system_sites=system_sites, lib_dirs=self._lib_dirs)
-            )
+                """).format(system_sites=system_sites, lib_dirs=self._lib_dirs))
 
     def __enter__(self) -> None:
         self._save_env = {

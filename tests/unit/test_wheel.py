@@ -145,12 +145,10 @@ def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> list[InstalledCS
 def test_get_csv_rows_for_installed(
     tmpdir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    text = textwrap.dedent(
-        """\
+    text = textwrap.dedent("""\
     a,b,c
     d,e,f
-    """
-    )
+    """)
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
@@ -165,13 +163,11 @@ def test_get_csv_rows_for_installed(
 def test_get_csv_rows_for_installed__long_lines(
     tmpdir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    text = textwrap.dedent(
-        """\
+    text = textwrap.dedent("""\
     a,b,c,d
     e,f,g
     h,i,j,k
-    """
-    )
+    """)
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
     assert outrows == [
         ("z", "b", "c"),
@@ -234,38 +230,32 @@ class TestInstallUnpackedWheel:
         self.wheelpath = make_wheel(
             "sample",
             "1.2.0",
-            metadata_body=textwrap.dedent(
-                """
+            metadata_body=textwrap.dedent("""
                 A sample Python project
                 =======================
 
                 ...
-                """
-            ),
+                """),
             metadata_updates={
                 "Requires-Dist": ["peppercorn"],
             },
             extra_files={
-                "sample/__init__.py": textwrap.dedent(
-                    '''
+                "sample/__init__.py": textwrap.dedent('''
                     __version__ = '1.2.0'
 
                     def main():
                         """Entry point for the application script"""
                         print("Call your main application code here")
-                    '''
-                ),
+                    '''),
                 "sample/package_data.dat": "some data",
             },
             extra_metadata_files={
-                "DESCRIPTION.rst": textwrap.dedent(
-                    """
+                "DESCRIPTION.rst": textwrap.dedent("""
                     A sample Python project
                     =======================
 
                     ...
-                    """
-                ),
+                    """),
                 "top_level.txt": "sample\n",
                 "empty_dir/empty_dir/": "",
             },
@@ -694,38 +684,48 @@ def test_get_console_script_specs_replaces_python_version(
 
 
 @pytest.mark.parametrize(
-    "name, within",
+    "name",
     [
-        ("pip", True),
-        ("pip3.13", True),
-        ("foo-bar.baz", True),
-        ("...", True),  # a literal filename, not a path component
-        ("sub/script", True),  # in-tree subdirectory
-        ("a/../b", True),
-        ("sub\\script", True),  # backslash stays in-tree on POSIX and Windows
-        (" ../../inside", True),  # distlib keeps a leading space; resolves in-tree
-        ("../outside", False),
-        ("../../outside", False),
-        ("a/../../outside", False),
-        ("/etc/cron.d/outside", False),  # absolute path; os.path.join drops the root
-        # "." and ".." pass PyPI's [\w.-]+ name check but must be rejected here.
-        (".", False),
-        ("..", False),
-        ("", False),
+        "pip",
+        "pip3.13",
+        "foo-bar.baz",
+        "sub/script",  # in-tree subdirectory
+        "a/../b",
+        "sub\\script",  # backslash stays in-tree on POSIX and Windows
+        " ../../inside",  # distlib keeps a leading space; resolves in-tree
     ],
 )
-def test_script_within_dir(name: str, within: bool) -> None:
-    assert wheel._script_within_dir(name, "/srv/env/bin") is within
+def test_raise_for_invalid_entrypoint_allows_in_tree(name: str) -> None:
+    # Names resolving to a path inside the scripts directory are accepted.
+    wheel._raise_for_invalid_entrypoint(f"{name} = simple:main", "/srv/env/bin")
 
 
-def test_script_within_dir_allows_doubled_slash_root() -> None:
-    # A scripts directory can have a doubled leading slash
-    assert wheel._script_within_dir("pip", "//srv/env/bin") is True
-    assert wheel._script_within_dir("../outside", "//srv/env/bin") is False
+@pytest.mark.parametrize(
+    "name",
+    [
+        "../outside",
+        "../../outside",
+        "a/../../outside",
+        "/etc/cron.d/outside",  # absolute path; os.path.join drops the root
+        ".",  # resolves to the scripts directory itself
+        "..",
+    ],
+)
+def test_raise_for_invalid_entrypoint_rejects_escaping(name: str) -> None:
+    with pytest.raises(InstallationError, match="outside the scripts directory"):
+        wheel._raise_for_invalid_entrypoint(f"{name} = simple:main", "/srv/env/bin")
+
+
+def test_raise_for_invalid_entrypoint_allows_doubled_slash_root() -> None:
+    # A scripts directory can have a doubled leading slash.
+    wheel._raise_for_invalid_entrypoint("pip = simple:main", "//srv/env/bin")
+    with pytest.raises(InstallationError, match="outside the scripts directory"):
+        wheel._raise_for_invalid_entrypoint("../outside = simple:main", "//srv/env/bin")
 
 
 @pytest.mark.skipif(not WINDOWS, reason="drive letters only matter on Windows")
-def test_script_within_dir_rejects_other_drive() -> None:
-    # Validate that a script on a different drive is rejected,
-    # and doesn't throw an error
-    assert wheel._script_within_dir("D:\\outside", "C:\\env\\bin") is False
+def test_raise_for_invalid_entrypoint_rejects_other_drive() -> None:
+    # A name resolving onto a different drive is rejected, and the containment
+    # check must not raise on mismatched drives.
+    with pytest.raises(InstallationError, match="outside the scripts directory"):
+        wheel._raise_for_invalid_entrypoint("D:\\outside = simple:main", "C:\\env\\bin")

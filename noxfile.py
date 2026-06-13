@@ -248,7 +248,7 @@ def vendoring(session: nox.Session) -> None:
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
 
-    session.install("vendoring~=1.2.0")
+    session.install("vendoring~=1.4.0")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
@@ -272,7 +272,7 @@ def vendoring(session: nox.Session) -> None:
             continue
 
         # update requirements.txt
-        session.run("vendoring", "update", ".", name)
+        session.run("vendoring", "update", name)
 
         # get the updated version
         new_version = old_version
@@ -289,7 +289,7 @@ def vendoring(session: nox.Session) -> None:
             continue  # no change, nothing more to do here.
 
         # synchronize the contents
-        session.run("vendoring", "sync", ".")
+        session.run("vendoring", "sync")
 
         # Determine the correct message
         message = f"Upgrade {name} to {new_version}"
