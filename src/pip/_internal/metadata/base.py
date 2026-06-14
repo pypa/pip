@@ -617,8 +617,10 @@ class BaseEnvironment:
             )
             if not project_name_valid:
                 # Check the directory name rather than the distribution name,
-                # since the pkg_resources backend normalizes the leading tilde
-                # to a dash.
+                # since the pkg_resources (default below 3.11) backend normalizes
+                # the leading tilde to a dash.
+                # TODO: use dist.canonical_name for this check once
+                # pkg_resources support is dropped (#13317).
                 info_location = dist.info_location
                 leftover_name = (
                     pathlib.Path(info_location).name if info_location else ""
