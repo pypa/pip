@@ -104,16 +104,17 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
                 "installing via '--target' or using '--dry-run'"
             )
 
-    for filename in options.requirements:
-        # Lazy import to keep CLI snappy
+    if dist_restriction_set:
+        # Lazy import to keep CLI startup fast
         from pip._internal.utils import pylock as pylock_utils
 
-        if dist_restriction_set and pylock_utils.is_valid_pylock_filename(filename):
-            raise CommandError(
-                "Patform and interpreter constraints using "
-                "--python-version, --platform, --abi, or --implementation, "
-                f"are not supported when selecting requirements from {filename!r}"
-            )
+        for filename in options.requirements:
+            if pylock_utils.is_valid_pylock_filename(filename):
+                raise CommandError(
+                    "Platform and interpreter constraints using "
+                    "--python-version, --platform, --abi, or --implementation, "
+                    f"are not supported when selecting requirements from {filename!r}"
+                )
 
 
 def check_build_constraints(options: Values) -> None:
