@@ -31,14 +31,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
-      - run: pip install nox
-      - run: nox -s docs
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s docs
 
   determine-changes:
     runs-on: ubuntu-latest
@@ -75,7 +76,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -86,9 +87,10 @@ jobs:
           git config --global user.email "pypa-dev@googlegroups.com"
           git config --global user.name "pip"
 
-      - run: pip install nox
-      - run: nox -s prepare-release -- 99.9
-      - run: nox -s build-release -- 99.9
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s prepare-release -- 99.9
+      - run: python -m nox -s build-release -- 99.9
       - run: pipx run check-sdist
 
   vendoring:
@@ -101,15 +103,16 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.x"
 
-      - run: pip install nox
-      - run: nox -s vendoring
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s vendoring
       - run: git diff --exit-code
 
   tests-unix:
@@ -150,7 +153,7 @@ jobs:
             python: { key: "3.14", version: "3.14.0" }
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -178,17 +181,18 @@ jobs:
           fi
           brew install ${DEPS}
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python.key || matrix.python }} --
+          python -m nox -s test-${{ matrix.python.key || matrix.python }} --
           tests/unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
+          python -m nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
           tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=15
@@ -228,7 +232,7 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -252,19 +256,20 @@ jobs:
           }
           echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run unit tests (group 1)
         if: matrix.group.number == 1
         run: >-
-          nox -s test-${{ matrix.python }} --
+          python -m nox -s test-${{ matrix.python }} --
           tests/unit
           --verbose --numprocesses auto --showlocals
 
       - name: Run integration tests (group ${{ matrix.group.number }})
         run: >-
-          nox -s test-${{ matrix.python }} --no-install --
+          python -m nox -s test-${{ matrix.python }} --no-install --
           tests/functional -k "${{ matrix.group.pytest-filter }}"
           --verbose --numprocesses auto --showlocals --durations=15
 
@@ -281,7 +286,7 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -291,12 +296,13 @@ jobs:
       - name: Install MacOS dependencies
         run: brew install breezy subversion
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run integration tests
         run: >-
-          nox -s test-3.10 --
+          python -m nox -s test-3.10 --
           tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=15
