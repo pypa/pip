@@ -160,8 +160,9 @@ class WheelCommand(RequirementCommand):
                 shutil.copy(req.local_file_path, options.wheel_dir)
             except OSError as e:
                 logger.warning(
-                    "Building wheel for %s failed: %s",
+                    "Failed to copy built wheel %s to %s: %s",
                     req.name,
+                    options.wheel_dir,
                     e,
                 )
                 build_failures.append(req)
