@@ -60,8 +60,6 @@ def _run_pip_without_virtualenv(
 
         # Simulate running outside a virtualenv.
         sys.base_prefix = sys.prefix
-        if hasattr(sys, "real_prefix"):
-            delattr(sys, "real_prefix")
 
         sys.argv = ["pip", {", ".join(repr(arg) for arg in args)}]
 
