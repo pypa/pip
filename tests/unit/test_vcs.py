@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import pathlib
+import subprocess
 from typing import Any
 from unittest import mock
 
@@ -297,6 +298,30 @@ def test_git_resolve_revision_not_found_warning(
     assert messages == [
         "Did not find branch or tag 'aaaaaa', assuming revision or ref."
     ]
+
+
+@pytest.mark.git
+def test_git_has_commit(tmp_path: pathlib.Path) -> None:
+    """Git.has_commit() reports whether a commit exists in the local repo."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "pip",
+        "GIT_AUTHOR_EMAIL": "pip@example.com",
+        "GIT_COMMITTER_NAME": "pip",
+        "GIT_COMMITTER_EMAIL": "pip@example.com",
+    }
+    subprocess.check_call(["git", "init", "-q"], cwd=repo, env=env)
+    subprocess.check_call(
+        ["git", "commit", "-q", "--allow-empty", "-m", "initial"], cwd=repo, env=env
+    )
+    sha = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo, env=env, text=True
+    ).strip()
+
+    assert Git.has_commit(os.fspath(repo), sha)
+    assert not Git.has_commit(os.fspath(repo), "0" * 40)
 
 
 @pytest.mark.parametrize(
