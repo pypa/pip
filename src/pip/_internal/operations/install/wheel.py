@@ -106,14 +106,27 @@ def wheel_root_is_purelib(metadata: Message) -> bool:
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
-def get_entrypoints(dist: BaseDistribution) -> tuple[dict[str, str], dict[str, str]]:
+def get_entrypoints(
+    dist: BaseDistribution, wheel_path: str | None = None
+) -> tuple[dict[str, str], dict[str, str]]:
     console_scripts = {}
     gui_scripts = {}
-    for entry_point in dist.iter_entry_points():
-        if entry_point.group == "console_scripts":
-            console_scripts[entry_point.name] = entry_point.value
-        elif entry_point.group == "gui_scripts":
-            gui_scripts[entry_point.name] = entry_point.value
+    try:
+        for entry_point in dist.iter_entry_points():
+            if entry_point.group == "console_scripts":
+                console_scripts[entry_point.name] = entry_point.value
+            elif entry_point.group == "gui_scripts":
+                gui_scripts[entry_point.name] = entry_point.value
+    except ValueError as exc:
+        specification: str
+        if len(exc.args) >= 2 and isinstance(exc.args[1], str):
+            specification = exc.args[1]
+        else:
+            specification = str(exc)
+        prefix = _wheel_error_prefix(wheel_path)
+        raise InstallationError(
+            f"{prefix}invalid script entry point {specification!r}"
+        ) from exc
     return console_scripts, gui_scripts
 
 
@@ -445,9 +458,7 @@ class PipScriptMaker(ScriptMaker):
     def make(
         self, specification: str, options: dict[str, Any] | None = None
     ) -> list[str]:
-        _raise_for_invalid_entrypoint(
-            specification, self.target_dir, self.wheel_path
-        )
+        _raise_for_invalid_entrypoint(specification, self.target_dir, self.wheel_path)
         return super().make(specification, options)
 
 
@@ -585,7 +596,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         FilesystemWheel(wheel_path),
         canonicalize_name(name),
     )
-    console, gui = get_entrypoints(distribution)
+    console, gui = get_entrypoints(distribution, wheel_path)
 
     def is_entrypoint_wrapper(file: File) -> bool:
         # EP, EP.exe and EP-script.py are scripts generated for
