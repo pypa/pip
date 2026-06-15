@@ -453,6 +453,62 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     assert "an empty revision (after @)" in str(excinfo.value)
 
 
+# A leading dash makes the VCS tool treat the revision as a command-line
+# option instead of a revision (argument injection). The
+# ``--upload-pack``/``-r``-prefixed payloads below would otherwise reach the
+# subprocess; ``%2D`` checks that percent-encoding cannot bypass the guard.
+DASH_REVISIONS = [
+    "--upload-pack=touch /tmp/pwned",
+    "-r/dev/null",
+    "%2Dupload-pack=evil",  # percent-encoded leading dash
+    "-",  # a bare dash
+]
+
+
+@pytest.mark.parametrize(
+    "vcs_cls, scheme",
+    [
+        (Git, "git+https"),
+        (Mercurial, "hg+https"),
+        (Bazaar, "bzr+https"),
+        (Subversion, "svn+https"),
+    ],
+)
+@pytest.mark.parametrize("rev", DASH_REVISIONS)
+def test_version_control__get_url_rev_and_auth__dash_revision(
+    vcs_cls: type[VersionControl], scheme: str, rev: str
+) -> None:
+    """
+    Every VCS backend must reject a revision that begins with a dash, to
+    prevent argument injection into the underlying VCS subprocess.
+    """
+    url = f"{scheme}://example.com/MyUser/myProject@{rev}"
+    with pytest.raises(InstallationError) as excinfo:
+        vcs_cls.get_url_rev_and_auth(url)
+
+    assert "cannot begin with a dash" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "vcs_cls",
+    [Git, Mercurial, Bazaar, Subversion],
+)
+def test_version_control__get_url_rev_options__dash_revision_blocked(
+    vcs_cls: type[VersionControl],
+) -> None:
+    """
+    The rejection happens during URL parsing, i.e. before any RevOptions /
+    subprocess command is built, so a malicious ``--upload-pack`` payload can
+    never reach ``to_args()`` and the VCS invocation.
+    """
+    backend = vcs_cls()
+    url = hide_url(
+        f"{vcs_cls.schemes[1]}://example.com/repo@--upload-pack=touch /tmp/pwned"
+    )
+    with pytest.raises(InstallationError):
+        backend.get_url_rev_options(url)
+
+
 @pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
 @pytest.mark.parametrize(
     "exc_cls, msg_re",

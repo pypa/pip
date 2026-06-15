@@ -208,6 +208,31 @@ def test_install_noneditable_git(script: PipTestEnvironment) -> None:
     result.did_create(dist_info_folder)
 
 
+@pytest.mark.parametrize(
+    "rev",
+    [
+        # Would otherwise become: git fetch <url> --upload-pack=<cmd>
+        "--upload-pack=touch ./pwned",
+        # Percent-encoded leading dash must not bypass the check.
+        "%2Dupload-pack=touch ./pwned",
+    ],
+)
+def test_git_install_rejects_dash_revision(
+    script: PipTestEnvironment, rev: str
+) -> None:
+    """
+    A revision beginning with a dash is an argument-injection vector
+    (e.g. ``git fetch <url> --upload-pack=<cmd>`` runs ``<cmd>``). pip must
+    reject it up front -- before any git subprocess or network access -- so
+    the payload can never reach the VCS tool.
+    """
+    url = f"git+https://example.invalid/repo.git@{rev}#egg=demo"
+    result = script.pip("install", url, expect_error=True)
+    assert "cannot begin with a dash" in result.stderr
+    # The malicious command must never have run.
+    assert not (script.cwd / "pwned").exists()
+
+
 def test_git_with_sha1_revisions(script: PipTestEnvironment) -> None:
     """
     Git backend should be able to install from SHA1 revisions

@@ -398,6 +398,29 @@ class VersionControl:
                     "or remove @ from the URL."
                 )
             rev = urllib.parse.unquote(rev)
+            # The revision is passed verbatim as a positional argument to the
+            # underlying VCS command -- e.g. ``git fetch -q <url> <rev>`` in
+            # Git.resolve_revision(). A token only becomes a command-line
+            # *option* (rather than a value) by starting with a dash, and no
+            # valid revision -- commit hash, branch, tag, or ref -- ever does
+            # (Git itself rejects refs that start with "-"). So a leading dash
+            # is both a complete and a safe signal of argument injection.
+            #
+            # Without this guard, an attacker-controlled requirement such as
+            #   git+https://example.com/repo@--upload-pack=<cmd>
+            # makes pip run ``git fetch -q <url> --upload-pack=<cmd>``, where
+            # ``--upload-pack`` is "the path of the program run on the other
+            # end" -- arbitrary command execution for local/SSH-reachable
+            # transports (see git-fetch(1)). Reject it before it can reach any
+            # subprocess. The check runs after unquoting so percent-encoded
+            # dashes (``%2D``) cannot slip past it.
+            if rev.startswith("-"):
+                raise InstallationError(
+                    f"The URL {url!r} has an invalid revision (after @): "
+                    f"{rev!r}. A revision cannot begin with a dash ('-'), "
+                    "as it could be misinterpreted as a command-line option "
+                    "by the version control tool (an argument-injection risk)."
+                )
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
         return url, rev, user_pass
 
