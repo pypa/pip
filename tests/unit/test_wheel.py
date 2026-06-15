@@ -430,7 +430,6 @@ class TestInstallUnpackedWheel:
         assert os.path.basename(wheel_path) in exc_text
         assert "example" in exc_text
 
-    @pytest.mark.xfail(strict=True)
     @pytest.mark.parametrize("entrypoint", ["hello = hello", "hello = hello:"])
     @pytest.mark.parametrize("entrypoint_type", ["console_scripts", "gui_scripts"])
     def test_invalid_entrypoints_fail(

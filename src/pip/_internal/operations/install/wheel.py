@@ -385,22 +385,36 @@ class ScriptFile:
 
 
 class MissingCallableSuffix(InstallationError):
-    def __init__(self, entry_point: str) -> None:
+    def __init__(self, specification: str, wheel_path: str | None = None) -> None:
+        prefix = _wheel_error_prefix(wheel_path)
         super().__init__(
-            f"Invalid script entry point: {entry_point} - A callable "
+            f"{prefix}invalid script entry point {specification!r} - A callable "
             "suffix is required. See https://packaging.python.org/"
             "specifications/entry-points/#use-for-scripts for more "
             "information."
         )
 
 
-def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
+def _wheel_error_prefix(wheel_path: str | None) -> str:
+    if wheel_path is None:
+        return ""
+    return f"The wheel {wheel_path!r} has "
+
+
+def _raise_for_invalid_entrypoint(
+    specification: str, scripts_dir: str, wheel_path: str | None = None
+) -> None:
     entry = get_export_entry(specification)
     if entry is None:
+        if "=" in specification:
+            prefix = _wheel_error_prefix(wheel_path)
+            raise InstallationError(
+                f"{prefix}invalid script entry point {specification!r}"
+            )
         return
 
     if entry.suffix is None:
-        raise MissingCallableSuffix(str(entry))
+        raise MissingCallableSuffix(specification, wheel_path)
 
     # distlib joins the entry point name onto the scripts directory, so a name
     # with path separators or ``..`` components can resolve elsewhere. The script
@@ -408,8 +422,9 @@ def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
     dest = os.path.join(scripts_dir, entry.name)
     resolves_to_scripts_dir = os.path.abspath(dest) == os.path.abspath(scripts_dir)
     if resolves_to_scripts_dir or not is_within_directory(scripts_dir, dest):
+        prefix = _wheel_error_prefix(wheel_path)
         raise InstallationError(
-            f"Invalid script entry point name {entry.name!r}: the script "
+            f"{prefix}invalid script entry point name {entry.name!r}: the script "
             f"would be installed outside the scripts directory ({scripts_dir})."
         )
 
@@ -425,10 +440,14 @@ class PipScriptMaker(ScriptMaker):
             sys.exit(%(func)s())
 """)
 
+    wheel_path: str | None = None
+
     def make(
         self, specification: str, options: dict[str, Any] | None = None
     ) -> list[str]:
-        _raise_for_invalid_entrypoint(specification, self.target_dir)
+        _raise_for_invalid_entrypoint(
+            specification, self.target_dir, self.wheel_path
+        )
         return super().make(specification, options)
 
 
@@ -639,6 +658,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
+    maker.wheel_path = wheel_path
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
