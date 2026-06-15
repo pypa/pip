@@ -162,7 +162,7 @@ jobs:
           allow-prereleases: true
 
       - name: Set PYTHON_GIL
-        if: endsWith(matrix.python-version, 't')
+        if: endsWith(matrix.python.version || matrix.python, 't')
         run: |
           echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
@@ -241,7 +241,7 @@ jobs:
           allow-prereleases: true
 
       - name: Set PYTHON_GIL
-        if: endsWith(matrix.python-version, 't')
+        if: endsWith(matrix.python, 't')
         run: |
           echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
