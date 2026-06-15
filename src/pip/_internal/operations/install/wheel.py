@@ -118,11 +118,7 @@ def get_entrypoints(
             elif entry_point.group == "gui_scripts":
                 gui_scripts[entry_point.name] = entry_point.value
     except ValueError as exc:
-        specification: str
-        if len(exc.args) >= 2 and isinstance(exc.args[1], str):
-            specification = exc.args[1]
-        else:
-            specification = str(exc)
+        specification = _entry_point_specification_from_value_error(exc, dist)
         prefix = _wheel_error_prefix(wheel_path)
         raise InstallationError(
             f"{prefix}invalid script entry point {specification!r}"
@@ -442,6 +438,61 @@ def _raise_for_invalid_entrypoint(
         )
 
 
+_SCRIPT_ENTRY_POINT_GROUPS = frozenset({"console_scripts", "gui_scripts"})
+
+
+def _validate_wheel_script_entrypoints(
+    wheel_zip: ZipFile,
+    info_dir: str,
+    scripts_dir: str,
+    wheel_path: str,
+) -> None:
+    """Validate console/GUI script entry points before metadata parsing.
+
+    Some metadata backends (e.g. pkg_resources on Python 3.10) reject malformed
+    entry points with raw ValueError instead of letting us format the error.
+    """
+    entry_points_path = f"{info_dir}/entry_points.txt"
+    if entry_points_path not in wheel_zip.namelist():
+        return
+    content = wheel_zip.read(entry_points_path).decode()
+    current_group: str | None = None
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith("[") and stripped.endswith("]"):
+            current_group = stripped[1:-1].strip()
+            continue
+        if current_group in _SCRIPT_ENTRY_POINT_GROUPS:
+            _raise_for_invalid_entrypoint(stripped, scripts_dir, wheel_path)
+
+
+def _entry_point_specification_from_value_error(
+    exc: ValueError, dist: BaseDistribution
+) -> str:
+    if len(exc.args) < 2 or not isinstance(exc.args[1], str):
+        return str(exc)
+    fragment = exc.args[1]
+    if "=" in fragment:
+        return fragment
+    try:
+        contents = dist.read_text("entry_points.txt")
+    except FileNotFoundError:
+        return fragment
+    for line in contents.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("[") or stripped.startswith("#"):
+            continue
+        if stripped == fragment:
+            return stripped
+        if "=" in stripped:
+            _, _, value = stripped.partition("=")
+            if value.strip() == fragment:
+                return stripped
+    return fragment
+
+
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
@@ -595,6 +646,9 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     distribution = get_wheel_distribution(
         FilesystemWheel(wheel_path),
         canonicalize_name(name),
+    )
+    _validate_wheel_script_entrypoints(
+        wheel_zip, info_dir, scheme.scripts, wheel_path
     )
     console, gui = get_entrypoints(distribution, wheel_path)
 
