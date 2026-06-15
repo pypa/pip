@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from optparse import Values
-from typing import Any, Callable
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
@@ -91,7 +91,7 @@ class IndexCommand(IndexGroupCommand):
         options: Values,
         session: PipSession,
         target_python: TargetPython | None = None,
-        ignore_requires_python: bool | None = None,
+        ignore_requires_python: bool = False,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to the index command.

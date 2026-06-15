@@ -59,10 +59,10 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
         result.stdout,
     )
     assert match is not None
-    pip_folder_outputed = match.group(4)
+    pip_folder_outputted = match.group(4)
     pip_folder = join(SRC_DIR, "src", "pip")
 
-    diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
+    diffs = filecmp.dircmp(pip_folder, pip_folder_outputted)
 
     # If any non-matching .py files exist, we have a problem: run_pip
     # is picking up some other version!  N.B. if this project acquires
@@ -75,7 +75,7 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
     ]
     assert not mismatch_py, (
         f"mismatched source files in {pip_folder!r} "
-        f"and {pip_folder_outputed!r}: {mismatch_py!r}"
+        f"and {pip_folder_outputted!r}: {mismatch_py!r}"
     )
 
 

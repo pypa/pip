@@ -8,6 +8,15 @@ Pip's internals
 We have an in-progress guide to the
 :ref:`architecture-pip-internals`. It might be helpful as you dive in.
 
+AI Policy
+=========
+
+While we do not dictate what tools contributors use to create pull requests,
+LLM (Large Language Model) tools are often used to generate code that the
+human contributor does not fully understand, and may not even be legally
+considered the owner of. Therefore, contributors wishing to use LLM tools
+should read and follow the project `AI policy`_.
+
 Submitting Pull Requests
 ========================
 
@@ -41,9 +50,6 @@ separately, as a "formatting cleanup" PR, if needed.
    request, it is the contributor's responsibility to ensure that submitted
    code meets the project requirements, and that they understand the submitted
    code well enough to respond to review comments.
-
-   In particular, we will mark LLM-generated slop as spam without additional
-   discussion.
 
 Automated Testing
 =================
@@ -270,6 +276,7 @@ will initiate a vote among the existing maintainers.
     - CI Administration capabilities
     - ReadTheDocs Administration capabilities
 
+.. _`AI policy`: https://github.com/pypa/pip/blob/main/AI_POLICY.md
 .. _`Studies have shown`: https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
 .. _`GitHub Actions`: https://github.com/features/actions

@@ -4,8 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from pip._internal.models.direct_url import DirectUrl, DirInfo
-
 from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
@@ -786,11 +784,11 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     assert direct_url_path
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:
-        direct_url = DirectUrl.from_json(f.read())
-    assert isinstance(direct_url.info, DirInfo)
-    direct_url.info.editable = True
+        direct_url_dict = json.load(f)
+    assert "dir_info" in direct_url_dict
+    direct_url_dict["dir_info"]["editable"] = True
     with open(direct_url_path, "w") as f:
-        f.write(direct_url.to_json())
+        json.dump(direct_url_dict, f)
     result = script.pip("list", "--format=json")
     for item in json.loads(result.stdout):
         if item["name"] == "testpkg":
