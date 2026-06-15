@@ -733,6 +733,8 @@ def test_new_resolver_constraint_no_specifier(script: PipTestEnvironment) -> Non
 def test_new_resolver_constraint_reject_invalid(
     script: PipTestEnvironment, constraint: str, error: str
 ) -> None:
+    # Make sure PipDeprecationWarnings don't turn into errors
+    script.environ["_PIP_TEST_ENV"] = ""
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(constraint)

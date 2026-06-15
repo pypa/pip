@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import logging
 import os
 import time
@@ -11,8 +12,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from pip._internal.cli import base_command
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import BROKEN_STDOUT, SUCCESS
+from pip._internal.cli.status_codes import BROKEN_STDOUT, SUCCESS, VIRTUALENV_NOT_FOUND
+from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
@@ -218,3 +221,35 @@ def test_base_command_local_tempdir_cleanup(kind: str, exists: bool) -> None:
     c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
+
+
+def test_require_virtualenv_exits_when_not_in_venv(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(base_command, "running_under_virtualenv", lambda: False)
+
+    cmd = create_command("install")
+    with pytest.raises(SystemExit) as excinfo:
+        cmd.main(["--require-virtualenv", "pip"])
+
+    assert excinfo.value.code == VIRTUALENV_NOT_FOUND
+
+
+def test_require_virtualenv_is_ignored_by_opt_out_commands(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(base_command, "running_under_virtualenv", lambda: False)
+
+    cmd = create_command("help")
+    assert cmd.main(["--require-virtualenv"]) == SUCCESS
+
+
+def test_commands_ignore_require_virtualenv_is_explicit() -> None:
+    commands_that_require_venv = ["download", "install", "lock", "uninstall", "wheel"]
+
+    for name, info in commands_dict.items():
+        module = importlib.import_module(info.module_path)
+        command_class = getattr(module, info.class_name)
+        assert not command_class.ignore_require_venv == (
+            name in commands_that_require_venv
+        )

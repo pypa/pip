@@ -25,15 +25,28 @@ def warnings_demo(tmpdir: Path) -> Path:
 def test_deprecation_warnings_are_correct(
     script: PipTestEnvironment, warnings_demo: Path
 ) -> None:
+    script.environ["_PIP_TEST_ENV"] = ""
     result = script.run("python", os.fspath(warnings_demo), expect_stderr=True)
     expected = "WARNING:pip._internal.deprecations:DEPRECATION: deprecated!\n"
     assert result.stderr == expected
+
+
+def test_deprecation_warnings_turn_into_errors_in_tests(
+    script: PipTestEnvironment, warnings_demo: Path
+) -> None:
+    result = script.run(
+        "python", os.fspath(warnings_demo), expect_error=True, expect_stderr=True
+    )
+    assert result.stderr.startswith("Traceback")
+    expected = "utils.deprecation.PipDeprecationWarning: DEPRECATION: deprecated!\n"
+    assert result.stderr.endswith(expected)
 
 
 def test_deprecation_warnings_can_be_silenced(
     script: PipTestEnvironment, warnings_demo: Path
 ) -> None:
     script.environ["PYTHONWARNINGS"] = "ignore"
+    script.environ["_PIP_TEST_ENV"] = ""
     result = script.run("python", os.fspath(warnings_demo))
     assert result.stderr == ""
 
