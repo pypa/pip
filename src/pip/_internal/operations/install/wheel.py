@@ -482,7 +482,7 @@ def _entry_point_specification_from_value_error(
         return fragment
     for line in contents.splitlines():
         stripped = line.strip()
-        if not stripped or stripped.startswith("[") or stripped.startswith("#"):
+        if not stripped or stripped.startswith(("[", "#")):
             continue
         if stripped == fragment:
             return stripped
@@ -647,9 +647,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         FilesystemWheel(wheel_path),
         canonicalize_name(name),
     )
-    _validate_wheel_script_entrypoints(
-        wheel_zip, info_dir, scheme.scripts, wheel_path
-    )
+    _validate_wheel_script_entrypoints(wheel_zip, info_dir, scheme.scripts, wheel_path)
     console, gui = get_entrypoints(distribution, wheel_path)
 
     def is_entrypoint_wrapper(file: File) -> bool:
