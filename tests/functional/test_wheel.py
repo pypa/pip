@@ -213,6 +213,36 @@ def test_pip_wheel_readonly_cache(
     assert "The cache has been disabled." in str(res), str(res)
 
 
+def test_pip_wheel_copy_failure_is_reported_as_copy_failure(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A wheel that builds but cannot be copied to the output directory should
+    be reported as a copy failure, not a build failure."""
+    wheel_dir = script.scratch_path / "wheels"
+    wheel_dir.mkdir()
+    wheel_file_name = f"simple-3.0-py{pyversion[0]}-none-any.whl"
+    # Occupy the destination path with a directory so copying the built wheel
+    # there fails after the build itself has already succeeded.
+    (wheel_dir / wheel_file_name).mkdir()
+
+    result = script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-w",
+        wheel_dir,
+        "simple==3.0",
+        expect_error=True,
+        allow_stderr_warning=True,
+    )
+
+    assert "Successfully built simple" in result.stdout, str(result)
+    assert "Failed to copy built wheel" in str(result), str(result)
+    assert "Building wheel for simple failed" not in str(result), str(result)
+
+
 def test_pip_wheel_builds_editable_deps(
     script: PipTestEnvironment, data: TestData
 ) -> None:
