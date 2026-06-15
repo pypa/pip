@@ -11,17 +11,12 @@ _INCLUDE_SYSTEM_SITE_PACKAGES_REGEX = re.compile(
 )
 
 
-def _running_under_venv() -> bool:
+def running_under_virtualenv() -> bool:
     """Checks if sys.base_prefix and sys.prefix match.
 
     This handles PEP 405 compliant virtual environments.
     """
     return sys.prefix != getattr(sys, "base_prefix", sys.prefix)
-
-
-def running_under_virtualenv() -> bool:
-    """True if we're running inside a virtual environment, False otherwise."""
-    return _running_under_venv()
 
 
 def _get_pyvenv_cfg_lines() -> list[str] | None:
@@ -70,7 +65,7 @@ def _no_global_under_venv() -> bool:
 
 def virtualenv_no_global() -> bool:
     """Returns a boolean, whether running in venv with no system site-packages."""
-    if _running_under_venv():
+    if running_under_virtualenv():
         return _no_global_under_venv()
 
     return False
