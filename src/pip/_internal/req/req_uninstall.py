@@ -480,9 +480,6 @@ class UninstallPathSet:
             if installed_files is not None:
                 for installed_file in installed_files:
                     paths_to_remove.add(os.path.join(dist_location, installed_file))
-            # FIXME: need a test for this elif block
-            # occurs with --single-version-externally-managed/--record outside
-            # of pip
             elif dist.is_file("top_level.txt"):
                 try:
                     namespace_packages = dist.read_text("namespace_packages.txt")
