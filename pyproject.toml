@@ -148,6 +148,7 @@ type = [
 destination = "src/pip/_vendor/"
 requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
+sbom-file = "src/pip/_vendor/bom.cdx.json"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
 patches-dir = "tools/vendoring/patches"
@@ -166,9 +167,6 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
-  # optional accelerator extension libraries
-  "*mypyc*.so",
-  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
@@ -202,7 +200,7 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 
 [tool.ruff]
 # Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
-target-version = "py39"  # Pin Ruff to Python 3.9
+target-version = "py310"  # Pin Ruff to Python 3.10
 src = ["src"]
 line-length = 88
 extend-exclude = [
@@ -303,9 +301,6 @@ ignore_errors = true
 module = "pip._vendor.pkg_resources"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "pip._vendor.requests.*"
-follow_imports = "skip"
 
 ######################################################################################
 # pytest
@@ -334,6 +329,9 @@ markers = [
     "mercurial: VCS: Mercurial",
     "git: VCS: git",
     "search: tests for 'pip search'",
+]
+filterwarnings = [
+  'error::pip._internal.utils.deprecation.PipDeprecationWarning:',
 ]
 
 ######################################################################################

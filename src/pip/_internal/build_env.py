@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import pathlib
 import site
 import sys
 import textwrap
@@ -18,7 +17,6 @@ from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from pip._vendor.packaging.version import Version
 
-from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
 from pip._internal.exceptions import (
     BuildDependencyInstallError,
@@ -30,6 +28,7 @@ from pip._internal.locations import get_platlib, get_purelib, get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import VERBOSE, capture_logging
+from pip._internal.utils.misc import get_runnable_pip
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -59,22 +58,6 @@ class _Prefix:
         scheme = get_scheme("", prefix=path)
         self.bin_dir = scheme.scripts
         self.lib_dirs = _dedup(scheme.purelib, scheme.platlib)
-
-
-def get_runnable_pip() -> str:
-    """Get a file to pass to a Python executable, to run the currently-running pip.
-
-    This is used to run a pip subprocess, for installing requirements into the build
-    environment.
-    """
-    source = pathlib.Path(pip_location).resolve().parent
-
-    if not source.is_dir():
-        # This would happen if someone is using pip from inside a zip file. In that
-        # case, we can use that directly.
-        return str(source)
-
-    return os.fsdecode(source / "__pip-runner__.py")
 
 
 def _get_system_sitepackages() -> set[str]:
@@ -463,20 +446,22 @@ class BuildEnvironment:
         with open(
             os.path.join(self._site_dir, "sitecustomize.py"), "w", encoding="utf-8"
         ) as fp:
-            fp.write(
-                textwrap.dedent(
-                    """
+            fp.write(textwrap.dedent("""
                 import os, site, sys
 
-                # First, drop system-sites related paths.
+                # First, discover all system-sites related paths.
                 original_sys_path = sys.path[:]
+                # Clear sys.path so addsitedir() will add system site paths and paths
+                # added by contained .pth files to sys.path reliably. This is necessary
+                # since Python 3.15, which notably no longer re-executes .pth files for
+                # known paths.
+                sys.path = []
                 known_paths = set()
                 for path in {system_sites!r}:
                     site.addsitedir(path, known_paths=known_paths)
-                system_paths = set(
-                    os.path.normcase(path)
-                    for path in sys.path[len(original_sys_path):]
-                )
+                system_paths = set(os.path.normcase(path) for path in sys.path)
+
+                # Drop discovered system-sites related paths.
                 original_sys_path = [
                     path for path in original_sys_path
                     if os.path.normcase(path) not in system_paths
@@ -488,9 +473,7 @@ class BuildEnvironment:
                 for path in {lib_dirs!r}:
                     assert not path in sys.path
                     site.addsitedir(path)
-                """
-                ).format(system_sites=system_sites, lib_dirs=self._lib_dirs)
-            )
+                """).format(system_sites=system_sites, lib_dirs=self._lib_dirs))
 
     def __enter__(self) -> None:
         self._save_env = {
