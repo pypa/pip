@@ -32,7 +32,6 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.target_python import TargetPython
-from pip._internal.utils import pylock as pylock_utils
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
@@ -105,13 +104,17 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
                 "installing via '--target' or using '--dry-run'"
             )
 
-    for filename in options.requirements:
-        if dist_restriction_set and pylock_utils.is_valid_pylock_filename(filename):
-            raise CommandError(
-                "Platform and interpreter constraints using "
-                "--python-version, --platform, --abi, or --implementation, "
-                f"are not supported when selecting requirements from {filename!r}"
-            )
+    if dist_restriction_set:
+        # Lazy import to keep CLI startup fast
+        from pip._internal.utils import pylock as pylock_utils
+
+        for filename in options.requirements:
+            if pylock_utils.is_valid_pylock_filename(filename):
+                raise CommandError(
+                    "Platform and interpreter constraints using "
+                    "--python-version, --platform, --abi, or --implementation, "
+                    f"are not supported when selecting requirements from {filename!r}"
+                )
 
 
 def check_build_constraints(options: Values) -> None:
