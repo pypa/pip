@@ -31,7 +31,7 @@ jobs:
           require "^[[:space:]]*- \[\s*[xX]\s*\] I have read and have followed the \*\*CONTRIBUTING.md\*\* file" \
             "The 'CONTRIBUTING.md' checkbox in the PR checklist must be checked."
 
-          if grep -qE -- ""^[[:space:]]*- \[\s*[xX]\s*\] I have read and followed the \*\*AI_POLICY\.md\*\* file" <<< "$PR_BODY"; then
+          if grep -qE -- "^[[:space:]]*- \[\s*[xX]\s*\] I have read and followed the \*\*AI_POLICY\.md\*\* file" <<< "$PR_BODY"; then
               require "^[[:space:]]*(-\s+)?Assisted-by:" "'Assisted-by:' line is missing."
               ASSISTED_BY_VAL=$(grep -E "^[[:space:]]*(-\s+)?Assisted-by:" <<< "$PR_BODY" | sed -r -e 's/^[[:space:]]*(-\s+)?Assisted-by://' -e 's/<!--.*-->//' | tr -d '[:space:]')
               if [ -z "$ASSISTED_BY_VAL" ]; then
