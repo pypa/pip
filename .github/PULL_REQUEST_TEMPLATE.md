@@ -15,4 +15,3 @@ Thank you for your pull request! Before submitting, please make sure you've:
 - [ ] I have added a news file fragment (or this PR does not need one).
 - [ ] This PR was generated or assisted using an AI tool.
 <!-- If checked, add a line below: Assisted-by: <tool name, e.g. Claude> -->
-
