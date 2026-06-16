@@ -9,7 +9,7 @@ jobs:
     name: Check PR template
     runs-on: ubuntu-latest
     permissions: {}
-    if: github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.number > 14069
+    if: github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.number >= 14069
     steps:
       - name: Check PR body
         env:
