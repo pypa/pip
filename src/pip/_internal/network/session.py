@@ -49,7 +49,6 @@ if TYPE_CHECKING:
     from ssl import SSLContext
 
     from pip._vendor.urllib3 import ProxyManager
-    from pip._vendor.urllib3.poolmanager import PoolManager
 
 
 logger = logging.getLogger(__name__)
@@ -210,7 +209,7 @@ class LocalFSAdapter(BaseAdapter):
         self,
         request: PreparedRequest,
         stream: bool = False,
-        timeout: float | tuple[float, float] | tuple[float, None] | None = None,
+        timeout: float | tuple[float | None, float | None] | None = None,
         verify: bool | str = True,
         cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
         proxies: Mapping[str, str] | None = None,
@@ -273,10 +272,10 @@ class _SSLContextAdapterMixin:
         maxsize: int,
         block: bool = DEFAULT_POOLBLOCK,
         **pool_kwargs: Any,
-    ) -> PoolManager:
+    ) -> None:
         if self._ssl_context is not None:
             pool_kwargs.setdefault("ssl_context", self._ssl_context)
-        return super().init_poolmanager(  # type: ignore[misc, no-any-return]
+        super().init_poolmanager(  # type: ignore[misc]
             connections=connections,
             maxsize=maxsize,
             block=block,
@@ -288,7 +287,7 @@ class _SSLContextAdapterMixin:
         # context here too. https://github.com/pypa/pip/issues/13288
         if self._ssl_context is not None:
             proxy_kwargs.setdefault("ssl_context", self._ssl_context)
-        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc, no-any-return]
+        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
 class HTTPAdapter(_SSLContextAdapterMixin, _BaseHTTPAdapter):

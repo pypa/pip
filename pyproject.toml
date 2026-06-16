@@ -301,9 +301,6 @@ ignore_errors = true
 module = "pip._vendor.pkg_resources"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "pip._vendor.requests.*"
-follow_imports = "skip"
 
 ######################################################################################
 # pytest
@@ -332,6 +329,9 @@ markers = [
     "mercurial: VCS: Mercurial",
     "git: VCS: git",
     "search: tests for 'pip search'",
+]
+filterwarnings = [
+  'error::pip._internal.utils.deprecation.PipDeprecationWarning:',
 ]
 
 ######################################################################################

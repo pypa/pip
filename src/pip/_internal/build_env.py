@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import pathlib
 import site
 import sys
 import textwrap
@@ -26,10 +25,11 @@ from pip._internal.exceptions import (
     InstallWheelBuildError,
     PipError,
 )
-from pip._internal.locations import get_platlib, get_purelib, get_scheme
+from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_default_environment, get_environment
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import VERBOSE, capture_logging
+from pip._internal.utils.misc import get_runnable_pip
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -61,39 +61,9 @@ class _Prefix:
         self.lib_dirs = _dedup(scheme.purelib, scheme.platlib)
 
 
-def get_runnable_pip() -> str:
-    """Get a file to pass to a Python executable, to run the currently-running pip.
-
-    This is used to run a pip subprocess, for installing requirements into the build
-    environment.
-    """
-    source = pathlib.Path(pip_location).resolve().parent
-
-    if not source.is_dir():
-        # This would happen if someone is using pip from inside a zip file. In that
-        # case, we can use that directly.
-        return str(source)
-
-    return os.fsdecode(source / "__pip-runner__.py")
-
-
 def _get_system_sitepackages() -> set[str]:
-    """Get system site packages
-
-    Usually from site.getsitepackages,
-    but fallback on `get_purelib()/get_platlib()` if unavailable
-    (e.g. in a virtualenv created by virtualenv<20)
-
-    Returns normalized set of strings.
-    """
-    if hasattr(site, "getsitepackages"):
-        system_sites = site.getsitepackages()
-    else:
-        # virtualenv < 20 overwrites site.py without getsitepackages
-        # fallback on get_purelib/get_platlib.
-        # this is known to miss things, but shouldn't in the cases
-        # where getsitepackages() has been removed (inside a virtualenv)
-        system_sites = [get_purelib(), get_platlib()]
+    """Get system site packages, as a normalized set of strings."""
+    system_sites = site.getsitepackages()
     return {os.path.normcase(path) for path in system_sites}
 
 

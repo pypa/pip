@@ -453,7 +453,7 @@ class Git(VersionControl):
         """
         try:
             cls.run_command(
-                ["rev-parse", "-q", "--verify", "sha^" + rev],
+                ["rev-parse", "-q", "--verify", rev + "^{commit}"],
                 cwd=location,
                 log_failed_cmd=False,
             )

@@ -36,18 +36,20 @@ prefix:
 **C - Category**
 : which area of `pip` functionality a feature request or issue is related to
 
-**K - Kind**
-**O - Operating System**
+**kind**
+: for notable traits like crashes or backwards-incompatible changes
+
+**OS - Operating System**
 : for issues that are OS-specific
 
-**P - Project/Platform**
+**project**
 : related to something external to `pip`
 
-**R - Resolution**
+**resolution**
 : no more discussion is really needed, an action has been identified and the
 issue is waiting or closed
 
-**S - State**
+**state**
 : for some automatic labels and other indicators that work is needed
 
 **type**
@@ -62,34 +64,33 @@ In addition, there are several standalone labels:
 : this label marks an issue as beginner-friendly and shows up in banners that
 GitHub displays for first-time visitors to the repository
 
-**triage**
+**S: needs triage**
 : default label given to issues when they are created
 
-**trivial**
+**skip news**
 : special label for pull requests that removes the
 {ref}`news file requirement <choosing-news-entry-type>`
 
 **needs rebase or merge**
 
-: this is a special label used by BrownTruck to mark PRs that have merge
-conflicts
+: marks PRs that have merge conflicts
 
 ### Automation
 
 There are several helpers to manage issues and pull requests.
 
 Issues created on the issue tracker are automatically given the
-`triage` label by the
-[triage-new-issues](https://github.com/apps/triage-new-issues)
-bot. The label is automatically removed when another label is added.
+`S: needs triage` label by the issue templates. Triagers remove the
+label when an issue has been categorized.
 
 When an issue needs feedback from the author we can label it with
-`S: awaiting response`. When the author responds, the
-[no-response](https://github.com/apps/no-response) bot removes the label.
+`S: awaiting response`. The label is removed manually once the author
+responds.
 
 After an issue has been closed for 30 days, the
-[lock](https://github.com/apps/lock) bot locks the issue and adds the
-`S: auto-locked` label. This allows us to avoid monitoring existing closed
+[lock-threads](https://github.com/dessant/lock-threads) GitHub Action
+locks the issue (closed pull requests are locked after 15 days). This
+allows us to avoid monitoring existing closed
 issues, but unfortunately prevents and references to issues from showing up as
 links on the closed issue.
 
@@ -130,15 +131,15 @@ The lifecycle of an issue (bug or support) generally looks like:
 
 2. confirming issue - some discussion with the user, gathering
    details, trying to reproduce the issue (may be marked with a specific
-   category, `S: awaiting-response`, `S: discussion-needed`, or
-   `S: need-repro`)
+   category, `S: awaiting response`, `state: needs discussion`, or
+   `state: needs reproducer`)
 
 3. confirmed - the issue is pretty consistently reproducible in a
    straightforward way, or a mechanism that could be causing the issue has been
    identified
 
 4. awaiting fix - the fix is identified and no real discussion on the issue
-   is needed, should be marked `R: awaiting PR`
+   is needed, should be marked `state: awaiting PR`
 
 5. closed - can be for several reasons
 

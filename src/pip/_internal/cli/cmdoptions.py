@@ -108,7 +108,7 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
     for filename in options.requirements:
         if dist_restriction_set and pylock_utils.is_valid_pylock_filename(filename):
             raise CommandError(
-                "Patform and interpreter constraints using "
+                "Platform and interpreter constraints using "
                 "--python-version, --platform, --abi, or --implementation, "
                 f"are not supported when selecting requirements from {filename!r}"
             )
