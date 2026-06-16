@@ -8,7 +8,6 @@ import os
 import posixpath
 import re
 import urllib.parse
-import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
@@ -125,6 +124,8 @@ def _clean_file_url_path(part: str) -> str:
     Clean the first part of a URL path that corresponds to a local
     filesystem path (i.e. the first part after splitting on "@" characters).
     """
+    import urllib.request
+
     # We unquote prior to quoting to make sure nothing is double quoted.
     # Also, on Windows the path part might contain a drive letter which
     # should not be quoted. On Linux where drive letters do not
