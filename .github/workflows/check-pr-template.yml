@@ -1,0 +1,43 @@
+name: PR Checklist
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  check-pr-template:
+    name: Check PR template
+    runs-on: ubuntu-latest
+    permissions: {}
+    if: github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.number > 14069
+    steps:
+      - name: Check PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          require() {
+              if ! grep -qE -- "$1" <<< "$PR_BODY"; then
+                  echo "::error::$2"
+                  exit 1
+              fi
+          }
+
+          require "^[[:space:]]*- \[" \
+            "Could not find the pip PR checklist in the pull request comment. This probably means you've used a tool to submit your PR, rather than the GitHub UI which violates pip's AI policy. See https://pip.pypa.io/en/latest/development/contributing/#ai-policy for more details."
+
+          require "^[[:space:]]*- \[\s*[xX]\s*\] I agree to follow the \[PSF Code of Conduct\]" \
+            "The 'PSF Code of Conduct' checkbox in the PR checklist must be checked."
+
+          require "^[[:space:]]*- \[\s*[xX]\s*\] I have read and have followed the \*\*CONTRIBUTING.md\*\* file" \
+            "The 'CONTRIBUTING.md' checkbox in the PR checklist must be checked."
+
+          if grep -qE -- "^[[:space:]]*- \[\s*[xX]\s*\] This PR was generated or assisted using an AI tool" <<< "$PR_BODY"; then
+              require "^[[:space:]]*(-\s+)?Assisted-by:" "'Assisted-by:' line is missing."
+              ASSISTED_BY_VAL=$(grep -E "^[[:space:]]*(-\s+)?Assisted-by:" <<< "$PR_BODY" | sed -r -e 's/^[[:space:]]*(-\s+)?Assisted-by://' -e 's/<!--.*-->//' | tr -d '[:space:]')
+              if [ -z "$ASSISTED_BY_VAL" ]; then
+                  echo "::error::You checked the AI tool checkbox in the PR template, but did not specify the tool used in 'Assisted-by:'."
+                  exit 1
+              fi
+          fi
+
+          echo "PR Checklist verification passed."
