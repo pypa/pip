@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from pip._vendor.packaging.version import Version
 
-from pip import __file__ as pip_location
 from pip._internal.cli.ui import status
 from pip._internal.exceptions import (
     BuildDependencyInstallError,
