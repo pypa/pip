@@ -12,7 +12,7 @@ import json
 import logging
 import os
 import urllib.parse
-from collections.abc import Iterable, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, MutableMapping, Sequence
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
@@ -84,7 +84,7 @@ def _ensure_api_header(response: Response) -> None:
     ):
         return
 
-    raise _NotAPIContent(content_type, response.request.method)
+    raise _NotAPIContent(content_type, response.request.method)  # type: ignore[arg-type]
 
 
 class _NotHTTP(Exception):
