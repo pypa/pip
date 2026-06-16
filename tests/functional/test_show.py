@@ -85,17 +85,13 @@ def test_show_with_files_from_legacy(
     # Emulate the installed-files.txt generation which previous pip version did
     # after running setup.py install (write_installed_files_from_setuptools_record).
     egg_info_dir = script.site_packages_path / f"simple-1.0-py{pyversion}.egg-info"
-    egg_info_dir.joinpath("installed-files.txt").write_text(
-        textwrap.dedent(
-            """\
+    egg_info_dir.joinpath("installed-files.txt").write_text(textwrap.dedent("""\
                 ../simple/__init__.py
                 PKG-INFO
                 SOURCES.txt
                 dependency_links.txt
                 top_level.txt
-            """
-        )
-    )
+            """))
 
     result = script.pip("show", "--files", "simple")
     lines = result.stdout.splitlines()

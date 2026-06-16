@@ -2,7 +2,8 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Protocol
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Protocol
 
 import pytest
 
@@ -732,6 +733,8 @@ def test_new_resolver_constraint_no_specifier(script: PipTestEnvironment) -> Non
 def test_new_resolver_constraint_reject_invalid(
     script: PipTestEnvironment, constraint: str, error: str
 ) -> None:
+    # Make sure PipDeprecationWarnings don't turn into errors
+    script.environ["_PIP_TEST_ENV"] = ""
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(constraint)
@@ -814,12 +817,10 @@ def test_new_resolver_constraint_only_marker_match(script: PipTestEnvironment) -
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "3.0")
 
-    constraints_content = textwrap.dedent(
-        """
+    constraints_content = textwrap.dedent("""
         pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
         pkg==2.0; python_version < "0"  # Never satisfies.
-        """
-    ).format(ver=sys.version_info)
+        """).format(ver=sys.version_info)
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(constraints_content)
 

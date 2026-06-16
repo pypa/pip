@@ -5,10 +5,9 @@ import copy
 import functools
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
-    Callable,
     NamedTuple,
     Protocol,
     TypeVar,

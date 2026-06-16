@@ -12,8 +12,6 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Union,
 )
 
 from pip._vendor.packaging import specifiers
@@ -49,15 +47,15 @@ from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeGuard
+    from typing import TypeGuard
 
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
 
 logger = getLogger(__name__)
 
-BuildTag = Union[tuple[()], tuple[int, str]]
-CandidateSortingKey = tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
+BuildTag = tuple[()] | tuple[int, str]
+CandidateSortingKey = tuple[int, int, int, _BaseVersion, int | None, BuildTag]
 
 
 def _check_link_requires_python(

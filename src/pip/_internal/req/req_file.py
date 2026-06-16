@@ -13,13 +13,12 @@ import re
 import shlex
 import sys
 import urllib.parse
-from collections.abc import Generator, Iterable
+from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from optparse import Values
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     NoReturn,
 )
 
