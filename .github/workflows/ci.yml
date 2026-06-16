@@ -162,7 +162,7 @@ jobs:
           allow-prereleases: true
 
       - name: Set PYTHON_GIL
-        if: endsWith(matrix.python-version, 't')
+        if: endsWith(matrix.python.version || matrix.python, 't')
         run: |
           echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
@@ -241,7 +241,7 @@ jobs:
           allow-prereleases: true
 
       - name: Set PYTHON_GIL
-        if: endsWith(matrix.python-version, 't')
+        if: endsWith(matrix.python, 't')
         run: |
           echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
@@ -280,7 +280,7 @@ jobs:
     # nature, and we don't care where they run, so we pick the fastest one.
     runs-on: macos-latest
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
