@@ -774,6 +774,11 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
     ) -> None:
+        # Lazy import to avoid transitively importing `_vendor.distlib.compat`
+        # which in turn imports `urllib.request` which is slow.
+        # During an actual installation, `urllib.request` will end up imported anyway,
+        # but `req.req_install` (this module) is also imported from commands that
+        # don't actually install anything (e.g. `pip freeze` or `pip show`).
         from pip._internal.operations.install.wheel import install_wheel
 
         assert self.req is not None
