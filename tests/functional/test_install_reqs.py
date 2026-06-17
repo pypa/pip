@@ -6,6 +6,14 @@ from typing import Any, Protocol
 
 import pytest
 
+from pip._internal.exceptions import (
+    InstallationError,
+    InvalidSubdirectoryFragment,
+)
+from pip._internal.models.link import Link
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.temp_dir import global_tempdir_manager
+
 from tests.lib import (
     PipTestEnvironment,
     ResolverVariant,
@@ -400,6 +408,86 @@ def test_install_local_with_subdirectory(script: PipTestEnvironment) -> None:
     )
 
     result.assert_installed("version_subpkg.py", editable=False)
+
+
+@pytest.mark.parametrize(
+    "subdirectory",
+    [
+        "../../../../tmp/evil",
+        "..%2F..%2F..%2Fevil",
+        "/etc/passwd",
+    ],
+)
+def test_install_rejects_traversal_subdirectory(
+    script: PipTestEnvironment, subdirectory: str
+) -> None:
+    """A ``subdirectory`` fragment that escapes the source tree is rejected at
+    requirement-parsing time, before anything is downloaded or built."""
+    result = script.pip(
+        "install",
+        f"evil @ https://example.invalid/pkg.tar.gz#subdirectory={subdirectory}",
+        expect_error=True,
+    )
+    assert "subdirectory fragment is invalid" in result.stderr, str(result)
+
+
+def test_subdirectory_traversal_cannot_escape_build_dir(tmp_path: Path) -> None:
+    """A traversal ``subdirectory`` fragment must never cause the PEP 517 build
+    backend to execute from outside the unpacked archive.
+
+    This is the end-to-end regression test for the path-traversal fix: the
+    ``setup.py`` planted in the escape target writes a marker the moment it is
+    imported, so if the backend ever ran there the marker would appear. The
+    test exercises both defensive layers and asserts the marker is never
+    written.
+    """
+    extracted = tmp_path / "extracted"  # where pip unpacks the archive
+    outside = tmp_path / "outside"  # attacker target, a sibling directory
+    extracted.mkdir()
+    outside.mkdir()
+    marker = tmp_path / "PWNED.txt"
+
+    (outside / "pyproject.toml").write_text(
+        textwrap.dedent(
+            """\
+            [build-system]
+            requires = ["setuptools"]
+            build-backend = "setuptools.build_meta"
+            """
+        )
+    )
+    (outside / "setup.py").write_text(
+        textwrap.dedent(
+            f"""\
+            with open({str(marker)!r}, "w") as fh:
+                fh.write("executed outside the archive")
+            from setuptools import setup
+            setup(name="evilpkg", version="1.0", py_modules=[])
+            """
+        )
+    )
+
+    # Layer 1: a normal Link rejects the traversal fragment at parse time.
+    with pytest.raises(InvalidSubdirectoryFragment):
+        Link("https://evil.invalid/pkg.tar.gz#subdirectory=../outside")
+
+    # Layer 2 (defense in depth): even if the parse-time check were bypassed,
+    # the containment guard at the build sink stops the backend running outside
+    # the source tree, so the marker-dropping setup.py is never executed.
+    link = Link("https://evil.invalid/pkg.tar.gz#subdirectory=safe")
+    link.subdirectory_fragment = "../outside"
+    req = InstallRequirement(None, comes_from=None, link=link)
+    req.source_dir = str(extracted)
+
+    def build_from_escaped_dir() -> None:
+        req.load_pyproject_toml()
+        req.prepare_metadata()
+
+    with global_tempdir_manager():
+        with pytest.raises(InstallationError):
+            build_from_escaped_dir()
+
+    assert not marker.exists(), "build backend escaped the unpacked source tree"
 
 
 @pytest.mark.usefixtures("enable_user_site")

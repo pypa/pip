@@ -7,6 +7,7 @@ import pytest
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
+from pip._internal.models.link import Link
 from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_req_string,
@@ -52,6 +53,35 @@ class TestInstallRequirementBuildDirectory:
         assert requirement.link is not None
 
 
+class TestUnpackedSourceDirectory:
+    def test_valid_subdirectory(self, tmpdir: Path) -> None:
+        link = Link("https://example.com/pkg.tar.gz#subdirectory=pkg/src")
+        req = InstallRequirement(None, comes_from=None, link=link)
+        req.source_dir = str(tmpdir)
+        assert os.path.normpath(req.unpacked_source_directory) == os.path.normpath(
+            os.path.join(str(tmpdir), "pkg", "src")
+        )
+
+    def test_no_subdirectory(self, tmpdir: Path) -> None:
+        link = Link("https://example.com/pkg.tar.gz")
+        req = InstallRequirement(None, comes_from=None, link=link)
+        req.source_dir = str(tmpdir)
+        assert os.path.normpath(req.unpacked_source_directory) == os.path.normpath(
+            str(tmpdir)
+        )
+
+    def test_subdirectory_escaping_source_dir_is_rejected(self, tmpdir: Path) -> None:
+        # Link rejects an escaping subdirectory at construction, so simulate a
+        # validation bypass to exercise the defense-in-depth check at the sink
+        # that hands a directory to the build backend.
+        link = Link("https://example.com/pkg.tar.gz#subdirectory=safe")
+        link.subdirectory_fragment = "../../evil"
+        req = InstallRequirement(None, comes_from=None, link=link)
+        req.source_dir = str(tmpdir / "src")
+        with pytest.raises(InstallationError):
+            _ = req.unpacked_source_directory
+
+
 class TestInstallRequirementFrom:
     def test_install_req_from_string_invalid_requirement(self) -> None:
         """
@@ -75,8 +105,7 @@ class TestInstallRequirementFrom:
         """
         # Test with a PEP 508 url install string:
         wheel_url = (
-            "https://download.pytorch.org/whl/cu90/"
-            "torch-1.0.0-cp36-cp36m-win_amd64.whl"
+            "https://download.pytorch.org/whl/cu90/torch-1.0.0-cp36-cp36m-win_amd64.whl"
         )
         install_str = "torch@ " + wheel_url
         install_req = install_req_from_req_string(install_str)
@@ -97,8 +126,7 @@ class TestInstallRequirementFrom:
         """
         # Test with a PEP 508 url install string:
         wheel_url = (
-            "https://download.pytorch.org/whl/cu90/"
-            "torch-1.0.0-cp36-cp36m-win_amd64.whl"
+            "https://download.pytorch.org/whl/cu90/torch-1.0.0-cp36-cp36m-win_amd64.whl"
         )
         install_str = "torch@ " + wheel_url
 

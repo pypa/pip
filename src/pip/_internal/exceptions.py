@@ -923,6 +923,21 @@ class InvalidEggFragment(DiagnosticPipError):
         )
 
 
+class InvalidSubdirectoryFragment(DiagnosticPipError):
+    reference = "invalid-subdirectory-fragment"
+
+    def __init__(self, link: Link, fragment: str) -> None:
+        super().__init__(
+            message=f"The '{escape(fragment)}' subdirectory fragment is invalid",
+            context=f"from '{escape(str(link))}'",
+            hint_stmt=(
+                "The 'subdirectory' fragment must be a relative path located "
+                "inside the project source tree. It cannot be absolute, contain "
+                "a drive letter, or use '..' to escape the source directory."
+            ),
+        )
+
+
 class BuildDependencyInstallError(DiagnosticPipError):
     """Raised when build dependencies cannot be installed."""
 

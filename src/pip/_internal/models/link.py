@@ -4,6 +4,7 @@ import datetime
 import functools
 import itertools
 import logging
+import ntpath
 import os
 import posixpath
 import re
@@ -16,7 +17,7 @@ from typing import (
     NamedTuple,
 )
 
-from pip._internal.exceptions import InvalidEggFragment
+from pip._internal.exceptions import InvalidEggFragment, InvalidSubdirectoryFragment
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
@@ -193,6 +194,56 @@ def _absolute_link_url(base_url: str, url: str) -> str:
         return urllib.parse.urljoin(base_url, url)
 
 
+def _path_escapes_root(candidate: str) -> bool:
+    """Return True if ``candidate`` is not a relative path contained within the
+    directory it is joined onto.
+
+    The value is rejected when it is an absolute path, carries a drive letter,
+    or climbs out of its starting directory with ``..`` components. Both POSIX
+    and Windows path semantics are checked, because a value authored with one
+    separator (e.g. ``..\\..``) must not slip through on the other platform.
+    """
+    sentinel = "pip-unpack-root"
+    for flavour in (posixpath, ntpath):
+        if flavour.isabs(candidate):
+            return True
+        resolved = flavour.normpath(flavour.join(sentinel, candidate))
+        if resolved != sentinel and not resolved.startswith(sentinel + flavour.sep):
+            return True
+    # ntpath.isabs() does not flag drive-relative paths such as "C:dir".
+    if ntpath.splitdrive(candidate)[0]:
+        return True
+    return False
+
+
+def _subdirectory_fragment_escapes(subdirectory: str) -> bool:
+    """Return True if ``subdirectory`` would resolve outside the directory it
+    is joined onto.
+
+    The ``subdirectory`` fragment of a requirement URL names a directory
+    *inside* the unpacked source tree. pip joins it onto the unpack location
+    and uses the result as the working directory for the build backend (see
+    ``InstallRequirement.unpacked_source_directory``). A fragment that points
+    elsewhere is therefore a path-traversal vector that can aim the build at
+    attacker-chosen files outside the archive.
+
+    The check is deliberately conservative:
+
+    * NUL and other control characters are rejected outright -- they have no
+      place in a directory name and can truncate or confuse downstream path
+      handling.
+    * Both the literal fragment *and* its percent-decoded form are checked for
+      containment. The fragment is used verbatim today, but validating the
+      decoded form as well means a percent-encoded ``..%2F..`` can never become
+      a traversal even if a consumer (e.g. the ``parse_qs`` based equivalence
+      check, or future code) unquotes it first.
+    """
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in subdirectory):
+        return True
+    candidates = {subdirectory, urllib.parse.unquote(subdirectory)}
+    return any(_path_escapes_root(candidate) for candidate in candidates)
+
+
 @functools.total_ordering
 class Link:
     """Represents a parsed link from a Package Index's simple URL"""
@@ -209,6 +260,7 @@ class Link:
         "upload_time",
         "cache_link_parsing",
         "egg_fragment",
+        "subdirectory_fragment",
     ]
 
     def __init__(
@@ -278,6 +330,7 @@ class Link:
 
         self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
+        self.subdirectory_fragment = self._subdirectory_fragment()
 
     @classmethod
     def from_json(
@@ -489,12 +542,21 @@ class Link:
 
     _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
-    @property
-    def subdirectory_fragment(self) -> str | None:
+    def _subdirectory_fragment(self) -> str | None:
         match = self._subdirectory_fragment_re.search(self._url)
         if not match:
             return None
-        return match.group(1)
+
+        # The subdirectory fragment is joined onto the unpack location and used
+        # as the build backend's working directory, so it must stay inside the
+        # source tree. Reject traversal/absolute values here, at the source, so
+        # no consumer can ever observe an unsafe path (mirrors the egg-fragment
+        # validation above).
+        subdirectory = match.group(1)
+        if _subdirectory_fragment_escapes(subdirectory):
+            raise InvalidSubdirectoryFragment(self, subdirectory)
+
+        return subdirectory
 
     def metadata_link(self) -> Link | None:
         """Return a link to the associated core metadata file (if any)."""

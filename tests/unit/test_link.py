@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from pip._internal.exceptions import InvalidEggFragment, PipError
+from pip._internal.exceptions import (
+    InvalidEggFragment,
+    InvalidSubdirectoryFragment,
+    PipError,
+)
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.utils.hashes import Hashes
 
@@ -100,6 +104,57 @@ class TestLink:
     def test_invalid_egg_fragments(self, fragment: str) -> None:
         url = f"git+https://example.com/package#egg={fragment}"
         with pytest.raises(PipError):
+            Link(url)
+
+    @pytest.mark.parametrize(
+        "subdirectory",
+        [
+            "subdir",
+            "src/pkg",
+            "a/b/c",
+            # Internal ".." that does not escape is allowed.
+            "a/../b",
+            # The empty fragment means "the unpack root itself".
+            "",
+        ],
+    )
+    def test_valid_subdirectory_fragments(self, subdirectory: str) -> None:
+        url = f"git+https://example.com/package#subdirectory={subdirectory}"
+        assert Link(url).subdirectory_fragment == subdirectory
+
+    @pytest.mark.parametrize(
+        "subdirectory",
+        [
+            # Parent-directory traversal (POSIX and Windows separators).
+            "..",
+            "../evil",
+            "../../etc",
+            "a/../../evil",
+            r"..\evil",
+            # Absolute paths.
+            "/etc",
+            "/etc/passwd",
+            r"\evil",
+            # Windows absolute / drive-relative paths.
+            r"C:\Windows",
+            "C:evil",
+            # UNC path.
+            r"\\host\share",
+            # Percent-encoded traversal must not slip past validation, even
+            # though the value is consumed verbatim today (defense in depth
+            # against any consumer that unquotes first).
+            "..%2F..%2Fetc",
+            "%2e%2e/%2e%2e/etc",
+            "..%5C..%5Cevil",
+            "%2Fetc%2Fpasswd",
+            # Control characters / NUL injection.
+            "src\x00/../../etc",
+            "evil\nName",
+        ],
+    )
+    def test_invalid_subdirectory_fragments(self, subdirectory: str) -> None:
+        url = f"git+https://example.com/package#subdirectory={subdirectory}"
+        with pytest.raises(InvalidSubdirectoryFragment):
             Link(url)
 
     def test_invalid_egg_fragment_with_extras_and_version_hint(self) -> None:

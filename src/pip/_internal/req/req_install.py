@@ -52,7 +52,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.unpacking import unpack_file
+from pip._internal.utils.unpacking import is_within_directory, unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
@@ -467,9 +467,19 @@ class InstallRequirement:
     @property
     def unpacked_source_directory(self) -> str:
         assert self.source_dir, f"No source dir for {self}"
-        return os.path.join(
-            self.source_dir, self.link and self.link.subdirectory_fragment or ""
-        )
+        subdirectory = (self.link and self.link.subdirectory_fragment) or ""
+        unpacked = os.path.join(self.source_dir, subdirectory)
+        # Defense in depth: the subdirectory fragment is already validated when
+        # the Link is created (Link._subdirectory_fragment), but verify
+        # containment here too so the directory handed to the build backend is
+        # provably inside the unpacked source tree.
+        if not is_within_directory(self.source_dir, unpacked):
+            raise InstallationError(
+                f"The requirement {self} has a 'subdirectory' fragment "
+                f"{subdirectory!r} that points outside the source directory "
+                f"{self.source_dir!r}."
+            )
+        return unpacked
 
     @property
     def setup_py_path(self) -> str:
