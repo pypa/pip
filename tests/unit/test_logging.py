@@ -1,6 +1,7 @@
 import logging
 import time
 from threading import Thread
+from typing import Iterator
 from unittest.mock import patch
 
 import pytest
@@ -15,11 +16,14 @@ from pip._internal.utils.misc import captured_stderr, captured_stdout
 
 logger = logging.getLogger(__name__)
 
-logging.Formatter.converter = time.gmtime
-
 
 class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
+
+    @pytest.fixture(autouse=True)
+    def utc_logging_formatter(self) -> Iterator[None]:
+        with patch.object(logging.Formatter, "converter", time.gmtime):
+            yield
 
     def make_record(self, msg: str, level_name: str) -> logging.LogRecord:
         level_number = getattr(logging, level_name)

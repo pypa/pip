@@ -17,11 +17,11 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 @pytest.fixture
 def fixed_time() -> Iterator[None]:
-    with patch("time.time", lambda: 1547704837.040001):
+    with (
+        patch("time.time", lambda: 1547704837.040001),
+        patch.object(logging.Formatter, "converter", time.gmtime),
+    ):
         yield
-
-
-logging.Formatter.converter = time.gmtime
 
 
 class FakeCommand(Command):
