@@ -26,12 +26,7 @@ from pip._vendor.rich.progress import (
 from pip._vendor.rich.status import Status
 
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.logging import (
-    PipConsole,
-    _detect_no_color,
-    get_console,
-    get_indentation,
-)
+from pip._internal.utils.logging import get_console, get_indentation
 
 if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
@@ -41,24 +36,6 @@ ProgressRenderer = Callable[[Iterable[T]], Iterator[T]]
 BarType = Literal["on", "off", "raw"]
 
 logger = logging.getLogger(__name__)
-
-
-def _console() -> Console:
-    try:
-        return get_console()
-    except AssertionError:
-        # Create a fresh console with colour disabled according to env.
-        console = PipConsole(
-            file=sys.stdout,
-            no_color=_detect_no_color(),
-            soft_wrap=True,
-            force_terminal=True,
-        )
-        # Store globally for future ``get_console`` calls.
-        import pip._internal.utils.logging as _log_mod
-
-        _log_mod._stdout_console = console
-        return console
 
 
 def _rich_download_progress_bar(
@@ -115,6 +92,8 @@ def _rich_install_progress_bar(
     console = get_console()
 
     bar = Progress(*columns, refresh_per_second=6, console=console, transient=True)
+    # Hiding the progress bar at initialization forces a refresh cycle to occur
+    # until the bar appears, avoiding very short flashes.
     task = bar.add_task("", total=total, indent=" " * get_indentation(), visible=False)
     with bar:
         for req in iterable:
@@ -174,8 +153,7 @@ def status(message: str) -> Generator[None, None, None]:
         yield
         return
     logger.info(message)
-    c = _console()
-    with Status(message, console=c):
+    with Status(message, console=get_console()):
         yield
 
 
@@ -184,10 +162,7 @@ def open_spinner(
     label: str, console: Console | None = None
 ) -> Generator[None, None, None]:
     if console is None:
-        try:
-            console = get_console()
-        except AssertionError:
-            console = _console()
+        console = get_console()
     visible = logger.getEffectiveLevel() <= logging.INFO
     hide: AbstractContextManager[None] = (
         hidden_cursor(console.file)
@@ -216,6 +191,10 @@ def open_spinner(
 def get_download_progress_renderer(
     *, bar_type: BarType, size: int | None = None, initial_progress: int | None = None
 ) -> ProgressRenderer[bytes]:
+    """Get an object that can be used to render the download progress.
+
+    Returns a callable, that takes an iterable to "wrap".
+    """
     if bar_type == "on":
         return functools.partial(
             _rich_download_progress_bar,
@@ -230,12 +209,15 @@ def get_download_progress_renderer(
             initial_progress=initial_progress,
         )
     else:
-        return iter
+        return iter  # no-op, when passed an iterator
 
 
 def get_install_progress_renderer(
     *, bar_type: BarType, total: int
 ) -> ProgressRenderer[InstallRequirement]:
+    """Get an object that can be used to render the install progress.
+    Returns a callable, that takes an iterable to "wrap".
+    """
     if bar_type == "on":
         return functools.partial(_rich_install_progress_bar, total=total)
     else:

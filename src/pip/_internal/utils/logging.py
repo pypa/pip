@@ -57,23 +57,6 @@ def _is_broken_pipe_error(exc_class: type[BaseException], exc: BaseException) ->
     return isinstance(exc, OSError) and exc.errno in (errno.EINVAL, errno.EPIPE)
 
 
-_NO_COLOR_DETECTED: bool | None = None
-
-
-def _detect_no_color() -> bool:
-    """Detect whether colour output should be suppressed."""
-
-    global _NO_COLOR_DETECTED
-    if _NO_COLOR_DETECTED is not None:
-        return _NO_COLOR_DETECTED
-    _NO_COLOR_DETECTED = (
-        "--no-color" in sys.argv
-        or os.getenv("PIP_NO_COLOR") == "1"
-        or "NO_COLOR" in os.environ
-    )
-    return _NO_COLOR_DETECTED
-
-
 @contextlib.contextmanager
 def capture_logging() -> Generator[StringIO, None, None]:
     """Capture all pip logs in a buffer temporarily."""
