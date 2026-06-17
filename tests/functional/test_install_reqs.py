@@ -447,25 +447,17 @@ def test_subdirectory_traversal_cannot_escape_build_dir(tmp_path: Path) -> None:
     outside.mkdir()
     marker = tmp_path / "PWNED.txt"
 
-    (outside / "pyproject.toml").write_text(
-        textwrap.dedent(
-            """\
+    (outside / "pyproject.toml").write_text(textwrap.dedent("""\
             [build-system]
             requires = ["setuptools"]
             build-backend = "setuptools.build_meta"
-            """
-        )
-    )
-    (outside / "setup.py").write_text(
-        textwrap.dedent(
-            f"""\
+            """))
+    (outside / "setup.py").write_text(textwrap.dedent(f"""\
             with open({str(marker)!r}, "w") as fh:
                 fh.write("executed outside the archive")
             from setuptools import setup
             setup(name="evilpkg", version="1.0", py_modules=[])
-            """
-        )
-    )
+            """))
 
     # Layer 1: a normal Link rejects the traversal fragment at parse time.
     with pytest.raises(InvalidSubdirectoryFragment):
