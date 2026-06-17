@@ -13,6 +13,11 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_set import RequirementSet
+from pip._internal.resolution.resolvelib.candidates import (
+    EditableCandidate,
+    LinkCandidate,
+)
+from pip._internal.resolution.resolvelib.factory import Cache
 from pip._internal.resolution.resolvelib.resolver import (
     Resolver,
     get_topological_weights,
@@ -300,3 +305,70 @@ def test_new_resolver_topological_weights(
 
     weights = get_topological_weights(graph, requirement_keys)
     assert weights == expected_weights
+
+
+def test_resolver_uses_injected_candidate_caches(
+    preparer: RequirementPreparer, finder: PackageFinder
+) -> None:
+    # Identity, not equality: amortising candidate construction across resolver
+    # invocations only works if the caller's dict is the one the Factory writes
+    # into.
+    link_cache: Cache[LinkCandidate] = {}
+    editable_cache: Cache[EditableCandidate] = {}
+
+    resolver = Resolver(
+        preparer=preparer,
+        finder=finder,
+        wheel_cache=None,
+        make_install_req=mock.Mock(),
+        use_user_site=False,
+        ignore_dependencies=False,
+        ignore_installed=False,
+        ignore_requires_python=False,
+        force_reinstall=False,
+        upgrade_strategy="to-satisfy-only",
+        link_candidate_cache=link_cache,
+        editable_candidate_cache=editable_cache,
+    )
+
+    assert resolver.factory._link_candidate_cache is link_cache
+    assert resolver.factory._editable_candidate_cache is editable_cache
+
+
+def test_resolver_creates_fresh_candidate_caches_by_default(
+    preparer: RequirementPreparer, finder: PackageFinder
+) -> None:
+    # Without explicit injection each Factory must own its own dicts;
+    # otherwise default callers would silently share state.
+    first = Resolver(
+        preparer=preparer,
+        finder=finder,
+        wheel_cache=None,
+        make_install_req=mock.Mock(),
+        use_user_site=False,
+        ignore_dependencies=False,
+        ignore_installed=False,
+        ignore_requires_python=False,
+        force_reinstall=False,
+        upgrade_strategy="to-satisfy-only",
+    )
+    second = Resolver(
+        preparer=preparer,
+        finder=finder,
+        wheel_cache=None,
+        make_install_req=mock.Mock(),
+        use_user_site=False,
+        ignore_dependencies=False,
+        ignore_installed=False,
+        ignore_requires_python=False,
+        force_reinstall=False,
+        upgrade_strategy="to-satisfy-only",
+    )
+
+    assert (
+        first.factory._link_candidate_cache is not second.factory._link_candidate_cache
+    )
+    assert (
+        first.factory._editable_candidate_cache
+        is not second.factory._editable_candidate_cache
+    )

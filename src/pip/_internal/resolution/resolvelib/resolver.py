@@ -32,6 +32,9 @@ from .factory import Factory
 if TYPE_CHECKING:
     from pip._vendor.resolvelib.resolvers import Result as RLResult
 
+    from .candidates import EditableCandidate, LinkCandidate
+    from .factory import Cache
+
     Result = RLResult[Requirement, Candidate, str]
 
 
@@ -54,6 +57,8 @@ class Resolver(BaseResolver):
         force_reinstall: bool,
         upgrade_strategy: str,
         py_version_info: tuple[int, ...] | None = None,
+        link_candidate_cache: Cache[LinkCandidate] | None = None,
+        editable_candidate_cache: Cache[EditableCandidate] | None = None,
     ):
         super().__init__()
         assert upgrade_strategy in self._allowed_strategies
@@ -68,6 +73,8 @@ class Resolver(BaseResolver):
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
             py_version_info=py_version_info,
+            link_candidate_cache=link_candidate_cache,
+            editable_candidate_cache=editable_candidate_cache,
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
