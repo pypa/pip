@@ -1,12 +1,6 @@
-import sys
 from fractions import Fraction
 from math import ceil
-from typing import cast, List, Optional, Sequence
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from pip._vendor.typing_extensions import Protocol  # pragma: no cover
+from typing import cast, List, Optional, Sequence, Protocol
 
 
 class Edge(Protocol):
@@ -151,7 +145,6 @@ if __name__ == "__main__":
 
     @dataclass
     class E:
-
         size: Optional[int] = None
         ratio: int = 1
         minimum_size: int = 1

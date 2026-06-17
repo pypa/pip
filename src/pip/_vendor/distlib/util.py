@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2012-2023 The Python Software Foundation.
+# Copyright (C) 2012-2026 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 import codecs
@@ -31,11 +31,9 @@ except ImportError:  # pragma: no cover
 import time
 
 from . import DistlibException
-from .compat import (string_types, text_type, shutil, raw_input, StringIO,
-                     cache_from_source, urlopen, urljoin, httplib, xmlrpclib,
-                     HTTPHandler, BaseConfigurator, valid_ident,
-                     Container, configparser, URLError, ZipFile, fsdecode,
-                     unquote, urlparse)
+from .compat import (string_types, text_type, shutil, raw_input, StringIO, cache_from_source, urlopen, urljoin, httplib,
+                     xmlrpclib, HTTPHandler, BaseConfigurator, valid_ident, Container, configparser, URLError, ZipFile,
+                     fsdecode, unquote, urlparse)
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +86,7 @@ def parse_marker(marker_string):
                 else:
                     m = STRING_CHUNK.match(remaining)
                     if not m:
-                        raise SyntaxError('error in string literal: %s' %
-                                          remaining)
+                        raise SyntaxError('error in string literal: %s' % remaining)
                     parts.append(m.groups()[0])
                     remaining = remaining[m.end():]
             else:
@@ -210,8 +207,7 @@ def parse_requirement(req):
                         ver_remaining = ver_remaining[m.end():]
                         m = VERSION_IDENTIFIER.match(ver_remaining)
                         if not m:
-                            raise SyntaxError('invalid version: %s' %
-                                              ver_remaining)
+                            raise SyntaxError('invalid version: %s' % ver_remaining)
                         v = m.groups()[0]
                         versions.append((op, v))
                         ver_remaining = ver_remaining[m.end():]
@@ -224,8 +220,7 @@ def parse_requirement(req):
                             break
                         m = COMPARE_OP.match(ver_remaining)
                         if not m:
-                            raise SyntaxError('invalid constraint: %s' %
-                                              ver_remaining)
+                            raise SyntaxError('invalid constraint: %s' % ver_remaining)
                     if not versions:
                         versions = None
                 return versions, ver_remaining
@@ -235,8 +230,7 @@ def parse_requirement(req):
             else:
                 i = remaining.find(')', 1)
                 if i < 0:
-                    raise SyntaxError('unterminated parenthesis: %s' %
-                                      remaining)
+                    raise SyntaxError('unterminated parenthesis: %s' % remaining)
                 s = remaining[1:i]
                 remaining = remaining[i + 1:].lstrip()
                 # As a special diversion from PEP 508, allow a version number
@@ -267,14 +261,8 @@ def parse_requirement(req):
     if not versions:
         rs = distname
     else:
-        rs = '%s %s' % (distname, ', '.join(
-            ['%s %s' % con for con in versions]))
-    return Container(name=distname,
-                     extras=extras,
-                     constraints=versions,
-                     marker=mark_expr,
-                     url=uri,
-                     requirement=rs)
+        rs = '%s %s' % (distname, ', '.join(['%s %s' % con for con in versions]))
+    return Container(name=distname, extras=extras, constraints=versions, marker=mark_expr, url=uri, requirement=rs)
 
 
 def get_resources_dests(resources_root, rules):
@@ -524,8 +512,7 @@ class FileOperator(object):
         second will have the same "age".
         """
         if not os.path.exists(source):
-            raise DistlibException("file '%r' does not exist" %
-                                   os.path.abspath(source))
+            raise DistlibException("file '%r' does not exist" % os.path.abspath(source))
         if not os.path.exists(target):
             return True
 
@@ -601,13 +588,12 @@ class FileOperator(object):
             if self.record:
                 self.dirs_created.add(path)
 
-    def byte_compile(self,
-                     path,
-                     optimize=False,
-                     force=False,
-                     prefix=None,
-                     hashed_invalidation=False):
-        dpath = cache_from_source(path, not optimize)
+    def byte_compile(self, path, optimize=False, force=False, prefix=None, hashed_invalidation=False):
+        if not optimize:
+            optimization = ''
+        else:
+            optimization = '1'
+        dpath = cache_from_source(path, optimization=optimization)
         logger.info('Byte-compiling %s to %s', path, dpath)
         if not self.dry_run:
             if force or self.newer(path, dpath):
@@ -617,12 +603,11 @@ class FileOperator(object):
                     assert path.startswith(prefix)
                     diagpath = path[len(prefix):]
             compile_kwargs = {}
-            if hashed_invalidation and hasattr(py_compile,
-                                               'PycInvalidationMode'):
-                compile_kwargs[
-                    'invalidation_mode'] = py_compile.PycInvalidationMode.CHECKED_HASH
-            py_compile.compile(path, dpath, diagpath, True,
-                               **compile_kwargs)  # raise error
+            if hashed_invalidation and hasattr(py_compile, 'PycInvalidationMode'):
+                if not isinstance(hashed_invalidation, py_compile.PycInvalidationMode):
+                    hashed_invalidation = py_compile.PycInvalidationMode.CHECKED_HASH
+                compile_kwargs['invalidation_mode'] = hashed_invalidation
+            py_compile.compile(path, dpath, diagpath, True, **compile_kwargs)  # raise error
         self.record_as_written(dpath)
         return dpath
 
@@ -716,15 +701,13 @@ class ExportEntry(object):
         return resolve(self.prefix, self.suffix)
 
     def __repr__(self):  # pragma: no cover
-        return '<ExportEntry %s = %s:%s %s>' % (self.name, self.prefix,
-                                                self.suffix, self.flags)
+        return '<ExportEntry %s = %s:%s %s>' % (self.name, self.prefix, self.suffix, self.flags)
 
     def __eq__(self, other):
         if not isinstance(other, ExportEntry):
             result = False
         else:
-            result = (self.name == other.name and self.prefix == other.prefix
-                      and self.suffix == other.suffix
+            result = (self.name == other.name and self.prefix == other.prefix and self.suffix == other.suffix
                       and self.flags == other.flags)
         return result
 
@@ -810,7 +793,7 @@ def get_cache_base(suffix=None):
     return os.path.join(result, suffix)
 
 
-def path_to_cache_dir(path):
+def path_to_cache_dir(path, use_abspath=True):
     """
     Convert an absolute path to a directory name for use in a cache.
 
@@ -820,7 +803,7 @@ def path_to_cache_dir(path):
     #. Any occurrence of ``os.sep`` is replaced with ``'--'``.
     #. ``'.cache'`` is appended.
     """
-    d, p = os.path.splitdrive(os.path.abspath(path))
+    d, p = os.path.splitdrive(os.path.abspath(path) if use_abspath else path)
     if d:
         d = d.replace(':', '---')
     p = p.replace(os.sep, '--')
@@ -865,9 +848,8 @@ def is_string_sequence(seq):
     return result
 
 
-PROJECT_NAME_AND_VERSION = re.compile(
-    '([a-z0-9_]+([.-][a-z_][a-z0-9_]*)*)-'
-    '([a-z0-9_.+-]+)', re.I)
+PROJECT_NAME_AND_VERSION = re.compile('([a-z0-9_]+([.-][a-z_][a-z0-9_]*)*)-'
+                                      '([a-z0-9_.+-]+)', re.I)
 PYTHON_VERSION = re.compile(r'-py(\d\.?\d?)')
 
 
@@ -1003,11 +985,11 @@ class Cache(object):
             logger.warning('Directory \'%s\' is not private', base)
         self.base = os.path.abspath(os.path.normpath(base))
 
-    def prefix_to_dir(self, prefix):
+    def prefix_to_dir(self, prefix, use_abspath=True):
         """
         Converts a resource prefix to a directory name in the cache.
         """
-        return path_to_cache_dir(prefix)
+        return path_to_cache_dir(prefix, use_abspath=use_abspath)
 
     def clear(self):
         """
@@ -1092,8 +1074,7 @@ class EventMixin(object):
                 logger.exception('Exception during event publication')
                 value = None
             result.append(value)
-        logger.debug('publish %s: args = %s, kwargs = %s, result = %s', event,
-                     args, kwargs, result)
+        logger.debug('publish %s: args = %s, kwargs = %s, result = %s', event, args, kwargs, result)
         return result
 
 
@@ -1145,8 +1126,7 @@ class Sequencer(object):
             raise ValueError('%r not a successor of %r' % (succ, pred))
 
     def is_step(self, step):
-        return (step in self._preds or step in self._succs
-                or step in self._nodes)
+        return (step in self._preds or step in self._succs or step in self._nodes)
 
     def get_steps(self, final):
         if not self.is_step(final):
@@ -1242,18 +1222,35 @@ class Sequencer(object):
 # Unarchiving functionality for zip, tar, tgz, tbz, whl
 #
 
-ARCHIVE_EXTENSIONS = ('.tar.gz', '.tar.bz2', '.tar', '.zip', '.tgz', '.tbz',
-                      '.whl')
+ARCHIVE_EXTENSIONS = ('.tar.gz', '.tar.bz2', '.tar', '.zip', '.tgz', '.tbz', '.whl')
 
 
 def unarchive(archive_filename, dest_dir, format=None, check=True):
 
-    def check_path(path):
+    def check_path(path, base=None):
         if not isinstance(path, text_type):
             path = path.decode('utf-8')
-        p = os.path.abspath(os.path.join(dest_dir, path))
+        if base is None:
+            base = dest_dir
+        p = os.path.abspath(os.path.join(base, path))
         if not p.startswith(dest_dir) or p[plen] != os.sep:
             raise ValueError('path outside destination: %r' % p)
+
+    def check_link(member):
+        # A symlink/hardlink member's name is validated like any other
+        # member, but its target (linkname) is not covered by extractall's
+        # name-based handling. An unchecked target lets a later member be
+        # written through the link to a location outside dest_dir. Validate
+        # the resolved target stays within dest_dir. Symlink targets are
+        # relative to the member's own directory; hardlink targets are
+        # relative to the archive root (i.e. dest_dir).
+        if not (member.issym() or member.islnk()):
+            return
+        if member.issym():
+            link_base = os.path.dirname(os.path.join(dest_dir, member.name))
+        else:
+            link_base = dest_dir
+        check_path(member.linkname, base=link_base)
 
     dest_dir = os.path.abspath(dest_dir)
     plen = len(dest_dir)
@@ -1282,9 +1279,9 @@ def unarchive(archive_filename, dest_dir, format=None, check=True):
         else:
             archive = tarfile.open(archive_filename, mode)
             if check:
-                names = archive.getnames()
-                for name in names:
-                    check_path(name)
+                for member in archive.getmembers():
+                    check_path(member.name)
+                    check_link(member)
         if format != 'zip' and sys.version_info[0] < 3:
             # See Python issue 17153. If the dest path contains Unicode,
             # tarfile extraction fails on Python 2.x if a member path name
@@ -1474,12 +1471,12 @@ def _iglob(path_glob):
 
 
 if ssl:
-    from .compat import (HTTPSHandler as BaseHTTPSHandler, match_hostname,
-                         CertificateError)
+    from .compat import (HTTPSHandler as BaseHTTPSHandler, match_hostname, CertificateError)
 
     #
     # HTTPSConnection which verifies certificates/matches domains
     #
+
 
     class HTTPSConnection(httplib.HTTPSConnection):
         ca_certs = None  # set this to the path to the certs file (.pem)
@@ -1487,8 +1484,7 @@ if ssl:
 
         # noinspection PyPropertyAccess
         def connect(self):
-            sock = socket.create_connection((self.host, self.port),
-                                            self.timeout)
+            sock = socket.create_connection((self.host, self.port), self.timeout)
             if getattr(self, '_tunnel_host', False):
                 self.sock = sock
                 self._tunnel()
@@ -1543,9 +1539,8 @@ if ssl:
                 return self.do_open(self._conn_maker, req)
             except URLError as e:
                 if 'certificate verify failed' in str(e.reason):
-                    raise CertificateError(
-                        'Unable to verify server certificate '
-                        'for %s' % req.host)
+                    raise CertificateError('Unable to verify server certificate '
+                                           'for %s' % req.host)
                 else:
                     raise
 
@@ -1561,9 +1556,8 @@ if ssl:
     class HTTPSOnlyHandler(HTTPSHandler, HTTPHandler):
 
         def http_open(self, req):
-            raise URLError(
-                'Unexpected HTTP request on what should be a secure '
-                'connection: %s' % req)
+            raise URLError('Unexpected HTTP request on what should be a secure '
+                           'connection: %s' % req)
 
 
 #
@@ -1598,8 +1592,7 @@ if ssl:
             kwargs['timeout'] = self.timeout
             if not self._connection or host != self._connection[0]:
                 self._extra_headers = eh
-                self._connection = host, httplib.HTTPSConnection(
-                    h, None, **kwargs)
+                self._connection = host, httplib.HTTPSConnection(h, None, **kwargs)
             return self._connection[1]
 
 
@@ -1789,10 +1782,7 @@ class SubprocessMixin(object):
         stream.close()
 
     def run_command(self, cmd, **kwargs):
-        p = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             **kwargs)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
         t1 = threading.Thread(target=self.reader, args=(p.stdout, 'stdout'))
         t1.start()
         t2 = threading.Thread(target=self.reader, args=(p.stderr, 'stderr'))
@@ -1809,8 +1799,13 @@ class SubprocessMixin(object):
 
 def normalize_name(name):
     """Normalize a python package name a la PEP 503"""
-    # https://www.python.org/dev/peps/pep-0503/#normalized-names
-    return re.sub('[-_.]+', '-', name).lower()
+    # https://peps.python.org/pep-0503/#normalized-names
+    # Emulates re.sub(r"[-_.]+", "-", name).lower()
+    # Much faster than re, and even faster than str.translate
+    value = name.lower().replace("_", "-").replace(".", "-")
+    while "--" in value:
+        value = value.replace("--", "-")
+    return value
 
 
 # def _get_pypirc_command():
@@ -1847,10 +1842,7 @@ class PyPIRCFile(object):
             if 'distutils' in sections:
                 # let's get the list of servers
                 index_servers = config.get('distutils', 'index-servers')
-                _servers = [
-                    server.strip() for server in index_servers.split('\n')
-                    if server.strip() != ''
-                ]
+                _servers = [server.strip() for server in index_servers.split('\n') if server.strip() != '']
                 if _servers == []:
                     # nothing set, let's try to get the default pypi
                     if 'pypi' in sections:
@@ -1861,9 +1853,7 @@ class PyPIRCFile(object):
                         result['username'] = config.get(server, 'username')
 
                         # optional params
-                        for key, default in (('repository',
-                                              self.DEFAULT_REPOSITORY),
-                                             ('realm', self.DEFAULT_REALM),
+                        for key, default in (('repository', self.DEFAULT_REPOSITORY), ('realm', self.DEFAULT_REALM),
                                              ('password', None)):
                             if config.has_option(server, key):
                                 result[key] = config.get(server, key)
@@ -1873,11 +1863,9 @@ class PyPIRCFile(object):
                         # work around people having "repository" for the "pypi"
                         # section of their config set to the HTTP (rather than
                         # HTTPS) URL
-                        if (server == 'pypi' and repository
-                                in (self.DEFAULT_REPOSITORY, 'pypi')):
+                        if (server == 'pypi' and repository in (self.DEFAULT_REPOSITORY, 'pypi')):
                             result['repository'] = self.DEFAULT_REPOSITORY
-                        elif (result['server'] != repository
-                              and result['repository'] != repository):
+                        elif (result['server'] != repository and result['repository'] != repository):
                             result = {}
             elif 'server-login' in sections:
                 # old format
@@ -2003,8 +1991,7 @@ def get_host_platform():
             from distutils import sysconfig
         except ImportError:
             import sysconfig
-        osname, release, machine = _osx_support.get_platform_osx(
-            sysconfig.get_config_vars(), osname, release, machine)
+        osname, release, machine = _osx_support.get_platform_osx(sysconfig.get_config_vars(), osname, release, machine)
 
     return '%s-%s-%s' % (osname, release, machine)
 
@@ -2023,3 +2010,12 @@ def get_platform():
     if cross_compilation_target not in _TARGET_TO_PLAT:
         return get_host_platform()
     return _TARGET_TO_PLAT[cross_compilation_target]
+
+
+def is_in_directory(path, target):
+    """
+    Check if a path is inside a target directory. This doesn't check case (might be an issue on Windows)
+    """
+    path = os.path.abspath(path)
+    target = os.path.abspath(target)
+    return path == target or path.startswith(target + os.sep)

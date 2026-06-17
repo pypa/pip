@@ -66,7 +66,7 @@ man pages][netrc-docs].
 ## Keyring Support
 
 pip supports loading credentials stored in your keyring using the
-{pypi}`keyring` library, which can be enabled py passing `--keyring-provider`
+{pypi}`keyring` library, which can be enabled by passing `--keyring-provider`
 with a value of `auto`, `disabled`, `import`, or `subprocess`. The default
 value `auto` respects `--no-input` and does not query keyring at all if the option
 is used; otherwise it tries the `import`, `subprocess`, and `disabled`
@@ -84,7 +84,7 @@ configure its usage would be to use a configuration instead:
 ```bash
 $ pip config set --global global.keyring-provider subprocess
 
-# A different user on the same system which has PYTHONPATH configured and and
+# A different user on the same system which has PYTHONPATH configured and
 # wanting to use keyring installed that way could then run
 $ pip config set --user global.keyring-provider import
 
@@ -154,25 +154,6 @@ You can force keyring usage by requesting a keyring provider other than `auto`
 $ pip config set global.keyring-provider subprocess
 # or via environment variable
 $ export PIP_KEYRING_PROVIDER=import
-```
-
-```{warning}
-Be careful when doing this since it could cause tools such as pipx and Pipenv
-to appear to hang. They show their own progress indicator while hiding output
-from the subprocess in which they run Pip. You won't know whether the keyring
-backend is waiting the user input or not in such situations.
-```
-
-pip is conservative and does not query keyring at all when `--no-input` is used
-because the keyring might require user interaction such as prompting the user
-on the console. You can force keyring usage by passing `--force-keyring` or one
-of the following:
-
-```bash
-# possibly with --user, --global or --site
-$ pip config set global.force-keyring true
-# or
-$ export PIP_FORCE_KEYRING=1
 ```
 
 ```{warning}

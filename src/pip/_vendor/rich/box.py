@@ -1,10 +1,4 @@
-import sys
-from typing import TYPE_CHECKING, Iterable, List
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from pip._vendor.typing_extensions import Literal  # pragma: no cover
+from typing import TYPE_CHECKING, Iterable, List, Literal
 
 
 from ._loop import loop_last
@@ -188,260 +182,224 @@ class Box:
         return "".join(parts)
 
 
+# fmt: off
 ASCII: Box = Box(
-    """\
-+--+
-| ||
-|-+|
-| ||
-|-+|
-|-+|
-| ||
-+--+
-""",
+    "+--+\n"
+    "| ||\n"
+    "|-+|\n"
+    "| ||\n"
+    "|-+|\n"
+    "|-+|\n"
+    "| ||\n"
+    "+--+\n",
     ascii=True,
 )
 
 ASCII2: Box = Box(
-    """\
-+-++
-| ||
-+-++
-| ||
-+-++
-+-++
-| ||
-+-++
-""",
+    "+-++\n"
+    "| ||\n"
+    "+-++\n"
+    "| ||\n"
+    "+-++\n"
+    "+-++\n"
+    "| ||\n"
+    "+-++\n",
     ascii=True,
 )
 
 ASCII_DOUBLE_HEAD: Box = Box(
-    """\
-+-++
-| ||
-+=++
-| ||
-+-++
-+-++
-| ||
-+-++
-""",
+    "+-++\n"
+    "| ||\n"
+    "+=++\n"
+    "| ||\n"
+    "+-++\n"
+    "+-++\n"
+    "| ||\n"
+    "+-++\n",
     ascii=True,
 )
 
 SQUARE: Box = Box(
-    """\
-┌─┬┐
-│ ││
-├─┼┤
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-└─┴┘
-"""
+    "┌─┬┐\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "└─┴┘\n"
 )
 
 SQUARE_DOUBLE_HEAD: Box = Box(
-    """\
-┌─┬┐
-│ ││
-╞═╪╡
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-└─┴┘
-"""
+    "┌─┬┐\n"
+    "│ ││\n"
+    "╞═╪╡\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "└─┴┘\n"
 )
 
 MINIMAL: Box = Box(
-    """\
-  ╷ 
-  │ 
-╶─┼╴
-  │ 
-╶─┼╴
-╶─┼╴
-  │ 
-  ╵ 
-"""
+    "  ╷ \n"
+    "  │ \n"
+    "╶─┼╴\n"
+    "  │ \n"
+    "╶─┼╴\n"
+    "╶─┼╴\n"
+    "  │ \n"
+    "  ╵ \n"
 )
 
 
 MINIMAL_HEAVY_HEAD: Box = Box(
-    """\
-  ╷ 
-  │ 
-╺━┿╸
-  │ 
-╶─┼╴
-╶─┼╴
-  │ 
-  ╵ 
-"""
+    "  ╷ \n"
+    "  │ \n"
+    "╺━┿╸\n"
+    "  │ \n"
+    "╶─┼╴\n"
+    "╶─┼╴\n"
+    "  │ \n"
+    "  ╵ \n"
 )
 
 MINIMAL_DOUBLE_HEAD: Box = Box(
-    """\
-  ╷ 
-  │ 
- ═╪ 
-  │ 
- ─┼ 
- ─┼ 
-  │ 
-  ╵ 
-"""
+    "  ╷ \n"
+    "  │ \n"
+    " ═╪ \n"
+    "  │ \n"
+    " ─┼ \n"
+    " ─┼ \n"
+    "  │ \n"
+    "  ╵ \n"
 )
 
 
 SIMPLE: Box = Box(
-    """\
-    
-    
- ── 
-    
-    
- ── 
-    
-    
-"""
+    "    \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    "    \n"
 )
 
 SIMPLE_HEAD: Box = Box(
-    """\
-    
-    
- ── 
-    
-    
-    
-    
-    
-"""
+    "    \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    "    \n"
+    "    \n"
+    "    \n"
+    "    \n"
 )
 
 
 SIMPLE_HEAVY: Box = Box(
-    """\
-    
-    
- ━━ 
-    
-    
- ━━ 
-    
-    
-"""
+    "    \n"
+    "    \n"
+    " ━━ \n"
+    "    \n"
+    "    \n"
+    " ━━ \n"
+    "    \n"
+    "    \n"
 )
 
 
 HORIZONTALS: Box = Box(
-    """\
- ── 
-    
- ── 
-    
- ── 
- ── 
-    
- ── 
-"""
+    " ── \n"
+    "    \n"
+    " ── \n"
+    "    \n"
+    " ── \n"
+    " ── \n"
+    "    \n"
+    " ── \n"
 )
 
 ROUNDED: Box = Box(
-    """\
-╭─┬╮
-│ ││
-├─┼┤
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-╰─┴╯
-"""
+    "╭─┬╮\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "╰─┴╯\n"
 )
 
 HEAVY: Box = Box(
-    """\
-┏━┳┓
-┃ ┃┃
-┣━╋┫
-┃ ┃┃
-┣━╋┫
-┣━╋┫
-┃ ┃┃
-┗━┻┛
-"""
+    "┏━┳┓\n"
+    "┃ ┃┃\n"
+    "┣━╋┫\n"
+    "┃ ┃┃\n"
+    "┣━╋┫\n"
+    "┣━╋┫\n"
+    "┃ ┃┃\n"
+    "┗━┻┛\n"
 )
 
 HEAVY_EDGE: Box = Box(
-    """\
-┏━┯┓
-┃ │┃
-┠─┼┨
-┃ │┃
-┠─┼┨
-┠─┼┨
-┃ │┃
-┗━┷┛
-"""
+    "┏━┯┓\n"
+    "┃ │┃\n"
+    "┠─┼┨\n"
+    "┃ │┃\n"
+    "┠─┼┨\n"
+    "┠─┼┨\n"
+    "┃ │┃\n"
+    "┗━┷┛\n"
 )
 
 HEAVY_HEAD: Box = Box(
-    """\
-┏━┳┓
-┃ ┃┃
-┡━╇┩
-│ ││
-├─┼┤
-├─┼┤
-│ ││
-└─┴┘
-"""
+    "┏━┳┓\n"
+    "┃ ┃┃\n"
+    "┡━╇┩\n"
+    "│ ││\n"
+    "├─┼┤\n"
+    "├─┼┤\n"
+    "│ ││\n"
+    "└─┴┘\n"
 )
 
 DOUBLE: Box = Box(
-    """\
-╔═╦╗
-║ ║║
-╠═╬╣
-║ ║║
-╠═╬╣
-╠═╬╣
-║ ║║
-╚═╩╝
-"""
+    "╔═╦╗\n"
+    "║ ║║\n"
+    "╠═╬╣\n"
+    "║ ║║\n"
+    "╠═╬╣\n"
+    "╠═╬╣\n"
+    "║ ║║\n"
+    "╚═╩╝\n"
 )
 
 DOUBLE_EDGE: Box = Box(
-    """\
-╔═╤╗
-║ │║
-╟─┼╢
-║ │║
-╟─┼╢
-╟─┼╢
-║ │║
-╚═╧╝
-"""
+    "╔═╤╗\n"
+    "║ │║\n"
+    "╟─┼╢\n"
+    "║ │║\n"
+    "╟─┼╢\n"
+    "╟─┼╢\n"
+    "║ │║\n"
+    "╚═╧╝\n"
 )
 
 MARKDOWN: Box = Box(
-    """\
-    
-| ||
-|-||
-| ||
-|-||
-|-||
-| ||
-    
-""",
+    "    \n"
+    "| ||\n"
+    "|-||\n"
+    "| ||\n"
+    "|-||\n"
+    "|-||\n"
+    "| ||\n"
+    "    \n",
     ascii=True,
 )
+# fmt: on
 
 # Map Boxes that don't render with raster fonts on to equivalent that do
 LEGACY_WINDOWS_SUBSTITUTIONS = {
@@ -464,7 +422,6 @@ PLAIN_HEADED_SUBSTITUTIONS = {
 
 
 if __name__ == "__main__":  # pragma: no cover
-
     from pip._vendor.rich.columns import Columns
     from pip._vendor.rich.panel import Panel
 

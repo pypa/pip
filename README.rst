@@ -1,17 +1,19 @@
 pip - The Python Package Installer
 ==================================
 
-.. image:: https://img.shields.io/pypi/v/pip.svg
+.. |pypi-version| image:: https://img.shields.io/pypi/v/pip.svg
    :target: https://pypi.org/project/pip/
    :alt: PyPI
 
-.. image:: https://img.shields.io/pypi/pyversions/pip
+.. |python-versions| image:: https://img.shields.io/pypi/pyversions/pip
    :target: https://pypi.org/project/pip
    :alt: PyPI - Python Version
 
-.. image:: https://readthedocs.org/projects/pip/badge/?version=latest
+.. |docs-badge| image:: https://readthedocs.org/projects/pip/badge/?version=latest
    :target: https://pip.pypa.io/en/latest
    :alt: Documentation
+
+|pypi-version| |python-versions| |docs-badge|
 
 pip is the `package installer`_ for Python. You can use pip to install packages from the `Python Package Index`_ and other indexes.
 
@@ -31,7 +33,7 @@ If you find bugs, need help, or want to talk to the developers, please use our m
 * `Discourse channel`_
 * `User IRC`_
 
-If you want to get involved head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:
+If you want to get involved, head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:
 
 * `GitHub page`_
 * `Development documentation`_

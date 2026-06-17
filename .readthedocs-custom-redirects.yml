@@ -13,3 +13,7 @@
   https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=cmd#enable-long-paths-in-windows-10-version-1607-and-later
 /warnings/venv: >-
   https://docs.python.org/3/tutorial/venv.html
+/reference/build-system/pyproject-toml: >-
+  https://pip.pypa.io/en/stable/reference/build-system/
+/reference/build-system/setup-py: >-
+  https://pip.pypa.io/en/stable/reference/build-system/

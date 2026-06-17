@@ -1,13 +1,44 @@
-"""Tests for the config command
-"""
+"""Tests for the config command"""
+
+from __future__ import annotations
+
+import ast
+import os
 import re
+import subprocess
+import sys
 import textwrap
+from pathlib import Path
+
+import pytest
 
 from pip._internal.cli.status_codes import ERROR
-from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
-from tests.lib import PipTestEnvironment
+from pip._internal.configuration import CONFIG_BASENAME, Kind
+from pip._internal.configuration import get_configuration_files as _get_config_files
+from pip._internal.utils.compat import WINDOWS
+
+from tests.lib import PipTestEnvironment, TestData
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 from tests.lib.venv import VirtualEnvironment
+
+
+def get_configuration_files() -> dict[Kind, list[str]]:
+    """Wrapper over pip._internal.configuration.get_configuration_files()."""
+    if WINDOWS:
+        # The user configuration directory is updated in the isolate fixture using the
+        # APPDATA environment variable. This will only take effect in new subprocesses,
+        # however. To ensure that get_configuration_files() never returns stale data,
+        # call it in a subprocess on Windows.
+        code = (
+            "from pip._internal.configuration import get_configuration_files; "
+            "print(get_configuration_files())"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, encoding="utf-8"
+        )
+        return ast.literal_eval(proc.stdout)
+    else:
+        return _get_config_files()
 
 
 def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
@@ -73,17 +104,13 @@ class TestBasicLoading(ConfigurationMixin):
 
         config_file = script.scratch_path / "test-pip.cfg"
         script.environ["PIP_CONFIG_FILE"] = str(config_file)
-        config_file.write_text(
-            textwrap.dedent(
-                """\
+        config_file.write_text(textwrap.dedent("""\
             [global]
             timeout = 60
 
             [freeze]
             timeout = 10
-            """
-            )
-        )
+            """))
 
         result = script.pip("config", "debug")
         assert f"{config_file}, exists: True" in result.stdout
@@ -147,3 +174,93 @@ class TestBasicLoading(ConfigurationMixin):
             "config", "edit", "--editor", "notrealeditor", expect_error=True
         )
         assert "notrealeditor" in result.stderr
+
+    def test_config_separated(
+        self, script: PipTestEnvironment, virtualenv: VirtualEnvironment
+    ) -> None:
+        """Test that the pip configuration values in the different config sections
+        are correctly assigned to their origin files.
+        """
+
+        # Use new config file
+        new_config_file = get_configuration_files()[kinds.USER][1]
+
+        # Get legacy config file and touch it for testing purposes
+        legacy_config_file = get_configuration_files()[kinds.USER][0]
+        os.makedirs(os.path.dirname(legacy_config_file))
+        open(legacy_config_file, "a").close()
+
+        # Site config file
+        site_config_file = virtualenv.location / CONFIG_BASENAME
+
+        script.pip("config", "--user", "set", "global.timeout", "60")
+        script.pip("config", "--site", "set", "freeze.timeout", "10")
+
+        result = script.pip("config", "debug")
+
+        assert (
+            f"{site_config_file}, exists: True\n    freeze.timeout: 10" in result.stdout
+        )
+        assert (
+            f"{new_config_file}, exists: True\n    global.timeout: 60" in result.stdout
+        )
+        assert re.search(
+            (
+                rf"{re.escape(legacy_config_file)}, "
+                rf"exists: True\n(  {re.escape(new_config_file)}.+\n)+"
+            ),
+            result.stdout,
+        )
+
+    @pytest.mark.network
+    def test_editable_mode_default_config(
+        self, script: PipTestEnvironment, data: TestData
+    ) -> None:
+        """Test that setting default editable mode through configuration works
+        as expected.
+        """
+        script.pip(
+            "config", "--site", "set", "install.config-settings", "editable_mode=strict"
+        )
+        to_install = data.src.joinpath("simplewheel-1.0")
+        script.pip("install", "-e", to_install)
+        assert os.path.isdir(
+            os.path.join(
+                to_install, "build", "__editable__.simplewheel-1.0-py3-none-any"
+            )
+        )
+
+    @pytest.mark.network
+    def test_user_config_overrides_global_config_with_empty_value(
+        self, script: PipTestEnvironment, tmpdir: Path
+    ) -> None:
+        """Test that user config empty value overrides global config."""
+        # Set up global config with proxy
+        global_dir = tmpdir / "global"
+        global_pip = global_dir / "pip" / "pip.conf"
+        global_pip.parent.mkdir(parents=True)
+        global_pip.write_text(
+            "[global]\nproxy = http://non_existing_proxy_server.tld\n"
+        )
+        script.environ["XDG_CONFIG_DIRS"] = str(global_dir)
+
+        # Set up user config that overrides with empty value
+        user_config_dir = tmpdir / "user-config"
+        user_pip_config = user_config_dir / "pip" / "pip.conf"
+        user_pip_config.parent.mkdir(parents=True)
+        user_pip_config.write_text("[global]\nproxy = \n")
+        script.environ["PIP_CONFIG_FILE"] = str(user_pip_config)
+
+        # Install should succeed without trying to use the proxy
+        result = script.pip(
+            "install",
+            "--dry-run",
+            "--no-deps",
+            "--ignore-installed",
+            "--retries",
+            "0",
+            "--no-cache-dir",
+            "requests",
+        )
+
+        assert "Would install" in result.stdout

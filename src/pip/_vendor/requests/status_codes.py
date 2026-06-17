@@ -24,7 +24,7 @@ _codes = {
     # Informational.
     100: ("continue",),
     101: ("switching_protocols",),
-    102: ("processing",),
+    102: ("processing", "early-hints"),
     103: ("checkpoint",),
     122: ("uri_too_long", "request_uri_too_long"),
     200: ("ok", "okay", "all_ok", "all_okay", "all_good", "\\o/", "✓"),
@@ -65,8 +65,8 @@ _codes = {
     410: ("gone",),
     411: ("length_required",),
     412: ("precondition_failed", "precondition"),
-    413: ("request_entity_too_large",),
-    414: ("request_uri_too_large",),
+    413: ("request_entity_too_large", "content_too_large"),
+    414: ("request_uri_too_large", "uri_too_long"),
     415: ("unsupported_media_type", "unsupported_media", "media_type"),
     416: (
         "requested_range_not_satisfiable",
@@ -76,10 +76,10 @@ _codes = {
     417: ("expectation_failed",),
     418: ("im_a_teapot", "teapot", "i_am_a_teapot"),
     421: ("misdirected_request",),
-    422: ("unprocessable_entity", "unprocessable"),
+    422: ("unprocessable_entity", "unprocessable", "unprocessable_content"),
     423: ("locked",),
     424: ("failed_dependency", "dependency"),
-    425: ("unordered_collection", "unordered"),
+    425: ("unordered_collection", "unordered", "too_early"),
     426: ("upgrade_required", "upgrade"),
     428: ("precondition_required", "precondition"),
     429: ("too_many_requests", "too_many"),
@@ -103,7 +103,7 @@ _codes = {
     511: ("network_authentication_required", "network_auth", "network_authentication"),
 }
 
-codes = LookupDict(name="status_codes")
+codes: LookupDict[int] = LookupDict(name="status_codes")
 
 
 def _init():
@@ -113,7 +113,7 @@ def _init():
             if not title.startswith(("\\", "/")):
                 setattr(codes, title.upper(), code)
 
-    def doc(code):
+    def doc(code: int) -> str:
         names = ", ".join(f"``{n}``" for n in _codes[code])
         return "* %d: %s" % (code, names)
 

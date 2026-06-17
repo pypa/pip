@@ -1,9 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 import re
-import site
 import sys
-from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 _INCLUDE_SYSTEM_SITE_PACKAGES_REGEX = re.compile(
@@ -11,7 +11,7 @@ _INCLUDE_SYSTEM_SITE_PACKAGES_REGEX = re.compile(
 )
 
 
-def _running_under_venv() -> bool:
+def running_under_virtualenv() -> bool:
     """Checks if sys.base_prefix and sys.prefix match.
 
     This handles PEP 405 compliant virtual environments.
@@ -19,21 +19,7 @@ def _running_under_venv() -> bool:
     return sys.prefix != getattr(sys, "base_prefix", sys.prefix)
 
 
-def _running_under_legacy_virtualenv() -> bool:
-    """Checks if sys.real_prefix is set.
-
-    This handles virtual environments created with pypa's virtualenv.
-    """
-    # pypa/virtualenv case
-    return hasattr(sys, "real_prefix")
-
-
-def running_under_virtualenv() -> bool:
-    """True if we're running inside a virtual environment, False otherwise."""
-    return _running_under_venv() or _running_under_legacy_virtualenv()
-
-
-def _get_pyvenv_cfg_lines() -> Optional[List[str]]:
+def _get_pyvenv_cfg_lines() -> list[str] | None:
     """Reads {sys.prefix}/pyvenv.cfg and returns its contents as list of lines
 
     Returns None, if it could not read/access the file.
@@ -77,28 +63,9 @@ def _no_global_under_venv() -> bool:
     return False
 
 
-def _no_global_under_legacy_virtualenv() -> bool:
-    """Check if "no-global-site-packages.txt" exists beside site.py
-
-    This mirrors logic in pypa/virtualenv for determining whether system
-    site-packages are visible in the virtual environment.
-    """
-    site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
-    no_global_site_packages_file = os.path.join(
-        site_mod_dir,
-        "no-global-site-packages.txt",
-    )
-    return os.path.exists(no_global_site_packages_file)
-
-
 def virtualenv_no_global() -> bool:
     """Returns a boolean, whether running in venv with no system site-packages."""
-    # PEP 405 compliance needs to be checked first since virtualenv >=20 would
-    # return True for both checks, but is only able to use the PEP 405 config.
-    if _running_under_venv():
+    if running_under_virtualenv():
         return _no_global_under_venv()
-
-    if _running_under_legacy_virtualenv():
-        return _no_global_under_legacy_virtualenv()
 
     return False

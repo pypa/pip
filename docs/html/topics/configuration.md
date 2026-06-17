@@ -26,7 +26,7 @@ pip has 3 "levels" of configuration files:
 
 - `global`: system-wide configuration file, shared across users.
 - `user`: per-user configuration file.
-- `site`: per-environment configuration file; i.e. per-virtualenv.
+- `site`: per-environment configuration file; i.e. per-virtualenv or python installation.
 
 Additionally, environment variables can be specified which will override any of the above.
 
@@ -52,7 +52,8 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`. If no virtual environment is activated, `pip.conf` is loaded from the
+  Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ```{tab} MacOS
@@ -68,7 +69,8 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`. If no virtual environment is activated, `pip.conf` is loaded from the
+  Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ```{tab} Windows
@@ -86,7 +88,8 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`%HOME%\\pip\\pip.ini`
 
 Site
-: {file}`%VIRTUAL_ENV%\\pip.ini`
+: {file}`%VIRTUAL_ENV%\\pip.ini`, If no virtual environment is activated, `pip.ini` is loaded from
+  the Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ### `PIP_CONFIG_FILE`
@@ -118,7 +121,7 @@ then the latter value will be used.
 The names of the settings are derived from the long command line option.
 
 As an example, if you want to use a different package index (`--index-url`) and
-set the HTTP timeout (`--default-timeout`) to 60 seconds, your config file would
+set the HTTP timeout (`--timeout`) to 60 seconds, your config file would
 look like this:
 
 ```ini
@@ -205,7 +208,7 @@ pip's command line options can be set with environment variables using the
 format `PIP_<UPPER_LONG_NAME>` . Dashes (`-`) have to be replaced with
 underscores (`_`).
 
-- `PIP_DEFAULT_TIMEOUT=60` is the same as `--default-timeout=60`
+- `PIP_TIMEOUT=60` is the same as `--timeout=60`
 - ```
   PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
   ```

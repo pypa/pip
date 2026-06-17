@@ -21,4 +21,5 @@ repeatable-installs
 secure-installs
 vcs-support
 python-option
+workflow
 ```

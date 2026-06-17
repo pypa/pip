@@ -2,11 +2,12 @@ import pytest
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.network.utils import raise_for_status
+
 from tests.lib.requests_mocks import MockResponse
 
 
 @pytest.mark.parametrize(
-    ("status_code", "error_type"),
+    "status_code, error_type",
     [
         (401, "Client Error"),
         (501, "Server Error"),

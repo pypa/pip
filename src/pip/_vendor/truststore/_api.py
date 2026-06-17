@@ -1,10 +1,13 @@
+import contextlib
 import os
 import platform
 import socket
 import ssl
+import sys
+import threading
 import typing
 
-import _ssl  # type: ignore[import]
+import _ssl
 
 from ._ssl_constants import (
     _original_SSLContext,
@@ -21,7 +24,7 @@ else:
     from ._openssl import _configure_context, _verify_peercerts_impl
 
 if typing.TYPE_CHECKING:
-    from pip._vendor.typing_extensions import Buffer
+    from typing_extensions import Buffer
 
 # From typeshed/stdlib/ssl.pyi
 _StrOrBytesPath: typing.TypeAlias = str | bytes | os.PathLike[str] | os.PathLike[bytes]
@@ -39,6 +42,23 @@ def inject_into_ssl() -> None:
         import pip._vendor.urllib3.util.ssl_ as urllib3_ssl
 
         setattr(urllib3_ssl, "SSLContext", SSLContext)
+    except ImportError:
+        pass
+
+    # requests starting with 2.32.0 added a preloaded SSL context to improve concurrent performance;
+    # this unfortunately leads to a RecursionError, which can be avoided by patching the preloaded SSL context with
+    # the truststore patched instance
+    # also see https://github.com/psf/requests/pull/6667
+    try:
+        from pip._vendor.requests import adapters as requests_adapters
+
+        preloaded_context = getattr(requests_adapters, "_preloaded_ssl_context", None)
+        if preloaded_context is not None:
+            setattr(
+                requests_adapters,
+                "_preloaded_ssl_context",
+                SSLContext(ssl.PROTOCOL_TLS_CLIENT),
+            )
     except ImportError:
         pass
 
@@ -66,6 +86,7 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
 
     def __init__(self, protocol: int = None) -> None:  # type: ignore[assignment]
         self._ctx = _original_SSLContext(protocol)
+        self._ctx_lock = threading.Lock()
 
         class TruststoreSSLObject(ssl.SSLObject):
             # This object exists because wrap_bio() doesn't
@@ -88,10 +109,15 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
         server_hostname: str | None = None,
         session: ssl.SSLSession | None = None,
     ) -> ssl.SSLSocket:
-        # Use a context manager here because the
-        # inner SSLContext holds on to our state
-        # but also does the actual handshake.
-        with _configure_context(self._ctx):
+
+        # We need to lock around the .__enter__()
+        # but we don't need to lock within the
+        # context manager, so we need to expand the
+        # syntactic sugar of the `with` statement.
+        with contextlib.ExitStack() as stack:
+            with self._ctx_lock:
+                stack.enter_context(_configure_context(self._ctx))
+
             ssl_sock = self._ctx.wrap_socket(
                 sock,
                 server_side=server_side,
@@ -168,19 +194,19 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
     def cert_store_stats(self) -> dict[str, int]:
         raise NotImplementedError()
 
+    def set_default_verify_paths(self) -> None:
+        self._ctx.set_default_verify_paths()
+
     @typing.overload
     def get_ca_certs(
         self, binary_form: typing.Literal[False] = ...
-    ) -> list[typing.Any]:
-        ...
+    ) -> list[typing.Any]: ...
 
     @typing.overload
-    def get_ca_certs(self, binary_form: typing.Literal[True] = ...) -> list[bytes]:
-        ...
+    def get_ca_certs(self, binary_form: typing.Literal[True] = ...) -> list[bytes]: ...
 
     @typing.overload
-    def get_ca_certs(self, binary_form: bool = ...) -> typing.Any:
-        ...
+    def get_ca_certs(self, binary_form: bool = ...) -> typing.Any: ...
 
     def get_ca_certs(self, binary_form: bool = False) -> list[typing.Any] | list[bytes]:
         raise NotImplementedError()
@@ -276,6 +302,25 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
         )
 
 
+# Python 3.13+ makes get_unverified_chain() a public API that only returns DER
+# encoded certificates. We detect whether we need to call public_bytes() for 3.10->3.12
+# Pre-3.13 returned None instead of an empty list from get_unverified_chain()
+if sys.version_info >= (3, 13):
+
+    def _get_unverified_chain_bytes(sslobj: ssl.SSLObject) -> list[bytes]:
+        unverified_chain = sslobj.get_unverified_chain() or ()
+        return [
+            cert if isinstance(cert, bytes) else cert.public_bytes(_ssl.ENCODING_DER)
+            for cert in unverified_chain
+        ]
+
+else:
+
+    def _get_unverified_chain_bytes(sslobj: ssl.SSLObject) -> list[bytes]:
+        unverified_chain = sslobj.get_unverified_chain() or ()  # type: ignore[attr-defined]
+        return [cert.public_bytes(_ssl.ENCODING_DER) for cert in unverified_chain]
+
+
 def _verify_peercerts(
     sock_or_sslobj: ssl.SSLSocket | ssl.SSLObject, server_hostname: str | None
 ) -> None:
@@ -290,13 +335,7 @@ def _verify_peercerts(
     except AttributeError:
         pass
 
-    # SSLObject.get_unverified_chain() returns 'None'
-    # if the peer sends no certificates. This is common
-    # for the server-side scenario.
-    unverified_chain: typing.Sequence[_ssl.Certificate] = (
-        sslobj.get_unverified_chain() or ()  # type: ignore[attr-defined]
-    )
-    cert_bytes = [cert.public_bytes(_ssl.ENCODING_DER) for cert in unverified_chain]
+    cert_bytes = _get_unverified_chain_bytes(sslobj)
     _verify_peercerts_impl(
         sock_or_sslobj.context, cert_bytes, server_hostname=server_hostname
     )

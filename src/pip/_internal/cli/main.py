@@ -1,17 +1,12 @@
-"""Primary application entrypoint.
-"""
+"""Primary application entrypoint."""
+
+from __future__ import annotations
+
 import locale
 import logging
 import os
 import sys
 import warnings
-from typing import List, Optional
-
-from pip._internal.cli.autocompletion import autocomplete
-from pip._internal.cli.main_parser import parse_command
-from pip._internal.commands import create_command
-from pip._internal.exceptions import PipError
-from pip._internal.utils import deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +38,18 @@ logger = logging.getLogger(__name__)
 # main, this should not be an issue in practice.
 
 
-def main(args: Optional[List[str]] = None) -> int:
+def main(args: list[str] | None = None) -> int:
+    # NOTE: Lazy imports to speed up import of this module,
+    # which is imported from the pip console script. This doesn't
+    # speed up normal pip execution, but might be important in the future
+    # if we use ``multiprocessing`` module,
+    # which imports __main__ for each spawned subprocess.
+    from pip._internal.cli.autocompletion import autocomplete
+    from pip._internal.cli.main_parser import parse_command
+    from pip._internal.commands import create_command
+    from pip._internal.exceptions import PipError
+    from pip._internal.utils import deprecation
+
     if args is None:
         args = sys.argv[1:]
 
