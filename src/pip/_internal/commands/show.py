@@ -189,7 +189,10 @@ def print_results(
         if i > 0:
             write_output("---")
 
-        metadata_version_tuple = tuple(map(int, dist.metadata_version.split(".")))
+        metadata_version = dist.metadata_version
+        metadata_version_tuple = (
+            tuple(map(int, metadata_version.split("."))) if metadata_version else ()
+        )
 
         write_output("Name: %s", dist.name)
         write_output("Version: %s", dist.version)

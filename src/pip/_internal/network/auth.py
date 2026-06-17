@@ -15,12 +15,11 @@ import typing
 import urllib.parse
 from abc import ABC, abstractmethod
 from functools import cache
-from os.path import commonprefix
+from os.path import commonpath
 from pathlib import Path
 from typing import Any, NamedTuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import Request, Response
 from pip._vendor.requests.utils import get_netrc_auth
 
 from pip._internal.utils.logging import getLogger
@@ -32,6 +31,10 @@ from pip._internal.utils.misc import (
     split_auth_netloc_from_url,
 )
 from pip._internal.vcs.versioncontrol import AuthInfo
+
+if typing.TYPE_CHECKING:
+    from pip._vendor.requests import PreparedRequest
+    from pip._vendor.requests.models import Response
 
 logger = getLogger(__name__)
 
@@ -322,12 +325,14 @@ class MultiDomainBasicAuth(AuthBase):
 
         candidates.sort(
             reverse=True,
-            key=lambda candidate: commonprefix(
-                [
-                    parsed_url.path,
-                    candidate.path,
-                ]
-            ).rfind("/"),
+            key=lambda candidate: len(
+                commonpath(
+                    [
+                        parsed_url.path,
+                        candidate.path,
+                    ]
+                )
+            ),
         )
 
         return urllib.parse.urlunsplit(candidates[0])
@@ -437,8 +442,9 @@ class MultiDomainBasicAuth(AuthBase):
 
         return url, username, password
 
-    def __call__(self, req: Request) -> Request:
+    def __call__(self, req: PreparedRequest) -> PreparedRequest:
         # Get credentials for this request
+        assert req.url is not None
         url, username, password = self._get_url_and_credentials(req.url)
 
         # Set the url of the request to the url without any credentials

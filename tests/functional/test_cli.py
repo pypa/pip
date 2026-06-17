@@ -7,9 +7,10 @@ from textwrap import dedent
 
 import pytest
 
+from pip._internal.cli.status_codes import VIRTUALENV_NOT_FOUND
 from pip._internal.commands import commands_dict
 
-from tests.lib import PipTestEnvironment
+from tests.lib import PipTestEnvironment, TestPipResult
 
 
 @pytest.mark.parametrize(
@@ -26,9 +27,7 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
 
     fake_pkg = script.scratch_path / "fake_pkg"
     fake_pkg.mkdir()
-    fake_pkg.joinpath("setup.py").write_text(
-        dedent(
-            f"""
+    fake_pkg.joinpath("setup.py").write_text(dedent(f"""
     from setuptools import setup
 
     setup(
@@ -40,16 +39,58 @@ def test_entrypoints_work(entrypoint: str, script: PipTestEnvironment) -> None:
             ]
         }}
     )
-    """
-        )
-    )
+    """))
 
     # expect_temp because pip install will generate fake_pkg.egg-info
-    script.pip("install", "-vvv", str(fake_pkg), expect_temp=True)
+    script.pip(
+        "install", "--no-build-isolation", "-vvv", str(fake_pkg), expect_temp=True
+    )
     result = script.pip("-V")
     result2 = script.run("fake_pip", "-V", allow_stderr_warning=True)
     assert result.stdout == result2.stdout
     assert "old script wrapper" in result2.stderr
+
+
+def _run_pip_without_virtualenv(
+    script: PipTestEnvironment, *args: str, expect_error: bool = False
+) -> TestPipResult:
+    test_script = script.scratch_path / "run_pip_without_virtualenv.py"
+    test_script.write_text(dedent(f"""
+        import sys
+
+        # Simulate running outside a virtualenv.
+        sys.base_prefix = sys.prefix
+
+        sys.argv = ["pip", {", ".join(repr(arg) for arg in args)}]
+
+        from pip._internal.cli.main import main
+        sys.exit(main())
+        """))
+    return script.run("python", str(test_script), expect_error=expect_error)
+
+
+def test_require_virtualenv_blocks_commands_when_not_in_venv(
+    script: PipTestEnvironment,
+) -> None:
+    result = _run_pip_without_virtualenv(
+        script,
+        "--require-virtualenv",
+        "install",
+        "pip",
+        expect_error=True,
+    )
+
+    assert result.returncode == VIRTUALENV_NOT_FOUND
+    assert "Could not find an activated virtualenv (required)." in result.stderr
+
+
+def test_require_virtualenv_allows_opt_out_commands_when_not_in_venv(
+    script: PipTestEnvironment,
+) -> None:
+    result = _run_pip_without_virtualenv(script, "--require-virtualenv", "help")
+
+    assert "Usage:" in result.stdout
+    assert "Could not find an activated virtualenv (required)." not in result.stderr
 
 
 @pytest.mark.parametrize(

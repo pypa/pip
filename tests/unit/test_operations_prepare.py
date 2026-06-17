@@ -8,6 +8,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from pip._vendor.requests import Response
+
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
@@ -25,14 +27,15 @@ def test_unpack_url_with_urllib_response_without_content_type(data: TestData) ->
     """
     _real_session = PipSession()
 
-    def _fake_session_get(*args: Any, **kwargs: Any) -> dict[str, str]:
+    def _fake_session_get(*args: Any, **kwargs: Any) -> Response:
         resp = _real_session.get(*args, **kwargs)
         del resp.headers["Content-Type"]
         return resp
 
     session = Mock()
+    session.resume_retries = 0
     session.get = _fake_session_get
-    download = Downloader(session, progress_bar="on", resume_retries=0)
+    download = Downloader(session, progress_bar="on")
 
     uri = data.packages.joinpath("simple-1.0.tar.gz").as_uri()
     link = Link(uri)
@@ -69,16 +72,19 @@ def test_download_http_url__no_directory_traversal(
     link = Link(mock_url)
 
     session = Mock()
+    session.resume_retries = 0
     resp = MockResponse(contents)
     resp.url = mock_url
-    resp.headers = {
-        # Set the content-type to a random value to prevent
-        # mimetypes.guess_extension from guessing the extension.
-        "content-type": "random",
-        "content-disposition": 'attachment;filename="../out_dir_file"',
-    }
+    resp.headers.update(
+        {
+            # Set the content-type to a random value to prevent
+            # mimetypes.guess_extension from guessing the extension.
+            "content-type": "random",
+            "content-disposition": 'attachment;filename="../out_dir_file"',
+        }
+    )
     session.get.return_value = resp
-    download = Downloader(session, progress_bar="on", resume_retries=0)
+    download = Downloader(session, progress_bar="on")
 
     download_dir = os.fspath(tmpdir.joinpath("download"))
     os.mkdir(download_dir)

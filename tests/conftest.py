@@ -10,14 +10,14 @@ import shutil
 import subprocess
 import sys
 import threading
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, AnyStr, Callable, ClassVar
+from typing import TYPE_CHECKING, Any, AnyStr, ClassVar
 from unittest.mock import patch
 from zipfile import ZipFile
 
@@ -47,7 +47,7 @@ from tests.lib import (
     ScriptFactory,
     TestData,
 )
-from tests.lib.server import MockServer, make_mock_server
+from tests.lib.server import MockServer, make_mock_server, patch_getfqdn
 from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
@@ -122,7 +122,7 @@ def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) 
 
         module_file = item.module.__file__
         module_path = os.path.relpath(
-            module_file, os.path.commonprefix([__file__, module_file])
+            module_file, os.path.commonpath([__file__, module_file])
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
@@ -183,7 +183,7 @@ def tmp_path_factory(
 def tmpdir_factory(tmp_path_factory: pytest.TempPathFactory) -> pytest.TempPathFactory:
     """Override Pytest's ``tmpdir_factory`` with our pathlib implementation.
 
-    This prevents mis-use of this fixture.
+    This prevents misuse of this fixture.
     """
     return tmp_path_factory
 
@@ -211,7 +211,7 @@ def tmp_path(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
 def tmpdir(tmp_path: Path) -> Path:
     """Override Pytest's ``tmpdir`` with our pathlib implementation.
 
-    This prevents mis-use of this fixture.
+    This prevents misuse of this fixture.
     """
     return tmp_path
 
@@ -420,6 +420,7 @@ def _common_wheel_editable_install(
                 },
                 interpreter=sys.executable,
                 script_kind="posix",
+                bytecode_optimization_levels=[0],
             ),
             additional_metadata={},
         )
@@ -437,11 +438,6 @@ def setuptools_install(
     tmpdir_factory: pytest.TempPathFactory, common_wheels: Path
 ) -> Path:
     return _common_wheel_editable_install(tmpdir_factory, common_wheels, "setuptools")
-
-
-@pytest.fixture(scope="session")
-def wheel_install(tmpdir_factory: pytest.TempPathFactory, common_wheels: Path) -> Path:
-    return _common_wheel_editable_install(tmpdir_factory, common_wheels, "wheel")
 
 
 @pytest.fixture(scope="session")
@@ -478,7 +474,6 @@ def virtualenv_template(
     pip_src: Path,
     pip_editable_parts: tuple[Path, ...],
     setuptools_install: Path,
-    wheel_install: Path,
     coverage_install: Path,
     socket_install: Path,
 ) -> VirtualEnvironment:
@@ -492,9 +487,8 @@ def virtualenv_template(
     tmpdir = tmpdir_factory.mktemp("virtualenv")
     venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
-    # Install setuptools, wheel, pytest-subket, and pip.
+    # Install setuptools, pytest-subket, and pip.
     install_pth_link(venv, "setuptools", setuptools_install)
-    install_pth_link(venv, "wheel", wheel_install)
     install_pth_link(venv, "pytest_subket", socket_install)
     # Also copy pytest-subket's .pth file so it can intercept socket calls.
     with open(venv.site / "pytest_socket.pth", "w") as f:
@@ -511,12 +505,13 @@ def virtualenv_template(
     # detects changed files.
     venv.site.joinpath("easy-install.pth").touch()
 
-    # Install coverage and pth file for executing it in any spawned processes
-    # in this virtual environment.
-    install_pth_link(venv, "coverage", coverage_install)
-    # zz prefix ensures the file is after easy-install.pth.
-    with open(venv.site / "zz-coverage-helper.pth", "a") as f:
-        f.write("import coverage; coverage.process_startup()")
+    if request.config.getoption("--cov"):
+        # Install coverage and pth file for executing it in any spawned processes
+        # in this virtual environment.
+        install_pth_link(venv, "coverage", coverage_install)
+        # zz prefix ensures the file is after easy-install.pth.
+        with open(venv.site / "zz-coverage-helper.pth", "a") as f:
+            f.write("import coverage; coverage.process_startup()")
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
@@ -780,14 +775,12 @@ class FakePackage:
     def generate_metadata(self) -> bytes:
         """This is written to `self.metadata_filename()` and will override the actual
         dist's METADATA, unless `self.metadata == MetadataKind.NoFile`."""
-        return dedent(
-            f"""\
+        return dedent(f"""\
         Metadata-Version: 2.1
         Name: {self.metadata_name or self.name}
         Version: {self.version}
         {self.requires_str()}
-        """
-        ).encode("utf-8")
+        """).encode("utf-8")
 
 
 @pytest.fixture(scope="session")
@@ -897,8 +890,7 @@ def html_index_for_packages(
     )
     # Output won't be nicely indented because dedent() acts after f-string
     # arg insertion.
-    index_html = dedent(
-        f"""\
+    index_html = dedent(f"""\
         <!DOCTYPE html>
         <html>
           <head>
@@ -908,8 +900,7 @@ def html_index_for_packages(
           <body>
           {pkg_links}
           </body>
-        </html>"""
-    )
+        </html>""")
     # (2) Generate the index.html in a new subdirectory of the temp directory.
     (html_dir / "index.html").write_text(index_html)
 
@@ -940,8 +931,7 @@ def html_index_for_packages(
         # write an index.html with the generated download links for each
         # copied file for this specific package name.
         download_links_str = "\n".join(download_links)
-        pkg_index_content = dedent(
-            f"""\
+        pkg_index_content = dedent(f"""\
             <!DOCTYPE html>
             <html>
               <head>
@@ -952,8 +942,7 @@ def html_index_for_packages(
                 <h1>Links for {pkg}</h1>
                 {download_links_str}
               </body>
-            </html>"""
-        )
+            </html>""")
         with open(pkg_subdir / "index.html", "w") as f:
             f.write(pkg_index_content)
 
@@ -1000,7 +989,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[set[str]] = set()
 
-    with InDirectoryServer(("", 8000), Handler) as httpd:
+    with patch_getfqdn(), InDirectoryServer(("", 8000), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 

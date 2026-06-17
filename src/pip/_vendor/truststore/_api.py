@@ -1,8 +1,10 @@
+import contextlib
 import os
 import platform
 import socket
 import ssl
 import sys
+import threading
 import typing
 
 import _ssl
@@ -84,6 +86,7 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
 
     def __init__(self, protocol: int = None) -> None:  # type: ignore[assignment]
         self._ctx = _original_SSLContext(protocol)
+        self._ctx_lock = threading.Lock()
 
         class TruststoreSSLObject(ssl.SSLObject):
             # This object exists because wrap_bio() doesn't
@@ -106,10 +109,15 @@ class SSLContext(_truststore_SSLContext_super_class):  # type: ignore[misc]
         server_hostname: str | None = None,
         session: ssl.SSLSession | None = None,
     ) -> ssl.SSLSocket:
-        # Use a context manager here because the
-        # inner SSLContext holds on to our state
-        # but also does the actual handshake.
-        with _configure_context(self._ctx):
+
+        # We need to lock around the .__enter__()
+        # but we don't need to lock within the
+        # context manager, so we need to expand the
+        # syntactic sugar of the `with` statement.
+        with contextlib.ExitStack() as stack:
+            with self._ctx_lock:
+                stack.enter_context(_configure_context(self._ctx))
+
             ssl_sock = self._ctx.wrap_socket(
                 sock,
                 server_side=server_side,

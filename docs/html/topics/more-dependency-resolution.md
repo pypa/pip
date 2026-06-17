@@ -161,10 +161,15 @@ Pip's current implementation of the provider implements
 * If Requires-Python is present only consider that
 * If there are causes of resolution conflict (backtrack causes) then
     only consider them until there are no longer any resolution conflicts
+* If any identifiers have appeared unresolved in backtrack causes at
+    least 5 times, only consider those so they get pinned before other
+    packages pick a version
 
 Pip's current implementation of the provider implements `get_preference`
 for known requirements with the following preferences in the following order:
 
+* Any requirement that has appeared in repeated conflicts (see
+    ``narrow_requirement_selection`` above).
 * Any requirement that is "direct", e.g., points to an explicit URL.
 * Any requirement that is "pinned", i.e., contains the operator ``===``
     or ``==`` without a wildcard.

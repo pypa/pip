@@ -30,21 +30,21 @@ from tests.lib.requests_mocks import MockResponse
             {},
             False,
             None,
-            "Downloading http://example.com/foo.tgz",
+            "Downloading foo.tgz",
         ),
         (
             "http://example.com/foo.tgz",
             {"content-length": "2"},
             False,
             None,
-            "Downloading http://example.com/foo.tgz (2 bytes)",
+            "Downloading foo.tgz (2 bytes)",
         ),
         (
             "http://example.com/foo.tgz",
             {"content-length": "2"},
             True,
             None,
-            "Using cached http://example.com/foo.tgz (2 bytes)",
+            "Using cached foo.tgz (2 bytes)",
         ),
         (
             "https://files.pythonhosted.org/foo.tgz",
@@ -72,7 +72,7 @@ from tests.lib.requests_mocks import MockResponse
             {"content-length": "200"},
             False,
             100,
-            "Resuming download http://example.com/foo.tgz (100 bytes/200 bytes)",
+            "Resuming download foo.tgz (100 bytes/200 bytes)",
         ),
     ],
 )
@@ -87,7 +87,7 @@ def test_log_download(
     caplog.set_level(logging.INFO)
     resp = MockResponse(b"")
     resp.url = url
-    resp.headers = headers
+    resp.headers.update(headers)
     if from_cache:
         resp.from_cache = from_cache
     link = Link(url)
@@ -315,14 +315,14 @@ def test_downloader(
     expected_bytes: bytes | None,
     tmpdir: Path,
 ) -> None:
-    session = PipSession()
+    session = PipSession(resume_retries=resume_retries)
     link = Link("http://example.com/foo.tgz")
-    downloader = Downloader(session, "on", resume_retries)
+    downloader = Downloader(session, "on")
 
     responses = []
     for headers, status_code, body in mock_responses:
         resp = MockResponse(body)
-        resp.headers = headers
+        resp.headers.update(headers)
         resp.status_code = status_code
         responses.append(resp)
     _http_get_mock = MagicMock(side_effect=responses)
@@ -352,20 +352,43 @@ def test_downloader(
     _http_get_mock.assert_has_calls(calls)
 
 
+def test_downloader_without_content_length(tmpdir: Path) -> None:
+    """A response without a Content-Length header should be treated as an
+    unknown size and still download fully.
+
+    This guards against MockResponse inventing its own Content-Length, which
+    would hide the unknown-size download path from the tests.
+    """
+    body = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+    resp = MockResponse(body)
+    resp.status_code = 200
+
+    assert _get_http_response_size(resp) is None
+
+    session = PipSession(resume_retries=0)
+    downloader = Downloader(session, "on")
+    link = Link("http://example.com/foo.tgz")
+    with patch.object(Downloader, "_http_get", MagicMock(return_value=resp)):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    with open(filepath, "rb") as downloaded_file:
+        assert downloaded_file.read() == body
+
+
 def test_resumed_download_caching(tmpdir: Path) -> None:
     """Test that resumed downloads are cached properly for future use."""
     cache_dir = tmpdir / "cache"
-    session = PipSession(cache=str(cache_dir))
+    session = PipSession(cache=str(cache_dir), resume_retries=5)
     link = Link("https://example.com/foo.tgz")
-    downloader = Downloader(session, "on", resume_retries=5)
+    downloader = Downloader(session, "on")
 
     # Mock an incomplete download followed by a successful resume
     incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
-    incomplete_resp.headers = {"content-length": "36"}
+    incomplete_resp.headers.update({"content-length": "36"})
     incomplete_resp.status_code = 200
 
     resume_resp = MockResponse(b"f2561d5dfd89")
-    resume_resp.headers = {"content-length": "12"}
+    resume_resp.headers.update({"content-length": "12"})
     resume_resp.status_code = 206
 
     responses = [incomplete_resp, resume_resp]

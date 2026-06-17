@@ -15,17 +15,16 @@ import sys
 import textwrap
 import warnings
 from base64 import urlsafe_b64encode
-from collections.abc import Generator, Iterable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from email.message import Message
 from itertools import chain, filterfalse, starmap
+from pathlib import Path
 from typing import (
     IO,
     Any,
     BinaryIO,
-    Callable,
     NewType,
     Protocol,
-    Union,
     cast,
 )
 from zipfile import ZipFile, ZipInfo
@@ -66,7 +65,7 @@ class File(Protocol):
 logger = logging.getLogger(__name__)
 
 RecordPath = NewType("RecordPath", str)
-InstalledCSVRow = tuple[RecordPath, str, Union[int, str]]
+InstalledCSVRow = tuple[RecordPath, str, int | str]
 
 
 def rehash(path: str, blocksize: int = 1 << 20) -> tuple[str, str]:
@@ -127,26 +126,24 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> str | None:
         return None
 
     # Group scripts by the path they were installed in
-    grouped_by_dir: dict[str, set[str]] = collections.defaultdict(set)
+    grouped_by_dir: dict[Path, set[str]] = collections.defaultdict(set)
     for destfile in scripts:
-        parent_dir = os.path.dirname(destfile)
-        script_name = os.path.basename(destfile)
+        dest_path = Path(destfile)
+        parent_dir = dest_path.parent.resolve()
+        script_name = dest_path.name
         grouped_by_dir[parent_dir].add(script_name)
 
     # We don't want to warn for directories that are on PATH.
     not_warn_dirs = [
-        os.path.normcase(os.path.normpath(i)).rstrip(os.sep)
-        for i in os.environ.get("PATH", "").split(os.pathsep)
+        Path(i).resolve() for i in os.environ.get("PATH", "").split(os.pathsep)
     ]
     # If an executable sits with sys.executable, we don't warn for it.
     #     This covers the case of venv invocations without activating the venv.
-    not_warn_dirs.append(
-        os.path.normcase(os.path.normpath(os.path.dirname(sys.executable)))
-    )
-    warn_for: dict[str, set[str]] = {
+    not_warn_dirs.append(Path(sys.executable).parent.resolve())
+    warn_for: dict[Path, set[str]] = {
         parent_dir: scripts
         for parent_dir, scripts in grouped_by_dir.items()
-        if os.path.normcase(os.path.normpath(parent_dir)) not in not_warn_dirs
+        if parent_dir not in not_warn_dirs
     }
     if not warn_for:
         return None
@@ -397,30 +394,41 @@ class MissingCallableSuffix(InstallationError):
         )
 
 
-def _raise_for_invalid_entrypoint(specification: str) -> None:
+def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
     entry = get_export_entry(specification)
-    if entry is not None and entry.suffix is None:
+    if entry is None:
+        return
+
+    if entry.suffix is None:
         raise MissingCallableSuffix(str(entry))
+
+    # distlib joins the entry point name onto the scripts directory, so a name
+    # with path separators or ``..`` components can resolve elsewhere. The script
+    # must resolve to a path strictly inside the scripts directory.
+    dest = os.path.join(scripts_dir, entry.name)
+    resolves_to_scripts_dir = os.path.abspath(dest) == os.path.abspath(scripts_dir)
+    if resolves_to_scripts_dir or not is_within_directory(scripts_dir, dest):
+        raise InstallationError(
+            f"Invalid script entry point name {entry.name!r}: the script "
+            f"would be installed outside the scripts directory ({scripts_dir})."
+        )
 
 
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
-    script_template = textwrap.dedent(
-        """\
+    script_template = textwrap.dedent("""\
         import sys
         from %(module)s import %(import_name)s
         if __name__ == '__main__':
-            if sys.argv[0].endswith('.exe'):
-                sys.argv[0] = sys.argv[0][:-4]
+            sys.argv[0] = sys.argv[0].removesuffix('.exe')
             sys.exit(%(func)s())
-"""
-    )
+""")
 
     def make(
         self, specification: str, options: dict[str, Any] | None = None
     ) -> list[str]:
-        _raise_for_invalid_entrypoint(specification)
+        _raise_for_invalid_entrypoint(specification, self.target_dir)
         return super().make(specification, options)
 
 

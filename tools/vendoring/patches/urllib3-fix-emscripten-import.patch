@@ -1,0 +1,21 @@
+diff --git a/src/pip/_vendor/urllib3/contrib/emscripten/__init__.py b/src/pip/_vendor/urllib3/contrib/emscripten/__init__.py
+--- a/src/pip/_vendor/urllib3/contrib/emscripten/__init__.py
++++ b/src/pip/_vendor/urllib3/contrib/emscripten/__init__.py
+@@ -1,6 +1,6 @@
+ from __future__ import annotations
+
+-import urllib3.connection
++import urllib3.connection as urllib3_connection
+
+ from ...connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+ from .connection import EmscriptenHTTPConnection, EmscriptenHTTPSConnection
+@@ -12,6 +12,6 @@
+     # if it isn't ignored
+     HTTPConnectionPool.ConnectionCls = EmscriptenHTTPConnection
+     HTTPSConnectionPool.ConnectionCls = EmscriptenHTTPSConnection
+-    urllib3.connection.HTTPConnection = EmscriptenHTTPConnection  # type: ignore[misc,assignment]
+-    urllib3.connection.HTTPSConnection = EmscriptenHTTPSConnection  # type: ignore[misc,assignment]
+-    urllib3.connection.VerifiedHTTPSConnection = EmscriptenHTTPSConnection  # type: ignore[assignment]
++    urllib3_connection.HTTPConnection = EmscriptenHTTPConnection  # type: ignore[misc,assignment]
++    urllib3_connection.HTTPSConnection = EmscriptenHTTPSConnection  # type: ignore[misc,assignment]
++    urllib3_connection.VerifiedHTTPSConnection = EmscriptenHTTPSConnection  # type: ignore[assignment]

@@ -28,6 +28,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
 from ._compat import (
+    BadMetadata,
     BasePath,
     get_dist_canonical_name,
     parse_name_and_version_from_info_directory,
@@ -165,9 +166,14 @@ class Distribution(BaseDistribution):
 
     @property
     def version(self) -> Version:
-        if version := parse_name_and_version_from_info_directory(self._dist)[1]:
+        try:
+            version = (
+                parse_name_and_version_from_info_directory(self._dist)[1]
+                or self._dist.version
+            )
             return parse_version(version)
-        return parse_version(self._dist.version)
+        except TypeError:
+            raise BadMetadata(self._dist, reason="invalid metadata entry `version`")
 
     @property
     def raw_version(self) -> str:
@@ -201,7 +207,13 @@ class Distribution(BaseDistribution):
         # a ton of fields that we need, including get() and get_payload(). We
         # rely on the implementation that the object is actually a Message now,
         # until upstream can improve the protocol. (python/cpython#94952)
-        return cast(email.message.Message, self._dist.metadata)
+        metadata = self._dist.metadata
+        # From Python 3.15+, importlib.metadata may return None when no
+        # metadata file (METADATA or PKG-INFO) exists in the distribution
+        # directory. (python/cpython#132947)
+        if metadata is None:
+            return email.message.Message()
+        return cast(email.message.Message, metadata)
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return [
