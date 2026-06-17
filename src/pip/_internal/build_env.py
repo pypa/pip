@@ -396,6 +396,7 @@ class InprocessBuildEnvironmentInstaller:
             ignore_requires_python=False,
             use_user_site=False,
             ignore_dependencies=False,
+            only_dependencies=False,
             ignore_installed=True,
             force_reinstall=False,
             upgrade_strategy="to-satisfy-only",

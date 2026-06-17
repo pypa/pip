@@ -389,6 +389,27 @@ class TestPipResult:
                     f"Package directory {pkg_dir!r} has unexpected content {f}"
                 )
 
+    def assert_not_installed(
+        self, pkg_name: str, *, dist_name: str | None = None, sub_dir: str | None = None
+    ) -> None:
+        if dist_name is None:
+            dist_name = pkg_name
+        e = self.test_env
+
+        editable_vcs_candidate = e.venv / "src" / canonicalize_name(dist_name)
+        site_packages_candidate = e.site_packages / pkg_name
+        candidate_pkg_dirs = [editable_vcs_candidate, site_packages_candidate]
+        if sub_dir:
+            candidate_pkg_dirs.append(editable_vcs_candidate / sub_dir)
+
+        for candidate in candidate_pkg_dirs:
+            if candidate in self.files_created:
+                raise TestFailure(f"Package {pkg_name} found at {candidate!r}.")
+
+        direct_url = self.get_created_direct_url(dist_name)
+        if direct_url and direct_url.is_local_editable():
+            raise TestFailure(f"Package {pkg_name} installed as editable package.")
+
     def did_create(self, path: StrPath, message: str | None = None) -> None:
         assert path in self.files_created, _one_or_both(message, self)
 
