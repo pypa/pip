@@ -23,21 +23,26 @@ jobs:
           }
 
           require "^[[:space:]]*- \[" \
-            "Could not find the pip PR checklist in the pull request comment. This probably means you've used a tool to submit your PR, rather than the GitHub UI which violates pip's AI policy. See https://pip.pypa.io/en/latest/development/contributing/#ai-policy for more details."
+            "Could not find the pip PR checklist in the pull request body. This probably means you've used a tool to submit your PR rather than the GitHub UI. Please add the required checklist from CONTRIBUTING.md."
 
           require "^[[:space:]]*- \[\s*[xX]\s*\] I agree to follow the \[PSF Code of Conduct\]" \
             "The 'PSF Code of Conduct' checkbox in the PR checklist must be checked."
 
-          require "^[[:space:]]*- \[\s*[xX]\s*\] I have read and have followed the \*\*CONTRIBUTING.md\*\* file" \
+          require "^[[:space:]]*- \[\s*[xX]\s*\] I have read and have followed the \[CONTRIBUTING\.md\]" \
             "The 'CONTRIBUTING.md' checkbox in the PR checklist must be checked."
 
-          if grep -qE -- "^[[:space:]]*- \[\s*[xX]\s*\] I have read and followed the \*\*AI_POLICY\.md\*\* file" <<< "$PR_BODY"; then
-              require "^[[:space:]]*(-\s+)?Assisted-by:" "'Assisted-by:' line is missing."
-              ASSISTED_BY_VAL=$(grep -E "^[[:space:]]*(-\s+)?Assisted-by:" <<< "$PR_BODY" | sed -r -e 's/^[[:space:]]*(-\s+)?Assisted-by://' -e 's/<!--.*-->//' | tr -d '[:space:]')
-              if [ -z "$ASSISTED_BY_VAL" ]; then
-                  echo "::error::You checked the AI tool checkbox in the PR template, but did not specify the tool used in 'Assisted-by:'."
-                  exit 1
-              fi
+          require "^[[:space:]]*- \[\s*[xX]\s*\] I have added a news file fragment" \
+            "The 'news file fragment' checkbox in the PR checklist must be checked. If this PR does not need a news fragment, check the box anyway to confirm you have considered it."
+
+          require "^[[:space:]]*- \[\s*[xX]\s*\] I have read and followed the \[AI_POLICY\.md\]" \
+            "The 'AI_POLICY.md' checkbox in the PR checklist must be checked."
+
+          if grep -qE -- "^[[:space:]]*(-\s+)?Assisted-by:[[:space:]]*\S" <<< "$PR_BODY"; then
+              # Assisted-by is present and non-empty — no further action needed
+              true
+          elif grep -qE -- "^[[:space:]]*(-\s+)?Assisted-by:" <<< "$PR_BODY"; then
+              echo "::error::An 'Assisted-by:' line was found but no tool was specified. Please add the tool name, e.g. 'Assisted-by: Claude'."
+              exit 1
           fi
 
           echo "PR Checklist verification passed."
