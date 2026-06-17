@@ -8,6 +8,16 @@ require() {
     fi
 }
 
+if [ "$PR_USER_LOGIN" = "dependabot[bot]" ]; then
+  echo "Skipping dependabot PR."
+  exit 0
+fi
+
+if [ "$PR_NUMBER" -le 14069 ]; then
+  echo "Skipping old PR."
+  exit 0
+fi
+
 require "^[[:space:]]*- \[" \
 "Could not find the pip PR checklist in the pull request body. This probably means you've used a tool to submit your PR rather than the GitHub UI. Please add the required checklist from CONTRIBUTING.md."
 
