@@ -26,7 +26,11 @@ from pip._vendor.rich.progress import (
 from pip._vendor.rich.status import Status
 
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.logging import get_console, get_indentation
+from pip._internal.utils.logging import (
+    get_console,
+    get_console_or_create,
+    get_indentation,
+)
 
 if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
@@ -153,7 +157,7 @@ def status(message: str) -> Generator[None, None, None]:
         yield
         return
     logger.info(message)
-    with Status(message, console=get_console()):
+    with Status(message, console=get_console_or_create()):
         yield
 
 
@@ -162,7 +166,7 @@ def open_spinner(
     label: str, console: Console | None = None
 ) -> Generator[None, None, None]:
     if console is None:
-        console = get_console()
+        console = get_console_or_create()
     visible = logger.getEffectiveLevel() <= logging.INFO
     hide: AbstractContextManager[None] = (
         hidden_cursor(console.file)

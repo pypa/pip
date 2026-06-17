@@ -191,6 +191,23 @@ def get_console(*, stderr: bool = False) -> Console:
         return _stdout_console
 
 
+def get_console_or_create() -> Console:
+    """Return the stdout console, creating one if logging is not configured yet."""
+    global _stdout_console
+    if _stdout_console is None:
+        _stdout_console = PipConsole(
+            file=sys.stdout,
+            no_color=(
+                "--no-color" in sys.argv
+                or os.getenv("PIP_NO_COLOR") == "1"
+                or "NO_COLOR" in os.environ
+            ),
+            soft_wrap=True,
+            force_terminal=True,
+        )
+    return _stdout_console
+
+
 class RichPipStreamHandler(RichHandler):
     KEYWORDS: ClassVar[list[str] | None] = []
 
