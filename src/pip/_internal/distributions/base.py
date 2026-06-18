@@ -7,7 +7,7 @@ from pip._internal.metadata.base import BaseDistribution
 from pip._internal.req import InstallRequirement
 
 if TYPE_CHECKING:
-    from pip._internal.build_env import BuildEnvironmentInstaller
+    from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
 
 
 class AbstractDistribution(metaclass=abc.ABCMeta):
@@ -49,7 +49,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
     def prepare_distribution_metadata(
         self,
         build_env_installer: BuildEnvironmentInstaller,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         check_build_deps: bool,
     ) -> None:
         raise NotImplementedError()
