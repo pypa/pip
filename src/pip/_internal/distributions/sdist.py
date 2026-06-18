@@ -4,7 +4,7 @@ import logging
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import BuildIsolationMode, VirtualBuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.metadata import BaseDistribution
@@ -35,17 +35,17 @@ class SourceDistribution(AbstractDistribution):
     def prepare_distribution_metadata(
         self,
         build_env_installer: BuildEnvironmentInstaller,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         check_build_deps: bool,
     ) -> None:
         # Load pyproject.toml
         self.req.load_pyproject_toml()
 
         # Set up the build isolation, if this requirement should be isolated
-        if build_isolation:
+        if build_isolation != "off":
             # Setup an isolated environment and install the build backend static
             # requirements in it.
-            self._prepare_build_backend(build_env_installer)
+            self._prepare_build_backend(build_isolation, build_env_installer)
             # Check that the build backend supports PEP 660. This cannot be done
             # earlier because we need to setup the build backend to verify it
             # supports build_editable, nor can it be done later, because we want
@@ -71,14 +71,17 @@ class SourceDistribution(AbstractDistribution):
         self.req.prepare_metadata()
 
     def _prepare_build_backend(
-        self, build_env_installer: BuildEnvironmentInstaller
+        self,
+        build_isolation: BuildIsolationMode,
+        build_env_installer: BuildEnvironmentInstaller,
     ) -> None:
         # Isolate in a BuildEnvironment and install the build-time
         # requirements.
         pyproject_requires = self.req.pyproject_requires
         assert pyproject_requires is not None
 
-        self.req.build_env = BuildEnvironment(build_env_installer)
+        if build_isolation == "virtual":
+            self.req.build_env = VirtualBuildEnvironment(build_env_installer)
         self.req.build_env.install_requirements(
             pyproject_requires, "overlay", kind="build dependencies", for_req=self.req
         )

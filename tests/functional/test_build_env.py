@@ -10,10 +10,10 @@ from typing import Literal
 import pytest
 
 from pip._internal.build_env import (
-    BuildEnvironment,
     BuildEnvironmentInstaller,
     InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
+    VirtualBuildEnvironment,
     _get_system_sitepackages,
 )
 from pip._internal.cache import WheelCache
@@ -66,9 +66,9 @@ def run_with_build_env(
             import sys
 
             from pip._internal.build_env import (
-                BuildEnvironment,
                 InprocessBuildEnvironmentInstaller,
                 SubprocessBuildEnvironmentInstaller,
+                VirtualBuildEnvironment,
             )
             from pip._internal.cache import WheelCache
             from pip._internal.index.collector import LinkCollector
@@ -102,7 +102,7 @@ def run_with_build_env(
                         build_tracker=tracker,
                         wheel_cache=WheelCache(None),
                     )
-                build_env = BuildEnvironment(installer)
+                build_env = VirtualBuildEnvironment(installer)
             """)
         + indent(dedent(setup_script_contents), "    ")
         + indent(
@@ -128,7 +128,7 @@ def test_build_env_allow_empty_requirements_install(
 ) -> None:
     finder = make_test_finder()
     with make_test_build_env_installer(install_method, finder) as installer:
-        build_env = BuildEnvironment(installer)
+        build_env = VirtualBuildEnvironment(installer)
         for prefix in ("normal", "overlay"):
             build_env.install_requirements(
                 [], prefix, kind="Installing build dependencies"
@@ -143,7 +143,7 @@ def test_build_env_allow_only_one_install(
     create_basic_wheel_for_package(script, "bar", "1.0")
     finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
     with make_test_build_env_installer(install_method, finder) as installer:
-        build_env = BuildEnvironment(installer)
+        build_env = VirtualBuildEnvironment(installer)
         for prefix in ("normal", "overlay"):
             build_env.install_requirements(
                 ["foo"], prefix, kind=f"installing foo in {prefix}"

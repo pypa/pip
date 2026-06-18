@@ -89,7 +89,7 @@ class TestSubprocessBuildEnvironmentInstaller:
             "--build-constraint or PIP_BUILD_CONSTRAINT" in message
         )
 
-    @mock.patch("pip._internal.build_env.call_subprocess")
+    @mock.patch("pip._internal.build_env.installer.call_subprocess")
     @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
     def test_install_calls_deprecation_check(
         self, mock_call_subprocess: mock.Mock, tmp_path: Path
