@@ -10,7 +10,7 @@ from contextlib import nullcontext
 from io import StringIO
 from typing import TYPE_CHECKING, TypedDict
 
-from pip._internal.build_env.base import _Prefix
+from pip._internal.build_env.base import Prefix
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
 from pip._internal.exceptions import (
     BuildDependencyInstallError,
@@ -86,7 +86,7 @@ class SubprocessBuildEnvironmentInstaller:
     def install(
         self,
         requirements: Iterable[str],
-        prefix: _Prefix,
+        prefix: Prefix,
         *,
         kind: str,
         for_req: InstallRequirement | None,
@@ -246,7 +246,7 @@ class InprocessBuildEnvironmentInstaller:
     def install(
         self,
         requirements: Iterable[str],
-        prefix: _Prefix,
+        prefix: Prefix,
         *,
         kind: str,
         for_req: InstallRequirement | None,
@@ -295,7 +295,7 @@ class InprocessBuildEnvironmentInstaller:
         finally:
             self._level -= 1
 
-    def _install_impl(self, requirements: Iterable[str], prefix: _Prefix) -> None:
+    def _install_impl(self, requirements: Iterable[str], prefix: Prefix) -> None:
         """Core build dependency install logic."""
         from pip._internal.commands.install import installed_packages_summary
         from pip._internal.req import install_given_reqs

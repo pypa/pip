@@ -8,7 +8,8 @@ from unittest import mock
 
 import pytest
 
-from pip._internal.build_env import SubprocessBuildEnvironmentInstaller, _Prefix
+from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
+from pip._internal.build_env.base import Prefix
 from pip._internal.utils.deprecation import PipDeprecationWarning
 
 from tests.lib import make_test_finder
@@ -100,7 +101,7 @@ class TestSubprocessBuildEnvironmentInstaller:
             finder,
             build_constraint_feature_enabled=False,
         )
-        prefix = _Prefix(str(tmp_path))
+        prefix = Prefix(str(tmp_path))
 
         with pytest.warns(PipDeprecationWarning):
             installer.install(

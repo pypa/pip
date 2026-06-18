@@ -14,8 +14,8 @@ from pip._internal.build_env import (
     InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
     VirtualBuildEnvironment,
-    _get_system_sitepackages,
 )
+from pip._internal.build_env.virtual import get_system_sitepackages
 from pip._internal.cache import WheelCache
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -308,7 +308,7 @@ def test_build_env_isolation(
     script.pip_install_local("-t", target, pkg_whl)
     script.environ["PYTHONPATH"] = target
 
-    system_sites = _get_system_sitepackages()
+    system_sites = get_system_sitepackages()
     # there should always be something to exclude
     assert system_sites
 

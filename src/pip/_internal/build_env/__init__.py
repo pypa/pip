@@ -4,17 +4,13 @@ from pip._internal.build_env.base import (
     BuildEnvironment,
     BuildEnvironmentInstaller,
     BuildIsolationMode,
-    _Prefix,
 )
 from pip._internal.build_env.installer import (
     InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
 )
 from pip._internal.build_env.noop import NoOpBuildEnvironment
-from pip._internal.build_env.virtual import (
-    VirtualBuildEnvironment,
-    _get_system_sitepackages,
-)
+from pip._internal.build_env.virtual import VirtualBuildEnvironment
 
 __all__ = [
     "BuildEnvironment",
@@ -24,6 +20,4 @@ __all__ = [
     "NoOpBuildEnvironment",
     "SubprocessBuildEnvironmentInstaller",
     "VirtualBuildEnvironment",
-    "_Prefix",
-    "_get_system_sitepackages",
 ]

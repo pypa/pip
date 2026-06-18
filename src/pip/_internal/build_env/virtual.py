@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from pip._internal.build_env.base import (
     BuildEnvironment,
     BuildEnvironmentInstaller,
-    _Prefix,
+    Prefix,
 )
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
 
 
-def _get_system_sitepackages() -> set[str]:
+def get_system_sitepackages() -> set[str]:
     """Get system site packages, as a normalized set of strings."""
     system_sites = site.getsitepackages()
     return {os.path.normcase(path) for path in system_sites}
@@ -33,7 +33,7 @@ class VirtualBuildEnvironment(BuildEnvironment):
         temp_dir = TempDirectory(kind=tempdir_kinds.BUILD_ENV, globally_managed=True)
 
         self._prefixes = OrderedDict(
-            (name, _Prefix(os.path.join(temp_dir.path, name)))
+            (name, Prefix(os.path.join(temp_dir.path, name)))
             for name in ("normal", "overlay")
         )
 
@@ -46,7 +46,7 @@ class VirtualBuildEnvironment(BuildEnvironment):
         # Customize site to:
         # - ensure .pth files are honored
         # - prevent access to system site packages
-        system_sites = _get_system_sitepackages()
+        system_sites = get_system_sitepackages()
 
         self._site_dir = os.path.join(temp_dir.path, "site")
         if not os.path.exists(self._site_dir):

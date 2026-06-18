@@ -22,7 +22,7 @@ def _dedup(a: str, b: str) -> tuple[str] | tuple[str, str]:
     return (a, b) if a != b else (a,)
 
 
-class _Prefix:
+class Prefix:
     def __init__(self, path: str) -> None:
         self.path = path
         self.setup = False
@@ -40,7 +40,7 @@ class BuildEnvironmentInstaller(Protocol):
     def install(
         self,
         requirements: Iterable[str],
-        prefix: _Prefix,
+        prefix: Prefix,
         *,
         kind: str,
         for_req: InstallRequirement | None,
