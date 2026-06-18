@@ -26,7 +26,10 @@ def get_system_sitepackages() -> set[str]:
 
 
 class VirtualBuildEnvironment(BuildEnvironment):
-    """Legacy build environment implementation. Patches sys.path"""
+    """Legacy build environment implementation.
+
+    Patches sys.path and uses sitecustomize.py to isolate Python processes.
+    """
 
     def __init__(self, installer: BuildEnvironmentInstaller) -> None:
         self.installer = installer

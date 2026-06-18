@@ -1,4 +1,4 @@
-"""Build Environment used for isolation during sdist building"""
+"""Build environments used for isolation during build backend calls."""
 
 from pip._internal.build_env.base import (
     BuildEnvironment,
