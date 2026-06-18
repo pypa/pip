@@ -152,12 +152,26 @@ def status(message: str) -> Generator[None, None, None]:
 
     When ``--quiet`` or a higher log level is set, this becomes a no-op.
     """
-    # Use the local logger defined in this module.
     if not logger.isEnabledFor(logging.INFO):
         yield
         return
-    logger.info(message)
-    with Status(message, console=get_console_or_create()):
+
+    console = get_console_or_create()
+    if not getattr(console.file, "isatty", lambda: False)():
+        logger.info("%s: started", message)
+        try:
+            yield
+        except KeyboardInterrupt:
+            logger.info("%s: finished with status 'canceled'", message)
+            raise
+        except Exception:
+            logger.info("%s: finished with status 'error'", message)
+            raise
+        else:
+            logger.info("%s: finished with status 'done'", message)
+        return
+
+    with Status(message, console=console):
         yield
 
 
