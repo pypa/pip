@@ -1,11 +1,15 @@
 import os
 from pathlib import Path
+from typing import NoReturn
+
+import pytest
 
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 
-from pip._internal.cache import WheelCache, _hash_dict
+from pip._internal.cache import SimpleWheelCache, WheelCache, _hash_dict
 from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.urls import path_to_url
 
 
 def test_falsey_path_none() -> None:
@@ -116,3 +120,20 @@ def test_get_cache_entry(tmpdir: Path) -> None:
     assert not entry.persistent
 
     assert wc.get_cache_entry(other_link, "other", supported_tags) is None
+
+
+def test_simple_wheel_cache_ignores_cache_for_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    link = Link(path_to_url(str(project_dir)))
+    cache = SimpleWheelCache(str(tmp_path / "cache"))
+
+    def fail_if_called(*args: object, **kwargs: object) -> NoReturn:
+        raise AssertionError("local directory links should not check wheel cache")
+
+    monkeypatch.setattr(cache, "_get_candidates", fail_if_called)
+
+    assert cache.get(link, "example", supported_tags=[]) is link
