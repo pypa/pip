@@ -399,9 +399,7 @@ def test_install_report_to_stdout(
     assert len(report["install"]) == 1
 
 
-def test_install_report_error(
-    script: PipTestEnvironment, tmp_path: Path
-) -> None:
+def test_install_report_error(script: PipTestEnvironment, tmp_path: Path) -> None:
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
@@ -414,12 +412,13 @@ def test_install_report_error(
     report = json.loads(report_path.read_text())
     assert "error" in report
     assert report["error"]["code"] == "DistributionNotFound"
-    assert "No matching distribution found for nonexistent-package-name-xyz" in report["error"]["description"]
+    assert (
+        "No matching distribution found for nonexistent-package-name-xyz"
+        in report["error"]["description"]
+    )
 
 
-def test_install_report_error_stdout(
-    script: PipTestEnvironment
-) -> None:
+def test_install_report_error_stdout(script: PipTestEnvironment) -> None:
     result = script.pip(
         "install",
         "nonexistent-package-name-xyz",
@@ -431,6 +430,7 @@ def test_install_report_error_stdout(
     report = json.loads(result.stdout)
     assert "error" in report
     assert report["error"]["code"] == "DistributionNotFound"
-    assert "No matching distribution found for nonexistent-package-name-xyz" in report["error"]["description"]
-
-
+    assert (
+        "No matching distribution found for nonexistent-package-name-xyz"
+        in report["error"]["description"]
+    )

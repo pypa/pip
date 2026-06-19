@@ -587,7 +587,8 @@ class InstallCommand(RequirementCommand):
             if options.json_report_file:
                 reqs_to_report = (
                     requirement_set.requirements_to_install
-                    if requirement_set is not None and hasattr(requirement_set, "requirements_to_install")
+                    if requirement_set is not None
+                    and hasattr(requirement_set, "requirements_to_install")
                     else []
                 )
                 report = InstallationReport(reqs_to_report)
