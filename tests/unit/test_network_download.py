@@ -19,7 +19,7 @@ from pip._internal.network.download import (
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS
 
-from tests.lib.requests_mocks import MockResponse, BrokenStream
+from tests.lib.requests_mocks import BrokenStream, MockResponse
 
 
 @pytest.mark.parametrize(

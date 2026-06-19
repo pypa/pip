@@ -9,7 +9,6 @@ from typing import Any
 from pip._vendor.requests.models import Response
 from pip._vendor.urllib3.exceptions import ProtocolError
 
-
 _Hook = Callable[["MockResponse"], None]
 
 
