@@ -19,7 +19,7 @@ from pip._internal.network.download import (
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS
 
-from tests.lib.requests_mocks import MockResponse
+from tests.lib.requests_mocks import MockResponse, BrokenStream
 
 
 @pytest.mark.parametrize(
@@ -350,6 +350,32 @@ def test_downloader(
 
     # Make sure that the downloader makes additional requests for resumption
     _http_get_mock.assert_has_calls(calls)
+
+
+def test_downloader_resumes_on_protocol_error(tmpdir: Path) -> None:
+    """A ProtocolError mid-stream should trigger resume logic, not crash."""
+    session = PipSession(resume_retries=3)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    # First response: raises ProtocolError after partial read
+    broken_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    broken_resp.headers.update({"content-length": "36"})
+    broken_resp.status_code = 200
+    broken_resp.raw = BrokenStream(b"0cfa7e9d-1868-4dd7-9fb3-")
+
+    # Second response: successful resume
+    resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.headers.update({"content-length": "12"})
+    resume_resp.status_code = 206
+
+    _http_get_mock = MagicMock(side_effect=[broken_resp, resume_resp])
+
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    with open(filepath, "rb") as f:
+        assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
 
 
 def test_downloader_without_content_length(tmpdir: Path) -> None:
