@@ -263,6 +263,11 @@ Build Constraints
 
 .. versionadded:: 25.3
 
+.. versionchanged:: 26.2
+   Constraints files, including those set with the ``PIP_CONSTRAINT`` environment
+   variable, no longer affect isolated build environments. Use build constraints
+   to constrain build dependencies.
+
 Build constraints are a type of constraints file that applies only to isolated
 build environments used for building packages from source. Unlike regular
 constraints, which affect the packages installed in your environment, build
@@ -295,6 +300,9 @@ Example build constraints file (``build-constraints.txt``):
    setuptools>=45,<80
    # Pin Cython for packages that use it to build
    cython==0.29.24
+
+The ``--build-constraint`` option can be set with the ``PIP_BUILD_CONSTRAINT``
+environment variable.
 
 Controlling Pre-release Installation
 =====================================

@@ -64,9 +64,11 @@ logger = logging.getLogger(__name__)
 
 def should_ignore_regular_constraints(options: Values) -> bool:
     """
-    Check if regular constraints should be ignored because
-    we are in a isolated build process and build constraints
-    feature is enabled but no build constraints were passed.
+    Whether this process should ignore the constraints files it inherits.
+
+    The parent pip sets ``_PIP_IN_BUILD_IGNORE_CONSTRAINTS`` when it starts an
+    isolated build with no build constraints, so that constraints files the
+    build inherits (such as via ``PIP_CONSTRAINT``) do not affect it.
     """
 
     return os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1"
@@ -190,9 +192,6 @@ class RequirementCommand(IndexGroupCommand):
 
         # Handle build constraints
         build_constraints = getattr(options, "build_constraints", [])
-        build_constraint_feature_enabled = (
-            "build-constraint" in options.features_enabled
-        )
 
         env_installer: BuildEnvironmentInstaller
         if "inprocess-build-deps" in options.features_enabled:
@@ -210,7 +209,6 @@ class RequirementCommand(IndexGroupCommand):
             env_installer = SubprocessBuildEnvironmentInstaller(
                 finder,
                 build_constraints=build_constraints,
-                build_constraint_feature_enabled=build_constraint_feature_enabled,
             )
 
         return RequirementPreparer(

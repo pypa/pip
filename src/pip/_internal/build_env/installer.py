@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import sys
 import textwrap
 from collections.abc import Iterable, Sequence
@@ -19,7 +18,6 @@ from pip._internal.exceptions import (
     PipError,
 )
 from pip._internal.metadata import get_environment
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import VERBOSE, capture_logging
 from pip._internal.utils.misc import get_runnable_pip
 from pip._internal.utils.subprocess import call_subprocess
@@ -48,40 +46,9 @@ class SubprocessBuildEnvironmentInstaller:
         self,
         finder: PackageFinder,
         build_constraints: list[str] | None = None,
-        build_constraint_feature_enabled: bool = False,
     ) -> None:
         self.finder = finder
         self._build_constraints = build_constraints or []
-        self._build_constraint_feature_enabled = build_constraint_feature_enabled
-
-    def _deprecation_constraint_check(self) -> None:
-        """
-        Check for deprecation warning: PIP_CONSTRAINT affecting build environments.
-
-        This warns when build-constraint feature is NOT enabled and PIP_CONSTRAINT
-        is not empty.
-        """
-        if self._build_constraint_feature_enabled or self._build_constraints:
-            return
-
-        pip_constraint = os.environ.get("PIP_CONSTRAINT")
-        if not pip_constraint or not pip_constraint.strip():
-            return
-
-        deprecated(
-            reason=(
-                "Setting PIP_CONSTRAINT will not affect "
-                "build constraints in the future,"
-            ),
-            replacement=(
-                "to specify build constraints using --build-constraint or "
-                "PIP_BUILD_CONSTRAINT. To disable this warning without "
-                "any build constraints set --use-feature=build-constraint or "
-                'PIP_USE_FEATURE="build-constraint"'
-            ),
-            gone_in="26.2",
-            issue=None,
-        )
 
     def install(
         self,
@@ -91,8 +58,6 @@ class SubprocessBuildEnvironmentInstaller:
         kind: str,
         for_req: InstallRequirement | None,
     ) -> None:
-        self._deprecation_constraint_check()
-
         finder = self.finder
         args: list[str] = [
             sys.executable,
@@ -153,23 +118,17 @@ class SubprocessBuildEnvironmentInstaller:
         if finder.prefer_binary:
             args.append("--prefer-binary")
 
-        # Handle build constraints
-        if self._build_constraint_feature_enabled:
-            args.extend(["--use-feature", "build-constraint"])
-
+        # Only build constraints apply in the isolated build environment.
+        extra_environ: ExtraEnviron = {}
         if self._build_constraints:
-            # Build constraints must be passed as both constraints
-            # and build constraints, so that nested builds receive
-            # build constraints
+            # Pass each file via both --constraint and --build-constraint, so
+            # that this build environment and any nested builds are constrained.
             for constraint_file in self._build_constraints:
                 args.extend(["--constraint", constraint_file])
                 args.extend(["--build-constraint", constraint_file])
-
-        extra_environ: ExtraEnviron = {}
-        if self._build_constraint_feature_enabled and not self._build_constraints:
-            # If there are no build constraints but the build constraints
-            # feature is enabled then we must ignore regular constraints
-            # in the isolated build environment
+        else:
+            # With no build constraints, ignore any constraints files the build
+            # subprocess inherits from the environment (such as PIP_CONSTRAINT).
             extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
 
         if finder.uploaded_prior_to:
