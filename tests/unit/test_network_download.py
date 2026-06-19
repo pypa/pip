@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+
+from pip._vendor.urllib3.exceptions import ProtocolError
 
 from pip._internal.exceptions import IncompleteDownloadError
 from pip._internal.models.link import Link
@@ -20,6 +23,10 @@ from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS
 
 from tests.lib.requests_mocks import BrokenStream, MockResponse
+from tests.lib.server import Body, MockServer
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIEnvironment
 
 
 @pytest.mark.parametrize(
@@ -376,6 +383,70 @@ def test_downloader_resumes_on_protocol_error(tmpdir: Path) -> None:
 
     with open(filepath, "rb") as f:
         assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+
+def test_downloader_retries_protocol_error_during_resume(tmpdir: Path) -> None:
+    """A ProtocolError raised while fetching a resume response is retried."""
+    session = PipSession(resume_retries=5)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    # Initial response: raises ProtocolError after a partial read
+    broken_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    broken_resp.headers.update({"content-length": "36"})
+    broken_resp.status_code = 200
+    broken_resp.raw = BrokenStream(b"0cfa7e9d-1868-4dd7-9fb3-")
+
+    # Final resume that completes the file
+    resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.headers.update({"content-length": "12"})
+    resume_resp.status_code = 206
+
+    # The first resume attempt drops with a ProtocolError before responding
+    _http_get_mock = MagicMock(
+        side_effect=[broken_resp, ProtocolError("Connection broken"), resume_resp]
+    )
+
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    assert _http_get_mock.call_count == 3
+    with open(filepath, "rb") as f:
+        assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+
+def test_downloader_resumes_on_truncated_http_stream(
+    mock_server: MockServer, tmpdir: Path
+) -> None:
+    """A truncated stream raises a real urllib3 ProtocolError that resume recovers."""
+    body = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+    def truncated(environ: WSGIEnvironment, start_response: StartResponse) -> Body:
+        # Advertise the full length but send only part of the body
+        start_response("200 OK", [("Content-Length", str(len(body)))])
+        return [body[:10]]
+
+    def resumed(environ: WSGIEnvironment, start_response: StartResponse) -> Body:
+        start = int(environ["HTTP_RANGE"].split("=", 1)[1].split("-", 1)[0])
+        start_response(
+            "206 Partial Content",
+            [
+                ("Content-Length", str(len(body) - start)),
+                ("Content-Range", f"bytes {start}-{len(body) - 1}/{len(body)}"),
+            ],
+        )
+        return [body[start:]]
+
+    mock_server.set_responses([truncated, resumed])
+    mock_server.start()
+    url = f"http://{mock_server.host}:{mock_server.port}/foo.tgz"
+
+    session = PipSession(resume_retries=3)
+    downloader = Downloader(session, "on")
+    filepath, _ = downloader(Link(url), str(tmpdir))
+
+    with open(filepath, "rb") as f:
+        assert f.read() == body
 
 
 def test_downloader_without_content_length(tmpdir: Path) -> None:
