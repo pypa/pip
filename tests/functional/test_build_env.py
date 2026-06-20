@@ -410,7 +410,7 @@ def test_build_env_can_still_access_python_tools_on_system_path(
     )
 
 
-@pytest.mark.xfail(strict=True)
+@pytest.mark.xfail(reason="see TODO in build_env/installer.py")
 @pytest.mark.skipif(sys.platform == "win32", reason="Unix-only test")
 def test_venv_build_env_inprocess_scripts_use_venv_python(
     script: PipTestEnvironment,

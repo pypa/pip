@@ -32,7 +32,9 @@ class VenvBuildEnvironment(BuildEnvironment):
         self._temp_dir = TempDirectory(
             kind=tempdir_kinds.BUILD_ENV, globally_managed=True
         )
-        env = venv.EnvBuilder()
+        # Use symlinks to support relocatable Python installations on POSIX, including
+        # python-build-standalone. This matches upstream venv CLI's behaviour.
+        env = venv.EnvBuilder(symlinks=(os.name != "nt"))
         context = env.ensure_directories(self._temp_dir.path)
         env.create(self._temp_dir.path)
 

@@ -93,21 +93,15 @@ class SubprocessBuildEnvironmentInstaller:
     ) -> None:
         self._deprecation_constraint_check()
 
-        if prefix.venv_executable:
-            base_args = [prefix.venv_executable, get_runnable_pip(), "install"]
-        else:
-            base_args = [
-                sys.executable,
-                get_runnable_pip(),
-                "install",
-                "--prefix",
-                prefix.path,
-                "--ignore-installed",
-            ]
-
         finder = self.finder
         args: list[str] = [
-            *base_args,
+            get_runnable_pip(),
+            "install",
+            # HACK: --prefix shouldn't be necessary for venv environments, but
+            # we set it anyway so if it's set via an envvar or configuration
+            # file, it won't break things, *sigh*.
+            "--prefix",
+            prefix.path,
             "--no-user",
             "--no-warn-script-location",
             "--disable-pip-version-check",
@@ -120,6 +114,12 @@ class SubprocessBuildEnvironmentInstaller:
             "--target",
             "",
         ]
+        if prefix.venv_executable:
+            args.insert(0, prefix.venv_executable)
+        else:
+            args.insert(0, sys.executable)
+            args.append("--ignore-installed")
+
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append("-vv")
         elif logger.getEffectiveLevel() <= VERBOSE:
