@@ -5,11 +5,9 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Generator, Iterable
 from contextlib import suppress
+from dataclasses import dataclass
 from email.parser import Parser
 from functools import reduce
-from typing import (
-    NamedTuple,
-)
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.tags import Tag, parse_tag
@@ -24,10 +22,21 @@ from pip._internal.req.req_install import InstallRequirement
 logger = logging.getLogger(__name__)
 
 
-class PackageDetails(NamedTuple):
+@dataclass(frozen=True)
+class PackageDetails:
     version: Version
     dependencies: list[Requirement]
     dependency_names: list[NormalizedName]
+
+    @classmethod
+    def from_dependencies(
+        cls, version: Version, dependencies: list[Requirement]
+    ) -> PackageDetails:
+        return cls(
+            version,
+            dependencies,
+            [canonicalize_name(req.name) for req in dependencies],
+        )
 
 
 # Shorthands
@@ -50,11 +59,9 @@ def create_package_set_from_installed() -> tuple[PackageSet, bool]:
         name = dist.canonical_name
         try:
             dependencies = list(dist.iter_dependencies())
-            dependency_names = [canonicalize_name(req.name) for req in dependencies]
-            package_set[name] = PackageDetails(
+            package_set[name] = PackageDetails.from_dependencies(
                 dist.version,
                 dependencies,
-                dependency_names,
             )
         except (OSError, ValueError) as e:
             # Don't crash on unreadable or broken metadata.
@@ -158,10 +165,9 @@ def _simulate_installation_of(
         dist = abstract_dist.get_metadata_distribution()
         name = dist.canonical_name
         dependencies = list(dist.iter_dependencies())
-        package_set[name] = PackageDetails(
+        package_set[name] = PackageDetails.from_dependencies(
             dist.version,
             dependencies,
-            [canonicalize_name(req.name) for req in dependencies],
         )
 
         installed.add(name)
