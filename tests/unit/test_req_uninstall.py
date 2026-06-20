@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
+from importlib.util import cache_from_source
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -10,6 +11,7 @@ import pytest
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
+    PathCompactor,
     StashedUninstallPathSet,
     UninstallPathSet,
     UninstallPthEntries,
@@ -443,3 +445,288 @@ class TestStashedUninstallPathSet:
         # link targets untouched
         assert os.path.isdir(adir)
         assert os.path.isfile(afile)
+
+
+class TestPathCompactor:
+    def run_compactor_pipeline(
+        self,
+        tmp_path: Path,
+        record_paths: list[str],
+        all_disk_paths: list[str],
+        preserved_roots: Iterable[str] | None = None,
+        populate_pycache: bool = False,
+    ) -> PathCompactor:
+
+        if populate_pycache:
+            # Populate pyc of multiple optimization levels on disk
+            pycache_dirs = set()
+            for p in filter(lambda x: x.endswith(".py"), record_paths.copy()):
+                for level in (None, 1, 2):
+                    result = cache_from_source(p, optimization=level)
+                    all_disk_paths.append(result)
+                    record_paths.append(result)
+                    pycache_dirs.add(os.path.dirname(result))
+
+            # Add the __pycache__ directory entries to the RECORD
+            record_paths.extend(d for d in pycache_dirs)
+
+        for p in all_disk_paths:
+            full_path = tmp_path / p
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            full_path.touch()
+
+        abs_paths = [str(tmp_path / p) for p in record_paths]
+
+        abs_preserved = None
+        if preserved_roots:
+            abs_preserved = [str(tmp_path / r) for r in preserved_roots]
+
+        # Run the path pipeline for result interpretation
+        compactor = PathCompactor(paths=abs_paths, preserved_roots=abs_preserved)
+        compactor._parse_paths()
+        compactor._calculate_roots_and_owned_paths()
+        compactor._process_roots()
+
+        return compactor
+
+    @pytest.mark.parametrize("poison", [False, True])
+    @pytest.mark.parametrize("preserve_root", [False, True])
+    @pytest.mark.parametrize("pycache", [False, True])
+    def test_simple_package(
+        self,
+        tmpdir: Path,
+        poison: bool,
+        preserve_root: bool,
+        pycache: bool,
+    ) -> None:
+
+        poisoned_remains = [
+            "lib/my_pkg/__init__.py",
+            "lib/my_pkg/core.py",
+        ]
+
+        record_paths = poisoned_remains + [
+            "lib/my_pkg/utils/math.py",
+            "lib/my_pkg.dist-info/METADATA",
+            "lib/my_pkg.dist-info/PKG-INFO",
+        ]
+
+        all_disk_paths = record_paths.copy()
+
+        if poison:
+            all_disk_paths.append("lib/my_pkg/poison.txt")
+
+        compactor = self.run_compactor_pipeline(
+            tmp_path=tmpdir,
+            record_paths=record_paths,
+            all_disk_paths=all_disk_paths,
+            preserved_roots=[str(tmpdir / "lib")] if preserve_root else None,
+            populate_pycache=pycache,
+        )
+
+        rename_set = compactor.compress_for_rename()
+
+        expected_files = set()
+        expected_wildcards = {os.path.join(str(tmpdir / "lib/my_pkg.dist-info"), "")}
+        if not poison:
+            # The entire package should collapse
+            expected_wildcards.add(os.path.join(str(tmpdir / "lib/my_pkg"), ""))
+        else:
+            # When pycache is flagged, the base package will not collapse but the
+            # utils package will, so there will be two wildcards: pycache in the main
+            # package directory and utils as the parent of the other pycache
+            expected_wildcards.add(os.path.join(str(tmpdir / "lib/my_pkg/utils"), ""))
+            if pycache:
+                expected_wildcards.add(
+                    os.path.join(str(tmpdir / "lib/my_pkg/__pycache__"), "")
+                )
+
+            expected_files.update({str(tmpdir / p) for p in poisoned_remains})
+
+        assert (expected_files | expected_wildcards) == rename_set
+
+        will_remove, skipped_files = compactor.compress_for_output_listing()
+
+        expected_remove = {
+            os.path.join(str(tmpdir / "lib/my_pkg"), "") + "*",
+            os.path.join(str(tmpdir / "lib/my_pkg.dist-info"), "") + "*",
+        }
+
+        # The output listing will always say that the full package is being removed
+        assert compact(will_remove) == expected_remove
+
+        expected_skip = set()
+
+        if poison:
+            expected_skip.add(str(tmpdir / "lib/my_pkg/poison.txt"))
+
+        assert skipped_files == expected_skip
+
+    @pytest.mark.parametrize("poison", [False, True])
+    @pytest.mark.parametrize("preserve_root", [False, True])
+    @pytest.mark.parametrize("pycache", [False, True])
+    @pytest.mark.parametrize("pep420", [False, True])
+    def test_namespace_package(
+        self,
+        tmpdir: Path,
+        poison: bool,
+        preserve_root: bool,
+        pycache: bool,
+        pep420: bool,
+    ) -> None:
+        record_paths = [
+            "lib/my_pkg/core/__init__.py",
+            "lib/my_pkg/core/module.py",
+            "lib/my_pkg/core/ext/extension.pyi",
+            "lib/my_pkg/core/ext/extension.so",
+            "lib/my_pkg_core.dist-info/METADATA",
+            "lib/my_pkg_core.dist-info/PKG-INFO",
+        ]
+
+        if not pep420:
+            record_paths.append("lib/my_pkg/__init__.py")
+
+        all_disk_paths = record_paths.copy()
+
+        if poison:
+            all_disk_paths.append("lib/my_pkg/pkg_b/other.py")
+
+        compactor = self.run_compactor_pipeline(
+            tmp_path=tmpdir,
+            record_paths=record_paths,
+            all_disk_paths=all_disk_paths,
+            preserved_roots=[str(tmpdir / "lib")] if preserve_root else None,
+            populate_pycache=pycache,
+        )
+
+        rename_set = compactor.compress_for_rename()
+
+        expected_files = set()
+        expected_wildcards = {
+            os.path.join(str(tmpdir / "lib/my_pkg_core.dist-info"), "")
+        }
+
+        # Our results vary wildly based on that information we're provided
+        if not poison:
+            if preserve_root or (not pep420):
+                # all paths from the preserved root are removed. In legacy namespace
+                # packages, the __init__.py file allows removing the parent directory.
+                expected_wildcards.add(os.path.join(str(tmpdir / "lib/my_pkg"), ""))
+            else:
+                # We don't have root information so can only ascend up one level
+                expected_wildcards.add(
+                    os.path.join(str(tmpdir / "lib/my_pkg/core"), "")
+                )
+        else:
+            # We poison with a module under the same namespace to prevent collapsing
+            expected_wildcards.add(os.path.join(str(tmpdir / "lib/my_pkg/core"), ""))
+            if not pep420:
+                expected_files.add(str(tmpdir / "lib/my_pkg/__init__.py"))
+                if pycache:
+                    expected_wildcards.add(
+                        os.path.join(str(tmpdir / "lib/my_pkg/__pycache__"), "")
+                    )
+
+        assert (expected_files | expected_wildcards) == rename_set
+
+        will_remove, skipped_files = compactor.compress_for_output_listing()
+
+        expected_remove = {
+            os.path.join(str(tmpdir / "lib/my_pkg_core.dist-info"), "") + "*"
+        }
+
+        if pep420:
+            expected_remove.add(os.path.join(str(tmpdir / "lib/my_pkg/core"), "") + "*")
+        else:
+            expected_remove.add(os.path.join(str(tmpdir / "lib/my_pkg"), "") + "*")
+
+        assert compact(will_remove) == expected_remove
+
+        expected_skip = set()
+
+        # when roots aren't preserved or it's a PEP420 namespace, we only recurse
+        # up one parent, so we do not catch the fact there is a sibling package.
+        # The behavior here is subject to the caveats in `compress_for_output_listing`
+        if poison and not pep420:
+            expected_skip.add(os.path.join(str(tmpdir / "lib/my_pkg/pkg_b"), "") + "*")
+
+        assert skipped_files == expected_skip
+
+    @pytest.mark.parametrize("poison", [False, True])
+    @pytest.mark.parametrize("preserve_root", [False, True])
+    @pytest.mark.parametrize("pycache", [False, True])
+    def test_purelib_root_file(
+        self,
+        tmpdir: Path,
+        poison: bool,
+        preserve_root: bool,
+        pycache: bool,
+    ) -> None:
+        # Note this behavior will be similar for things in bin/ or similar except
+        # that bin/ will usually be poisoned by other binaries (like python)
+
+        record_paths = [
+            "lib/six.py",
+            "lib/six.dist-info/METADATA",
+            "lib/six.dist-info/PKG-INFO",
+        ]
+
+        all_disk_paths = record_paths.copy()
+
+        if poison:
+            all_disk_paths.append("lib/numpy/__init__.py")
+            all_disk_paths.append("lib/black/__init__.py")
+
+        compactor = self.run_compactor_pipeline(
+            tmp_path=tmpdir,
+            record_paths=record_paths,
+            all_disk_paths=all_disk_paths,
+            preserved_roots=[str(tmpdir / "lib")] if preserve_root else None,
+            populate_pycache=pycache,
+        )
+
+        rename_set = compactor.compress_for_rename()
+
+        expected_files = set()
+        expected_wildcards = set()
+
+        # If there's nothing to stop it, it will try to collapse the top directory
+        # this is existing behavior, so is not new.
+        if not poison and not preserve_root:
+            expected_wildcards.add(os.path.join(str(tmpdir / "lib"), ""))
+        else:
+            expected_files.add(str(tmpdir / "lib/six.py"))
+            expected_wildcards.add(os.path.join(str(tmpdir / "lib/six.dist-info"), ""))
+            if pycache:
+                expected_wildcards.add(
+                    os.path.join(str(tmpdir / "lib/__pycache__"), "")
+                )
+
+        assert (expected_files | expected_wildcards) == rename_set
+
+        will_remove, skipped_files = compactor.compress_for_output_listing()
+
+        expected_remove = set()
+
+        # Without a root to avoid globbing everything, purelib becomes a wildcard
+        if not preserve_root:
+            expected_remove.add(os.path.join(str(tmpdir / "lib"), "") + "*")
+        else:
+            expected_remove.add(str(tmpdir / "lib/six.py"))
+            expected_remove.add(
+                os.path.join(str(tmpdir / "lib/six.dist-info"), "") + "*"
+            )
+            if pycache:
+                expected_remove.add(
+                    os.path.join(str(tmpdir / "lib/__pycache__"), "") + "*"
+                )
+
+        assert compact(will_remove) == expected_remove
+
+        expected_skip = set()
+
+        if poison and not preserve_root:
+            expected_skip.add(os.path.join(str(tmpdir / "lib/numpy"), "") + "*")
+            expected_skip.add(os.path.join(str(tmpdir / "lib/black"), "") + "*")
+
+        assert skipped_files == expected_skip
