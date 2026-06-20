@@ -149,13 +149,13 @@ class Test_unpack_url:
             )
 
 
-def _metadata(*lines: str, name: str = "pkg") -> str:
+def _metadata(*lines: str, name: str = "pkg", version: str = "1.0") -> str:
     return (
         "\n".join(
             [
                 "Metadata-Version: 2.1",
                 f"Name: {name}",
-                "Version: 1.0",
+                f"Version: {version}",
                 *lines,
             ]
         )
@@ -256,6 +256,20 @@ class TestReconcileMetadataAgainstWheel:
     def test_name_canonicalization_is_tolerated(self) -> None:
         sidecar = _make_distribution(_metadata(name="Pkg_Name"))
         wheel = _make_distribution(_metadata(name="pkg-name"))
+        _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+
+    def test_version_mismatch_raises(self) -> None:
+        sidecar = _make_distribution(_metadata(version="1.0"))
+        wheel = _make_distribution(_metadata(version="2.0"))
+        with pytest.raises(MetadataInconsistent) as excinfo:
+            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        assert excinfo.value.field == "Version"
+        assert excinfo.value.f_val == "1.0"
+        assert excinfo.value.m_val == "2.0"
+
+    def test_version_normalization_is_tolerated(self) -> None:
+        sidecar = _make_distribution(_metadata(version="1.0"))
+        wheel = _make_distribution(_metadata(version="1.0.0"))
         _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
 
     def test_invalid_requires_dist_raises_metadata_invalid(self) -> None:

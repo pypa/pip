@@ -283,6 +283,14 @@ def _reconcile_metadata_against_wheel(
     if sidecar_name != wheel_name:
         raise MetadataInconsistent(req, "Name", sidecar_name, wheel_name)
 
+    if sidecar_dist.version != wheel_dist.version:
+        raise MetadataInconsistent(
+            req,
+            "Version",
+            str(sidecar_dist.version),
+            str(wheel_dist.version),
+        )
+
     sidecar_requires = _canonical_requires(sidecar_dist)
     wheel_requires = _canonical_requires(wheel_dist)
     if sidecar_requires != wheel_requires:
