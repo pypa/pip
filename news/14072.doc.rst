@@ -1,1 +1,0 @@
-Fixed outdated reference to setup.py egg_info in pip install documentation.

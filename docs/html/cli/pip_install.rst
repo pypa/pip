@@ -61,11 +61,10 @@ For each candidate item, pip needs to know the project name and version. For
 wheels (identified by the ``.whl`` file extension) this can be obtained from
 the filename, as per the Wheel spec. For local directories, or explicitly
 specified source distributions (sdists), pip determines project metadata using
-the project's build backend (PEP 517 build backend interface). For sdists
-located via an index, the filename is parsed for the name and project version
-(this is in theory slightly less reliable than obtaining metadata from the
-distribution, but avoids downloading and processing unnecessary numbers of
-files).
+the project's build backend. For sdists located via an index, the filename is
+parsed for the name and project version (this is in theory slightly less
+reliable than obtaining metadata from the distribution, but avoids downloading
+and processing unnecessary numbers of files).
 
 The :ref:`Direct URL requirement syntax <pypug:dependency-specifiers>` can be used
 to explicitly state the project name (see :doc:`../topics/vcs-support`).
