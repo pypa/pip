@@ -1,1 +1,2 @@
-Fix ProtocolError exceptions bypassing download resume logic.
+Fix ``ProtocolError`` exceptions raised after an incomplete download from bypassing
+download resume logic and leading to a crash.
