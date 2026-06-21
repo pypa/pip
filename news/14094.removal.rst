@@ -1,0 +1,6 @@
+The ``PIP_CONSTRAINT`` environment variable no longer affects isolated build
+environments. Use ``--build-constraint`` or the ``PIP_BUILD_CONSTRAINT``
+environment variable to constrain build dependencies instead.
+
+The ``--use-feature=build-constraint`` flag is now always enabled and has no
+effect.
