@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import sysconfig
 from collections.abc import Iterable
 from types import TracebackType
 from typing import TYPE_CHECKING
@@ -19,8 +20,6 @@ if TYPE_CHECKING:
 
 
 def _get_venv_path_from_sysconfig(name: str, env_dir: str) -> str:
-    import sysconfig
-
     vars = {
         "base": env_dir,
         "platbase": env_dir,
@@ -86,10 +85,13 @@ class VenvBuildEnvironment(BuildEnvironment):
         # These attributes seem to exist in every CPython version after 3.10.1 and
         # are documented to exist on 3.12 and higher.
         try:
-            self.python_executable = getattr(context, "env_exec_cmd", context.env_exe)
+            self.python_executable = context.env_exec_cmd
         except AttributeError:
-            executable_name = "python.exe" if os.name == "nt" else "python"
-            self.python_executable = os.path.join(self._bin_path, executable_name)
+            try:
+                self.python_executable = context.env_exe
+            except AttributeError:
+                executable_name = "python.exe" if os.name == "nt" else "python"
+                self.python_executable = os.path.join(self._bin_path, executable_name)
 
         self._save_env: dict[str, str | None] = {}
         self._installer = installer
