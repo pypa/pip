@@ -198,7 +198,7 @@ jobs:
           --durations=15
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [determine-changes]
@@ -220,9 +220,9 @@ jobs:
           - "3.14"
           - "3.15"
           - "3.14t"
-        group:
-          - { number: 1, pytest-filter: "not test_install" }
-          - { number: 2, pytest-filter: "test_install" }
+        # Windows is slow, so shard unit + functional across runners, split by a
+        # stable hash of each test's node id (see --num-test-groups in conftest).
+        group: [1, 2, 3]
 
     steps:
       # The D: drive is significantly faster than the system C: drive.
@@ -259,19 +259,16 @@ jobs:
       - run: python -m pip install .
       - run: python -m pip install nox
 
-      # Main check
-      - name: Run unit tests (group 1)
-        if: matrix.group.number == 1
+      # Main check. worksteal rebalances the long tail of slow install tests
+      # onto idle workers:
+      # https://pytest-xdist.readthedocs.io/en/stable/distribution.html
+      - name: Run tests (shard ${{ matrix.group }} of 3)
         run: >-
           python -m nox -s test-${{ matrix.python }} --
-          tests/unit
-          --verbose --numprocesses auto --showlocals
-
-      - name: Run integration tests (group ${{ matrix.group.number }})
-        run: >-
-          python -m nox -s test-${{ matrix.python }} --no-install --
-          tests/functional -k "${{ matrix.group.pytest-filter }}"
+          tests/unit tests/functional
+          --num-test-groups 3 --test-group ${{ matrix.group }}
           --verbose --numprocesses auto --showlocals --durations=15
+          --dist worksteal
 
   tests-zipapp:
     name: tests / zipapp
