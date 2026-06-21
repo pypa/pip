@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -410,41 +411,42 @@ def test_build_env_can_still_access_python_tools_on_system_path(
     )
 
 
-@pytest.mark.xfail(reason="see TODO in build_env/installer.py")
-@pytest.mark.skipif(sys.platform == "win32", reason="Unix-only test")
-def test_venv_build_env_inprocess_scripts_use_venv_python(
-    script: PipTestEnvironment,
+@pytest.mark.parametrize(
+    "installer_method",
+    [
+        pytest.param("subprocess"),
+        pytest.param("inprocess", marks=pytest.mark.xfail(reason="not yet supported")),
+    ],
+)
+def test_build_env_console_scripts_use_venv_python(
+    script: PipTestEnvironment, installer_method: Literal["subprocess", "inprocess"]
 ) -> None:
     """
-    When venv and the inprocess installer are used, it's important that the
-    build environment console scripts are lkinked with the temporary venv's
-    Python executable (and not the parent executable).
+    When using venv isolation, it's important that the build environment
+    console scripts are linked with the temporary environment's Python
+    executable (and not the parent executable).
     """
     make_wheel(
-        name="scripted",
+        name="goldfish",
         version="1.0",
         extra_files={
-            "scripted/__init__.py": dedent("""
+            "goldfish/__init__.py": dedent("""
                 def main():
-                    return 0
+                    print('hello, world')
             """),
         },
-        console_scripts=["scripted = scripted:main"],
-    ).save_to(script.scratch_path / "scripted-1.0-py2.py3-none-any.whl")
+        console_scripts=["goldfish = goldfish:main"],
+    ).save_to(script.scratch_path / "goldfish-1.0-py2.py3-none-any.whl")
 
     finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
-    with make_test_build_env_installer("inprocess", finder) as installer:
+    with make_test_build_env_installer(installer_method, finder) as installer:
         build_env = VenvBuildEnvironment(installer)
         build_env.install_requirements(
-            ["scripted==1.0"], "normal", kind="script dependency"
+            ["goldfish==1.0"], "normal", kind="script dependency"
         )
 
-    script_path = os.path.join(build_env._bin_path, "scripted")
-    with open(script_path, "rb") as f:
-        # distlib uses UTF-8 for the shehang.
-        shebang = f.readline().rstrip().decode("utf-8")
-
-    # distlib may wrap the executable if there are spaces in the path. This is
-    # annoying to check, but rare in practice, so just don't bother checking.
-    if "/bin/sh" not in shebang:
-        assert f"{build_env.python_executable}" in shebang
+    # Check that the console script import its own library.
+    console_script = shutil.which("goldfish", path=build_env._bin_path)
+    assert console_script is not None, "console script wasn't found?!"
+    result = script.run(console_script)
+    assert result.stdout == "hello, world\n"
