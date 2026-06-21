@@ -11,6 +11,7 @@ import configparser
 import contextlib
 import locale
 import logging
+import os
 import pathlib
 import re
 import sys
@@ -993,4 +994,21 @@ class VenvImportError(DiagnosticPipError):
             ),
             note_stmt="This is an issue with the Python installation itself, not pip.",
             hint_stmt=hint_stmt,
+        )
+
+
+class VenvCreationError(DiagnosticPipError):
+    """Raised when a virtual environment can't be created."""
+
+    reference = "venv-creation-error"
+
+    def __init__(self, context: str) -> None:
+        if os.name == "nt":
+            hint = "This may be caused by running antivirus software."
+        else:
+            hint = None
+        super().__init__(
+            message="Cannot create a virtual environment",
+            context=Text(context),
+            hint_stmt=hint,
         )

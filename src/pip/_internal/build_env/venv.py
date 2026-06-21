@@ -11,11 +11,21 @@ from pip._internal.build_env.base import (
     BuildEnvironmentInstaller,
     Prefix,
 )
-from pip._internal.exceptions import VenvImportError
+from pip._internal.exceptions import VenvCreationError, VenvImportError
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
+
+
+def _get_venv_path_from_sysconfig(name: str, env_dir: str) -> str:
+    import sysconfig
+
+    vars = {
+        "base": env_dir,
+        "platbase": env_dir,
+    }
+    return sysconfig.get_path(name, scheme="venv", vars=vars)
 
 
 class VenvBuildEnvironment(BuildEnvironment):
@@ -29,40 +39,66 @@ class VenvBuildEnvironment(BuildEnvironment):
         except ImportError:
             raise VenvImportError
 
-        self._temp_dir = TempDirectory(
+        self._env_path = TempDirectory(
             kind=tempdir_kinds.BUILD_ENV, globally_managed=True
-        )
+        ).path
         # Use symlinks to support relocatable Python installations on POSIX, including
         # python-build-standalone. This matches upstream venv CLI's behaviour.
         env = venv.EnvBuilder(symlinks=(os.name != "nt"))
-        context = env.ensure_directories(self._temp_dir.path)
-        env.create(self._temp_dir.path)
+        try:
+            context = env.ensure_directories(self._env_path)
+            env.create(self._env_path)
+        except OSError as e:
+            raise VenvCreationError(str(e))
 
-        self._installer = installer
         if sys.version_info >= (3, 12):
+            # The context object was only documented in Python 3.12
             self.lib_dirs = [context.lib_path]
+            self._bin_path = context.bin_path
+        elif sys.version_info[:2] == (3, 11):
+            # On Python 3.11, we can use sysconfig.
+            self.lib_dirs = [_get_venv_path_from_sysconfig("purelib", self._env_path)]
+            self._bin_path = _get_venv_path_from_sysconfig("scripts", self._env_path)
         else:
-            # Otherwise, we need to manually construct the site-packages path.
-            # Technically, we could use sysconfig for Python 3.11, but Python 3.12
-            # provides us with an even better solution anyway.
+            # Otherwise, we need to manually construct all the paths... sigh.
             if sys.platform == "win32":
-                libpath = os.path.join(
-                    self._temp_dir.path,
-                    "Lib",
-                    "site-packages",
-                )
+                libpath = os.path.join(self._env_path, "Lib", "site-packages")
             else:
+                python = "pypy" if sys.implementation.name == "pypy" else "python"
                 libpath = os.path.join(
-                    self._temp_dir.path,
+                    self._env_path,
                     "lib",
-                    f"python{sys.version_info.major}.{sys.version_info.minor}",
+                    f"{python}{sys.version_info.major}.{sys.version_info.minor}",
                     "site-packages",
                 )
             self.lib_dirs = [libpath]
+            # Same reasoning for try-except as for python_executable below.
+            try:
+                self._bin_path = context.bin_path
+            except AttributeError:
+                scripts_dir = "Scripts" if os.name == "nt" else "bin"
+                self._bin_path = os.path.join(self._env_path, scripts_dir)
 
-        self._bin_path = context.bin_path
-        self.python_executable = context.env_exec_cmd
+        # There are enough ways trying to construct the Python executable path can go
+        # wrong that we're better off assuming that the context object has the right
+        # attributes, and only when they don't exist do we try to guess.
+        #
+        # These attributes seem to exist in every CPython version after 3.10.1 and
+        # are documented to exist on 3.12 and higher.
+        try:
+            self.python_executable = getattr(context, "env_exec_cmd", context.env_exe)
+        except AttributeError:
+            executable_name = "python.exe" if os.name == "nt" else "python"
+            self.python_executable = os.path.join(self._bin_path, executable_name)
+
         self._save_env: dict[str, str | None] = {}
+        self._installer = installer
+
+        if not os.path.exists(self.python_executable):
+            # This error is only likely on Windows due to interference from AV software.
+            raise VenvCreationError(
+                f"Python executable failed to copy to {self.python_executable}"
+            )
 
     def __enter__(self) -> None:
         # We want backend calls to be able to use binaries installed as if this
@@ -103,5 +139,5 @@ class VenvBuildEnvironment(BuildEnvironment):
 
         # TODO: when better support for installing to arbitrary Python environments
         # is added, replace this prefix hack with that.
-        prefix = Prefix(self._temp_dir.path, venv_executable=self.python_executable)
+        prefix = Prefix(self._env_path, venv_executable=self.python_executable)
         self._installer.install(requirements, prefix, kind=kind, for_req=for_req)
