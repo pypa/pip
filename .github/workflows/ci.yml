@@ -26,10 +26,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pr-template:
-    name: Check PR template
-    uses: ./.github/workflows/check-pr-template.yml
-
   docs:
     name: docs
     runs-on: ubuntu-latest
@@ -323,7 +319,6 @@ jobs:
       - tests-windows
       - tests-zipapp
       - vendoring
-      - pr-template
 
     runs-on: ubuntu-latest
 

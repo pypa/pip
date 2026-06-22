@@ -13,7 +13,7 @@ if [ "$PR_USER_LOGIN" = "dependabot[bot]" ]; then
   exit 0
 fi
 
-if [ "$PR_NUMBER" -le 14069 ]; then
+if [ "$PR_NUMBER" -le 14068 ]; then
   echo "Skipping old PR."
   exit 0
 fi

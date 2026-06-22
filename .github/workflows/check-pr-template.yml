@@ -1,7 +1,11 @@
 name: PR Checklist
 
 on:
-  workflow_call:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
 
 jobs:
   check-pr-template:
