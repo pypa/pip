@@ -5,6 +5,7 @@ import contextlib
 import fnmatch
 import http.server
 import os
+import py_compile
 import re
 import shutil
 import subprocess
@@ -34,7 +35,6 @@ from installer import install
 from installer.destinations import SchemeDictionaryDestination
 from installer.sources import WheelFile
 
-from pip import __file__ as pip_location
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
 
@@ -52,6 +52,13 @@ from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
+# For the pip zipapp, Python modules are replaced with their .pyc equivalent to
+# speed up startup, but some modules must remain as .py files for pip to function.
+ZIPAPP_PYC_BLOCKLIST = [
+    "pip/__pip-runner__.py",
+    "pip/_vendor/pyproject_hooks/_in_process/_in_process.py",
+]
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -601,24 +608,33 @@ runpy.run_module("pip", run_name="__main__")
 """
 
 
-def make_zipapp_from_pip(zipapp_name: Path) -> None:
-    pip_dir = Path(pip_location).parent
-    with zipapp_name.open("wb") as zipapp_file:
+def make_zipapp_from_pip(pip_src: Path, zipapp_path: Path) -> None:
+    # pip_src will exclude existing .pyc files, but to speed up zipapp
+    # startup, replace the .py files with their equivalent .pyc (CPython only)
+    src_dir = pip_src / "src"
+    with zipapp_path.open("wb") as zipapp_file:
         zipapp_file.write(b"#!/usr/bin/env python\n")
         with ZipFile(zipapp_file, "w") as zipapp:
-            for pip_file in pip_dir.rglob("*"):
-                if pip_file.suffix == ".pyc":
-                    continue
-                if pip_file.name == "__pycache__":
-                    continue
-                rel_name = pip_file.relative_to(pip_dir.parent)
+            for pip_file in src_dir.rglob("*"):
+                rel_name = pip_file.relative_to(src_dir)
+                if (
+                    sys.implementation.name == "cpython"
+                    and pip_file.suffix == ".py"
+                    and str(rel_name) not in ZIPAPP_PYC_BLOCKLIST
+                ):
+                    pyc_path = pip_file.with_suffix(".pyc")
+                    py_compile.compile(str(pip_file), str(pyc_path), doraise=True)
+                    pip_file = pyc_path
+                    rel_name = rel_name.with_suffix(".pyc")
                 zipapp.write(pip_file, arcname=f"lib/{rel_name}")
             zipapp.writestr("__main__.py", ZIPAPP_MAIN)
 
 
 @pytest.fixture(scope="session")
 def zipapp(
-    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
+    request: pytest.FixtureRequest,
+    pip_src: Path,
+    tmpdir_factory: pytest.TempPathFactory,
 ) -> str | None:
     """
     If the user requested for pip to be run from a zipapp, build that zipapp
@@ -630,8 +646,12 @@ def zipapp(
         return None
 
     temp_location = tmpdir_factory.mktemp("zipapp")
+    # pip_src has session scope, so make a copy to avoid littering it with
+    # .pyc files.
+    pip_src_copy = temp_location / "pip-src"
+    shutil.copytree(pip_src, pip_src_copy)
     pyz_file = temp_location / "pip.pyz"
-    make_zipapp_from_pip(pyz_file)
+    make_zipapp_from_pip(pip_src_copy, pyz_file)
     return str(pyz_file)
 
 
