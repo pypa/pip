@@ -33,7 +33,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
         super().__init__()
         self.req = req
 
-    @abc.abstractproperty
+    @property
     def build_tracker_id(self) -> str | None:
         """A string that uniquely identifies this requirement to the build tracker.
 
