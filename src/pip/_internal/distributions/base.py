@@ -34,6 +34,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
         self.req = req
 
     @property
+    @abc.abstractmethod
     def build_tracker_id(self) -> str | None:
         """A string that uniquely identifies this requirement to the build tracker.
 
