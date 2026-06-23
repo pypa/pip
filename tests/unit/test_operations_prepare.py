@@ -12,15 +12,15 @@ from pip._vendor.requests import Response
 
 from pip._internal.exceptions import (
     HashMismatch,
-    MetadataInconsistent,
     MetadataInvalid,
+    SidecarMetadataInconsistent,
 )
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import (
-    _reconcile_metadata_against_wheel,
+    _check_sidecar_matches_wheel,
     unpack_url,
 )
 from pip._internal.utils.hashes import Hashes
@@ -171,14 +171,14 @@ def _make_distribution(metadata: str) -> BaseDistribution:
     )
 
 
-class TestReconcileMetadataAgainstWheel:
-    """Exercise :func:`_reconcile_metadata_against_wheel` for each of the
+class TestCheckSidecarMatchesWheel:
+    """Exercise :func:`_check_sidecar_matches_wheel` for each of the
     fields it cross-checks between a PEP 658 sidecar and a downloaded wheel.
     """
 
     def _req(self) -> Mock:
-        # The reconciliation helper only uses the ``req`` argument to build
-        # the resulting exception, so a stand-in object is enough.
+        # The helper only uses the ``req`` argument to build the resulting
+        # exception, so a stand-in object is enough.
         return Mock()
 
     def test_matching_metadata_does_not_raise(self) -> None:
@@ -189,18 +189,18 @@ class TestReconcileMetadataAgainstWheel:
                 "Provides-Extra: extra",
             )
         )
-        _reconcile_metadata_against_wheel(self._req(), dist, dist)
+        _check_sidecar_matches_wheel(self._req(), dist, dist)
 
     def test_requires_dist_canonicalization_is_tolerated(self) -> None:
         sidecar = _make_distribution(_metadata("Requires-Dist: Requests >= 2.0"))
         wheel = _make_distribution(_metadata("Requires-Dist: requests>=2.0"))
-        _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
 
     def test_requires_dist_mismatch_raises(self) -> None:
         sidecar = _make_distribution(_metadata("Requires-Dist: shadow-pkg"))
         wheel = _make_distribution(_metadata())
-        with pytest.raises(MetadataInconsistent) as excinfo:
-            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        with pytest.raises(SidecarMetadataInconsistent) as excinfo:
+            _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
         assert excinfo.value.field == "Requires-Dist"
         assert excinfo.value.f_val == "shadow-pkg"
         assert excinfo.value.m_val == ""
@@ -220,8 +220,8 @@ class TestReconcileMetadataAgainstWheel:
                 "Requires-Dist: only-in-wheel",
             )
         )
-        with pytest.raises(MetadataInconsistent) as excinfo:
-            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        with pytest.raises(SidecarMetadataInconsistent) as excinfo:
+            _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
         assert excinfo.value.field == "Requires-Dist"
         assert excinfo.value.f_val == "only-in-sidecar"
         assert excinfo.value.m_val == "only-in-wheel"
@@ -229,8 +229,8 @@ class TestReconcileMetadataAgainstWheel:
     def test_requires_python_mismatch_raises(self) -> None:
         sidecar = _make_distribution(_metadata("Requires-Python: >=3.9"))
         wheel = _make_distribution(_metadata())
-        with pytest.raises(MetadataInconsistent) as excinfo:
-            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        with pytest.raises(SidecarMetadataInconsistent) as excinfo:
+            _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
         assert excinfo.value.field == "Requires-Python"
         assert excinfo.value.f_val == ">=3.9"
         assert excinfo.value.m_val == ""
@@ -238,8 +238,8 @@ class TestReconcileMetadataAgainstWheel:
     def test_provides_extra_mismatch_raises(self) -> None:
         sidecar = _make_distribution(_metadata("Provides-Extra: extra"))
         wheel = _make_distribution(_metadata())
-        with pytest.raises(MetadataInconsistent) as excinfo:
-            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        with pytest.raises(SidecarMetadataInconsistent) as excinfo:
+            _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
         assert excinfo.value.field == "Provides-Extra"
         assert excinfo.value.f_val == "extra"
         assert excinfo.value.m_val == ""
@@ -247,8 +247,8 @@ class TestReconcileMetadataAgainstWheel:
     def test_name_mismatch_raises(self) -> None:
         sidecar = _make_distribution(_metadata(name="other-pkg"))
         wheel = _make_distribution(_metadata(name="pkg"))
-        with pytest.raises(MetadataInconsistent) as excinfo:
-            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        with pytest.raises(SidecarMetadataInconsistent) as excinfo:
+            _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
         assert excinfo.value.field == "Name"
         assert excinfo.value.f_val == "other-pkg"
         assert excinfo.value.m_val == "pkg"
@@ -256,13 +256,13 @@ class TestReconcileMetadataAgainstWheel:
     def test_name_canonicalization_is_tolerated(self) -> None:
         sidecar = _make_distribution(_metadata(name="Pkg_Name"))
         wheel = _make_distribution(_metadata(name="pkg-name"))
-        _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
 
     def test_version_mismatch_raises(self) -> None:
         sidecar = _make_distribution(_metadata(version="1.0"))
         wheel = _make_distribution(_metadata(version="2.0"))
-        with pytest.raises(MetadataInconsistent) as excinfo:
-            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        with pytest.raises(SidecarMetadataInconsistent) as excinfo:
+            _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
         assert excinfo.value.field == "Version"
         assert excinfo.value.f_val == "1.0"
         assert excinfo.value.m_val == "2.0"
@@ -270,7 +270,7 @@ class TestReconcileMetadataAgainstWheel:
     def test_version_normalization_is_tolerated(self) -> None:
         sidecar = _make_distribution(_metadata(version="1.0"))
         wheel = _make_distribution(_metadata(version="1.0.0"))
-        _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+        _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
 
     def test_invalid_requires_dist_raises_metadata_invalid(self) -> None:
         sidecar = _make_distribution(
@@ -278,4 +278,4 @@ class TestReconcileMetadataAgainstWheel:
         )
         wheel = _make_distribution(_metadata())
         with pytest.raises(MetadataInvalid):
-            _reconcile_metadata_against_wheel(self._req(), sidecar, wheel)
+            _check_sidecar_matches_wheel(self._req(), sidecar, wheel)

@@ -26,6 +26,7 @@ from pip._internal.exceptions import (
     MetadataInconsistent,
     MetadataInvalid,
     NetworkConnectionError,
+    SidecarMetadataInconsistent,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
@@ -246,12 +247,12 @@ def _canonicalize_requirement(raw: str) -> str:
     return "".join(parts)
 
 
-def _reconcile_metadata_against_wheel(
+def _check_sidecar_matches_wheel(
     req: InstallRequirement,
     sidecar_dist: BaseDistribution,
     wheel_dist: BaseDistribution,
 ) -> None:
-    """Verify a PEP 658 sidecar's resolver-affecting fields match the wheel.
+    """Check that a PEP 658 sidecar's resolver-affecting fields match the wheel.
 
     The PEP 658 sidecar at ``<wheel>.metadata`` is fetched ahead of the
     wheel itself and drives dependency resolution. The wheel's own
@@ -260,8 +261,9 @@ def _reconcile_metadata_against_wheel(
     a hash (PEP 658 explicitly permits this), the two are not transitively
     bound by the wheel's hash check.
 
-    Compare ``Name``, ``Requires-Dist``, ``Requires-Python`` and
-    ``Provides-Extra`` between the two and abort the install on any mismatch.
+    Compare ``Name``, ``Version``, ``Requires-Dist``, ``Requires-Python``
+    and ``Provides-Extra`` between the two and abort the install on any
+    mismatch.
     """
 
     def _canonical_requires(dist: BaseDistribution) -> frozenset[str]:
@@ -281,10 +283,10 @@ def _reconcile_metadata_against_wheel(
     sidecar_name = canonicalize_name(sidecar_dist.raw_name)
     wheel_name = canonicalize_name(wheel_dist.raw_name)
     if sidecar_name != wheel_name:
-        raise MetadataInconsistent(req, "Name", sidecar_name, wheel_name)
+        raise SidecarMetadataInconsistent(req, "Name", sidecar_name, wheel_name)
 
     if sidecar_dist.version != wheel_dist.version:
-        raise MetadataInconsistent(
+        raise SidecarMetadataInconsistent(
             req,
             "Version",
             str(sidecar_dist.version),
@@ -294,7 +296,7 @@ def _reconcile_metadata_against_wheel(
     sidecar_requires = _canonical_requires(sidecar_dist)
     wheel_requires = _canonical_requires(wheel_dist)
     if sidecar_requires != wheel_requires:
-        raise MetadataInconsistent(
+        raise SidecarMetadataInconsistent(
             req,
             "Requires-Dist",
             ", ".join(sorted(sidecar_requires - wheel_requires)),
@@ -302,7 +304,7 @@ def _reconcile_metadata_against_wheel(
         )
 
     if sidecar_dist.requires_python != wheel_dist.requires_python:
-        raise MetadataInconsistent(
+        raise SidecarMetadataInconsistent(
             req,
             "Requires-Python",
             str(sidecar_dist.requires_python),
@@ -312,7 +314,7 @@ def _reconcile_metadata_against_wheel(
     sidecar_extras = frozenset(sidecar_dist.iter_provided_extras())
     wheel_extras = frozenset(wheel_dist.iter_provided_extras())
     if sidecar_extras != wheel_extras:
-        raise MetadataInconsistent(
+        raise SidecarMetadataInconsistent(
             req,
             "Provides-Extra",
             ", ".join(sorted(sidecar_extras - wheel_extras)),
@@ -764,18 +766,21 @@ class RequirementPreparer:
             self.check_build_deps,
         )
 
-        # If a PEP 658 sidecar drove resolution for this wheel, reconcile its
-        # dependency-relevant fields against the wheel's embedded METADATA now
-        # that the wheel is on disk and hash-verified. The sidecar itself may
-        # have been served without a hash, so this is the only point at which
-        # the two can be cross-checked.
+        # If a PEP 658 .metadata file was used, check that fields relevant for
+        # dependency resolution match with the wheel's METADATA file.
+        #
+        # NOTE: PEP 658 also permits .metadata files for source distributions,
+        # but pip's sdist install path builds the wheel locally from the sdist
+        # and then re-reads METADATA from it, so the sidecar would already have
+        # been superseded by built metadata before this point. This check is
+        # therefore wheel-only.
         if (
             link.is_wheel
             and req._distribution is not None
             and req._distribution is not dist
             and link.metadata_link() is not None
         ):
-            _reconcile_metadata_against_wheel(req, req._distribution, dist)
+            _check_sidecar_matches_wheel(req, req._distribution, dist)
 
         return dist
 
