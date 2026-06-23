@@ -1410,7 +1410,8 @@ def test_produces_error_for_mismatched_requires_dist_in_metadata(
     )
     assert result.returncode != 0
     assert (
-        "has inconsistent Requires-Dist: expected 'simple==1.0', but metadata has ''"
+        "has inconsistent Requires-Dist between its PEP 658 .metadata file "
+        "and the wheel's METADATA: sidecar has 'simple==1.0', wheel has ''"
     ) in result.stderr, str(result)
 
 
