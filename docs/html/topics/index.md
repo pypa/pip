@@ -16,6 +16,7 @@ configuration
 dependency-resolution
 more-dependency-resolution
 https-certificates
+installing-to-a-custom-target
 local-project-installs
 repeatable-installs
 secure-installs

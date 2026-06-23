@@ -1,0 +1,3 @@
+Document the ``--target`` option of ``pip install`` in a new topic guide
+covering common use cases (vendoring, sandbox layouts, ``PYTHONPATH``
+``--user`` interactions, ``--upgrade``).
