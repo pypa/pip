@@ -118,6 +118,7 @@ class Factory:
             tuple[int, frozenset[NormalizedName]], ExtrasCandidate
         ] = {}
         self._supported_tags_cache = get_supported()
+        self._editable_links: set[Link] = set()
 
         if not ignore_installed:
             env = get_default_environment()
@@ -201,7 +202,8 @@ class Factory:
             # Don't bother trying again.
             return None
 
-        if template.editable:
+        # Editables are prioritized over matching regular direct URL requirements.
+        if template.editable or link in self._editable_links:
             if link not in self._editable_candidate_cache:
                 try:
                     self._editable_candidate_cache[link] = EditableCandidate(
@@ -221,10 +223,6 @@ class Factory:
                     self._build_failures[link] = e
                     return None
 
-            return self._editable_candidate_cache[link]
-        # If there is a pre-existing editable candidate for this link, use it
-        # (even if the link comes from a direct non-editable requirement).
-        elif link in self._editable_candidate_cache:
             return self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
@@ -582,6 +580,14 @@ class Factory:
     def collect_root_requirements(
         self, root_ireqs: list[InstallRequirement]
     ) -> CollectedRootRequirements:
+        # Record which links are editable as editable requirements take priority
+        # over matching regular direct URL requirements (or a regular non-link
+        # requirement constrained to the same location).
+        for ireq in root_ireqs:
+            if ireq.editable and not ireq.constraint:
+                assert ireq.link is not None, f"editable must have link: {ireq!r}"
+                self._editable_links.add(ireq.link)
+
         collected = CollectedRootRequirements([], {}, {})
         for i, ireq in enumerate(root_ireqs):
             if ireq.constraint:

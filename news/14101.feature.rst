@@ -1,0 +1,2 @@
+Support mixing regular and editable requirements to the same location by
+prioritizing the editable requirement.
