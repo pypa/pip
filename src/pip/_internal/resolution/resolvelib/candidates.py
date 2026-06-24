@@ -169,7 +169,10 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._hash: int | None = None
 
     def __str__(self) -> str:
-        return f"{self.name} {self.version}"
+        if self.is_editable:
+            return f"{self.name} {self.version} (editable)"
+        else:
+            return f"{self.name} {self.version}"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self._link)!r})"
