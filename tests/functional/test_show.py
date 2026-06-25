@@ -2,12 +2,14 @@ import os
 import pathlib
 import re
 import textwrap
+from unittest import mock
 
 import pytest
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
 from pip._internal.utils.unpacking import untar_file
+from pip._vendor.packaging.requirements import InvalidRequirement
 
 from tests.lib import (
     PipTestEnvironment,
@@ -15,6 +17,60 @@ from tests.lib import (
     create_test_package_with_setup,
     pyversion,
 )
+
+
+class _FakeMetadata(dict):
+    def get_all(self, key: str, default: list[str] | None = None) -> list[str]:
+        if default is None:
+            default = []
+        return self.get(key, default)  # type: ignore[return-value]
+
+
+def _named_mock_dependency(name: str) -> mock.Mock:
+    dependency = mock.Mock(spec_set=["name"])
+    dependency.name = name
+    return dependency
+
+
+def _fake_distribution(
+    canonical_name: str,
+    *,
+    name: str,
+    version: str = "1.0",
+    dependencies: list[str] | None = None,
+) -> mock.Mock:
+    metadata = _FakeMetadata(
+        {
+            "Name": name,
+            "Summary": "summary",
+            "Home-page": "",
+            "Author": "",
+            "Author-email": "",
+            "License": "",
+            "License-Expression": "",
+            "Classifier": [],
+            "Project-URL": [],
+        }
+    )
+
+    return mock.Mock(
+        canonical_name=canonical_name,
+        raw_name=name,
+        raw_version=version,
+        location=None,
+        editable_project_location=None,
+        iter_dependencies=mock.Mock(
+            return_value=[
+                _named_mock_dependency(dep_name) for dep_name in (dependencies or [])
+            ]
+        ),
+        iter_raw_dependencies=mock.Mock(return_value=[]),
+        read_text=mock.Mock(side_effect=FileNotFoundError),
+        iter_declared_entries=mock.Mock(return_value=None),
+        metadata=metadata,
+        metadata_version="2.4",
+        installer="pip",
+    )
 
 
 def test_basic_show(script: PipTestEnvironment) -> None:
@@ -159,6 +215,45 @@ def test_more_than_one_package() -> None:
     """
     result = list(search_packages_info(["pIp", "pytest", "Virtualenv"]))
     assert len(result) == 3
+
+
+def test_search_packages_info_required_by_is_precomputed() -> None:
+    packages = [
+        _fake_distribution("simple", name="simple"),
+        _fake_distribution(
+            "requires-simple",
+            name="requires-simple",
+            dependencies=["simple"],
+        ),
+        _fake_distribution(
+            "another",
+            name="another",
+            dependencies=["simple"],
+        ),
+    ]
+    fake_env = mock.Mock(iter_all_distributions=lambda: packages)
+    with mock.patch(
+        "pip._internal.commands.show.get_default_environment", return_value=fake_env
+    ):
+        result = list(search_packages_info(["simple"]))
+
+    assert result[0].required_by == ["another", "requires-simple"]
+
+
+def test_search_packages_info_required_by_marked_na_on_invalid_dependency() -> None:
+    invalid_dist = _fake_distribution("invalid", name="invalid")
+    invalid_dist.iter_dependencies.side_effect = InvalidRequirement("bad requirement")
+    packages = [
+        _fake_distribution("simple", name="simple", dependencies=["invalid"]),
+        invalid_dist,
+    ]
+    fake_env = mock.Mock(iter_all_distributions=lambda: packages)
+    with mock.patch(
+        "pip._internal.commands.show.get_default_environment", return_value=fake_env
+    ):
+        result = list(search_packages_info(["simple"]))
+
+    assert result[0].required_by == ["#N/A"]
 
 
 def test_show_verbose_with_classifiers(script: PipTestEnvironment) -> None:
