@@ -293,7 +293,10 @@ class Configuration:
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
         if os.path.exists(fname):
-            locale_encoding = locale.getpreferredencoding(False)
+            if sys.version_info >= (3, 11):
+                locale_encoding = locale.getencoding()
+            else:
+                locale_encoding = locale.getpreferredencoding(False)
             try:
                 parser.read(fname, encoding=locale_encoding)
             except UnicodeDecodeError:

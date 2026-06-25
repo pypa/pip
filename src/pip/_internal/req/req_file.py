@@ -607,7 +607,11 @@ def _decode_req_file(data: bytes, url: str) -> str:
     try:
         return data.decode(DEFAULT_ENCODING)
     except UnicodeDecodeError:
-        locale_encoding = locale.getpreferredencoding(False) or sys.getdefaultencoding()
+        if sys.version_info >= (3, 11):
+            locale_encoding = locale.getencoding()
+        else:
+            locale_encoding = locale.getpreferredencoding(False)
+        locale_encoding = locale_encoding or sys.getdefaultencoding()
         logging.warning(
             "unable to decode data from %s with default encoding %s, "
             "falling back to encoding from locale: %s. "
