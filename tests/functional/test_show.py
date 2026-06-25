@@ -6,10 +6,11 @@ from unittest import mock
 
 import pytest
 
+from pip._vendor.packaging.requirements import InvalidRequirement
+
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
 from pip._internal.utils.unpacking import untar_file
-from pip._vendor.packaging.requirements import InvalidRequirement
 
 from tests.lib import (
     PipTestEnvironment,
@@ -19,11 +20,13 @@ from tests.lib import (
 )
 
 
-class _FakeMetadata(dict):
+class _FakeMetadata(dict[str, str | list[str]]):
     def get_all(self, key: str, default: list[str] | None = None) -> list[str]:
         if default is None:
             default = []
-        return self.get(key, default)  # type: ignore[return-value]
+        value = self.get(key, default)
+        assert isinstance(value, list)
+        return value
 
 
 def _named_mock_dependency(name: str) -> mock.Mock:

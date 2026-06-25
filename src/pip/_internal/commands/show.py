@@ -120,9 +120,9 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
 
             for _, canonical_name in dependency_names:
                 if canonical_name in query_names_set:
-                    required_by_inputs.setdefault(
-                        canonical_name, set()
-                    ).add(dist.metadata["Name"] or "UNKNOWN")
+                    required_by_inputs.setdefault(canonical_name, set()).add(
+                        dist.metadata["Name"] or "UNKNOWN"
+                    )
         except InvalidRequirement:
             all_dependency_errors = True
             if is_query_dist:
