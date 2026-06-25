@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import string
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Iterator
 from optparse import Values
 from typing import NamedTuple
 
@@ -97,49 +97,63 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
 
     query_names = [canonicalize_name(name) for name in query]
     query_names_set = set(query_names)
-    installed: dict[str, BaseDistribution] = {}
+    is_single_query = len(query_names) == 1
 
-    has_required_by_error = False
-    dist_requires: dict[str, list[str]] = {}
-    dist_requires_with_error: set[str] = set()
-    required_by_inputs: dict[str, set[str]] = {}
+    if is_single_query:
+        installed = {dist.canonical_name: dist for dist in env.iter_all_distributions()}
 
-    for dist in env.iter_all_distributions():
-        is_query_dist = dist.canonical_name in query_names_set
-        if is_query_dist:
-            installed[dist.canonical_name] = dist
-        try:
-            dependency_names: list[tuple[str, str]] = []
-            for dependency in dist.iter_dependencies():
-                dependency_names.append(
-                    (dependency.name, canonicalize_name(dependency.name))
-                )
+        def _get_requiring_packages(current_dist: BaseDistribution) -> Iterator[str]:
+            current_name = current_dist.canonical_name
+            for dist in installed.values():
+                for dependency in dist.iter_dependencies():
+                    if canonicalize_name(dependency.name) == current_name:
+                        yield dist.metadata["Name"] or "UNKNOWN"
+                        break
+    else:
+        installed: dict[str, BaseDistribution] = {}
 
+        has_required_by_error = False
+        dist_requires: dict[str, list[str]] = {}
+        dist_requires_with_error: set[str] = set()
+        required_by_inputs: dict[str, set[str]] = {}
+
+        for dist in env.iter_all_distributions():
+            is_query_dist = dist.canonical_name in query_names_set
             if is_query_dist:
-                # Avoid duplicates in requirements (e.g. due to environment markers).
-                dist_requires[dist.canonical_name] = sorted(
-                    {name for name, _ in dependency_names},
-                    key=str.lower,
-                )
+                installed[dist.canonical_name] = dist
+            try:
+                requires: set[str] = set()
+                for dependency in dist.iter_dependencies():
+                    dependency_name = dependency.name
+                    canonical_name = canonicalize_name(dependency_name)
 
-            for _, canonical_name in dependency_names:
-                if canonical_name in query_names_set:
-                    required_by_inputs.setdefault(canonical_name, set()).add(
-                        dist.metadata["Name"] or "UNKNOWN"
+                    if is_query_dist:
+                        requires.add(dependency_name)
+
+                    if canonical_name in query_names_set:
+                        required_by_inputs.setdefault(canonical_name, set()).add(
+                            dist.metadata["Name"] or "UNKNOWN"
+                        )
+
+                if is_query_dist:
+                    # Avoid duplicates in requirements (e.g. due to environment markers).
+                    dist_requires[dist.canonical_name] = sorted(
+                        requires,
+                        key=str.lower,
                     )
-        except InvalidRequirement:
-            if is_query_dist:
-                dist_requires_with_error.add(dist.canonical_name)
-                if select_backend().NAME == "importlib":
+            except InvalidRequirement:
+                if is_query_dist:
+                    dist_requires_with_error.add(dist.canonical_name)
+                    if select_backend().NAME == "importlib":
+                        has_required_by_error = True
+                else:
                     has_required_by_error = True
-            else:
-                has_required_by_error = True
-            continue
+                continue
 
-    required_by_map = {
-        package: sorted(requirements, key=str.lower)
-        for package, requirements in required_by_inputs.items()
-    }
+        required_by_map = {
+            package: sorted(requirements, key=str.lower)
+            for package, requirements in required_by_inputs.items()
+        }
 
     missing = sorted(
         [name for name, pkg in zip(query, query_names) if pkg not in installed]
@@ -153,15 +167,30 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
         except KeyError:
             continue
 
-        if dist.canonical_name in dist_requires_with_error:
-            requires = sorted(dist.iter_raw_dependencies(), key=str.lower)
-        else:
-            requires = dist_requires.get(dist.canonical_name, [])
+        if is_single_query:
+            try:
+                requires = sorted(
+                    # Avoid duplicates in requirements (e.g. due to environment markers).
+                    {req.name for req in dist.iter_dependencies()},
+                    key=str.lower,
+                )
+            except InvalidRequirement:
+                requires = sorted(dist.iter_raw_dependencies(), key=str.lower)
 
-        if has_required_by_error:
-            required_by = ["#N/A"]
+            try:
+                required_by = sorted(_get_requiring_packages(dist), key=str.lower)
+            except InvalidRequirement:
+                required_by = ["#N/A"]
         else:
-            required_by = required_by_map.get(dist.canonical_name, [])
+            if dist.canonical_name in dist_requires_with_error:
+                requires = sorted(dist.iter_raw_dependencies(), key=str.lower)
+            else:
+                requires = dist_requires.get(dist.canonical_name, [])
+
+            if has_required_by_error:
+                required_by = ["#N/A"]
+            else:
+                required_by = required_by_map.get(dist.canonical_name, [])
 
         try:
             entry_points_text = dist.read_text("entry_points.txt")
