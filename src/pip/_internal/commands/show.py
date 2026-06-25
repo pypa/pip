@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import logging
 import string
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import Generator, Iterable
 from optparse import Values
 from typing import NamedTuple
 
 from pip._vendor.packaging.requirements import InvalidRequirement
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.metadata import (
     BaseDistribution,
+    BaseEnvironment,
     get_default_environment,
     select_backend,
 )
@@ -86,6 +87,126 @@ class _PackageInfo(NamedTuple):
     files: list[str] | None
 
 
+def _canonicalize_name_cached(
+    name: str,
+    canonical_names: dict[str, NormalizedName],
+) -> NormalizedName:
+    try:
+        return canonical_names[name]
+    except KeyError:
+        canonical_name = canonicalize_name(name)
+        canonical_names[name] = canonical_name
+        return canonical_name
+
+
+def _get_requiring_packages(
+    current_dist: BaseDistribution,
+    distributions: list[BaseDistribution],
+    canonical_names: dict[str, NormalizedName],
+) -> list[str]:
+    current_name = current_dist.canonical_name
+    canonical_names_get = canonical_names.get
+    required_by: list[str] = []
+    add_required_by = required_by.append
+
+    for dist in distributions:
+        for dependency in dist.iter_dependencies():
+            dependency_name = dependency.name
+            if dependency_name == current_name:
+                add_required_by(dist.metadata["Name"] or "UNKNOWN")
+                break
+
+            canonical_name = canonical_names_get(dependency_name)
+            if canonical_name is None:
+                canonical_name = canonicalize_name(dependency_name)
+                canonical_names[dependency_name] = canonical_name
+
+            if canonical_name == current_name:
+                add_required_by(dist.metadata["Name"] or "UNKNOWN")
+                break
+
+    required_by.sort(key=str.lower)
+    return required_by
+
+
+def _get_single_package_info(
+    env: BaseEnvironment,
+    query_name: NormalizedName,
+) -> tuple[dict[NormalizedName, BaseDistribution], list[BaseDistribution]]:
+    installed: dict[NormalizedName, BaseDistribution] = {}
+    distributions = list(env.iter_all_distributions())
+    for dist in distributions:
+        if dist.canonical_name == query_name:
+            installed[query_name] = dist
+    return installed, distributions
+
+
+def _get_multi_package_info(
+    env: BaseEnvironment,
+    query_names_set: set[NormalizedName],
+    canonical_names: dict[str, NormalizedName],
+) -> tuple[
+    dict[NormalizedName, BaseDistribution],
+    dict[NormalizedName, list[str]],
+    set[NormalizedName],
+    dict[NormalizedName, list[str]],
+    bool,
+]:
+    installed: dict[NormalizedName, BaseDistribution] = {}
+    has_required_by_error = False
+    dist_requires: dict[NormalizedName, list[str]] = {}
+    dist_requires_with_error: set[NormalizedName] = set()
+    required_by_inputs: dict[NormalizedName, set[str]] = {}
+
+    for dist in env.iter_all_distributions():
+        is_query_dist = dist.canonical_name in query_names_set
+        if is_query_dist:
+            installed[dist.canonical_name] = dist
+        try:
+            requires_set: set[str] | None = set() if is_query_dist else None
+            for dependency in dist.iter_dependencies():
+                dependency_name = dependency.name
+                canonical_name = _canonicalize_name_cached(
+                    dependency_name,
+                    canonical_names,
+                )
+
+                if requires_set is not None:
+                    requires_set.add(dependency_name)
+
+                if canonical_name in query_names_set:
+                    required_by_inputs.setdefault(canonical_name, set()).add(
+                        dist.metadata["Name"] or "UNKNOWN"
+                    )
+
+            if is_query_dist:
+                # Avoid duplicates in requirements, e.g. due to environment markers.
+                dist_requires[dist.canonical_name] = sorted(
+                    requires_set or (),
+                    key=str.lower,
+                )
+        except InvalidRequirement:
+            if is_query_dist:
+                dist_requires_with_error.add(dist.canonical_name)
+                if select_backend().NAME == "importlib":
+                    has_required_by_error = True
+            else:
+                has_required_by_error = True
+            continue
+
+    required_by_map = {
+        package: sorted(requirements, key=str.lower)
+        for package, requirements in required_by_inputs.items()
+    }
+    return (
+        installed,
+        dist_requires,
+        dist_requires_with_error,
+        required_by_map,
+        has_required_by_error,
+    )
+
+
 def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None]:
     """
     Gather details from installed distributions. Print distribution name,
@@ -98,62 +219,19 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
     query_names = [canonicalize_name(name) for name in query]
     query_names_set = set(query_names)
     is_single_query = len(query_names) == 1
+    canonical_names: dict[str, NormalizedName] = {}
 
     if is_single_query:
-        installed = {dist.canonical_name: dist for dist in env.iter_all_distributions()}
-
-        def _get_requiring_packages(current_dist: BaseDistribution) -> Iterator[str]:
-            current_name = current_dist.canonical_name
-            for dist in installed.values():
-                for dependency in dist.iter_dependencies():
-                    if canonicalize_name(dependency.name) == current_name:
-                        yield dist.metadata["Name"] or "UNKNOWN"
-                        break
+        query_name = query_names[0]
+        installed, distributions = _get_single_package_info(env, query_name)
     else:
-        installed: dict[str, BaseDistribution] = {}
-
-        has_required_by_error = False
-        dist_requires: dict[str, list[str]] = {}
-        dist_requires_with_error: set[str] = set()
-        required_by_inputs: dict[str, set[str]] = {}
-
-        for dist in env.iter_all_distributions():
-            is_query_dist = dist.canonical_name in query_names_set
-            if is_query_dist:
-                installed[dist.canonical_name] = dist
-            try:
-                requires: set[str] = set()
-                for dependency in dist.iter_dependencies():
-                    dependency_name = dependency.name
-                    canonical_name = canonicalize_name(dependency_name)
-
-                    if is_query_dist:
-                        requires.add(dependency_name)
-
-                    if canonical_name in query_names_set:
-                        required_by_inputs.setdefault(canonical_name, set()).add(
-                            dist.metadata["Name"] or "UNKNOWN"
-                        )
-
-                if is_query_dist:
-                    # Avoid duplicates in requirements (e.g. due to environment markers).
-                    dist_requires[dist.canonical_name] = sorted(
-                        requires,
-                        key=str.lower,
-                    )
-            except InvalidRequirement:
-                if is_query_dist:
-                    dist_requires_with_error.add(dist.canonical_name)
-                    if select_backend().NAME == "importlib":
-                        has_required_by_error = True
-                else:
-                    has_required_by_error = True
-                continue
-
-        required_by_map = {
-            package: sorted(requirements, key=str.lower)
-            for package, requirements in required_by_inputs.items()
-        }
+        (
+            installed,
+            dist_requires,
+            dist_requires_with_error,
+            required_by_map,
+            has_required_by_error,
+        ) = _get_multi_package_info(env, query_names_set, canonical_names)
 
     missing = sorted(
         [name for name, pkg in zip(query, query_names) if pkg not in installed]
@@ -169,8 +247,8 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
 
         if is_single_query:
             try:
+                # Avoid duplicates in requirements, e.g. due to environment markers.
                 requires = sorted(
-                    # Avoid duplicates in requirements (e.g. due to environment markers).
                     {req.name for req in dist.iter_dependencies()},
                     key=str.lower,
                 )
@@ -178,7 +256,11 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
                 requires = sorted(dist.iter_raw_dependencies(), key=str.lower)
 
             try:
-                required_by = sorted(_get_requiring_packages(dist), key=str.lower)
+                required_by = _get_requiring_packages(
+                    dist,
+                    distributions,
+                    canonical_names,
+                )
             except InvalidRequirement:
                 required_by = ["#N/A"]
         else:
