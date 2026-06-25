@@ -11,7 +11,11 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.metadata import BaseDistribution, get_default_environment
+from pip._internal.metadata import (
+    BaseDistribution,
+    get_default_environment,
+    select_backend,
+)
 from pip._internal.utils.misc import write_output
 
 logger = logging.getLogger(__name__)
@@ -95,7 +99,7 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
     query_names_set = set(query_names)
     installed: dict[str, BaseDistribution] = {}
 
-    all_dependency_errors = False
+    has_required_by_error = False
     dist_requires: dict[str, list[str]] = {}
     dist_requires_with_error: set[str] = set()
     required_by_inputs: dict[str, set[str]] = {}
@@ -124,9 +128,12 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
                         dist.metadata["Name"] or "UNKNOWN"
                     )
         except InvalidRequirement:
-            all_dependency_errors = True
             if is_query_dist:
                 dist_requires_with_error.add(dist.canonical_name)
+                if select_backend().NAME == "importlib":
+                    has_required_by_error = True
+            else:
+                has_required_by_error = True
             continue
 
     required_by_map = {
@@ -146,12 +153,12 @@ def search_packages_info(query: list[str]) -> Generator[_PackageInfo, None, None
         except KeyError:
             continue
 
-        if all_dependency_errors and dist.canonical_name in dist_requires_with_error:
+        if dist.canonical_name in dist_requires_with_error:
             requires = sorted(dist.iter_raw_dependencies(), key=str.lower)
         else:
             requires = dist_requires.get(dist.canonical_name, [])
 
-        if all_dependency_errors:
+        if has_required_by_error:
             required_by = ["#N/A"]
         else:
             required_by = required_by_map.get(dist.canonical_name, [])
