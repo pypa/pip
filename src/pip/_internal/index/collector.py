@@ -18,7 +18,6 @@ from html.parser import HTMLParser
 from optparse import Values
 from typing import (
     TYPE_CHECKING,
-    Callable,
     NamedTuple,
     Protocol,
 )
