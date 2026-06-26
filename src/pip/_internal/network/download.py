@@ -15,7 +15,7 @@ from pip._vendor.requests import PreparedRequest
 from pip._vendor.requests.models import Response
 from pip._vendor.urllib3 import HTTPResponse as URLlib3Response
 from pip._vendor.urllib3._collections import HTTPHeaderDict
-from pip._vendor.urllib3.exceptions import ReadTimeoutError
+from pip._vendor.urllib3.exceptions import ProtocolError, ReadTimeoutError
 
 from pip._internal.cli.ui import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
@@ -209,12 +209,12 @@ class Downloader:
         try:
             for chunk in chunks:
                 download.write_chunk(chunk)
-        except ReadTimeoutError as e:
+        except (ReadTimeoutError, ProtocolError) as e:
             # If the download size is not known, then give up downloading the file.
             if download.size is None:
                 raise e
 
-            logger.warning("Connection timed out while downloading.")
+            logger.warning("Connection interrupted while downloading.")
 
     def _attempt_resumes_or_redownloads(
         self, download: _FileDownload, first_resp: Response
@@ -243,7 +243,7 @@ class Downloader:
                     first_resp = resume_resp
 
                 self._process_response(download, resume_resp)
-            except (ConnectionError, ReadTimeoutError, OSError):
+            except (ConnectionError, ReadTimeoutError, ProtocolError, OSError):
                 continue
 
         # No more resume attempts. Raise an error if the download is still incomplete.
