@@ -24,6 +24,7 @@ from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
+from pip._internal.utils.unpacking import join_within_directory
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +188,9 @@ class Downloader:
         resp = self._http_get(link)
         download_size = _get_http_response_size(resp)
 
-        filepath = os.path.join(location, _get_http_response_filename(resp, link))
+        filepath = join_within_directory(
+            location, _get_http_response_filename(resp, link)
+        )
         with open(filepath, "wb") as content_file:
             download = _FileDownload(link, content_file, download_size)
             self._process_response(download, resp)

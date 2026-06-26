@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import posixpath
+
 import pytest
 
 from pip._internal.exceptions import InvalidEggFragment, PipError
@@ -29,6 +31,13 @@ class TestLink:
             ("https://example.com/path/page.html", "page.html"),
             # Test a quoted character.
             ("https://example.com/path/page%231.html", "page#1.html"),
+            # A doubly-encoded separator must stay encoded: the path is decoded
+            # exactly once, so the file name keeps its literal "%2F" instead of
+            # collapsing into a "/".
+            (
+                "https://example.com/a%252Fb.whl",
+                "a%2Fb.whl",
+            ),
             (
                 "http://yo/myproject-1.0%2Bfoobar.0-py2.py3-none-any.whl",
                 "myproject-1.0+foobar.0-py2.py3-none-any.whl",
@@ -48,6 +57,21 @@ class TestLink:
     def test_filename(self, url: str, expected: str) -> None:
         link = Link(url)
         assert link.filename == expected
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://example.com/a%252Fb.whl",
+            "https://example.com/%252e%252e%252fb.whl",
+        ],
+    )
+    def test_filename_decoded_once_stays_single_component(self, url: str) -> None:
+        # The path is decoded exactly once, so an encoded separator stays
+        # encoded and the file name remains a single path component rather
+        # than collapsing into a "/"-separated path.
+        filename = Link(url).filename
+        assert not posixpath.isabs(filename)
+        assert posixpath.basename(filename) == filename
 
     def test_splitext(self) -> None:
         assert ("wheel", ".whl") == Link("http://yo/wheel.whl").splitext()

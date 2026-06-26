@@ -425,6 +425,7 @@ class Link:
 
     @property
     def filename(self) -> str:
+        # ``self.path`` is already unquoted in ``__init__``; don't unquote again.
         path = self.path.rstrip("/")
         name = posixpath.basename(path)
         if not name:
@@ -433,7 +434,6 @@ class Link:
             netloc, user_pass = split_auth_from_netloc(self.netloc)
             return netloc
 
-        name = urllib.parse.unquote(name)
         assert name, f"URL {self._url!r} produced no filename"
         return name
 

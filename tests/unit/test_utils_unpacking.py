@@ -19,6 +19,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import (
     _get_default_mode_plus_executable,
     is_within_directory,
+    join_within_directory,
     unpack_file,
     untar_file,
     unzip_file,
@@ -471,6 +472,51 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
 def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:
     result = is_within_directory(*args)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "wheel.whl",
+        "myproject-1.0+foobar.0-py2.py3-none-any.whl",
+        # A literal "%2F" is a normal file name, not a separator.
+        "a%2Fb.whl",
+    ],
+)
+def test_join_within_directory_keeps_plain_name(name: str) -> None:
+    directory = os.path.join("base", "downloads")
+    assert join_within_directory(directory, name) == os.path.join(directory, name)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        os.path.join(os.sep, "abs", "pkg.whl"),
+        os.path.join("..", "pkg.whl"),
+        os.path.join("nested", "pkg.whl"),
+    ],
+)
+def test_join_within_directory_collapses_path_to_basename(name: str) -> None:
+    # A name carrying directory components is reduced to its basename, so the
+    # result always lands directly inside the directory.
+    directory = os.path.join("base", "downloads")
+    expected = os.path.join(directory, os.path.basename(name))
+    assert join_within_directory(directory, name) == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "",
+        ".",
+        "..",
+        "/",
+        os.path.join("sub", ".."),
+    ],
+)
+def test_join_within_directory_rejects_empty_or_dot_name(name: str) -> None:
+    with pytest.raises(ValueError):
+        join_within_directory("downloads", name)
 
 
 @pytest.mark.parametrize(
