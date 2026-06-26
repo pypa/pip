@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from functools import partial
 from optparse import Values
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from pip._internal.build_env import (
     BuildEnvironmentInstaller,
@@ -216,7 +217,7 @@ class RequirementCommand(IndexGroupCommand):
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            build_isolation=options.build_isolation,
+            build_isolation="virtual" if options.build_isolation else "off",
             build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,

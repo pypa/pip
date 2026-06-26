@@ -10,9 +10,7 @@ def test_script_file(script: PipTestEnvironment) -> None:
     """
 
     script_path = script.scratch_path.joinpath("script.py")
-    script_path.write_text(
-        textwrap.dedent(
-            """\
+    script_path.write_text(textwrap.dedent("""\
             # /// script
             # dependencies = [
             #   "INITools==0.2",
@@ -21,9 +19,7 @@ def test_script_file(script: PipTestEnvironment) -> None:
             # ///
 
             print("Hello world from a dummy program")
-            """
-        )
-    )
+            """))
     script.pip_install_local("--requirements-from-script", script_path)
     script.assert_installed(initools="0.2", simple="1.0")
 
@@ -54,9 +50,7 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
 
     script_path = script.scratch_path.joinpath("script.py")
 
-    script_path.write_text(
-        textwrap.dedent(
-            f"""\
+    script_path.write_text(textwrap.dedent(f"""\
             # /// script
             # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
             # dependencies = [
@@ -66,9 +60,7 @@ def test_script_file_python_version(script: PipTestEnvironment) -> None:
             # ///
 
             print("Hello world from a dummy program")
-            """
-        )
-    )
+            """))
 
     result = script.pip_install_local(
         "--requirements-from-script",
@@ -90,18 +82,14 @@ def test_script_invalid_TOML(script: PipTestEnvironment) -> None:
 
     script_path = script.scratch_path.joinpath("script.py")
 
-    script_path.write_text(
-        textwrap.dedent(
-            f"""\
+    script_path.write_text(textwrap.dedent(f"""\
             # /// script
             # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
             # dependencies = [
             # ///
 
             print("Hello world from a dummy program")
-            """
-        )
-    )
+            """))
 
     result = script.pip_install_local(
         "--requirements-from-script",
@@ -122,9 +110,7 @@ def test_script_multiple_blocks(script: PipTestEnvironment) -> None:
 
     script_path = script.scratch_path.joinpath("script.py")
 
-    script_path.write_text(
-        textwrap.dedent(
-            f"""\
+    script_path.write_text(textwrap.dedent(f"""\
             # /// script
             # requires-python = "!={sys.version_info.major}.{sys.version_info.minor}.*"
             # dependencies = [
@@ -142,9 +128,7 @@ def test_script_multiple_blocks(script: PipTestEnvironment) -> None:
             # ///
 
             print("Hello world from a dummy program")
-            """
-        )
-    )
+            """))
 
     result = script.pip_install_local(
         "--requirements-from-script",

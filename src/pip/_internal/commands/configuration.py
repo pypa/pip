@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+from collections.abc import Callable
 from optparse import Values
-from typing import Any, Callable
+from typing import Any
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS

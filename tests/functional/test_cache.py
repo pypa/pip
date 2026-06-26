@@ -2,8 +2,8 @@ import json
 import os
 import re
 import shutil
+from collections.abc import Callable
 from glob import glob
-from typing import Callable
 
 import pytest
 
@@ -440,6 +440,11 @@ def populate_http_cache_with_empty_dirs(cache_dir: str) -> None:
     os.makedirs(empty1)
     os.makedirs(empty2)
 
+    http_v2_cache_dir = os.path.join(cache_dir, "http-v2")
+    empty3 = os.path.join(http_v2_cache_dir, "empty3", "nested")
+
+    os.makedirs(empty3)
+
 
 @pytest.fixture
 def create_selfcheck_json(cache_dir: str) -> None:
@@ -477,12 +482,14 @@ def test_cache_purge_removes_empty_dirs_and_legacy_files(
     """
     selfcheck_path = os.path.join(cache_dir, "selfcheck.json")
     http_cache_dir = os.path.join(cache_dir, "http")
+    http_v2_cache_dir = os.path.join(cache_dir, "http-v2")
     metadata_dir = os.path.join(wheel_cache_dir, "metadata_only")
 
     # Verify setup
     assert os.path.exists(selfcheck_path)
     assert os.path.exists(metadata_dir)
     assert os.path.exists(os.path.join(http_cache_dir, "empty1"))
+    assert os.path.exists(os.path.join(http_v2_cache_dir, "empty3"))
 
     result = script.pip("cache", "purge", "--verbose", allow_stderr_warning=True)
 
@@ -492,6 +499,7 @@ def test_cache_purge_removes_empty_dirs_and_legacy_files(
     assert not os.path.exists(metadata_dir)
     assert not os.path.exists(os.path.join(wheel_cache_dir, "completely_empty"))
     assert not os.path.exists(os.path.join(http_cache_dir, "empty1"))
+    assert not os.path.exists(os.path.join(http_v2_cache_dir, "empty3"))
     assert "Directories removed:" in result.stdout
 
     # Verify directory count is positive

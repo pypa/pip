@@ -26,7 +26,7 @@ pip has 3 "levels" of configuration files:
 
 - `global`: system-wide configuration file, shared across users.
 - `user`: per-user configuration file.
-- `site`: per-environment configuration file; i.e. per-virtualenv.
+- `site`: per-environment configuration file; i.e. per-virtualenv or python installation.
 
 Additionally, environment variables can be specified which will override any of the above.
 
@@ -52,7 +52,8 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`. If no virtual environment is activated, `pip.conf` is loaded from the
+  Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ```{tab} MacOS
@@ -68,7 +69,8 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`. If no virtual environment is activated, `pip.conf` is loaded from the
+  Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ```{tab} Windows
@@ -86,7 +88,8 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`%HOME%\\pip\\pip.ini`
 
 Site
-: {file}`%VIRTUAL_ENV%\\pip.ini`
+: {file}`%VIRTUAL_ENV%\\pip.ini`, If no virtual environment is activated, `pip.ini` is loaded from
+  the Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ### `PIP_CONFIG_FILE`
