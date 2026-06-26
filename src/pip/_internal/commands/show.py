@@ -15,7 +15,6 @@ from pip._internal.metadata import (
     BaseDistribution,
     BaseEnvironment,
     get_default_environment,
-    select_backend,
 )
 from pip._internal.utils.misc import write_output
 
@@ -188,10 +187,7 @@ def _get_multi_package_info(
         except InvalidRequirement:
             if is_query_dist:
                 dist_requires_with_error.add(dist.canonical_name)
-                if select_backend().NAME == "importlib":
-                    has_required_by_error = True
-            else:
-                has_required_by_error = True
+            has_required_by_error = True
             continue
 
     required_by_map = {

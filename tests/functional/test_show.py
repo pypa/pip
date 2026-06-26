@@ -259,6 +259,22 @@ def test_search_packages_info_required_by_marked_na_on_invalid_dependency() -> N
     assert result[0].required_by == ["#N/A"]
 
 
+def test_search_packages_info_required_by_marked_na_on_invalid_query_dist() -> None:
+    invalid_dist = _fake_distribution("invalid", name="invalid")
+    invalid_dist.iter_dependencies.side_effect = InvalidRequirement("bad requirement")
+    packages = [
+        _fake_distribution("simple", name="simple"),
+        invalid_dist,
+    ]
+    fake_env = mock.Mock(iter_all_distributions=lambda: packages)
+    with mock.patch(
+        "pip._internal.commands.show.get_default_environment", return_value=fake_env
+    ):
+        result = list(search_packages_info(["simple", "invalid"]))
+
+    assert [package.required_by for package in result] == [["#N/A"], ["#N/A"]]
+
+
 def test_show_verbose_with_classifiers(script: PipTestEnvironment) -> None:
     """
     Test that classifiers can be listed
