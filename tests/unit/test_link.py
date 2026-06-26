@@ -33,15 +33,17 @@ class TestLink:
                 "http://yo/myproject-1.0%2Bfoobar.0-py2.py3-none-any.whl",
                 "myproject-1.0+foobar.0-py2.py3-none-any.whl",
             ),
-            # A percent-encoded path separator must not survive into the
-            # filename, otherwise it could escape the directory the name is
-            # later joined to.
+            # A path separator that is still hidden when basename() first runs
+            # must not survive into the filename and escape the directory the
+            # name is later joined to. A "\" is decoded at construction but
+            # posixpath.basename does not split on it (it is a separator on
+            # Windows); a double-encoded "/" stays encoded until the unquote.
             (
-                "https://example.com/packages/..%2F..%2F..%2Ftmp%2Fevil-1.0.tar.gz",
+                "https://example.com/packages/..%5C..%5Cevil-1.0.tar.gz",
                 "evil-1.0.tar.gz",
             ),
             (
-                "https://example.com/packages/..%5C..%5Cevil-1.0.tar.gz",
+                "https://example.com/packages/..%252F..%252Fevil-1.0.tar.gz",
                 "evil-1.0.tar.gz",
             ),
             # Test a path that ends in a slash.

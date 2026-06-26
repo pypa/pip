@@ -427,10 +427,14 @@ class Link:
     def filename(self) -> str:
         path = self.path.rstrip("/")
         name = posixpath.basename(path)
-        # Decode the name and take the basename again: a percent-encoded path
-        # separator (e.g. %2F or %5C) survives the basename() above and would
-        # reappear after unquoting, letting a crafted link escape a directory
-        # the filename is later joined to.
+        # self.path is unquoted once at construction, so a single-encoded "/"
+        # is already a real separator the basename() above strips. Two cases
+        # still slip through: a "\" (posixpath.basename does not treat it as a
+        # separator, but it is one on Windows) and a double-encoded separator
+        # like %252F, which is still encoded here and would reappear after the
+        # unquote below. Decode again, fold "\" to "/", and re-take the
+        # basename so the name stays a single component before it is joined to
+        # a download directory.
         name = posixpath.basename(urllib.parse.unquote(name).replace("\\", "/"))
         if not name:
             # Make sure we don't leak auth information if the netloc
