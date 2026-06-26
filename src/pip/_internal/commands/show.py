@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import string
+from collections import defaultdict
 from collections.abc import Generator, Iterable
 from optparse import Values
 from typing import NamedTuple
@@ -155,7 +156,7 @@ def _get_multi_package_info(
     has_required_by_error = False
     dist_requires: dict[NormalizedName, list[str]] = {}
     dist_requires_with_error: set[NormalizedName] = set()
-    required_by_inputs: dict[NormalizedName, set[str]] = {}
+    required_by_inputs: defaultdict[NormalizedName, set[str]] = defaultdict(set)
 
     for dist in env.iter_all_distributions():
         is_query_dist = dist.canonical_name in query_names_set
@@ -174,7 +175,7 @@ def _get_multi_package_info(
                     requires_set.add(dependency_name)
 
                 if canonical_name in query_names_set:
-                    required_by_inputs.setdefault(canonical_name, set()).add(
+                    required_by_inputs[canonical_name].add(
                         dist.metadata["Name"] or "UNKNOWN"
                     )
 
