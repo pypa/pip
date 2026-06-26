@@ -33,6 +33,17 @@ class TestLink:
                 "http://yo/myproject-1.0%2Bfoobar.0-py2.py3-none-any.whl",
                 "myproject-1.0+foobar.0-py2.py3-none-any.whl",
             ),
+            # A percent-encoded path separator must not survive into the
+            # filename, otherwise it could escape the directory the name is
+            # later joined to.
+            (
+                "https://example.com/packages/..%2F..%2F..%2Ftmp%2Fevil-1.0.tar.gz",
+                "evil-1.0.tar.gz",
+            ),
+            (
+                "https://example.com/packages/..%5C..%5Cevil-1.0.tar.gz",
+                "evil-1.0.tar.gz",
+            ),
             # Test a path that ends in a slash.
             ("https://example.com/path/", "path"),
             ("https://example.com/path//", "path"),

@@ -427,13 +427,17 @@ class Link:
     def filename(self) -> str:
         path = self.path.rstrip("/")
         name = posixpath.basename(path)
+        # Decode the name and take the basename again: a percent-encoded path
+        # separator (e.g. %2F or %5C) survives the basename() above and would
+        # reappear after unquoting, letting a crafted link escape a directory
+        # the filename is later joined to.
+        name = posixpath.basename(urllib.parse.unquote(name).replace("\\", "/"))
         if not name:
             # Make sure we don't leak auth information if the netloc
             # includes a username and password.
             netloc, user_pass = split_auth_from_netloc(self.netloc)
             return netloc
 
-        name = urllib.parse.unquote(name)
         assert name, f"URL {self._url!r} produced no filename"
         return name
 
