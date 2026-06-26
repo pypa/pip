@@ -126,6 +126,15 @@ def test_compressed_listing(tmpdir: Path) -> None:
     assert sorted(expected_rename) == sorted(compact(will_rename))
 
 
+def test_compact_keeps_minimal_parent_paths(tmpdir: Path) -> None:
+    parent = os.path.join(tmpdir, "pkg")
+    nested = os.path.join(parent, "module.py")
+    deeper = os.path.join(parent, "subpkg", "module.py")
+    sibling = os.path.join(tmpdir, "pkg-extra", "module.py")
+
+    assert compact([nested, deeper, sibling, parent]) == {parent, sibling}
+
+
 class TestUninstallPathSet:
     def test_add(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
