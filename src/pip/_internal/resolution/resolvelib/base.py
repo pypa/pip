@@ -52,18 +52,26 @@ class Constraint:
             return NotImplemented
         specifier = self.specifier & other.specifier
         hashes = self.hashes & other.hashes(trust_internet=False)
-        if not self.hash_options:
-            hash_options = {alg: list(v) for alg, v in other.hash_options.items()}
-        elif not other.hash_options:
-            hash_options = {alg: list(v) for alg, v in self.hash_options.items()}
-        else:
+        self_hash_options = self.hash_options
+        other_hash_options = other.hash_options
+        if not self_hash_options:
             hash_options = {
-                alg: [v for v in other.hash_options[alg] if v in self.hash_options[alg]]
-                for alg in self.hash_options.keys() & other.hash_options.keys()
+                alg: list(v) for alg, v in other_hash_options.items()
             }
+        elif not other_hash_options:
+            hash_options = {
+                alg: list(v) for alg, v in self_hash_options.items()
+            }
+        else:
+            hash_options = {}
+            for alg in self_hash_options.keys() & other_hash_options.keys():
+                self_hashes = set(self_hash_options[alg])
+                hash_options[alg] = [
+                    v for v in other_hash_options[alg] if v in self_hashes
+                ]
         links = self.links
         if other.link:
-            links = links.union([other.link])
+            links = links.union((other.link,))
         return Constraint(specifier, hashes, hash_options, links)
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:

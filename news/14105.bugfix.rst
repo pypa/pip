@@ -1,0 +1,1 @@
+Optimize resolver hash-option intersection when combining constraints.
