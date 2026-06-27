@@ -99,7 +99,7 @@ def compact(paths: Iterable[str]) -> set[str]:
     prefixes: set[str] = set()
 
     for path in sorted(paths, key=len):
-        current = path.rstrip("*")
+        current = path[:-1] if path.endswith(sep + "*") else path
         parent = current.rstrip(sep)
         while parent:
             if parent in prefixes:
