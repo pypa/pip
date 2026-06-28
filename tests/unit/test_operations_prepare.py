@@ -8,8 +8,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from pip._internal.exceptions import NetworkConnectionError, HashMismatch
 from pip._vendor.requests import Response
+from pip._vendor.requests.structures import CaseInsensitiveDict
+
+from pip._internal.exceptions import HashMismatch, NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
@@ -64,7 +66,9 @@ def test_unpack_url_raises_network_error_on_empty_download(tmp_path: Path) -> No
     session.resume_retries = 0
     empty_response = MockResponse(b"")
     empty_response.url = "http://example.com/pkg.tar.gz"
-    empty_response.headers = {"content-type": "application/octet-stream"}
+    empty_response.headers = CaseInsensitiveDict(
+        {"content-type": "application/octet-stream"}
+    )
     session.get.return_value = empty_response
 
     downloader = Downloader(session, progress_bar="off")

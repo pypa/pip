@@ -119,10 +119,6 @@ def get_http_url(
     else:
         # let's download to a tmp dir
         from_path, content_type = download(link, temp_dir.path)
-        if os.path.getsize(from_path) == 0:
-            raise NetworkConnectionError(
-                "empty download (possibly due to an invalid HTTP 304 response)"
-            )
         if hashes:
             hashes.check_against_path(from_path)
 
