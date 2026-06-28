@@ -136,7 +136,7 @@ def test_find_package_not_found() -> None:
     """
     Test trying to get info about a nonexistent package.
     """
-    result = search_packages_info(["abcd3"])
+    result = search_packages_info(["abcd3"], include_files=False)
     assert len(list(result)) == 0
 
 
@@ -171,7 +171,7 @@ def test_search_any_case() -> None:
     Search for a package in any case.
 
     """
-    result = list(search_packages_info(["PIP"]))
+    result = list(search_packages_info(["PIP"], include_files=False))
     assert len(result) == 1
     assert result[0].name == "pip"
 
@@ -181,7 +181,9 @@ def test_more_than_one_package() -> None:
     Search for more than one package.
 
     """
-    result = list(search_packages_info(["pIp", "pytest", "Virtualenv"]))
+    result = list(
+        search_packages_info(["pIp", "pytest", "Virtualenv"], include_files=False)
+    )
     assert len(result) == 3
 
 

@@ -84,7 +84,7 @@ class _PackageInfo(NamedTuple):
 
 def search_packages_info(
     query: list[str],
-    include_files: bool = True,
+    include_files: bool,
 ) -> Generator[_PackageInfo, None, None]:
     """
     Gather details from installed distributions. Print distribution name,
