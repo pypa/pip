@@ -262,7 +262,6 @@ class Downloader:
                 continue
 
         if download.is_empty():
-            os.remove(download.output_file.name)
             raise NetworkConnectionError("empty download (invalid HTTP 304 response)")
 
         # No more resume attempts. Raise an error if the download is still incomplete.
