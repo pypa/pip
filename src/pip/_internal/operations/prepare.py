@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.build_env import BuildEnvironmentInstaller
+from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -66,7 +66,7 @@ def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
     build_env_installer: BuildEnvironmentInstaller,
-    build_isolation: bool,
+    build_isolation: BuildIsolationMode,
     check_build_deps: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
@@ -234,7 +234,7 @@ class RequirementPreparer:
         build_dir: str,
         download_dir: str | None,
         src_dir: str,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         build_isolation_installer: BuildEnvironmentInstaller,
         check_build_deps: bool,
         build_tracker: BuildTracker,

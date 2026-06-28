@@ -34,7 +34,6 @@ from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
-from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
@@ -775,6 +774,13 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
     ) -> None:
+        # Lazy import to avoid transitively importing `_vendor.distlib.compat`
+        # which in turn imports `urllib.request` which is slow.
+        # During an actual installation, `urllib.request` will end up imported anyway,
+        # but `req.req_install` (this module) is also imported from commands that
+        # don't actually install anything (e.g. `pip freeze` or `pip show`).
+        from pip._internal.operations.install.wheel import install_wheel
+
         assert self.req is not None
         scheme = get_scheme(
             self.req.name,
