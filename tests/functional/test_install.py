@@ -598,6 +598,32 @@ def test_vcs_url_urlquote_normalization(script: PipTestEnvironment) -> None:
     script.pip("install", "--no-build-isolation", "-e", url)
 
 
+def test_uninstall_is_skipped_on_missing_record_if_target_location_is_different(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    dist_info = script.site_packages_path / "simple-1.0.dist-info"
+    dist_info.mkdir()
+    (dist_info / "INSTALLER").write_text("rpm")
+    (dist_info / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: requests\nVersion: 1.0\n"
+    )
+
+    prefix_path = script.scratch_path / "prefix"
+    result = script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "--prefix",
+        prefix_path,
+        "simple==2.0",
+    )
+
+    assert result.returncode == 0
+    assert "Skipping uninstall" in result.stdout
+
+
 @pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
 def test_basic_install_from_local_directory(
     script: PipTestEnvironment, data: TestData, resolver: str
