@@ -6,7 +6,9 @@ import textwrap
 import pytest
 
 from pip import __version__
+from pip._internal.commands import create_command
 from pip._internal.commands.show import search_packages_info
+from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.unpacking import untar_file
 
 from tests.lib import (
@@ -28,6 +30,28 @@ def test_basic_show(script: PipTestEnvironment) -> None:
     assert f"Version: {__version__}" in lines
     assert any(line.startswith("Location: ") for line in lines)
     assert "Requires: " in lines
+
+
+def test_show_without_files_does_not_read_installed_files(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Test that show does not read installed files without --files.
+    """
+    calls: list[str] = []
+
+    def iter_declared_entries(self: BaseDistribution) -> None:
+        calls.append(self.raw_name)
+
+    monkeypatch.setattr(
+        BaseDistribution, "iter_declared_entries", iter_declared_entries
+    )
+
+    command = create_command("show")
+    options, args = command.parse_args(["pip"])
+
+    assert command.run(options, args) == 0
+    assert calls == []
 
 
 def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -> None:
