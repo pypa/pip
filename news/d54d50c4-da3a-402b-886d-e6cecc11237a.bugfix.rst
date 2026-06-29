@@ -1,0 +1,2 @@
+Improve local ``--find-links`` directory scanning performance by avoiding URL
+conversion for files that are not valid package archives or HTML pages.
