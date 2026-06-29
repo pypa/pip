@@ -140,7 +140,7 @@ class IndexCommand(IndexGroupCommand):
 
             if not versions:
                 raise DistributionNotFound(
-                    f"No matching distribution found for {query}"
+                    f"Package/version {query} not found."
                 )
 
             formatted_versions = [str(ver) for ver in sorted(versions, reverse=True)]
