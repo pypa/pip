@@ -1,0 +1,2 @@
+Reject a negative ``Content-Length`` response header so a truncated download
+is no longer treated as complete.
