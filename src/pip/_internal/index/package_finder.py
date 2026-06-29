@@ -1016,14 +1016,14 @@ class PackageFinder:
                     version_type = "final version"
 
             logger.critical(
-                "Could not find a %s that satisfies the requirement %s "
-                "(from versions: %s)",
+                " No package was found for %s "
+                "Available versions: %s",
                 version_type,
                 req,
                 _format_versions(best_candidate_result.all_candidates),
             )
 
-            raise DistributionNotFound(f"No matching distribution found for {req}")
+            raise DistributionNotFound(f"Package {req} not found.")
 
         def _should_install_candidate(
             candidate: InstallationCandidate | None,
