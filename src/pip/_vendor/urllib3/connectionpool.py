@@ -867,7 +867,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         if not conn:
             # Try again
             log.warning(
-                "Retrying (%r) after connection broken by '%r': %s", retries, err, url
+                "Connection to PyPI failed. Retrying now..."
             )
             return self.urlopen(
                 method,
