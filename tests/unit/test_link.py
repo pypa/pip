@@ -212,9 +212,19 @@ class TestLink:
             id="fragment-ordering",
         ),
         pytest.param(
+            "https://example.com/foo#subdirectory&subdirectory=bar",
+            "https://example.com/foo#subdirectory=bar",
+            id="fragment-bare-key",
+        ),
+        pytest.param(
             "https://example.com/foo?a=1&b=2",
             "https://example.com/foo?b=2&a=1",
             id="query-opordering",
+        ),
+        pytest.param(
+            "https://example.com/foo?a=&b=2",
+            "https://example.com/foo?b=2&a=",
+            id="blank-query-ordering",
         ),
     ],
 )
@@ -239,6 +249,16 @@ def test_links_equivalent(url1: str, url2: str) -> None:
             "https://example.com/foo#subdirectory=bar&egg=foo",
             "https://example.com/foo#subdirectory=rex",
             id="drop-egg-still-different",
+        ),
+        pytest.param(
+            "https://example.com/foo?a=",
+            "https://example.com/foo",
+            id="blank-query-value",
+        ),
+        pytest.param(
+            "https://example.com/foo#sha256=",
+            "https://example.com/foo",
+            id="blank-hash-value",
         ),
     ],
 )

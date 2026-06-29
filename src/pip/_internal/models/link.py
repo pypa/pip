@@ -593,7 +593,10 @@ def _clean_link(link: Link) -> _CleanResult:
     # According to RFC 8089, an empty host in file: means localhost.
     if parsed.scheme == "file" and not netloc:
         netloc = "localhost"
-    fragment = urllib.parse.parse_qs(parsed.fragment)
+    fragment = urllib.parse.parse_qs(
+        "&".join(part for part in parsed.fragment.split("&") if "=" in part),
+        keep_blank_values=True,
+    )
     if "egg" in fragment:
         logger.debug("Ignoring egg= fragment in %s", link)
     try:
@@ -607,7 +610,7 @@ def _clean_link(link: Link) -> _CleanResult:
     hashes = {k: fragment[k][0] for k in _SUPPORTED_HASHES if k in fragment}
     return _CleanResult(
         parsed=parsed._replace(netloc=netloc, query="", fragment=""),
-        query=urllib.parse.parse_qs(parsed.query),
+        query=urllib.parse.parse_qs(parsed.query, keep_blank_values=True),
         subdirectory=subdirectory,
         hashes=hashes,
     )
