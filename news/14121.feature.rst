@@ -1,0 +1,3 @@
+This is a change that makes pip's errors way easier for humans to read. For example, when you don't have a internet connection, and try do download packages, the result is now:
+	WARNING: Connection to PyPI failed. Retrying now...
+ 
