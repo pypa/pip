@@ -1,2 +1,0 @@
-Treat a negative ``Content-Length`` response header as unknown size, so the
-download resume check no longer reports a truncated response as complete.
