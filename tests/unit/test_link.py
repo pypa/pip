@@ -9,6 +9,7 @@ from pip._internal.exceptions import InvalidEggFragment, PipError
 from pip._internal.models.link import (
     Link,
     as_path_component,
+    join_within_directory,
     links_equivalent,
 )
 from pip._internal.utils.hashes import Hashes
@@ -337,3 +338,20 @@ def test_as_path_component_reduces_to_basename(name: str) -> None:
 def test_as_path_component_rejects_empty_or_parent_reference(name: str) -> None:
     with pytest.raises(ValueError):
         as_path_component(name)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "pkg.whl",
+        # A literal "%2F" is a normal file name, not a separator.
+        "a%2Fb.whl",
+    ],
+)
+def test_join_within_directory_stays_inside(name: str) -> None:
+    # The component is joined onto the directory as its final element, so the
+    # result stays inside the directory.
+    directory = os.path.join("base", "downloads")
+    joined = join_within_directory(directory, as_path_component(name))
+    assert joined == os.path.join(directory, name)
+    assert os.path.basename(joined) == name

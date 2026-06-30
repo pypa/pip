@@ -19,7 +19,12 @@ from pip._vendor.urllib3.exceptions import ProtocolError, ReadTimeoutError
 
 from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
-from pip._internal.models.link import Link, PathComponent, as_path_component
+from pip._internal.models.link import (
+    Link,
+    PathComponent,
+    as_path_component,
+    join_within_directory,
+)
 from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
@@ -190,7 +195,9 @@ class Downloader:
         resp = self._http_get(link)
         download_size = _get_http_response_size(resp)
 
-        filepath = os.path.join(location, _get_http_response_filename(resp, link))
+        filepath = join_within_directory(
+            location, _get_http_response_filename(resp, link)
+        )
         with open(filepath, "wb") as content_file:
             download = _FileDownload(link, content_file, download_size)
             self._process_response(download, resp)

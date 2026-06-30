@@ -63,6 +63,17 @@ def as_path_component(name: str) -> PathComponent:
     return component
 
 
+def join_within_directory(directory: str, component: PathComponent) -> str:
+    """Join a single path ``component`` onto ``directory``.
+
+    ``component`` is a :data:`PathComponent`, so by type it has no separator and
+    is not a ``.`` or ``..`` reference; the result can never escape ``directory``.
+    Requiring ``PathComponent`` rather than ``str`` lets the type checker enforce
+    at the call site that the name was reduced to a safe component beforehand.
+    """
+    return os.path.join(directory, component)
+
+
 # Order matters, earlier hashes have a precedence over later hashes for what
 # we will pick to use.
 _SUPPORTED_HASHES = ("sha512", "sha384", "sha256", "sha224", "sha1", "md5")
