@@ -87,19 +87,6 @@ def is_within_directory(directory: str, target: str) -> bool:
     return abs_target == abs_directory or abs_target.startswith(abs_directory + os.sep)
 
 
-def join_within_directory(directory: str, name: str) -> str:
-    """Join ``name`` onto ``directory`` as a single path component.
-
-    ``name`` is reduced to its basename; ``ValueError`` is raised if that is
-    empty, ``.``, or ``..``.
-    """
-    name = os.path.basename(name)
-    target = os.path.join(directory, name)
-    if name in ("", os.curdir, os.pardir) or not is_within_directory(directory, target):
-        raise ValueError(f"Unexpected file name derived from URL: {name!r}")
-    return target
-
-
 def _get_default_mode_plus_executable() -> int:
     return 0o777 & ~current_umask() | 0o111
 

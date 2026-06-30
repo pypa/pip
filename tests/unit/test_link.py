@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import os
 import posixpath
 
 import pytest
 
 from pip._internal.exceptions import InvalidEggFragment, PipError
-from pip._internal.models.link import Link, links_equivalent
+from pip._internal.models.link import (
+    Link,
+    as_path_component,
+    links_equivalent,
+)
 from pip._internal.utils.hashes import Hashes
 
 
@@ -72,6 +77,37 @@ class TestLink:
         filename = Link(url).filename
         assert not posixpath.isabs(filename)
         assert posixpath.basename(filename) == filename
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://example.com/..",
+            "https://example.com/.",
+            "https://example.com/foo/%2e%2e",
+        ],
+    )
+    def test_filename_parent_reference_falls_back_to_netloc(self, url: str) -> None:
+        # A path that is only a "." or ".." reference has no usable file name,
+        # so filename falls back to the netloc rather than handing back a
+        # traversal component that could escape a download directory.
+        assert Link(url).filename == "example.com"
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            # A path-less URL whose authority looks like a traversal: the netloc
+            # fallback must still reduce to a single path component.
+            "http://..\\..\\..\\evil.whl",
+            "http://../",
+            "http://..",
+        ],
+    )
+    def test_filename_is_always_a_path_component(self, url: str) -> None:
+        # filename must never carry a separator or parent reference, so joining
+        # it onto a directory can never escape that directory.
+        name = Link(url).filename
+        assert os.path.basename(name) == name
+        assert name not in (os.curdir, os.pardir)
 
     def test_splitext(self) -> None:
         assert ("wheel", ".whl") == Link("http://yo/wheel.whl").splitext()
@@ -268,3 +304,36 @@ def test_links_equivalent(url1: str, url2: str) -> None:
 )
 def test_links_equivalent_false(url1: str, url2: str) -> None:
     assert not links_equivalent(Link(url1), Link(url2))
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "wheel.whl",
+        "myproject-1.0+foobar.0-py2.py3-none-any.whl",
+        # A literal "%2F" is a normal file name, not a separator.
+        "a%2Fb.whl",
+    ],
+)
+def test_as_path_component_keeps_plain_name(name: str) -> None:
+    assert as_path_component(name) == name
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        os.path.join(os.sep, "abs", "pkg.whl"),
+        os.path.join("..", "pkg.whl"),
+        os.path.join("nested", "pkg.whl"),
+    ],
+)
+def test_as_path_component_reduces_to_basename(name: str) -> None:
+    # A name carrying directory components is reduced to its basename, so the
+    # result always stays inside the directory it is later joined onto.
+    assert as_path_component(name) == os.path.basename(name)
+
+
+@pytest.mark.parametrize("name", ["", ".", "..", "/", os.path.join("sub", "..")])
+def test_as_path_component_rejects_empty_or_parent_reference(name: str) -> None:
+    with pytest.raises(ValueError):
+        as_path_component(name)

@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import (
     Any,
     NamedTuple,
+    NewType,
 )
 
 from pip._internal.exceptions import InvalidEggFragment
@@ -28,6 +29,38 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 logger = logging.getLogger(__name__)
+
+
+# A single path component: percent-decoded once and reduced to a basename, so it
+# contains no path separator and is not a ``.`` or ``..`` reference. The empty
+# string means "no component".
+PathComponent = NewType("PathComponent", str)
+
+
+def _to_path_component(name: str) -> PathComponent:
+    """Reduce ``name`` to a single path component, or ``""`` if it has none.
+
+    ``os.path.basename`` drops any directory part, drive letter, or separator;
+    a ``.``, ``..``, or empty result is not a component and becomes ``""``.
+    """
+    name = os.path.basename(name)
+    if name in ("", os.curdir, os.pardir):
+        return PathComponent("")
+
+    return PathComponent(name)
+
+
+def as_path_component(name: str) -> PathComponent:
+    """Like ``_to_path_component`` but reject the empty result.
+
+    Use where a file is about to be written, so a missing name is an error
+    rather than a silent fallback to the directory itself.
+    """
+    component = _to_path_component(name)
+    if not component:
+        raise ValueError(f"Unexpected file name derived from URL: {name!r}")
+
+    return component
 
 
 # Order matters, earlier hashes have a precedence over later hashes for what
@@ -424,18 +457,13 @@ class Link:
         return redact_auth_from_url(self.url)
 
     @property
-    def filename(self) -> str:
-        # ``self.path`` is already unquoted in ``__init__``; don't unquote again.
-        path = self.path.rstrip("/")
-        name = posixpath.basename(path)
-        if not name:
-            # Make sure we don't leak auth information if the netloc
-            # includes a username and password.
-            netloc, user_pass = split_auth_from_netloc(self.netloc)
-            return netloc
+    def filename(self) -> PathComponent:
+        name = _to_path_component(posixpath.basename(self.path.rstrip("/")))
+        if name:
+            return name
 
-        assert name, f"URL {self._url!r} produced no filename"
-        return name
+        # No component in the path; fall back to the netloc, dropping any auth.
+        return _to_path_component(split_auth_from_netloc(self.netloc)[0])
 
     @property
     def file_path(self) -> str:

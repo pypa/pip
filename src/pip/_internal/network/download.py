@@ -19,12 +19,11 @@ from pip._vendor.urllib3.exceptions import ProtocolError, ReadTimeoutError
 
 from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, PathComponent, as_path_component
 from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
-from pip._internal.utils.unpacking import join_within_directory
 
 logger = logging.getLogger(__name__)
 
@@ -117,11 +116,14 @@ def parse_content_disposition(content_disposition: str, default_filename: str) -
     return filename or default_filename
 
 
-def _get_http_response_filename(resp: Response, link: Link) -> str:
+def _get_http_response_filename(resp: Response, link: Link) -> PathComponent:
     """Get an ideal filename from the given HTTP response, falling back to
     the link filename if not provided.
+
+    The result is validated as a single path component, so it can be joined onto
+    a download directory without escaping it.
     """
-    filename = link.filename  # fallback
+    filename: str = link.filename  # fallback
     # Have a look at the Content-Disposition header for a better guess
     content_disposition = resp.headers.get("content-disposition")
     if content_disposition:
@@ -135,7 +137,7 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
         ext = os.path.splitext(resp.url)[1]
         if ext:
             filename += ext
-    return filename
+    return as_path_component(filename)
 
 
 @dataclass
@@ -188,9 +190,7 @@ class Downloader:
         resp = self._http_get(link)
         download_size = _get_http_response_size(resp)
 
-        filepath = join_within_directory(
-            location, _get_http_response_filename(resp, link)
-        )
+        filepath = os.path.join(location, _get_http_response_filename(resp, link))
         with open(filepath, "wb") as content_file:
             download = _FileDownload(link, content_file, download_size)
             self._process_response(download, resp)
