@@ -114,6 +114,24 @@ def test_log_download(
 
 
 @pytest.mark.parametrize(
+    "content_length, expected",
+    [
+        ("0", 0),
+        ("36", 36),
+        ("", None),
+        ("not-a-number", None),
+        # A negative length must not be passed through: it would make
+        # _FileDownload.is_incomplete() treat a truncated download as complete.
+        ("-1", None),
+    ],
+)
+def test_get_http_response_size(content_length: str, expected: int | None) -> None:
+    resp = MockResponse(b"")
+    resp.headers["content-length"] = content_length
+    assert _get_http_response_size(resp) == expected
+
+
+@pytest.mark.parametrize(
     "filename, expected",
     [
         ("dir/file", "file"),
