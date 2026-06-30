@@ -138,6 +138,7 @@ class SimpleWheelCache(Cache):
             return link
 
         canonical_package_name = canonicalize_name(package_name)
+        supported_tags_set = set(supported_tags)
         for wheel_name, wheel_dir in self._get_candidates(link, canonical_package_name):
             try:
                 wheel = Wheel(wheel_name)
@@ -152,7 +153,7 @@ class SimpleWheelCache(Cache):
                     package_name,
                 )
                 continue
-            if not wheel.supported(supported_tags):
+            if not wheel.supported(supported_tags_set):
                 # Built for a different python/arch/etc
                 continue
             candidates.append(
