@@ -1,0 +1,1 @@
+Document the ``--target`` option in the :doc:`pip install <cli/pip_install>` reference page, including a usage example and notes on its interaction with ``--upgrade`` and ``--user``.

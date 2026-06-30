@@ -91,6 +91,36 @@ combination with ``--quiet``).
 
 The format of the JSON report is described in :doc:`../reference/installation-report`.
 
+Installing to a target directory
+--------------------------------
+
+The :ref:`--target <install_--target>` option installs packages into a specific
+directory rather than into the current environment's ``site-packages``. This is
+useful when you want to collect dependencies for deployment, bundle libraries
+with an application, or install into a location managed by another tool.
+
+By default, pip will not replace files or directories that already exist in the
+target directory. Use :ref:`--upgrade <install_--upgrade>` to replace existing
+packages.
+
+For example:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: console
+
+      $ python -m pip install --target ./extern requests
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip install --target extern requests
+
+Because ``--target`` installs outside of a regular Python environment, it
+implies ``--ignore-installed`` and cannot be combined with :ref:`--user
+<install_--user>`.
+
 Installation Order
 ------------------
 
