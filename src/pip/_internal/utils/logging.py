@@ -32,8 +32,9 @@ from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import StreamWrapper, ensure_dir
 
 _log_state = threading.local()
-_stdout_console = None
-_stderr_console = None
+_stdout_console: Console | None = None
+_stderr_console: Console | None = None
+
 subprocess_logger = getLogger("pip.subprocessor")
 
 
@@ -190,6 +191,23 @@ def get_console(*, stderr: bool = False) -> Console:
         return _stdout_console
 
 
+def get_console_or_create() -> Console:
+    """Return the stdout console, creating one if logging is not configured yet."""
+    global _stdout_console
+    if _stdout_console is None:
+        _stdout_console = PipConsole(
+            file=sys.stdout,
+            no_color=(
+                "--no-color" in sys.argv
+                or os.getenv("PIP_NO_COLOR") == "1"
+                or "NO_COLOR" in os.environ
+            ),
+            soft_wrap=True,
+            force_terminal=True,
+        )
+    return _stdout_console
+
+
 class RichPipStreamHandler(RichHandler):
     KEYWORDS: ClassVar[list[str] | None] = []
 
@@ -280,6 +298,10 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: str | None) -> 
 
     Returns the requested logging level, as its integer value.
     """
+    # Auto-disable color when output is not a TTY unless explicitly requested
+    is_tty = sys.stderr.isatty()
+    if not no_color and not is_tty:
+        no_color = True
 
     # Determine the level to be logging at.
     if verbosity >= 2:
@@ -320,8 +342,15 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: str | None) -> 
         ["user_log"] if include_user_log else []
     )
     global _stdout_console, stderr_console
-    _stdout_console = PipConsole(file=sys.stdout, no_color=no_color, soft_wrap=True)
-    _stderr_console = PipConsole(file=sys.stderr, no_color=no_color, soft_wrap=True)
+    _stdout_console = PipConsole(
+        file=sys.stdout,
+        no_color=no_color,
+        soft_wrap=True,
+        force_terminal=is_tty,
+    )
+    _stderr_console = PipConsole(
+        file=sys.stderr, no_color=no_color, soft_wrap=True, force_terminal=is_tty
+    )
 
     logging.config.dictConfig(
         {

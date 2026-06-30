@@ -10,8 +10,8 @@ import pytest
 
 from pip._vendor.rich.console import Console
 
-from pip._internal.cli import spinners
-from pip._internal.cli.spinners import open_rich_spinner
+from pip._internal.cli import ui as spinners
+from pip._internal.cli.ui import open_spinner
 
 
 @contextmanager
@@ -26,6 +26,32 @@ def patch_logger_level(level: int) -> Generator[None]:
 
 
 class TestRichSpinner:
+    def test_status_non_interactive_output(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        stream = StringIO()
+        monkeypatch.setattr(
+            spinners,
+            "get_console_or_create",
+            lambda: Console(file=stream),
+        )
+        caplog.set_level(logging.INFO, logger=spinners.logger.name)
+
+        with patch_logger_level(logging.INFO):
+            with spinners.status("working"):
+                pass
+
+        assert [
+            record.getMessage()
+            for record in caplog.records
+            if record.name == spinners.logger.name
+        ] == [
+            "working: started",
+            "working: finished with status 'done'",
+        ]
+
     @pytest.mark.parametrize(
         "status, func",
         [
@@ -42,7 +68,7 @@ class TestRichSpinner:
         stream = StringIO()
         try:
             with patch_logger_level(logging.INFO):
-                with open_rich_spinner("working", Console(file=stream)):
+                with open_spinner("working", Console(file=stream)):
                     func()
         except BaseException:
             pass
@@ -58,7 +84,7 @@ class TestRichSpinner:
         """Is the spinner hidden at the appropriate verbosity?"""
         stream = StringIO()
         with patch_logger_level(level):
-            with open_rich_spinner("working", Console(file=stream)):
+            with open_spinner("working", Console(file=stream)):
                 pass
 
         assert bool(stream.getvalue()) == visible

@@ -5,7 +5,7 @@ import logging
 from collections.abc import Generator
 from dataclasses import dataclass
 
-from pip._internal.cli.progress_bars import BarType, get_install_progress_renderer
+from pip._internal.cli.ui import BarType, get_install_progress_renderer
 from pip._internal.utils.logging import indent_log
 
 from .req_file import parse_requirements

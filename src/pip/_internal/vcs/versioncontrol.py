@@ -14,7 +14,6 @@ from typing import (
     Literal,
 )
 
-from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
     HiddenText,
@@ -621,7 +620,6 @@ class VersionControl:
         extra_ok_returncodes: Iterable[int] | None = None,
         command_desc: str | None = None,
         extra_environ: Mapping[str, Any] | None = None,
-        spinner: SpinnerInterface | None = None,
         log_failed_cmd: bool = True,
         stdout_only: bool = False,
     ) -> str:
@@ -643,7 +641,6 @@ class VersionControl:
                 command_desc=command_desc,
                 extra_environ=extra_environ,
                 unset_environ=cls.unset_environ,
-                spinner=spinner,
                 log_failed_cmd=log_failed_cmd,
                 stdout_only=stdout_only,
             )
