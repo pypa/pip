@@ -6,6 +6,7 @@ from collections.abc import Generator
 from dataclasses import dataclass
 
 from pip._internal.cli.progress_bars import BarType, get_install_progress_renderer
+from pip._internal.exceptions import UninstallMissingRecord
 from pip._internal.utils.logging import indent_log
 
 from .req_file import parse_requirements
@@ -75,11 +76,18 @@ def install_given_reqs(
             assert req_name is not None
             if requirement.should_reinstall:
                 logger.info("Attempting uninstall: %s", req_name)
-                with indent_log():
-                    uninstalled_pathset = requirement.uninstall(auto_confirm=True)
+                try:
+                    with indent_log():
+                        uninstalled_pathset = requirement.uninstall(auto_confirm=True)
+                except UninstallMissingRecord as e:
+                    if requirement.can_skip_uninstall_due_to_different_location(
+                        use_user_site, home, root, prefix
+                    ):
+                        uninstalled_pathset = None
+                    else:
+                        raise e
             else:
                 uninstalled_pathset = None
-
             try:
                 requirement.install(
                     root=root,
