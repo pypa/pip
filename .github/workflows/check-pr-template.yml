@@ -6,9 +6,13 @@ on:
       - opened
       - edited
       - reopened
+      - labeled
+      - unlabeled
 
 jobs:
   check-pr-template:
+    if: >
+      !contains(github.event.pull_request.labels.*.name, 'skip PR template check')
     name: Check PR template
     runs-on: ubuntu-latest
     permissions: {}
