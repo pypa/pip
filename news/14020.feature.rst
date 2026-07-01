@@ -1,0 +1,3 @@
+When a server returns an ``X-Error-Message`` response header alongside a
+4xx or 5xx error response, pip now uses that header's value as the error
+detail instead of the HTTP reason phrase.

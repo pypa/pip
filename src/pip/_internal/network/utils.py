@@ -42,6 +42,10 @@ def raise_for_status(resp: Response) -> None:
     else:
         reason = resp.reason
 
+    x_error_message = resp.headers.get("X-Error-Message")
+    if x_error_message:
+        reason = x_error_message
+
     if 400 <= resp.status_code < 500:
         http_error_msg = (
             f"{resp.status_code} Client Error: {reason} for url: {resp.url}"
