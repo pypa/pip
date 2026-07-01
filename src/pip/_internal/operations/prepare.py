@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
@@ -55,6 +55,7 @@ from pip._internal.utils.misc import (
     hide_url,
     redact_auth_from_requirement,
 )
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -232,8 +233,13 @@ def _canonicalize_requirement(raw: str) -> str:
     for the same distribution without being confused by superficial
     differences in name casing, extra casing, or extras ordering. May raise
     ``InvalidRequirement`` if ``raw`` is not a valid PEP 508 string.
+
+    TODO: once https://github.com/pypa/packaging/pull/1278 is released and
+    vendored, ``Requirement.__eq__`` will canonicalize requested extras and
+    this manual normalization can be dropped in favour of comparing
+    ``Requirement`` objects directly.
     """
-    parsed = Requirement(raw)
+    parsed = get_requirement(raw)
     parts: list[str] = [canonicalize_name(parsed.name)]
     if parsed.extras:
         normalized_extras = sorted(canonicalize_name(e) for e in parsed.extras)

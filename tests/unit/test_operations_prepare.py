@@ -150,17 +150,13 @@ class Test_unpack_url:
 
 
 def _metadata(*lines: str, name: str = "pkg", version: str = "1.0") -> str:
-    return (
-        "\n".join(
-            [
-                "Metadata-Version: 2.1",
-                f"Name: {name}",
-                f"Version: {version}",
-                *lines,
-            ]
-        )
-        + "\n"
-    )
+    metadata = [
+        "Metadata-Version: 2.1",
+        f"Name: {name}",
+        f"Version: {version}",
+        *lines,
+    ]
+    return "\n".join(metadata) + "\n"
 
 
 def _make_distribution(metadata: str) -> BaseDistribution:
