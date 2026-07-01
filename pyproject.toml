@@ -76,6 +76,7 @@ test-common-wheels = [
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
     "keyring",
+    "cmake",
 ]
 
 docs = [
