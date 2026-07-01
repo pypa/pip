@@ -380,7 +380,7 @@ class MetadataInconsistent(InstallationError):
 
 
 class SidecarMetadataInconsistent(MetadataInconsistent):
-    """The wheel's built metadata disagrees with its PEP 658 ``.metadata`` file.
+    """The wheel's METADATA disagrees with its PEP 658 ``.metadata`` file.
 
     Raised after the wheel has been downloaded and hash-verified, when a
     resolver-affecting field in the wheel's embedded ``METADATA`` does not

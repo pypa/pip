@@ -258,18 +258,18 @@ def _check_sidecar_matches_wheel(
     sidecar_dist: BaseDistribution,
     wheel_dist: BaseDistribution,
 ) -> None:
-    """Check that a PEP 658 sidecar's resolver-affecting fields match the wheel.
-
-    The PEP 658 sidecar at ``<wheel>.metadata`` is fetched ahead of the
-    wheel itself and drives dependency resolution. The wheel's own
-    ``.dist-info/METADATA`` is the canonical source for the artifact pip
-    is actually about to install. When an index serves a sidecar without
-    a hash (PEP 658 explicitly permits this), the two are not transitively
-    bound by the wheel's hash check.
+    """Check that a .metadata-based distribution matches the wheel's METADATA.
 
     Compare ``Name``, ``Version``, ``Requires-Dist``, ``Requires-Python``
     and ``Provides-Extra`` between the two and abort the install on any
-    mismatch.
+    mismatch as PEP 658 requires the metadata files "MUST be identical".
+
+    While the PEP doesn't mandate that consumers enforce the identical
+    requirement, it's good nonetheless to check to prevent confusing
+    behaviour when an index misbehaves.
+
+    Also note for name and version, pip usually rejects wheels if they're
+    inconsistent already. Checking them again here is purely defensive.
     """
 
     def _canonical_requires(dist: BaseDistribution) -> frozenset[str]:
@@ -281,11 +281,8 @@ def _check_sidecar_matches_wheel(
                 raise MetadataInvalid(req, str(e))
         return frozenset(canonical)
 
-    # PEP 658 says the sidecar "MUST be identical" to the wheel's metadata,
-    # so cross-check the resolver-affecting fields. For set-valued fields,
-    # only report the symmetric difference: dumping every Requires-Dist
-    # entry from both sides drowns the real mismatch in noise for packages
-    # with large dependency sets.
+    # For multi-use fields, only report the symmetric difference to avoid
+    # unnecessarily flagging matching values.
     sidecar_name = canonicalize_name(sidecar_dist.raw_name)
     wheel_name = canonicalize_name(wheel_dist.raw_name)
     if sidecar_name != wheel_name:
@@ -776,10 +773,13 @@ class RequirementPreparer:
         # dependency resolution match with the wheel's METADATA file.
         #
         # NOTE: PEP 658 also permits .metadata files for source distributions,
-        # but pip's sdist install path builds the wheel locally from the sdist
-        # and then re-reads METADATA from it, so the sidecar would already have
-        # been superseded by built metadata before this point. This check is
-        # therefore wheel-only.
+        # but PyPI doesn't serve such files. In addition, pip seems to use the
+        # locally built metadata for resolution anyway, so it's been decided
+        # to skip this check for sdists. This can change later if needed.
+        #
+        # TODO: this is a hack for checking whether a distribution is metadata-
+        # only or not. If/when we refactor distributions to delineate between
+        # metadata-only and concrete distributions, clean this up.
         if (
             link.is_wheel
             and req._distribution is not None
