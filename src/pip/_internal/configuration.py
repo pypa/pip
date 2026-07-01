@@ -14,7 +14,6 @@ Some terminology:
 from __future__ import annotations
 
 import configparser
-import locale
 import os
 import sys
 from collections.abc import Iterable
@@ -25,7 +24,7 @@ from pip._internal.exceptions import (
     ConfigurationFileCouldNotBeLoaded,
 )
 from pip._internal.utils import appdirs
-from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.compat import WINDOWS, get_locale_encoding
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import ensure_dir, enum
 
@@ -53,8 +52,7 @@ logger = getLogger(__name__)
 def _normalize_name(name: str) -> str:
     """Make a name consistent regardless of source (environment or file)"""
     name = name.lower().replace("_", "-")
-    if name.startswith("--"):
-        name = name[2:]  # only prefer long opts
+    name = name.removeprefix("--")  # only prefer long opts
     return name
 
 
@@ -117,7 +115,7 @@ class Configuration:
         self._parsers: dict[Kind, list[tuple[str, RawConfigParser]]] = {
             variant: [] for variant in OVERRIDE_ORDER
         }
-        self._config: dict[Kind, dict[str, Any]] = {
+        self._config: dict[Kind, dict[str, dict[str, Any]]] = {
             variant: {} for variant in OVERRIDE_ORDER
         }
         self._modified_parsers: list[tuple[str, RawConfigParser]] = []
@@ -148,7 +146,10 @@ class Configuration:
         orig_key = key
         key = _normalize_name(key)
         try:
-            return self._dictionary[key]
+            clean_config: dict[str, Any] = {}
+            for file_values in self._dictionary.values():
+                clean_config.update(file_values)
+            return clean_config[key]
         except KeyError:
             # disassembling triggers a more useful error message than simply
             # "No such key" in the case that the key isn't in the form command.option
@@ -171,7 +172,8 @@ class Configuration:
                 parser.add_section(section)
             parser.set(section, name, value)
 
-        self._config[self.load_only][key] = value
+        self._config[self.load_only].setdefault(fname, {})
+        self._config[self.load_only][fname][key] = value
         self._mark_as_modified(fname, parser)
 
     def unset_value(self, key: str) -> None:
@@ -181,10 +183,13 @@ class Configuration:
         self._ensure_have_load_only()
 
         assert self.load_only
-        if key not in self._config[self.load_only]:
-            raise ConfigurationError(f"No such key - {orig_key}")
-
         fname, parser = self._get_parser_to_modify()
+
+        if (
+            key not in self._config[self.load_only][fname]
+            and key not in self._config[self.load_only]
+        ):
+            raise ConfigurationError(f"No such key - {orig_key}")
 
         if parser is not None:
             section, name = _disassemble_key(key)
@@ -200,8 +205,10 @@ class Configuration:
             if not parser.items(section):
                 parser.remove_section(section)
             self._mark_as_modified(fname, parser)
-
-        del self._config[self.load_only][key]
+        try:
+            del self._config[self.load_only][fname][key]
+        except KeyError:
+            del self._config[self.load_only][key]
 
     def save(self) -> None:
         """Save the current in-memory state."""
@@ -233,7 +240,7 @@ class Configuration:
         logger.debug("Will be working with %s variant only", self.load_only)
 
     @property
-    def _dictionary(self) -> dict[str, Any]:
+    def _dictionary(self) -> dict[str, dict[str, Any]]:
         """A dictionary representing the loaded configuration."""
         # NOTE: Dictionaries are not populated if not loaded. So, conditionals
         #       are not needed here.
@@ -273,7 +280,8 @@ class Configuration:
 
         for section in parser.sections():
             items = parser.items(section)
-            self._config[variant].update(self._normalized_keys(section, items))
+            self._config[variant].setdefault(fname, {})
+            self._config[variant][fname].update(self._normalized_keys(section, items))
 
         return parser
 
@@ -284,7 +292,7 @@ class Configuration:
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
         if os.path.exists(fname):
-            locale_encoding = locale.getpreferredencoding(False)
+            locale_encoding = get_locale_encoding()
             try:
                 parser.read(fname, encoding=locale_encoding)
             except UnicodeDecodeError:
@@ -300,7 +308,8 @@ class Configuration:
 
     def _load_environment_vars(self) -> None:
         """Loads configuration from environment variables"""
-        self._config[kinds.ENV_VAR].update(
+        self._config[kinds.ENV_VAR].setdefault(":env:", {})
+        self._config[kinds.ENV_VAR][":env:"].update(
             self._normalized_keys(":env:", self.get_environ_vars())
         )
 

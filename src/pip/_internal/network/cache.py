@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Generator
+import shutil
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from pip._vendor.cachecontrol.cache import SeparateBodyBaseCache
 from pip._vendor.cachecontrol.caches import SeparateBodyFileCache
 from pip._vendor.requests.models import Response
 
-from pip._internal.utils.filesystem import adjacent_tmp_file, replace
+from pip._internal.utils.filesystem import (
+    adjacent_tmp_file,
+    copy_directory_permissions,
+    replace,
+)
 from pip._internal.utils.misc import ensure_dir
 
 
@@ -72,26 +77,24 @@ class SafeFileCache(SeparateBodyBaseCache):
             with open(metadata_path, "rb") as f:
                 return f.read()
 
-    def _write(self, path: str, data: bytes) -> None:
+    def _write_to_file(self, path: str, writer_func: Callable[[BinaryIO], Any]) -> None:
+        """Common file writing logic with proper permissions and atomic replacement."""
         with suppressed_cache_errors():
             ensure_dir(os.path.dirname(path))
 
             with adjacent_tmp_file(path) as f:
-                f.write(data)
+                writer_func(f)
                 # Inherit the read/write permissions of the cache directory
                 # to enable multi-user cache use-cases.
-                mode = (
-                    os.stat(self.directory).st_mode
-                    & 0o666  # select read/write permissions of cache directory
-                    | 0o600  # set owner read/write permissions
-                )
-                # Change permissions only if there is no risk of following a symlink.
-                if os.chmod in os.supports_fd:
-                    os.chmod(f.fileno(), mode)
-                elif os.chmod in os.supports_follow_symlinks:
-                    os.chmod(f.name, mode, follow_symlinks=False)
+                copy_directory_permissions(self.directory, f)
 
             replace(f.name, path)
+
+    def _write(self, path: str, data: bytes) -> None:
+        self._write_to_file(path, lambda f: f.write(data))
+
+    def _write_from_io(self, path: str, source_file: BinaryIO) -> None:
+        self._write_to_file(path, lambda f: shutil.copyfileobj(source_file, f))
 
     def set(
         self, key: str, value: bytes, expires: int | datetime | None = None
@@ -118,3 +121,8 @@ class SafeFileCache(SeparateBodyBaseCache):
     def set_body(self, key: str, body: bytes) -> None:
         path = self._get_cache_path(key) + ".body"
         self._write(path, body)
+
+    def set_body_from_io(self, key: str, body_file: BinaryIO) -> None:
+        """Set the body of the cache entry from a file object."""
+        path = self._get_cache_path(key) + ".body"
+        self._write_from_io(path, body_file)

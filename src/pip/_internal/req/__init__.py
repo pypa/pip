@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import collections
 import logging
-from collections.abc import Generator, Sequence
+from collections.abc import Generator
 from dataclasses import dataclass
 
-from pip._internal.cli.progress_bars import get_install_progress_renderer
+from pip._internal.cli.progress_bars import BarType, get_install_progress_renderer
 from pip._internal.utils.logging import indent_log
 
 from .req_file import parse_requirements
@@ -37,14 +37,13 @@ def _validate_requirements(
 
 def install_given_reqs(
     requirements: list[InstallRequirement],
-    global_options: Sequence[str],
     root: str | None,
     home: str | None,
     prefix: str | None,
     warn_script_location: bool,
     use_user_site: bool,
     pycompile: bool,
-    progress_bar: str,
+    progress_bar: BarType,
 ) -> list[InstallationResult]:
     """
     Install everything in the given list.
@@ -83,7 +82,6 @@ def install_given_reqs(
 
             try:
                 requirement.install(
-                    global_options,
                     root=root,
                     home=home,
                     prefix=prefix,

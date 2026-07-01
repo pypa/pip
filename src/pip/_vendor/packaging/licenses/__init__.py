@@ -34,7 +34,7 @@ from __future__ import annotations
 import re
 from typing import NewType, cast
 
-from pip._vendor.packaging.licenses._spdx import EXCEPTIONS, LICENSES
+from ._spdx import EXCEPTIONS, LICENSES
 
 __all__ = [
     "InvalidLicenseExpression",
@@ -42,14 +42,25 @@ __all__ = [
     "canonicalize_license_expression",
 ]
 
+
+# Simple __dir__ implementation since there are no public submodules
+def __dir__() -> list[str]:
+    return __all__
+
+
 license_ref_allowed = re.compile("^[A-Za-z0-9.-]*$")
 
 NormalizedLicenseExpression = NewType("NormalizedLicenseExpression", str)
+"""
+A :class:`typing.NewType` of :class:`str`, representing a normalized
+License-Expression.
+"""
 
 
 class InvalidLicenseExpression(ValueError):
     """Raised when a license-expression string is invalid
 
+    >>> from packaging.licenses import canonicalize_license_expression
     >>> canonicalize_license_expression("invalid")
     Traceback (most recent call last):
         ...
@@ -60,6 +71,34 @@ class InvalidLicenseExpression(ValueError):
 def canonicalize_license_expression(
     raw_license_expression: str,
 ) -> NormalizedLicenseExpression:
+    """
+    This function takes a valid License-Expression, and returns the normalized
+    form of it.
+
+    The return type is typed as :class:`NormalizedLicenseExpression`. This
+    allows type checkers to help require that a string has passed through this
+    function before use.
+
+    :param str raw_license_expression: The License-Expression to canonicalize.
+    :raises InvalidLicenseExpression: If the License-Expression is invalid due to an
+        invalid/unknown license identifier or invalid syntax.
+
+    .. doctest::
+
+        >>> from packaging.licenses import canonicalize_license_expression
+        >>> canonicalize_license_expression("mit")
+        'MIT'
+        >>> canonicalize_license_expression("mit and (apache-2.0 or bsd-2-clause)")
+        'MIT AND (Apache-2.0 OR BSD-2-Clause)'
+        >>> canonicalize_license_expression("(mit")
+        Traceback (most recent call last):
+          ...
+        InvalidLicenseExpression: Invalid license expression: '(mit'
+        >>> canonicalize_license_expression("Use-it-after-midnight")
+        Traceback (most recent call last):
+          ...
+        InvalidLicenseExpression: Unknown license: 'Use-it-after-midnight'
+    """
     if not raw_license_expression:
         message = f"Invalid license expression: {raw_license_expression!r}"
         raise InvalidLicenseExpression(message)
@@ -80,16 +119,21 @@ def canonicalize_license_expression(
 
     tokens = license_expression.split()
 
-    # Rather than implementing boolean logic, we create an expression that Python can
-    # parse. Everything that is not involved with the grammar itself is treated as
-    # `False` and the expression should evaluate as such.
+    # Rather than implementing a parenthesis/boolean logic parser, create an
+    # expression that Python can parse. Everything that is not involved with the
+    # grammar itself is replaced with the placeholder `False` and the resultant
+    # expression should become a valid Python expression.
     python_tokens = []
     for token in tokens:
         if token not in {"or", "and", "with", "(", ")"}:
             python_tokens.append("False")
         elif token == "with":
             python_tokens.append("or")
-        elif token == "(" and python_tokens and python_tokens[-1] not in {"or", "and"}:
+        elif (
+            token == "("
+            and python_tokens
+            and python_tokens[-1] not in {"or", "and", "("}
+        ) or (token == ")" and python_tokens and python_tokens[-1] == "("):
             message = f"Invalid license expression: {raw_license_expression!r}"
             raise InvalidLicenseExpression(message)
         else:
@@ -97,11 +141,8 @@ def canonicalize_license_expression(
 
     python_expression = " ".join(python_tokens)
     try:
-        invalid = eval(python_expression, globals(), locals())
-    except Exception:
-        invalid = True
-
-    if invalid is not False:
+        compile(python_expression, "", "eval")
+    except SyntaxError:
         message = f"Invalid license expression: {raw_license_expression!r}"
         raise InvalidLicenseExpression(message) from None
 
@@ -140,6 +181,6 @@ def canonicalize_license_expression(
     normalized_expression = " ".join(normalized_tokens)
 
     return cast(
-        NormalizedLicenseExpression,
+        "NormalizedLicenseExpression",
         normalized_expression.replace("( ", "(").replace(" )", ")"),
     )

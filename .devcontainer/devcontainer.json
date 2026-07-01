@@ -1,0 +1,30 @@
+{
+	"name": "pip",
+	"image": "mcr.microsoft.com/devcontainers/python:3",
+	"remoteUser": "vscode",
+	"remoteEnv": {
+		"PATH": "/home/vscode/.local/bin:${containerEnv:PATH}"
+	},
+	"features": {
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+			"packages": "mercurial,subversion,bzr,python3-venv"
+		}
+	},
+	"postCreateCommand": "bash ${containerWorkspaceFolder}/.devcontainer/postCreate.sh",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.black-formatter",
+				"charliermarsh.ruff"
+			],
+			"settings": {
+				"python.testing.pytestEnabled": true,
+				"python.testing.pytestArgs": [
+					"-n",
+					"auto"
+				]
+			}
+		}
+	}
+}

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2013-2023 Vinay Sajip.
+# Copyright (C) 2013-2026 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -13,9 +13,11 @@ import sys
 import time
 from zipfile import ZipInfo
 
+from . import DistlibException
 from .compat import sysconfig, detect_encoding, ZipFile
 from .resources import finder
-from .util import (FileOperator, get_export_entry, convert_path, get_executable, get_platform, in_venv)
+from .util import (FileOperator, get_export_entry, convert_path, get_executable, get_platform, in_venv,
+                   is_in_directory)
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +44,8 @@ FIRST_LINE_RE = re.compile(b'^#!.*pythonw?[0-9.]*([ \t].*)?$')
 SCRIPT_TEMPLATE = r'''# -*- coding: utf-8 -*-
 import re
 import sys
-from %(module)s import %(import_name)s
 if __name__ == '__main__':
+    from %(module)s import %(import_name)s
     sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
     sys.exit(%(func)s())
 '''
@@ -277,7 +279,9 @@ class ScriptMaker(object):
             zip_data = stream.getvalue()
             script_bytes = launcher + shebang + zip_data
         for name in names:
-            outname = os.path.join(self.target_dir, name)
+            outname = os.path.abspath(os.path.join(self.target_dir, name))
+            if not is_in_directory(outname, self.target_dir):
+                raise DistlibException('Attempt to escape script directory')
             if use_launcher:  # pragma: no cover
                 n, e = os.path.splitext(outname)
                 if e.startswith('.py'):

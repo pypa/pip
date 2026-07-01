@@ -1,7 +1,7 @@
 import os
 import textwrap
+from collections.abc import Callable
 from optparse import Values
-from typing import Any
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -49,8 +49,8 @@ class CacheCommand(Command):
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
-    def run(self, options: Values, args: list[str]) -> int:
-        handlers = {
+    def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
+        return {
             "dir": self.get_cache_dir,
             "info": self.get_cache_info,
             "list": self.list_cache_items,
@@ -58,15 +58,18 @@ class CacheCommand(Command):
             "purge": self.purge_cache,
         }
 
+    def run(self, options: Values, args: list[str]) -> int:
+        handler_map = self.handler_map()
+
         if not options.cache_dir:
             logger.error("pip cache commands can not function since cache is disabled.")
             return ERROR
 
         # Determine action
-        if not args or args[0] not in handlers:
+        if not args or args[0] not in handler_map:
             logger.error(
                 "Need an action (%s) to perform.",
-                ", ".join(sorted(handlers)),
+                ", ".join(sorted(handler_map)),
             )
             return ERROR
 
@@ -74,20 +77,20 @@ class CacheCommand(Command):
 
         # Error handling happens here, not in the action-handlers.
         try:
-            handlers[action](options, args[1:])
+            handler_map[action](options, args[1:])
         except PipError as e:
             logger.error(e.args[0])
             return ERROR
 
         return SUCCESS
 
-    def get_cache_dir(self, options: Values, args: list[Any]) -> None:
+    def get_cache_dir(self, options: Values, args: list[str]) -> None:
         if args:
             raise CommandError("Too many arguments")
 
         logger.info(options.cache_dir)
 
-    def get_cache_info(self, options: Values, args: list[Any]) -> None:
+    def get_cache_info(self, options: Values, args: list[str]) -> None:
         if args:
             raise CommandError("Too many arguments")
 
@@ -104,8 +107,7 @@ class CacheCommand(Command):
         wheels_cache_size = filesystem.format_directory_size(wheels_cache_location)
 
         message = (
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                     Package index page cache location (pip v23.3+): {http_cache_location}
                     Package index page cache location (older pips): {old_http_cache_location}
                     Package index page cache size: {http_cache_size}
@@ -113,8 +115,7 @@ class CacheCommand(Command):
                     Locally built wheels location: {wheels_cache_location}
                     Locally built wheels size: {wheels_cache_size}
                     Number of locally built wheels: {package_count}
-                """  # noqa: E501
-            )
+                """)  # noqa: E501
             .format(
                 http_cache_location=http_cache_location,
                 old_http_cache_location=old_http_cache_location,
@@ -129,7 +130,7 @@ class CacheCommand(Command):
 
         logger.info(message)
 
-    def list_cache_items(self, options: Values, args: list[Any]) -> None:
+    def list_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
             raise CommandError("Too many arguments")
 
@@ -161,7 +162,7 @@ class CacheCommand(Command):
         if files:
             logger.info("\n".join(sorted(files)))
 
-    def remove_cache_items(self, options: Values, args: list[Any]) -> None:
+    def remove_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
             raise CommandError("Too many arguments")
 
@@ -186,9 +187,36 @@ class CacheCommand(Command):
             bytes_removed += os.stat(filename).st_size
             os.unlink(filename)
             logger.verbose("Removed %s", filename)
-        logger.info("Files removed: %s (%s)", len(files), format_size(bytes_removed))
 
-    def purge_cache(self, options: Values, args: list[Any]) -> None:
+        http_dirs = filesystem.subdirs_without_files(self._cache_dir(options, "http"))
+        http_v2_dirs = filesystem.subdirs_without_files(
+            self._cache_dir(options, "http-v2")
+        )
+        wheel_dirs = filesystem.subdirs_without_wheels(
+            self._cache_dir(options, "wheels")
+        )
+        dirs = [*http_dirs, *http_v2_dirs, *wheel_dirs]
+
+        for subdir in dirs:
+            try:
+                for file in subdir.iterdir():
+                    file.unlink(missing_ok=True)
+                subdir.rmdir()
+            except FileNotFoundError:
+                # If the directory is already gone, that's fine.
+                pass
+            logger.verbose("Removed %s", subdir)
+
+        # selfcheck.json is no longer used by pip.
+        selfcheck_json = self._cache_dir(options, "selfcheck.json")
+        if os.path.isfile(selfcheck_json):
+            os.remove(selfcheck_json)
+            logger.verbose("Removed legacy selfcheck.json file")
+
+        logger.info("Files removed: %s (%s)", len(files), format_size(bytes_removed))
+        logger.info("Directories removed: %s", len(dirs))
+
+    def purge_cache(self, options: Values, args: list[str]) -> None:
         if args:
             raise CommandError("Too many arguments")
 

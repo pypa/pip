@@ -6,8 +6,6 @@ Tests for compatibility workarounds.
 import os
 from pathlib import Path
 
-import pytest
-
 from tests.lib import (
     PipTestEnvironment,
     TestData,
@@ -16,7 +14,6 @@ from tests.lib import (
 )
 
 
-@pytest.mark.network
 def test_debian_egg_name_workaround(
     script: PipTestEnvironment,
     shared_data: TestData,
@@ -76,4 +73,4 @@ def test_setup_py_with_dos_line_endings(
     Refs https://github.com/pypa/pip/issues/237
     """
     to_install = data.packages.joinpath("LineEndings")
-    script.pip("install", to_install)
+    script.pip("install", "--no-build-isolation", to_install)

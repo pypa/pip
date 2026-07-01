@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import logging
 import os
 import pathlib
 import sys
@@ -16,6 +15,7 @@ from unittest.mock import patch
 import pytest
 
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
@@ -25,7 +25,6 @@ from pip._internal.models.direct_url import (
     DirectUrl,
 )
 from pip._internal.models.scheme import Scheme
-from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
 from pip._internal.operations.install.wheel import (
     InstalledCSVRow,
@@ -36,66 +35,8 @@ from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 
-from tests.lib import DATA_DIR, TestData, assert_paths_equal
+from tests.lib import DATA_DIR, TestData
 from tests.lib.wheel import make_wheel
-
-
-def call_get_legacy_build_wheel_path(
-    caplog: pytest.LogCaptureFixture, names: list[str]
-) -> str | None:
-    wheel_path = get_legacy_build_wheel_path(
-        names=names,
-        temp_dir="/tmp/abcd",
-        name="pendulum",
-        command_args=["arg1", "arg2"],
-        command_output="output line 1\noutput line 2\n",
-    )
-    return wheel_path
-
-
-def test_get_legacy_build_wheel_path(caplog: pytest.LogCaptureFixture) -> None:
-    actual = call_get_legacy_build_wheel_path(caplog, names=["name"])
-    assert actual is not None
-    assert_paths_equal(actual, "/tmp/abcd/name")
-    assert not caplog.records
-
-
-def test_get_legacy_build_wheel_path__no_names(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    caplog.set_level(logging.INFO)
-    actual = call_get_legacy_build_wheel_path(caplog, names=[])
-    assert actual is None
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == "WARNING"
-    assert record.message.splitlines() == [
-        "Legacy build of wheel for 'pendulum' created no files.",
-        "Command arguments: arg1 arg2",
-        "Command output: [use --verbose to show]",
-    ]
-
-
-def test_get_legacy_build_wheel_path__multiple_names(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    caplog.set_level(logging.INFO)
-    # Deliberately pass the names in non-sorted order.
-    actual = call_get_legacy_build_wheel_path(
-        caplog,
-        names=["name2", "name1"],
-    )
-    assert actual is not None
-    assert_paths_equal(actual, "/tmp/abcd/name1")
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == "WARNING"
-    assert record.message.splitlines() == [
-        "Legacy build of wheel for 'pendulum' created more than one file.",
-        "Filenames (choosing first): ['name1', 'name2']",
-        "Command arguments: arg1 arg2",
-        "Command output: [use --verbose to show]",
-    ]
 
 
 @pytest.mark.parametrize(
@@ -204,12 +145,10 @@ def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> list[InstalledCS
 def test_get_csv_rows_for_installed(
     tmpdir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    text = textwrap.dedent(
-        """\
+    text = textwrap.dedent("""\
     a,b,c
     d,e,f
-    """
-    )
+    """)
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
@@ -224,13 +163,11 @@ def test_get_csv_rows_for_installed(
 def test_get_csv_rows_for_installed__long_lines(
     tmpdir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    text = textwrap.dedent(
-        """\
+    text = textwrap.dedent("""\
     a,b,c,d
     e,f,g
     h,i,j,k
-    """
-    )
+    """)
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
     assert outrows == [
         ("z", "b", "c"),
@@ -266,7 +203,9 @@ def test_dist_from_broken_wheel_fails(data: TestData) -> None:
 
     package = data.packages.joinpath("corruptwheel-1.0-py2.py3-none-any.whl")
     with pytest.raises(InvalidWheel):
-        get_wheel_distribution(FilesystemWheel(os.fspath(package)), "brokenwheel")
+        get_wheel_distribution(
+            FilesystemWheel(os.fspath(package)), canonicalize_name("brokenwheel")
+        )
 
 
 class TestWheelFile:
@@ -291,38 +230,32 @@ class TestInstallUnpackedWheel:
         self.wheelpath = make_wheel(
             "sample",
             "1.2.0",
-            metadata_body=textwrap.dedent(
-                """
+            metadata_body=textwrap.dedent("""
                 A sample Python project
                 =======================
 
                 ...
-                """
-            ),
+                """),
             metadata_updates={
                 "Requires-Dist": ["peppercorn"],
             },
             extra_files={
-                "sample/__init__.py": textwrap.dedent(
-                    '''
+                "sample/__init__.py": textwrap.dedent('''
                     __version__ = '1.2.0'
 
                     def main():
                         """Entry point for the application script"""
                         print("Call your main application code here")
-                    '''
-                ),
+                    '''),
                 "sample/package_data.dat": "some data",
             },
             extra_metadata_files={
-                "DESCRIPTION.rst": textwrap.dedent(
-                    """
+                "DESCRIPTION.rst": textwrap.dedent("""
                     A sample Python project
                     =======================
 
                     ...
-                    """
-                ),
+                    """),
                 "top_level.txt": "sample\n",
                 "empty_dir/empty_dir/": "",
             },
@@ -421,7 +354,7 @@ class TestInstallUnpackedWheel:
         self.prep(data, tmpdir)
         direct_url = DirectUrl(
             url="file:///home/user/archive.tgz",
-            info=ArchiveInfo(),
+            archive_info=ArchiveInfo(),
         )
         wheel.install_wheel(
             self.name,
@@ -519,6 +452,32 @@ class TestInstallUnpackedWheel:
         assert os.path.basename(wheel_path) in exc_text
         assert entrypoint in exc_text
 
+    @pytest.mark.parametrize("bad_name", ["../../outside", "..", "."])
+    @pytest.mark.parametrize("entry_point_type", ["console_scripts", "gui_scripts"])
+    def test_wheel_install_rejects_entry_point_path_traversal(
+        self, data: TestData, tmpdir: Path, bad_name: str, entry_point_type: str
+    ) -> None:
+        """An entry point name with separators or ``..`` must not install a
+        script outside the scripts directory.
+        """
+        self.prep(data, tmpdir)
+        wheel_path = make_wheel(
+            "simple",
+            "0.1.0",
+            entry_points={entry_point_type: [f"{bad_name} = simple:main"]},
+        ).save_to_dir(tmpdir)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
+
+        assert "outside the scripts directory" in str(e.value)
+        # Nothing was written outside the install destination.
+        assert not os.path.exists(os.path.join(str(tmpdir), "outside"))
+
 
 class TestMessageAboutScriptsNotOnPATH:
     tilde_warning_msg = (
@@ -538,7 +497,7 @@ class TestMessageAboutScriptsNotOnPATH:
         retval = self._template(paths=["/a/b", "/c/d/bin"], scripts=["/c/d/foo"])
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "foo is installed in '/c/d'" in retval
+        assert f"foo is installed in '{Path('/c/d').resolve()}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_two_script__single_dir_not_on_PATH(self) -> None:
@@ -547,7 +506,7 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "baz and foo are installed in '/c/d'" in retval
+        assert f"baz and foo are installed in '{Path('/c/d').resolve()}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_multi_script__multi_dir_not_on_PATH(self) -> None:
@@ -557,8 +516,8 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "spam is installed in '/a/b/c'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d').resolve()}'" in retval
+        assert f"spam is installed in '{Path('/a/b/c').resolve()}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_multi_script_all__multi_dir_not_on_PATH(self) -> None:
@@ -568,8 +527,8 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "eggs and spam are installed in '/a/b/c'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d').resolve()}'" in retval
+        assert f"eggs and spam are installed in '{Path('/a/b/c').resolve()}'" in retval
         assert self.tilde_warning_msg not in retval
 
     def test_two_script__single_dir_on_PATH(self) -> None:
@@ -646,9 +605,9 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "eggs and spam are installed in '/a/b/c'" in retval
-        assert "tilde is installed in '/e/f'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d').resolve()}'" in retval
+        assert f"eggs and spam are installed in '{Path('/a/b/c').resolve()}'" in retval
+        assert f"tilde is installed in '{Path('/e/f').resolve()}'" in retval
         assert self.tilde_warning_msg in retval
 
     def test_multi_script_all_tilde_not_at_start__multi_dir_not_on_PATH(self) -> None:
@@ -664,8 +623,10 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
-        assert "bar, baz and foo are installed in '/c/d'" in retval
-        assert "eggs and spam are installed in '/e/f~f/c'" in retval
+        assert f"bar, baz and foo are installed in '{Path('/c/d').resolve()}'" in retval
+        assert (
+            f"eggs and spam are installed in '{Path('/e/f~f/c').resolve()}'" in retval
+        )
         assert self.tilde_warning_msg not in retval
 
 
@@ -722,3 +683,51 @@ def test_get_console_script_specs_replaces_python_version(
         "not_pip_or_easy_install-99 = whatever",
         "not_pip_or_easy_install-99.88 = whatever",
     ]
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "pip",
+        "pip3.13",
+        "foo-bar.baz",
+        "sub/script",  # in-tree subdirectory
+        "a/../b",
+        "sub\\script",  # backslash stays in-tree on POSIX and Windows
+        " ../../inside",  # distlib keeps a leading space; resolves in-tree
+    ],
+)
+def test_raise_for_invalid_entrypoint_allows_in_tree(name: str) -> None:
+    # Names resolving to a path inside the scripts directory are accepted.
+    wheel._raise_for_invalid_entrypoint(f"{name} = simple:main", "/srv/env/bin")
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "../outside",
+        "../../outside",
+        "a/../../outside",
+        "/etc/cron.d/outside",  # absolute path; os.path.join drops the root
+        ".",  # resolves to the scripts directory itself
+        "..",
+    ],
+)
+def test_raise_for_invalid_entrypoint_rejects_escaping(name: str) -> None:
+    with pytest.raises(InstallationError, match="outside the scripts directory"):
+        wheel._raise_for_invalid_entrypoint(f"{name} = simple:main", "/srv/env/bin")
+
+
+def test_raise_for_invalid_entrypoint_allows_doubled_slash_root() -> None:
+    # A scripts directory can have a doubled leading slash.
+    wheel._raise_for_invalid_entrypoint("pip = simple:main", "//srv/env/bin")
+    with pytest.raises(InstallationError, match="outside the scripts directory"):
+        wheel._raise_for_invalid_entrypoint("../outside = simple:main", "//srv/env/bin")
+
+
+@pytest.mark.skipif(not WINDOWS, reason="drive letters only matter on Windows")
+def test_raise_for_invalid_entrypoint_rejects_other_drive() -> None:
+    # A name resolving onto a different drive is rejected, and the containment
+    # check must not raise on mismatched drives.
+    with pytest.raises(InstallationError, match="outside the scripts directory"):
+        wheel._raise_for_invalid_entrypoint("D:\\outside = simple:main", "C:\\env\\bin")

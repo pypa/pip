@@ -10,9 +10,11 @@ import shutil
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -26,10 +28,10 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
-from pip._internal.models.direct_url import ArchiveInfo
-from pip._internal.models.link import Link
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
+from pip._internal.models.link import Link, join_within_directory
 from pip._internal.models.wheel import Wheel
-from pip._internal.network.download import BatchDownloader, Downloader
+from pip._internal.network.download import Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -54,14 +56,17 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
+if TYPE_CHECKING:
+    from pip._internal.cli.progress_bars import BarType
+
 logger = getLogger(__name__)
 
 
 def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
-    finder: PackageFinder,
-    build_isolation: bool,
+    build_env_installer: BuildEnvironmentInstaller,
+    build_isolation: BuildIsolationMode,
     check_build_deps: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
@@ -70,7 +75,7 @@ def _get_prepared_distribution(
     if tracker_id is not None:
         with build_tracker.track(req, tracker_id):
             abstract_dist.prepare_distribution_metadata(
-                finder, build_isolation, check_build_deps
+                build_env_installer, build_isolation, check_build_deps
             )
     return abstract_dist.get_metadata_distribution()
 
@@ -196,7 +201,7 @@ def _check_download_dir(
     """Check download_dir for previously downloaded file with correct hash
     If a correct file is found return its path else None
     """
-    download_path = os.path.join(download_dir, link.filename)
+    download_path = join_within_directory(download_dir, link.filename)
 
     if not os.path.exists(download_path):
         return None
@@ -222,21 +227,22 @@ class RequirementPreparer:
 
     def __init__(
         self,
+        *,
         build_dir: str,
         download_dir: str | None,
         src_dir: str,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
+        build_isolation_installer: BuildEnvironmentInstaller,
         check_build_deps: bool,
         build_tracker: BuildTracker,
         session: PipSession,
-        progress_bar: str,
+        progress_bar: BarType,
         finder: PackageFinder,
         require_hashes: bool,
         use_user_site: bool,
         lazy_wheel: bool,
         verbosity: int,
         legacy_resolver: bool,
-        resume_retries: int,
     ) -> None:
         super().__init__()
 
@@ -244,8 +250,7 @@ class RequirementPreparer:
         self.build_dir = build_dir
         self.build_tracker = build_tracker
         self._session = session
-        self._download = Downloader(session, progress_bar, resume_retries)
-        self._batch_download = BatchDownloader(session, progress_bar, resume_retries)
+        self._download = Downloader(session, progress_bar)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -254,6 +259,7 @@ class RequirementPreparer:
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
+        self.build_env_installer = build_isolation_installer
 
         # Should check build dependencies?
         self.check_build_deps = check_build_deps
@@ -437,7 +443,7 @@ class RequirementPreparer:
             return None
 
         wheel = Wheel(link.filename)
-        name = canonicalize_name(wheel.name)
+        name = wheel.name
         logger.info(
             "Obtaining dependency information from %s %s",
             name,
@@ -468,10 +474,7 @@ class RequirementPreparer:
             assert req.link
             links_to_fully_download[req.link] = req
 
-        batch_download = self._batch_download(
-            links_to_fully_download.keys(),
-            temp_dir,
-        )
+        batch_download = self._download.batch(links_to_fully_download.keys(), temp_dir)
         for link, (filepath, _) in batch_download:
             logger.debug("Downloading link %s to %s", link, filepath)
             req = links_to_fully_download[link]
@@ -527,6 +530,12 @@ class RequirementPreparer:
                 metadata_dist = self._fetch_metadata_only(req)
                 if metadata_dist is not None:
                     req.needs_more_preparation = True
+                    req.set_dist(metadata_dist)
+                    # Ensure download_info is available even in dry-run mode
+                    if req.download_info is None:
+                        req.download_info = direct_url_from_link(
+                            req.link, req.source_dir
+                        )
                     return metadata_dist
 
             # None of the optimizations worked, fully prepare the requirement
@@ -577,9 +586,9 @@ class RequirementPreparer:
             # We need to verify hashes, and we have found the requirement in the cache
             # of locally built wheels.
             if (
-                isinstance(req.download_info.info, ArchiveInfo)
-                and req.download_info.info.hashes
-                and hashes.has_one_of(req.download_info.info.hashes)
+                req.download_info.archive_info
+                and req.download_info.archive_info.hashes
+                and hashes.has_one_of(req.download_info.archive_info.hashes)
             ):
                 # At this point we know the requirement was built from a hashable source
                 # artifact, and we verified that the cache entry's hash of the original
@@ -631,14 +640,18 @@ class RequirementPreparer:
             # compute it from the downloaded file.
             # FIXME: https://github.com/pypa/pip/issues/11943
             if (
-                isinstance(req.download_info.info, ArchiveInfo)
-                and not req.download_info.info.hashes
+                req.download_info.archive_info
+                and not req.download_info.archive_info.hashes
                 and local_file
             ):
                 hash = hash_file(local_file.path)[0].hexdigest()
-                # We populate info.hash for backward compatibility.
-                # This will automatically populate info.hashes.
-                req.download_info.info.hash = f"sha256={hash}"
+                # We populate archive_info.hashes. For backward compatibility,
+                # the legacy hash field will be generated when converting to JSON.
+                req.download_info = DirectUrl(
+                    url=req.download_info.url,
+                    archive_info=ArchiveInfo(hashes={"sha256": hash}),
+                    subdirectory=req.download_info.subdirectory,
+                )
 
         # For use in later processing,
         # preserve the file path on the requirement.
@@ -648,7 +661,7 @@ class RequirementPreparer:
         dist = _get_prepared_distribution(
             req,
             self.build_tracker,
-            self.finder,
+            self.build_env_installer,
             self.build_isolation,
             self.check_build_deps,
         )
@@ -674,7 +687,7 @@ class RequirementPreparer:
             # No distribution was downloaded for this requirement.
             return
 
-        download_location = os.path.join(self.download_dir, link.filename)
+        download_location = join_within_directory(self.download_dir, link.filename)
         if not os.path.exists(download_location):
             shutil.copy(req.local_file_path, download_location)
             download_path = display_path(download_location)
@@ -704,7 +717,7 @@ class RequirementPreparer:
             dist = _get_prepared_distribution(
                 req,
                 self.build_tracker,
-                self.finder,
+                self.build_env_installer,
                 self.build_isolation,
                 self.check_build_deps,
             )

@@ -1,20 +1,24 @@
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
-index 300a16c5..a66f6024 100644
+index ad842400b..2156a4d1d 100644
 --- a/src/pip/_vendor/requests/__init__.py
 +++ b/src/pip/_vendor/requests/__init__.py
-@@ -49,10 +49,7 @@ try:
- except ImportError:
-     charset_normalizer_version = None
+@@ -48,13 +48,6 @@ from .exceptions import RequestsDependencyWarning
  
 -try:
--    from chardet import __version__ as chardet_version
+-    from charset_normalizer import __version__ as charset_normalizer_version
+-except ImportError:
+-    charset_normalizer_version = None
+-
+-try:
+-    from chardet import __version__ as chardet_version  # type: ignore[import-not-found]
 -except ImportError:
 -    chardet_version = None
++charset_normalizer_version = None
 +chardet_version = None
  
  
- def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):
-@@ -76,11 +76,8 @@ def check_compatibility(urllib3_version, chardet_version, charset_normalizer_ver
+ def check_compatibility(
+@@ -89,11 +86,8 @@ def check_compatibility(
          # charset_normalizer >= 2.0.0 < 4.0.0
          assert (2, 0, 0) <= (major, minor, patch) < (4, 0, 0)
      else:
@@ -27,8 +31,8 @@ index 300a16c5..a66f6024 100644
 +        pass
 
 
- def _check_cryptography(cryptography_version):
-@@ -118,6 +115,11 @@ except (AssertionError, ValueError):
+ def _check_cryptography(cryptography_version: str) -> None:
+@@ -127,6 +121,11 @@ except (AssertionError, ValueError):
  # if the standard library doesn't support SNI or the
  # 'ssl' library isn't available.
  try:
@@ -41,24 +45,51 @@ index 300a16c5..a66f6024 100644
          import ssl
      except ImportError:
 diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
-index 6776163c..7819bb99 100644
+index deab3c091..9a068f666 100644
 --- a/src/pip/_vendor/requests/compat.py
 +++ b/src/pip/_vendor/requests/compat.py
-@@ -27,19 +24,10 @@ is_py2 = _ver[0] == 2
+@@ -11,9 +11,7 @@ compatibility until the next major version.
+ 
+ from __future__ import annotations
+ 
+-import importlib
+ import sys
+-from types import ModuleType
+ 
+ # -------
+ # urllib3
+@@ -34,15 +32,9 @@ except (TypeError, AttributeError):
+ # -------------------
+ 
+ 
+-def _resolve_char_detection() -> ModuleType | None:
++def _resolve_char_detection() -> None:
+     """Find supported character detection libraries."""
+     chardet = None
+-    for lib in ("chardet", "charset_normalizer"):
+-        if chardet is None:
+-            try:
+-                chardet = importlib.import_module(lib)
+-            except ImportError:
+-                pass
+     return chardet
+ 
+ 
+@@ -61,19 +53,10 @@ is_py2 = _ver[0] == 2
  #: Python 3.x?
  is_py3 = _ver[0] == 3
  
 -# json/simplejson module import resolution
 -has_simplejson = False
 -try:
--    import simplejson as json
+-    import simplejson as json  # type: ignore[import-not-found]
 -
 -    has_simplejson = True
 -except ImportError:
 -    import json
 -
 -if has_simplejson:
--    from simplejson import JSONDecodeError
+-    from simplejson import JSONDecodeError  # type: ignore[import-not-found]
 -else:
 -    from json import JSONDecodeError
 +# Note: We've patched out simplejson support in pip because it prevents
@@ -69,78 +100,27 @@ index 6776163c..7819bb99 100644
  # Keep OrderedDict for backwards compatibility.
  from collections import OrderedDict
 diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
-index 8fbcd656..094e2046 100644
+index 9269cc712..9d7894043 100644
 --- a/src/pip/_vendor/requests/help.py
 +++ b/src/pip/_vendor/requests/help.py
-@@ -15,10 +15,7 @@ try:
- except ImportError:
-     charset_normalizer = None
+@@ -13,15 +13,8 @@ import urllib3
  
--try:
--    import chardet
--except ImportError:
--    chardet = None
-+chardet = None
- 
- try:
-     from urllib3.contrib import pyopenssl
-diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
-index 9d4e72c60..04230fc8d 100644
---- a/src/pip/_vendor/requests/__init__.py
-+++ b/src/pip/_vendor/requests/__init__.py
-@@ -44,11 +44,7 @@ from pip._vendor import urllib3
-
- from .exceptions import RequestsDependencyWarning
-
--try:
--    from charset_normalizer import __version__ as charset_normalizer_version
--except ImportError:
--    charset_normalizer_version = None
--
-+charset_normalizer_version = None
- chardet_version = None
-
-
-diff --git a/src/pip/_vendor/requests/help.py b/src/pip/_vendor/requests/help.py
-index 17ca75eda..ddbb6150d 100644
---- a/src/pip/_vendor/requests/help.py
-+++ b/src/pip/_vendor/requests/help.py
-@@ -10,11 +10,7 @@ from pip._vendor import urllib3
-
  from . import __version__ as requests_version
 
 -try:
 -    import charset_normalizer
 -except ImportError:
 -    charset_normalizer = None
--
 +charset_normalizer = None
- chardet = None
-
+-
+-try:
+-    import chardet  # type: ignore[import-not-found]
+-except ImportError:
+-    chardet = None
++chardet = None
+ 
  try:
---- a/src/pip/_vendor/requests/compat.py
-+++ b/src/pip/_vendor/requests/compat.py
-@@ -7,7 +7,6 @@ between Python 2 and Python 3. It remains for backwards
- compatibility until the next major version.
- """
-
--import importlib
- import sys
-
- # -------------------
-@@ -18,12 +17,6 @@ import sys
- def _resolve_char_detection():
-     """Find supported character detection libraries."""
-     chardet = None
--    for lib in ("chardet", "charset_normalizer"):
--        if chardet is None:
--            try:
--                chardet = importlib.import_module(lib)
--            except ImportError:
--                pass
-     return chardet
-
-
+     from urllib3.contrib import pyopenssl
 diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
 index 5ab3d8e25..200c38287 100644
 --- a/src/pip/_vendor/requests/packages.py

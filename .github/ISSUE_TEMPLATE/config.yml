@@ -1,8 +1,8 @@
 # Documentation for this file can be found at:
 # https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository
 
-blank_issues_enabled: false
-contact_links:
-  - name: "(maintainers only) Blank issue"
-    url: https://github.com/pypa/pip/issues/new
-    about: For maintainers only.
+blank_issues_enabled: true
+# contact_links:
+#   - name: "(maintainers only) Blank issue"
+#     url: https://github.com/pypa/pip/issues/new
+#     about: For maintainers only.

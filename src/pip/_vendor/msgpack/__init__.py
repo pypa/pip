@@ -4,8 +4,8 @@ import os
 from .exceptions import *  # noqa: F403
 from .ext import ExtType, Timestamp
 
-version = (1, 1, 0)
-__version__ = "1.1.0"
+version = (1, 1, 2)
+__version__ = "1.1.2"
 
 
 if os.environ.get("MSGPACK_PUREPYTHON"):

@@ -5,7 +5,6 @@ import os.path
 import pathlib
 import re
 import urllib.parse
-import urllib.request
 from dataclasses import replace
 from typing import Any
 
@@ -236,7 +235,7 @@ class Git(VersionControl):
         # Do not show a warning for the common case of something that has
         # the form of a Git commit hash.
         if not looks_like_hash(rev):
-            logger.warning(
+            logger.info(
                 "Did not find branch or tag '%s', assuming revision or ref.",
                 rev,
             )
@@ -438,7 +437,7 @@ class Git(VersionControl):
         if os.path.exists(url):
             # A local bare remote (git clone --mirror).
             # Needs a file:// prefix.
-            return pathlib.PurePath(url).as_uri()
+            return pathlib.Path(url).as_uri()
         scp_match = SCP_REGEX.match(url)
         if scp_match:
             # Add an ssh:// prefix and replace the ':' with a '/'.
@@ -453,7 +452,7 @@ class Git(VersionControl):
         """
         try:
             cls.run_command(
-                ["rev-parse", "-q", "--verify", "sha^" + rev],
+                ["rev-parse", "-q", "--verify", rev + "^{commit}"],
                 cwd=location,
                 log_failed_cmd=False,
             )
@@ -500,6 +499,8 @@ class Git(VersionControl):
         work with a ssh:// scheme (e.g. GitHub). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
+        import urllib.request
+
         # Works around an apparent Git bug
         # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
         scheme, netloc, path, query, fragment = urlsplit(url)

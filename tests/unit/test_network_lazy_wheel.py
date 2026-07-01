@@ -2,6 +2,7 @@ from collections.abc import Iterator
 
 import pytest
 
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import InvalidWheel
@@ -45,7 +46,7 @@ def mypy_whl_no_range(mock_server: MockServer, shared_data: TestData) -> Iterato
 @pytest.mark.network
 def test_dist_from_wheel_url(session: PipSession) -> None:
     """Test if the acquired distribution contain correct information."""
-    dist = dist_from_wheel_url("mypy", MYPY_0_782_WHL, session)
+    dist = dist_from_wheel_url(canonicalize_name("mypy"), MYPY_0_782_WHL, session)
     assert dist.canonical_name == "mypy"
     assert dist.version == Version("0.782")
     extras = list(dist.iter_provided_extras())
@@ -58,11 +59,13 @@ def test_dist_from_wheel_url_no_range(
 ) -> None:
     """Test handling when HTTP range requests are not supported."""
     with pytest.raises(HTTPRangeRequestUnsupported):
-        dist_from_wheel_url("mypy", mypy_whl_no_range, session)
+        dist_from_wheel_url(canonicalize_name("mypy"), mypy_whl_no_range, session)
 
 
 @pytest.mark.network
 def test_dist_from_wheel_url_not_zip(session: PipSession) -> None:
     """Test handling with the given URL does not point to a ZIP."""
     with pytest.raises(InvalidWheel):
-        dist_from_wheel_url("python", "https://www.python.org/", session)
+        dist_from_wheel_url(
+            canonicalize_name("python"), "https://www.python.org/", session
+        )

@@ -140,7 +140,7 @@ class Subversion(VersionControl):
             data = ""
 
         url = None
-        if data.startswith("8") or data.startswith("9") or data.startswith("10"):
+        if data.startswith(("8", "9", "10")):
             entries = list(map(str.splitlines, data.split("\n\x0c\n")))
             del entries[0][0]  # get rid of the '8'
             url = entries[0][3]

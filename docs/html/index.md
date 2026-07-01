@@ -50,3 +50,10 @@ lists or chat rooms:
 [irc-pypa-dev]: https://kiwiirc.com/nextclient/#ircs://irc.libera.chat:+6697/pypa-dev
 
 If you find any security issues, please report to [security@python.org](mailto:security@python.org)
+
+## Privacy Notice
+
+Pip does not collect any telemetry, however, it will send
+non-identifying environment information (Python version, OS, etc.) to any remote indices
+used, who may choose to retain such information. Please consult PyPI's privacy
+policy for their data collection and retention practices.

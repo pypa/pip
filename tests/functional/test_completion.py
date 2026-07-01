@@ -15,9 +15,10 @@ COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
         """\
 _pip_completion()
 {
+    local IFS=$' \\t\\n'
     COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \\
                    COMP_CWORD=$COMP_CWORD \\
-                   PIP_AUTO_COMPLETE=1 $1 2>/dev/null ) )
+                   PIP_AUTO_COMPLETE=1 "$1" 2>/dev/null ) )
 }
 complete -o default -F _pip_completion pip""",
     ),
@@ -94,7 +95,7 @@ def script_with_launchers(
     tmpdir = tmpdir_factory.mktemp("script_with_launchers")
     script = script_factory(tmpdir.joinpath("workspace"))
     # Re-install pip so we get the launchers.
-    script.pip_install_local("-f", common_wheels, pip_src)
+    script.pip("install", "--no-index", "-f", common_wheels, pip_src)
     return script
 
 
@@ -429,3 +430,36 @@ def test_completion_uses_same_executable_name(
         expect_stderr=deprecated_python,
     )
     assert executable_name in result.stdout
+
+
+@pytest.mark.parametrize(
+    "subcommand, handler_prefix, expected",
+    [
+        ("cache", "d", "dir"),
+        ("cache", "in", "info"),
+        ("cache", "l", "list"),
+        ("cache", "re", "remove"),
+        ("cache", "pu", "purge"),
+        ("config", "li", "list"),
+        ("config", "e", "edit"),
+        ("config", "ge", "get"),
+        ("config", "se", "set"),
+        ("config", "unse", "unset"),
+        ("config", "d", "debug"),
+        ("index", "ve", "versions"),
+    ],
+)
+def test_completion_for_action_handler(
+    subcommand: str, handler_prefix: str, expected: str, autocomplete: DoAutocomplete
+) -> None:
+    res, _ = autocomplete(f"pip {subcommand} {handler_prefix}", cword="2")
+
+    assert [expected] == res.stdout.split()
+
+
+def test_completion_for_action_handler_handler_not_repeated(
+    autocomplete: DoAutocomplete,
+) -> None:
+    res, _ = autocomplete("pip cache remove re", cword="3")
+
+    assert [] == res.stdout.split()

@@ -11,7 +11,6 @@ from typing import Any
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
-from pip._internal.metadata import get_default_environment
 
 
 def autocomplete() -> None:
@@ -51,6 +50,10 @@ def autocomplete() -> None:
             "uninstall",
         ]
         if should_list_installed:
+            # NOTE: this import is deferred until absolutely necessary as it's slow,
+            # and it's important that autocompletion is fast.
+            from pip._internal.metadata import get_default_environment
+
             env = get_default_environment()
             lc = current.lower()
             installed = [
@@ -103,6 +106,12 @@ def autocomplete() -> None:
             if option[1] and option[0][:2] == "--":
                 opt_label += "="
             print(opt_label)
+
+        # Complete sub-commands (unless one is already given).
+        if not any(name in cwords for name in subcommand.handler_map()):
+            for handler_name in subcommand.handler_map():
+                if handler_name.startswith(current):
+                    print(handler_name)
     else:
         # show main parser options only when necessary
 

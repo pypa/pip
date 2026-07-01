@@ -14,7 +14,8 @@ import logging
 import pathlib
 import re
 import sys
-from collections.abc import Iterator
+import traceback
+from collections.abc import Iterable, Iterator
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Literal
 
@@ -27,10 +28,11 @@ from pip._vendor.rich.text import Text
 if TYPE_CHECKING:
     from hashlib import _Hash
 
-    from pip._vendor.requests.models import Request, Response
+    from pip._vendor.requests.models import PreparedRequest, Request, Response
 
     from pip._internal.metadata import BaseDistribution
     from pip._internal.models.link import Link
+    from pip._internal.network.download import _FileDownload
     from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
@@ -190,6 +192,23 @@ class InstallationError(PipError):
     """General exception during installation"""
 
 
+class FailedToPrepareCandidate(InstallationError):
+    """Raised when we fail to prepare a candidate (i.e. fetch and generate metadata).
+
+    This is intentionally not a diagnostic error, since the output will be presented
+    above this error, when this occurs. This should instead present information to the
+    user.
+    """
+
+    def __init__(
+        self, *, package_name: str, requirement_chain: str, failed_step: str
+    ) -> None:
+        super().__init__(f"Failed to build '{package_name}' when {failed_step.lower()}")
+        self.package_name = package_name
+        self.requirement_chain = requirement_chain
+        self.failed_step = failed_step
+
+
 class MissingPyProjectBuildRequires(DiagnosticPipError):
     """Raised when pyproject.toml has `build-system`, but no `build-system.requires`."""
 
@@ -297,7 +316,7 @@ class NetworkConnectionError(PipError):
         self,
         error_msg: str,
         response: Response | None = None,
-        request: Request | None = None,
+        request: Request | PreparedRequest | None = None,
     ) -> None:
         """
         Initialize NetworkConnectionError with  `request` and `response`
@@ -384,7 +403,7 @@ class InstallationSubprocessError(DiagnosticPipError, InstallationError):
         output_lines: list[str] | None,
     ) -> None:
         if output_lines is None:
-            output_prompt = Text("See above for output.")
+            output_prompt = Text("No available output.")
         else:
             output_prompt = (
                 Text.from_markup(f"[red][{len(output_lines)} lines of output][/]\n")
@@ -412,7 +431,7 @@ class InstallationSubprocessError(DiagnosticPipError, InstallationError):
         return f"{self.command_description} exited with {self.exit_code}"
 
 
-class MetadataGenerationFailed(InstallationSubprocessError, InstallationError):
+class MetadataGenerationFailed(DiagnosticPipError, InstallationError):
     reference = "metadata-generation-failed"
 
     def __init__(
@@ -420,7 +439,7 @@ class MetadataGenerationFailed(InstallationSubprocessError, InstallationError):
         *,
         package_details: str,
     ) -> None:
-        super(InstallationSubprocessError, self).__init__(
+        super().__init__(
             message="Encountered error while generating package metadata.",
             context=escape(package_details),
             hint_stmt="See above for details.",
@@ -750,7 +769,7 @@ class UninstallMissingRecord(DiagnosticPipError):
             dep = f"{distribution.raw_name}=={distribution.version}"
             hint = Text.assemble(
                 "You might be able to recover from this via: ",
-                (f"pip install --force-reinstall --no-deps {dep}", "green"),
+                (f"pip install --ignore-installed --no-deps {dep}", "green"),
             )
         else:
             hint = Text(
@@ -819,17 +838,19 @@ class IncompleteDownloadError(DiagnosticPipError):
 
     reference = "incomplete-download"
 
-    def __init__(
-        self, link: Link, received: int, expected: int, *, retries: int
-    ) -> None:
+    def __init__(self, download: _FileDownload) -> None:
         # Dodge circular import.
         from pip._internal.utils.misc import format_size
 
-        download_status = f"{format_size(received)}/{format_size(expected)}"
-        if retries:
-            retry_status = f"after {retries} attempts "
+        assert download.size is not None
+        download_status = (
+            f"{format_size(download.bytes_received)}/{format_size(download.size)}"
+        )
+        if download.reattempts:
+            retry_status = f"after {download.reattempts + 1} attempts "
             hint = "Use --resume-retries to configure resume attempt limit."
         else:
+            # Download retrying is not enabled.
             retry_status = ""
             hint = "Consider using --resume-retries to enable download resumption."
         message = Text(
@@ -839,7 +860,7 @@ class IncompleteDownloadError(DiagnosticPipError):
 
         super().__init__(
             message=message,
-            context=f"URL: {link.redacted_url}",
+            context=f"URL: {download.link.redacted_url}",
             hint_stmt=hint,
             note_stmt="This is an issue with network connectivity, not pip.",
         )
@@ -862,4 +883,89 @@ class ResolutionTooDeepError(DiagnosticPipError):
                 "for example: 'package>=2.0.0' instead of just 'package'. "
             ),
             link="https://pip.pypa.io/en/stable/topics/dependency-resolution/#handling-resolution-too-deep-errors",
+        )
+
+
+class InstallWheelBuildError(DiagnosticPipError):
+    reference = "failed-wheel-build-for-install"
+
+    def __init__(self, failed: list[InstallRequirement]) -> None:
+        super().__init__(
+            message=(
+                "Failed to build installable wheels for some "
+                "pyproject.toml based projects"
+            ),
+            context=", ".join(r.name for r in failed),  # type: ignore
+            hint_stmt=None,
+        )
+
+
+class InvalidEggFragment(DiagnosticPipError):
+    reference = "invalid-egg-fragment"
+
+    def __init__(self, link: Link, fragment: str) -> None:
+        hint = ""
+        if ">" in fragment or "=" in fragment or "<" in fragment:
+            hint = (
+                "Version specifiers are silently ignored for URL references. "
+                "Remove them. "
+            )
+        if "[" in fragment and "]" in fragment:
+            hint += "Try using the Direct URL requirement syntax: 'name[extra] @ URL'"
+
+        if not hint:
+            hint = "Egg fragments can only be a valid project name."
+
+        super().__init__(
+            message=f"The '{escape(fragment)}' egg fragment is invalid",
+            context=f"from '{escape(str(link))}'",
+            hint_stmt=escape(hint),
+        )
+
+
+class BuildDependencyInstallError(DiagnosticPipError):
+    """Raised when build dependencies cannot be installed."""
+
+    reference = "failed-build-dependency-install"
+
+    def __init__(
+        self,
+        req: InstallRequirement | None,
+        build_reqs: Iterable[str],
+        *,
+        cause: Exception,
+        log_lines: list[str] | None,
+    ) -> None:
+        if isinstance(cause, PipError):
+            note = "This is likely not a problem with pip."
+        else:
+            note = (
+                "pip crashed unexpectedly. Please file an issue on pip's issue "
+                "tracker: https://github.com/pypa/pip/issues/new"
+            )
+
+        if log_lines is None:
+            # No logs are available, they must have been printed earlier.
+            context = Text("See above for more details.")
+        else:
+            if isinstance(cause, PipError):
+                log_lines.append(f"ERROR: {cause}")
+            else:
+                # Split rendered error into real lines without trailing newlines.
+                log_lines.extend(
+                    "".join(traceback.format_exception(cause)).splitlines()
+                )
+
+            context = Text.assemble(
+                f"Installing {' '.join(build_reqs)}\n",
+                (f"[{len(log_lines)} lines of output]\n", "red"),
+                "\n".join(log_lines),
+                ("\n[end of output]", "red"),
+            )
+
+        message = Text("Cannot install build dependencies", "green")
+        if req:
+            message += Text(f" for {req}")
+        super().__init__(
+            message=message, context=context, hint_stmt=None, note_stmt=note
         )

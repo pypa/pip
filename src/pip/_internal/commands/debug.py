@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import locale
 import logging
 import os
 import sys
@@ -18,7 +17,7 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.configuration import Configuration
 from pip._internal.metadata import get_environment
-from pip._internal.utils.compat import open_text_resource
+from pip._internal.utils.compat import get_locale_encoding, open_text_resource
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
 
@@ -55,15 +54,8 @@ def get_module_from_module_name(module_name: str) -> ModuleType | None:
     if module_name == "setuptools":
         module_name = "pkg_resources"
 
-    try:
-        __import__(f"pip._vendor.{module_name}", globals(), locals(), level=0)
-        return getattr(pip._vendor, module_name)
-    except ImportError:
-        # We allow 'truststore' to fail to import due
-        # to being unavailable on Python 3.9 and earlier.
-        if module_name == "truststore" and sys.version_info < (3, 10):
-            return None
-        raise
+    __import__(f"pip._vendor.{module_name}", globals(), locals(), level=0)
+    return getattr(pip._vendor, module_name)
 
 
 def get_vendor_version_from_module(module_name: str) -> str | None:
@@ -184,8 +176,8 @@ class DebugCommand(Command):
         show_value("sys.getdefaultencoding", sys.getdefaultencoding())
         show_value("sys.getfilesystemencoding", sys.getfilesystemencoding())
         show_value(
-            "locale.getpreferredencoding",
-            locale.getpreferredencoding(),
+            "locale.getencoding",
+            get_locale_encoding(),
         )
         show_value("sys.platform", sys.platform)
         show_sys_implementation()

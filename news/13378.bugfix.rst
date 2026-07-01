@@ -1,2 +1,0 @@
-Fix missing ``network`` test markings, making the suite pass in offline
-environments again.

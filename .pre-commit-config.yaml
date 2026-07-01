@@ -2,7 +2,7 @@ exclude: 'src/pip/_vendor/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v5.0.0
+  rev: v6.0.0
   hooks:
   - id: check-builtin-literals
   - id: check-added-large-files
@@ -17,22 +17,27 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 25.1.0
+  rev: 26.5.1
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.11.8
+  rev: v0.15.16
   hooks:
-    - id: ruff
-      args: [--fix, --exit-non-zero-on-fix]
+    - id: ruff-check
+      args: [--fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.15.0
+  rev: v2.1.0
   hooks:
   - id: mypy
     exclude: tests/data
-    args: ["--pretty", "--show-error-codes"]
+    args:
+      - "--pretty"
+      - "--show-error-codes"
+      # Since this is only a partial mypy run, we can get false-positives
+      # for unused ignores.
+      - "--no-warn-unused-ignores"
     additional_dependencies: [
         'keyring==24.2.0',
         'nox==2024.03.02',
@@ -41,6 +46,7 @@ repos:
         'types-setuptools==68.2.0.0',
         'types-freezegun==1.1.10',
         'types-pyyaml==6.0.12.12',
+        'typing-extensions',
     ]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
@@ -54,11 +60,18 @@ repos:
     exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
 
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.4.1
+  rev: v2.4.2
   hooks:
     - id: codespell
       exclude: AUTHORS.txt|tests/data
       args: ["--ignore-words", tools/codespell-ignore.txt]
+
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.25.2
+  hooks:
+  - id: zizmor
+    args: ["--fix=all"]
+    files: ^\.github/
 
 - repo: local
   hooks:

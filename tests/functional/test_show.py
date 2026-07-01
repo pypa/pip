@@ -6,7 +6,9 @@ import textwrap
 import pytest
 
 from pip import __version__
+from pip._internal.commands import create_command
 from pip._internal.commands.show import search_packages_info
+from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.unpacking import untar_file
 
 from tests.lib import (
@@ -30,13 +32,35 @@ def test_basic_show(script: PipTestEnvironment) -> None:
     assert "Requires: " in lines
 
 
+def test_show_without_files_does_not_read_installed_files(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Test that show does not read installed files without --files.
+    """
+    calls: list[str] = []
+
+    def iter_declared_entries(self: BaseDistribution) -> None:
+        calls.append(self.raw_name)
+
+    monkeypatch.setattr(
+        BaseDistribution, "iter_declared_entries", iter_declared_entries
+    )
+
+    command = create_command("show")
+    options, args = command.parse_args(["pip"])
+
+    assert command.run(options, args) == 0
+    assert calls == []
+
+
 def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test for show command with installed files listing enabled and
     installed-files.txt not found.
     """
     editable = data.packages.joinpath("SetupPyUTF8")
-    script.pip("install", "-e", editable)
+    script.run("python", "setup.py", "develop", cwd=editable)
     result = script.pip("show", "-f", "SetupPyUTF8")
     lines = result.stdout.splitlines()
     assert len(lines) == 13
@@ -52,8 +76,7 @@ def test_show_with_files_from_wheel(script: PipTestEnvironment, data: TestData) 
     """
     Test that a wheel's files can be listed.
     """
-    wheel_file = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("show", "-f", "simple.dist")
     lines = result.stdout.splitlines()
     assert "Name: simple.dist" in lines
@@ -86,17 +109,13 @@ def test_show_with_files_from_legacy(
     # Emulate the installed-files.txt generation which previous pip version did
     # after running setup.py install (write_installed_files_from_setuptools_record).
     egg_info_dir = script.site_packages_path / f"simple-1.0-py{pyversion}.egg-info"
-    egg_info_dir.joinpath("installed-files.txt").write_text(
-        textwrap.dedent(
-            """\
+    egg_info_dir.joinpath("installed-files.txt").write_text(textwrap.dedent("""\
                 ../simple/__init__.py
                 PKG-INFO
                 SOURCES.txt
                 dependency_links.txt
                 top_level.txt
-            """
-        )
-    )
+            """))
 
     result = script.pip("show", "--files", "simple")
     lines = result.stdout.splitlines()
@@ -117,7 +136,7 @@ def test_find_package_not_found() -> None:
     """
     Test trying to get info about a nonexistent package.
     """
-    result = search_packages_info(["abcd3"])
+    result = search_packages_info(["abcd3"], include_files=False)
     assert len(list(result)) == 0
 
 
@@ -152,7 +171,7 @@ def test_search_any_case() -> None:
     Search for a package in any case.
 
     """
-    result = list(search_packages_info(["PIP"]))
+    result = list(search_packages_info(["PIP"], include_files=False))
     assert len(result) == 1
     assert result[0].name == "pip"
 
@@ -162,7 +181,9 @@ def test_more_than_one_package() -> None:
     Search for more than one package.
 
     """
-    result = list(search_packages_info(["pIp", "pytest", "Virtualenv"]))
+    result = list(
+        search_packages_info(["pIp", "pytest", "Virtualenv"], include_files=False)
+    )
     assert len(result) == 3
 
 
@@ -181,8 +202,7 @@ def test_show_verbose_installer(script: PipTestEnvironment, data: TestData) -> N
     """
     Test that the installer is shown (this currently needs a wheel install)
     """
-    wheel_file = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("show", "--verbose", "simple.dist")
     lines = result.stdout.splitlines()
     assert "Name: simple.dist" in lines
@@ -260,20 +280,18 @@ def test_pip_show_is_short(script: PipTestEnvironment) -> None:
     assert len(lines) <= 11
 
 
-def test_pip_show_divider(script: PipTestEnvironment, data: TestData) -> None:
+def test_pip_show_divider(script: PipTestEnvironment) -> None:
     """
     Expect a divider between packages
     """
-    script.pip("install", "pip-test-package", "--no-index", "-f", data.packages)
+    script.pip_install_local("--no-build-isolation", "pip-test-package")
     result = script.pip("show", "pip", "pip-test-package")
     lines = result.stdout.splitlines()
     assert "---" in lines
 
 
-def test_package_name_is_canonicalized(
-    script: PipTestEnvironment, data: TestData
-) -> None:
-    script.pip("install", "pip-test-package", "--no-index", "-f", data.packages)
+def test_package_name_is_canonicalized(script: PipTestEnvironment) -> None:
+    script.pip_install_local("--no-build-isolation", "pip-test-package")
 
     dash_show_result = script.pip("show", "pip-test-package")
     underscore_upper_show_result = script.pip("show", "pip-test_Package")
@@ -288,8 +306,7 @@ def test_show_required_by_packages_basic(
     """
     Test that installed packages that depend on this package are shown
     """
-    editable_path = os.path.join(data.src, "requires_simple")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip_install_local("--no-build-isolation", data.src / "requires_simple")
 
     result = script.pip("show", "simple")
     lines = result.stdout.splitlines()
@@ -308,8 +325,7 @@ def test_show_required_by_packages_capitalized(
     Test that the installed packages which depend on a package are shown
     where the package has a capital letter
     """
-    editable_path = os.path.join(data.src, "requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip_install_local("--no-build-isolation", data.src / "requires_capitalized")
 
     result = script.pip("show", "simple")
     lines = result.stdout.splitlines()
@@ -329,10 +345,10 @@ def test_show_required_by_packages_requiring_capitalized(
     where the package has a name with a mix of
     lower and upper case letters
     """
-    required_package_path = os.path.join(data.src, "requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, required_package_path)
-    editable_path = os.path.join(data.src, "requires_requires_capitalized")
-    script.pip("install", "--no-index", "-f", data.find_links, editable_path)
+    script.pip_install_local("--no-build-isolation", data.src / "requires_capitalized")
+    script.pip_install_local(
+        "--no-build-isolation", data.src / "requires_requires_capitalized"
+    )
 
     result = script.pip("show", "Requires_Capitalized")
     lines = result.stdout.splitlines()
@@ -432,8 +448,7 @@ def test_show_license_expression(script: PipTestEnvironment, data: TestData) -> 
     """
     Show License-Expression if present in metadata >= 2.4.
     """
-    wheel_file = data.packages.joinpath("license.dist-0.1-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "license.dist-0.1-py2.py3-none-any.whl")
     result = script.pip("show", "license.dist")
     lines = result.stdout.splitlines()
     assert "License-Expression: MIT AND MIT-0" in lines
@@ -446,8 +461,7 @@ def test_show_license_for_metadata_24(
     """
     Show License if License-Expression is not there for metadata >= 2.4.
     """
-    wheel_file = data.packages.joinpath("license.dist-0.2-py2.py3-none-any.whl")
-    script.pip("install", "--no-index", wheel_file)
+    script.pip_install_local(data.packages / "license.dist-0.2-py2.py3-none-any.whl")
     result = script.pip("show", "license.dist")
     lines = result.stdout.splitlines()
     assert "License-Expression: " not in lines

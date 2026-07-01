@@ -1,4 +1,5 @@
 import ssl
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -52,9 +53,8 @@ def test_proxy_does_not_override_netrc(
     cert_factory: CertFactory,
 ) -> None:
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -76,6 +76,7 @@ def test_proxy_does_not_override_netrc(
         script.environ["NETRC"] = netrc
         script.pip(
             "install",
+            "--no-build-isolation",
             "--proxy",
             f"http://127.0.0.1:{proxy1.flags.port}",
             "--trusted-host",
@@ -92,9 +93,18 @@ def test_proxy_does_not_override_netrc(
         script.assert_installed(simple="3.0")
 
 
+@pytest.mark.xfail(
+    sys.version_info >= (3, 14),
+    reason="Access logs are blank intermittently on 3.14",
+    strict=False,
+)
 @pytest.mark.network
+@pytest.mark.parametrize("flag", ["", "--use-feature=inprocess-build-deps"])
 def test_build_deps_use_proxy_from_cli(
-    script: PipTestEnvironment, capfd: pytest.CaptureFixture[str], data: TestData
+    script: PipTestEnvironment,
+    capfd: pytest.CaptureFixture[str],
+    data: TestData,
+    flag: str,
 ) -> None:
     with proxy.Proxy(port=0, num_acceptors=1, plugins=[AccessLogPlugin]) as proxy1:
         result = script.pip(
@@ -103,6 +113,7 @@ def test_build_deps_use_proxy_from_cli(
             str(data.packages / "pep517_setup_and_pyproject"),
             "--proxy",
             f"http://127.0.0.1:{proxy1.flags.port}",
+            flag,
         )
 
     wheel_path = script.scratch / "pep517_setup_and_pyproject-1.0-py3-none-any.whl"

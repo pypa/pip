@@ -12,7 +12,7 @@ from pip._internal.metadata import (
 )
 
 if TYPE_CHECKING:
-    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
 
 
 class WheelDistribution(AbstractDistribution):
@@ -37,8 +37,8 @@ class WheelDistribution(AbstractDistribution):
 
     def prepare_distribution_metadata(
         self,
-        finder: PackageFinder,
-        build_isolation: bool,
+        build_env_installer: BuildEnvironmentInstaller,
+        build_isolation: BuildIsolationMode,
         check_build_deps: bool,
     ) -> None:
         pass
