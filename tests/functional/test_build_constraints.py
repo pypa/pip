@@ -15,6 +15,13 @@ from tests.lib import (
     create_test_package_with_setup,
 )
 
+# Build dependencies can be installed in a subprocess (default) or in process
+# (--use-feature=inprocess-build-deps); constraint handling must match for both.
+INSTALLER_ARGS = [
+    pytest.param([], id="subprocess"),
+    pytest.param(["--use-feature=inprocess-build-deps"], id="inprocess"),
+]
+
 
 def _create_simple_test_package(script: PipTestEnvironment, name: str) -> Path:
     """Create a simple test package with minimal setup."""
@@ -171,10 +178,11 @@ def test_use_feature_build_constraint_is_always_enabled(
     assert "build-constraint" in result.stderr
 
 
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
 def test_constraints_dont_pass_through(
-    script: PipTestEnvironment, data: TestData, tmpdir: Path
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, installer_args: list[str]
 ) -> None:
-    """By default, PIP_CONSTRAINT must not affect the isolated build env."""
+    """PIP_CONSTRAINT must not affect the isolated build env."""
     project_dir = create_test_package_with_setup(
         script,
         name="test_isolation",
@@ -187,8 +195,67 @@ def test_constraints_dont_pass_through(
     script.environ["PIP_CONSTRAINT"] = path_to_url(str(constraints))
     result = script.pip_install_local(
         "--no-cache-dir",
+        *installer_args,
         str(project_dir),
         build_isolation=True,
         find_links=data.common_wheels,
     )
     result.assert_installed("test_isolation", editable=False, without_files=["."])
+
+
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
+def test_constraints_dont_pass_through_with_build_constraints(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, installer_args: list[str]
+) -> None:
+    """PIP_CONSTRAINT must not affect the build env even when build
+    constraints are also passed."""
+    project_dir = create_test_package_with_setup(
+        script,
+        name="test_isolation",
+        version="1.0",
+        py_modules=["test_isolation"],
+    )
+    # An impossible regular constraint that would break the build if it leaked.
+    constraints = _create_constraints_file(
+        script=script, filename="constraints.txt", content="setuptools==2000\n"
+    )
+    # A satisfiable build constraint.
+    build_constraints = _create_constraints_file(
+        script=script,
+        filename="build_constraints.txt",
+        content="setuptools>=40.0.0\n",
+    )
+    script.environ["PIP_CONSTRAINT"] = path_to_url(str(constraints))
+    result = _run_pip_install_with_build_constraints(
+        script=script,
+        data=data,
+        project_dir=project_dir,
+        build_constraints_file=build_constraints,
+        extra_args=installer_args,
+    )
+    result.assert_installed("test_isolation", editable=False, without_files=["."])
+
+
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
+def test_build_constraint_is_enforced(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, installer_args: list[str]
+) -> None:
+    """An unsatisfiable build constraint must make the build fail."""
+    project_dir = create_test_package_with_setup(
+        script,
+        name="test_isolation",
+        version="1.0",
+        py_modules=["test_isolation"],
+    )
+    build_constraints = _create_constraints_file(
+        script=script, filename="build_constraints.txt", content="setuptools==2000\n"
+    )
+    result = _run_pip_install_with_build_constraints(
+        script=script,
+        data=data,
+        project_dir=project_dir,
+        build_constraints_file=build_constraints,
+        extra_args=installer_args,
+        expect_error=True,
+    )
+    assert "setuptools==2000" in result.stderr

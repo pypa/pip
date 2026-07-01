@@ -62,13 +62,14 @@ from pip._internal.utils.temp_dir import (
 logger = logging.getLogger(__name__)
 
 
-def should_ignore_regular_constraints(options: Values) -> bool:
+def should_ignore_regular_constraints() -> bool:
     """
-    Whether this process should ignore the constraints files it inherits.
+    Whether this process should ignore the regular constraints it inherits.
 
-    The parent pip sets ``_PIP_IN_BUILD_IGNORE_CONSTRAINTS`` when it starts an
-    isolated build with no build constraints, so that constraints files the
-    build inherits (such as via ``PIP_CONSTRAINT``) do not affect it.
+    The parent pip sets ``_PIP_IN_BUILD_IGNORE_CONSTRAINTS`` whenever it starts
+    an isolated build in a subprocess, so that regular constraints the build
+    inherits (such as via ``PIP_CONSTRAINT`` or config files) do not affect it.
+    Only build constraints apply there.
     """
 
     return os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1"
@@ -298,11 +299,15 @@ class RequirementCommand(IndexGroupCommand):
         """
         requirements: list[InstallRequirement] = []
 
-        if not should_ignore_regular_constraints(options):
-            constraints = parse_constraint_files(
-                options.constraints, finder, options, session
-            )
-            requirements.extend(constraints)
+        if should_ignore_regular_constraints():
+            # Inside an isolated build subprocess: apply the build constraints
+            # (forwarded via --build-constraint) instead of the inherited ones.
+            constraint_files = getattr(options, "build_constraints", [])
+        else:
+            constraint_files = options.constraints
+
+        constraints = parse_constraint_files(constraint_files, finder, options, session)
+        requirements.extend(constraints)
 
         for req in args:
             if not req.strip():

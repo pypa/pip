@@ -7,7 +7,7 @@ from collections.abc import Iterable, Sequence
 from contextlib import AbstractContextManager as ContextManager
 from contextlib import nullcontext
 from io import StringIO
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
 from pip._internal.build_env.base import Prefix
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
@@ -29,9 +29,6 @@ if TYPE_CHECKING:
     from pip._internal.operations.build.build_tracker import BuildTracker
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import BaseResolver
-
-    class ExtraEnviron(TypedDict, total=False):
-        extra_environ: dict[str, str]
 
 
 logger = logging.getLogger(__name__)
@@ -119,17 +116,12 @@ class SubprocessBuildEnvironmentInstaller:
             args.append("--prefer-binary")
 
         # Only build constraints apply in the isolated build environment.
-        extra_environ: ExtraEnviron = {}
-        if self._build_constraints:
-            # Pass each file via both --constraint and --build-constraint, so
-            # that this build environment and any nested builds are constrained.
-            for constraint_file in self._build_constraints:
-                args.extend(["--constraint", constraint_file])
-                args.extend(["--build-constraint", constraint_file])
-        else:
-            # With no build constraints, ignore any constraints files the build
-            # subprocess inherits from the environment (such as PIP_CONSTRAINT).
-            extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
+        # _PIP_IN_BUILD_IGNORE_CONSTRAINTS tells the subprocess to ignore the
+        # regular constraints it inherits (via PIP_CONSTRAINT or config files).
+        # Build constraints reach it through --build-constraint, which also
+        # constrains any nested builds.
+        for constraint_file in self._build_constraints:
+            args.extend(["--build-constraint", constraint_file])
 
         if finder.uploaded_prior_to:
             args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
@@ -144,7 +136,7 @@ class SubprocessBuildEnvironmentInstaller:
                 args,
                 command_desc=f"installing {kind}{identify_requirement}",
                 spinner=spinner,
-                **extra_environ,
+                extra_environ={"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"},
             )
 
 

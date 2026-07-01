@@ -48,9 +48,10 @@ class TestSubprocessBuildEnvironmentInstaller:
     def test_install_passes_build_constraints(
         self, mock_call_subprocess: mock.Mock, tmp_path: Path
     ) -> None:
-        """With build constraints, each file is passed via both --constraint and
-        --build-constraint (so nested builds are constrained too), and the
-        inherited-constraint ignore flag is not set."""
+        """With build constraints, each file is forwarded with --build-constraint
+        and the inherited-constraint ignore flag is set, so the subprocess
+        ignores inherited regular constraints and applies the build constraints
+        instead."""
         installer = SubprocessBuildEnvironmentInstaller(
             make_test_finder(),
             build_constraints=["build-constraints.txt"],
@@ -68,6 +69,6 @@ class TestSubprocessBuildEnvironmentInstaller:
         args = mock_call_subprocess.call_args.args[0]
         kwargs = mock_call_subprocess.call_args.kwargs
         assert "--use-feature" not in args
-        assert args[args.index("--constraint") + 1] == "build-constraints.txt"
+        assert "--constraint" not in args
         assert args[args.index("--build-constraint") + 1] == "build-constraints.txt"
-        assert "extra_environ" not in kwargs
+        assert kwargs.get("extra_environ") == {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}
