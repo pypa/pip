@@ -1036,7 +1036,10 @@ class TestParseRequirements:
         # so patch things out for simplicity
         with (
             caplog.at_level(logging.WARNING),
-            mock.patch("locale.getpreferredencoding", return_value=locale_encoding),
+            mock.patch(
+                "pip._internal.req.req_file.get_locale_encoding",
+                return_value=locale_encoding,
+            ),
         ):
             reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
 
@@ -1069,6 +1072,8 @@ class TestParseRequirements:
 
         with (
             pytest.raises(UnicodeDecodeError),
-            mock.patch("locale.getpreferredencoding", return_value=encoding),
+            mock.patch(
+                "pip._internal.req.req_file.get_locale_encoding", return_value=encoding
+            ),
         ):
             next(parse_reqfile(req_file.resolve(), session=session))

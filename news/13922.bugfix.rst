@@ -1,0 +1,2 @@
+Address encoding warnings emitted when Python's UTF-8 Mode is enabled by
+continuing to use the configured locale.
