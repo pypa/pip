@@ -240,7 +240,11 @@ class Downloader:
         """Attempt to resume/restart the download if connection was dropped."""
 
         while download.reattempts < self._resume_retries and (
-            download.is_incomplete() or download.is_empty()
+            download.is_incomplete()
+            or (
+                download.is_empty()
+                and first_resp.status_code == HTTPStatus.NOT_MODIFIED
+            )
         ):
             is_empty = download.is_empty()
             download.reattempts += 1
