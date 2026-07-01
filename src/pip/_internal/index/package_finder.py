@@ -58,6 +58,19 @@ BuildTag = tuple[()] | tuple[int, str]
 CandidateSortingKey = tuple[int, int, int, _BaseVersion, int | None, BuildTag]
 
 
+class IndexErrorContext:
+    """Tracks network errors during index access"""
+
+    def __init__(self) -> None:
+        self.network_errors: list[tuple[str, Exception]] = []
+
+    def record_error(self, url: str, exc: Exception) -> None:
+        self.network_errors.append((url, exc))
+
+    def had_errors(self) -> bool:
+        return len(self.network_errors) > 0
+
+
 def _check_link_requires_python(
     link: Link,
     version_info: tuple[int, int, int],
@@ -843,13 +856,16 @@ class PackageFinder:
         return candidates
 
     def process_project_url(
-        self, project_url: Link, link_evaluator: LinkEvaluator
+        self,
+        project_url: Link,
+        link_evaluator: LinkEvaluator,
+        error_context: IndexErrorContext | None = None,
     ) -> list[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        index_response = self._link_collector.fetch_response(project_url)
+        index_response = self._link_collector.fetch_response(project_url, error_context)
         if index_response is None:
             return []
 
@@ -876,12 +892,13 @@ class PackageFinder:
             return self._all_candidates[project_name]
 
         link_evaluator = self.make_link_evaluator(project_name)
-
+        error_context = IndexErrorContext()
         collected_sources = self._link_collector.collect_sources(
             project_name=project_name,
             candidates_from_page=functools.partial(
                 self.process_project_url,
                 link_evaluator=link_evaluator,
+                error_context=error_context,
             ),
         )
 
@@ -917,6 +934,20 @@ class PackageFinder:
 
         # This is an intentional priority ordering
         self._all_candidates[project_name] = file_candidates + page_candidates
+        if not self._all_candidates[project_name] and error_context.had_errors():
+            if project_name == "requirements-txt":
+                pass
+            else:
+                for url, exc in error_context.network_errors:
+                    logger.warning("Failed to fetch %s: %s", url, exc)
+                raise InstallationError(
+                    f"Could not find a version of {project_name} due to network errors."
+                    + (
+                        " See above for details."
+                        if logger.isEnabledFor(logging.WARNING)
+                        else ""
+                    )
+                )
 
         return self._all_candidates[project_name]
 

@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
+    TYPE_CHECKING,
     NamedTuple,
     Protocol,
 )
@@ -34,6 +35,9 @@ from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.utils.urls import url_to_path
 from pip._internal.vcs import vcs
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import IndexErrorContext
 
 from .sources import CandidatesFromPage, LinkSource, build_source
 
@@ -315,7 +319,21 @@ def _make_index_content(
     )
 
 
-def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | None:
+def _record_error_if_present(
+    error_context: IndexErrorContext | None,
+    url: str,
+    exc: Exception,
+) -> None:
+    if error_context is not None:
+        error_context.record_error(url, exc)
+
+
+def _get_index_content(
+    link: Link,
+    *,
+    session: PipSession,
+    error_context: IndexErrorContext | None = None,
+) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
@@ -360,16 +378,21 @@ def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | Non
         )
     except NetworkConnectionError as exc:
         _handle_get_simple_fail(link, exc)
+        _record_error_if_present(error_context, str(link.url), exc)
     except RetryError as exc:
         _handle_get_simple_fail(link, exc)
+        _record_error_if_present(error_context, str(link.url), exc)
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate: "
         reason += str(exc)
         _handle_get_simple_fail(link, reason, meth=logger.info)
+        _record_error_if_present(error_context, str(link.url), exc)
     except requests.ConnectionError as exc:
         _handle_get_simple_fail(link, f"connection error: {exc}")
-    except requests.Timeout:
+        _record_error_if_present(error_context, str(link.url), exc)
+    except requests.Timeout as exc:
         _handle_get_simple_fail(link, "timed out")
+        _record_error_if_present(error_context, str(link.url), exc)
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None
@@ -434,11 +457,15 @@ class LinkCollector:
     def find_links(self) -> list[str]:
         return self.search_scope.find_links
 
-    def fetch_response(self, location: Link) -> IndexContent | None:
+    def fetch_response(
+        self, location: Link, error_context: IndexErrorContext | None = None
+    ) -> IndexContent | None:
         """
         Fetch an HTML page containing package links.
         """
-        return _get_index_content(location, session=self.session)
+        return _get_index_content(
+            location, session=self.session, error_context=error_context
+        )
 
     def collect_sources(
         self,

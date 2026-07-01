@@ -1,0 +1,1 @@
+Show an error message when ``pip install`` fails with network issues.
