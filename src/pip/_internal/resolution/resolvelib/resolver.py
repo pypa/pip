@@ -181,6 +181,15 @@ class Resolver(BaseResolver):
 
             req_set.add_named_requirement(ireq)
 
+        # Warn about non-active PEP 792 project statuses, only for projects
+        # the user explicitly requested; the user cannot act on warnings
+        # about projects pulled in as dependencies.
+        self.factory.warn_about_project_statuses(
+            sorted(
+                {ireq.name for ireq in root_reqs if ireq.user_supplied and ireq.name}
+            )
+        )
+
         return req_set
 
     def get_installation_order(

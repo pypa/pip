@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 from collections.abc import Iterable
 from unittest.mock import Mock, patch
@@ -12,12 +13,14 @@ from pip._vendor.packaging.version import parse as parse_version
 
 import pip._internal.utils.compatibility_tags
 from pip._internal.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
+from pip._internal.index.collector import IndexContent, ProjectStatus
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
     Link,
     LinkEvaluator,
     LinkType,
+    PackageFinder,
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
@@ -548,6 +551,91 @@ def test_process_project_url(data: TestData) -> None:
     package_link = actual[0]
     assert package_link.name == "simple"
     assert str(package_link.version) == "1.0"
+
+
+def _process_project_status_page(
+    finder: PackageFinder,
+    project_name: str,
+    project_status: dict[str, str],
+    url: str = "https://example.com/simple/holy-grail/",
+    cache_link_parsing: bool = False,
+) -> None:
+    """Process a project page response carrying a PEP 792 status marker."""
+    json_bytes = json.dumps(
+        {
+            "meta": {"api-version": "1.4"},
+            "name": "holy-grail",
+            "project-status": project_status,
+            "files": [],
+        }
+    ).encode("utf8")
+    page = IndexContent(
+        json_bytes,
+        "application/vnd.pypi.simple.v1+json",
+        encoding=None,
+        url=url,
+        cache_link_parsing=cache_link_parsing,
+    )
+    link_evaluator = finder.make_link_evaluator(project_name)
+    with patch.object(finder._link_collector, "fetch_response", return_value=page):
+        finder.process_project_url(Link(page.url), link_evaluator=link_evaluator)
+
+
+@pytest.mark.parametrize(
+    "project_status, expected",
+    [
+        # An active project is not recorded.
+        ({"status": "active"}, None),
+        # A non-active project status is recorded.
+        (
+            {"status": "archived", "reason": "gone fishing"},
+            ProjectStatus(status="archived", reason="gone fishing"),
+        ),
+    ],
+)
+def test_process_project_url_records_project_status(
+    project_status: dict[str, str], expected: ProjectStatus | None
+) -> None:
+    project_name = "Holy_Grail"
+    finder = make_test_finder(index_urls=["https://example.com/simple/"])
+    _process_project_status_page(finder, project_name, project_status)
+
+    # The status is looked up by canonicalized project name.
+    assert finder.get_project_status("holy-grail") == expected
+    assert finder.get_project_status(project_name) == expected
+
+
+def test_process_project_url_ignores_status_on_shared_pages() -> None:
+    """A page that is not the project's own index page (e.g. a --find-links
+    page, fetched with cache_link_parsing) is shared across projects, so its
+    status cannot be attributed to the project being searched."""
+    finder = make_test_finder(find_links=["https://example.com/links/"])
+    _process_project_status_page(
+        finder,
+        "holy-grail",
+        {"status": "archived"},
+        cache_link_parsing=True,
+    )
+    assert finder.get_project_status("holy-grail") is None
+
+
+def test_process_project_url_first_status_wins() -> None:
+    """With multiple indexes, the first non-active status encountered for a
+    project is kept."""
+    finder = make_test_finder(
+        index_urls=[
+            "https://example.com/simple/",
+            "https://mirror.example.com/simple/",
+        ]
+    )
+    _process_project_status_page(finder, "holy-grail", {"status": "archived"})
+    _process_project_status_page(
+        finder,
+        "holy-grail",
+        {"status": "deprecated"},
+        url="https://mirror.example.com/simple/holy-grail/",
+    )
+    assert finder.get_project_status("holy-grail") == ProjectStatus(status="archived")
 
 
 def test_find_all_candidates_nothing() -> None:
