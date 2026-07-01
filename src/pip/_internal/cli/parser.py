@@ -212,16 +212,19 @@ class ConfigOptionParser(CustomOptionParser):
     ) -> None:
         self.name = name
         self.config = Configuration(isolated)
-
+        self._seen_invalid_options: set[tuple[str, str]] = set()
         assert self.name
         super().__init__(*args, **kwargs)
 
-    def check_default(self, option: optparse.Option, key: str, val: Any) -> Any:
+    def check_default(self, option: optparse.Option, key: str, val: str) -> Any:
+        if (key, val) in self._seen_invalid_options:
+            return None
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            print(f"An error occurred during configuration: {exc}")
-            sys.exit(3)
+            logger.warning("Ignoring configuration key %s: %s", key, exc)
+            self._seen_invalid_options.add((key, val))
+            return None
 
     def _get_ordered_configuration_items(
         self,
