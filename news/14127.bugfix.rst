@@ -1,0 +1,2 @@
+Additional rejection of tar archives that write traverse outside
+the target directory when extracting on Python versions pre-PEP 721.
