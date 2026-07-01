@@ -141,6 +141,23 @@ class Factory:
         msg = f"{link.filename} is not a supported wheel on this platform."
         raise UnsupportedWheel(msg)
 
+    @staticmethod
+    def _effective_extras(
+        ireq: InstallRequirement, dist: BaseDistribution
+    ) -> frozenset[str]:
+        """PEP 771: pick the extras to materialise for ``ireq`` against
+        ``dist``.
+
+        - User-specified extras (eg ``pkg[ext]``) win outright.
+        - ``pkg[]`` (``explicit_no_default_extras``) yields no extras.
+        - Otherwise apply the distribution's PEP 771 default extras.
+        """
+        if ireq.extras:
+            return frozenset(ireq.extras)
+        if ireq.explicit_no_default_extras:
+            return frozenset()
+        return frozenset(dist.iter_default_extras())
+
     def _make_extras_candidate(
         self,
         base: BaseCandidate,
@@ -182,7 +199,7 @@ class Factory:
         base: BaseCandidate | None = self._make_base_candidate_from_link(
             link, template, name, version
         )
-        if not extras or base is None:
+        if base is None or not extras:
             return base
         return self._make_extras_candidate(base, extras, comes_from=template)
 
@@ -534,6 +551,9 @@ class Factory:
                 (or link) and one with the extra. This allows centralized constraint
                 handling for the base, resulting in fewer candidate rejections.
         """
+        if isinstance(ireq.comes_from, InstallRequirement):
+            requested_extras = requested_extras or ireq.comes_from.extras
+
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
@@ -556,6 +576,7 @@ class Factory:
                 name=canonicalize_name(ireq.name) if ireq.name else None,
                 version=None,
             )
+
             if cand is None:
                 # There's no way we can satisfy a URL requirement if the underlying
                 # candidate fails to build. An unnamed URL must be user-supplied, so
@@ -570,7 +591,10 @@ class Factory:
                 # require the base from the link
                 yield self.make_requirement_from_candidate(cand)
                 if ireq.extras:
-                    # require the extras on top of the base candidate
+                    # require the user-specified extras on top of the base
+                    # candidate. PEP 771 default extras are applied later by
+                    # the base candidate's iter_dependencies, so they don't
+                    # need a separate ExtrasCandidate here.
                     yield self.make_requirement_from_candidate(
                         self._make_extras_candidate(cand, frozenset(ireq.extras))
                     )

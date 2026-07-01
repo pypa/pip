@@ -3322,6 +3322,13 @@ class Distribution:
     def extras(self):
         return [dep for dep in self._dep_map if dep]
 
+    @property
+    def default_extras_require(self):
+        # PEP 771 default extras are only expressible in modern dist-info
+        # metadata; legacy egg-info distributions can't carry them, so the
+        # base class returns an empty list and DistInfoDistribution overrides.
+        return []
+
 
 class EggInfoDistribution(Distribution):
     def _reload_version(self):
@@ -3360,6 +3367,10 @@ class DistInfoDistribution(Distribution):
             metadata = self.get_metadata(self.PKG_INFO)
             self._pkg_info = email.parser.Parser().parsestr(metadata)
             return self._pkg_info
+
+    @property
+    def default_extras_require(self):
+        return self._parsed_pkg_info.get_all('Default-Extra') or []
 
     @property
     def _dep_map(self):
