@@ -1,0 +1,1 @@
+Cache canonical dependency names in conflict checks to avoid repeated normalization.

@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 class PackageDetails(NamedTuple):
     version: Version
     dependencies: list[Requirement]
+    dependency_names: list[NormalizedName]
 
 
 # Shorthands
@@ -49,7 +50,12 @@ def create_package_set_from_installed() -> tuple[PackageSet, bool]:
         name = dist.canonical_name
         try:
             dependencies = list(dist.iter_dependencies())
-            package_set[name] = PackageDetails(dist.version, dependencies)
+            dependency_names = [canonicalize_name(req.name) for req in dependencies]
+            package_set[name] = PackageDetails(
+                dist.version,
+                dependencies,
+                dependency_names,
+            )
         except (OSError, ValueError) as e:
             # Don't crash on unreadable or broken metadata.
             logger.warning("Error parsing dependencies of %s: %s", name, e)
@@ -77,8 +83,9 @@ def check_package_set(
         if should_ignore and should_ignore(package_name):
             continue
 
-        for req in package_detail.dependencies:
-            name = canonicalize_name(req.name)
+        for req, name in zip(
+            package_detail.dependencies, package_detail.dependency_names, strict=True
+        ):
 
             # Check if it's missing
             if name not in package_set:
@@ -150,7 +157,12 @@ def _simulate_installation_of(
         abstract_dist = make_distribution_for_install_requirement(inst_req)
         dist = abstract_dist.get_metadata_distribution()
         name = dist.canonical_name
-        package_set[name] = PackageDetails(dist.version, list(dist.iter_dependencies()))
+        dependencies = list(dist.iter_dependencies())
+        package_set[name] = PackageDetails(
+            dist.version,
+            dependencies,
+            [canonicalize_name(req.name) for req in dependencies],
+        )
 
         installed.add(name)
 
@@ -166,8 +178,8 @@ def _create_whitelist(
         if package_name in packages_affected:
             continue
 
-        for req in package_set[package_name].dependencies:
-            if canonicalize_name(req.name) in would_be_installed:
+        for dependency_name in package_set[package_name].dependency_names:
+            if dependency_name in would_be_installed:
                 packages_affected.add(package_name)
                 break
 
