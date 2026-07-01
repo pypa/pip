@@ -660,6 +660,33 @@ def test_not_required_flag(script: PipTestEnvironment, data: TestData) -> None:
     assert "TopoRequires3 " not in result.stdout
 
 
+def test_not_required_with_exclude_does_not_list_dependencies(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "TopoRequires4",
+    )
+
+    result = script.pip(
+        "list",
+        "--not-required",
+        "--exclude",
+        "TopoRequires4",
+        "--format=json",
+        expect_stderr=True,
+    )
+    names = {item["name"] for item in json.loads(result.stdout)}
+    listed_dependencies = names & {"TopoRequires", "TopoRequires2", "TopoRequires3"}
+
+    assert "TopoRequires4" not in names
+    assert not listed_dependencies
+
+
 def test_list_freeze(simple_script: PipTestEnvironment) -> None:
     """
     Test freeze formatting of list command
