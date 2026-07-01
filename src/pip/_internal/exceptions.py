@@ -16,6 +16,7 @@ import re
 import sys
 import traceback
 from collections.abc import Iterable, Iterator
+from http.client import RemoteDisconnected
 from itertools import chain, groupby, repeat
 from typing import TYPE_CHECKING, Literal
 
@@ -28,6 +29,7 @@ from pip._vendor.rich.text import Text
 if TYPE_CHECKING:
     from hashlib import _Hash
 
+    from pip._vendor import urllib3
     from pip._vendor.requests.models import PreparedRequest, Request, Response
 
     from pip._internal.metadata import BaseDistribution
@@ -335,6 +337,108 @@ class NetworkConnectionError(PipError):
 
     def __str__(self) -> str:
         return str(self.error_msg)
+
+
+class ConnectionFailedError(DiagnosticPipError):
+    reference = "connection-failed"
+
+    def __init__(self, url: str, host: str, error: Exception) -> None:
+        from pip._vendor.urllib3.exceptions import (
+            NameResolutionError,
+            NewConnectionError,
+            ProtocolError,
+        )
+
+        details = str(error)
+        if isinstance(error, NameResolutionError):
+            parts = details.split("Failed to resolve ", maxsplit=1)
+            if len(parts) == 2:
+                details = "Failed to resolve IP address for " + parts[1]
+        elif isinstance(error, NewConnectionError):
+            parts = details.split("Failed to establish a new connection: ", maxsplit=1)
+            if len(parts) == 2:
+                _, details = parts
+        elif isinstance(error, ProtocolError):
+            try:
+                reason = error.args[1]
+            except IndexError:
+                pass
+            else:
+                if isinstance(reason, (RemoteDisconnected, ConnectionResetError)):
+                    details = (
+                        "the connection was closed without a reply from the server."
+                    )
+
+        super().__init__(
+            message=f"Failed to connect to [magenta]{host}[/] while fetching {url}",
+            context=Text(f"Details: {escape(details)}"),
+            hint_stmt=(
+                "Are you connected to the Internet? If so, check whether your system "
+                f"can connect to [magenta]{host}[/] before trying again. There may be "
+                "a firewall or proxy that's preventing the connection."
+            ),
+        )
+
+
+class ConnectionTimeoutError(DiagnosticPipError):
+    reference = "connection-timeout"
+
+    def __init__(
+        self, url: str, host: str, *, kind: Literal["connect", "read"], timeout: float
+    ) -> None:
+        context = Text.assemble(
+            (host, "magenta"), f" didn't respond within {timeout} seconds"
+        )
+        if kind == "connect":
+            context.append(" (while establishing a connection)")
+        super().__init__(
+            message=f"Unable to fetch {url}",
+            context=context,
+            hint_stmt=(
+                "This is probably a temporary issue with the remote server or the "
+                "network connection. If this error persists, check the network "
+                "configuration. There may be a firewall or proxy that's preventing "
+                "the connection."
+            ),
+        )
+
+
+class SSLMissing(DiagnosticPipError):
+    reference = "ssl-missing"
+
+    def __init__(self, url: str) -> None:
+        super().__init__(
+            message=f"Failed to establish a secure connection for {url}",
+            context="The 'ssl' module is unavailable but required for HTTPS URLs",
+            hint_stmt=None,
+        )
+
+
+class SSLVerificationError(DiagnosticPipError):
+    reference = "ssl-verification-failed"
+
+    def __init__(self, url: str, host: str, error: urllib3.exceptions.SSLError) -> None:
+        message = (
+            "Failed to establish a secure connection to "
+            f"[magenta]{host}[/] while fetching {url}"
+        )
+        context = Text(f"Details: {escape(str(error))}")
+        super().__init__(message=message, context=context, hint_stmt=None)
+
+
+class ProxyConnectionError(DiagnosticPipError):
+    reference = "proxy-connection-failed"
+
+    def __init__(
+        self, url: str, proxy: str, error: urllib3.exceptions.ProxyError
+    ) -> None:
+        super().__init__(
+            message=(
+                f"Failed to connect to proxy [magenta]{proxy}[/] while fetching {url}"
+            ),
+            context=Text(f"Details: {escape(str(error.original_error))}"),
+            hint_stmt="This is likely a proxy configuration issue.",
+        )
 
 
 class InvalidWheelFilename(InstallationError):

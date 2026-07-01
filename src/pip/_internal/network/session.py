@@ -34,10 +34,12 @@ from pip._vendor.urllib3.connectionpool import ConnectionPool
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
+from pip._internal.exceptions import SSLMissing
 from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
+from pip._internal.network.utils import raise_connection_error
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
@@ -529,6 +531,19 @@ class PipSession(requests.Session):
         kwargs.setdefault("timeout", self.timeout)
         # Allow setting a default proxies on a session
         kwargs.setdefault("proxies", self.proxies)
+        assert (
+            isinstance(kwargs["timeout"], (int, float)) or kwargs["timeout"] is None
+        ), "not supported by pip"
 
         # Dispatch the actual request
-        return super().request(method, url, *args, **kwargs)
+        try:
+            return super().request(method, url, *args, **kwargs)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            timeout: tuple[float, float] | float | None = kwargs["timeout"]
+            if isinstance(timeout, (int, float)):
+                timeout = (timeout, timeout)
+            raise_connection_error(e, url=url, timeout=timeout)
+        except ImportError as e:
+            if "SSL" in str(e):
+                raise SSLMissing(url)
+            raise
