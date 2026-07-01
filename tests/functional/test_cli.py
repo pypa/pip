@@ -136,3 +136,4 @@ finally:
     assert not any("pip._internal.network" in mod for mod in imported)
     assert not any("requests" in mod for mod in imported)
     assert not any("urllib3" in mod for mod in imported)
+    assert not any("urllib.request" in mod for mod in imported)

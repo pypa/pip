@@ -1393,6 +1393,29 @@ def test_new_resolver_skip_inconsistent_metadata(script: PipTestEnvironment) -> 
     script.assert_installed(a="1")
 
 
+def test_new_resolver_inconsistent_metadata_keeps_extras(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "A", "1", extras={"foo": []})
+
+    a_2 = create_basic_wheel_for_package(script, "A", "2", extras={"foo": []})
+    a_2.rename(a_2.parent.joinpath("a-3-py2.py3-none-any.whl"))
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--verbose",
+        "A[foo]",
+        allow_stderr_warning=True,
+    )
+
+    assert "Requested A[foo]" in result.stdout, str(result)
+    script.assert_installed(a="1")
+
+
 @pytest.mark.parametrize(
     "upgrade",
     [True, False],
