@@ -137,3 +137,18 @@ def test_simple_wheel_cache_ignores_cache_for_existing_directory(
     monkeypatch.setattr(cache, "_get_candidates", fail_if_called)
 
     assert cache.get(link, "example", supported_tags=[]) is link
+
+
+def test_wheel_cache_entry_none_for_existing_directory(tmpdir: Path) -> None:
+    wc = WheelCache(os.fspath(tmpdir))
+    project_dir = tmpdir / "project"
+    project_dir.mkdir()
+    link = Link(path_to_url(str(project_dir)))
+    supported_tags = [Tag("py3", "none", "any")]
+    cache_path = wc.get_path_for_link(link)
+    ensure_dir(cache_path)
+    with open(os.path.join(cache_path, "example-1.0-py3-none-any.whl"), "w"):
+        pass
+
+    assert wc.get_cache_entry(link, "example", supported_tags) is None
+    assert wc.get(link, "example", supported_tags) is link
