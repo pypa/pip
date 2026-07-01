@@ -516,7 +516,7 @@ class RequirementPreparer:
                     # When a locally built wheel has been found in cache, we don't warn
                     # about re-downloading when the already downloaded wheel hash does
                     # not match. This is because the hash must be checked against the
-                    # original link, not the cached link. It that case the already
+                    # original link, not the cached link. In that case the already
                     # downloaded file will be removed and re-fetched from cache (which
                     # implies a hash check against the cache entry's origin.json).
                     warn_on_hash_mismatch=not req.is_wheel_from_cache,
