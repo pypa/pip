@@ -1,1 +1,2 @@
 Fix ``pip list --exclude`` making ``--not-required`` list dependencies.
+Fix ``pip list --not-required`` listing dependencies of packages excluded with ``--exclude``.
