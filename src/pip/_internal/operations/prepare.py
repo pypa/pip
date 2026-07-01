@@ -29,7 +29,7 @@ from pip._internal.exceptions import (
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, join_within_directory
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import Downloader
 from pip._internal.network.lazy_wheel import (
@@ -201,7 +201,8 @@ def _check_download_dir(
     """Check download_dir for previously downloaded file with correct hash
     If a correct file is found return its path else None
     """
-    download_path = os.path.join(download_dir, link.filename)
+    download_path = join_within_directory(download_dir, link.filename)
+
     if not os.path.exists(download_path):
         return None
 
@@ -686,7 +687,7 @@ class RequirementPreparer:
             # No distribution was downloaded for this requirement.
             return
 
-        download_location = os.path.join(self.download_dir, link.filename)
+        download_location = join_within_directory(self.download_dir, link.filename)
         if not os.path.exists(download_location):
             shutil.copy(req.local_file_path, download_location)
             download_path = display_path(download_location)
