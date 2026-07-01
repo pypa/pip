@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import os
+import posixpath
+
 import pytest
 
 from pip._internal.exceptions import InvalidEggFragment, PipError
-from pip._internal.models.link import Link, links_equivalent
+from pip._internal.models.link import (
+    Link,
+    as_path_component,
+    join_within_directory,
+    links_equivalent,
+)
 from pip._internal.utils.hashes import Hashes
 
 
@@ -29,6 +37,13 @@ class TestLink:
             ("https://example.com/path/page.html", "page.html"),
             # Test a quoted character.
             ("https://example.com/path/page%231.html", "page#1.html"),
+            # A doubly-encoded separator must stay encoded: the path is decoded
+            # exactly once, so the file name keeps its literal "%2F" instead of
+            # collapsing into a "/".
+            (
+                "https://example.com/a%252Fb.whl",
+                "a%2Fb.whl",
+            ),
             (
                 "http://yo/myproject-1.0%2Bfoobar.0-py2.py3-none-any.whl",
                 "myproject-1.0+foobar.0-py2.py3-none-any.whl",
@@ -48,6 +63,52 @@ class TestLink:
     def test_filename(self, url: str, expected: str) -> None:
         link = Link(url)
         assert link.filename == expected
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://example.com/a%252Fb.whl",
+            "https://example.com/%252e%252e%252fb.whl",
+        ],
+    )
+    def test_filename_decoded_once_stays_single_component(self, url: str) -> None:
+        # The path is decoded exactly once, so an encoded separator stays
+        # encoded and the file name remains a single path component rather
+        # than collapsing into a "/"-separated path.
+        filename = Link(url).filename
+        assert not posixpath.isabs(filename)
+        assert posixpath.basename(filename) == filename
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://example.com/..",
+            "https://example.com/.",
+            "https://example.com/foo/%2e%2e",
+        ],
+    )
+    def test_filename_parent_reference_falls_back_to_netloc(self, url: str) -> None:
+        # A path that is only a "." or ".." reference has no usable file name,
+        # so filename falls back to the netloc rather than handing back a
+        # traversal component that could escape a download directory.
+        assert Link(url).filename == "example.com"
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            # A path-less URL whose authority looks like a traversal: the netloc
+            # fallback must still reduce to a single path component.
+            "http://..\\..\\..\\evil.whl",
+            "http://../",
+            "http://..",
+        ],
+    )
+    def test_filename_is_always_a_path_component(self, url: str) -> None:
+        # filename must never carry a separator or parent reference, so joining
+        # it onto a directory can never escape that directory.
+        name = Link(url).filename
+        assert os.path.basename(name) == name
+        assert name not in (os.curdir, os.pardir)
 
     def test_splitext(self) -> None:
         assert ("wheel", ".whl") == Link("http://yo/wheel.whl").splitext()
@@ -244,3 +305,53 @@ def test_links_equivalent(url1: str, url2: str) -> None:
 )
 def test_links_equivalent_false(url1: str, url2: str) -> None:
     assert not links_equivalent(Link(url1), Link(url2))
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "wheel.whl",
+        "myproject-1.0+foobar.0-py2.py3-none-any.whl",
+        # A literal "%2F" is a normal file name, not a separator.
+        "a%2Fb.whl",
+    ],
+)
+def test_as_path_component_keeps_plain_name(name: str) -> None:
+    assert as_path_component(name) == name
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        os.path.join(os.sep, "abs", "pkg.whl"),
+        os.path.join("..", "pkg.whl"),
+        os.path.join("nested", "pkg.whl"),
+    ],
+)
+def test_as_path_component_reduces_to_basename(name: str) -> None:
+    # A name carrying directory components is reduced to its basename, so the
+    # result always stays inside the directory it is later joined onto.
+    assert as_path_component(name) == os.path.basename(name)
+
+
+@pytest.mark.parametrize("name", ["", ".", "..", "/", os.path.join("sub", "..")])
+def test_as_path_component_rejects_empty_or_parent_reference(name: str) -> None:
+    with pytest.raises(ValueError):
+        as_path_component(name)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "pkg.whl",
+        # A literal "%2F" is a normal file name, not a separator.
+        "a%2Fb.whl",
+    ],
+)
+def test_join_within_directory_stays_inside(name: str) -> None:
+    # The component is joined onto the directory as its final element, so the
+    # result stays inside the directory.
+    directory = os.path.join("base", "downloads")
+    joined = join_within_directory(directory, as_path_component(name))
+    assert joined == os.path.join(directory, name)
+    assert os.path.basename(joined) == name
