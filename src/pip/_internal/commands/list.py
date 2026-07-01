@@ -181,8 +181,6 @@ class ListCommand(IndexGroupCommand):
         cmdoptions.check_list_path_option(options)
 
         skip = set(stdlib_pkgs)
-        if options.excludes:
-            skip.update(canonicalize_name(n) for n in options.excludes)
 
         packages: _ProcessedDists = [
             cast("_DistWithLatestInfo", d)
@@ -201,6 +199,12 @@ class ListCommand(IndexGroupCommand):
         # could be filtered out before.
         if options.not_required:
             packages = self.get_not_required(packages, options)
+
+        if options.excludes:
+            excluded_names = {canonicalize_name(n) for n in options.excludes}
+            packages = [
+                dist for dist in packages if dist.canonical_name not in excluded_names
+            ]
 
         if options.outdated:
             packages = self.get_outdated(packages, options)
