@@ -437,7 +437,7 @@ class Git(VersionControl):
         if os.path.exists(url):
             # A local bare remote (git clone --mirror).
             # Needs a file:// prefix.
-            return pathlib.PurePath(url).as_uri()
+            return pathlib.Path(url).as_uri()
         scp_match = SCP_REGEX.match(url)
         if scp_match:
             # Add an ssh:// prefix and replace the ':' with a '/'.
