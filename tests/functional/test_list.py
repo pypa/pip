@@ -678,7 +678,6 @@ def test_not_required_with_exclude_does_not_list_dependencies(
         "--exclude",
         "TopoRequires4",
         "--format=json",
-        expect_stderr=True,
     )
     names = {item["name"] for item in json.loads(result.stdout)}
     listed_dependencies = names & {"TopoRequires", "TopoRequires2", "TopoRequires3"}
