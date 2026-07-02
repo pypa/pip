@@ -465,6 +465,22 @@ class TestHashes:
         assert Hashes({"sha256": ["abcd"]}) == Hashes({"sha256": ["abcd"]})
         assert Hashes({"sha256": ["ab", "cd"]}) == Hashes({"sha256": ["cd", "ab"]})
 
+    def test_and_intersects_hashes(self) -> None:
+        hashes = Hashes(
+            {
+                "sha256": ["ab", "cd", "ef"],
+                "sha384": ["gh"],
+            }
+        )
+        other = Hashes(
+            {
+                "sha256": ["ij", "ef", "ab"],
+                "sha512": ["kl"],
+            }
+        )
+
+        assert hashes & other == Hashes({"sha256": ["ab", "ef"]})
+
     def test_hash(self) -> None:
         cache = {}
         cache[Hashes({"sha256": ["ab", "cd"]})] = 42
