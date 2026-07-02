@@ -23,6 +23,12 @@ from ._dists import Distribution
 
 logger = logging.getLogger(__name__)
 
+# Locations we've already warned about due to bad metadata. Kept at module
+# level (not on _DistributionFinder) because a new finder is created every
+# time _iter_distributions() runs, and that happens multiple times within a
+# single pip invocation.
+_warned_bad_metadata: set[BasePath | None] = set()
+
 
 def _looks_like_wheel(location: str) -> bool:
     if not location.endswith(WHEEL_EXTENSION):
@@ -68,7 +74,9 @@ class _DistributionFinder:
             try:
                 name = get_dist_canonical_name(dist)
             except BadMetadata as e:
-                logger.warning("Skipping %s due to %s", info_location, e.reason)
+                if info_location not in _warned_bad_metadata:
+                    logger.warning("Skipping %s due to %s", info_location, e.reason)
+                    _warned_bad_metadata.add(info_location)
                 continue
             if name in self._found_names:
                 continue
