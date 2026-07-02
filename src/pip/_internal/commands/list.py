@@ -180,8 +180,6 @@ class ListCommand(IndexGroupCommand):
 
         cmdoptions.check_list_path_option(options)
 
-        skip = set(stdlib_pkgs)
-
         packages: _ProcessedDists = [
             cast("_DistWithLatestInfo", d)
             for d in get_environment(options.path).iter_installed_distributions(
@@ -189,7 +187,7 @@ class ListCommand(IndexGroupCommand):
                 user_only=options.user,
                 editables_only=options.editable,
                 include_editables=options.include_editable,
-                skip=skip,
+                skip=set(stdlib_pkgs),
             )
         ]
 
