@@ -256,6 +256,15 @@ class Downloader:
                     download.reset_file()
                     download.size = _get_http_response_size(resume_resp)
                     first_resp = resume_resp
+                else:
+                    # A 206 body is written at the current file offset, so the
+                    # server must resume from exactly where we asked. If its
+                    # Content-Range says otherwise, the bytes would land in the
+                    # wrong place; fail instead of silently corrupting the file.
+                    expected = f"bytes {download.bytes_received}-"
+                    content_range = resume_resp.headers.get("content-range", "")
+                    if content_range and not content_range.startswith(expected):
+                        raise IncompleteDownloadError(download)
 
                 self._process_response(download, resume_resp)
             except (ConnectionError, ReadTimeoutError, ProtocolError, OSError):
