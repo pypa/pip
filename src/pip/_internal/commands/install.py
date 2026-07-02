@@ -692,7 +692,7 @@ class InstallCommand(RequirementCommand):
 
         # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
-            version = package_set[project_name][0]
+            version = package_set[project_name].version
             for dependency in missing[project_name]:
                 message = (
                     f"{project_name} {version} requires {dependency[1]}, "
@@ -701,7 +701,7 @@ class InstallCommand(RequirementCommand):
                 parts.append(message)
 
         for project_name in conflicting:
-            version = package_set[project_name][0]
+            version = package_set[project_name].version
             for dep_name, dep_version, req in conflicting[project_name]:
                 message = (
                     "{name} {version} requires {requirement}, but {you} have "
