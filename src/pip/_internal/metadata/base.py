@@ -28,10 +28,16 @@ from pip._internal.models.direct_url import (
     DirectUrl,
     DirectUrlValidationError,
 )
-from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
 from pip._internal.utils.egg_link import egg_link_path_from_sys_path
 from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
+
+# packages in the stdlib that may have installation metadata, but should not be
+# considered 'installed'.  this theoretically could be determined based on
+# dist.location (py27:`sysconfig.get_paths()['stdlib']`,
+# py26:sysconfig.get_config_vars('LIBDEST')), but fear platform variation may
+# make this ineffective, so hard-coding
+stdlib_pkgs = {"python", "wsgiref", "argparse"}
 
 from ._json import msg_to_json
 
