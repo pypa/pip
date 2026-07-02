@@ -6,6 +6,7 @@ import email.message
 import logging
 import mimetypes
 import os
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -51,6 +52,21 @@ def _get_http_response_etag_or_last_modified(resp: Response) -> str | None:
     The return value can be used in an If-Range header.
     """
     return resp.headers.get("etag", resp.headers.get("last-modified"))
+
+
+_CONTENT_RANGE_START_RE = re.compile(r"\s*bytes\s+(\d+)-", re.IGNORECASE)
+
+
+def _get_content_range_start(resp: Response) -> int | None:
+    """Return the first-byte offset declared in the Content-Range header.
+
+    Returns None if the header is absent or does not carry a numeric start
+    (e.g. an unsatisfied-range "bytes */1234").
+    """
+    match = _CONTENT_RANGE_START_RE.match(resp.headers.get("content-range", ""))
+    if match is None:
+        return None
+    return int(match.group(1))
 
 
 def _log_download(
@@ -256,6 +272,18 @@ class Downloader:
                     download.reset_file()
                     download.size = _get_http_response_size(resume_resp)
                     first_resp = resume_resp
+                else:
+                    # The body of a 206 is written at the current offset, so a
+                    # server that resumes from a different offset than requested
+                    # would corrupt the file. Discard what we have and restart
+                    # rather than trust the misplaced bytes.
+                    resumed_from = _get_content_range_start(resume_resp)
+                    if (
+                        resumed_from is not None
+                        and resumed_from != download.bytes_received
+                    ):
+                        download.reset_file()
+                        continue
 
                 self._process_response(download, resume_resp)
             except (ConnectionError, ReadTimeoutError, ProtocolError, OSError):

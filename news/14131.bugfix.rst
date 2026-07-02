@@ -1,0 +1,3 @@
+Restart an interrupted download if the server resumes a range request from an
+unexpected offset, instead of appending the misplaced bytes and corrupting the
+saved file.
