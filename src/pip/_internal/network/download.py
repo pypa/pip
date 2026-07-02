@@ -163,6 +163,9 @@ class _FileDownload:
     def is_incomplete(self) -> bool:
         return bool(self.size is not None and self.bytes_received < self.size)
 
+    def is_empty(self) -> bool:
+        return bool(self.size is None and self.bytes_received == 0)
+
     def write_chunk(self, data: bytes) -> None:
         self.bytes_received += len(data)
         self.output_file.write(data)
@@ -206,7 +209,7 @@ class Downloader:
         with open(filepath, "wb") as content_file:
             download = _FileDownload(link, content_file, download_size)
             self._process_response(download, resp)
-            if download.is_incomplete():
+            if download.is_incomplete() or download.is_empty():
                 self._attempt_resumes_or_redownloads(download, resp)
 
         content_type = resp.headers.get("Content-Type", "")
@@ -236,18 +239,34 @@ class Downloader:
     ) -> None:
         """Attempt to resume/restart the download if connection was dropped."""
 
-        while download.reattempts < self._resume_retries and download.is_incomplete():
-            assert download.size is not None
-            download.reattempts += 1
-            logger.warning(
-                "Attempting to resume incomplete download (%s/%s, attempt %d)",
-                format_size(download.bytes_received),
-                format_size(download.size),
-                download.reattempts,
+        while download.reattempts < self._resume_retries and (
+            download.is_incomplete()
+            or (
+                download.is_empty()
+                and first_resp.status_code == HTTPStatus.NOT_MODIFIED
             )
-
+        ):
+            is_empty = download.is_empty()
+            download.reattempts += 1
+            if is_empty:
+                logger.warning(
+                    "Retrying empty download (attempt %d)", download.reattempts
+                )
+            else:
+                assert download.size is not None
+                logger.warning(
+                    "Attempting to resume incomplete download (%s/%s, attempt %d)",
+                    format_size(download.bytes_received),
+                    format_size(download.size),
+                    download.reattempts,
+                )
             try:
-                resume_resp = self._http_get_resume(download, should_match=first_resp)
+                if is_empty:
+                    resume_resp = self._http_get(download.link)
+                else:
+                    resume_resp = self._http_get_resume(
+                        download, should_match=first_resp
+                    )
                 # Fallback: if the server responded with 200 (i.e., the file has
                 # since been modified or range requests are unsupported) or any
                 # other unexpected status, restart the download from the beginning.
@@ -260,6 +279,9 @@ class Downloader:
                 self._process_response(download, resume_resp)
             except (ConnectionError, ReadTimeoutError, ProtocolError, OSError):
                 continue
+
+        if download.is_empty():
+            raise NetworkConnectionError("empty download (invalid HTTP 304 response)")
 
         # No more resume attempts. Raise an error if the download is still incomplete.
         if download.is_incomplete():
