@@ -32,6 +32,8 @@ from pip._internal.utils.egg_link import egg_link_path_from_sys_path
 from pip._internal.utils.misc import is_local, normalize_path
 from pip._internal.utils.urls import url_to_path
 
+from ._json import msg_to_json
+
 # packages in the stdlib that may have installation metadata, but should not be
 # considered 'installed'.  this theoretically could be determined based on
 # dist.location (py27:`sysconfig.get_paths()['stdlib']`,
@@ -39,7 +41,6 @@ from pip._internal.utils.urls import url_to_path
 # make this ineffective, so hard-coding
 stdlib_pkgs = {"python", "wsgiref", "argparse"}
 
-from ._json import msg_to_json
 
 InfoPath = str | pathlib.PurePath
 
