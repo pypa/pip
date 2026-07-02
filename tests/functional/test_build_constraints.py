@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
@@ -16,6 +14,13 @@ from tests.lib import (
     TestPipResult,
     create_test_package_with_setup,
 )
+
+# Build dependencies can be installed in a subprocess (default) or in process
+# (--use-feature=inprocess-build-deps); constraint handling must match for both.
+INSTALLER_ARGS = [
+    pytest.param([], id="subprocess"),
+    pytest.param(["--use-feature=inprocess-build-deps"], id="inprocess"),
+]
 
 
 def _create_simple_test_package(script: PipTestEnvironment, name: str) -> Path:
@@ -50,8 +55,6 @@ def _run_pip_install_with_build_constraints(
         "--no-cache-dir",
         "--build-constraint",
         str(build_constraints_file),
-        "--use-feature",
-        "build-constraint",
     ]
 
     if extra_args:
@@ -62,22 +65,6 @@ def _run_pip_install_with_build_constraints(
     return script.pip_install_local(
         *args,
         expect_error=expect_error,
-        build_isolation=True,
-        find_links=data.common_wheels,
-    )
-
-
-def _run_pip_install_with_build_constraints_no_feature_flag(
-    script: PipTestEnvironment,
-    data: TestData,
-    project_dir: Path,
-    constraints_file: Path,
-) -> TestPipResult:
-    """Run pip install with build constraints but without the feature flag."""
-    return script.pip_install_local(
-        "--build-constraint",
-        str(constraints_file),
-        str(project_dir),
         build_isolation=True,
         find_links=data.common_wheels,
     )
@@ -129,8 +116,6 @@ def test_build_constraints_vs_regular_constraints_simple(
         build_constraints_file,
         "--constraint",
         regular_constraints_file,
-        "--use-feature",
-        "build-constraint",
         "--use-pep517",
         str(project_dir),
         expect_error=False,
@@ -176,29 +161,28 @@ def test_build_constraints_file_not_found(
     assert "No such file or directory" in result.stderr
 
 
-def test_build_constraints_without_feature_flag(
-    script: PipTestEnvironment, data: TestData, tmpdir: Path
+def test_use_feature_build_constraint_is_always_enabled(
+    script: PipTestEnvironment,
 ) -> None:
-    """Test that --build-constraint automatically enables the feature."""
-    project_dir = _create_simple_test_package(script=script, name="test_no_feature")
-    constraints_file = _create_constraints_file(
-        script=script, filename="constraints.txt", content="setuptools>=40.0.0\n"
+    """``--use-feature=build-constraint`` is accepted but now a no-op that
+    reports the feature is always enabled."""
+    result = script.pip(
+        "install",
+        "--use-feature=build-constraint",
+        "--no-index",
+        "does-not-exist",
+        expect_error=True,
+        allow_stderr_warning=True,
     )
-    result = _run_pip_install_with_build_constraints_no_feature_flag(
-        script=script,
-        data=data,
-        project_dir=project_dir,
-        constraints_file=constraints_file,
-    )
-    # Should succeed now that --build-constraint auto-enables the feature
-    assert result.returncode == 0
-    result.assert_installed("test-no-feature", editable=False, without_files=["."])
+    assert "always enabled" in result.stderr
+    assert "build-constraint" in result.stderr
 
 
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
 def test_constraints_dont_pass_through(
-    script: PipTestEnvironment, data: TestData, tmpdir: Path
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, installer_args: list[str]
 ) -> None:
-    """When build constraints enabled, check PIP_CONSTRAINT won't affect builds."""
+    """PIP_CONSTRAINT must not affect the isolated build env."""
     project_dir = create_test_package_with_setup(
         script,
         name="test_isolation",
@@ -208,12 +192,70 @@ def test_constraints_dont_pass_through(
     constraints = _create_constraints_file(
         script=script, filename="constraints.txt", content="setuptools==2000\n"
     )
-    with mock.patch.dict(os.environ, {"PIP_CONSTRAINT": path_to_url(str(constraints))}):
-        result = script.pip_install_local(
-            "--no-cache-dir",
-            str(project_dir),
-            "--use-feature=build-constraint",
-            build_isolation=True,
-            find_links=data.common_wheels,
-        )
+    script.environ["PIP_CONSTRAINT"] = path_to_url(str(constraints))
+    result = script.pip_install_local(
+        "--no-cache-dir",
+        *installer_args,
+        str(project_dir),
+        build_isolation=True,
+        find_links=data.common_wheels,
+    )
     result.assert_installed("test_isolation", editable=False, without_files=["."])
+
+
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
+def test_constraints_dont_pass_through_with_build_constraints(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, installer_args: list[str]
+) -> None:
+    """PIP_CONSTRAINT must not affect the build env even when build
+    constraints are also passed."""
+    project_dir = create_test_package_with_setup(
+        script,
+        name="test_isolation",
+        version="1.0",
+        py_modules=["test_isolation"],
+    )
+    # An impossible regular constraint that would break the build if it leaked.
+    constraints = _create_constraints_file(
+        script=script, filename="constraints.txt", content="setuptools==2000\n"
+    )
+    # A satisfiable build constraint.
+    build_constraints = _create_constraints_file(
+        script=script,
+        filename="build_constraints.txt",
+        content="setuptools>=40.0.0\n",
+    )
+    script.environ["PIP_CONSTRAINT"] = path_to_url(str(constraints))
+    result = _run_pip_install_with_build_constraints(
+        script=script,
+        data=data,
+        project_dir=project_dir,
+        build_constraints_file=build_constraints,
+        extra_args=installer_args,
+    )
+    result.assert_installed("test_isolation", editable=False, without_files=["."])
+
+
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
+def test_build_constraint_is_enforced(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path, installer_args: list[str]
+) -> None:
+    """An unsatisfiable build constraint must make the build fail."""
+    project_dir = create_test_package_with_setup(
+        script,
+        name="test_isolation",
+        version="1.0",
+        py_modules=["test_isolation"],
+    )
+    build_constraints = _create_constraints_file(
+        script=script, filename="build_constraints.txt", content="setuptools==2000\n"
+    )
+    result = _run_pip_install_with_build_constraints(
+        script=script,
+        data=data,
+        project_dir=project_dir,
+        build_constraints_file=build_constraints,
+        extra_args=installer_args,
+        expect_error=True,
+    )
+    assert "setuptools==2000" in result.stderr
