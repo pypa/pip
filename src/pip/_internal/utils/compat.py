@@ -8,7 +8,7 @@ import os
 import sys
 from typing import IO
 
-__all__ = ["get_locale_encoding", "get_path_uid", "stdlib_pkgs", "tomllib", "WINDOWS"]
+__all__ = ["get_locale_encoding", "get_path_uid", "tomllib", "WINDOWS"]
 
 
 logger = logging.getLogger(__name__)
