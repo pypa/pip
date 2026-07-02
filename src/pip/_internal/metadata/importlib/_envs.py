@@ -23,10 +23,8 @@ from ._dists import Distribution
 
 logger = logging.getLogger(__name__)
 
-# Locations we've already warned about due to bad metadata. Kept at module
-# level (not on _DistributionFinder) because a new finder is created every
-# time _iter_distributions() runs, and that happens multiple times within a
-# single pip invocation.
+# Used to avoid emitting duplicate invalid distribution metadata warnings for
+# the same dist-info directory.
 _warned_bad_metadata: set[BasePath | None] = set()
 
 
