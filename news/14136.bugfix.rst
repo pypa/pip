@@ -1,0 +1,1 @@
+Fix option-error usage block printing raw Rich markup (e.g. ``[optparse.groups]Usage:[/]``) instead of rendered text when an invalid option is passed.
