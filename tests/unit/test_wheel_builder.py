@@ -10,6 +10,7 @@ import pytest
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.git import Git
 
 from tests.lib import _create_test_package
@@ -70,4 +71,12 @@ def test_should_cache_git_sha(tmpdir: Path) -> None:
     # a link not referencing a sha should not be cached
     url = "git+https://g.c/o/r@master#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
+    assert not wheel_builder._should_cache(cast(InstallRequirement, req))
+
+
+@pytest.mark.parametrize("name", ["package", "my-package"])
+def test_should_not_cache_local_directory(tmpdir: Path, name: str) -> None:
+    project_dir = tmpdir / name
+    project_dir.mkdir()
+    req = ReqMock(link=Link(path_to_url(str(project_dir))))
     assert not wheel_builder._should_cache(cast(InstallRequirement, req))

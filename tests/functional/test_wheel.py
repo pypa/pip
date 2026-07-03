@@ -2,17 +2,22 @@
 
 import os
 import re
+import shutil
 import sys
 import textwrap
 from pathlib import Path
 
 import pytest
 
+from pip._internal.cache import SimpleWheelCache
 from pip._internal.cli.status_codes import ERROR
+from pip._internal.models.link import Link
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib import (
     PipTestEnvironment,
     TestData,
+    create_basic_wheel_for_package,
     pyversion,
 )
 
@@ -532,3 +537,33 @@ def test_wheel_pylock_directories(
         "simplewheel-2.0-py3-none-any.whl",
         "singlemodule-0.0.1-py2.py3-none-any.whl",
     ]
+
+
+def test_wheel_local_directory_ignores_cached_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A cached wheel is rebuilt, not copied, for a local directory (#14044)."""
+    cache_dir = script.scratch_path / "cache"
+    wheel_dir = script.scratch_path / "wheels"
+    link_url = path_to_url(os.fspath(data.packages.joinpath("FSPkg")))
+    cache = SimpleWheelCache(os.fspath(cache_dir))
+    cache_path = cache.get_path_for_link(Link(link_url))
+    os.makedirs(cache_path)
+    stale_wheel = create_basic_wheel_for_package(script, "FSPkg", "9.9")
+    shutil.copy(stale_wheel, os.path.join(cache_path, stale_wheel.name))
+
+    script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "--no-deps",
+        "--cache-dir",
+        os.fspath(cache_dir),
+        "-w",
+        os.fspath(wheel_dir),
+        f"FSPkg @ {link_url}",
+    )
+    wheels = [p.name for p in wheel_dir.glob("*.whl")]
+    # Rebuilt from source (0.1.dev0), not copied from the stale cache (9.9).
+    assert any("0.1.dev0" in w for w in wheels), wheels
+    assert not any("9.9" in w for w in wheels), wheels
