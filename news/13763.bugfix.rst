@@ -1,0 +1,4 @@
+When installing with ``--target <dir> --upgrade``, remove the files and
+``.dist-info`` directories of the previous versions of the packages being
+upgraded, instead of leaving multiple versions' metadata in the target
+directory.

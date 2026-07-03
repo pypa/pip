@@ -1169,6 +1169,33 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
     result.did_update(singlemodule_py)
 
 
+def test_install_package_with_target_upgrade_removes_old_version(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Upgrading in a target directory removes the previous version's files and
+    metadata rather than leaving both versions' .dist-info directories
+    behind (#13763).
+    """
+    target_dir = script.scratch_path / "target"
+    script.pip_install_local("-t", target_dir, "simple==1.0")
+    assert (target_dir / "simple-1.0.dist-info").exists()
+
+    result = script.pip_install_local("--upgrade", "-t", target_dir, "simple==2.0")
+    result.did_create(Path("scratch") / "target" / "simple-2.0.dist-info")
+    assert not (target_dir / "simple-1.0.dist-info").exists()
+
+    # Only the new version is visible to importlib.metadata.
+    versions = script.run(
+        "python",
+        "-c",
+        "import importlib.metadata as m;"
+        f"dists = m.distributions(path=[{os.fspath(target_dir)!r}]);"
+        "print(*(d.version for d in dists))",
+    )
+    assert versions.stdout.strip() == "2.0"
+
+
 @pytest.mark.parametrize("target_option", ["--target", "-t"])
 def test_install_package_to_usersite_with_target_must_fail(
     script: PipTestEnvironment, target_option: str

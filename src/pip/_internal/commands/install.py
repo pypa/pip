@@ -625,6 +625,9 @@ class InstallCommand(RequirementCommand):
         if os.path.exists(data_dir):
             lib_dir_list.append(data_dir)
 
+        if upgrade:
+            self._remove_dists_being_upgraded(target_dir, lib_dir_list)
+
         for lib_dir in lib_dir_list:
             for item in os.listdir(lib_dir):
                 if lib_dir == data_dir:
@@ -655,6 +658,55 @@ class InstallCommand(RequirementCommand):
                         os.remove(target_item_dir)
 
                 shutil.move(os.path.join(lib_dir, item), target_item_dir)
+
+    def _remove_dists_being_upgraded(
+        self, target_dir: str, lib_dir_list: list[str]
+    ) -> None:
+        """Remove distributions in the target directory that are being
+        upgraded, so that no files or ``.dist-info`` directories of older
+        versions are left behind (see #13763).
+        """
+        new_names = {
+            dist.canonical_name
+            for dist in get_environment(lib_dir_list).iter_all_distributions()
+        }
+        if not new_names:
+            return
+        target_root = os.path.normpath(os.path.abspath(target_dir))
+
+        def is_inside_target(path: str) -> bool:
+            try:
+                return os.path.commonpath([target_root, path]) == target_root
+            except ValueError:
+                return False
+
+        for existing in get_environment([target_root]).iter_all_distributions():
+            if existing.canonical_name not in new_names:
+                continue
+            location = existing.location or target_root
+            removed_dirs = set()
+            for entry in existing.iter_declared_entries() or ():
+                path = os.path.normpath(os.path.join(location, entry))
+                # Never remove anything outside of the target directory.
+                if not is_inside_target(path):
+                    continue
+                if os.path.lexists(path) and not os.path.isdir(path):
+                    os.remove(path)
+                    removed_dirs.add(os.path.dirname(path))
+            if existing.info_location:
+                info_path = os.path.normpath(os.path.abspath(existing.info_location))
+                if is_inside_target(info_path) and os.path.isdir(info_path):
+                    shutil.rmtree(info_path)
+            # Clean up any directories left empty by the removals.
+            for directory in sorted(removed_dirs, key=len, reverse=True):
+                while (
+                    directory != target_root
+                    and is_inside_target(directory)
+                    and os.path.isdir(directory)
+                    and not os.listdir(directory)
+                ):
+                    os.rmdir(directory)
+                    directory = os.path.dirname(directory)
 
     def _determine_conflicts(
         self, to_install: list[InstallRequirement]
