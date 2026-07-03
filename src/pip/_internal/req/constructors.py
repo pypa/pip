@@ -356,9 +356,7 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
             try:
                 markers = Marker(markers_as_string)
             except InvalidMarker as exc:
-                raise InstallationError(
-                    f"Invalid requirement: {name.strip()!r}: {exc}"
-                )
+                raise InstallationError(f"Invalid requirement: {name.strip()!r}: {exc}")
     else:
         markers = None
     name = name.strip()
