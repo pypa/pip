@@ -257,11 +257,8 @@ class Downloader:
                     download.size = _get_http_response_size(resume_resp)
                     first_resp = resume_resp
                 else:
-                    # A 206 body is written at the current file offset, so when
-                    # the server declares a Content-Range it must resume from
-                    # exactly the byte we asked for. If it starts elsewhere the
-                    # bytes would land in the wrong place; fail rather than
-                    # silently corrupt the file.
+                    # If the resume request starts at the wrong location, fail
+                    # outright since the server is misbehaving.
                     content_range = resume_resp.headers.get("Content-Range", "")
                     resumed_at = content_range.lower().partition("bytes ")[2]
                     resumed_at = resumed_at.partition("-")[0]
