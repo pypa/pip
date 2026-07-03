@@ -256,6 +256,14 @@ class Downloader:
                     download.reset_file()
                     download.size = _get_http_response_size(resume_resp)
                     first_resp = resume_resp
+                else:
+                    # If the resume request starts at the wrong location, fail
+                    # outright since the server is misbehaving.
+                    content_range = resume_resp.headers.get("Content-Range", "")
+                    resumed_at = content_range.lower().partition("bytes ")[2]
+                    resumed_at = resumed_at.partition("-")[0]
+                    if resumed_at and resumed_at != str(download.bytes_received):
+                        raise IncompleteDownloadError(download)
 
                 self._process_response(download, resume_resp)
             except (ConnectionError, ReadTimeoutError, ProtocolError, OSError):
