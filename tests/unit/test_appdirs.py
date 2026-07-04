@@ -36,6 +36,13 @@ class TestUserCacheDir:
 
         assert appdirs.user_cache_dir("pip") == "/home/test/Library/Caches/pip"
 
+    @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
+    def test_user_cache_dir_osx_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("XDG_CACHE_HOME", "/home/test/.other-cache")
+        monkeypatch.setenv("HOME", "/home/test")
+
+        assert appdirs.user_cache_dir("pip") == "/home/test/.other-cache/pip"
+
     @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     def test_user_cache_dir_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
@@ -129,6 +136,18 @@ class TestSiteConfigDirs:
             "/Library/Application Support/pip",
         ]
 
+    @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
+    def test_site_config_dirs_osx_override(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("XDG_DATA_DIRS", "/spam:/etc:/etc/xdg")
+
+        assert appdirs.site_config_dirs("pip") == [
+            "/spam/pip",
+            "/etc/pip",
+            "/etc/xdg/pip",
+        ]
+
     @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     def test_site_config_dirs_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("XDG_CONFIG_DIRS", raising=False)
@@ -204,6 +223,7 @@ class TestUserConfigDir:
 
     @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
     def test_user_config_dir_osx(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("XDG_DATA_HOME", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
 
         if os.path.isdir("/home/test/Library/Application Support/"):
@@ -213,6 +233,23 @@ class TestUserConfigDir:
             )
         else:
             assert appdirs.user_config_dir("pip") == "/home/test/.config/pip"
+
+    @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
+    def test_user_config_dir_osx_override(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("XDG_DATA_HOME", "/home/test/.other-config")
+        monkeypatch.setenv("HOME", "/home/test")
+
+        # Override (or ~/Library/Application Support) is only used if it exists
+        with mock.patch.object(
+            os.path,
+            "isdir",
+            lambda s: s.endswith(".other-config/pip"),
+        ):
+            assert appdirs.user_config_dir("pip") == "/home/test/.other-config/pip"
+
+        assert appdirs.user_config_dir("pip") == "/home/test/.config/pip"
 
     @pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
     def test_user_config_dir_linux(self, monkeypatch: pytest.MonkeyPatch) -> None:
