@@ -1,0 +1,1 @@
+Fix line continuations in requirements files when a backslash is followed by trailing whitespace.
