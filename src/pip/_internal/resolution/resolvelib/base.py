@@ -159,6 +159,11 @@ class Candidate:
     def source_link(self) -> Link | None:
         raise NotImplementedError("Override in subclass")
 
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        """Extras requested for this candidate."""
+        return frozenset()
+
     def iter_dependencies(
         self,
         with_requires: bool,

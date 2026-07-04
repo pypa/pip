@@ -60,14 +60,6 @@ def as_base_candidate(candidate: Candidate) -> BaseCandidate | None:
     return None
 
 
-def get_candidate_requested_extras(
-    candidate: Candidate,
-) -> frozenset[NormalizedName]:
-    if isinstance(candidate, ExtrasCandidate):
-        return candidate.extras
-    return frozenset()
-
-
 def make_install_req_from_link(
     link: Link,
     template: InstallRequirement,
@@ -539,6 +531,10 @@ class ExtrasCandidate(Candidate):
     @property
     def source_link(self) -> Link | None:
         return self.base.source_link
+
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        return self.extras
 
     def iter_dependencies(
         self,

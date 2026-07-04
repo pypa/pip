@@ -41,9 +41,7 @@ class ExplicitRequirement(Requirement):
 
     @property
     def requested_extras(self) -> frozenset[NormalizedName]:
-        from .candidates import get_candidate_requested_extras
-
-        return get_candidate_requested_extras(self.candidate)
+        return self.candidate.requested_extras
 
     def format_for_error(self) -> str:
         return self.candidate.format_for_error()

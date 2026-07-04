@@ -14,7 +14,7 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 from pip._internal.req.req_install import InstallRequirement
 
 from .base import Candidate, Constraint, Requirement
-from .candidates import REQUIRES_PYTHON_IDENTIFIER, get_candidate_requested_extras
+from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
 from .requirements import ExplicitRequirement
 
@@ -303,7 +303,7 @@ class PipProvider(_ProviderBase):
             candidate.project_name,
             frozenset(),
         )
-        if get_candidate_requested_extras(candidate) != requested_extras:
+        if candidate.requested_extras != requested_extras:
             return False
         return requirement.is_satisfied_by(candidate)
 
