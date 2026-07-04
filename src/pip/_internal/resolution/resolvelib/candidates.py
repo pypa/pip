@@ -277,16 +277,12 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._check_metadata_consistency(dist)
         return dist
 
-    def iter_dependencies(
-        self,
-        with_requires: bool,
-        requested_extras: frozenset[NormalizedName],
-    ) -> Iterable[Requirement | None]:
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         # Emit the Requires-Python requirement first to fail fast on
         # unsupported candidates and avoid pointless downloads/preparation.
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
         requires = (
-            self.dist.iter_dependencies(requested_extras) if with_requires else ()
+            self.dist.iter_dependencies(self.requested_extras) if with_requires else ()
         )
         for r in requires:
             yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
@@ -433,16 +429,12 @@ class AlreadyInstalledCandidate(Candidate):
     def format_for_error(self) -> str:
         return f"{self.name} {self.version} (Installed)"
 
-    def iter_dependencies(
-        self,
-        with_requires: bool,
-        requested_extras: frozenset[NormalizedName],
-    ) -> Iterable[Requirement | None]:
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         if not with_requires:
             return
 
         try:
-            for r in self.dist.iter_dependencies(requested_extras):
+            for r in self.dist.iter_dependencies(self.requested_extras):
                 yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
         except InvalidRequirement as exc:
             raise InvalidInstalledPackage(dist=self.dist, invalid_exc=exc) from None
@@ -489,7 +481,7 @@ class ExtrasCandidate(Candidate):
 
     def __str__(self) -> str:
         name, rest = str(self.base).split(" ", 1)
-        return "{}[{}] {}".format(name, ",".join(self.extras), rest)
+        return "{}[{}] {}".format(name, ",".join(sorted(self.extras)), rest)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(base={self.base!r}, extras={self.extras!r})"
@@ -536,11 +528,7 @@ class ExtrasCandidate(Candidate):
     def requested_extras(self) -> frozenset[NormalizedName]:
         return self.extras
 
-    def iter_dependencies(
-        self,
-        with_requires: bool,
-        requested_extras: frozenset[NormalizedName],
-    ) -> Iterable[Requirement | None]:
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         factory = self.base._factory
 
         # Emit the Requires-Python requirement from the wrapped base candidate.
@@ -615,11 +603,7 @@ class RequiresPythonCandidate(Candidate):
     def format_for_error(self) -> str:
         return f"Python {self.version}"
 
-    def iter_dependencies(
-        self,
-        with_requires: bool,
-        requested_extras: frozenset[NormalizedName],
-    ) -> Iterable[Requirement | None]:
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         return ()
 
     def get_install_requirement(self) -> InstallRequirement | None:

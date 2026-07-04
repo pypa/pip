@@ -309,16 +309,8 @@ class PipProvider(_ProviderBase):
 
     def get_dependencies(self, candidate: Candidate) -> Iterable[Requirement]:
         with_requires = not self._ignore_dependencies
-        requested_extras = self._active_extras.get(
-            candidate.project_name,
-            frozenset(),
-        )
         # iter_dependencies() can perform nontrivial work so delay until needed.
-        return (
-            r
-            for r in candidate.iter_dependencies(with_requires, requested_extras)
-            if r is not None
-        )
+        return (r for r in candidate.iter_dependencies(with_requires) if r is not None)
 
 
 def _get_extras_from_requirements(

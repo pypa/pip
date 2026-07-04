@@ -6,6 +6,8 @@ from pip._vendor.packaging._parser import MarkerList, Op, Value, Variable
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.utils import canonicalize_name
 
+_NEGATED_EXTRA_OPS = {"!=", "not in"}
+
 
 def _eval_extra_marker(
     lhs: Variable | Value,
@@ -18,30 +20,11 @@ def _eval_extra_marker(
     if not lhs_is_extra and not rhs_is_extra:
         return None
 
-    if lhs_is_extra and isinstance(rhs, Value):
-        extra = rhs.value
-    elif rhs_is_extra and isinstance(lhs, Value):
-        extra = lhs.value
-    else:
-        return False
-
-    normalized_extra = canonicalize_name(extra)
+    marker = Marker._from_markers([(lhs, op, rhs)])
     extras_to_evaluate = extras or frozenset({""})
-    if op.value == "==":
-        return any(extra == normalized_extra for extra in extras_to_evaluate)
-    if op.value == "!=":
-        return all(extra != normalized_extra for extra in extras_to_evaluate)
-    if op.value == "in":
-        return any(
-            Marker._from_markers([(lhs, op, rhs)]).evaluate({"extra": extra})
-            for extra in extras_to_evaluate
-        )
-    if op.value == "not in":
-        return all(
-            Marker._from_markers([(lhs, op, rhs)]).evaluate({"extra": extra})
-            for extra in extras_to_evaluate
-        )
-    return False
+    if op.value in _NEGATED_EXTRA_OPS:
+        return all(marker.evaluate({"extra": extra}) for extra in extras_to_evaluate)
+    return any(marker.evaluate({"extra": extra}) for extra in extras_to_evaluate)
 
 
 def _evaluate_markers(markers: MarkerList, extras: frozenset[str]) -> bool:

@@ -164,11 +164,7 @@ class Candidate:
         """Extras requested for this candidate."""
         return frozenset()
 
-    def iter_dependencies(
-        self,
-        with_requires: bool,
-        requested_extras: frozenset[NormalizedName],
-    ) -> Iterable[Requirement | None]:
+    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         raise NotImplementedError("Override in subclass")
 
     def get_install_requirement(self) -> InstallRequirement | None:

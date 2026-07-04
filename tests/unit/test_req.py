@@ -733,10 +733,11 @@ class TestInstallRequirement:
         assert req.match_markers()
         assert not req.match_markers(["gpu"])
 
-    def test_markers_match_unsupported_extra_comparison(self) -> None:
+    def test_markers_match_ordered_extra_comparison(self) -> None:
         req = install_req_from_line('name; extra >= "gpu"')
         assert not req.match_markers()
-        assert not req.match_markers(["gpu"])
+        assert req.match_markers(["gpu"])
+        assert req.match_markers(["docs", "gpu"])
 
     def test_markers_match_extra_in_operators(self) -> None:
         req = install_req_from_line('name; extra in "gpu,docs"')
