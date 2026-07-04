@@ -1,22 +1,15 @@
-"""Build Environment used for isolation during sdist building"""
-
 from __future__ import annotations
 
 import logging
-import os
-import site
 import sys
 import textwrap
-from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from contextlib import AbstractContextManager as ContextManager
 from contextlib import nullcontext
 from io import StringIO
-from types import TracebackType
-from typing import TYPE_CHECKING, Protocol, TypedDict
+from typing import TYPE_CHECKING
 
-from pip._vendor.packaging.version import Version
-
+from pip._internal.build_env.base import Prefix
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
 from pip._internal.exceptions import (
     BuildDependencyInstallError,
@@ -24,14 +17,11 @@ from pip._internal.exceptions import (
     InstallWheelBuildError,
     PipError,
 )
-from pip._internal.locations import get_platlib, get_purelib, get_scheme
-from pip._internal.metadata import get_default_environment, get_environment
-from pip._internal.utils.deprecation import deprecated
+from pip._internal.metadata import get_environment
 from pip._internal.utils.logging import VERBOSE, capture_logging
 from pip._internal.utils.misc import get_runnable_pip
-from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import call_subprocess
-from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
+from pip._internal.utils.temp_dir import TempDirectory
 
 if TYPE_CHECKING:
     from pip._internal.cache import WheelCache
@@ -40,60 +30,8 @@ if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import BaseResolver
 
-    class ExtraEnviron(TypedDict, total=False):
-        extra_environ: dict[str, str]
-
 
 logger = logging.getLogger(__name__)
-
-
-def _dedup(a: str, b: str) -> tuple[str] | tuple[str, str]:
-    return (a, b) if a != b else (a,)
-
-
-class _Prefix:
-    def __init__(self, path: str) -> None:
-        self.path = path
-        self.setup = False
-        scheme = get_scheme("", prefix=path)
-        self.bin_dir = scheme.scripts
-        self.lib_dirs = _dedup(scheme.purelib, scheme.platlib)
-
-
-def _get_system_sitepackages() -> set[str]:
-    """Get system site packages
-
-    Usually from site.getsitepackages,
-    but fallback on `get_purelib()/get_platlib()` if unavailable
-    (e.g. in a virtualenv created by virtualenv<20)
-
-    Returns normalized set of strings.
-    """
-    if hasattr(site, "getsitepackages"):
-        system_sites = site.getsitepackages()
-    else:
-        # virtualenv < 20 overwrites site.py without getsitepackages
-        # fallback on get_purelib/get_platlib.
-        # this is known to miss things, but shouldn't in the cases
-        # where getsitepackages() has been removed (inside a virtualenv)
-        system_sites = [get_purelib(), get_platlib()]
-    return {os.path.normcase(path) for path in system_sites}
-
-
-class BuildEnvironmentInstaller(Protocol):
-    """
-    Interface for installing build dependencies into an isolated build
-    environment.
-    """
-
-    def install(
-        self,
-        requirements: Iterable[str],
-        prefix: _Prefix,
-        *,
-        kind: str,
-        for_req: InstallRequirement | None,
-    ) -> None: ...
 
 
 class SubprocessBuildEnvironmentInstaller:
@@ -105,51 +43,18 @@ class SubprocessBuildEnvironmentInstaller:
         self,
         finder: PackageFinder,
         build_constraints: list[str] | None = None,
-        build_constraint_feature_enabled: bool = False,
     ) -> None:
         self.finder = finder
         self._build_constraints = build_constraints or []
-        self._build_constraint_feature_enabled = build_constraint_feature_enabled
-
-    def _deprecation_constraint_check(self) -> None:
-        """
-        Check for deprecation warning: PIP_CONSTRAINT affecting build environments.
-
-        This warns when build-constraint feature is NOT enabled and PIP_CONSTRAINT
-        is not empty.
-        """
-        if self._build_constraint_feature_enabled or self._build_constraints:
-            return
-
-        pip_constraint = os.environ.get("PIP_CONSTRAINT")
-        if not pip_constraint or not pip_constraint.strip():
-            return
-
-        deprecated(
-            reason=(
-                "Setting PIP_CONSTRAINT will not affect "
-                "build constraints in the future,"
-            ),
-            replacement=(
-                "to specify build constraints using --build-constraint or "
-                "PIP_BUILD_CONSTRAINT. To disable this warning without "
-                "any build constraints set --use-feature=build-constraint or "
-                'PIP_USE_FEATURE="build-constraint"'
-            ),
-            gone_in="26.2",
-            issue=None,
-        )
 
     def install(
         self,
         requirements: Iterable[str],
-        prefix: _Prefix,
+        prefix: Prefix,
         *,
         kind: str,
         for_req: InstallRequirement | None,
     ) -> None:
-        self._deprecation_constraint_check()
-
         finder = self.finder
         args: list[str] = [
             sys.executable,
@@ -210,24 +115,13 @@ class SubprocessBuildEnvironmentInstaller:
         if finder.prefer_binary:
             args.append("--prefer-binary")
 
-        # Handle build constraints
-        if self._build_constraint_feature_enabled:
-            args.extend(["--use-feature", "build-constraint"])
-
-        if self._build_constraints:
-            # Build constraints must be passed as both constraints
-            # and build constraints, so that nested builds receive
-            # build constraints
-            for constraint_file in self._build_constraints:
-                args.extend(["--constraint", constraint_file])
-                args.extend(["--build-constraint", constraint_file])
-
-        extra_environ: ExtraEnviron = {}
-        if self._build_constraint_feature_enabled and not self._build_constraints:
-            # If there are no build constraints but the build constraints
-            # feature is enabled then we must ignore regular constraints
-            # in the isolated build environment
-            extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
+        # Only build constraints apply in the isolated build environment.
+        # _PIP_IN_BUILD_IGNORE_CONSTRAINTS tells the subprocess to ignore the
+        # regular constraints it inherits (via PIP_CONSTRAINT or config files).
+        # Build constraints reach it through --build-constraint, which also
+        # constrains any nested builds.
+        for constraint_file in self._build_constraints:
+            args.extend(["--build-constraint", constraint_file])
 
         if finder.uploaded_prior_to:
             args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
@@ -242,7 +136,7 @@ class SubprocessBuildEnvironmentInstaller:
                 args,
                 command_desc=f"installing {kind}{identify_requirement}",
                 spinner=spinner,
-                **extra_environ,
+                extra_environ={"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"},
             )
 
 
@@ -289,7 +183,7 @@ class InprocessBuildEnvironmentInstaller:
             src_dir="",
             # Hard-coded options (that should NOT be inherited).
             download_dir=None,
-            build_isolation=True,
+            build_isolation="virtual",
             check_build_deps=False,
             progress_bar="off",
             # TODO: hash-checking should be extended to build deps, but that is
@@ -303,7 +197,7 @@ class InprocessBuildEnvironmentInstaller:
     def install(
         self,
         requirements: Iterable[str],
-        prefix: _Prefix,
+        prefix: Prefix,
         *,
         kind: str,
         for_req: InstallRequirement | None,
@@ -352,7 +246,7 @@ class InprocessBuildEnvironmentInstaller:
         finally:
             self._level -= 1
 
-    def _install_impl(self, requirements: Iterable[str], prefix: _Prefix) -> None:
+    def _install_impl(self, requirements: Iterable[str], prefix: Prefix) -> None:
         """Core build dependency install logic."""
         from pip._internal.commands.install import installed_packages_summary
         from pip._internal.req import install_given_reqs
@@ -415,175 +309,3 @@ class InprocessBuildEnvironmentInstaller:
             upgrade_strategy="to-satisfy-only",
             py_version_info=None,
         )
-
-
-class BuildEnvironment:
-    """Creates and manages an isolated environment to install build deps"""
-
-    def __init__(self, installer: BuildEnvironmentInstaller) -> None:
-        self.installer = installer
-        temp_dir = TempDirectory(kind=tempdir_kinds.BUILD_ENV, globally_managed=True)
-
-        self._prefixes = OrderedDict(
-            (name, _Prefix(os.path.join(temp_dir.path, name)))
-            for name in ("normal", "overlay")
-        )
-
-        self._bin_dirs: list[str] = []
-        self._lib_dirs: list[str] = []
-        for prefix in reversed(list(self._prefixes.values())):
-            self._bin_dirs.append(prefix.bin_dir)
-            self._lib_dirs.extend(prefix.lib_dirs)
-
-        # Customize site to:
-        # - ensure .pth files are honored
-        # - prevent access to system site packages
-        system_sites = _get_system_sitepackages()
-
-        self._site_dir = os.path.join(temp_dir.path, "site")
-        if not os.path.exists(self._site_dir):
-            os.mkdir(self._site_dir)
-        with open(
-            os.path.join(self._site_dir, "sitecustomize.py"), "w", encoding="utf-8"
-        ) as fp:
-            fp.write(textwrap.dedent("""
-                import os, site, sys
-
-                # First, discover all system-sites related paths.
-                original_sys_path = sys.path[:]
-                # Clear sys.path so addsitedir() will add system site paths and paths
-                # added by contained .pth files to sys.path reliably. This is necessary
-                # since Python 3.15, which notably no longer re-executes .pth files for
-                # known paths.
-                sys.path = []
-                known_paths = set()
-                for path in {system_sites!r}:
-                    site.addsitedir(path, known_paths=known_paths)
-                system_paths = set(os.path.normcase(path) for path in sys.path)
-
-                # Drop discovered system-sites related paths.
-                original_sys_path = [
-                    path for path in original_sys_path
-                    if os.path.normcase(path) not in system_paths
-                ]
-                sys.path = original_sys_path
-
-                # Second, add lib directories.
-                # ensuring .pth file are processed.
-                for path in {lib_dirs!r}:
-                    assert not path in sys.path
-                    site.addsitedir(path)
-                """).format(system_sites=system_sites, lib_dirs=self._lib_dirs))
-
-    def __enter__(self) -> None:
-        self._save_env = {
-            name: os.environ.get(name, None)
-            for name in ("PATH", "PYTHONNOUSERSITE", "PYTHONPATH")
-        }
-
-        path = self._bin_dirs[:]
-        old_path = self._save_env["PATH"]
-        if old_path:
-            path.extend(old_path.split(os.pathsep))
-
-        pythonpath = [self._site_dir]
-
-        os.environ.update(
-            {
-                "PATH": os.pathsep.join(path),
-                "PYTHONNOUSERSITE": "1",
-                "PYTHONPATH": os.pathsep.join(pythonpath),
-            }
-        )
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        for varname, old_value in self._save_env.items():
-            if old_value is None:
-                os.environ.pop(varname, None)
-            else:
-                os.environ[varname] = old_value
-
-    def check_requirements(
-        self, reqs: Iterable[str]
-    ) -> tuple[set[tuple[str, str]], set[str]]:
-        """Return 2 sets:
-        - conflicting requirements: set of (installed, wanted) reqs tuples
-        - missing requirements: set of reqs
-        """
-        missing = set()
-        conflicting = set()
-        if reqs:
-            env = (
-                get_environment(self._lib_dirs)
-                if hasattr(self, "_lib_dirs")
-                else get_default_environment()
-            )
-            for req_str in reqs:
-                req = get_requirement(req_str)
-                # We're explicitly evaluating with an empty extra value, since build
-                # environments are not provided any mechanism to select specific extras.
-                if req.marker is not None and not req.marker.evaluate({"extra": ""}):
-                    continue
-                dist = env.get_distribution(req.name)
-                if not dist:
-                    missing.add(req_str)
-                    continue
-                if isinstance(dist.version, Version):
-                    installed_req_str = f"{req.name}=={dist.version}"
-                else:
-                    installed_req_str = f"{req.name}==={dist.version}"
-                if not req.specifier.contains(dist.version, prereleases=True):
-                    conflicting.add((installed_req_str, req_str))
-                # FIXME: Consider direct URL?
-        return conflicting, missing
-
-    def install_requirements(
-        self,
-        requirements: Iterable[str],
-        prefix_as_string: str,
-        *,
-        kind: str,
-        for_req: InstallRequirement | None = None,
-    ) -> None:
-        prefix = self._prefixes[prefix_as_string]
-        assert not prefix.setup
-        prefix.setup = True
-        if not requirements:
-            return
-        self.installer.install(requirements, prefix, kind=kind, for_req=for_req)
-
-
-class NoOpBuildEnvironment(BuildEnvironment):
-    """A no-op drop-in replacement for BuildEnvironment"""
-
-    def __init__(self) -> None:
-        pass
-
-    def __enter__(self) -> None:
-        pass
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        pass
-
-    def cleanup(self) -> None:
-        pass
-
-    def install_requirements(
-        self,
-        requirements: Iterable[str],
-        prefix_as_string: str,
-        *,
-        kind: str,
-        for_req: InstallRequirement | None = None,
-    ) -> None:
-        raise NotImplementedError()

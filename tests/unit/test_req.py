@@ -17,7 +17,10 @@ import pytest
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
+from pip._internal.build_env import (
+    BuildIsolationMode,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
@@ -90,7 +93,7 @@ class TestRequirementSet:
         finder: PackageFinder,
         require_hashes: bool = False,
         wheel_cache: WheelCache | None = None,
-        build_isolation: bool = True,
+        build_isolation: BuildIsolationMode = "virtual",
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
@@ -165,7 +168,7 @@ class TestRequirementSet:
         req.user_supplied = True
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             reqset = resolver.resolve(reqset.all_requirements, True)
         assert not reqset.has_requirement("simple")
 
@@ -319,7 +322,7 @@ class TestRequirementSet:
         )
 
         with self._basic_resolver(
-            finder, require_hashes=True, build_isolation=False
+            finder, require_hashes=True, build_isolation="off"
         ) as resolver:
             with pytest.raises(
                 HashErrors,
@@ -361,7 +364,7 @@ class TestRequirementSet:
     def test_download_info_find_links(self, data: TestData) -> None:
         """Test that download_info is set for requirements via find_links."""
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq = get_processed_req_from_line("simple")
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
@@ -386,7 +389,7 @@ class TestRequirementSet:
     def test_download_info_web_archive(self) -> None:
         """Test that download_info is set for requirements from a web archive."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ "
                 "https://github.com/pypa/pip-test-package/tarball/0.1.1"
@@ -500,7 +503,7 @@ class TestRequirementSet:
     def test_download_info_local_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
             reqset = resolver.resolve([ireq], True)
@@ -513,7 +516,7 @@ class TestRequirementSet:
     def test_download_info_local_editable_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local editable dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
             reqset = resolver.resolve([ireq], True)
@@ -528,7 +531,7 @@ class TestRequirementSet:
     def test_download_info_vcs(self) -> None:
         """Test that download_info is set for requirements from git."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ git+https://github.com/pypa/pip-test-package"
             )
@@ -636,6 +639,11 @@ class TestInstallRequirement:
         assert req.req.name == "semicolon"
         assert str(req.req.specifier) == ""
         assert str(req.markers) == 'os_name == "a; b"'
+
+    def test_markers_invalid(self) -> None:
+        with pytest.raises(InstallationError) as e:
+            install_req_from_line('name; python_version == "1"; python_version == "2"')
+        assert "Invalid requirement" in e.value.args[0]
 
     def test_markers_url(self) -> None:
         # test "URL; markers" syntax

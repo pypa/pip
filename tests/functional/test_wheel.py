@@ -2,17 +2,22 @@
 
 import os
 import re
+import shutil
 import sys
 import textwrap
 from pathlib import Path
 
 import pytest
 
+from pip._internal.cache import SimpleWheelCache
 from pip._internal.cli.status_codes import ERROR
+from pip._internal.models.link import Link
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib import (
     PipTestEnvironment,
     TestData,
+    create_basic_wheel_for_package,
     pyversion,
 )
 
@@ -211,6 +216,36 @@ def test_pip_wheel_readonly_cache(
     )
     assert res.returncode == 0
     assert "The cache has been disabled." in str(res), str(res)
+
+
+def test_pip_wheel_copy_failure_is_reported_as_copy_failure(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A wheel that builds but cannot be copied to the output directory should
+    be reported as a copy failure, not a build failure."""
+    wheel_dir = script.scratch_path / "wheels"
+    wheel_dir.mkdir()
+    wheel_file_name = f"simple-3.0-py{pyversion[0]}-none-any.whl"
+    # Occupy the destination path with a directory so copying the built wheel
+    # there fails after the build itself has already succeeded.
+    (wheel_dir / wheel_file_name).mkdir()
+
+    result = script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-w",
+        wheel_dir,
+        "simple==3.0",
+        expect_error=True,
+        allow_stderr_warning=True,
+    )
+
+    assert "Successfully built simple" in result.stdout, str(result)
+    assert "Failed to copy built wheel" in str(result), str(result)
+    assert "Building wheel for simple failed" not in str(result), str(result)
 
 
 def test_pip_wheel_builds_editable_deps(
@@ -502,3 +537,33 @@ def test_wheel_pylock_directories(
         "simplewheel-2.0-py3-none-any.whl",
         "singlemodule-0.0.1-py2.py3-none-any.whl",
     ]
+
+
+def test_wheel_local_directory_ignores_cached_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A cached wheel is rebuilt, not copied, for a local directory (#14044)."""
+    cache_dir = script.scratch_path / "cache"
+    wheel_dir = script.scratch_path / "wheels"
+    link_url = path_to_url(os.fspath(data.packages.joinpath("FSPkg")))
+    cache = SimpleWheelCache(os.fspath(cache_dir))
+    cache_path = cache.get_path_for_link(Link(link_url))
+    os.makedirs(cache_path)
+    stale_wheel = create_basic_wheel_for_package(script, "FSPkg", "9.9")
+    shutil.copy(stale_wheel, os.path.join(cache_path, stale_wheel.name))
+
+    script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "--no-deps",
+        "--cache-dir",
+        os.fspath(cache_dir),
+        "-w",
+        os.fspath(wheel_dir),
+        f"FSPkg @ {link_url}",
+    )
+    wheels = [p.name for p in wheel_dir.glob("*.whl")]
+    # Rebuilt from source (0.1.dev0), not copied from the stale cache (9.9).
+    assert any("0.1.dev0" in w for w in wheels), wheels
+    assert not any("9.9" in w for w in wheels), wheels

@@ -60,8 +60,6 @@ def _run_pip_without_virtualenv(
 
         # Simulate running outside a virtualenv.
         sys.base_prefix = sys.prefix
-        if hasattr(sys, "real_prefix"):
-            delattr(sys, "real_prefix")
 
         sys.argv = ["pip", {", ".join(repr(arg) for arg in args)}]
 
@@ -138,3 +136,4 @@ finally:
     assert not any("pip._internal.network" in mod for mod in imported)
     assert not any("requests" in mod for mod in imported)
     assert not any("urllib3" in mod for mod in imported)
+    assert not any("urllib.request" in mod for mod in imported)
