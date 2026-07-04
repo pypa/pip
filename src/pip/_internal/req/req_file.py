@@ -497,7 +497,10 @@ def join_lines(lines_enum: ReqFileLines) -> ReqFileLines:
     primary_line_number = None
     new_line: list[str] = []
     for line_number, line in lines_enum:
-        if not line.endswith("\\") or COMMENT_RE.match(line):
+        # Strip trailing whitespace so that lines ending with '\ '
+        # (backslash followed by spaces) are still treated as continuations.
+        stripped = line.rstrip()
+        if not stripped.endswith("\\") or COMMENT_RE.match(line):
             if COMMENT_RE.match(line):
                 # this ensures comments are always matched later
                 line = " " + line
@@ -511,14 +514,12 @@ def join_lines(lines_enum: ReqFileLines) -> ReqFileLines:
         else:
             if not new_line:
                 primary_line_number = line_number
-            new_line.append(line.strip("\\"))
+            new_line.append(stripped.strip("\\"))
 
     # last line contains \
     if new_line:
         assert primary_line_number is not None
         yield primary_line_number, "".join(new_line)
-
-    # TODO: handle space after '\'.
 
 
 def ignore_comments(lines_enum: ReqFileLines) -> ReqFileLines:

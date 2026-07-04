@@ -198,6 +198,38 @@ class TestJoinLines:
         ]
         assert expect == list(join_lines(lines))
 
+    def test_join_lines_with_trailing_space_after_backslash(self) -> None:
+        lines = enumerate(
+            [
+                "line 1",
+                "line 2:1 \\ ",
+                "line 2:2",
+                "line 3:1 \\  ",
+                "line 3:2",
+            ],
+            start=1,
+        )
+        expect = [
+            (1, "line 1"),
+            (2, "line 2:1 line 2:2"),
+            (4, "line 3:1 line 3:2"),
+        ]
+        assert expect == list(join_lines(lines))
+
+    def test_last_line_with_escape_and_trailing_space(self) -> None:
+        lines = enumerate(
+            [
+                "line 1",
+                "line 2 \\ ",
+            ],
+            start=1,
+        )
+        expect = [
+            (1, "line 1"),
+            (2, "line 2 "),
+        ]
+        assert expect == list(join_lines(lines))
+
 
 class LineProcessor(Protocol):
     def __call__(
