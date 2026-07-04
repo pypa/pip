@@ -344,6 +344,7 @@ class PipSession(requests.Session):
         # possible conflicts with the base class.
         self.pip_trusted_origins: list[tuple[str, int | None]] = []
         self.pip_proxy = None
+        self.pip_no_proxy_env = False
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()

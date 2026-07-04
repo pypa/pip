@@ -318,13 +318,13 @@ proxy: Callable[..., Option] = partial(
     help="Specify a proxy in the form scheme://[user:passwd@]proxy.server:port.",
 )
 
-no_proxy: Callable[..., Option] = partial(
+no_proxy_env: Callable[..., Option] = partial(
     Option,
     "--no-proxy-env",
-    dest="no_proxy",
+    dest="no_proxy_env",
     action="store_true",
     default=False,
-    help="Ignore all configured proxy settings, including environmental variables.",
+    help="Do not read proxy configuration from environment variables.",
 )
 
 retries: Callable[..., Option] = partial(
@@ -1269,7 +1269,7 @@ general_group: dict[str, Any] = {
         no_input,
         keyring_provider,
         proxy,
-        no_proxy,
+        no_proxy_env,
         retries,
         timeout,
         exists_action,

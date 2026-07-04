@@ -121,27 +121,17 @@ class SessionCommandMixin(CommandContextMixIn):
         if options.timeout or timeout:
             session.timeout = timeout if timeout is not None else options.timeout
 
-        # Handle configured proxies
-        if options.proxy:
-            session.proxies = {
-                "http": options.proxy,
-                "https": options.proxy,
-            }
+        # Handle configured proxies. --no-proxy-env stops the session from reading
+        # proxy settings from the environment; an explicit --proxy still applies.
+        if options.proxy or options.no_proxy_env:
+            if options.proxy:
+                session.proxies = {
+                    "http": options.proxy,
+                    "https": options.proxy,
+                }
             session.trust_env = False
-            session.pip_proxy = options.proxy
-
-        # Handle no proxy option
-        if options.no_proxy:
-            # Handle case of both --no-proxy-env being set along with --proxy=<proxy>.
-            # In this case, the proxies from the environmental variables will be
-            # ignored, but the command line proxy will be used.
-            http_proxy = options.proxy if options.proxy else None
-            https_proxy = options.proxy if options.proxy else None
-            session.proxies = {
-                "http": http_proxy,
-                "https": https_proxy,
-            }
-            session.trust_env = False
+            session.pip_proxy = options.proxy or None
+            session.pip_no_proxy_env = options.no_proxy_env
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input

@@ -442,12 +442,12 @@ class TestGeneralOptions(AddFakeCommandMixin):
         )
         assert options1.proxy == options2.proxy == "path"
 
-    def test_no_proxy(self) -> None:
+    def test_no_proxy_env(self) -> None:
         # FakeCommand intentionally returns the wrong type.
         options1, _ = cast(tuple[Values, list[str]], main(["--no-proxy-env", "fake"]))
         options2, _ = cast(tuple[Values, list[str]], main(["fake", "--no-proxy-env"]))
-        assert options1.no_proxy
-        assert options2.no_proxy
+        assert options1.no_proxy_env
+        assert options2.no_proxy_env
 
     def test_retries(self) -> None:
         # FakeCommand intentionally returns the wrong type.

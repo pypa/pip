@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import logging
 import os
+from optparse import Values
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, cast
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
 import pytest
 
 from pip._vendor import requests
+from pip._vendor.requests.utils import select_proxy
 
 from pip import __version__
+from pip._internal.cli.index_command import SessionCommandMixin
+from pip._internal.commands import create_command
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
     CI_ENVIRONMENT_VARIABLES,
@@ -291,38 +295,63 @@ class TestPipSession:
             f"{session.proxies} is not correctly passed to session.request."
         )
 
-    @pytest.mark.network
-    def test_no_proxy(self) -> None:
-        def _set_no_proxy(session: PipSession) -> PipSession:
-            """Mimic logic for command line `no_proxy` option"""
-            session.trust_env = False
-            session.proxies = {
-                "http": None,
-                "https": None,
-            }
-            return session
+    @staticmethod
+    def _build_session(
+        monkeypatch: pytest.MonkeyPatch, args: list[str]
+    ) -> tuple[Values, PipSession]:
+        # Option parsing also reads PIP_* env vars; clear the proxy ones so an
+        # ambient (e.g. corporate) proxy config can't perturb these assertions.
+        monkeypatch.delenv("PIP_PROXY", raising=False)
+        monkeypatch.delenv("PIP_NO_PROXY_ENV", raising=False)
+        command = create_command("download")
+        options, _ = command.parse_args(args)
+        session = cast(SessionCommandMixin, command)._build_session(options)
+        return options, session
 
-        session = PipSession(trusted_hosts=[])
+    @staticmethod
+    def _resolved_proxy(session: PipSession, url: str) -> str | None:
+        # Pick the proxy for a URL the way Session.request() does, no network.
+        settings = session.merge_environment_settings(url, {}, None, None, None)
+        return select_proxy(url, settings["proxies"])
 
-        connection_error_http: Union[requests.exceptions.RequestException, None] = None
-        # setup with known bad (hopefully) http proxy, and then test connection
-        # expecting a failure if the proxy is used
-        with requests.utils.set_environ("http_proxy", "http://127.0.0.1:88888"):
-            try:
-                session = _set_no_proxy(session)
-                session.request("GET", "https://pypi.org", timeout=1)
-            except requests.exceptions.ConnectionError as e:
-                connection_error_http = e
+    def test_no_proxy_env_ignores_environment_proxies(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+        monkeypatch.setenv("https_proxy", "http://127.0.0.1:9999")
 
-        connection_error_https: Union[requests.exceptions.RequestException, None] = None
-        # setup with known bad (hopefully) https proxy, and then test connection
-        # expecting a failure if the proxy is used
-        with requests.utils.set_environ("https_proxy", "http://127.0.0.1:65534"):
-            try:
-                session = _set_no_proxy(session)
-                session.request("GET", "https://pypi.org", timeout=1)
-            except requests.exceptions.ConnectionError as e:
-                connection_error_https = e
+        options, session = self._build_session(
+            monkeypatch, ["--no-proxy-env", "example"]
+        )
 
-        assert connection_error_http is None, "Unexpected use of http proxy"
-        assert connection_error_https is None, "Unexpected use of https proxy"
+        assert options.no_proxy_env is True
+        assert session.trust_env is False
+        # Propagated so isolated build subprocesses also bypass env proxies.
+        assert session.pip_no_proxy_env is True
+        for url in ("http://example.com", "https://example.com"):
+            assert self._resolved_proxy(session, url) is None
+
+    def test_no_proxy_env_keeps_command_line_proxy(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+        monkeypatch.setenv("https_proxy", "http://127.0.0.1:9999")
+
+        _, session = self._build_session(
+            monkeypatch,
+            ["--proxy", "http://proxy.example:8080", "--no-proxy-env", "example"],
+        )
+
+        assert session.trust_env is False
+        assert session.pip_proxy == "http://proxy.example:8080"
+        for url in ("http://example.com", "https://example.com"):
+            assert self._resolved_proxy(session, url) == "http://proxy.example:8080"
+
+    def test_environment_trusted_without_no_proxy_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        options, session = self._build_session(monkeypatch, ["example"])
+
+        assert options.no_proxy_env is False
+        assert session.trust_env is True
+        assert session.pip_no_proxy_env is False

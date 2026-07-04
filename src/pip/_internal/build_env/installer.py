@@ -106,6 +106,8 @@ class SubprocessBuildEnvironmentInstaller:
 
         if finder.proxy:
             args.extend(["--proxy", finder.proxy])
+        if finder.no_proxy_env:
+            args.append("--no-proxy-env")
         for host in finder.trusted_hosts:
             args.extend(["--trusted-host", host])
         if finder.custom_cert:
