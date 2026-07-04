@@ -45,6 +45,8 @@ def _eval_extra_marker(
 
 
 def _evaluate_markers(markers: MarkerList, extras: frozenset[str]) -> bool:
+    # Keep the boolean marker walk aligned with packaging's evaluator; only
+    # ``extra`` comparisons need set-wide handling here.
     groups: list[list[bool]] = [[]]
 
     for marker in markers:
