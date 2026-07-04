@@ -165,6 +165,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
+        self._requested_extras: set[NormalizedName] = set()
         self.dist = self._prepare()
         self._hash: int | None = None
 
@@ -272,12 +273,17 @@ class _InstallRequirementBackedCandidate(Candidate):
         # Emit the Requires-Python requirement first to fail fast on
         # unsupported candidates and avoid pointless downloads/preparation.
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
-        requires = self.dist.iter_dependencies() if with_requires else ()
+        requires = (
+            self.dist.iter_dependencies(self._requested_extras) if with_requires else ()
+        )
         for r in requires:
             yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self) -> InstallRequirement | None:
         return self._ireq
+
+    def request_extras(self, extras: Iterable[str]) -> None:
+        self._requested_extras.update(canonicalize_name(e) for e in extras)
 
 
 class LinkCandidate(_InstallRequirementBackedCandidate):
@@ -375,6 +381,7 @@ class AlreadyInstalledCandidate(Candidate):
         self._ireq = _make_install_req_from_dist(dist, template)
         self._factory = factory
         self._version = None
+        self._requested_extras: set[NormalizedName] = set()
 
         # This is just logging some messages, so we can do it eagerly.
         # The returned dist would be exactly the same as self.dist because we
@@ -423,13 +430,16 @@ class AlreadyInstalledCandidate(Candidate):
             return
 
         try:
-            for r in self.dist.iter_dependencies():
+            for r in self.dist.iter_dependencies(self._requested_extras):
                 yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
         except InvalidRequirement as exc:
             raise InvalidInstalledPackage(dist=self.dist, invalid_exc=exc) from None
 
     def get_install_requirement(self) -> InstallRequirement | None:
         return None
+
+    def request_extras(self, extras: Iterable[str]) -> None:
+        self._requested_extras.update(canonicalize_name(e) for e in extras)
 
 
 class ExtrasCandidate(Candidate):
@@ -474,7 +484,9 @@ class ExtrasCandidate(Candidate):
         """
         self.base = base
         self.extras = frozenset(canonicalize_name(e) for e in extras)
+        self.base.request_extras(self.extras)
         self._comes_from = comes_from if comes_from is not None else self.base._ireq
+        self._warned_invalid_extras: set[NormalizedName] = set()
 
     def __str__(self) -> str:
         name, rest = str(self.base).split(" ", 1)
@@ -535,12 +547,15 @@ class ExtrasCandidate(Candidate):
         valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
         invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
         for extra in sorted(invalid_extras):
+            if extra in self._warned_invalid_extras:
+                continue
             logger.warning(
                 "%s %s does not provide the extra '%s'",
                 self.base.name,
                 self.version,
                 extra,
             )
+            self._warned_invalid_extras.add(extra)
 
         for r in self.base.dist.iter_dependencies(valid_extras):
             yield from factory.make_requirements_from_spec(

@@ -109,13 +109,20 @@ class Resolver(BaseResolver):
         except ResolutionTooDeep:
             raise ResolutionTooDeepError from None
 
+        applicable_candidate_names = self._get_applicable_candidate_names(result)
+
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         # process candidates with extras last to ensure their base equivalent is
         # already in the req_set if appropriate.
         # Python's sort is stable so using a binary key function keeps relative order
         # within both subsets.
         for candidate in sorted(
-            result.mapping.values(), key=lambda c: c.name != c.project_name
+            (
+                candidate
+                for name, candidate in result.mapping.items()
+                if name in applicable_candidate_names
+            ),
+            key=lambda c: c.name != c.project_name,
         ):
             ireq = candidate.get_install_requirement()
             if ireq is None:
@@ -182,6 +189,38 @@ class Resolver(BaseResolver):
             req_set.add_named_requirement(ireq)
 
         return req_set
+
+    def _get_applicable_candidate_names(self, result: Result) -> set[str]:
+        """Return resolved candidate names reachable through applicable markers.
+
+        resolvelib's criteria graph only grows. Since ``extra != "name"`` can
+        make a previously-applicable dependency stale after an extra is
+        requested, re-walk the resolved candidates with the final extras state
+        before building the install set.
+        """
+        with_requires = not self.ignore_dependencies
+
+        mapping = result.mapping
+        graph = result.graph
+        reachable: set[str] = set()
+        to_visit = list(graph.iter_children(None))
+
+        while to_visit:
+            name = to_visit.pop()
+            if name in reachable:
+                continue
+            if name not in mapping:
+                continue
+            reachable.add(name)
+
+            candidate = mapping[name]
+            for requirement in candidate.iter_dependencies(with_requires):
+                if requirement is None:
+                    continue
+                if requirement.name in mapping and requirement.name not in reachable:
+                    to_visit.append(requirement.name)
+
+        return reachable
 
     def get_installation_order(
         self, req_set: RequirementSet

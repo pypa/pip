@@ -86,7 +86,9 @@ def test_wheel_metadata_works() -> None:
     version = "0.1.0"
     require_a = "a==1.0"
     require_b = 'b==1.1; extra == "also_b"'
-    requires = [require_a, require_b, 'c==1.2; extra == "also_c"']
+    require_c = 'c==1.2; extra == "also_c"'
+    require_d = 'd==1.3; extra != "also_b"'
+    requires = [require_a, require_b, require_c, require_d]
     extras = ["also_b", "also_c"]
     requires_python = ">=3"
 
@@ -110,10 +112,17 @@ def test_wheel_metadata_works() -> None:
     assert name == dist.canonical_name == dist.raw_name
     assert parse_version(version) == dist.version
     assert {canonicalize_name(e) for e in extras} == set(dist.iter_provided_extras())
-    assert [require_a] == [str(r) for r in dist.iter_dependencies()]
+    assert [Requirement(require_a), Requirement(require_d)] == [
+        Requirement(str(r)) for r in dist.iter_dependencies()
+    ]
     assert [Requirement(require_a), Requirement(require_b)] == [
         Requirement(str(r)) for r in dist.iter_dependencies(["also_b"])
     ]
+    assert [
+        Requirement(require_a),
+        Requirement(require_b),
+        Requirement(require_c),
+    ] == [Requirement(str(r)) for r in dist.iter_dependencies(["also_b", "also_c"])]
     assert metadata.as_string() == dist.metadata.as_string()
     assert SpecifierSet(requires_python) == dist.requires_python
 

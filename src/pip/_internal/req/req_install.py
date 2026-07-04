@@ -38,6 +38,7 @@ from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.markers import match_markers
 from pip._internal.utils.misc import (
     ConfiguredBuildBackendHookCaller,
     ask_path_exists,
@@ -266,14 +267,8 @@ class InstallRequirement:
         return len(specifiers) == 1 and next(iter(specifiers)).operator in {"==", "==="}
 
     def match_markers(self, extras_requested: Iterable[str] | None = None) -> bool:
-        if not extras_requested:
-            # Provide an extra to safely evaluate the markers
-            # without matching any extra
-            extras_requested = ("",)
         if self.markers is not None:
-            return any(
-                self.markers.evaluate({"extra": extra}) for extra in extras_requested
-            )
+            return match_markers(self.markers, extras_requested)
         else:
             return True
 
