@@ -31,6 +31,7 @@ class TestUserCacheDir:
 
     @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
     def test_user_cache_dir_osx(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.user_cache_dir("pip") == "/home/test/Library/Caches/pip"
@@ -103,6 +104,7 @@ class TestSiteConfigDirs:
 
     @pytest.mark.skipif(sys.platform != "darwin", reason="MacOS-only test")
     def test_site_config_dirs_osx(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("XDG_DATA_DIRS", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
 
         assert appdirs.site_config_dirs("pip") == [
@@ -113,6 +115,8 @@ class TestSiteConfigDirs:
     def test_site_config_dirs_osx_homebrew(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        monkeypatch.delenv("XDG_DATA_DIRS", raising=False)
+
         python_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
         monkeypatch.setattr(
             sys,
