@@ -152,7 +152,9 @@ def _simulate_installation_of(
         abstract_dist = make_distribution_for_install_requirement(inst_req)
         dist = abstract_dist.get_metadata_distribution()
         name = dist.canonical_name
-        requested_extras = frozenset(canonicalize_name(e) for e in inst_req.extras)
+        requested_extras = frozenset(
+            canonicalize_name(e) for e in inst_req.extras
+        ).intersection(dist.iter_provided_extras())
         dependencies = list(dist.iter_dependencies(requested_extras))
         package_set[name] = PackageDetails(
             dist.version,

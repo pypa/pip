@@ -1416,6 +1416,34 @@ def test_new_resolver_inconsistent_metadata_keeps_extras(
     script.assert_installed(a="1")
 
 
+def test_new_resolver_reports_transitive_metadata_mismatch_against_candidate(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "root", "1.0", depends=["foo"])
+    make_wheel(
+        name="foo",
+        version="1.0",
+        metadata_updates={"Name": "bar"},
+    ).save_to_dir(script.scratch_path)
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "root",
+        expect_error=True,
+    )
+    output = result.stdout + result.stderr
+
+    assert "Requested foo" in output, str(result)
+    assert (
+        "has inconsistent name: expected 'foo', but metadata has 'bar'" in output
+    ), str(result)
+    assert "Requested root has inconsistent name" not in output, str(result)
+
+
 @pytest.mark.parametrize(
     "upgrade",
     [True, False],
@@ -2498,6 +2526,50 @@ def test_new_resolver_constraint_on_link_with_extra_indirect(
         f"{wheel_one}[ext]",
     )
     script.assert_installed(pkg1="1.0", pkg2="1.0")
+
+
+def test_new_resolver_constrained_link_drops_abandoned_extras(
+    script: PipTestEnvironment,
+) -> None:
+    pkg = create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1.0",
+        extras={"ext": ["extra-dep"]},
+    )
+    create_basic_wheel_for_package(script, "conflict", "1.0")
+    create_basic_wheel_for_package(script, "conflict", "2.0")
+    create_basic_wheel_for_package(script, "chooser", "1.0", depends=["pkg"])
+    create_basic_wheel_for_package(
+        script,
+        "chooser",
+        "2.0",
+        depends=["pkg[ext]", "conflict==2"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "root",
+        "1.0",
+        depends=["chooser", "conflict==1"],
+    )
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text(f"pkg @ {pkg.as_uri()}")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--constraint",
+        constraints_file,
+        "root",
+        allow_stderr_warning=True,
+    )
+
+    assert "requires extra-dep" not in result.stderr, str(result)
+    script.assert_installed(root="1.0", chooser="1.0", conflict="1.0", pkg="1.0")
+    script.assert_not_installed("extra-dep")
 
 
 def test_new_resolver_do_not_backtrack_on_build_failure(

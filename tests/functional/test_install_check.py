@@ -1,6 +1,10 @@
 from collections.abc import Iterable
 
-from tests.lib import PipTestEnvironment, create_test_package_with_setup
+from tests.lib import (
+    PipTestEnvironment,
+    create_basic_wheel_for_package,
+    create_test_package_with_setup,
+)
 
 
 def assert_contains_expected_lines(string: str, expected_lines: Iterable[str]) -> None:
@@ -69,6 +73,30 @@ def test_check_install_canonicalization(script: PipTestEnvironment) -> None:
     ]
     assert_contains_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 0
+
+
+def test_check_install_ignores_unsupported_extra_dependencies(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1.0",
+        depends=['missing-dep; extra == "gpu"'],
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[gpu]",
+        allow_stderr_warning=True,
+    )
+
+    assert "does not provide the extra 'gpu'" in result.stderr, str(result)
+    assert "requires missing-dep" not in result.stderr, str(result)
 
 
 def test_check_install_does_not_warn_for_out_of_graph_issues(

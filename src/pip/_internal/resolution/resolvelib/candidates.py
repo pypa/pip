@@ -221,9 +221,18 @@ class _InstallRequirementBackedCandidate(Candidate):
         raise NotImplementedError("Override in subclass")
 
     def _get_metadata_inconsistent_ireq(self) -> InstallRequirement:
-        if isinstance(self._ireq.comes_from, InstallRequirement):
-            return self._ireq.comes_from
-        return self._ireq
+        comes_from = self._ireq.comes_from
+        if not (
+            isinstance(comes_from, InstallRequirement)
+            and self._ireq.req is not None
+            and comes_from.req is not None
+            and not self._ireq.extras
+            and comes_from.extras
+            and canonicalize_name(self._ireq.req.name)
+            == canonicalize_name(comes_from.req.name)
+        ):
+            return self._ireq
+        return comes_from
 
     def _check_metadata_consistency(self, dist: BaseDistribution) -> None:
         """Check for consistency of project name and version of dist."""

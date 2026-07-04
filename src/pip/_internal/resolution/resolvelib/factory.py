@@ -422,9 +422,12 @@ class Factory:
 
         for link in constraint.links:
             self._fail_if_link_is_unsupported_wheel(link)
+            base_template = (
+                install_req_drop_extras(template) if template.extras else template
+            )
             base_candidate = self._make_base_candidate_from_link(
                 link,
-                template=install_req_from_link_and_ireq(link, template),
+                template=install_req_from_link_and_ireq(link, base_template),
                 name=canonicalize_name(base_identifier),
                 version=None,
             )
