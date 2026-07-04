@@ -1420,11 +1420,8 @@ def test_new_resolver_reports_transitive_metadata_mismatch_against_candidate(
     script: PipTestEnvironment,
 ) -> None:
     create_basic_wheel_for_package(script, "root", "1.0", depends=["foo"])
-    make_wheel(
-        name="foo",
-        version="1.0",
-        metadata_updates={"Name": "bar"},
-    ).save_to_dir(script.scratch_path)
+    foo_2 = create_basic_wheel_for_package(script, "foo", "2")
+    foo_2.rename(foo_2.parent.joinpath("foo-3-py2.py3-none-any.whl"))
 
     result = script.pip(
         "install",
@@ -1432,6 +1429,7 @@ def test_new_resolver_reports_transitive_metadata_mismatch_against_candidate(
         "--no-index",
         "--find-links",
         script.scratch_path,
+        "--verbose",
         "root",
         expect_error=True,
     )
@@ -1439,9 +1437,9 @@ def test_new_resolver_reports_transitive_metadata_mismatch_against_candidate(
 
     assert "Requested foo" in output, str(result)
     assert (
-        "has inconsistent name: expected 'foo', but metadata has 'bar'" in output
+        "has inconsistent version: expected '3', but metadata has '2'" in output
     ), str(result)
-    assert "Requested root has inconsistent name" not in output, str(result)
+    assert "Requested root has inconsistent version" not in output, str(result)
 
 
 @pytest.mark.parametrize(
