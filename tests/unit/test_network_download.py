@@ -467,6 +467,33 @@ def test_downloader_resumes_on_truncated_http_stream(
         assert f.read() == body
 
 
+def test_downloader_crashes_on_mismatched_resume_offset(tmpdir: Path) -> None:
+    """A 206 whose Content-Range starts at a different offset than requested
+    must fail, otherwise the misplaced bytes would corrupt the file."""
+    body = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+    session = PipSession(resume_retries=5)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    # Incomplete first response (24 of 36 bytes).
+    first = MockResponse(body[:24])
+    first.headers.update({"content-length": "36"})
+    first.status_code = 200
+
+    # The resume asks for bytes=24- but the server answers with content that
+    # (per its Content-Range) starts at offset 0.
+    mismatched = MockResponse(b"XXXXXXXXXXXX")
+    mismatched.headers.update(
+        {"content-length": "12", "content-range": "bytes 0-11/36"}
+    )
+    mismatched.status_code = 206
+
+    _http_get_mock = MagicMock(side_effect=[first, mismatched])
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        with pytest.raises(IncompleteDownloadError):
+            downloader(link, str(tmpdir))
+
+
 def test_downloader_without_content_length(tmpdir: Path) -> None:
     """A response without a Content-Length header should be treated as an
     unknown size and still download fully.

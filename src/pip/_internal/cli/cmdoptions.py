@@ -1209,6 +1209,7 @@ no_python_version_warning: Callable[..., Option] = partial(
 ALWAYS_ENABLED_FEATURES = [
     "truststore",  # always on since 24.2
     "no-binary-enable-wheel-cache",  # always on since 23.1
+    "build-constraint",  # always on since 26.2
 ]
 
 use_new_feature: Callable[..., Option] = partial(
@@ -1220,7 +1221,6 @@ use_new_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "fast-deps",
-        "build-constraint",
         "inprocess-build-deps",
     ]
     + ALWAYS_ENABLED_FEATURES,

@@ -51,7 +51,7 @@ def main() -> None:
                 "--only-binary=:all:",
                 "--require-hashes",
                 "-r",
-                Path(__file__).parent / "build-requirements.txt",
+                Path(__file__).parent / "pylock.toml",
             ],
             check=True,
         )
