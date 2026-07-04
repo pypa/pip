@@ -255,6 +255,47 @@ def test_install_extra_not_equal_marker_with_later_extra_request(
     script.assert_not_installed("cpu")
 
 
+def test_install_extra_not_equal_marker_after_backtracking(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "cpu", "1")
+    create_basic_wheel_for_package(script, "gpu", "1")
+    create_basic_wheel_for_package(script, "conflict", "1")
+    create_basic_wheel_for_package(script, "conflict", "2")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        depends=['cpu ; extra != "gpu"'],
+        extras={"gpu": ["gpu"]},
+    )
+    create_basic_wheel_for_package(script, "chooser", "1", depends=["pkg"])
+    create_basic_wheel_for_package(
+        script,
+        "chooser",
+        "2",
+        depends=["pkg[gpu]", "conflict==2"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "root",
+        "1",
+        depends=["chooser", "conflict==1"],
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "root",
+    )
+
+    script.assert_installed(root="1", chooser="1", conflict="1", pkg="1", cpu="1")
+    script.assert_not_installed("gpu")
+
+
 @pytest.mark.network
 def test_install_requirements_no_r_flag(script: PipTestEnvironment) -> None:
     """Beginners sometimes forget the -r and this leads to confusion"""

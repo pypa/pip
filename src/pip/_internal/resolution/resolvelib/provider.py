@@ -9,9 +9,12 @@ from typing import (
     TypeVar,
 )
 
+from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.packaging import get_requirement
 
 from .base import Candidate, Constraint, Requirement
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
@@ -104,6 +107,7 @@ class PipProvider(_ProviderBase):
         self._user_requested = user_requested
         self._conflict_counts: defaultdict[str, int] = defaultdict(int)
         self._conflict_promoted: set[str] = set()
+        self._active_extras: dict[NormalizedName, frozenset[NormalizedName]] = {}
 
     @property
     def constraints(self) -> dict[str, Constraint]:
@@ -259,6 +263,8 @@ class PipProvider(_ProviderBase):
         requirements: Mapping[str, Iterator[Requirement]],
         incompatibilities: Mapping[str, Iterator[Candidate]],
     ) -> Iterable[Candidate]:
+        self._active_extras = _get_extras_from_identifiers(requirements)
+
         def _eligible_for_upgrade(identifier: str) -> bool:
             """Are upgrades allowed for this project?
 
@@ -302,5 +308,27 @@ class PipProvider(_ProviderBase):
 
     def get_dependencies(self, candidate: Candidate) -> Iterable[Requirement]:
         with_requires = not self._ignore_dependencies
+        requested_extras = self._active_extras.get(
+            candidate.project_name,
+            frozenset(),
+        )
         # iter_dependencies() can perform nontrivial work so delay until needed.
-        return (r for r in candidate.iter_dependencies(with_requires) if r is not None)
+        return (
+            r
+            for r in candidate.iter_dependencies(with_requires, requested_extras)
+            if r is not None
+        )
+
+
+def _get_extras_from_identifiers(
+    identifiers: Iterable[str],
+) -> dict[NormalizedName, frozenset[NormalizedName]]:
+    extras: defaultdict[NormalizedName, set[NormalizedName]] = defaultdict(set)
+    for identifier in identifiers:
+        try:
+            requirement = get_requirement(identifier)
+        except InvalidRequirement:
+            continue
+        name = canonicalize_name(requirement.name)
+        extras[name].update(canonicalize_name(e) for e in requirement.extras)
+    return {name: frozenset(values) for name, values in extras.items()}

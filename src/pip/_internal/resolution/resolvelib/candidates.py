@@ -165,7 +165,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
-        self._requested_extras: set[NormalizedName] = set()
         self.dist = self._prepare()
         self._hash: int | None = None
 
@@ -218,18 +217,24 @@ class _InstallRequirementBackedCandidate(Candidate):
     def _prepare_distribution(self) -> BaseDistribution:
         raise NotImplementedError("Override in subclass")
 
+    def _get_metadata_inconsistent_ireq(self) -> InstallRequirement:
+        if isinstance(self._ireq.comes_from, InstallRequirement):
+            return self._ireq.comes_from
+        return self._ireq
+
     def _check_metadata_consistency(self, dist: BaseDistribution) -> None:
         """Check for consistency of project name and version of dist."""
+        metadata_ireq = self._get_metadata_inconsistent_ireq()
         if self._name is not None and self._name != dist.canonical_name:
             raise MetadataInconsistent(
-                self._ireq,
+                metadata_ireq,
                 "name",
                 self._name,
                 dist.canonical_name,
             )
         if self._version is not None and self._version != dist.version:
             raise MetadataInconsistent(
-                self._ireq,
+                metadata_ireq,
                 "version",
                 str(self._version),
                 str(dist.version),
@@ -269,21 +274,22 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._check_metadata_consistency(dist)
         return dist
 
-    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
+    def iter_dependencies(
+        self,
+        with_requires: bool,
+        requested_extras: frozenset[NormalizedName],
+    ) -> Iterable[Requirement | None]:
         # Emit the Requires-Python requirement first to fail fast on
         # unsupported candidates and avoid pointless downloads/preparation.
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
         requires = (
-            self.dist.iter_dependencies(self._requested_extras) if with_requires else ()
+            self.dist.iter_dependencies(requested_extras) if with_requires else ()
         )
         for r in requires:
             yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self) -> InstallRequirement | None:
         return self._ireq
-
-    def request_extras(self, extras: Iterable[str]) -> None:
-        self._requested_extras.update(canonicalize_name(e) for e in extras)
 
 
 class LinkCandidate(_InstallRequirementBackedCandidate):
@@ -381,7 +387,6 @@ class AlreadyInstalledCandidate(Candidate):
         self._ireq = _make_install_req_from_dist(dist, template)
         self._factory = factory
         self._version = None
-        self._requested_extras: set[NormalizedName] = set()
 
         # This is just logging some messages, so we can do it eagerly.
         # The returned dist would be exactly the same as self.dist because we
@@ -425,21 +430,22 @@ class AlreadyInstalledCandidate(Candidate):
     def format_for_error(self) -> str:
         return f"{self.name} {self.version} (Installed)"
 
-    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
+    def iter_dependencies(
+        self,
+        with_requires: bool,
+        requested_extras: frozenset[NormalizedName],
+    ) -> Iterable[Requirement | None]:
         if not with_requires:
             return
 
         try:
-            for r in self.dist.iter_dependencies(self._requested_extras):
+            for r in self.dist.iter_dependencies(requested_extras):
                 yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
         except InvalidRequirement as exc:
             raise InvalidInstalledPackage(dist=self.dist, invalid_exc=exc) from None
 
     def get_install_requirement(self) -> InstallRequirement | None:
         return None
-
-    def request_extras(self, extras: Iterable[str]) -> None:
-        self._requested_extras.update(canonicalize_name(e) for e in extras)
 
 
 class ExtrasCandidate(Candidate):
@@ -484,7 +490,6 @@ class ExtrasCandidate(Candidate):
         """
         self.base = base
         self.extras = frozenset(canonicalize_name(e) for e in extras)
-        self.base.request_extras(self.extras)
         self._comes_from = comes_from if comes_from is not None else self.base._ireq
         self._warned_invalid_extras: set[NormalizedName] = set()
 
@@ -533,7 +538,11 @@ class ExtrasCandidate(Candidate):
     def source_link(self) -> Link | None:
         return self.base.source_link
 
-    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
+    def iter_dependencies(
+        self,
+        with_requires: bool,
+        requested_extras: frozenset[NormalizedName],
+    ) -> Iterable[Requirement | None]:
         factory = self.base._factory
 
         # Add a dependency on the exact base
@@ -544,7 +553,6 @@ class ExtrasCandidate(Candidate):
 
         # The user may have specified extras that the candidate doesn't
         # support. We ignore any unsupported extras here.
-        valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
         invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
         for extra in sorted(invalid_extras):
             if extra in self._warned_invalid_extras:
@@ -557,11 +565,15 @@ class ExtrasCandidate(Candidate):
             )
             self._warned_invalid_extras.add(extra)
 
-        for r in self.base.dist.iter_dependencies(valid_extras):
+        selected_extras = requested_extras or self.extras
+        valid_selected_extras = selected_extras.intersection(
+            self.base.dist.iter_provided_extras()
+        )
+        for r in self.base.dist.iter_dependencies(valid_selected_extras):
             yield from factory.make_requirements_from_spec(
                 str(r),
                 self._comes_from,
-                valid_extras,
+                valid_selected_extras,
             )
 
     def get_install_requirement(self) -> InstallRequirement | None:
@@ -607,7 +619,11 @@ class RequiresPythonCandidate(Candidate):
     def format_for_error(self) -> str:
         return f"Python {self.version}"
 
-    def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
+    def iter_dependencies(
+        self,
+        with_requires: bool,
+        requested_extras: frozenset[NormalizedName],
+    ) -> Iterable[Requirement | None]:
         return ()
 
     def get_install_requirement(self) -> InstallRequirement | None:

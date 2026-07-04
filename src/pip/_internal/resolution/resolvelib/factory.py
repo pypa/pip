@@ -162,10 +162,11 @@ class Factory:
         extras: frozenset[str],
         template: InstallRequirement,
     ) -> Candidate:
+        base_template = install_req_drop_extras(template) if extras else template
         try:
             base = self._installed_candidate_cache[dist.canonical_name]
         except KeyError:
-            base = AlreadyInstalledCandidate(dist, template, factory=self)
+            base = AlreadyInstalledCandidate(dist, base_template, factory=self)
             self._installed_candidate_cache[dist.canonical_name] = base
         if not extras:
             return base
@@ -179,8 +180,9 @@ class Factory:
         name: NormalizedName | None,
         version: Version | None,
     ) -> Candidate | None:
+        base_template = install_req_drop_extras(template) if extras else template
         base: BaseCandidate | None = self._make_base_candidate_from_link(
-            link, template, name, version
+            link, base_template, name, version
         )
         if not extras or base is None:
             return base
