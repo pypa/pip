@@ -26,13 +26,18 @@ def _eval_extra_marker(
         return False
 
     normalized_extra = canonicalize_name(extra)
+    extras_to_evaluate = extras or frozenset({""})
     if op.value == "==":
-        return normalized_extra in extras
+        return any(extra == normalized_extra for extra in extras_to_evaluate)
     if op.value == "!=":
-        return normalized_extra not in extras
-    if op.value in {"in", "not in"}:
-        extras_to_evaluate = extras or frozenset({""})
+        return all(extra != normalized_extra for extra in extras_to_evaluate)
+    if op.value == "in":
         return any(
+            Marker._from_markers([(lhs, op, rhs)]).evaluate({"extra": extra})
+            for extra in extras_to_evaluate
+        )
+    if op.value == "not in":
+        return all(
             Marker._from_markers([(lhs, op, rhs)]).evaluate({"extra": extra})
             for extra in extras_to_evaluate
         )

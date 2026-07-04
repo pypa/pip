@@ -721,6 +721,14 @@ class TestInstallRequirement:
         assert req.match_markers(["gpu"])
         assert not req.match_markers(["tests"])
 
+        req = install_req_from_line('name; extra == ""')
+        assert req.match_markers()
+        assert not req.match_markers(["gpu"])
+
+        req = install_req_from_line('name; extra != ""')
+        assert not req.match_markers()
+        assert req.match_markers(["gpu"])
+
         req = install_req_from_line('name; python_version >= "1" and extra != "gpu"')
         assert req.match_markers()
         assert not req.match_markers(["gpu"])
@@ -739,6 +747,7 @@ class TestInstallRequirement:
         req = install_req_from_line('name; extra not in "gpu,docs"')
         assert not req.match_markers(["gpu"])
         assert req.match_markers(["cpu"])
+        assert not req.match_markers(["gpu", "cpu"])
 
     def test_extras_for_line_path_requirement(self) -> None:
         line = "SomeProject[ex1,ex2]"

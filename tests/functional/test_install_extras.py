@@ -296,6 +296,39 @@ def test_install_extra_not_equal_marker_after_backtracking(
     script.assert_not_installed("gpu")
 
 
+def test_install_extra_not_equal_marker_resolves_newly_applicable_dependency(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "c", "1")
+    create_basic_wheel_for_package(
+        script,
+        "b",
+        "1",
+        depends=['c ; extra != "foo"'],
+        extras={"foo": []},
+    )
+    create_basic_wheel_for_package(
+        script,
+        "a",
+        "1",
+        depends=['b[foo] ; extra != "gpu"', "b"],
+        extras={"gpu": []},
+    )
+    create_basic_wheel_for_package(script, "trigger", "1", depends=["a[gpu]"])
+    create_basic_wheel_for_package(script, "root", "1", depends=["a", "trigger"])
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "root",
+    )
+
+    script.assert_installed(root="1", trigger="1", a="1", b="1", c="1")
+
+
 @pytest.mark.network
 def test_install_requirements_no_r_flag(script: PipTestEnvironment) -> None:
     """Beginners sometimes forget the -r and this leads to confusion"""
