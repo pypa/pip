@@ -89,13 +89,6 @@ typecheck = [
     "types-setuptools",  # provides top-level distutils stubs for locations/
 ]
 
-# Stubs for libraries vendored under pip._vendor that lack inline types.
-# The typecheck session in noxfile.py installs these to a target dir and moves
-# them into pip/_vendor/, so only genuinely vendored packages belong here.
-typecheck-vendored-stubs = [
-    "types-requests",  # pip._vendor.requests (no py.typed upstream)
-]
-
 docs = [
     "sphinx ~= 7.0",
     # currently incompatible with sphinxcontrib-towncrier
