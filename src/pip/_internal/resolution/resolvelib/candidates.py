@@ -21,6 +21,7 @@ from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
+    install_req_extend_extras,
     install_req_from_editable,
     install_req_from_line,
 )
@@ -433,28 +434,13 @@ class AlreadyInstalledCandidate(Candidate):
 
 
 class ExtrasCandidate(Candidate):
-    """A candidate that has 'extras', indicating additional dependencies.
+    """A base candidate wrapped with a set of requested extras.
 
-    Requirements can be for a project with dependencies, something like
-    foo[extra].  The extras don't affect the project/version being installed
-    directly, but indicate that we need additional dependencies. We model that
-    by having an artificial ExtrasCandidate that wraps the "base" candidate.
-
-    The ExtrasCandidate differs from the base in the following ways:
-
-    1. It has a unique name, of the form foo[extra]. This causes the resolver
-       to treat it as a separate node in the dependency graph.
-    2. When we're getting the candidate's dependencies,
-       a) We specify that we want the extra dependencies as well.
-       b) We add a dependency on the base candidate.
-          See below for why this is needed.
-    3. We return None for the underlying InstallRequirement, as the base
-       candidate will provide it, and we don't want to end up with duplicates.
-
-    The dependency on the base candidate is needed so that the resolver can't
-    decide that it should recommend foo[extra1] version 1.0 and foo[extra2]
-    version 2.0. Having those candidates depend on foo=1.0 and foo=2.0
-    respectively forces the resolver to recognise that this is a conflict.
+    Requirements can ask for a project together with extras, like foo[extra].
+    Extras don't change the project or version installed, only which
+    dependencies are pulled in, so they are modelled as an attribute of the
+    candidate: identify() returns the bare project name, so foo and foo[extra]
+    resolve as one node against the merged set of requested extras.
     """
 
     def __init__(
@@ -473,8 +459,12 @@ class ExtrasCandidate(Candidate):
             it does not do any leg work.
         """
         self.base = base
-        self.extras = frozenset(canonicalize_name(e) for e in extras)
-        self._comes_from = comes_from if comes_from is not None else self.base._ireq
+        self._extras = frozenset(canonicalize_name(e) for e in extras)
+
+        # Name the requested extras in the provenance chain (e.g. "(from
+        # pkg[extra])"), even when created from a plain requirement.
+        base_comes_from = comes_from if comes_from is not None else self.base._ireq
+        self._comes_from = install_req_extend_extras(base_comes_from, self.extras)
 
     def __str__(self) -> str:
         name, rest = str(self.base).split(" ", 1)
@@ -490,6 +480,14 @@ class ExtrasCandidate(Candidate):
         if isinstance(other, self.__class__):
             return self.base == other.base and self.extras == other.extras
         return False
+
+    @property
+    def base_candidate(self) -> Candidate:
+        return self.base
+
+    @property
+    def extras(self) -> frozenset[NormalizedName]:
+        return self._extras
 
     @property
     def project_name(self) -> NormalizedName:
@@ -524,9 +522,8 @@ class ExtrasCandidate(Candidate):
     def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         factory = self.base._factory
 
-        # Add a dependency on the exact base
-        # (See note 2b in the class docstring)
-        yield factory.make_requirement_from_candidate(self.base)
+        # Depend on the base's Requires-Python.
+        yield factory.make_requires_python_requirement(self.base.dist.requires_python)
         if not with_requires:
             return
 
@@ -550,10 +547,12 @@ class ExtrasCandidate(Candidate):
             )
 
     def get_install_requirement(self) -> InstallRequirement | None:
-        # We don't return anything here, because we always
-        # depend on the base candidate, and we'll get the
-        # install requirement from that.
-        return None
+        # Install the base, with the requested extras recorded on the
+        # requirement.
+        base_ireq = self.base.get_install_requirement()
+        if base_ireq is None:
+            return None
+        return install_req_extend_extras(base_ireq, self.extras)
 
 
 class RequiresPythonCandidate(Candidate):

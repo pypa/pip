@@ -264,6 +264,150 @@ def test_new_resolver_installs_extras_warn_missing(script: PipTestEnvironment) -
     script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
+def test_new_resolver_upgrade_requested_with_extra(
+    script: PipTestEnvironment,
+) -> None:
+    """``pip install --upgrade foo[extra]`` upgrades foo. The request carries an
+    extra, but the resolver keys user-requested packages by their bare name."""
+    create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": []})
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[ext]==1.0",
+    )
+    create_basic_wheel_for_package(script, "pkg", "2.0", extras={"ext": []})
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--upgrade",
+        "pkg[ext]",
+    )
+    script.assert_installed(pkg="2.0")
+
+
+@pytest.mark.parametrize("roots", [("srv", "pkg"), ("pkg", "srv")])
+def test_new_resolver_extra_dropped_after_backtracking(
+    script: PipTestEnvironment,
+    roots: tuple[str, str],
+) -> None:
+    """An extra's dependencies are not installed when the requirement that asked
+    for the extra is backtracked away.
+
+    ``srv 2.0`` requires ``pkg[x]`` (which pulls ``xdep``), but ``pkg`` then
+    forces ``srv`` down to ``1.0``, which does not ask for the extra. Once the
+    only requester of ``x`` is gone, ``xdep`` must not be installed. The root
+    order changes which candidate is tried first, so check both.
+    """
+    create_basic_wheel_for_package(script, "xdep", "1.0")
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", depends=["srv<2"], extras={"x": ["xdep"]}
+    )
+    create_basic_wheel_for_package(script, "srv", "2.0", depends=["pkg[x]"])
+    create_basic_wheel_for_package(script, "srv", "1.0")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *roots,
+    )
+    script.assert_installed(pkg="1.0", srv="1.0")
+    script.assert_not_installed("xdep")
+
+
+def test_new_resolver_extra_dropped_after_backtracking_is_transitive(
+    script: PipTestEnvironment,
+) -> None:
+    """Dropping a backtracked-away extra also drops what that extra pulled in
+    transitively, not just its direct dependency."""
+    create_basic_wheel_for_package(script, "xdep_child", "1.0")
+    create_basic_wheel_for_package(script, "xdep", "1.0", depends=["xdep_child"])
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", depends=["srv<2"], extras={"x": ["xdep"]}
+    )
+    create_basic_wheel_for_package(script, "srv", "2.0", depends=["pkg[x]"])
+    create_basic_wheel_for_package(script, "srv", "1.0")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "srv",
+        "pkg",
+    )
+    script.assert_installed(pkg="1.0", srv="1.0")
+    script.assert_not_installed("xdep", "xdep_child")
+
+
+def test_new_resolver_extra_kept_when_another_requester_survives(
+    script: PipTestEnvironment,
+) -> None:
+    """The extra's dependencies stay installed when a requirement that survives
+    backtracking still asks for the extra."""
+    create_basic_wheel_for_package(script, "xdep", "1.0")
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", depends=["srv<2"], extras={"x": ["xdep"]}
+    )
+    create_basic_wheel_for_package(script, "srv", "2.0", depends=["pkg[x]"])
+    create_basic_wheel_for_package(script, "srv", "1.0")
+    create_basic_wheel_for_package(script, "keeper", "1.0", depends=["pkg[x]"])
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "srv",
+        "pkg",
+        "keeper",
+    )
+    script.assert_installed(pkg="1.0", srv="1.0", keeper="1.0", xdep="1.0")
+
+
+@pytest.mark.parametrize("roots", [("srv", "pkg[x]"), ("pkg[x]", "srv")])
+def test_new_resolver_only_backtracked_extra_dropped(
+    script: PipTestEnvironment,
+    roots: tuple[str, str],
+) -> None:
+    """When a package is pinned with two extras and only one requester is
+    backtracked away, just that extra's dependencies are dropped.
+
+    ``srv 2.0`` asks for ``pkg[y]`` while the root asks for ``pkg[x]``, so ``pkg``
+    pins with both extras. ``pkg`` then forces ``srv`` down to ``1.0``, dropping
+    the ``pkg[y]`` requirement; ``x`` survives, so ``xdep`` stays and only
+    ``ydep`` is dropped.
+    """
+    create_basic_wheel_for_package(script, "xdep", "1.0")
+    create_basic_wheel_for_package(script, "ydep", "1.0")
+    create_basic_wheel_for_package(
+        script, "pkg", "1.0", depends=["srv<2"], extras={"x": ["xdep"], "y": ["ydep"]}
+    )
+    create_basic_wheel_for_package(script, "srv", "2.0", depends=["pkg[y]"])
+    create_basic_wheel_for_package(script, "srv", "1.0")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *roots,
+    )
+    script.assert_installed(pkg="1.0", srv="1.0", xdep="1.0")
+    script.assert_not_installed("ydep")
+
+
 def test_new_resolver_installed_message(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "A", "1.0")
     result = script.pip(
@@ -327,6 +471,32 @@ def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:
     )
     script.assert_installed(base="0.1.0", dep="0.1.0")
     script.assert_installed_editable("dep")
+
+
+def test_new_resolver_installs_editable_with_extra(
+    script: PipTestEnvironment,
+) -> None:
+    """An editable install requested with an extra stays editable and pulls the
+    extra's dependency; the extras candidate now wraps the editable base."""
+    create_basic_wheel_for_package(script, "dep", "0.1.0")
+    source_dir = create_test_package_with_setup(
+        script,
+        name="pkg",
+        version="0.1.0",
+        extras_require={"dev": ["dep"]},
+    )
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--editable",
+        f"{source_dir}[dev]",
+    )
+    script.assert_installed(pkg="0.1.0", dep="0.1.0")
+    script.assert_installed_editable("pkg")
 
 
 @pytest.mark.parametrize(
@@ -398,9 +568,8 @@ def test_new_resolver_requires_python_error(script: PipTestEnvironment) -> None:
         expect_error=True,
     )
 
-    message = (
-        "Package 'base' requires a different Python: "
-        "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
+    message = "Package 'base' requires a different Python: {}.{}.{} not in '<2'".format(
+        *sys.version_info[:3]
     )
     assert message in result.stderr, str(result)
 
@@ -1159,9 +1328,8 @@ def test_new_resolver_no_deps_checks_requires_python(
         expect_error=True,
     )
 
-    message = (
-        "Package 'base' requires a different Python: "
-        "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
+    message = "Package 'base' requires a different Python: {}.{}.{} not in '<2'".format(
+        *sys.version_info[:3]
     )
     assert message in result.stderr
 
@@ -2476,6 +2644,31 @@ def test_new_resolver_constraint_on_link_with_extra(
     script.assert_installed(pkg="1.0")
 
 
+def test_new_resolver_url_constraint_with_extra_request(
+    script: PipTestEnvironment,
+) -> None:
+    """A URL constraint provides the base candidate for a package requested with
+    an extra, so that candidate must be offered carrying the extra."""
+    wheel: pathlib.Path = create_basic_wheel_for_package(
+        script, "pkg", "1.0", extras={"ext": ["ext_dep"]}
+    )
+    create_basic_wheel_for_package(script, "ext_dep", "1.0")
+    constraints = script.scratch_path / "constraints.txt"
+    constraints.write_text(f"pkg @ {wheel.as_uri()}\n")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-c",
+        constraints,
+        "pkg[ext]",
+    )
+    script.assert_installed(pkg="1.0", ext_dep="1.0")
+
+
 def test_new_resolver_constraint_on_link_with_extra_indirect(
     script: PipTestEnvironment,
 ) -> None:
@@ -2567,4 +2760,29 @@ def test_new_resolver_comes_from_with_extra(
     )
     assert "(from pkg[ext])" in result.stdout
     assert "(from pkg)" not in result.stdout
+    script.assert_installed(pkg="1.0", dep="1.0")
+
+
+def test_new_resolver_comes_from_with_extra_and_version(
+    script: PipTestEnvironment,
+) -> None:
+    """The provenance chain names the extra exactly once, even with a version
+    specifier: it must not duplicate the pkg[ext]==x hop."""
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "1.0", extras={"ext": ["dep"]})
+    req_path = script.scratch_path / "reqs.txt"
+    req_path.write_text("pkg[ext]==1.0")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_path,
+    )
+
+    assert "(from pkg[ext]==1.0->pkg[ext]==1.0" not in result.stdout, result.stdout
+    assert "(from pkg[ext]==1.0->-r" in result.stdout
     script.assert_installed(pkg="1.0", dep="1.0")

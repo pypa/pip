@@ -102,6 +102,11 @@ class Requirement:
         """
         raise NotImplementedError("Subclass should override")
 
+    @property
+    def extras(self) -> frozenset[NormalizedName]:
+        """The extras this requirement asks of its project."""
+        return frozenset()
+
     def is_satisfied_by(self, candidate: Candidate) -> bool:
         return False
 
@@ -137,6 +142,23 @@ class Candidate:
         extras, where ``project_name`` would not contain the ``[...]`` part.
         """
         raise NotImplementedError("Override in subclass")
+
+    @property
+    def base_candidate(self) -> Candidate:
+        """The underlying installation candidate.
+
+        Itself for a plain candidate; an ``ExtrasCandidate`` returns the
+        candidate it wraps.
+        """
+        return self
+
+    @property
+    def extras(self) -> frozenset[NormalizedName]:
+        """The extras requested for this candidate.
+
+        Empty for a plain candidate; an ``ExtrasCandidate`` returns its extras.
+        """
+        return frozenset()
 
     @property
     def version(self) -> Version:

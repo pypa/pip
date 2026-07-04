@@ -1,0 +1,1 @@
+Model a project and its extras as a single resolver node instead of one node per extra, reducing the work required to resolve dependencies that use extras.

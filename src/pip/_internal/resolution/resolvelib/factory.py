@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import copy
 import functools
 import logging
@@ -13,7 +12,6 @@ from typing import (
     cast,
 )
 
-from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import InvalidVersion, Version
@@ -47,7 +45,6 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, Constraint, Requirement
@@ -141,7 +138,7 @@ class Factory:
         msg = f"{link.filename} is not a supported wheel on this platform."
         raise UnsupportedWheel(msg)
 
-    def _make_extras_candidate(
+    def make_extras_candidate(
         self,
         base: BaseCandidate,
         extras: frozenset[str],
@@ -161,6 +158,7 @@ class Factory:
         dist: BaseDistribution,
         extras: frozenset[str],
         template: InstallRequirement,
+        comes_from: InstallRequirement | None = None,
     ) -> Candidate:
         try:
             base = self._installed_candidate_cache[dist.canonical_name]
@@ -169,7 +167,9 @@ class Factory:
             self._installed_candidate_cache[dist.canonical_name] = base
         if not extras:
             return base
-        return self._make_extras_candidate(base, extras, comes_from=template)
+        return self.make_extras_candidate(
+            base, extras, comes_from=comes_from if comes_from is not None else template
+        )
 
     def _make_candidate_from_link(
         self,
@@ -178,13 +178,18 @@ class Factory:
         template: InstallRequirement,
         name: NormalizedName | None,
         version: Version | None,
+        comes_from: InstallRequirement | None = None,
     ) -> Candidate | None:
         base: BaseCandidate | None = self._make_base_candidate_from_link(
             link, template, name, version
         )
-        if not extras or base is None:
+        if base is None:
+            return None
+        if not extras:
             return base
-        return self._make_extras_candidate(base, extras, comes_from=template)
+        return self.make_extras_candidate(
+            base, extras, comes_from=comes_from if comes_from is not None else template
+        )
 
     def _make_base_candidate_from_link(
         self,
@@ -305,6 +310,10 @@ class Factory:
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
 
+        # Prefer an extras-carrying requirement for the "(from pkg[extra])"
+        # provenance chain; the extras-dropped template would double the hop.
+        comes_from = next((ireq for ireq in ireqs if ireq.extras), template)
+
         def _get_installed_candidate() -> Candidate | None:
             """Get the candidate for the currently-installed version."""
             # If --force-reinstall is set, we want the version from the index
@@ -328,6 +337,7 @@ class Factory:
                 dist=installed_dist,
                 extras=extras,
                 template=template,
+                comes_from=comes_from,
             )
             # The candidate is a known incompatibility. Don't use it.
             if id(candidate) in incompatible_ids:
@@ -379,6 +389,7 @@ class Factory:
                     template=template,
                     name=name,
                     version=ican.version,
+                    comes_from=comes_from,
                 )
                 yield ican.version, func
 
@@ -389,60 +400,27 @@ class Factory:
             incompatible_ids,
         )
 
-    def _iter_explicit_candidates_from_base(
-        self,
-        base_requirements: Iterable[Requirement],
-        extras: frozenset[str],
-    ) -> Iterator[Candidate]:
-        """Produce explicit candidates from the base given an extra-ed package.
-
-        :param base_requirements: Requirements known to the resolver. The
-            requirements are guaranteed to not have extras.
-        :param extras: The extras to inject into the explicit requirements'
-            candidates.
-        """
-        for req in base_requirements:
-            lookup_cand, _ = req.get_candidate_lookup()
-            if lookup_cand is None:  # Not explicit.
-                continue
-            # We've stripped extras from the identifier, and should always
-            # get a BaseCandidate here, unless there's a bug elsewhere.
-            base_cand = as_base_candidate(lookup_cand)
-            assert base_cand is not None, "no extras here"
-            yield self._make_extras_candidate(base_cand, extras)
-
     def _iter_candidates_from_constraints(
         self,
         identifier: str,
         constraint: Constraint,
         template: InstallRequirement,
     ) -> Iterator[Candidate]:
-        """Produce explicit candidates from constraints.
+        """Produce base candidates from a constraint's links.
 
         This creates "fake" InstallRequirement objects that are basically clones
-        of what "should" be the template, but with original_link set to link.
+        of what "should" be the template, but with original_link set to link. Any
+        requested extras are applied by find_candidates, not here.
         """
-        extras: frozenset[str] = frozenset()
-        base_identifier = identifier
-        with contextlib.suppress(InvalidRequirement):
-            parsed_requirement = get_requirement(identifier)
-            if parsed_requirement.name != identifier:
-                base_identifier = canonicalize_name(parsed_requirement.name)
-                extras = frozenset(parsed_requirement.extras)
-
         for link in constraint.links:
             self._fail_if_link_is_unsupported_wheel(link)
             base_candidate = self._make_base_candidate_from_link(
                 link,
                 template=install_req_from_link_and_ireq(link, template),
-                name=canonicalize_name(base_identifier),
+                name=canonicalize_name(identifier),
                 version=None,
             )
-            if base_candidate is None:
-                continue
-            if extras:
-                yield self._make_extras_candidate(base_candidate, extras)
-            else:
+            if base_candidate is not None:
                 yield base_candidate
 
     def find_candidates(
@@ -464,22 +442,6 @@ class Factory:
             if ireq is not None:
                 ireqs.append(ireq)
 
-        # If the current identifier contains extras, add requires and explicit
-        # candidates from entries from extra-less identifier.
-        with contextlib.suppress(InvalidRequirement):
-            parsed_requirement = get_requirement(identifier)
-            if parsed_requirement.name != identifier:
-                explicit_candidates.update(
-                    self._iter_explicit_candidates_from_base(
-                        requirements.get(parsed_requirement.name, ()),
-                        frozenset(parsed_requirement.extras),
-                    ),
-                )
-                for req in requirements.get(parsed_requirement.name, []):
-                    _, ireq = req.get_candidate_lookup()
-                    if ireq is not None:
-                        ireqs.append(ireq)
-
         # Add explicit candidates from constraints. We only do this if there are
         # known ireqs, which represent requirements not already explicit. If
         # there are no ireqs, we're constraining already-explicit requirements,
@@ -497,6 +459,23 @@ class Factory:
                 # If we're constrained to install a wheel incompatible with the
                 # target architecture, no candidates will ever be valid.
                 return ()
+
+        # Also offer every explicit base candidate carrying the requested extras,
+        # so one candidate satisfies both a plain and an extras requirement on it.
+        # After the constraints block so constraint candidates are wrapped too.
+        requested_extras: frozenset[NormalizedName] = frozenset()
+        for ireq in ireqs:
+            requested_extras |= frozenset(canonicalize_name(e) for e in ireq.extras)
+        for cand in explicit_candidates:
+            requested_extras |= cand.extras
+
+        if requested_extras:
+            for cand in list(explicit_candidates):
+                base_cand = as_base_candidate(cand)
+                if base_cand is not None:
+                    explicit_candidates.add(
+                        self.make_extras_candidate(base_cand, requested_extras)
+                    )
 
         # Since we cache all the candidates, incompatibility identification
         # can be made quicker by comparing only the id() values.
@@ -567,12 +546,13 @@ class Factory:
                     raise self._build_failures[ireq.link]
                 yield UnsatisfiableRequirement(canonicalize_name(ireq.name))
             else:
-                # require the base from the link
+                # Register the base link candidate under the bare identifier so
+                # other requirements on the project can resolve to it.
                 yield self.make_requirement_from_candidate(cand)
                 if ireq.extras:
-                    # require the extras on top of the base candidate
+                    # Also offer the base wrapped with the requested extras.
                     yield self.make_requirement_from_candidate(
-                        self._make_extras_candidate(cand, frozenset(ireq.extras))
+                        self.make_extras_candidate(cand, frozenset(ireq.extras))
                     )
 
     def collect_root_requirements(
@@ -603,8 +583,13 @@ class Factory:
                 if not reqs:
                     continue
                 template = reqs[0]
-                if ireq.user_supplied and template.name not in collected.user_requested:
-                    collected.user_requested[template.name] = i
+
+                # Key user_requested on project_name, matching identify(): a
+                # user-supplied foo[extra] registers under foo, else its upgrade
+                # eligibility and requested ordering are lost.
+                name = template.project_name
+                if ireq.user_supplied and name not in collected.user_requested:
+                    collected.user_requested[name] = i
                 collected.requirements.extend(reqs)
         # Put requirements with extras at the end of the root requires. This does not
         # affect resolvelib's picking preference but it does affect its initial criteria

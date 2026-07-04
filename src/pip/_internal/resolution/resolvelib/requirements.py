@@ -39,6 +39,10 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalize - the candidate did this
         return self.candidate.name
 
+    @property
+    def extras(self) -> frozenset[NormalizedName]:
+        return self.candidate.extras
+
     def format_for_error(self) -> str:
         return self.candidate.format_for_error()
 
@@ -46,7 +50,13 @@ class ExplicitRequirement(Requirement):
         return self.candidate, None
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
-        return candidate == self.candidate
+        if candidate == self.candidate:
+            return True
+        # A candidate that wraps the required one with more extras also
+        # satisfies it (extras only add dependencies).
+        if candidate.base_candidate != self.candidate.base_candidate:
+            return False
+        return self.candidate.extras <= candidate.extras
 
 
 class SpecifierRequirement(Requirement):
@@ -92,6 +102,10 @@ class SpecifierRequirement(Requirement):
     def name(self) -> str:
         return format_name(self.project_name, self._extras)
 
+    @property
+    def extras(self) -> frozenset[NormalizedName]:
+        return self._extras
+
     def format_for_error(self) -> str:
         # Convert comma-separated specifiers into "A, B, ..., F and G"
         # This makes the specifier a bit more "human readable", without
@@ -109,10 +123,14 @@ class SpecifierRequirement(Requirement):
         return None, self._ireq
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
-        assert candidate.name == self.name, (
+        assert candidate.project_name == self.project_name, (
             f"Internal issue: Candidate is not for this requirement "
-            f"{candidate.name} vs {self.name}"
+            f"{candidate.project_name} vs {self.project_name}"
         )
+        # The candidate must provide every requested extra; carrying more still
+        # satisfies (extras only add dependencies).
+        if not self._extras <= candidate.extras:
+            return False
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.

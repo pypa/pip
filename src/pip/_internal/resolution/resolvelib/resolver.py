@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import logging
 import os
+from collections import defaultdict, deque
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, cast
 
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible, ResolutionTooDeep
 from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.structs import DirectedGraph
@@ -15,7 +16,6 @@ from pip._internal.cache import WheelCache
 from pip._internal.exceptions import ResolutionTooDeepError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req.constructors import install_req_extend_extras
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
@@ -24,9 +24,9 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
-from pip._internal.utils.packaging import get_requirement
 
 from .base import Candidate, Requirement
+from .candidates import as_base_candidate
 from .factory import Factory
 
 if TYPE_CHECKING:
@@ -109,25 +109,34 @@ class Resolver(BaseResolver):
         except ResolutionTooDeep:
             raise ResolutionTooDeepError from None
 
+        # Extras are an attribute of a single resolver node, so a project stays
+        # pinned with an extra even after the requirement that asked for it is
+        # backtracked away, leaving that extra's dependencies stranded in the
+        # mapping. Re-derive which extras each project still needs, and skip the
+        # stranded nodes, so the install set matches what the solution requires.
+        required_extras = self._reachable_extras(result, collected.requirements)
+
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        # process candidates with extras last to ensure their base equivalent is
-        # already in the req_set if appropriate.
-        # Python's sort is stable so using a binary key function keeps relative order
-        # within both subsets.
-        for candidate in sorted(
-            result.mapping.values(), key=lambda c: c.name != c.project_name
-        ):
+        for name, pinned in result.mapping.items():
+            extras = required_extras.get(name)
+            if extras is None:
+                # Held only by a stale extra that nothing still requests.
+                continue
+
+            if extras == pinned.extras:
+                candidate: Candidate = pinned
+            else:
+                # The pin carries more extras than survived, so it is an
+                # ExtrasCandidate; install its base under only the extras still
+                # required.
+                base = as_base_candidate(pinned.base_candidate)
+                assert base is not None, "only an ExtrasCandidate can shed extras"
+                candidate = (
+                    self.factory.make_extras_candidate(base, extras) if extras else base
+                )
+
             ireq = candidate.get_install_requirement()
             if ireq is None:
-                if candidate.name != candidate.project_name:
-                    # extend existing req's extras
-                    with contextlib.suppress(KeyError):
-                        req = req_set.get_requirement(candidate.project_name)
-                        req_set.add_named_requirement(
-                            install_req_extend_extras(
-                                req, get_requirement(candidate.name).extras
-                            )
-                        )
                 continue
 
             # Check if there is already an installation under the same name,
@@ -182,6 +191,126 @@ class Resolver(BaseResolver):
             req_set.add_named_requirement(ireq)
 
         return req_set
+
+    def _reachable_extras(
+        self,
+        result: Result,
+        roots: list[Requirement],
+    ) -> dict[str, frozenset[NormalizedName]]:
+        """Map each installable project to the extras it still requires.
+
+        A project stays pinned with an extra even after the requirement that
+        asked for it is backtracked away (see the note in ``resolve``), which
+        strands that extra's dependencies in ``result.mapping``. Walk the
+        solution from the root requirements, following each project's
+        dependencies under only the extras still asked of it; projects the walk
+        never reaches were held solely by a stale extra and are dropped.
+
+        resolvelib already recorded every dependency edge in ``result.criteria``,
+        so the walk reuses those. They are exact unless a project kept an extra
+        no surviving requirement asks for, in which case a recorded edge may
+        belong to that stale extra. That is rare, so it is detected with a cheap
+        check and only then are the dependencies re-derived from scratch.
+        """
+        mapping = result.mapping
+
+        # Without extras nothing is stranded and every pinned node is reachable.
+        if not any(candidate.extras for candidate in mapping.values()):
+            return {name: frozenset() for name in mapping}
+
+        name_of = {id(c): name for name, c in mapping.items()}
+
+        # Invert the criteria into parent -> [(child, requested extras)], keeping
+        # only edges whose parent is still pinned in the final solution.
+        recorded: dict[str, list[tuple[str, frozenset[NormalizedName]]]] = defaultdict(
+            list
+        )
+        for child, criterion in result.criteria.items():
+            if child not in mapping:
+                continue
+            for info in criterion.information:
+                parent = name_of.get(id(info.parent))
+                if parent is not None:
+                    recorded[parent].append((child, info.requirement.extras))
+
+        active = self._walk_required_extras(
+            roots, mapping, lambda name, _extras: recorded.get(name, ())
+        )
+
+        stale = any(
+            frozenset(extras) != mapping[name].extras
+            for name, extras in active.items()
+            if mapping[name].extras
+        )
+        if stale:
+            # A project kept a stale extra, so a recorded edge may belong to it;
+            # re-derive dependencies under only each project's surviving extras.
+            active = self._walk_required_extras(roots, mapping, self._derived_edges)
+
+        return {name: frozenset(extras) for name, extras in active.items()}
+
+    def _walk_required_extras(
+        self,
+        roots: list[Requirement],
+        mapping: dict[str, Candidate],
+        edges_of: Callable[
+            [str, set[NormalizedName]],
+            Iterable[tuple[str, frozenset[NormalizedName]]],
+        ],
+    ) -> dict[str, set[NormalizedName]]:
+        """Propagate requested extras from the roots along ``edges_of``.
+
+        Returns the reached projects mapped to the union of extras asked of them.
+        """
+        active: dict[str, set[NormalizedName]] = {}
+        queue: deque[str] = deque()
+
+        # Record the extras asked of a node, re-queueing it when they grow.
+        def request(name: str, extras: frozenset[NormalizedName]) -> None:
+            reached = active.get(name)
+            if reached is None:
+                active[name] = set(extras)
+                queue.append(name)
+            elif not extras <= reached:
+                reached |= extras
+                queue.append(name)
+
+        for root in roots:
+            if root.project_name in mapping:
+                request(root.project_name, root.extras)
+
+        while queue:
+            name = queue.popleft()
+            for child, child_extras in edges_of(name, active[name]):
+                request(child, child_extras)
+
+        return active
+
+    def _derived_edges(
+        self, name: str, extras: set[NormalizedName]
+    ) -> list[tuple[str, frozenset[NormalizedName]]]:
+        """Recompute a project's in-solution dependencies under ``extras``.
+
+        Used only when a stale extra is present. Extras the project does not
+        provide are dropped: they pull nothing, and re-deriving them would repeat
+        the "does not provide the extra" warning already emitted during resolve.
+        """
+        assert self._result is not None
+        mapping = self._result.mapping
+
+        base = as_base_candidate(mapping[name].base_candidate)
+        if base is None:
+            # The Requires-Python node has no dependencies to contribute.
+            return []
+
+        # Read the dependencies under only the extras the project provides.
+        valid = frozenset(base.dist.iter_provided_extras()) & extras
+        source = self.factory.make_extras_candidate(base, valid) if valid else base
+        return [
+            (dep.project_name, dep.extras)
+            for dep in source.iter_dependencies(not self.ignore_dependencies)
+            if dep is not None and dep.project_name in mapping
+        ]
 
     def get_installation_order(
         self, req_set: RequirementSet
