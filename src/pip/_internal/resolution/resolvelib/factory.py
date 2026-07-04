@@ -50,7 +50,7 @@ from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import Candidate, Constraint, Requirement
+from .base import Candidate, Constraint, Requirement, collect_requested_extras
 from .candidates import (
     AlreadyInstalledCandidate,
     BaseCandidate,
@@ -446,9 +446,7 @@ class Factory:
     ) -> Iterable[Candidate]:
         # Collect basic lookup information from the requirements.
         collected_requirements = list(requirements[identifier])
-        requested_extras = frozenset(
-            extra for req in collected_requirements for extra in req.requested_extras
-        )
+        requested_extras = collect_requested_extras(collected_requirements)
         explicit_candidates: set[Candidate] = set()
         ireqs: list[InstallRequirement] = []
         for req in collected_requirements:

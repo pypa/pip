@@ -13,7 +13,7 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.req.req_install import InstallRequirement
 
-from .base import Candidate, Constraint, Requirement
+from .base import Candidate, Constraint, Requirement, collect_requested_extras
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
 from .requirements import ExplicitRequirement
@@ -104,7 +104,7 @@ class PipProvider(_ProviderBase):
         self._user_requested = user_requested
         self._conflict_counts: defaultdict[str, int] = defaultdict(int)
         self._conflict_promoted: set[str] = set()
-        self._active_extras: dict[NormalizedName, frozenset[NormalizedName]] = {}
+        self._active_extras: dict[str, frozenset[NormalizedName]] = {}
 
     @property
     def constraints(self) -> dict[str, Constraint]:
@@ -299,6 +299,8 @@ class PipProvider(_ProviderBase):
         )
 
     def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
+        # Extras are attached to the whole project criterion, so a stale
+        # candidate must stop satisfying every requirement for that project.
         requested_extras = self._active_extras.get(
             candidate.project_name,
             frozenset(),
@@ -315,9 +317,9 @@ class PipProvider(_ProviderBase):
 
 def _get_extras_from_requirements(
     requirements: Mapping[str, Iterable[Requirement]],
-) -> dict[NormalizedName, frozenset[NormalizedName]]:
-    extras: defaultdict[NormalizedName, set[NormalizedName]] = defaultdict(set)
-    for identifier in requirements:
-        for requirement in requirements[identifier]:
-            extras[requirement.project_name].update(requirement.requested_extras)
-    return {name: frozenset(values) for name, values in extras.items()}
+) -> dict[str, frozenset[NormalizedName]]:
+    return {
+        identifier: extras
+        for identifier in requirements
+        if (extras := collect_requested_extras(requirements[identifier]))
+    }

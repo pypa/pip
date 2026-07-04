@@ -117,6 +117,14 @@ class Requirement:
         raise NotImplementedError("Subclass should override")
 
 
+def collect_requested_extras(
+    requirements: Iterable[Requirement],
+) -> frozenset[NormalizedName]:
+    return frozenset(
+        extra for requirement in requirements for extra in requirement.requested_extras
+    )
+
+
 def _match_link(link: Link, candidate: Candidate) -> bool:
     if candidate.source_link:
         return links_equivalent(link, candidate.source_link)
