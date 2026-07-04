@@ -86,6 +86,8 @@ pip will also respect `XDG_CACHE_HOME`.
 ```
 ~/Library/Caches/pip
 ```
+
+pip will also respect `XDG_CACHE_HOME`.
 ````
 
 ````{tab} Windows
