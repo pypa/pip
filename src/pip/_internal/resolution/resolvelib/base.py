@@ -95,12 +95,17 @@ class Requirement:
 
     @property
     def name(self) -> str:
-        """The name identifying this requirement in the resolver.
+        """The formatted requirement name, including extras if present.
 
         This is different from ``project_name`` if this requirement contains
         extras, where ``project_name`` would not contain the ``[...]`` part.
         """
         raise NotImplementedError("Subclass should override")
+
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        """Extras requested by this requirement."""
+        return frozenset()
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
         return False
@@ -131,7 +136,7 @@ class Candidate:
 
     @property
     def name(self) -> str:
-        """The name identifying this candidate in the resolver.
+        """The formatted candidate name, including extras if present.
 
         This is different from ``project_name`` if this candidate contains
         extras, where ``project_name`` would not contain the ``[...]`` part.

@@ -88,6 +88,15 @@ class CollectedRootRequirements(NamedTuple):
     user_requested: dict[str, int]
 
 
+def _root_requirement_sort_key(requirement: Requirement) -> int:
+    candidate, _ = requirement.get_candidate_lookup()
+    if candidate is not None:
+        return 0
+    if requirement.name == requirement.project_name:
+        return 1
+    return 2
+
+
 class Factory:
     def __init__(
         self,
@@ -306,6 +315,7 @@ class Factory:
             specifier &= ireq.req.specifier
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
+        candidate_template = next((ireq for ireq in ireqs if ireq.extras), template)
 
         def _get_installed_candidate() -> Candidate | None:
             """Get the candidate for the currently-installed version."""
@@ -329,7 +339,7 @@ class Factory:
             candidate = self._make_candidate_from_dist(
                 dist=installed_dist,
                 extras=extras,
-                template=template,
+                template=candidate_template if extras else template,
             )
             # The candidate is a known incompatibility. Don't use it.
             if id(candidate) in incompatible_ids:
@@ -378,7 +388,7 @@ class Factory:
                     self._make_candidate_from_link,
                     link=ican.link,
                     extras=extras,
-                    template=template,
+                    template=candidate_template if extras else template,
                     name=name,
                     version=ican.version,
                 )
@@ -390,28 +400,6 @@ class Factory:
             prefers_installed,
             incompatible_ids,
         )
-
-    def _iter_explicit_candidates_from_base(
-        self,
-        base_requirements: Iterable[Requirement],
-        extras: frozenset[str],
-    ) -> Iterator[Candidate]:
-        """Produce explicit candidates from the base given an extra-ed package.
-
-        :param base_requirements: Requirements known to the resolver. The
-            requirements are guaranteed to not have extras.
-        :param extras: The extras to inject into the explicit requirements'
-            candidates.
-        """
-        for req in base_requirements:
-            lookup_cand, _ = req.get_candidate_lookup()
-            if lookup_cand is None:  # Not explicit.
-                continue
-            # We've stripped extras from the identifier, and should always
-            # get a BaseCandidate here, unless there's a bug elsewhere.
-            base_cand = as_base_candidate(lookup_cand)
-            assert base_cand is not None, "no extras here"
-            yield self._make_extras_candidate(base_cand, extras)
 
     def _iter_candidates_from_constraints(
         self,
@@ -457,30 +445,18 @@ class Factory:
         is_satisfied_by: Callable[[Requirement, Candidate], bool],
     ) -> Iterable[Candidate]:
         # Collect basic lookup information from the requirements.
+        collected_requirements = list(requirements[identifier])
+        requested_extras = frozenset(
+            extra for req in collected_requirements for extra in req.requested_extras
+        )
         explicit_candidates: set[Candidate] = set()
         ireqs: list[InstallRequirement] = []
-        for req in requirements[identifier]:
+        for req in collected_requirements:
             cand, ireq = req.get_candidate_lookup()
             if cand is not None:
                 explicit_candidates.add(cand)
             if ireq is not None:
                 ireqs.append(ireq)
-
-        # If the current identifier contains extras, add requires and explicit
-        # candidates from entries from extra-less identifier.
-        with contextlib.suppress(InvalidRequirement):
-            parsed_requirement = get_requirement(identifier)
-            if parsed_requirement.name != identifier:
-                explicit_candidates.update(
-                    self._iter_explicit_candidates_from_base(
-                        requirements.get(parsed_requirement.name, ()),
-                        frozenset(parsed_requirement.extras),
-                    ),
-                )
-                for req in requirements.get(parsed_requirement.name, []):
-                    _, ireq = req.get_candidate_lookup()
-                    if ireq is not None:
-                        ireqs.append(ireq)
 
         # Add explicit candidates from constraints. We only do this if there are
         # known ireqs, which represent requirements not already explicit. If
@@ -499,6 +475,13 @@ class Factory:
                 # If we're constrained to install a wheel incompatible with the
                 # target architecture, no candidates will ever be valid.
                 return ()
+
+        if requested_extras:
+            explicit_candidates = {
+                self._make_extras_candidate(base, requested_extras)
+                for candidate in explicit_candidates
+                if (base := as_base_candidate(candidate)) is not None
+            }
 
         # Since we cache all the candidates, incompatibility identification
         # can be made quicker by comparing only the id() values.
@@ -521,7 +504,7 @@ class Factory:
             for c in explicit_candidates
             if id(c) not in incompat_ids
             and constraint.is_satisfied_by(c)
-            and all(is_satisfied_by(req, c) for req in requirements[identifier])
+            and all(is_satisfied_by(req, c) for req in collected_requirements)
         )
 
     def _make_requirements_from_install_req(
@@ -570,12 +553,14 @@ class Factory:
                 yield UnsatisfiableRequirement(canonicalize_name(ireq.name))
             else:
                 # require the base from the link
-                yield self.make_requirement_from_candidate(cand)
+                candidate: Candidate = cand
                 if ireq.extras:
-                    # require the extras on top of the base candidate
-                    yield self.make_requirement_from_candidate(
-                        self._make_extras_candidate(cand, frozenset(ireq.extras))
+                    candidate = self._make_extras_candidate(
+                        cand,
+                        frozenset(ireq.extras),
+                        comes_from=ireq,
                     )
+                yield self.make_requirement_from_candidate(candidate)
 
     def collect_root_requirements(
         self, root_ireqs: list[InstallRequirement]
@@ -605,18 +590,13 @@ class Factory:
                 if not reqs:
                     continue
                 template = reqs[0]
-                if ireq.user_supplied and template.name not in collected.user_requested:
-                    collected.user_requested[template.name] = i
+                if (
+                    ireq.user_supplied
+                    and template.project_name not in collected.user_requested
+                ):
+                    collected.user_requested[template.project_name] = i
                 collected.requirements.extend(reqs)
-        # Put requirements with extras at the end of the root requires. This does not
-        # affect resolvelib's picking preference but it does affect its initial criteria
-        # population: by putting extras at the end we enable the candidate finder to
-        # present resolvelib with a smaller set of candidates to resolvelib, already
-        # taking into account any non-transient constraints on the associated base. This
-        # means resolvelib will have fewer candidates to visit and reject.
-        # Python's list sort is stable, meaning relative order is kept for objects with
-        # the same key.
-        collected.requirements.sort(key=lambda r: r.name != r.project_name)
+        collected.requirements.sort(key=_root_requirement_sort_key)
         return collected
 
     def make_requirement_from_candidate(

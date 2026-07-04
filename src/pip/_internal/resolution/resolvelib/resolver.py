@@ -19,10 +19,7 @@ from pip._internal.req.constructors import install_req_extend_extras
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
-from pip._internal.resolution.resolvelib.provider import (
-    PipProvider,
-    _get_extras_from_identifiers,
-)
+from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
@@ -80,48 +77,28 @@ class Resolver(BaseResolver):
         self, root_reqs: list[InstallRequirement], check_supported_wheels: bool
     ) -> RequirementSet:
         collected = self.factory.collect_root_requirements(root_reqs)
-        requirements = list(collected.requirements)
-        limit_how_complex_resolution_can_be = 200000
+        provider = PipProvider(
+            factory=self.factory,
+            constraints=collected.constraints,
+            ignore_dependencies=self.ignore_dependencies,
+            upgrade_strategy=self.upgrade_strategy,
+            user_requested=collected.user_requested,
+        )
+        if "PIP_RESOLVER_DEBUG" in os.environ:
+            reporter: BaseReporter[Requirement, Candidate, str] = PipDebuggingReporter()
+        else:
+            reporter = PipReporter(constraints=provider.constraints)
+
+        resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
+            provider,
+            reporter,
+        )
 
         try:
-            while True:
-                provider = PipProvider(
-                    factory=self.factory,
-                    constraints=collected.constraints,
-                    ignore_dependencies=self.ignore_dependencies,
-                    upgrade_strategy=self.upgrade_strategy,
-                    user_requested=collected.user_requested,
-                )
-                if "PIP_RESOLVER_DEBUG" in os.environ:
-                    reporter: BaseReporter[Requirement, Candidate, str] = (
-                        PipDebuggingReporter()
-                    )
-                else:
-                    reporter = PipReporter(constraints=provider.constraints)
-
-                resolver: RLResolver[Requirement, Candidate, str] = RLResolver(
-                    provider,
-                    reporter,
-                )
-                result = self._result = resolver.resolve(
-                    requirements, max_rounds=limit_how_complex_resolution_can_be
-                )
-
-                (
-                    applicable_candidate_names,
-                    applicable_requirements,
-                ) = self._get_applicable_candidate_names(result)
-                known_requirement_keys = _get_known_requirement_keys(result)
-                new_requirements = {
-                    key: requirement
-                    for requirement in applicable_requirements
-                    if (key := _get_requirement_key(requirement))
-                    not in known_requirement_keys
-                }
-                if not new_requirements:
-                    break
-
-                requirements.extend(new_requirements.values())
+            limit_how_complex_resolution_can_be = 200000
+            result = self._result = resolver.resolve(
+                collected.requirements, max_rounds=limit_how_complex_resolution_can_be
+            )
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(
@@ -138,12 +115,7 @@ class Resolver(BaseResolver):
         # Python's sort is stable so using a binary key function keeps relative order
         # within both subsets.
         for candidate in sorted(
-            (
-                candidate
-                for name, candidate in result.mapping.items()
-                if name in applicable_candidate_names
-            ),
-            key=lambda c: c.name != c.project_name,
+            result.mapping.values(), key=lambda c: c.name != c.project_name
         ):
             ireq = candidate.get_install_requirement()
             if ireq is None:
@@ -211,69 +183,6 @@ class Resolver(BaseResolver):
 
         return req_set
 
-    def _get_applicable_candidate_names(
-        self,
-        result: Result,
-    ) -> tuple[set[str], list[Requirement]]:
-        """Return resolved names and requirements active under final markers.
-
-        resolvelib's criteria graph only grows. Since ``extra != "name"`` can
-        make a previously-applicable dependency stale after an extra is
-        requested, re-walk the resolved candidates with the extras state from
-        reachable candidates before building the install set.
-        """
-        with_requires = not self.ignore_dependencies
-
-        mapping = result.mapping
-        graph = result.graph
-        root_names = [
-            name
-            for name in graph.iter_children(None)
-            if name is not None and name in mapping
-        ]
-        root_name_set = set(root_names)
-        reachable: set[str] = set()
-
-        while True:
-            active_extras = _get_extras_from_identifiers(reachable | root_name_set)
-            next_reachable: set[str] = set()
-            next_applicable_requirements: dict[tuple[str, str], Requirement] = {}
-            to_visit = list(root_names)
-
-            while to_visit:
-                name = to_visit.pop()
-                if name in next_reachable:
-                    continue
-                if name not in mapping:
-                    continue
-                next_reachable.add(name)
-
-                candidate = mapping[name]
-                requested_extras = active_extras.get(
-                    candidate.project_name,
-                    frozenset(),
-                )
-                for requirement in candidate.iter_dependencies(
-                    with_requires,
-                    requested_extras,
-                ):
-                    if requirement is None:
-                        continue
-
-                    next_applicable_requirements[_get_requirement_key(requirement)] = (
-                        requirement
-                    )
-                    if (
-                        requirement.name in mapping
-                        and requirement.name not in next_reachable
-                    ):
-                        to_visit.append(requirement.name)
-
-            if next_reachable == reachable:
-                return next_reachable, list(next_applicable_requirements.values())
-
-            reachable = next_reachable
-
     def get_installation_order(
         self, req_set: RequirementSet
     ) -> list[InstallRequirement]:
@@ -304,19 +213,6 @@ class Resolver(BaseResolver):
             reverse=True,
         )
         return [ireq for _, ireq in sorted_items]
-
-
-def _get_requirement_key(requirement: Requirement) -> tuple[str, str]:
-    return requirement.name, requirement.format_for_error()
-
-
-def _get_known_requirement_keys(result: Result) -> set[tuple[str, str]]:
-    return {
-        _get_requirement_key(requirement)
-        for name, criterion in result.criteria.items()
-        if name in result.mapping
-        for requirement in criterion.iter_requirement()
-    }
 
 
 def get_topological_weights(

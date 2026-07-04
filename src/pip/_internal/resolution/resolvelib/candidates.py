@@ -21,6 +21,7 @@ from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
+    install_req_extend_extras,
     install_req_from_editable,
     install_req_from_line,
 )
@@ -47,6 +48,8 @@ REQUIRES_PYTHON_IDENTIFIER = cast(NormalizedName, "<Python from Requires-Python>
 
 def as_base_candidate(candidate: Candidate) -> BaseCandidate | None:
     """The runtime version of BaseCandidate."""
+    if isinstance(candidate, ExtrasCandidate):
+        return candidate.base
     base_candidate_classes = (
         AlreadyInstalledCandidate,
         EditableCandidate,
@@ -55,6 +58,14 @@ def as_base_candidate(candidate: Candidate) -> BaseCandidate | None:
     if isinstance(candidate, base_candidate_classes):
         return candidate
     return None
+
+
+def get_candidate_requested_extras(
+    candidate: Candidate,
+) -> frozenset[NormalizedName]:
+    if isinstance(candidate, ExtrasCandidate):
+        return candidate.extras
+    return frozenset()
 
 
 def make_install_req_from_link(
@@ -456,21 +467,12 @@ class ExtrasCandidate(Candidate):
     directly, but indicate that we need additional dependencies. We model that
     by having an artificial ExtrasCandidate that wraps the "base" candidate.
 
-    The ExtrasCandidate differs from the base in the following ways:
-
-    1. It has a unique name, of the form foo[extra]. This causes the resolver
-       to treat it as a separate node in the dependency graph.
-    2. When we're getting the candidate's dependencies,
-       a) We specify that we want the extra dependencies as well.
-       b) We add a dependency on the base candidate.
-          See below for why this is needed.
-    3. We return None for the underlying InstallRequirement, as the base
-       candidate will provide it, and we don't want to end up with duplicates.
-
-    The dependency on the base candidate is needed so that the resolver can't
-    decide that it should recommend foo[extra1] version 1.0 and foo[extra2]
-    version 2.0. Having those candidates depend on foo=1.0 and foo=2.0
-    respectively forces the resolver to recognise that this is a conflict.
+    The resolver groups candidates by project name, so an ExtrasCandidate is
+    not a separate dependency graph node from its base candidate. Instead, it
+    represents a candidate for the project with the currently requested extras
+    attached. When the active extras set changes, the provider will reject the
+    previously pinned candidate so resolvelib can choose a candidate carrying
+    the updated extras and dependencies.
     """
 
     def __init__(
@@ -545,9 +547,8 @@ class ExtrasCandidate(Candidate):
     ) -> Iterable[Requirement | None]:
         factory = self.base._factory
 
-        # Add a dependency on the exact base
-        # (See note 2b in the class docstring)
-        yield factory.make_requirement_from_candidate(self.base)
+        # Emit the Requires-Python requirement from the wrapped base candidate.
+        yield factory.make_requires_python_requirement(self.base.dist.requires_python)
         if not with_requires:
             return
 
@@ -565,8 +566,7 @@ class ExtrasCandidate(Candidate):
             )
             self._warned_invalid_extras.add(extra)
 
-        selected_extras = requested_extras or self.extras
-        valid_selected_extras = selected_extras.intersection(
+        valid_selected_extras = self.extras.intersection(
             self.base.dist.iter_provided_extras()
         )
         for r in self.base.dist.iter_dependencies(valid_selected_extras):
@@ -577,10 +577,10 @@ class ExtrasCandidate(Candidate):
             )
 
     def get_install_requirement(self) -> InstallRequirement | None:
-        # We don't return anything here, because we always
-        # depend on the base candidate, and we'll get the
-        # install requirement from that.
-        return None
+        ireq = self.base.get_install_requirement()
+        if ireq is None:
+            return None
+        return install_req_extend_extras(ireq, self.extras)
 
 
 class RequiresPythonCandidate(Candidate):
