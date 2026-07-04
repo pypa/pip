@@ -512,12 +512,12 @@ _Suggested content:_
 _Page purpose:_
 
 - To onboard people who want to contribute to pip's docs
-- To share previous research and recommendataions related to pip's docs
+- To share previous research and recommendations related to pip's docs
 
 _Suggested content:_
 
 - This guide
-- Writing styleguide / glossary of terms - see the [Warehouse documentation](https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology) for an example.
+- Writing styleguide / glossary of terms - see the [Warehouse documentation](https://warehouse.pypa.io/ui-principles/#4-write-clearly-with-consistent-style-and-terminology) for an example.
 
 </details>
 

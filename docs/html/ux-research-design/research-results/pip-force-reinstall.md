@@ -66,7 +66,7 @@ Most respondents use `--force-reinstall` "almost never" (65.6%):
 ![screenshot of survey question of how often users use --force-reinstall](https://i.imgur.com/fjLQUPV.png)
 ![bar chart of how often users use --force-reinstall](https://i.imgur.com/Xe1XDkI.png)
 
-Amongst respondents who said they use `--force-resinstall` often or very often:
+Amongst respondents who said they use `--force-reinstall` often or very often:
 
 - 54.54% (6/11) of respondents thought that pip should install the same version of requests - i.e. that `--force-reinstall` should _not_ implicitly upgrade
 - 45.45% (5/11) of respondents thought that pip should upgrade requests to the latest version - i.e that `--force-reinstall` _should_ implicitly upgrade
@@ -76,7 +76,7 @@ Respondents find `--force-reinstall` less useful than useful:
 ![screenshot of survey question of how useful users find --force-reinstall](https://i.imgur.com/6cv4lFn.png)
 ![bar chart of how useful users find --force-reinstall](https://i.imgur.com/gMUBDBo.png)
 
-Amongst respondents who said they find `--force-resinstall` useful or very useful:
+Amongst respondents who said they find `--force-reinstall` useful or very useful:
 
 - 38.46% (20/52) of respondents thought that pip should install the same version of requests - i.e. that `--force-reinstall` should _not_ implicitly upgrade
 - 50% (26/52) of respondents thought that pip should upgrade requests to the latest version - i.e that `--force-reinstall` _should_ implicitly upgrade
@@ -89,7 +89,7 @@ In this case, we recommend showing the following message when a user tries to us
 
 > Error: the pip install --force-reinstall option no longer exists. Use pip uninstall then pip install to replace up-to-date packages, or pip install --upgrade to update your packages to the latest available versions.
 
-Should the pip development team wish to keep `--force-resintall`, we recommend maintaining the current (implicit upgrade) behaviour, as pip's users have not expressed a clear preference for a different behaviour.
+Should the pip development team wish to keep `--force-reinstall`, we recommend maintaining the current (implicit upgrade) behaviour, as pip's users have not expressed a clear preference for a different behaviour.
 
 In this case, we recommend upgrading the [help text](https://pip.pypa.io/en/stable/reference/pip_install/#cmdoption-force-reinstall) to be more explicit:
 

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
 import sysconfig
-import typing
+from collections.abc import Callable
 
 from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationInvalid
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
@@ -23,7 +25,9 @@ logger = logging.getLogger(__name__)
 
 _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
 
-_PREFERRED_SCHEME_API = getattr(sysconfig, "get_preferred_scheme", None)
+_PREFERRED_SCHEME_API: Callable[[str], str] | None = getattr(
+    sysconfig, "get_preferred_scheme", None
+)
 
 
 def _should_use_osx_framework_prefix() -> bool:
@@ -124,10 +128,10 @@ if sysconfig.get_config_var("userbase") is not None:
 def get_scheme(
     dist_name: str,
     user: bool = False,
-    home: typing.Optional[str] = None,
-    root: typing.Optional[str] = None,
+    home: str | None = None,
+    root: str | None = None,
     isolated: bool = False,
-    prefix: typing.Optional[str] = None,
+    prefix: str | None = None,
 ) -> Scheme:
     """
     Get the "scheme" corresponding to the input parameters.

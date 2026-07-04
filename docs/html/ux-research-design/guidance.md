@@ -344,6 +344,24 @@ Designing for pip includes:
 - Writing pip's _output_ - establishing how pip responds to commands and what information it provides the user. This includes writing success and error messages.
 - Providing supplemental materials - e.g. documentation that helps users understand pip's operation
 
+### Error Message Format
+
+A good error message should mention:
+
+* what the user has tried to do
+* possible next steps to try and solve the error
+  * possible steps need to go from "easiest" to "most complicated"
+* why the error has happened - include a way to see more information
+  about the situation
+
+A [sample `ResolutionImpossible` error that follows this guidance
+is available](resolution-impossible-example).
+
+**Further reading**
+
+- <https://uxplanet.org/how-to-write-good-error-messages-858e4551cd4>
+- <https://www.nngroup.com/articles/error-message-guidelines/>
+
 ### Design Principles / Usability Heuristics
 
 There are many interaction design principles that help designers design great experiences. Nielsen Norman's [10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics) is a great place to start. Here are some of the ways these principles apply to pip:
@@ -391,7 +409,7 @@ Given pip's interface is text, it is particularly important that clear and consi
 
 The following copywriting Style Guides may be useful to the pip team:
 
-- [Warehouse (PyPI) copywriting styleguide and glossary of terms](https://warehouse.readthedocs.io/ui-principles.html#write-clearly-with-consistent-style-and-terminology)
+- [Warehouse (PyPI) copywriting styleguide and glossary of terms](https://warehouse.pypa.io/ui-principles/#4-write-clearly-with-consistent-style-and-terminology)
 - Firefox:
   - [Voice and Tone](https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fdesign.firefox.com%2Fphoton%2Fcopy%2Fvoice-and-tone.html)
   - [Writing for users](https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fdesign.firefox.com%2Fphoton%2Fcopy%2Fwriting-for-users.html)
@@ -406,7 +424,7 @@ The following copywriting Style Guides may be useful to the pip team:
 - [Simply Secure: Feedback Gathering Guide](https://simplysecure.org/blog/feedback-gathering-guide)
 - [Simply Secure: Getting Quick Tool Feedback](https://simplysecure.org/blog/design-spot-tool-feedback)
 - [Internews: UX Feedback Collection Guidebook](https://globaltech.internews.org/our-resources/ux-feedback-collection-guidebook)
-- [Simply Secure: Knowledge Base](http://simplysecure.org/knowledge-base/)
+- [Simply Secure: Knowledge Base](https://simplysecure.org/knowledge-base/)
 - [Open Source Design](https://opensourcedesign.net/resources/)
 - [Nielsen Norman Group](https://www.nngroup.com/articles/)
 - [Interaction Design Foundation](https://www.interaction-design.org/literature)

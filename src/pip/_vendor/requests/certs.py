@@ -12,13 +12,7 @@ environment, you can change the definition of where() to return a separately
 packaged CA bundle.
 """
 
-import os
-
-if "_PIP_STANDALONE_CERT" not in os.environ:
-    from pip._vendor.certifi import where
-else:
-    def where():
-        return os.environ["_PIP_STANDALONE_CERT"]
+from pip._vendor.certifi import where
 
 if __name__ == "__main__":
     print(where())

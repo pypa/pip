@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 import os
-from typing import Optional
 
 from pip._vendor.pyproject_hooks import BuildBackendHookCaller, HookMissing
 
@@ -13,15 +14,15 @@ def build_wheel_editable(
     name: str,
     backend: BuildBackendHookCaller,
     metadata_directory: str,
-    tempd: str,
-) -> Optional[str]:
+    wheel_directory: str,
+) -> str | None:
     """Build one InstallRequirement using the PEP 660 build process.
 
     Returns path to wheel if successfully built. Otherwise, returns None.
     """
     assert metadata_directory is not None
     try:
-        logger.debug("Destination directory: %s", tempd)
+        logger.debug("Destination directory: %s", wheel_directory)
 
         runner = runner_with_spinner_message(
             f"Building editable for {name} (pyproject.toml)"
@@ -29,7 +30,7 @@ def build_wheel_editable(
         with backend.subprocess_runner(runner):
             try:
                 wheel_name = backend.build_editable(
-                    tempd,
+                    wheel_directory=wheel_directory,
                     metadata_directory=metadata_directory,
                 )
             except HookMissing as e:
@@ -43,4 +44,4 @@ def build_wheel_editable(
     except Exception:
         logger.error("Failed building editable for %s", name)
         return None
-    return os.path.join(tempd, wheel_name)
+    return os.path.join(wheel_directory, wheel_name)

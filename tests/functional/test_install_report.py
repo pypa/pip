@@ -1,7 +1,7 @@
 import json
 import textwrap
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -9,7 +9,7 @@ from packaging.utils import canonicalize_name
 from ..lib import PipTestEnvironment, TestData
 
 
-def _install_dict(report: Dict[str, Any]) -> Dict[str, Any]:
+def _install_dict(report: dict[str, Any]) -> dict[str, Any]:
     return {canonicalize_name(i["metadata"]["name"]): i for i in report["install"]}
 
 
@@ -50,6 +50,7 @@ def test_install_report_dep(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "require_simple",
         "--dry-run",
         "--no-index",
@@ -75,6 +76,7 @@ def test_yanked_version(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "simple==3.0",
         "--index-url",
         data.index_url("yanked"),
@@ -102,6 +104,7 @@ def test_skipped_yanked_version(
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
+        "--no-build-isolation",
         "simple",
         "--index-url",
         data.index_url("yanked"),
@@ -117,6 +120,7 @@ def test_skipped_yanked_version(
     assert simple_report["metadata"]["version"] == "2.0"
 
 
+@pytest.mark.network
 @pytest.mark.parametrize(
     "specifiers",
     [
@@ -127,9 +131,8 @@ def test_skipped_yanked_version(
         ("Paste[openid]==1.7.5.1", "Paste==1.7.5.1"),
     ],
 )
-@pytest.mark.network
 def test_install_report_index(
-    script: PipTestEnvironment, tmp_path: Path, specifiers: Tuple[str, ...]
+    script: PipTestEnvironment, tmp_path: Path, specifiers: tuple[str, ...]
 ) -> None:
     """Test report for sdist obtained from index."""
     report_path = tmp_path / "report.json"
@@ -178,7 +181,6 @@ def test_install_report_index_multiple_extras(
     assert install_dict["paste"]["requested_extras"] == ["openid", "subprocess"]
 
 
-@pytest.mark.network
 def test_install_report_direct_archive(
     script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
 ) -> None:
@@ -297,25 +299,20 @@ def test_install_report_vcs_editable(
     assert pip_test_package_report["download_info"]["dir_info"]["editable"] is True
 
 
-@pytest.mark.network
 def test_install_report_local_path_with_extras(
     script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
 ) -> None:
     """Test report remote editable."""
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            """\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent("""\
             [project]
             name = "pkga"
             version = "1.0"
 
             [project.optional-dependencies]
             test = ["simple"]
-            """
-        )
-    )
+            """))
     report_path = tmp_path / "report.json"
     script.pip(
         "install",
@@ -342,25 +339,20 @@ def test_install_report_local_path_with_extras(
     assert "requested_extras" not in simple_report
 
 
-@pytest.mark.network
 def test_install_report_editable_local_path_with_extras(
     script: PipTestEnvironment, tmp_path: Path, shared_data: TestData
 ) -> None:
     """Test report remote editable."""
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            """\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent("""\
             [project]
             name = "pkga"
             version = "1.0"
 
             [project.optional-dependencies]
             test = ["simple"]
-            """
-        )
-    )
+            """))
     report_path = tmp_path / "report.json"
     script.pip(
         "install",

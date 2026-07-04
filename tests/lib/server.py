@@ -2,10 +2,11 @@ import pathlib
 import ssl
 import threading
 from base64 import b64encode
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List
-from unittest.mock import Mock
+from typing import TYPE_CHECKING, Any
+from unittest.mock import Mock, patch
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
@@ -18,12 +19,25 @@ if TYPE_CHECKING:
 Body = Iterable[bytes]
 
 
+@contextmanager
+def patch_getfqdn() -> Iterator[None]:
+    # HTTPServer, which Werkzeug subclasses, will try to query the fully qualified
+    # domain name for the socket address during socket binding. This can be extremely
+    # slow (30s, even) due to DNS timeouts. It's only used for the SERVER_NAME CGI
+    # environment field which is not relevant for our tests, so patch it to
+    # immediately return a fake local FQDN.
+    #
+    # See also: https://apple.stackexchange.com/questions/175320/why-is-my-hostname-resolution-taking-so-long
+    with patch("socket.getfqdn", lambda name: "piptestserver.home.arpa"):
+        yield
+
+
 class _MockServer(BaseWSGIServer):
     mock: Mock = Mock()
 
 
 class _RequestHandler(WSGIRequestHandler):
-    def make_environ(self) -> Dict[str, Any]:
+    def make_environ(self) -> dict[str, Any]:
         environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
@@ -48,7 +62,7 @@ class _RequestHandler(WSGIRequestHandler):
 
 
 def _mock_wsgi_adapter(
-    mock: Callable[["WSGIEnvironment", "StartResponse"], "WSGIApplication"]
+    mock: Callable[["WSGIEnvironment", "StartResponse"], "WSGIApplication"],
 ) -> "WSGIApplication":
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
@@ -98,7 +112,8 @@ def make_mock_server(**kwargs: Any) -> _MockServer:
 
     mock = Mock()
     app = _mock_wsgi_adapter(mock)
-    server = _make_server("localhost", 0, app=app, **kwargs)
+    with patch_getfqdn():
+        server = _make_server("localhost", 0, app=app, **kwargs)
     server.mock = mock
     return server
 
@@ -134,23 +149,17 @@ def text_html_response(text: str) -> "WSGIApplication":
 
 
 def html5_page(text: str) -> str:
-    return (
-        dedent(
-            """
+    return dedent("""
     <!DOCTYPE html>
     <html>
       <body>
         {}
       </body>
     </html>
-    """
-        )
-        .strip()
-        .format(text)
-    )
+    """).strip().format(text)
 
 
-def package_page(spec: Dict[str, str]) -> "WSGIApplication":
+def package_page(spec: dict[str, str]) -> "WSGIApplication":
     def link(name: str, value: str) -> str:
         return f'<a href="{value}">{name}</a>'
 
@@ -226,7 +235,7 @@ class MockServer:
         assert self._running, "idle server cannot be stopped"
         self.context.close()
 
-    def get_requests(self) -> List[Dict[str, str]]:
+    def get_requests(self) -> list[dict[str, str]]:
         """Get environ for each received request."""
         assert not self._running, "cannot get mock from running server"
         # Legacy: replace call[0][0] with call.args[0]

@@ -9,15 +9,19 @@ pass on state. To be consistent, all options will follow this design.
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+from __future__ import annotations
 
-import importlib.util
 import logging
 import os
+import pathlib
+import re
 import textwrap
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -26,7 +30,9 @@ from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.target_python import TargetPython
+from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
 
@@ -47,7 +53,7 @@ def raise_option_error(parser: OptionParser, option: Option, msg: str) -> None:
     parser.error(msg)
 
 
-def make_option_group(group: Dict[str, Any], parser: ConfigOptionParser) -> OptionGroup:
+def make_option_group(group: dict[str, Any], parser: ConfigOptionParser) -> OptionGroup:
     """
     Return an OptionGroup object
     group  -- assumed to be dict with 'name' and 'options' keys
@@ -97,6 +103,41 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
                 "Can not use any platform or abi specific options unless "
                 "installing via '--target' or using '--dry-run'"
             )
+
+    if dist_restriction_set:
+        # Lazy import to keep CLI startup fast
+        from pip._internal.utils import pylock as pylock_utils
+
+        for filename in options.requirements:
+            if pylock_utils.is_valid_pylock_filename(filename):
+                raise CommandError(
+                    "Platform and interpreter constraints using "
+                    "--python-version, --platform, --abi, or --implementation, "
+                    f"are not supported when selecting requirements from {filename!r}"
+                )
+
+
+def check_build_constraints(options: Values) -> None:
+    """Function for validating build constraints options.
+
+    :param options: The OptionParser options.
+    """
+    if hasattr(options, "build_constraints") and options.build_constraints:
+        if not options.build_isolation:
+            raise CommandError(
+                "--build-constraint cannot be used with --no-build-isolation."
+            )
+
+        # Import here to avoid circular imports
+        from pip._internal.network.session import PipSession
+        from pip._internal.req.req_file import get_file_content
+
+        # Eagerly check build constraints file contents
+        # is valid so that we don't fail in when trying
+        # to check constraints in isolated build process
+        with PipSession() as session:
+            for constraint_file in options.build_constraints:
+                get_file_content(constraint_file, session)
 
 
 def _path_option_check(option: Option, opt: str, value: str) -> str:
@@ -159,8 +200,7 @@ require_virtualenv: Callable[..., Option] = partial(
     action="store_true",
     default=False,
     help=(
-        "Allow pip to only run in a virtual environment; "
-        "exit with an error otherwise."
+        "Allow pip to only run in a virtual environment; exit with an error otherwise."
     ),
 )
 
@@ -226,9 +266,13 @@ progress_bar: Callable[..., Option] = partial(
     "--progress-bar",
     dest="progress_bar",
     type="choice",
-    choices=["on", "off", "raw"],
-    default="on",
-    help="Specify whether the progress bar should be used [on, off, raw] (default: on)",
+    choices=["auto", "on", "off", "raw"],
+    default="auto",
+    help=(
+        "Specify whether the progress bar should be used. In 'auto'"
+        " mode, --quiet will suppress all progress bars."
+        " [auto, on, off, raw] (default: auto)"
+    ),
 )
 
 log: Callable[..., Option] = partial(
@@ -260,8 +304,8 @@ keyring_provider: Callable[..., Option] = partial(
     default="auto",
     help=(
         "Enable the credential lookup via the keyring library if user input is allowed."
-        " Specify which mechanism to use [disabled, import, subprocess]."
-        " (default: disabled)"
+        " Specify which mechanism to use [auto, disabled, import, subprocess]."
+        " (default: %default)"
     ),
 )
 
@@ -289,8 +333,17 @@ retries: Callable[..., Option] = partial(
     dest="retries",
     type="int",
     default=5,
-    help="Maximum number of retries each connection should attempt "
-    "(default %default times).",
+    help="Maximum attempts to establish a new HTTP connection. (default: %default)",
+)
+
+resume_retries: Callable[..., Option] = partial(
+    Option,
+    "--resume-retries",
+    dest="resume_retries",
+    type="int",
+    default=5,
+    help="Maximum attempts to resume or restart an incomplete download. "
+    "(default: %default)",
 )
 
 timeout: Callable[..., Option] = partial(
@@ -399,6 +452,70 @@ def find_links() -> Option:
     )
 
 
+def _handle_uploaded_prior_to(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    This is an optparse.Option callback for the --uploaded-prior-to option.
+
+    Accepts either an ISO 8601 datetime string (e.g., '2023-01-01T00:00:00Z')
+    or a strict subset of ISO 8601 durations: PnD where n is a number of days
+    (e.g., 'P7D' for 7 days ago).
+
+    Note: This option only works with indexes that provide upload-time metadata
+    as specified in the simple repository API:
+    https://packaging.python.org/en/latest/specifications/simple-repository-api/
+    """
+    if value is None:
+        return None
+
+    # Try ISO 8601 duration in PnD format. The leading 'P' disambiguates
+    # from absolute datetimes. Only whole days are supported; the format may
+    # be extended to more of the ISO 8601 duration syntax in the future if
+    # a real need is presented.
+    match = re.match(r"^P(\d+)D$", value, re.ASCII)
+    if match:
+        days = int(match.group(1))
+        parser.values.uploaded_prior_to = datetime.now(timezone.utc) - timedelta(
+            days=days
+        )
+        return
+
+    try:
+        uploaded_prior_to = parse_iso_datetime(value)
+        # Use local timezone if no offset is given in the ISO string.
+        if uploaded_prior_to.tzinfo is None:
+            uploaded_prior_to = uploaded_prior_to.astimezone()
+        parser.values.uploaded_prior_to = uploaded_prior_to
+    except ValueError as exc:
+        msg = (
+            f"invalid value: {value!r}: {exc}. "
+            f"Expected an ISO 8601 datetime string "
+            f"(e.g., '2023-01-01' or '2023-01-01T00:00:00Z') "
+            f"or a duration in days (e.g., 'P3D')"
+        )
+        raise_option_error(parser, option=option, msg=msg)
+
+
+def uploaded_prior_to() -> Option:
+    return Option(
+        "--uploaded-prior-to",
+        dest="uploaded_prior_to",
+        metavar="datetime_or_duration",
+        action="callback",
+        callback=_handle_uploaded_prior_to,
+        type="str",
+        help=(
+            "Only consider packages uploaded prior to the given value. "
+            "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
+            "uses local timezone if none specified) or a duration in days "
+            "(e.g., 'P3D' for packages uploaded at least 3 days ago). "
+            "Only effective when installing from indexes that provide "
+            "upload-time metadata."
+        ),
+    )
+
+
 def trusted_host() -> Option:
     return Option(
         "--trusted-host",
@@ -424,6 +541,21 @@ def constraints() -> Option:
     )
 
 
+def build_constraints() -> Option:
+    return Option(
+        "--build-constraint",
+        dest="build_constraints",
+        action="append",
+        type="str",
+        default=[],
+        metavar="file",
+        help=(
+            "Constrain build dependencies using the given constraints file. "
+            "This option can be used multiple times."
+        ),
+    )
+
+
 def requirements() -> Option:
     return Option(
         "-r",
@@ -432,8 +564,24 @@ def requirements() -> Option:
         action="append",
         default=[],
         metavar="file",
-        help="Install from the given requirements file. "
-        "This option can be used multiple times.",
+        help=(
+            "Install from the given requirements file. "
+            "The file or URL can be in pip's requirements.txt format, "
+            "or pylock.toml format. pylock.toml support is experimental. "
+            "This option can be used multiple times."
+        ),
+    )
+
+
+def requirements_from_scripts() -> Option:
+    return Option(
+        "--requirements-from-script",
+        action="append",
+        default=[],
+        dest="requirements_from_scripts",
+        metavar="file",
+        help="Install dependencies of the given script file "
+        "as defined by PEP 723 inline metadata. ",
     )
 
 
@@ -511,12 +659,13 @@ def no_binary() -> Option:
         callback=_handle_no_binary,
         type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
-        'each time adds to the existing value. Accepts either ":all:" to '
-        'disable all binary packages, ":none:" to empty the set (notice '
-        "the colons), or one or more package names with commas between "
-        "them (no colons). Note that some packages are tricky to compile "
-        "and may fail to install when this option is used on them.",
+        help="Do not download binary packages. Cached binary packages may still "
+        "be used. Can be supplied multiple times, and each time adds to "
+        "the existing value. Accepts either ':all:' to disable all binary "
+        "packages, ':none:' to empty the set (notice the colons), or one "
+        "or more package names with commas between them (no colons). "
+        "Note that some packages are tricky to compile and may fail to "
+        "install when this option is used on them.",
     )
 
 
@@ -538,6 +687,86 @@ def only_binary() -> Option:
     )
 
 
+def _get_release_control(values: Values, option: Option) -> Any:
+    """Get a release_control object."""
+    return getattr(values, option.dest)
+
+
+def _handle_all_releases(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    existing = _get_release_control(parser.values, option)
+    existing.handle_mutual_excludes(
+        value,
+        existing.all_releases,
+        existing.only_final,
+        "all_releases",
+    )
+
+
+def _handle_only_final(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    existing = _get_release_control(parser.values, option)
+    existing.handle_mutual_excludes(
+        value,
+        existing.only_final,
+        existing.all_releases,
+        "only_final",
+    )
+
+
+def all_releases() -> Option:
+    release_control = ReleaseControl(set(), set())
+    return Option(
+        "--all-releases",
+        dest="release_control",
+        action="callback",
+        callback=_handle_all_releases,
+        type="str",
+        default=release_control,
+        help="Allow all release types (including pre-releases) for a package. "
+        "Can be supplied multiple times, and each time adds to the existing "
+        'value. Accepts either ":all:" to allow pre-releases for all '
+        'packages, ":none:" to empty the set (notice the colons), or one or '
+        "more package names with commas between them (no colons). Cannot be "
+        "used with --pre.",
+    )
+
+
+def only_final() -> Option:
+    release_control = ReleaseControl(set(), set())
+    return Option(
+        "--only-final",
+        dest="release_control",
+        action="callback",
+        callback=_handle_only_final,
+        type="str",
+        default=release_control,
+        help="Only allow final releases (no pre-releases) for a package. Can be "
+        "supplied multiple times, and each time adds to the existing value. "
+        'Accepts either ":all:" to disable pre-releases for all packages, '
+        '":none:" to empty the set, or one or more package names with commas '
+        "between them. Cannot be used with --pre.",
+    )
+
+
+def check_release_control_exclusive(options: Values) -> None:
+    """
+    Raise an error if --pre is used with --all-releases or --only-final,
+    and transform --pre into --all-releases :all: if used alone.
+    """
+    if not hasattr(options, "pre") or not options.pre:
+        return
+
+    release_control = options.release_control
+    if release_control.all_releases or release_control.only_final:
+        raise CommandError("--pre cannot be used with --all-releases or --only-final.")
+
+    # Transform --pre into --all-releases :all:
+    release_control.all_releases.add(":all:")
+
+
 platforms: Callable[..., Option] = partial(
     Option,
     "--platform",
@@ -554,7 +783,7 @@ platforms: Callable[..., Option] = partial(
 
 
 # This was made a separate function for unit-testing purposes.
-def _convert_python_version(value: str) -> Tuple[Tuple[int, ...], Optional[str]]:
+def _convert_python_version(value: str) -> tuple[tuple[int, ...], str | None]:
     """
     Convert a version string like "3", "37", or "3.7.3" into a tuple of ints.
 
@@ -606,15 +835,13 @@ python_version: Callable[..., Option] = partial(
     callback=_handle_python_version,
     type="str",
     default=None,
-    help=dedent(
-        """\
+    help=dedent("""\
     The Python interpreter version to use for wheel and "Requires-Python"
     compatibility checks. Defaults to a version derived from the running
     interpreter. The version can be specified using up to three dot-separated
     integers (e.g. "3" for 3.0.0, "3.7" for 3.7.0, or "3.7.3"). A major-minor
     version can also be given as a string without dots (e.g. "37" for 3.7.0).
-    """
-    ),
+    """),
 )
 
 
@@ -742,6 +969,46 @@ no_deps: Callable[..., Option] = partial(
     help="Don't install package dependencies.",
 )
 
+
+def _handle_dependency_group(
+    option: Option, opt: str, value: str, parser: OptionParser
+) -> None:
+    """
+    Process a value provided for the --group option.
+
+    Splits on the rightmost ":", and validates that the path (if present) ends
+    in `pyproject.toml`. Defaults the path to `pyproject.toml` when one is not given.
+
+    `:` cannot appear in dependency group names, so this is a safe and simple parse.
+
+    This is an optparse.Option callback for the dependency_groups option.
+    """
+    path, sep, groupname = value.rpartition(":")
+    if not sep:
+        path = "pyproject.toml"
+    else:
+        # check for 'pyproject.toml' filenames using pathlib
+        if pathlib.PurePath(path).name != "pyproject.toml":
+            msg = "group paths use 'pyproject.toml' filenames"
+            raise_option_error(parser, option=option, msg=msg)
+
+    parser.values.dependency_groups.append((path, groupname))
+
+
+dependency_groups: Callable[..., Option] = partial(
+    Option,
+    "--group",
+    dest="dependency_groups",
+    default=[],
+    type=str,
+    action="callback",
+    callback=_handle_dependency_group,
+    metavar="[path:]group",
+    help='Install a named dependency-group from a "pyproject.toml" file. '
+    'If a path is given, the name of the file must be "pyproject.toml". '
+    'Defaults to using "pyproject.toml" in the current directory.',
+)
+
 ignore_requires_python: Callable[..., Option] = partial(
     Option,
     "--ignore-requires-python",
@@ -749,6 +1016,7 @@ ignore_requires_python: Callable[..., Option] = partial(
     action="store_true",
     help="Ignore the Requires-Python information.",
 )
+
 
 no_build_isolation: Callable[..., Option] = partial(
     Option,
@@ -767,43 +1035,8 @@ check_build_deps: Callable[..., Option] = partial(
     dest="check_build_deps",
     action="store_true",
     default=False,
-    help="Check the build dependencies when PEP517 is used.",
+    help="Check the build dependencies.",
 )
-
-
-def _handle_no_use_pep517(
-    option: Option, opt: str, value: str, parser: OptionParser
-) -> None:
-    """
-    Process a value provided for the --no-use-pep517 option.
-
-    This is an optparse.Option callback for the no_use_pep517 option.
-    """
-    # Since --no-use-pep517 doesn't accept arguments, the value argument
-    # will be None if --no-use-pep517 is passed via the command-line.
-    # However, the value can be non-None if the option is triggered e.g.
-    # by an environment variable, for example "PIP_NO_USE_PEP517=true".
-    if value is not None:
-        msg = """A value was passed for --no-use-pep517,
-        probably using either the PIP_NO_USE_PEP517 environment variable
-        or the "no-use-pep517" config file option. Use an appropriate value
-        of the PIP_USE_PEP517 environment variable or the "use-pep517"
-        config file option instead.
-        """
-        raise_option_error(parser, option=option, msg=msg)
-
-    # If user doesn't wish to use pep517, we check if setuptools and wheel are installed
-    # and raise error if it is not.
-    packages = ("setuptools", "wheel")
-    if not all(importlib.util.find_spec(package) for package in packages):
-        msg = (
-            f"It is not possible to use --no-use-pep517 "
-            f"without {' and '.join(packages)} installed."
-        )
-        raise_option_error(parser, option=option, msg=msg)
-
-    # Otherwise, --no-use-pep517 was passed via the command-line.
-    parser.values.use_pep517 = False
 
 
 use_pep517: Any = partial(
@@ -811,18 +1044,7 @@ use_pep517: Any = partial(
     "--use-pep517",
     dest="use_pep517",
     action="store_true",
-    default=None,
-    help="Use PEP 517 for building source distributions "
-    "(use --no-use-pep517 to force legacy behaviour).",
-)
-
-no_use_pep517: Any = partial(
-    Option,
-    "--no-use-pep517",
-    dest="use_pep517",
-    action="callback",
-    callback=_handle_no_use_pep517,
-    default=None,
+    default=True,
     help=SUPPRESS_HELP,
 )
 
@@ -855,28 +1077,9 @@ config_settings: Callable[..., Option] = partial(
     action="callback",
     callback=_handle_config_settings,
     metavar="settings",
-    help="Configuration settings to be passed to the PEP 517 build backend. "
+    help="Configuration settings to be passed to the build backend. "
     "Settings take the form KEY=VALUE. Use multiple --config-settings options "
     "to pass multiple keys to the backend.",
-)
-
-build_options: Callable[..., Option] = partial(
-    Option,
-    "--build-option",
-    dest="build_options",
-    metavar="options",
-    action="append",
-    help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
-)
-
-global_options: Callable[..., Option] = partial(
-    Option,
-    "--global-option",
-    dest="global_options",
-    action="append",
-    metavar="options",
-    help="Extra global options to be supplied to the setup.py "
-    "call before the install or bdist_wheel command.",
 )
 
 no_clean: Callable[..., Option] = partial(
@@ -894,6 +1097,14 @@ pre: Callable[..., Option] = partial(
     default=False,
     help="Include pre-release and development versions. By default, "
     "pip only finds stable versions.",
+)
+
+json: Callable[..., Option] = partial(
+    Option,
+    "--json",
+    action="store_true",
+    default=False,
+    help="Output data in a machine-readable JSON format.",
 )
 
 disable_pip_version_check: Callable[..., Option] = partial(
@@ -999,7 +1210,7 @@ no_python_version_warning: Callable[..., Option] = partial(
     dest="no_python_version_warning",
     action="store_true",
     default=False,
-    help="Silence deprecation warnings for upcoming unsupported Pythons.",
+    help=SUPPRESS_HELP,  # No-op, a hold-over from the Python 2->3 transition.
 )
 
 
@@ -1007,6 +1218,7 @@ no_python_version_warning: Callable[..., Option] = partial(
 ALWAYS_ENABLED_FEATURES = [
     "truststore",  # always on since 24.2
     "no-binary-enable-wheel-cache",  # always on since 23.1
+    "build-constraint",  # always on since 26.2
 ]
 
 use_new_feature: Callable[..., Option] = partial(
@@ -1018,6 +1230,7 @@ use_new_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "fast-deps",
+        "inprocess-build-deps",
     ]
     + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",
@@ -1037,12 +1250,11 @@ use_deprecated_feature: Callable[..., Option] = partial(
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
 
-
 ##########
 # groups #
 ##########
 
-general_group: Dict[str, Any] = {
+general_group: dict[str, Any] = {
     "name": "General Options",
     "options": [
         help_,
@@ -1071,15 +1283,29 @@ general_group: Dict[str, Any] = {
         no_python_version_warning,
         use_new_feature,
         use_deprecated_feature,
+        resume_retries,
     ],
 }
 
-index_group: Dict[str, Any] = {
+index_group: dict[str, Any] = {
     "name": "Package Index Options",
     "options": [
         index_url,
         extra_index_url,
         no_index,
         find_links,
+        uploaded_prior_to,
+    ],
+}
+
+package_selection_group: dict[str, Any] = {
+    "name": "Package Selection Options",
+    "options": [
+        pre,
+        all_releases,
+        only_final,
+        no_binary,
+        only_binary,
+        prefer_binary,
     ],
 }

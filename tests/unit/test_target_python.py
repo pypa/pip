@@ -1,4 +1,6 @@
-from typing import Any, Dict, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -25,8 +27,8 @@ class TestTargetPython:
     )
     def test_init__py_version_info(
         self,
-        py_version_info: Tuple[int, ...],
-        expected: Tuple[Tuple[int, int, int], str],
+        py_version_info: tuple[int, ...],
+        expected: tuple[tuple[int, int, int], str],
     ) -> None:
         """
         Test passing the py_version_info argument.
@@ -75,7 +77,7 @@ class TestTargetPython:
             ),
         ],
     )
-    def test_format_given(self, kwargs: Dict[str, Any], expected: str) -> None:
+    def test_format_given(self, kwargs: dict[str, Any], expected: str) -> None:
         target_python = TargetPython(**kwargs)
         actual = target_python.format_given()
         assert actual == expected
@@ -98,8 +100,8 @@ class TestTargetPython:
     def test_get_sorted_tags(
         self,
         mock_get_supported: mock.Mock,
-        py_version_info: Optional[Tuple[int, ...]],
-        expected_version: Optional[str],
+        py_version_info: tuple[int, ...] | None,
+        expected_version: str | None,
     ) -> None:
         dummy_tags = [Tag("py4", "none", "any"), Tag("py5", "none", "any")]
         mock_get_supported.return_value = dummy_tags

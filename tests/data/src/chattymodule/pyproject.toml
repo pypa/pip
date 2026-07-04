@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "backend"
+backend-path = ["."]
+
+[project]
+name = "chattymodule"
+version = "0.0.1"
+
+[tool.setuptools]
+py-modules = ["chattymodule"]

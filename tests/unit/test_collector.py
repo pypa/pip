@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import json
 import logging
@@ -6,7 +8,6 @@ import re
 import uuid
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
@@ -40,8 +41,8 @@ from pip._internal.network.session import PipSession
 from tests.lib import (
     TestData,
     make_test_link_collector,
-    skip_needs_new_urlun_behavior_win,
-    skip_needs_old_urlun_behavior_win,
+    skip_needs_new_pathname2url_trailing_slash_behavior_win,
+    skip_needs_old_pathname2url_trailing_slash_behavior_win,
 )
 
 ACCEPT = ", ".join(
@@ -306,7 +307,7 @@ def test_clean_url_path(path: str, expected: str, is_local_path: bool) -> None:
         # Test a VCS path with a Windows drive letter and revision.
         pytest.param(
             "/T:/with space/repo.git@1.0",
-            "///T:/with%20space/repo.git@1.0",
+            "/T:/with%20space/repo.git@1.0",
             marks=pytest.mark.skipif("sys.platform != 'win32'"),
         ),
         # Test a VCS path with a Windows drive letter and revision,
@@ -390,12 +391,12 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "file:///T:/path/with spaces/",
             "file:///T:/path/with%20spaces",
-            marks=skip_needs_old_urlun_behavior_win,
+            marks=skip_needs_old_pathname2url_trailing_slash_behavior_win,
         ),
         pytest.param(
             "file:///T:/path/with spaces/",
-            "file://///T:/path/with%20spaces",
-            marks=skip_needs_new_urlun_behavior_win,
+            "file:///T:/path/with%20spaces/",
+            marks=skip_needs_new_pathname2url_trailing_slash_behavior_win,
         ),
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.
@@ -408,18 +409,13 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
         pytest.param(
             "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
             "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
-            marks=skip_needs_old_urlun_behavior_win,
-        ),
-        pytest.param(
-            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
-            "git+file://///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
-            marks=skip_needs_new_urlun_behavior_win,
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
         ),
         # Test a VCS URL with a Windows drive letter and revision,
         # running on non-windows platform.
         pytest.param(
             "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
-            "git+file:/T%3A/with%20space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:///T%3A/with%20space/repo.git@1.0#egg=my-package-1.0",
             marks=pytest.mark.skipif("sys.platform == 'win32'"),
         ),
     ],
@@ -429,7 +425,7 @@ def test_ensure_quoted_url(url: str, clean_url: str) -> None:
 
 
 def _test_parse_links_data_attribute(
-    anchor_html: str, attr: str, expected: Optional[str]
+    anchor_html: str, attr: str, expected: str | None
 ) -> Link:
     html = (
         "<!DOCTYPE html>"
@@ -471,9 +467,7 @@ def _test_parse_links_data_attribute(
         ),
     ],
 )
-def test_parse_links__requires_python(
-    anchor_html: str, expected: Optional[str]
-) -> None:
+def test_parse_links__requires_python(anchor_html: str, expected: str | None) -> None:
     _test_parse_links_data_attribute(anchor_html, "requires_python", expected)
 
 
@@ -617,7 +611,7 @@ def test_parse_links_json() -> None:
         ),
     ],
 )
-def test_parse_links__yanked_reason(anchor_html: str, expected: Optional[str]) -> None:
+def test_parse_links__yanked_reason(anchor_html: str, expected: str | None) -> None:
     _test_parse_links_data_attribute(anchor_html, "yanked_reason", expected)
 
 
@@ -668,8 +662,8 @@ _pkg1_requirement = Requirement("pkg1==1.0")
 )
 def test_parse_links__metadata_file_data(
     anchor_html: str,
-    expected: Optional[str],
-    hashes: Dict[str, str],
+    expected: str | None,
+    hashes: dict[str, str],
 ) -> None:
     link = _test_parse_links_data_attribute(anchor_html, "metadata_file_data", expected)
     assert link._hashes == hashes
@@ -829,14 +823,12 @@ def make_fake_html_response(url: str) -> mock.Mock:
     """
     Create a fake requests.Response object.
     """
-    html = dedent(
-        """\
+    html = dedent("""\
     <html><head><meta name="api-version" value="2" /></head>
     <body>
     <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
     </body></html>
-    """
-    )
+    """)
     content = html.encode("utf-8")
     return mock.Mock(content=content, url=url, headers={"Content-Type": "text/html"})
 
@@ -938,7 +930,7 @@ def test_collect_sources__non_existing_path() -> None:
     assert sources.find_links == [None], "Nothing should have been found"
 
 
-def check_links_include(links: List[Link], names: List[str]) -> None:
+def check_links_include(links: list[Link], names: list[str]) -> None:
     """
     Assert that the given list of Link objects includes, for each of the
     given names, a link whose URL has a base name matching that name.
@@ -1014,11 +1006,9 @@ class TestLinkCollector:
         # Check that index URLs are marked as *un*cacheable.
         assert not pages[0].link.cache_link_parsing
 
-        expected_message = dedent(
-            """\
+        expected_message = dedent("""\
         1 location(s) to search for versions of twine:
-        * https://pypi.org/simple/twine/"""
-        )
+        * https://pypi.org/simple/twine/""")
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]
@@ -1060,11 +1050,9 @@ class TestLinkCollector:
         assert len(files) > 0
         check_links_include(files, names=["singlemodule-0.0.1.tar.gz"])
 
-        expected_message = dedent(
-            """\
+        expected_message = dedent("""\
         1 location(s) to search for versions of singlemodule:
-        * https://pypi.org/simple/singlemodule/"""
-        )
+        * https://pypi.org/simple/singlemodule/""")
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]
@@ -1083,10 +1071,10 @@ class TestLinkCollector:
     ],
 )
 def test_link_collector_create(
-    find_links: List[str],
+    find_links: list[str],
     no_index: bool,
     suppress_no_index: bool,
-    expected: Tuple[List[str], List[str]],
+    expected: tuple[list[str], list[str]],
 ) -> None:
     """
     :param expected: the expected (find_links, index_urls) values.
@@ -1180,7 +1168,7 @@ def test_link_collector_create_find_links_expansion(
         ("https://pypi.org/pip-18.0.tar.gz#sha500=aa113592bbe", None),
     ],
 )
-def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
+def test_link_hash_parsing(url: str, result: LinkHash | None) -> None:
     assert LinkHash.find_hash_url_fragment(url) == result
 
 
@@ -1198,9 +1186,9 @@ def test_link_hash_parsing(url: str, result: Optional[LinkHash]) -> None:
     ],
 )
 def test_metadata_file_info_parsing_html(
-    metadata_attrib: str, expected: Optional[MetadataFile]
+    metadata_attrib: str, expected: MetadataFile | None
 ) -> None:
-    attribs: Dict[str, Optional[str]] = {
+    attribs: dict[str, str | None] = {
         "href": "something",
         "data-dist-info-metadata": metadata_attrib,
     }

@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+import logging
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Tuple, Type
-from unittest import TestCase, mock
+from typing import Any
+from unittest import mock
 
 import pytest
 
@@ -49,9 +52,14 @@ def test_ensure_svn_available() -> None:
             ("git+https://example.com/pkg", "dev", "zope-interface"),
             "git+https://example.com/pkg@dev#egg=zope_interface",
         ),
+        # Test a revision with special characters.
+        (
+            ("git+https://example.com/pkg", "dev@1#2", "myproj"),
+            "git+https://example.com/pkg@dev%401%232#egg=myproj",
+        ),
     ],
 )
-def test_make_vcs_requirement_url(args: Tuple[Any, ...], expected: str) -> None:
+def test_make_vcs_requirement_url(args: tuple[Any, ...], expected: str) -> None:
     actual = make_vcs_requirement_url(*args)
     assert actual == expected
 
@@ -79,10 +87,10 @@ def test_rev_options_repr() -> None:
     ],
 )
 def test_rev_options_to_args(
-    vc_class: Type[VersionControl],
-    expected1: List[str],
-    expected2: List[str],
-    kwargs: Dict[str, Any],
+    vc_class: type[VersionControl],
+    expected1: list[str],
+    expected2: list[str],
+    kwargs: dict[str, Any],
 ) -> None:
     """
     Test RevOptions.to_args().
@@ -150,7 +158,7 @@ def test_looks_like_hash(sha: str, expected: bool) -> None:
     ],
 )
 def test_should_add_vcs_url_prefix(
-    vcs_cls: Type[VersionControl], remote_url: str, expected: bool
+    vcs_cls: type[VersionControl], remote_url: str, expected: bool
 ) -> None:
     actual = vcs_cls.should_add_vcs_url_prefix(remote_url)
     assert actual == expected
@@ -269,6 +277,7 @@ def test_git_resolve_revision_rev_not_found(get_sha_mock: mock.Mock) -> None:
 def test_git_resolve_revision_not_found_warning(
     get_sha_mock: mock.Mock, caplog: pytest.LogCaptureFixture
 ) -> None:
+    caplog.set_level(logging.INFO)
     get_sha_mock.return_value = (None, False)
     url = HiddenText("git+https://git.example.com", redacted="*")
     sha = 40 * "a"
@@ -303,7 +312,7 @@ def test_git_resolve_revision_not_found_warning(
 )
 @mock.patch("pip._internal.vcs.git.Git.get_revision")
 def test_git_is_commit_id_equal(
-    mock_get_revision: mock.Mock, rev_name: Optional[str], result: bool
+    mock_get_revision: mock.Mock, rev_name: str | None, result: bool
 ) -> None:
     """
     Test Git.is_commit_id_equal().
@@ -324,7 +333,7 @@ def test_git_is_commit_id_equal(
     ],
 )
 def test_git__get_netloc_and_auth(
-    args: Tuple[str, str], expected: Tuple[str, Tuple[None, None]]
+    args: tuple[str, str], expected: tuple[str, tuple[None, None]]
 ) -> None:
     """
     Test VersionControl.get_netloc_and_auth().
@@ -353,7 +362,7 @@ def test_git__get_netloc_and_auth(
     ],
 )
 def test_subversion__get_netloc_and_auth(
-    args: Tuple[str, str], expected: Tuple[str, Tuple[Optional[str], Optional[str]]]
+    args: tuple[str, str], expected: tuple[str, tuple[str | None, str | None]]
 ) -> None:
     """
     Test Subversion.get_netloc_and_auth().
@@ -390,10 +399,15 @@ def test_git__get_url_rev__idempotent() -> None:
             "svn+https://svn.example.com/My+Project",
             ("https://svn.example.com/My+Project", None, (None, None)),
         ),
+        # Test percent-encoded characters in revision.
+        (
+            "svn+https://svn.example.com/MyProject@dev%401%232",
+            ("https://svn.example.com/MyProject", "dev@1#2", (None, None)),
+        ),
     ],
 )
 def test_version_control__get_url_rev_and_auth(
-    url: str, expected: Tuple[str, None, Tuple[None, None]]
+    url: str, expected: tuple[str, None, tuple[None, None]]
 ) -> None:
     """
     Test the basic case of VersionControl.get_url_rev_and_auth().
@@ -450,7 +464,7 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     ids=["FileNotFoundError", "PermissionError", "NotADirectoryError"],
 )
 def test_version_control__run_command__fails(
-    vcs_cls: Type[VersionControl], exc_cls: Type[Exception], msg_re: str
+    vcs_cls: type[VersionControl], exc_cls: type[Exception], msg_re: str
 ) -> None:
     """
     Test that ``VersionControl.run_command()`` raises ``BadCommand``
@@ -529,7 +543,7 @@ def test_bazaar__get_url_rev_and_auth(url: str, expected: str) -> None:
     ],
 )
 def test_subversion__get_url_rev_and_auth(
-    url: str, expected: Tuple[str, None, Tuple[Optional[str], Optional[str]]]
+    url: str, expected: tuple[str, None, tuple[str | None, str | None]]
 ) -> None:
     """
     Test Subversion.get_url_rev_and_auth().
@@ -549,7 +563,7 @@ def test_subversion__get_url_rev_and_auth(
     ],
 )
 def test_git__make_rev_args(
-    username: Optional[str], password: Optional[HiddenText], expected: CommandArgs
+    username: str | None, password: HiddenText | None, expected: CommandArgs
 ) -> None:
     """
     Test VersionControl.make_rev_args().
@@ -571,7 +585,7 @@ def test_git__make_rev_args(
     ],
 )
 def test_subversion__make_rev_args(
-    username: Optional[str], password: Optional[HiddenText], expected: CommandArgs
+    username: str | None, password: HiddenText | None, expected: CommandArgs
 ) -> None:
     """
     Test Subversion.make_rev_args().
@@ -609,7 +623,7 @@ def test_get_git_version() -> None:
         ("git version 2.GIT", ()),  # invalid version
     ],
 )
-def test_get_git_version_parser(version: str, expected: Tuple[int, int]) -> None:
+def test_get_git_version_parser(version: str, expected: tuple[int, int]) -> None:
     with mock.patch("pip._internal.vcs.git.Git.run_command", return_value=version):
         assert Git().get_git_version() == expected
 
@@ -675,7 +689,7 @@ def test_subversion__call_vcs_version() -> None:
 )
 @mock.patch("pip._internal.vcs.subversion.Subversion.run_command")
 def test_subversion__call_vcs_version_patched(
-    mock_run_command: mock.Mock, svn_output: str, expected_version: Tuple[int, ...]
+    mock_run_command: mock.Mock, svn_output: str, expected_version: tuple[int, ...]
 ) -> None:
     """
     Test Subversion.call_vcs_version() against patched output.
@@ -706,7 +720,7 @@ def test_subversion__call_vcs_version_svn_not_installed(
         (1, 8, 0),
     ],
 )
-def test_subversion__get_vcs_version_cached(version: Tuple[int, ...]) -> None:
+def test_subversion__get_vcs_version_cached(version: tuple[int, ...]) -> None:
     """
     Test Subversion.get_vcs_version() with previously cached result.
     """
@@ -725,7 +739,7 @@ def test_subversion__get_vcs_version_cached(version: Tuple[int, ...]) -> None:
 )
 @mock.patch("pip._internal.vcs.subversion.Subversion.call_vcs_version")
 def test_subversion__get_vcs_version_call_vcs(
-    mock_call_vcs: mock.Mock, vcs_version: Tuple[int, ...]
+    mock_call_vcs: mock.Mock, vcs_version: tuple[int, ...]
 ) -> None:
     """
     Test Subversion.get_vcs_version() with mocked output from
@@ -751,7 +765,7 @@ def test_subversion__get_vcs_version_call_vcs(
     ],
 )
 def test_subversion__get_remote_call_options(
-    use_interactive: bool, vcs_version: Tuple[int, ...], expected_options: List[str]
+    use_interactive: bool, vcs_version: tuple[int, ...], expected_options: list[str]
 ) -> None:
     """
     Test Subversion.get_remote_call_options().
@@ -761,22 +775,416 @@ def test_subversion__get_remote_call_options(
     assert svn.get_remote_call_options() == expected_options
 
 
-class TestSubversionArgs(TestCase):
-    def setUp(self) -> None:
-        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
-        self.addCleanup(patcher.stop)
-        self.call_subprocess_mock = patcher.start()
+class _TestVcsArgs:
+    @pytest.fixture(autouse=True)
+    def setup_base(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+    ) -> None:
+        self.dest = os.fspath(tmp_path / "dest")
+        self.call_subprocess_mock = mock.MagicMock()
+        monkeypatch.setattr(
+            "pip._internal.vcs.versioncontrol.call_subprocess",
+            self.call_subprocess_mock,
+        )
 
+    def assert_call_args(self, args: CommandArgs) -> None:
+        assert self.call_subprocess_mock.call_args[0][0] == args
+
+
+class TestBazaarArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
+        # Test Data.
+        self.url = "bzr+http://username:password@bzr.example.com/"
+        # use_interactive is set to False to test that remote call options are
+        # properly added.
+        self.svn = Bazaar()
+        self.rev_options = RevOptions(Bazaar)
+
+    def test_fetch_new(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "bzr",
+                "checkout",
+                "--lightweight",
+                hide_url("bzr+http://username:password@bzr.example.com/"),
+                self.dest,
+            ]
+        )
+
+    def test_fetch_new_quiet(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+        self.assert_call_args(
+            [
+                "bzr",
+                "checkout",
+                "--lightweight",
+                "--quiet",
+                hide_url("bzr+http://username:password@bzr.example.com/"),
+                self.dest,
+            ]
+        )
+
+    def test_fetch_new_very_verbose(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=2)
+        self.assert_call_args(
+            [
+                "bzr",
+                "checkout",
+                "--lightweight",
+                "-vv",
+                hide_url("bzr+http://username:password@bzr.example.com/"),
+                self.dest,
+            ]
+        )
+
+    def test_update(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+        self.assert_call_args(
+            [
+                "bzr",
+                "update",
+            ]
+        )
+
+    def test_update_quiet(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+        self.assert_call_args(
+            [
+                "bzr",
+                "update",
+                "-q",
+            ]
+        )
+
+
+class TestGitArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
+        # Test Data.
+        self.url = "git+http://username:password@git.example.com/"
+        self.svn = Git()
+        self.rev_options = RevOptions(Git)
+
+    def test_fetch_new(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            "--filter=blob:none",
+            hide_url("git+http://username:password@git.example.com/"),
+            self.dest,
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_fetch_new_legacy(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 0)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            hide_url("git+http://username:password@git.example.com/"),
+            self.dest,
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_fetch_new_legacy_quiet(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 0)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=0
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            "--quiet",
+            hide_url("git+http://username:password@git.example.com/"),
+            self.dest,
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
+    def test_fetch_new_quiet(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=0
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            "--filter=blob:none",
+            "--quiet",
+            hide_url("git+http://username:password@git.example.com/"),
+            self.dest,
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
+    def test_switch(self) -> None:
+        with mock.patch.object(self.svn, "update_submodules") as update_submodules_mock:
+            self.svn.switch(
+                self.dest, hide_url(self.url), self.rev_options, verbosity=1
+            )
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "git",
+            "checkout",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_switch_quiet(self) -> None:
+        with mock.patch.object(self.svn, "update_submodules") as update_submodules_mock:
+            self.svn.switch(
+                self.dest, hide_url(self.url), self.rev_options, verbosity=0
+            )
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "git",
+            "checkout",
+            "-q",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
+    def test_update(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 9)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.update(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "fetch",
+            "--tags",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[2][0][0] == [
+            "git",
+            "reset",
+            "--hard",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_update_legacy(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 8)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.update(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "fetch",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[2][0][0] == [
+            "git",
+            "reset",
+            "--hard",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_update_legacy_quiet(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 9)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.update(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=0
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "fetch",
+            "--tags",
+            "-q",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[2][0][0] == [
+            "git",
+            "reset",
+            "--hard",
+            "-q",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
+    def test_update_quiet(self) -> None:
+        with mock.patch.object(self.svn, "get_git_version", return_value=(1, 8)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.update(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=0
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "fetch",
+            "-q",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[2][0][0] == [
+            "git",
+            "reset",
+            "--hard",
+            "-q",
+            "HEAD",
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=0)
+
+
+class TestMercurialArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
+        # Test Data.
+        self.url = "hg+http://username:password@hg.example.com/"
+        self.svn = Mercurial()
+        self.rev_options = RevOptions(Mercurial)
+
+    def test_fetch_new(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            self.dest,
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+        ]
+
+    def test_fetch_new_quiet(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            "--quiet",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            self.dest,
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "--quiet",
+        ]
+
+    def test_fetch_new_very_verbose(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=2)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            "--verbose",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            self.dest,
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "--verbose",
+        ]
+
+    def test_fetch_new_debug(self) -> None:
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=3)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "clone",
+            "--noupdate",
+            "--verbose",
+            "--debug",
+            hide_url("hg+http://username:password@hg.example.com/"),
+            self.dest,
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "--verbose",
+            "--debug",
+        ]
+
+    def test_update(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "pull",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+        ]
+
+    def test_update_quiet(self) -> None:
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options, verbosity=0)
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "hg",
+            "pull",
+            "-q",
+        ]
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "hg",
+            "update",
+            "-q",
+        ]
+
+
+class TestSubversionArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
         # Test Data.
         self.url = "svn+http://username:password@svn.example.com/"
         # use_interactive is set to False to test that remote call options are
         # properly added.
         self.svn = Subversion(use_interactive=False)
         self.rev_options = RevOptions(Subversion)
-        self.dest = "/tmp/test"
-
-    def assert_call_args(self, args: CommandArgs) -> None:
-        assert self.call_subprocess_mock.call_args[0][0] == args
 
     def test_obtain(self) -> None:
         self.svn.obtain(self.dest, hide_url(self.url), verbosity=1)
@@ -790,7 +1198,7 @@ class TestSubversionArgs(TestCase):
                 "--password",
                 hide_value("password"),
                 hide_url("http://svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -807,7 +1215,7 @@ class TestSubversionArgs(TestCase):
                 "--password",
                 hide_value("password"),
                 hide_url("http://svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -819,7 +1227,7 @@ class TestSubversionArgs(TestCase):
                 "checkout",
                 "--non-interactive",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -832,7 +1240,7 @@ class TestSubversionArgs(TestCase):
                 "--quiet",
                 "--non-interactive",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -847,7 +1255,7 @@ class TestSubversionArgs(TestCase):
                 "-r",
                 "123",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -863,7 +1271,7 @@ class TestSubversionArgs(TestCase):
                 "-r",
                 "123",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -875,7 +1283,7 @@ class TestSubversionArgs(TestCase):
                 "switch",
                 "--non-interactive",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -886,6 +1294,6 @@ class TestSubversionArgs(TestCase):
                 "svn",
                 "update",
                 "--non-interactive",
-                "/tmp/test",
+                self.dest,
             ]
         )

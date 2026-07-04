@@ -1,7 +1,6 @@
 import json
 import pathlib
 import textwrap
-from typing import List
 
 import pytest
 
@@ -10,12 +9,13 @@ from tests.lib.venv import VirtualEnvironment
 
 
 @pytest.fixture
-def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
+def patch_check_externally_managed(
+    virtualenv: VirtualEnvironment, script: PipTestEnvironment
+) -> None:
     # Since the tests are run from a virtual environment, and we can't
     # guarantee access to the actual stdlib location (where EXTERNALLY-MANAGED
     # needs to go into), we patch the check to always raise a simple message.
-    virtualenv.sitecustomize = textwrap.dedent(
-        """\
+    virtualenv.sitecustomize = textwrap.dedent("""\
         from pip._internal.exceptions import ExternallyManagedEnvironment
         from pip._internal.utils import misc
 
@@ -23,8 +23,13 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
             raise ExternallyManagedEnvironment("I am externally managed")
 
         misc.check_externally_managed = check_externally_managed
-        """
-    )
+        """)
+    # The ubuntu-24.04 GitHub Actions runner has /etc/pip.conf that sets
+    # break-system-packages = true, which causes pip to skip the
+    # externally-managed check entirely. Override it here so the
+    # monkey-patched check is actually exercised.
+    # https://github.com/actions/runner-images/pull/10794
+    script.environ["PIP_BREAK_SYSTEM_PACKAGES"] = "0"
 
 
 @pytest.mark.parametrize(
@@ -37,7 +42,7 @@ def patch_check_externally_managed(virtualenv: VirtualEnvironment) -> None:
     ],
 )
 @pytest.mark.usefixtures("patch_check_externally_managed")
-def test_fails(script: PipTestEnvironment, arguments: List[str]) -> None:
+def test_fails(script: PipTestEnvironment, arguments: list[str]) -> None:
     result = script.pip(*arguments, "pip", expect_error=True)
     assert "I am externally managed" in result.stderr
 
@@ -52,7 +57,7 @@ def test_fails(script: PipTestEnvironment, arguments: List[str]) -> None:
 )
 @pytest.mark.usefixtures("patch_check_externally_managed")
 def test_succeeds_when_overridden(
-    script: PipTestEnvironment, arguments: List[str]
+    script: PipTestEnvironment, arguments: list[str]
 ) -> None:
     result = script.pip(*arguments, "pip", "--break-system-packages")
     assert "I am externally managed" not in result.stderr
@@ -69,7 +74,7 @@ def test_succeeds_when_overridden(
 @pytest.mark.usefixtures("patch_check_externally_managed")
 def test_allows_if_out_of_environment(
     script: PipTestEnvironment,
-    arguments: List[str],
+    arguments: list[str],
 ) -> None:
     wheel = create_basic_wheel_for_package(script, "foo", "1.0")
     result = script.pip(*arguments, script.scratch_path, wheel.as_uri())

@@ -2,8 +2,8 @@ import os
 import ssl
 import tempfile
 import textwrap
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, List
 
 import pytest
 
@@ -71,14 +71,10 @@ def test_env_vars_override_config_file(
     # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    config_file.write_text(
-        textwrap.dedent(
-            """\
+    config_file.write_text(textwrap.dedent("""\
         [global]
         no-index = 1
-        """
-        )
-    )
+        """))
     result = script.pip("install", "-vvv", "INITools", expect_error=True)
     msg = "DistributionNotFound: No matching distribution found for INITools"
     # Case insensitive as the new resolver canonicalizes the project name
@@ -175,30 +171,23 @@ def test_config_file_override_stack(
     # set this to make pip load it
     script.environ["PIP_CONFIG_FILE"] = str(config_file)
 
-    config_file.write_text(
-        textwrap.dedent(
-            f"""\
+    config_file.write_text(textwrap.dedent(f"""\
         [global]
         index-url = {base_address}/simple1
-        """
-        )
-    )
+        """))
     script.pip("install", "-vvv", "INITools", expect_error=True)
     virtualenv.clear()
 
-    config_file.write_text(
-        textwrap.dedent(
-            f"""\
+    config_file.write_text(textwrap.dedent(f"""\
         [global]
         index-url = {base_address}/simple1
         [install]
         index-url = {base_address}/simple2
-        """
-        )
-    )
+        """))
     script.pip("install", "-vvv", "INITools", expect_error=True)
     script.pip(
         "install",
+        "--no-build-isolation",
         "-vvv",
         "--index-url",
         f"{base_address}/simple3",
@@ -240,17 +229,19 @@ def test_install_no_binary_via_config_disables_cached_wheels(
     config_file = tempfile.NamedTemporaryFile(mode="wt", delete=False)
     try:
         script.environ["PIP_CONFIG_FILE"] = config_file.name
-        config_file.write(
-            textwrap.dedent(
-                """\
+        config_file.write(textwrap.dedent("""\
             [global]
             no-binary = :all:
-            """
-            )
-        )
+            """))
         config_file.close()
         res = script.pip(
-            "install", "--no-index", "-f", data.find_links, "upper", expect_stderr=True
+            "install",
+            "--no-build-isolation",
+            "--no-index",
+            "-f",
+            data.find_links,
+            "upper",
+            expect_stderr=True,
         )
     finally:
         os.unlink(config_file.name)
@@ -266,9 +257,8 @@ def test_prompt_for_authentication(
     requiring authentication
     """
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -306,9 +296,8 @@ def test_do_not_prompt_for_authentication(
     from a index url requiring authentication
     """
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     server = make_mock_server(ssl_context=ctx)
@@ -341,6 +330,34 @@ def test_do_not_prompt_for_authentication(
     assert "ERROR: HTTP error 401" in result.stderr
 
 
+def test_do_not_prompt_for_authentication_git(
+    script: PipTestEnvironment, data: TestData, cert_factory: CertFactory
+) -> None:
+    """Test behaviour if --no-input option is given while installing
+    from a git http url requiring authentication
+    """
+    server = make_mock_server()
+    # Disable vscode user/password prompt, will make tests fail inside vscode
+    script.environ["GIT_ASKPASS"] = ""
+
+    # Return 401 on all URLs
+    server.mock.side_effect = lambda _, __: authorization_response(
+        data.packages / "simple-3.0.tar.gz"
+    )
+
+    url = f"git+http://{server.host}:{server.port}/simple"
+
+    with server_running(server):
+        result = script.pip(
+            "install",
+            url,
+            "--no-input",
+            expect_error=True,
+        )
+
+    assert "terminal prompts disabled" in result.stderr
+
+
 @pytest.fixture(params=(True, False), ids=("interactive", "noninteractive"))
 def interactive(request: pytest.FixtureRequest) -> bool:
     return request.param
@@ -368,7 +385,7 @@ def flags(
     auth_needed: bool,
     keyring_provider: str,
     keyring_provider_implementation: str,
-) -> List[str]:
+) -> list[str]:
     if (
         keyring_provider not in [None, "auto"]
         and keyring_provider_implementation != keyring_provider
@@ -393,7 +410,7 @@ def test_prompt_for_keyring_if_needed(
     data: TestData,
     cert_factory: CertFactory,
     auth_needed: bool,
-    flags: List[str],
+    flags: list[str],
     keyring_provider: str,
     keyring_provider_implementation: str,
     tmpdir: Path,
@@ -411,10 +428,7 @@ def test_prompt_for_keyring_if_needed(
         keyring_script = script_factory(
             workspace.joinpath("keyring"), keyring_virtualenv
         )
-        keyring_script.pip(
-            "install",
-            "keyring",
-        )
+        keyring_script.pip_install_local("keyring", "-f", data.common_wheels)
 
         environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
 
@@ -425,18 +439,14 @@ def test_prompt_for_keyring_if_needed(
         keyring_provider not in [None, "auto"]
         or keyring_provider_implementation != "subprocess"
     ):
-        script.pip(
-            "install",
-            "keyring",
-        )
+        script.pip_install_local("keyring", "-f", data.common_wheels)
 
     if keyring_provider_implementation != "subprocess":
         keyring_script = script
 
     cert_path = cert_factory()
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
     ctx.load_cert_chain(cert_path, cert_path)
-    ctx.load_verify_locations(cafile=cert_path)
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     response = authorization_response if auth_needed else file_response
@@ -454,8 +464,7 @@ def test_prompt_for_keyring_if_needed(
 
     url = f"https://USERNAME@{server.host}:{server.port}/simple"
 
-    keyring_content = textwrap.dedent(
-        """\
+    keyring_content = textwrap.dedent("""\
         import os
         import sys
         import keyring
@@ -475,8 +484,7 @@ def test_prompt_for_keyring_if_needed(
 
             def set_password(self, url, username):
                 pass
-    """
-    )
+    """)
     keyring_path = keyring_script.site_packages_path / "keyring_test.py"
     keyring_path.write_text(keyring_content)
 
@@ -491,6 +499,7 @@ def test_prompt_for_keyring_if_needed(
     with server_running(server):
         result = script.pip(
             "install",
+            "--no-build-isolation",
             "--index-url",
             url,
             "--cert",
@@ -510,3 +519,14 @@ def test_prompt_for_keyring_if_needed(
         assert function_name + " was called" in result.stderr
     else:
         assert function_name + " was called" not in result.stderr
+
+
+@pytest.mark.network
+def test_install_quiet_log(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test suppressing the progress bar with --quiet and --log.
+    """
+    logfile = script.scratch_path / "log"
+    result = script.pip("install", "-qqq", "setuptools==62.0.0", "--log", logfile)
+    assert result.stdout == ""
+    assert result.stderr == ""

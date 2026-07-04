@@ -2,76 +2,38 @@
 name that have meaning.
 """
 
-import re
-from typing import Dict, Iterable, List
+from __future__ import annotations
+
+from collections.abc import Iterable
 
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import (
-    InvalidWheelFilename as PackagingInvalidWheelName,
+    InvalidWheelFilename as _PackagingInvalidWheelFilename,
 )
 from pip._vendor.packaging.utils import parse_wheel_filename
 
 from pip._internal.exceptions import InvalidWheelFilename
-from pip._internal.utils.deprecation import deprecated
 
 
 class Wheel:
     """A wheel file"""
 
-    wheel_file_re = re.compile(
-        r"""^(?P<namever>(?P<name>[^\s-]+?)-(?P<ver>[^\s-]*?))
-        ((-(?P<build>\d[^-]*?))?-(?P<pyver>[^\s-]+?)-(?P<abi>[^\s-]+?)-(?P<plat>[^\s-]+?)
-        \.whl|\.dist-info)$""",
-        re.VERBOSE,
-    )
-
     def __init__(self, filename: str) -> None:
-        """
-        :raises InvalidWheelFilename: when the filename is invalid for a wheel
-        """
-        wheel_info = self.wheel_file_re.match(filename)
-        if not wheel_info:
-            raise InvalidWheelFilename(f"{filename} is not a valid wheel filename.")
         self.filename = filename
-        self.name = wheel_info.group("name").replace("_", "-")
-        _version = wheel_info.group("ver")
-        if "_" in _version:
-            try:
-                parse_wheel_filename(filename)
-            except PackagingInvalidWheelName as e:
-                deprecated(
-                    reason=(
-                        f"Wheel filename {filename!r} is not correctly normalised. "
-                        "Future versions of pip will raise the following error:\n"
-                        f"{e.args[0]}\n\n"
-                    ),
-                    replacement=(
-                        "to rename the wheel to use a correctly normalised "
-                        "name (this may require updating the version in "
-                        "the project metadata)"
-                    ),
-                    gone_in="25.1",
-                    issue=12938,
-                )
 
-            _version = _version.replace("_", "-")
+        try:
+            wheel_info = parse_wheel_filename(filename)
+        except _PackagingInvalidWheelFilename as e:
+            raise InvalidWheelFilename(e.args[0]) from None
 
-        self.version = _version
-        self.build_tag = wheel_info.group("build")
-        self.pyversions = wheel_info.group("pyver").split(".")
-        self.abis = wheel_info.group("abi").split(".")
-        self.plats = wheel_info.group("plat").split(".")
+        self.name, _version, self.build_tag, self.file_tags = wheel_info
+        self.version = str(_version)
 
-        # All the tag combinations from this file
-        self.file_tags = {
-            Tag(x, y, z) for x in self.pyversions for y in self.abis for z in self.plats
-        }
-
-    def get_formatted_file_tags(self) -> List[str]:
+    def get_formatted_file_tags(self) -> list[str]:
         """Return the wheel's tags as a sorted list of strings."""
         return sorted(str(tag) for tag in self.file_tags)
 
-    def support_index_min(self, tags: List[Tag]) -> int:
+    def support_index_min(self, tags: list[Tag]) -> int:
         """Return the lowest index that one of the wheel's file_tag combinations
         achieves in the given list of supported tags.
 
@@ -90,7 +52,7 @@ class Wheel:
             raise ValueError()
 
     def find_most_preferred_tag(
-        self, tags: List[Tag], tag_to_priority: Dict[Tag, int]
+        self, tags: list[Tag], tag_to_priority: dict[Tag, int]
     ) -> int:
         """Return the priority of the most preferred tag that one of the wheel's file
         tag combinations achieves in the given list of supported tags using the given

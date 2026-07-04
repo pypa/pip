@@ -60,14 +60,14 @@ Working Out the Name and Version
 For each candidate item, pip needs to know the project name and version. For
 wheels (identified by the ``.whl`` file extension) this can be obtained from
 the filename, as per the Wheel spec. For local directories, or explicitly
-specified sdist files, the ``setup.py egg_info`` command is used to determine
-the project metadata. For sdists located via an index, the filename is parsed
-for the name and project version (this is in theory slightly less reliable
-than using the ``egg_info`` command, but avoids downloading and processing
-unnecessary numbers of files).
+specified source distributions (sdists), pip determines project metadata using
+the project's build backend. For sdists located via an index, the filename is
+parsed for the name and project version (this is in theory slightly less
+reliable than obtaining metadata from the distribution, but avoids downloading
+and processing unnecessary numbers of files).
 
-Any URL may use the ``#egg=name`` syntax (see :doc:`../topics/vcs-support`) to
-explicitly state the project name.
+The :ref:`Direct URL requirement syntax <pypug:dependency-specifiers>` can be used
+to explicitly state the project name (see :doc:`../topics/vcs-support`).
 
 Satisfying Requirements
 -----------------------
@@ -255,7 +255,7 @@ This is now covered in :doc:`../topics/local-project-installs`.
 .. _`0-build-system-interface`:
 .. rubric:: Build System Interface
 
-This is now covered in :doc:`../reference/build-system/index`.
+This is now covered in :doc:`../reference/build-system`.
 
 .. _`pip install Options`:
 
@@ -266,6 +266,7 @@ Options
 
 .. pip-index-options:: install
 
+.. pip-package-selection-options:: install
 
 .. _`pip install Examples`:
 
@@ -321,7 +322,7 @@ Examples
 
          py -m pip install --upgrade SomePackage
 
-    .. note::
+   .. note::
 
       This will guarantee an update to ``SomePackage`` as it is a direct
       requirement, and possibly upgrade dependencies if their installed
@@ -367,21 +368,21 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install -e 'git+https://git.repo/some_pkg.git#egg=SomePackage'          # from git
-         python -m pip install -e 'hg+https://hg.repo/some_pkg.git#egg=SomePackage'            # from mercurial
-         python -m pip install -e 'svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage'         # from svn
-         python -m pip install -e 'git+https://git.repo/some_pkg.git@feature#egg=SomePackage'  # from 'feature' branch
-         python -m pip install -e 'git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path' # install a python package from a repo subdirectory
+         python -m pip install -e 'SomePackage @ git+https://git.repo/some_pkg.git'          # from git
+         python -m pip install -e 'SomePackage @ hg+https://hg.repo/some_pkg.git'            # from mercurial
+         python -m pip install -e 'SomePackage @ svn+svn://svn.repo/some_pkg/trunk/'         # from svn
+         python -m pip install -e 'SomePackage @ git+https://git.repo/some_pkg.git@feature'  # from 'feature' branch
+         python -m pip install -e 'SomePackage @ git+https://git.repo/some_repo.git#subdirectory=subdir_path' # install a python package from a repo subdirectory
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install -e "git+https://git.repo/some_pkg.git#egg=SomePackage"          # from git
-         py -m pip install -e "hg+https://hg.repo/some_pkg.git#egg=SomePackage"            # from mercurial
-         py -m pip install -e "svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage"         # from svn
-         py -m pip install -e "git+https://git.repo/some_pkg.git@feature#egg=SomePackage"  # from 'feature' branch
-         py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
+         py -m pip install -e "SomePackage @ git+https://git.repo/some_pkg.git"          # from git
+         py -m pip install -e "SomePackage @ hg+https://hg.repo/some_pkg.git"            # from mercurial
+         py -m pip install -e "SomePackage @ svn+svn://svn.repo/some_pkg/trunk/"         # from svn
+         py -m pip install -e "SomePackage @ git+https://git.repo/some_pkg.git@feature"  # from 'feature' branch
+         py -m pip install -e "SomePackage @ git+https://git.repo/some_repo.git#subdirectory=subdir_path" # install a python package from a repo subdirectory
 
 #. Install a package with extras, i.e., optional dependencies
    (:ref:`specification <pypug:dependency-specifiers>`).
@@ -479,12 +480,11 @@ Examples
 
    .. warning::
 
-       Using this option to search for packages which are not in the main
-       repository (such as private packages) is unsafe, per a security
-       vulnerability called
-       `dependency confusion <https://azure.microsoft.com/en-us/resources/3-ways-to-mitigate-risk-using-private-package-feeds/>`_:
-       an attacker can claim the package on the public repository in a way that
-       will ensure it gets chosen over the private package.
+       Using the ``--extra-index-url`` option to search for packages which are
+       not in the main repository (for example, private packages) is unsafe.
+       This is a class of security issue known as `dependency confusion <https://azure.microsoft.com/en-us/resources/3-ways-to-mitigate-risk-using-private-package-feeds/>`_: an
+       attacker can publish a package with the same name to a public index,
+       which may then be chosen instead of your private package.
 
    .. tab:: Unix/macOS
 

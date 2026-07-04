@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -51,8 +53,8 @@ class SpecifierRequirement(Requirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
-        self._equal_cache: Optional[str] = None
-        self._hash: Optional[int] = None
+        self._equal_cache: str | None = None
+        self._hash: int | None = None
         self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
 
     @property
@@ -128,8 +130,8 @@ class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = install_req_drop_extras(ireq)
-        self._equal_cache: Optional[str] = None
-        self._hash: Optional[int] = None
+        self._equal_cache: str | None = None
+        self._hash: int | None = None
         self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
 
     @property
@@ -159,8 +161,14 @@ class RequiresPythonRequirement(Requirement):
     def __init__(self, specifier: SpecifierSet, match: Candidate) -> None:
         self.specifier = specifier
         self._specifier_string = str(specifier)  # for faster __eq__
-        self._hash: Optional[int] = None
+        self._hash: int | None = None
         self._candidate = match
+
+        # Pre-compute candidate lookup to avoid repeated specifier checks
+        if specifier.contains(match.version, prereleases=True):
+            self._candidate_lookup: CandidateLookup = (match, None)
+        else:
+            self._candidate_lookup = (None, None)
 
     def __str__(self) -> str:
         return f"Python {self.specifier}"
@@ -195,9 +203,7 @@ class RequiresPythonRequirement(Requirement):
         return str(self)
 
     def get_candidate_lookup(self) -> CandidateLookup:
-        if self.specifier.contains(self._candidate.version, prereleases=True):
-            return self._candidate, None
-        return None, None
+        return self._candidate_lookup
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
         assert candidate.name == self._candidate.name, "Not Python candidate"

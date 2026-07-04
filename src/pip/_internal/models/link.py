@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import datetime
 import functools
 import itertools
 import logging
@@ -5,20 +8,16 @@ import os
 import posixpath
 import re
 import urllib.parse
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import (
-    TYPE_CHECKING,
     Any,
-    Dict,
-    List,
-    Mapping,
     NamedTuple,
-    Optional,
-    Tuple,
-    Union,
+    NewType,
 )
 
-from pip._internal.utils.deprecation import deprecated
+from pip._internal.exceptions import InvalidEggFragment
+from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -29,10 +28,50 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.urls import path_to_url, url_to_path
 
-if TYPE_CHECKING:
-    from pip._internal.index.collector import IndexContent
-
 logger = logging.getLogger(__name__)
+
+
+# A single path component: percent-decoded once and reduced to a basename, so it
+# contains no path separator and is not a ``.`` or ``..`` reference. The empty
+# string means "no component".
+PathComponent = NewType("PathComponent", str)
+
+
+def _to_path_component(name: str) -> PathComponent:
+    """Reduce ``name`` to a single path component, or ``""`` if it has none.
+
+    ``os.path.basename`` drops any directory part, drive letter, or separator;
+    a ``.``, ``..``, or empty result is not a component and becomes ``""``.
+    """
+    name = os.path.basename(name)
+    if name in ("", os.curdir, os.pardir):
+        return PathComponent("")
+
+    return PathComponent(name)
+
+
+def as_path_component(name: str) -> PathComponent:
+    """Like ``_to_path_component`` but reject the empty result.
+
+    Use where a file is about to be written, so a missing name is an error
+    rather than a silent fallback to the directory itself.
+    """
+    component = _to_path_component(name)
+    if not component:
+        raise ValueError(f"Unexpected file name derived from URL: {name!r}")
+
+    return component
+
+
+def join_within_directory(directory: str, component: PathComponent) -> str:
+    """Join a single path ``component`` onto ``directory``.
+
+    ``component`` is a :data:`PathComponent`, so by type it has no separator and
+    is not a ``.`` or ``..`` reference; the result can never escape ``directory``.
+    Requiring ``PathComponent`` rather than ``str`` lets the type checker enforce
+    at the call site that the name was reduced to a safe component beforehand.
+    """
+    return os.path.join(directory, component)
 
 
 # Order matters, earlier hashes have a precedence over later hashes for what
@@ -69,8 +108,8 @@ class LinkHash:
         assert self.name in _SUPPORTED_HASHES
 
     @classmethod
-    @functools.lru_cache(maxsize=None)
-    def find_hash_url_fragment(cls, url: str) -> Optional["LinkHash"]:
+    @functools.cache
+    def find_hash_url_fragment(cls, url: str) -> LinkHash | None:
         """Search a string for a checksum algorithm name and encoded output value."""
         match = cls._hash_url_fragment_re.search(url)
         if match is None:
@@ -78,14 +117,14 @@ class LinkHash:
         name, value = match.groups()
         return cls(name=name, value=value)
 
-    def as_dict(self) -> Dict[str, str]:
+    def as_dict(self) -> dict[str, str]:
         return {self.name: self.value}
 
     def as_hashes(self) -> Hashes:
         """Return a Hashes instance which checks only for the current hash."""
         return Hashes({self.name: [self.value]})
 
-    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
+    def is_hash_allowed(self, hashes: Hashes | None) -> bool:
         """
         Return True if the current hash is allowed by `hashes`.
         """
@@ -98,14 +137,14 @@ class LinkHash:
 class MetadataFile:
     """Information about a core metadata file associated with a distribution."""
 
-    hashes: Optional[Dict[str, str]]
+    hashes: dict[str, str] | None
 
     def __post_init__(self) -> None:
         if self.hashes is not None:
             assert all(name in _SUPPORTED_HASHES for name in self.hashes)
 
 
-def supported_hashes(hashes: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+def supported_hashes(hashes: dict[str, str] | None) -> dict[str, str] | None:
     # Remove any unsupported hash types from the mapping. If this leaves no
     # supported hashes, return None
     if hashes is None:
@@ -129,12 +168,18 @@ def _clean_file_url_path(part: str) -> str:
     Clean the first part of a URL path that corresponds to a local
     filesystem path (i.e. the first part after splitting on "@" characters).
     """
+    import urllib.request
+
     # We unquote prior to quoting to make sure nothing is double quoted.
     # Also, on Windows the path part might contain a drive letter which
     # should not be quoted. On Linux where drive letters do not
     # exist, the colon should be quoted. We rely on urllib.request
     # to do the right thing here.
-    return urllib.request.pathname2url(urllib.request.url2pathname(part))
+    ret = urllib.request.pathname2url(urllib.request.url2pathname(part))
+    if ret.startswith("///"):
+        # Remove any URL authority section, leaving only the URL path.
+        ret = ret.removeprefix("//")
+    return ret
 
 
 # percent-encoded:                   /
@@ -170,12 +215,27 @@ def _ensure_quoted_url(url: str) -> str:
     and without double-quoting other characters.
     """
     # Split the URL into parts according to the general structure
-    # `scheme://netloc/path;parameters?query#fragment`.
-    result = urllib.parse.urlparse(url)
+    # `scheme://netloc/path?query#fragment`.
+    result = urllib.parse.urlsplit(url)
     # If the netloc is empty, then the URL refers to a local filesystem path.
     is_local_path = not result.netloc
     path = _clean_url_path(result.path, is_local_path=is_local_path)
-    return urllib.parse.urlunparse(result._replace(path=path))
+    # Temporarily replace scheme with file to ensure the URL generated by
+    # urlunsplit() contains an empty netloc (file://) as per RFC 1738.
+    ret = urllib.parse.urlunsplit(result._replace(scheme="file", path=path))
+    ret = result.scheme + ret[4:]  # Restore original scheme.
+    return ret
+
+
+def _absolute_link_url(base_url: str, url: str) -> str:
+    """
+    A faster implementation of urllib.parse.urljoin with a shortcut
+    for absolute http/https URLs.
+    """
+    if url.startswith(("https://", "http://")):
+        return url
+    else:
+        return urllib.parse.urljoin(base_url, url)
 
 
 @functools.total_ordering
@@ -185,11 +245,13 @@ class Link:
     __slots__ = [
         "_parsed_url",
         "_url",
+        "_path",
         "_hashes",
         "comes_from",
         "requires_python",
         "yanked_reason",
         "metadata_file_data",
+        "upload_time",
         "cache_link_parsing",
         "egg_fragment",
     ]
@@ -197,17 +259,17 @@ class Link:
     def __init__(
         self,
         url: str,
-        comes_from: Optional[Union[str, "IndexContent"]] = None,
-        requires_python: Optional[str] = None,
-        yanked_reason: Optional[str] = None,
-        metadata_file_data: Optional[MetadataFile] = None,
+        comes_from: str | None = None,
+        requires_python: str | None = None,
+        yanked_reason: str | None = None,
+        metadata_file_data: MetadataFile | None = None,
+        upload_time: datetime.datetime | None = None,
         cache_link_parsing: bool = True,
-        hashes: Optional[Mapping[str, str]] = None,
+        hashes: Mapping[str, str] | None = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
-        :param comes_from: instance of IndexContent where the link was found,
-            or string.
+        :param comes_from: URL or string indicating where the link was found.
         :param requires_python: String containing the `Requires-Python`
             metadata field, specified in PEP 345. This may be specified by
             a data-requires-python attribute in the HTML link tag, as
@@ -222,6 +284,8 @@ class Link:
             no such metadata is provided. This argument, if not None, indicates
             that a separate metadata file exists, and also optionally supplies
             hashes for that file.
+        :param upload_time: upload time of the file, or None if the information
+            is not available from the server.
         :param cache_link_parsing: A flag that is used elsewhere to determine
             whether resources retrieved from this link should be cached. PyPI
             URLs should generally have this set to False, for example.
@@ -241,6 +305,8 @@ class Link:
         # Store the url as a private attribute to prevent accidentally
         # trying to set a new value.
         self._url = url
+        # The .path property is hot, so calculate its value ahead of time.
+        self._path = urllib.parse.unquote(self._parsed_url.path)
 
         link_hash = LinkHash.find_hash_url_fragment(url)
         hashes_from_link = {} if link_hash is None else link_hash.as_dict()
@@ -253,6 +319,7 @@ class Link:
         self.requires_python = requires_python if requires_python else None
         self.yanked_reason = yanked_reason
         self.metadata_file_data = metadata_file_data
+        self.upload_time = upload_time
 
         self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
@@ -260,9 +327,9 @@ class Link:
     @classmethod
     def from_json(
         cls,
-        file_data: Dict[str, Any],
+        file_data: dict[str, Any],
         page_url: str,
-    ) -> Optional["Link"]:
+    ) -> Link | None:
         """
         Convert an pypi json document from a simple repository page into a Link.
         """
@@ -270,7 +337,7 @@ class Link:
         if file_url is None:
             return None
 
-        url = _ensure_quoted_url(urllib.parse.urljoin(page_url, file_url))
+        url = _ensure_quoted_url(_absolute_link_url(page_url, file_url))
         pyrequire = file_data.get("requires-python")
         yanked_reason = file_data.get("yanked")
         hashes = file_data.get("hashes", {})
@@ -280,6 +347,11 @@ class Link:
         metadata_info = file_data.get("core-metadata")
         if metadata_info is None:
             metadata_info = file_data.get("dist-info-metadata")
+
+        if upload_time_data := file_data.get("upload-time"):
+            upload_time = parse_iso_datetime(upload_time_data)
+        else:
+            upload_time = None
 
         # The metadata info value may be a boolean, or a dict of hashes.
         if isinstance(metadata_info, dict):
@@ -306,15 +378,16 @@ class Link:
             yanked_reason=yanked_reason,
             hashes=hashes,
             metadata_file_data=metadata_file_data,
+            upload_time=upload_time,
         )
 
     @classmethod
     def from_element(
         cls,
-        anchor_attribs: Dict[str, Optional[str]],
+        anchor_attribs: dict[str, str | None],
         page_url: str,
         base_url: str,
-    ) -> Optional["Link"]:
+    ) -> Link | None:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
         """
@@ -322,7 +395,7 @@ class Link:
         if not href:
             return None
 
-        url = _ensure_quoted_url(urllib.parse.urljoin(base_url, href))
+        url = _ensure_quoted_url(_absolute_link_url(base_url, href))
         pyrequire = anchor_attribs.get("data-requires-python")
         yanked_reason = anchor_attribs.get("data-yanked")
 
@@ -366,9 +439,9 @@ class Link:
         else:
             rp = ""
         if self.comes_from:
-            return f"{redact_auth_from_url(self._url)} (from {self.comes_from}){rp}"
+            return f"{self.redacted_url} (from {self.comes_from}){rp}"
         else:
-            return redact_auth_from_url(str(self._url))
+            return self.redacted_url
 
     def __repr__(self) -> str:
         return f"<Link {self}>"
@@ -391,18 +464,17 @@ class Link:
         return self._url
 
     @property
-    def filename(self) -> str:
-        path = self.path.rstrip("/")
-        name = posixpath.basename(path)
-        if not name:
-            # Make sure we don't leak auth information if the netloc
-            # includes a username and password.
-            netloc, user_pass = split_auth_from_netloc(self.netloc)
-            return netloc
+    def redacted_url(self) -> str:
+        return redact_auth_from_url(self.url)
 
-        name = urllib.parse.unquote(name)
-        assert name, f"URL {self._url!r} produced no filename"
-        return name
+    @property
+    def filename(self) -> PathComponent:
+        name = _to_path_component(posixpath.basename(self.path.rstrip("/")))
+        if name:
+            return name
+
+        # No component in the path; fall back to the netloc, dropping any auth.
+        return _to_path_component(split_auth_from_netloc(self.netloc)[0])
 
     @property
     def file_path(self) -> str:
@@ -421,9 +493,9 @@ class Link:
 
     @property
     def path(self) -> str:
-        return urllib.parse.unquote(self._parsed_url.path)
+        return self._path
 
-    def splitext(self) -> Tuple[str, str]:
+    def splitext(self) -> tuple[str, str]:
         return splitext(posixpath.basename(self.path.rstrip("/")))
 
     @property
@@ -442,7 +514,7 @@ class Link:
         r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", re.IGNORECASE
     )
 
-    def _egg_fragment(self) -> Optional[str]:
+    def _egg_fragment(self) -> str | None:
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
@@ -451,25 +523,20 @@ class Link:
         # an optional extras specifier. Anything else is invalid.
         project_name = match.group(1)
         if not self._project_name_re.match(project_name):
-            deprecated(
-                reason=f"{self} contains an egg fragment with a non-PEP 508 name",
-                replacement="to use the req @ url syntax, and remove the egg fragment",
-                gone_in="25.0",
-                issue=11617,
-            )
+            raise InvalidEggFragment(self, project_name)
 
         return project_name
 
     _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
     @property
-    def subdirectory_fragment(self) -> Optional[str]:
+    def subdirectory_fragment(self) -> str | None:
         match = self._subdirectory_fragment_re.search(self._url)
         if not match:
             return None
         return match.group(1)
 
-    def metadata_link(self) -> Optional["Link"]:
+    def metadata_link(self) -> Link | None:
         """Return a link to the associated core metadata file (if any)."""
         if self.metadata_file_data is None:
             return None
@@ -482,11 +549,11 @@ class Link:
         return Hashes({k: [v] for k, v in self._hashes.items()})
 
     @property
-    def hash(self) -> Optional[str]:
+    def hash(self) -> str | None:
         return next(iter(self._hashes.values()), None)
 
     @property
-    def hash_name(self) -> Optional[str]:
+    def hash_name(self) -> str | None:
         return next(iter(self._hashes), None)
 
     @property
@@ -518,7 +585,7 @@ class Link:
     def has_hash(self) -> bool:
         return bool(self._hashes)
 
-    def is_hash_allowed(self, hashes: Optional[Hashes]) -> bool:
+    def is_hash_allowed(self, hashes: Hashes | None) -> bool:
         """
         Return True if the link has a hash and it is allowed by `hashes`.
         """
@@ -554,9 +621,9 @@ class _CleanResult(NamedTuple):
     """
 
     parsed: urllib.parse.SplitResult
-    query: Dict[str, List[str]]
+    query: dict[str, list[str]]
     subdirectory: str
-    hashes: Dict[str, str]
+    hashes: dict[str, str]
 
 
 def _clean_link(link: Link) -> _CleanResult:
@@ -585,6 +652,6 @@ def _clean_link(link: Link) -> _CleanResult:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def links_equivalent(link1: Link, link2: Link) -> bool:
     return _clean_link(link1) == _clean_link(link2)

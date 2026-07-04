@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import functools
+from collections.abc import Callable
 from time import perf_counter, sleep
-from typing import Callable, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
-from pip._vendor.typing_extensions import ParamSpec
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
 
-T = TypeVar("T")
-P = ParamSpec("P")
+    T = TypeVar("T")
+    P = ParamSpec("P")
 
 
 def retry(

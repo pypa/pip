@@ -64,7 +64,7 @@ The base ``Command`` has the following methods:
 
 Some commands have more specialized behavior, (see for example ``pip index``).
 These commands instead will inherit from ``IndexGroupCommand``, which inherits from ``Command``
-and  ``SessionCommandMixin`` to build build the pip session for the corresponding requests.
+and  ``SessionCommandMixin`` to build the pip session for the corresponding requests.
 
 Lastly, ``RequirementCommand``, which inherits from ``IndexGroupCommand`` is the base class
 for those commands which make use of requirements in any form, like ``pip install``.
@@ -154,7 +154,7 @@ Its main addition consists of the following function:
 
   .. py:method:: get_default_values()
 
-    Overrides the original method to allow updating the defaults ater the instantiation of the
+    Overrides the original method to allow updating the defaults after the instantiation of the
     option parser.
 
 It allows overriding the default options and arguments using the ``Configuration`` class

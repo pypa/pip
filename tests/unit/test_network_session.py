@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Union
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
@@ -29,6 +31,12 @@ def test_user_agent() -> None:
     user_agent = get_user_agent()
 
     assert user_agent.startswith(f"pip/{__version__}")
+
+
+def test_accept_encoding_is_fixed() -> None:
+    # Pinned so it doesn't vary with zstd availability, which would break cache
+    # reuse across interpreters (pypa/pip#13979).
+    assert PipSession().headers["Accept-Encoding"] == "gzip, deflate"
 
 
 @pytest.mark.parametrize(
@@ -231,7 +239,7 @@ class TestPipSession:
         self,
         caplog: pytest.LogCaptureFixture,
         location: str,
-        trusted: List[str],
+        trusted: list[str],
         expected: bool,
     ) -> None:
         class MockLogger:
@@ -256,7 +264,7 @@ class TestPipSession:
         assert "is not a trusted or secure host" in actual_message
 
     @pytest.mark.network
-    def test_proxy(self, proxy: Optional[str]) -> None:
+    def test_proxy(self, proxy: str | None) -> None:
         session = PipSession(trusted_hosts=[])
 
         if not proxy:

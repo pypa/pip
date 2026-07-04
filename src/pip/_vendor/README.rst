@@ -115,6 +115,14 @@ Vendoring is automated via the `vendoring <https://pypi.org/project/vendoring/>`
 Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
 Tool configuration is done via ``pyproject.toml``.
 
+To update the vendored library versions, we have a session defined in ``nox``.
+The command to upgrade everything is::
+
+    nox -s vendoring -- --upgrade-all --skip setuptools
+
+We do not upgrade ``setuptools``, because we only rely on ``pkg_resources``,
+and tracking every ``setuptools`` change is unnecessary for our needs.
+
 
 Managing Local Patches
 ======================

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import email.feedparser
 import email.header
 import email.message
 import email.parser
 import email.policy
+import keyword
+import pathlib
 import typing
 from typing import (
     Any,
@@ -15,35 +16,29 @@ from typing import (
     cast,
 )
 
-from . import requirements, specifiers, utils
+from . import licenses, requirements, specifiers, utils
 from . import version as version_module
+from .errors import ExceptionGroup, _ErrorCollector
+
+if typing.TYPE_CHECKING:
+    from .licenses import NormalizedLicenseExpression
 
 T = typing.TypeVar("T")
 
 
-try:
-    ExceptionGroup
-except NameError:  # pragma: no cover
+__all__ = [
+    "ExceptionGroup",  # Keep this for a bit (makes mypy happy w/ 26.0 compat)
+    "InvalidMetadata",
+    "Metadata",
+    "RFC822Message",
+    "RFC822Policy",
+    "RawMetadata",
+    "parse_email",
+]
 
-    class ExceptionGroup(Exception):
-        """A minimal implementation of :external:exc:`ExceptionGroup` from Python 3.11.
 
-        If :external:exc:`ExceptionGroup` is already defined by Python itself,
-        that version is used instead.
-        """
-
-        message: str
-        exceptions: list[Exception]
-
-        def __init__(self, message: str, exceptions: list[Exception]) -> None:
-            self.message = message
-            self.exceptions = exceptions
-
-        def __repr__(self) -> str:
-            return f"{self.__class__.__name__}({self.message!r}, {self.exceptions!r})"
-
-else:  # pragma: no cover
-    ExceptionGroup = ExceptionGroup
+def __dir__() -> list[str]:
+    return __all__
 
 
 class InvalidMetadata(ValueError):
@@ -73,8 +68,8 @@ class RawMetadata(TypedDict, total=False):
 
     Core metadata fields that can be specified multiple times are stored as a
     list or dict depending on which is appropriate for the field. Any fields
-    which hold multiple values in a single field are stored as a list.
-
+    which hold multiple values in a single field are stored as a list. All fields
+    are considered optional.
     """
 
     # Metadata 1.0 - PEP 241
@@ -126,9 +121,19 @@ class RawMetadata(TypedDict, total=False):
 
     # Metadata 2.3 - PEP 685
     # No new fields were added in PEP 685, just some edge case were
-    # tightened up to provide better interoptability.
+    # tightened up to provide better interoperability.
+
+    # Metadata 2.4 - PEP 639
+    license_expression: str
+    license_files: list[str]
+
+    # Metadata 2.5 - PEP 794
+    import_names: list[str]
+    import_namespaces: list[str]
 
 
+# 'keywords' is special as it's a string in the core metadata spec, but we
+# represent it as a list.
 _STRING_FIELDS = {
     "author",
     "author_email",
@@ -137,6 +142,7 @@ _STRING_FIELDS = {
     "download_url",
     "home_page",
     "license",
+    "license_expression",
     "maintainer",
     "maintainer_email",
     "metadata_version",
@@ -149,6 +155,7 @@ _STRING_FIELDS = {
 _LIST_FIELDS = {
     "classifiers",
     "dynamic",
+    "license_files",
     "obsoletes",
     "obsoletes_dist",
     "platforms",
@@ -159,6 +166,8 @@ _LIST_FIELDS = {
     "requires_dist",
     "requires_external",
     "supported_platforms",
+    "import_names",
+    "import_namespaces",
 }
 
 _DICT_FIELDS = {
@@ -167,7 +176,7 @@ _DICT_FIELDS = {
 
 
 def _parse_keywords(data: str) -> list[str]:
-    """Split a string of comma-separate keyboards into a list of keywords."""
+    """Split a string of comma-separated keywords into a list of keywords."""
     return [k.strip() for k in data.split(",")]
 
 
@@ -187,24 +196,23 @@ def _parse_project_urls(data: list[str]) -> dict[str, str]:
         # be the missing value, then they'd have multiple '' values that
         # overwrite each other in a accumulating dict.
         #
-        # The other potentional issue is that it's possible to have the
+        # The other potential issue is that it's possible to have the
         # same label multiple times in the metadata, with no solid "right"
         # answer with what to do in that case. As such, we'll do the only
-        # thing we can, which is treat the field as unparseable and add it
+        # thing we can, which is treat the field as unparsable and add it
         # to our list of unparsed fields.
-        parts = [p.strip() for p in pair.split(",", 1)]
-        parts.extend([""] * (max(0, 2 - len(parts))))  # Ensure 2 items
-
+        #
         # TODO: The spec doesn't say anything about if the keys should be
         #       considered case sensitive or not... logically they should
         #       be case-preserving and case-insensitive, but doing that
         #       would open up more cases where we might have duplicate
         #       entries.
-        label, url = parts
+        label, _, url = (s.strip() for s in pair.partition(","))
+
         if label in urls:
             # The label already exists in our set of urls, so this field
-            # is unparseable, and we can just add the whole thing to our
-            # unparseable data and stop processing it.
+            # is unparsable, and we can just add the whole thing to our
+            # unparsable data and stop processing it.
             raise KeyError("duplicate labels in project urls")
         urls[label] = url
 
@@ -216,16 +224,18 @@ def _get_payload(msg: email.message.Message, source: bytes | str) -> str:
     # If our source is a str, then our caller has managed encodings for us,
     # and we don't need to deal with it.
     if isinstance(source, str):
-        payload: str = msg.get_payload()
+        payload = msg.get_payload()
+        assert isinstance(payload, str)
         return payload
     # If our source is a bytes, then we're managing the encoding and we need
     # to deal with it.
     else:
-        bpayload: bytes = msg.get_payload(decode=True)
+        bpayload = msg.get_payload(decode=True)
+        assert isinstance(bpayload, bytes)
         try:
             return bpayload.decode("utf8", "strict")
-        except UnicodeDecodeError:
-            raise ValueError("payload in an invalid encoding")
+        except UnicodeDecodeError as exc:
+            raise ValueError("payload in an invalid encoding") from exc
 
 
 # The various parse_FORMAT functions here are intended to be as lenient as
@@ -249,8 +259,12 @@ _EMAIL_TO_RAW_MAPPING = {
     "download-url": "download_url",
     "dynamic": "dynamic",
     "home-page": "home_page",
+    "import-name": "import_names",
+    "import-namespace": "import_namespaces",
     "keywords": "keywords",
     "license": "license",
+    "license-expression": "license_expression",
+    "license-file": "license_files",
     "maintainer": "maintainer",
     "maintainer-email": "maintainer_email",
     "metadata-version": "metadata_version",
@@ -271,6 +285,45 @@ _EMAIL_TO_RAW_MAPPING = {
     "version": "version",
 }
 _RAW_TO_EMAIL_MAPPING = {raw: email for email, raw in _EMAIL_TO_RAW_MAPPING.items()}
+
+
+# This class is for writing RFC822 messages
+class RFC822Policy(email.policy.EmailPolicy):
+    """
+    This is :class:`email.policy.EmailPolicy`, but with a simple ``header_store_parse``
+    implementation that handles multi-line values, and some nice defaults.
+    """
+
+    utf8 = True
+    mangle_from_ = False
+    max_line_length = 0
+
+    def header_store_parse(self, name: str, value: str) -> tuple[str, str]:
+        size = len(name) + 2
+        value = value.replace("\n", "\n" + " " * size)
+        return (name, value)
+
+
+# This class is for writing RFC822 messages
+class RFC822Message(email.message.EmailMessage):
+    """
+    This is :class:`email.message.EmailMessage` with two small changes: it defaults to
+    our `RFC822Policy`, and it correctly writes unicode when being called
+    with `bytes()`.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(policy=RFC822Policy())
+
+    def as_bytes(
+        self, unixfrom: bool = False, policy: email.policy.Policy | None = None
+    ) -> bytes:
+        """
+        Return the bytes representation of the message.
+
+        This handles unicode encoding.
+        """
+        return self.as_string(unixfrom, policy=policy).encode("utf-8")
 
 
 def parse_email(data: bytes | str) -> tuple[RawMetadata, dict[str, list[str]]]:
@@ -300,10 +353,10 @@ def parse_email(data: bytes | str) -> tuple[RawMetadata, dict[str, list[str]]]:
     # We have to wrap parsed.keys() in a set, because in the case of multiple
     # values for a key (a list), the key will appear multiple times in the
     # list of keys, but we're avoiding that by using get_all().
-    for name in frozenset(parsed.keys()):
+    for name_with_case in frozenset(parsed.keys()):
         # Header names in RFC are case insensitive, so we'll normalize to all
         # lower case to make comparisons easier.
-        name = name.lower()
+        name = name_with_case.lower()
 
         # We use get_all() here, even for fields that aren't multiple use,
         # because otherwise someone could have e.g. two Name fields, and we
@@ -339,16 +392,16 @@ def parse_email(data: bytes | str) -> tuple[RawMetadata, dict[str, list[str]]]:
                 # can be independently encoded, so we'll need to check each
                 # of them.
                 chunks: list[tuple[bytes, str | None]] = []
-                for bin, encoding in email.header.decode_header(h):
+                for binary, _encoding in email.header.decode_header(h):
                     try:
-                        bin.decode("utf8", "strict")
+                        binary.decode("utf8", "strict")
                     except UnicodeDecodeError:
                         # Enable mojibake.
                         encoding = "latin1"
                         valid_encoding = False
                     else:
                         encoding = "utf8"
-                    chunks.append((bin, encoding))
+                    chunks.append((binary, encoding))
 
                 # Turn our chunks back into a Header object, then let that
                 # Header object do the right thing to turn them into a
@@ -387,6 +440,11 @@ def parse_email(data: bytes | str) -> tuple[RawMetadata, dict[str, list[str]]]:
         # of unparsed stuff.
         if raw_name in _STRING_FIELDS and len(value) == 1:
             raw[raw_name] = value[0]
+        # If this is import_names, we need to special case the empty field
+        # case, which converts to an empty list instead of None. We can't let
+        # the empty case slip through, as it will fail validation.
+        elif raw_name == "import_names" and value == [""]:
+            raw[raw_name] = []
         # If this is one of our list of string fields, then we can just assign
         # the value, since email *only* has strings, and our get_all() call
         # above ensures that this is a list.
@@ -414,7 +472,7 @@ def parse_email(data: bytes | str) -> tuple[RawMetadata, dict[str, list[str]]]:
             except KeyError:
                 unparsed[name] = value
         # Nothing that we've done has managed to parse this, so it'll just
-        # throw it in our unparseable data and move on.
+        # throw it in our unparsable data and move on.
         else:
             unparsed[name] = value
 
@@ -426,14 +484,14 @@ def parse_email(data: bytes | str) -> tuple[RawMetadata, dict[str, list[str]]]:
         payload = _get_payload(parsed, data)
     except ValueError:
         unparsed.setdefault("description", []).append(
-            parsed.get_payload(decode=isinstance(data, bytes))
+            parsed.get_payload(decode=isinstance(data, bytes))  # type: ignore[call-overload]
         )
     else:
         if payload:
             # Check to see if we've already got a description, if so then both
-            # it, and this body move to unparseable.
+            # it, and this body move to unparsable.
             if "description" in raw:
-                description_header = cast(str, raw.pop("description"))
+                description_header = cast("str", raw.pop("description"))
                 unparsed.setdefault("description", []).extend(
                     [description_header, payload]
                 )
@@ -446,15 +504,15 @@ def parse_email(data: bytes | str) -> tuple[RawMetadata, dict[str, list[str]]]:
     # literal key names, but we're computing our key names on purpose, but the
     # way this function is implemented, our `TypedDict` can only have valid key
     # names.
-    return cast(RawMetadata, raw), unparsed
+    return cast("RawMetadata", raw), unparsed
 
 
 _NOT_FOUND = object()
 
 
 # Keep the two values in sync.
-_VALID_METADATA_VERSIONS = ["1.0", "1.1", "1.2", "2.1", "2.2", "2.3"]
-_MetadataVersion = Literal["1.0", "1.1", "1.2", "2.1", "2.2", "2.3"]
+_VALID_METADATA_VERSIONS = ["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5"]
+_MetadataVersion = Literal["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5"]
 
 _REQUIRED_ATTRS = frozenset(["metadata_version", "name", "version"])
 
@@ -509,7 +567,7 @@ class _Validator(Generic[T]):
         except KeyError:
             pass
 
-        return cast(T, value)
+        return cast("T", value)
 
     def _invalid_metadata(
         self, msg: str, cause: Exception | None = None
@@ -524,7 +582,7 @@ class _Validator(Generic[T]):
         # Implicitly makes Metadata-Version required.
         if value not in _VALID_METADATA_VERSIONS:
             raise self._invalid_metadata(f"{value!r} is not a valid metadata version")
-        return cast(_MetadataVersion, value)
+        return cast("_MetadataVersion", value)
 
     def _process_name(self, value: str) -> str:
         if not value:
@@ -535,7 +593,7 @@ class _Validator(Generic[T]):
         except utils.InvalidName as exc:
             raise self._invalid_metadata(
                 f"{value!r} is invalid for {{field}}", cause=exc
-            )
+            ) from exc
         else:
             return value
 
@@ -547,7 +605,7 @@ class _Validator(Generic[T]):
         except version_module.InvalidVersion as exc:
             raise self._invalid_metadata(
                 f"{value!r} is invalid for {{field}}", cause=exc
-            )
+            ) from exc
 
     def _process_summary(self, value: str) -> str:
         """Check the field contains no newlines."""
@@ -575,7 +633,7 @@ class _Validator(Generic[T]):
         charset = parameters.get("charset", "UTF-8")
         if charset != "UTF-8":
             raise self._invalid_metadata(
-                f"{{field}} can only specify the UTF-8 charset, not {list(charset)}"
+                f"{{field}} can only specify the UTF-8 charset, not {charset!r}"
             )
 
         markdown_variants = {"GFM", "CommonMark"}
@@ -591,10 +649,12 @@ class _Validator(Generic[T]):
         for dynamic_field in map(str.lower, value):
             if dynamic_field in {"name", "version", "metadata-version"}:
                 raise self._invalid_metadata(
-                    f"{value!r} is not allowed as a dynamic field"
+                    f"{dynamic_field!r} is not allowed as a dynamic field"
                 )
             elif dynamic_field not in _EMAIL_TO_RAW_MAPPING:
-                raise self._invalid_metadata(f"{value!r} is not a valid dynamic field")
+                raise self._invalid_metadata(
+                    f"{dynamic_field!r} is not a valid dynamic field"
+                )
         return list(map(str.lower, value))
 
     def _process_provides_extra(
@@ -608,7 +668,7 @@ class _Validator(Generic[T]):
         except utils.InvalidName as exc:
             raise self._invalid_metadata(
                 f"{name!r} is invalid for {{field}}", cause=exc
-            )
+            ) from exc
         else:
             return normalized_names
 
@@ -618,7 +678,7 @@ class _Validator(Generic[T]):
         except specifiers.InvalidSpecifier as exc:
             raise self._invalid_metadata(
                 f"{value!r} is invalid for {{field}}", cause=exc
-            )
+            ) from exc
 
     def _process_requires_dist(
         self,
@@ -629,9 +689,69 @@ class _Validator(Generic[T]):
             for req in value:
                 reqs.append(requirements.Requirement(req))
         except requirements.InvalidRequirement as exc:
-            raise self._invalid_metadata(f"{req!r} is invalid for {{field}}", cause=exc)
+            raise self._invalid_metadata(
+                f"{req!r} is invalid for {{field}}", cause=exc
+            ) from exc
         else:
             return reqs
+
+    def _process_license_expression(self, value: str) -> NormalizedLicenseExpression:
+        try:
+            return licenses.canonicalize_license_expression(value)
+        except ValueError as exc:
+            raise self._invalid_metadata(
+                f"{value!r} is invalid for {{field}}", cause=exc
+            ) from exc
+
+    def _process_license_files(self, value: list[str]) -> list[str]:
+        paths = []
+        for path in value:
+            if ".." in path:
+                raise self._invalid_metadata(
+                    f"{path!r} is invalid for {{field}}, "
+                    "parent directory indicators are not allowed"
+                )
+            if "*" in path:
+                raise self._invalid_metadata(
+                    f"{path!r} is invalid for {{field}}, paths must be resolved"
+                )
+            if (
+                pathlib.PurePosixPath(path).is_absolute()
+                or pathlib.PureWindowsPath(path).is_absolute()
+            ):
+                raise self._invalid_metadata(
+                    f"{path!r} is invalid for {{field}}, paths must be relative"
+                )
+            if pathlib.PureWindowsPath(path).as_posix() != path:
+                raise self._invalid_metadata(
+                    f"{path!r} is invalid for {{field}}, paths must use '/' delimiter"
+                )
+            paths.append(path)
+        return paths
+
+    def _process_import_names(self, value: list[str]) -> list[str]:
+        for import_name in value:
+            name, semicolon, private = import_name.partition(";")
+            name = name.rstrip()
+            for identifier in name.split("."):
+                if not identifier.isidentifier():
+                    raise self._invalid_metadata(
+                        f"{name!r} is invalid for {{field}}; "
+                        f"{identifier!r} is not a valid identifier"
+                    )
+                elif keyword.iskeyword(identifier):
+                    raise self._invalid_metadata(
+                        f"{name!r} is invalid for {{field}}; "
+                        f"{identifier!r} is a keyword"
+                    )
+            if semicolon and private.lstrip() != "private":
+                raise self._invalid_metadata(
+                    f"{import_name!r} is invalid for {{field}}; "
+                    "the only valid option is 'private'"
+                )
+        return value
+
+    _process_import_namespaces = _process_import_names
 
 
 class Metadata:
@@ -656,13 +776,11 @@ class Metadata:
         ins._raw = data.copy()  # Mutations occur due to caching enriched values.
 
         if validate:
-            exceptions: list[Exception] = []
-            try:
+            collector = _ErrorCollector()
+            metadata_version = None
+            with collector.collect(InvalidMetadata):
                 metadata_version = ins.metadata_version
                 metadata_age = _VALID_METADATA_VERSIONS.index(metadata_version)
-            except InvalidMetadata as metadata_version_exc:
-                exceptions.append(metadata_version_exc)
-                metadata_version = None
 
             # Make sure to check for the fields that are present, the required
             # fields (so their absence can be reported).
@@ -679,7 +797,7 @@ class Metadata:
                             field_metadata_version = cls.__dict__[key].added
                         except KeyError:
                             exc = InvalidMetadata(key, f"unrecognized field: {key!r}")
-                            exceptions.append(exc)
+                            collector.error(exc)
                             continue
                         field_age = _VALID_METADATA_VERSIONS.index(
                             field_metadata_version
@@ -688,17 +806,16 @@ class Metadata:
                             field = _RAW_TO_EMAIL_MAPPING[key]
                             exc = InvalidMetadata(
                                 field,
-                                "{field} introduced in metadata version "
-                                "{field_metadata_version}, not {metadata_version}",
+                                f"{field} introduced in metadata version "
+                                f"{field_metadata_version}, not {metadata_version}",
                             )
-                            exceptions.append(exc)
+                            collector.error(exc)
                             continue
                     getattr(ins, key)
                 except InvalidMetadata as exc:
-                    exceptions.append(exc)
+                    collector.error(exc)
 
-            if exceptions:
-                raise ExceptionGroup("invalid metadata", exceptions)
+            collector.finalize("invalid metadata")
 
         return ins
 
@@ -712,16 +829,13 @@ class Metadata:
         raw, unparsed = parse_email(data)
 
         if validate:
-            exceptions: list[Exception] = []
-            for unparsed_key in unparsed:
-                if unparsed_key in _EMAIL_TO_RAW_MAPPING:
-                    message = f"{unparsed_key!r} has invalid data"
-                else:
-                    message = f"unrecognized field: {unparsed_key!r}"
-                exceptions.append(InvalidMetadata(unparsed_key, message))
-
-            if exceptions:
-                raise ExceptionGroup("unparsed", exceptions)
+            with _ErrorCollector().on_exit("unparsed") as collector:
+                for unparsed_key in unparsed:
+                    if unparsed_key in _EMAIL_TO_RAW_MAPPING:
+                        message = f"{unparsed_key!r} has invalid data"
+                    else:
+                        message = f"unrecognized field: {unparsed_key!r}"
+                    collector.error(InvalidMetadata(unparsed_key, message))
 
         try:
             return cls.from_raw(raw, validate=validate)
@@ -733,6 +847,8 @@ class Metadata:
     metadata_version: _Validator[_MetadataVersion] = _Validator()
     """:external:ref:`core-metadata-metadata-version`
     (required; validated to be a valid metadata version)"""
+    # `name` is not normalized/typed to NormalizedName so as to provide access to
+    # the original/raw name.
     name: _Validator[str] = _Validator()
     """:external:ref:`core-metadata-name`
     (required; validated using :func:`~packaging.utils.canonicalize_name` and its
@@ -770,6 +886,12 @@ class Metadata:
     """:external:ref:`core-metadata-maintainer-email`"""
     license: _Validator[str | None] = _Validator()
     """:external:ref:`core-metadata-license`"""
+    license_expression: _Validator[NormalizedLicenseExpression | None] = _Validator(
+        added="2.4"
+    )
+    """:external:ref:`core-metadata-license-expression`"""
+    license_files: _Validator[list[str] | None] = _Validator(added="2.4")
+    """:external:ref:`core-metadata-license-file`"""
     classifiers: _Validator[list[str] | None] = _Validator(added="1.1")
     """:external:ref:`core-metadata-classifier`"""
     requires_dist: _Validator[list[requirements.Requirement] | None] = _Validator(
@@ -796,9 +918,47 @@ class Metadata:
     """:external:ref:`core-metadata-provides-dist`"""
     obsoletes_dist: _Validator[list[str] | None] = _Validator(added="1.2")
     """:external:ref:`core-metadata-obsoletes-dist`"""
+    import_names: _Validator[list[str] | None] = _Validator(added="2.5")
+    """:external:ref:`core-metadata-import-name`"""
+    import_namespaces: _Validator[list[str] | None] = _Validator(added="2.5")
+    """:external:ref:`core-metadata-import-namespace`"""
     requires: _Validator[list[str] | None] = _Validator(added="1.1")
     """``Requires`` (deprecated)"""
     provides: _Validator[list[str] | None] = _Validator(added="1.1")
     """``Provides`` (deprecated)"""
     obsoletes: _Validator[list[str] | None] = _Validator(added="1.1")
     """``Obsoletes`` (deprecated)"""
+
+    def as_rfc822(self) -> RFC822Message:
+        """
+        Return an RFC822 message with the metadata.
+        """
+        message = RFC822Message()
+        self._write_metadata(message)
+        return message
+
+    def _write_metadata(self, message: RFC822Message) -> None:
+        """
+        Return an RFC822 message with the metadata.
+        """
+        for name, validator in self.__class__.__dict__.items():
+            if isinstance(validator, _Validator) and name != "description":
+                value = getattr(self, name)
+                email_name = _RAW_TO_EMAIL_MAPPING[name]
+                if value is not None:
+                    if email_name == "project-url":
+                        for label, url in value.items():
+                            message[email_name] = f"{label}, {url}"
+                    elif email_name == "keywords":
+                        message[email_name] = ",".join(value)
+                    elif email_name == "import-name" and value == []:
+                        message[email_name] = ""
+                    elif isinstance(value, list):
+                        for item in value:
+                            message[email_name] = str(item)
+                    else:
+                        message[email_name] = str(value)
+
+        # The description is a special case because it is in the body of the message.
+        if self.description is not None:
+            message.set_payload(self.description)

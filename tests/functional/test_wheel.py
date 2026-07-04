@@ -2,16 +2,22 @@
 
 import os
 import re
+import shutil
 import sys
+import textwrap
 from pathlib import Path
 
 import pytest
 
+from pip._internal.cache import SimpleWheelCache
 from pip._internal.cli.status_codes import ERROR
+from pip._internal.models.link import Link
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib import (
     PipTestEnvironment,
     TestData,
+    create_basic_wheel_for_package,
     pyversion,
 )
 
@@ -52,10 +58,43 @@ def test_pip_wheel_success(script: PipTestEnvironment, data: TestData) -> None:
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
         "simple==3.0",
+    )
+    wheel_file_name = f"simple-3.0-py{pyversion[0]}-none-any.whl"
+    wheel_file_path = script.scratch / wheel_file_name
+    assert re.search(
+        r"Created wheel for simple: "
+        rf"filename={re.escape(wheel_file_name)} size=\d+ sha256=[A-Fa-f0-9]{{64}}",
+        result.stdout,
+    )
+    assert re.search(r"^\s+Stored in directory: ", result.stdout, re.M)
+    result.did_create(wheel_file_path)
+    assert "Successfully built simple" in result.stdout, result.stdout
+
+
+def test_pip_wheel_success_with_dependency_group(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    Test 'pip wheel' success.
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(textwrap.dedent("""\
+            [dependency-groups]
+            simple = ["simple==3.0"]
+            """))
+    result = script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "--group",
+        "simple",
     )
     wheel_file_name = f"simple-3.0-py{pyversion[0]}-none-any.whl"
     wheel_file_path = script.scratch / wheel_file_name
@@ -75,6 +114,7 @@ def test_pip_wheel_build_cache(script: PipTestEnvironment, data: TestData) -> No
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -126,6 +166,7 @@ def test_pip_wheel_build_relative_cachedir(
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -143,6 +184,7 @@ def test_pip_wheel_builds_when_no_binary_set(
     # Check that the wheel package is ignored
     res = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "--no-binary",
         ":all:",
@@ -163,6 +205,7 @@ def test_pip_wheel_readonly_cache(
     # Check that the wheel package is ignored
     res = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -175,6 +218,36 @@ def test_pip_wheel_readonly_cache(
     assert "The cache has been disabled." in str(res), str(res)
 
 
+def test_pip_wheel_copy_failure_is_reported_as_copy_failure(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A wheel that builds but cannot be copied to the output directory should
+    be reported as a copy failure, not a build failure."""
+    wheel_dir = script.scratch_path / "wheels"
+    wheel_dir.mkdir()
+    wheel_file_name = f"simple-3.0-py{pyversion[0]}-none-any.whl"
+    # Occupy the destination path with a directory so copying the built wheel
+    # there fails after the build itself has already succeeded.
+    (wheel_dir / wheel_file_name).mkdir()
+
+    result = script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-w",
+        wheel_dir,
+        "simple==3.0",
+        expect_error=True,
+        allow_stderr_warning=True,
+    )
+
+    assert "Successfully built simple" in result.stdout, str(result)
+    assert "Failed to copy built wheel" in str(result), str(result)
+    assert "Building wheel for simple failed" not in str(result), str(result)
+
+
 def test_pip_wheel_builds_editable_deps(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -183,7 +256,13 @@ def test_pip_wheel_builds_editable_deps(
     """
     editable_path = os.path.join(data.src, "requires_simple")
     result = script.pip(
-        "wheel", "--no-index", "-f", data.find_links, "-e", editable_path
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-e",
+        editable_path,
     )
     wheel_file_name = f"simple-1.0-py{pyversion[0]}-none-any.whl"
     wheel_file_path = script.scratch / wheel_file_name
@@ -196,7 +275,13 @@ def test_pip_wheel_builds_editable(script: PipTestEnvironment, data: TestData) -
     """
     editable_path = os.path.join(data.src, "simplewheel-1.0")
     result = script.pip(
-        "wheel", "--no-index", "-f", data.find_links, "-e", editable_path
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "-e",
+        editable_path,
     )
     wheel_file_name = f"simplewheel-1.0-py{pyversion[0]}-none-any.whl"
     wheel_file_path = script.scratch / wheel_file_name
@@ -212,6 +297,7 @@ def test_pip_wheel_git_editable_keeps_clone(
     """
     script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-deps",
         "-e",
         "git+https://github.com/pypa/pip-test-package#egg=pip-test-package",
@@ -234,7 +320,15 @@ def test_pip_wheel_builds_editable_does_not_create_zip(
     wheel_dir = tmpdir / "wheel_dir"
     wheel_dir.mkdir()
     editable_path = os.path.join(data.src, "simplewheel-1.0")
-    script.pip("wheel", "--no-deps", "-e", editable_path, "-w", wheel_dir)
+    script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-deps",
+        "-e",
+        editable_path,
+        "-w",
+        wheel_dir,
+    )
     wheels = os.listdir(wheel_dir)
     assert len(wheels) == 1
     assert wheels[0].endswith(".whl")
@@ -246,6 +340,7 @@ def test_pip_wheel_fail(script: PipTestEnvironment, data: TestData) -> None:
     """
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -268,6 +363,7 @@ def test_pip_wheel_source_deps(script: PipTestEnvironment, data: TestData) -> No
     # 'requires_source' is a wheel that depends on the 'source' project
     result = script.pip(
         "wheel",
+        "--no-build-isolation",
         "--no-index",
         "-f",
         data.find_links,
@@ -285,7 +381,7 @@ def test_wheel_package_with_latin1_setup(
     """Create a wheel from a package with latin-1 encoded setup.py."""
 
     pkg_to_wheel = data.packages.joinpath("SetupPyLatin1")
-    result = script.pip("wheel", pkg_to_wheel)
+    result = script.pip("wheel", "--no-build-isolation", pkg_to_wheel)
     assert "Successfully built SetupPyUTF8" in result.stdout
 
 
@@ -360,7 +456,6 @@ def test_pip_wheel_ext_module_with_tmpdir_inside(
     assert "Successfully built extension" in result.stdout, result.stdout
 
 
-@pytest.mark.network
 def test_pep517_wheels_are_not_confused_with_other_files(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -368,7 +463,15 @@ def test_pep517_wheels_are_not_confused_with_other_files(
     pkg_to_wheel = data.src / "withpyproject"
     add_files_to_dist_directory(pkg_to_wheel)
 
-    result = script.pip("wheel", pkg_to_wheel, "-w", script.scratch_path)
+    result = script.pip(
+        "wheel",
+        pkg_to_wheel,
+        "-w",
+        script.scratch_path,
+        "--no-index",
+        "-f",
+        data.common_wheels,
+    )
     assert "Installing build dependencies" in result.stdout, result.stdout
 
     wheel_file_name = f"withpyproject-0.0.1-py{pyversion[0]}-none-any.whl"
@@ -383,9 +486,84 @@ def test_legacy_wheels_are_not_confused_with_other_files(
     pkg_to_wheel = data.src / "simplewheel-1.0"
     add_files_to_dist_directory(pkg_to_wheel)
 
-    result = script.pip("wheel", pkg_to_wheel, "-w", script.scratch_path)
+    result = script.pip(
+        "wheel", "--no-build-isolation", pkg_to_wheel, "-w", script.scratch_path
+    )
     assert "Installing build dependencies" not in result.stdout, result.stdout
 
     wheel_file_name = f"simplewheel-1.0-py{pyversion[0]}-none-any.whl"
     wheel_file_path = script.scratch / wheel_file_name
     result.did_create(wheel_file_path)
+
+
+def test_wheel_pylock(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.toml")
+    result = script.pip(
+        "wheel",
+        "--no-index",
+        "--no-build-isolation",  # to use pre-installed setuptools
+        "-w",
+        tmp_path,
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert sorted(p.name for p in tmp_path.glob("*.whl")) == [
+        "simple-2.0-py3-none-any.whl",
+        "simple2-3.0-py3-none-any.whl",
+        "simplewheel-2.0-1-py2.py3-none-any.whl",
+    ]
+
+
+def test_wheel_pylock_directories(
+    script: PipTestEnvironment, data: TestData, tmp_path: Path
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.directory.toml")
+    result = script.pip(
+        "wheel",
+        "--no-index",
+        "--no-build-isolation",  # to use pre-installed setuptools
+        "-w",
+        tmp_path,
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert sorted(p.name for p in tmp_path.glob("*.whl")) == [
+        "simplewheel-2.0-py3-none-any.whl",
+        "singlemodule-0.0.1-py2.py3-none-any.whl",
+    ]
+
+
+def test_wheel_local_directory_ignores_cached_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A cached wheel is rebuilt, not copied, for a local directory (#14044)."""
+    cache_dir = script.scratch_path / "cache"
+    wheel_dir = script.scratch_path / "wheels"
+    link_url = path_to_url(os.fspath(data.packages.joinpath("FSPkg")))
+    cache = SimpleWheelCache(os.fspath(cache_dir))
+    cache_path = cache.get_path_for_link(Link(link_url))
+    os.makedirs(cache_path)
+    stale_wheel = create_basic_wheel_for_package(script, "FSPkg", "9.9")
+    shutil.copy(stale_wheel, os.path.join(cache_path, stale_wheel.name))
+
+    script.pip(
+        "wheel",
+        "--no-build-isolation",
+        "--no-index",
+        "--no-deps",
+        "--cache-dir",
+        os.fspath(cache_dir),
+        "-w",
+        os.fspath(wheel_dir),
+        f"FSPkg @ {link_url}",
+    )
+    wheels = [p.name for p in wheel_dir.glob("*.whl")]
+    # Rebuilt from source (0.1.dev0), not copied from the stale cache (9.9).
+    assert any("0.1.dev0" in w for w in wheels), wheels
+    assert not any("9.9" in w for w in wheels), wheels

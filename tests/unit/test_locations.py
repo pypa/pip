@@ -10,7 +10,7 @@ import sys
 import sysconfig
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -23,7 +23,7 @@ else:
     import pwd
 
 
-def _get_scheme_dict(*args: Any, **kwargs: Any) -> Dict[str, str]:
+def _get_scheme_dict(*args: Any, **kwargs: Any) -> dict[str, str]:
     scheme = get_scheme(*args, **kwargs)
     return {k: getattr(scheme, k) for k in SCHEME_KEYS}
 
@@ -87,13 +87,10 @@ class TestLocations:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.delattr(sysconfig, "_PIP_USE_SYSCONFIG", raising=False)
-        if sys.version_info[:2] >= (3, 10):
-            assert _should_use_sysconfig() is True
-        else:
-            assert _should_use_sysconfig() is False
+        assert _should_use_sysconfig() is True
 
     @pytest.mark.parametrize("vendor_value", [True, False, None, "", 0, 1])
-    def test_vendor_overriden_should_use_sysconfig(
+    def test_vendor_overridden_should_use_sysconfig(
         self, monkeypatch: pytest.MonkeyPatch, vendor_value: Any
     ) -> None:
         monkeypatch.setattr(

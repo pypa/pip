@@ -1,5 +1,5 @@
 diff --git a/src/pip/_vendor/certifi/core.py b/src/pip/_vendor/certifi/core.py
-index 91f538bb1..70e0c3bdb 100644
+index 1c9661cc7..2f2f7e088 100644
 --- a/src/pip/_vendor/certifi/core.py
 +++ b/src/pip/_vendor/certifi/core.py
 @@ -37,14 +37,14 @@ if sys.version_info >= (3, 11):
@@ -17,9 +17,9 @@ index 91f538bb1..70e0c3bdb 100644
 -        return files("certifi").joinpath("cacert.pem").read_text(encoding="ascii")
 +        return files("pip._vendor.certifi").joinpath("cacert.pem").read_text(encoding="ascii")
  
- elif sys.version_info >= (3, 7):
+ else:
  
-@@ -73,14 +73,14 @@ elif sys.version_info >= (3, 7):
+@@ -73,11 +73,11 @@ else:
              # We also have to hold onto the actual context manager, because
              # it will do the cleanup whenever it gets garbage collected, so
              # we will also store that at the global level as well.
@@ -29,15 +29,6 @@ index 91f538bb1..70e0c3bdb 100644
              atexit.register(exit_cacert_ctx)
  
          return _CACERT_PATH
- 
-     def contents() -> str:
--        return read_text("certifi", "cacert.pem", encoding="ascii")
-+        return read_text("pip._vendor.certifi", "cacert.pem", encoding="ascii")
- 
- else:
-     import os
-@@ -111,4 +111,4 @@ else:
-         return os.path.join(f, "cacert.pem")
  
      def contents() -> str:
 -        return read_text("certifi", "cacert.pem", encoding="ascii")

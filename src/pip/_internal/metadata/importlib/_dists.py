@@ -1,15 +1,12 @@
+from __future__ import annotations
+
 import email.message
 import importlib.metadata
 import pathlib
 import zipfile
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
+from os import PathLike
 from typing import (
-    Collection,
-    Dict,
-    Iterable,
-    Iterator,
-    Mapping,
-    Optional,
-    Sequence,
     cast,
 )
 
@@ -31,6 +28,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.wheel import parse_wheel, read_wheel_metadata_file
 
 from ._compat import (
+    BadMetadata,
     BasePath,
     get_dist_canonical_name,
     parse_name_and_version_from_info_directory,
@@ -62,7 +60,7 @@ class WheelDistribution(importlib.metadata.Distribution):
         zf: zipfile.ZipFile,
         name: str,
         location: str,
-    ) -> "WheelDistribution":
+    ) -> WheelDistribution:
         info_dir, _ = parse_wheel(zf, name)
         paths = (
             (name, pathlib.PurePosixPath(name.split("/", 1)[-1]))
@@ -82,7 +80,7 @@ class WheelDistribution(importlib.metadata.Distribution):
             return iter(self._files)
         raise FileNotFoundError(path)
 
-    def read_text(self, filename: str) -> Optional[str]:
+    def read_text(self, filename: str) -> str | None:
         try:
             data = self._files[pathlib.PurePosixPath(filename)]
         except KeyError:
@@ -95,13 +93,18 @@ class WheelDistribution(importlib.metadata.Distribution):
             raise UnsupportedWheel(error)
         return text
 
+    def locate_file(self, path: str | PathLike[str]) -> pathlib.Path:
+        # This method doesn't make sense for our in-memory wheel, but the API
+        # requires us to define it.
+        raise NotImplementedError
+
 
 class Distribution(BaseDistribution):
     def __init__(
         self,
         dist: importlib.metadata.Distribution,
-        info_location: Optional[BasePath],
-        installed_location: Optional[BasePath],
+        info_location: BasePath | None,
+        installed_location: BasePath | None,
     ) -> None:
         self._dist = dist
         self._info_location = info_location
@@ -140,19 +143,19 @@ class Distribution(BaseDistribution):
         return cls(dist, dist.info_location, pathlib.PurePosixPath(wheel.location))
 
     @property
-    def location(self) -> Optional[str]:
+    def location(self) -> str | None:
         if self._info_location is None:
             return None
         return str(self._info_location.parent)
 
     @property
-    def info_location(self) -> Optional[str]:
+    def info_location(self) -> str | None:
         if self._info_location is None:
             return None
         return str(self._info_location)
 
     @property
-    def installed_location(self) -> Optional[str]:
+    def installed_location(self) -> str | None:
         if self._installed_location is None:
             return None
         return normalize_path(str(self._installed_location))
@@ -163,13 +166,18 @@ class Distribution(BaseDistribution):
 
     @property
     def version(self) -> Version:
-        if version := parse_name_and_version_from_info_directory(self._dist)[1]:
+        try:
+            version = (
+                parse_name_and_version_from_info_directory(self._dist)[1]
+                or self._dist.version
+            )
             return parse_version(version)
-        return parse_version(self._dist.version)
+        except TypeError:
+            raise BadMetadata(self._dist, reason="invalid metadata entry `version`")
 
     @property
     def raw_version(self) -> str:
-        return self._dist.version
+        return self.metadata["Version"]
 
     def is_file(self, path: InfoPath) -> bool:
         return self._dist.read_text(str(path)) is not None
@@ -190,7 +198,7 @@ class Distribution(BaseDistribution):
         return content
 
     def iter_entry_points(self) -> Iterable[BaseEntryPoint]:
-        # importlib.metadata's EntryPoint structure sasitfies BaseEntryPoint.
+        # importlib.metadata's EntryPoint structure satisfies BaseEntryPoint.
         return self._dist.entry_points
 
     def _metadata_impl(self) -> email.message.Message:
@@ -199,7 +207,13 @@ class Distribution(BaseDistribution):
         # a ton of fields that we need, including get() and get_payload(). We
         # rely on the implementation that the object is actually a Message now,
         # until upstream can improve the protocol. (python/cpython#94952)
-        return cast(email.message.Message, self._dist.metadata)
+        metadata = self._dist.metadata
+        # From Python 3.15+, importlib.metadata may return None when no
+        # metadata file (METADATA or PKG-INFO) exists in the distribution
+        # directory. (python/cpython#132947)
+        if metadata is None:
+            return email.message.Message()
+        return cast(email.message.Message, metadata)
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return [
@@ -208,7 +222,7 @@ class Distribution(BaseDistribution):
         ]
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        contexts: Sequence[Dict[str, str]] = [{"extra": e} for e in extras]
+        contexts: Sequence[dict[str, str]] = [{"extra": e} for e in extras]
         for req_string in self.metadata.get_all("Requires-Dist", []):
             # strip() because email.message.Message.get_all() may return a leading \n
             # in case a long header was wrapped.

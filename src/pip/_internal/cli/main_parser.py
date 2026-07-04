@@ -1,17 +1,18 @@
-"""A single place for constructing and exposing the main parser
-"""
+"""A single place for constructing and exposing the main parser"""
+
+from __future__ import annotations
 
 import os
 import subprocess
 import sys
-from typing import List, Optional, Tuple
 
-from pip._internal.build_env import get_runnable_pip
+from pip._vendor.rich.markup import escape
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
 from pip._internal.exceptions import CommandError
-from pip._internal.utils.misc import get_pip_version, get_prog
+from pip._internal.utils.misc import get_pip_version, get_prog, get_runnable_pip
 
 __all__ = ["create_main_parser", "parse_command"]
 
@@ -39,7 +40,7 @@ def create_main_parser() -> ConfigOptionParser:
 
     # create command listing for description
     description = [""] + [
-        f"{name:27} {command_info.summary}"
+        f"[optparse.longargs]{name:27}[/] {escape(command_info.summary)}"
         for name, command_info in commands_dict.items()
     ]
     parser.description = "\n".join(description)
@@ -47,7 +48,7 @@ def create_main_parser() -> ConfigOptionParser:
     return parser
 
 
-def identify_python_interpreter(python: str) -> Optional[str]:
+def identify_python_interpreter(python: str) -> str | None:
     # If the named file exists, use it.
     # If it's a directory, assume it's a virtual environment and
     # look for the environment's Python executable.
@@ -66,7 +67,7 @@ def identify_python_interpreter(python: str) -> Optional[str]:
     return None
 
 
-def parse_command(args: List[str]) -> Tuple[str, List[str]]:
+def parse_command(args: list[str]) -> tuple[str, list[str]]:
     parser = create_main_parser()
 
     # Note: parser calls disable_interspersed_args(), so the result of this

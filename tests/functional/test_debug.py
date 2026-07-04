@@ -1,5 +1,5 @@
 import re
-from typing import List
+import sys
 
 import pytest
 
@@ -17,7 +17,7 @@ from tests.lib import PipTestEnvironment
         "sys.executable: ",
         "sys.getdefaultencoding: ",
         "sys.getfilesystemencoding: ",
-        "locale.getpreferredencoding: ",
+        "locale.getencoding: ",
         "sys.platform: ",
         "sys.implementation:",
         "'cert' config value: ",
@@ -61,7 +61,7 @@ def test_debug__library_versions(script: PipTestEnvironment) -> None:
         ["--verbose"],
     ],
 )
-def test_debug__tags(script: PipTestEnvironment, args: List[str]) -> None:
+def test_debug__tags(script: PipTestEnvironment, args: list[str]) -> None:
     """
     Check the compatible tag output.
     """
@@ -86,7 +86,7 @@ def test_debug__tags(script: PipTestEnvironment, args: List[str]) -> None:
     ],
 )
 def test_debug__target_options(
-    script: PipTestEnvironment, args: List[str], expected: str
+    script: PipTestEnvironment, args: list[str], expected: str
 ) -> None:
     """
     Check passing target-related options.
@@ -97,3 +97,22 @@ def test_debug__target_options(
 
     assert "Compatible tags: " in stdout
     assert expected in stdout
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="locale.getencoding requires Python 3.11+"
+)
+def test_no_encoding_warning_under_utf8_mode(script: PipTestEnvironment) -> None:
+    """
+    Verify that running pip with PYTHONUTF8=1 and PYTHONWARNDEFAULTENCODING=1
+    does not emit an EncodingWarning from locale.getpreferredencoding().
+    """
+    script.environ["PYTHONUTF8"] = "1"
+    script.environ["PYTHONWARNDEFAULTENCODING"] = "1"
+    result = script.pip(
+        "debug",
+        allow_stderr_warning=True,
+        expect_stderr=True,
+    )
+    assert "EncodingWarning" not in result.stderr
+    assert "EncodingWarning" not in result.stdout

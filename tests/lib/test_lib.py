@@ -4,9 +4,10 @@ import filecmp
 import pathlib
 import re
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from os.path import isdir, join
-from typing import Any, Dict, Iterator, Type
+from typing import Any
 
 import pytest
 
@@ -15,7 +16,7 @@ from tests.lib import SRC_DIR, PipTestEnvironment
 
 @contextmanager
 def assert_error_startswith(
-    exc_type: Type[Exception], expected_start: str
+    exc_type: type[Exception], expected_start: str
 ) -> Iterator[None]:
     """
     Assert that an exception is raised starting with a certain message.
@@ -58,10 +59,10 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
         result.stdout,
     )
     assert match is not None
-    pip_folder_outputed = match.group(4)
+    pip_folder_outputted = match.group(4)
     pip_folder = join(SRC_DIR, "src", "pip")
 
-    diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
+    diffs = filecmp.dircmp(pip_folder, pip_folder_outputted)
 
     # If any non-matching .py files exist, we have a problem: run_pip
     # is picking up some other version!  N.B. if this project acquires
@@ -74,7 +75,7 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
     ]
     assert not mismatch_py, (
         f"mismatched source files in {pip_folder!r} "
-        f"and {pip_folder_outputed!r}: {mismatch_py!r}"
+        f"and {pip_folder_outputted!r}: {mismatch_py!r}"
     )
 
 
@@ -238,7 +239,7 @@ class TestPipTestEnvironment:
         """
         Test passing allow_stderr_warning=False when it is not allowed.
         """
-        kwargs: Dict[str, Any] = {"allow_stderr_warning": False, arg_name: True}
+        kwargs: dict[str, Any] = {"allow_stderr_warning": False, arg_name: True}
         expected_start = (
             "cannot pass allow_stderr_warning=False with allow_stderr_error=True"
         )

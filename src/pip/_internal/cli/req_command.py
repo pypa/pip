@@ -5,16 +5,30 @@ need PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+from __future__ import annotations
+
 import logging
+import os
+from collections.abc import Callable
 from functools import partial
 from optparse import Values
-from typing import Any, List, Optional, Tuple
+from typing import Any, TypeVar
 
+from pip._internal.build_env import (
+    BuildEnvironmentInstaller,
+    InprocessBuildEnvironmentInstaller,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.index_command import IndexGroupCommand
 from pip._internal.cli.index_command import SessionCommandMixin as SessionCommandMixin
-from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.exceptions import (
+    CommandError,
+    PreviousBuildDirError,
+    UnsupportedPythonVersion,
+)
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -26,11 +40,19 @@ from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
     install_req_from_parsed_requirement,
+    install_req_from_pylock_package,
     install_req_from_req_string,
 )
+from pip._internal.req.pep723 import PEP723Exception, pep723_metadata
+from pip._internal.req.req_dependency_group import parse_dependency_groups
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
+from pip._internal.utils.packaging import check_requires_python
+from pip._internal.utils.pylock import (
+    is_valid_pylock_filename,
+    select_from_pylock_path_or_url,
+)
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -40,6 +62,19 @@ from pip._internal.utils.temp_dir import (
 logger = logging.getLogger(__name__)
 
 
+def should_ignore_regular_constraints() -> bool:
+    """
+    Whether this process should ignore the regular constraints it inherits.
+
+    The parent pip sets ``_PIP_IN_BUILD_IGNORE_CONSTRAINTS`` whenever it starts
+    an isolated build in a subprocess, so that regular constraints the build
+    inherits (such as via ``PIP_CONSTRAINT`` or config files) do not affect it.
+    Only build constraints apply there.
+    """
+
+    return os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1"
+
+
 KEEPABLE_TEMPDIR_TYPES = [
     tempdir_kinds.BUILD_ENV,
     tempdir_kinds.EPHEM_WHEEL_CACHE,
@@ -47,7 +82,12 @@ KEEPABLE_TEMPDIR_TYPES = [
 ]
 
 
-def with_cleanup(func: Any) -> Any:
+_CommandT = TypeVar("_CommandT", bound="RequirementCommand")
+
+
+def with_cleanup(
+    func: Callable[[_CommandT, Values, list[str]], int],
+) -> Callable[[_CommandT, Values, list[str]], int]:
     """Decorator for common logic related to managing temporary
     directories.
     """
@@ -56,9 +96,7 @@ def with_cleanup(func: Any) -> Any:
         for t in KEEPABLE_TEMPDIR_TYPES:
             registry.set_delete(t, False)
 
-    def wrapper(
-        self: RequirementCommand, options: Values, args: List[Any]
-    ) -> Optional[int]:
+    def wrapper(self: _CommandT, options: Values, args: list[str]) -> int:
         assert self.tempdir_registry is not None
         if options.no_clean:
             configure_tempdir_registry(self.tempdir_registry)
@@ -75,10 +113,36 @@ def with_cleanup(func: Any) -> Any:
     return wrapper
 
 
+def parse_constraint_files(
+    constraint_files: list[str],
+    finder: PackageFinder,
+    options: Values,
+    session: PipSession,
+) -> list[InstallRequirement]:
+    requirements = []
+    for filename in constraint_files:
+        for parsed_req in parse_requirements(
+            filename,
+            constraint=True,
+            finder=finder,
+            options=options,
+            session=session,
+        ):
+            req_to_add = install_req_from_parsed_requirement(
+                parsed_req,
+                isolated=options.isolated_mode,
+                user_supplied=False,
+            )
+            requirements.append(req_to_add)
+
+    return requirements
+
+
 class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
 
+        self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
@@ -98,7 +162,7 @@ class RequirementCommand(IndexGroupCommand):
         session: PipSession,
         finder: PackageFinder,
         use_user_site: bool,
-        download_dir: Optional[str] = None,
+        download_dir: str | None = None,
         verbosity: int = 0,
     ) -> RequirementPreparer:
         """
@@ -127,11 +191,33 @@ class RequirementCommand(IndexGroupCommand):
                     "fast-deps has no effect when used with the legacy resolver."
                 )
 
+        # Handle build constraints
+        build_constraints = getattr(options, "build_constraints", [])
+
+        env_installer: BuildEnvironmentInstaller
+        if "inprocess-build-deps" in options.features_enabled:
+            build_constraint_reqs = parse_constraint_files(
+                build_constraints, finder, options, session
+            )
+            env_installer = InprocessBuildEnvironmentInstaller(
+                finder=finder,
+                build_tracker=build_tracker,
+                build_constraints=build_constraint_reqs,
+                verbosity=verbosity,
+                wheel_cache=WheelCache(options.cache_dir),
+            )
+        else:
+            env_installer = SubprocessBuildEnvironmentInstaller(
+                finder,
+                build_constraints=build_constraints,
+            )
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            build_isolation=options.build_isolation,
+            build_isolation="virtual" if options.build_isolation else "off",
+            build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
@@ -150,14 +236,13 @@ class RequirementCommand(IndexGroupCommand):
         preparer: RequirementPreparer,
         finder: PackageFinder,
         options: Values,
-        wheel_cache: Optional[WheelCache] = None,
+        wheel_cache: WheelCache | None = None,
         use_user_site: bool = False,
         ignore_installed: bool = True,
         ignore_requires_python: bool = False,
         force_reinstall: bool = False,
         upgrade_strategy: str = "to-satisfy-only",
-        use_pep517: Optional[bool] = None,
-        py_version_info: Optional[Tuple[int, ...]] = None,
+        py_version_info: tuple[int, ...] | None = None,
     ) -> BaseResolver:
         """
         Create a Resolver instance for the given parameters.
@@ -165,7 +250,6 @@ class RequirementCommand(IndexGroupCommand):
         make_install_req = partial(
             install_req_from_req_string,
             isolated=options.isolated_mode,
-            use_pep517=use_pep517,
         )
         resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
@@ -205,60 +289,84 @@ class RequirementCommand(IndexGroupCommand):
 
     def get_requirements(
         self,
-        args: List[str],
+        args: list[str],
         options: Values,
         finder: PackageFinder,
         session: PipSession,
-    ) -> List[InstallRequirement]:
+    ) -> list[InstallRequirement]:
         """
         Parse command-line arguments into the corresponding requirements.
         """
-        requirements: List[InstallRequirement] = []
-        for filename in options.constraints:
-            for parsed_req in parse_requirements(
-                filename,
-                constraint=True,
-                finder=finder,
-                options=options,
-                session=session,
-            ):
-                req_to_add = install_req_from_parsed_requirement(
-                    parsed_req,
-                    isolated=options.isolated_mode,
-                    user_supplied=False,
-                )
-                requirements.append(req_to_add)
+        requirements: list[InstallRequirement] = []
+
+        if should_ignore_regular_constraints():
+            # Inside an isolated build subprocess: apply the build constraints
+            # (forwarded via --build-constraint) instead of the inherited ones.
+            constraint_files = getattr(options, "build_constraints", [])
+        else:
+            constraint_files = options.constraints
+
+        constraints = parse_constraint_files(constraint_files, finder, options, session)
+        requirements.extend(constraints)
 
         for req in args:
+            if not req.strip():
+                continue
             req_to_add = install_req_from_line(
                 req,
                 comes_from=None,
                 isolated=options.isolated_mode,
-                use_pep517=options.use_pep517,
                 user_supplied=True,
                 config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
+
+        if options.dependency_groups:
+            for req in parse_dependency_groups(options.dependency_groups):
+                req_to_add = install_req_from_req_string(
+                    req,
+                    isolated=options.isolated_mode,
+                    user_supplied=True,
+                )
+                requirements.append(req_to_add)
 
         for req in options.editables:
             req_to_add = install_req_from_editable(
                 req,
                 user_supplied=True,
                 isolated=options.isolated_mode,
-                use_pep517=options.use_pep517,
                 config_settings=getattr(options, "config_settings", None),
             )
             requirements.append(req_to_add)
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
+            if is_valid_pylock_filename(filename):
+                logger.warning(
+                    "Using pylock.toml as a requirements source "
+                    "is an experimental feature. "
+                    "It may be removed/changed in a future release "
+                    "without prior warning."
+                )
+                for package, package_dist in select_from_pylock_path_or_url(
+                    filename, session=session
+                ):
+                    requirements.append(
+                        install_req_from_pylock_package(
+                            package,
+                            package_dist,
+                            filename,
+                            options.format_control,
+                            user_supplied=True,
+                        )
+                    )
+                continue
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session
             ):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
-                    use_pep517=options.use_pep517,
                     user_supplied=True,
                     config_settings=(
                         parsed_req.options.get("config_settings")
@@ -268,11 +376,49 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
+        if options.requirements_from_scripts:
+            if len(options.requirements_from_scripts) > 1:
+                raise CommandError("--requirements-from-script can only be given once")
+
+            script = options.requirements_from_scripts[0]
+            try:
+                script_metadata = pep723_metadata(script)
+            except PEP723Exception as exc:
+                raise CommandError(exc.msg)
+
+            script_requires_python = script_metadata.get("requires-python", "")
+
+            if script_requires_python and not options.ignore_requires_python:
+                target_python = make_target_python(options)
+
+                if not check_requires_python(
+                    requires_python=script_requires_python,
+                    version_info=target_python.py_version_info,
+                ):
+                    raise UnsupportedPythonVersion(
+                        f"Script {script!r} requires a different Python: "
+                        f"{target_python.py_version} not in {script_requires_python!r}"
+                    )
+
+            for req in script_metadata.get("dependencies", []):
+                req_to_add = install_req_from_req_string(
+                    req,
+                    isolated=options.isolated_mode,
+                    user_supplied=True,
+                )
+                requirements.append(req_to_add)
+
         # If any requirement has hash options, enable hash checking.
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
-        if not (args or options.editables or options.requirements):
+        if not (
+            args
+            or options.editables
+            or options.requirements
+            or options.dependency_groups
+            or options.requirements_from_scripts
+        ):
             opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
@@ -304,8 +450,8 @@ class RequirementCommand(IndexGroupCommand):
         self,
         options: Values,
         session: PipSession,
-        target_python: Optional[TargetPython] = None,
-        ignore_requires_python: Optional[bool] = None,
+        target_python: TargetPython | None = None,
+        ignore_requires_python: bool = False,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to this requirement command.
@@ -317,7 +463,7 @@ class RequirementCommand(IndexGroupCommand):
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=options.format_control,
-            allow_all_prereleases=options.pre,
+            release_control=options.release_control,
             prefer_binary=options.prefer_binary,
             ignore_requires_python=ignore_requires_python,
         )
@@ -326,4 +472,5 @@ class RequirementCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            uploaded_prior_to=options.uploaded_prior_to,
         )

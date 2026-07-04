@@ -1,11 +1,13 @@
+import datetime
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
 import pytest
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
 import pip._internal.utils.compatibility_tags
@@ -81,7 +83,6 @@ def test_incorrect_case_file_index(data: TestData) -> None:
     assert found.link.url.endswith("Dinner-2.0.tar.gz")
 
 
-@pytest.mark.network
 def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> None:
     """Test PackageFinder detects latest already satisfied using find-links"""
     req = install_req_from_line("simple")
@@ -98,7 +99,6 @@ def test_finder_detects_latest_already_satisfied_find_links(data: TestData) -> N
         finder.find_requirement(req, True)
 
 
-@pytest.mark.network
 def test_finder_detects_latest_already_satisfied_pypi_links() -> None:
     """Test PackageFinder detects latest already satisfied using pypi links"""
     req = install_req_from_line("initools")
@@ -319,7 +319,10 @@ def test_finder_priority_file_over_page(data: TestData) -> None:
         find_links=[data.find_links],
         index_urls=["http://pypi.org/simple/"],
     )
-    all_versions = finder.find_all_candidates(req.name)
+    name = req.name
+    assert name == "gmpy"
+
+    all_versions = finder.find_all_candidates(name)
     # 1 file InstallationCandidate followed by all https ones
     assert all_versions[0].link.scheme == "file"
     assert all(
@@ -335,9 +338,11 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     """Test PackageFinder prefers non-egg links over "#egg=" links"""
     req = install_req_from_line("bar==1.0")
     links = ["http://foo/bar.py#egg=bar-1.0", "http://foo/bar-1.0.tar.gz"]
+    name = req.name
+    assert name == "bar"
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions = finder.find_all_candidates(name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
 
@@ -349,7 +354,7 @@ def test_finder_priority_nonegg_over_eggfragments() -> None:
     links.reverse()
 
     finder = make_test_finder(links)
-    all_versions = finder.find_all_candidates(req.name)
+    all_versions = finder.find_all_candidates(name)
     assert all_versions[0].link.url.endswith("tar.gz")
     assert all_versions[1].link.url.endswith("#egg=bar-1.0")
     found = finder.find_requirement(req, False)
@@ -478,7 +483,7 @@ class TestLinkEvaluator:
         target_python = TargetPython()
         return LinkEvaluator(
             project_name="pytest",
-            canonical_name="pytest",
+            canonical_name=canonicalize_name("pytest"),
             formats=frozenset(formats),
             target_python=target_python,
             allow_yanked=True,
@@ -571,3 +576,40 @@ def test_find_all_candidates_find_links_and_index(data: TestData) -> None:
     versions = finder.find_all_candidates("simple")
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ["3.0", "2.0", "1.0", "1.0"]
+
+
+class TestPackageFinderUploadedPriorTo:
+    """Test PackageFinder integration with uploaded_prior_to functionality.
+
+    Only effective with indexes that provide upload-time metadata.
+    """
+
+    def test_package_finder_create_with_uploaded_prior_to(self) -> None:
+        """Test that PackageFinder.create() accepts uploaded_prior_to parameter."""
+        uploaded_prior_to = datetime.datetime(
+            2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
+        )
+
+        finder = make_test_finder(uploaded_prior_to=uploaded_prior_to)
+
+        assert finder._uploaded_prior_to == uploaded_prior_to
+
+    def test_package_finder_make_link_evaluator_with_uploaded_prior_to(self) -> None:
+        """Test that PackageFinder creates LinkEvaluator with uploaded_prior_to."""
+        uploaded_prior_to = datetime.datetime(
+            2023, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
+        )
+
+        finder = make_test_finder(uploaded_prior_to=uploaded_prior_to)
+
+        link_evaluator = finder.make_link_evaluator("test-package")
+        assert link_evaluator._uploaded_prior_to == uploaded_prior_to
+
+    def test_package_finder_uploaded_prior_to_none(self) -> None:
+        """Test that PackageFinder works correctly when uploaded_prior_to is None."""
+        finder = make_test_finder(uploaded_prior_to=None)
+
+        assert finder._uploaded_prior_to is None
+
+        link_evaluator = finder.make_link_evaluator("test-package")
+        assert link_evaluator._uploaded_prior_to is None

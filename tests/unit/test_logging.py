@@ -1,5 +1,6 @@
 import logging
 import time
+from collections.abc import Iterator
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from threading import Thread
@@ -10,6 +11,7 @@ import pytest
 from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
     IndentingFormatter,
+    PipConsole,
     RichPipStreamHandler,
     indent_log,
 )
@@ -20,11 +22,16 @@ logger = logging.getLogger(__name__)
 class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
 
+    @pytest.fixture(autouse=True)
+    def utc_logging_formatter(self) -> Iterator[None]:
+        with patch.object(logging.Formatter, "converter", time.gmtime):
+            yield
+
     def make_record(self, msg: str, level_name: str) -> logging.LogRecord:
         level_number = getattr(logging, level_name)
         attrs = {
             "msg": msg,
-            "created": 1547704837.040001 + time.timezone,
+            "created": 1547704837.040001,
             "msecs": 40,
             "levelname": level_name,
             "levelno": level_number,
@@ -142,7 +149,8 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with redirect_stderr(StringIO()) as stderr:
-            handler = RichPipStreamHandler(stream=stderr, no_color=True)
+            console = PipConsole(file=stderr, no_color=True, soft_wrap=True)
+            handler = RichPipStreamHandler(console)
             with patch("sys.stderr.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 # The emit() call raises no exception.
@@ -165,7 +173,8 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with redirect_stdout(StringIO()) as stdout:
-            handler = RichPipStreamHandler(stream=stdout, no_color=True)
+            console = PipConsole(file=stdout, no_color=True, soft_wrap=True)
+            handler = RichPipStreamHandler(console)
             with patch("sys.stdout.write") as mock_write:
                 mock_write.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
@@ -180,7 +189,8 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with redirect_stdout(StringIO()) as stdout:
-            handler = RichPipStreamHandler(stream=stdout, no_color=True)
+            console = PipConsole(file=stdout, no_color=True, soft_wrap=True)
+            handler = RichPipStreamHandler(console)
             with patch("sys.stdout.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):

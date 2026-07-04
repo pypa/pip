@@ -6,11 +6,15 @@ so commands which don't always hit the network (e.g. list w/o --outdated or
 --uptodate) don't need waste time importing PipSession and friends.
 """
 
+from __future__ import annotations
+
+import contextlib
 import logging
 import os
-import sys
+from collections.abc import Iterator
+from functools import lru_cache
 from optparse import Values
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from pip._vendor import certifi
 
@@ -20,16 +24,16 @@ from pip._internal.cli.command_context import CommandContextMixIn
 if TYPE_CHECKING:
     from ssl import SSLContext
 
+    from pip._vendor.packaging.utils import NormalizedName
+
     from pip._internal.network.session import PipSession
+    from pip._internal.self_outdated_check import UpgradePrompt
 
 logger = logging.getLogger(__name__)
 
 
-def _create_truststore_ssl_context() -> Optional["SSLContext"]:
-    if sys.version_info < (3, 10):
-        logger.debug("Disabling truststore because Python version isn't 3.10+")
-        return None
-
+@lru_cache
+def _create_truststore_ssl_context() -> SSLContext | None:
     try:
         import ssl
     except ImportError:
@@ -54,10 +58,10 @@ class SessionCommandMixin(CommandContextMixIn):
 
     def __init__(self) -> None:
         super().__init__()
-        self._session: Optional[PipSession] = None
+        self._session: PipSession | None = None
 
     @classmethod
-    def _get_index_urls(cls, options: Values) -> Optional[List[str]]:
+    def _get_index_urls(cls, options: Values) -> list[str] | None:
         """Return a list of index urls from user-provided options."""
         index_urls = []
         if not getattr(options, "no_index", False):
@@ -70,7 +74,7 @@ class SessionCommandMixin(CommandContextMixIn):
         # Return None rather than an empty list
         return index_urls or None
 
-    def get_default_session(self, options: Values) -> "PipSession":
+    def get_default_session(self, options: Values) -> PipSession:
         """Get a default-managed session."""
         if self._session is None:
             self._session = self.enter_context(self._build_session(options))
@@ -83,9 +87,9 @@ class SessionCommandMixin(CommandContextMixIn):
     def _build_session(
         self,
         options: Values,
-        retries: Optional[int] = None,
-        timeout: Optional[int] = None,
-    ) -> "PipSession":
+        retries: int | None = None,
+        timeout: int | None = None,
+    ) -> PipSession:
         from pip._internal.network.session import PipSession
 
         cache_dir = options.cache_dir
@@ -99,6 +103,7 @@ class SessionCommandMixin(CommandContextMixIn):
         session = PipSession(
             cache=os.path.join(cache_dir, "http-v2") if cache_dir else None,
             retries=retries if retries is not None else options.retries,
+            resume_retries=options.resume_retries,
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
             ssl_context=ssl_context,
@@ -123,6 +128,7 @@ class SessionCommandMixin(CommandContextMixIn):
                 "https": options.proxy,
             }
             session.trust_env = False
+            session.pip_proxy = options.proxy
 
         # Handle no proxy option
         if options.no_proxy:
@@ -144,10 +150,18 @@ class SessionCommandMixin(CommandContextMixIn):
         return session
 
 
-def _pip_self_version_check(session: "PipSession", options: Values) -> None:
-    from pip._internal.self_outdated_check import pip_self_version_check as check
+def _pip_self_version_check_fetch(
+    session: PipSession, options: Values
+) -> UpgradePrompt | None:
+    from pip._internal.self_outdated_check import pip_self_version_check_fetch
 
-    check(session, options)
+    return pip_self_version_check_fetch(session, options)
+
+
+def _pip_self_version_check_emit(upgrade_prompt: UpgradePrompt | None) -> None:
+    from pip._internal.self_outdated_check import pip_self_version_check_emit
+
+    pip_self_version_check_emit(upgrade_prompt)
 
 
 class IndexGroupCommand(Command, SessionCommandMixin):
@@ -157,7 +171,25 @@ class IndexGroupCommand(Command, SessionCommandMixin):
     This also corresponds to the commands that permit the pip version check.
     """
 
-    def handle_pip_version_check(self, options: Values) -> None:
+    def should_exclude_prerelease(
+        self, options: Values, package_name: NormalizedName
+    ) -> bool:
+        """
+        Determine if pre-releases should be excluded for a package.
+        """
+        # Check per-package release control settings
+        if options.release_control:
+            allow_prereleases = options.release_control.allows_prereleases(package_name)
+            if allow_prereleases is True:
+                return False  # Include pre-releases
+            elif allow_prereleases is False:
+                return True  # Exclude pre-releases
+
+        # No specific setting: exclude prereleases by default
+        return True
+
+    @contextlib.contextmanager
+    def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
         """
         Do the pip version check if not disabled.
 
@@ -167,17 +199,27 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         assert hasattr(options, "no_index")
 
         if options.disable_pip_version_check or options.no_index:
+            yield
             return
 
+        upgrade_prompt: UpgradePrompt | None = None
         try:
-            # Otherwise, check if we're using the latest version of pip available.
             session = self._build_session(
                 options,
                 retries=0,
                 timeout=min(5, options.timeout),
             )
             with session:
-                _pip_self_version_check(session, options)
+                upgrade_prompt = _pip_self_version_check_fetch(session, options)
         except Exception:
             logger.warning("There was an error checking the latest version of pip.")
             logger.debug("See below for error", exc_info=True)
+
+        try:
+            yield
+        finally:
+            try:
+                _pip_self_version_check_emit(upgrade_prompt)
+            except Exception:
+                logger.warning("There was an error checking the latest version of pip.")
+                logger.debug("See below for error", exc_info=True)

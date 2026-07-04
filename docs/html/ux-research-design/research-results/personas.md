@@ -2,7 +2,7 @@
 
 ## Problem
 
-We want to develop personas for pip's user to facilate faster user-centered decision making for the pip development team.
+We want to develop personas for pip's user to facilitate faster user-centered decision making for the pip development team.
 
 [Skip to recommendations](#recommendations)
 

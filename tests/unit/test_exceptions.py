@@ -1,12 +1,13 @@
 """Tests the presentation style of exceptions."""
 
+from __future__ import annotations
+
 import io
 import locale
 import logging
 import pathlib
 import sys
 import textwrap
-from typing import Optional, Tuple
 
 import pytest
 
@@ -86,8 +87,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
@@ -98,8 +98,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_complete_color(self) -> None:
         err = DiagnosticPipError(
@@ -113,8 +112,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
         def esc(code: str = "0") -> str:
             return f"\x1b[{code}m"
 
-        assert rendered_in_ascii(err, color=True) == textwrap.dedent(
-            f"""\
+        assert rendered_in_ascii(err, color=True) == textwrap.dedent(f"""\
             {esc("1;31")}error{esc("0")}: {esc("1")}test-diagnostic{esc("0")}
 
             Oh no!
@@ -125,8 +123,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             {esc("1;35")}note{esc("0")}: You did something wrong.
             {esc("1;36")}hint{esc("0")}: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_context(self) -> None:
         err = DiagnosticPipError(
@@ -137,8 +134,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
@@ -146,8 +142,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_note(self) -> None:
         err = DiagnosticPipError(
@@ -158,8 +153,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
@@ -169,8 +163,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             very wrong.
 
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_hint(self) -> None:
         err = DiagnosticPipError(
@@ -181,8 +174,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt=None,
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
@@ -192,8 +184,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             very wrong.
 
             note: You did something wrong, which is what caused this error.
-            """
-        )
+            """)
 
     def test_no_context_no_hint(self) -> None:
         err = DiagnosticPipError(
@@ -204,16 +195,14 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt=None,
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
             It broke. :(
 
             note: You did something wrong, which is what caused this error.
-            """
-        )
+            """)
 
     def test_no_context_no_note(self) -> None:
         err = DiagnosticPipError(
@@ -224,16 +213,14 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
             It broke. :(
 
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_hint_no_note(self) -> None:
         err = DiagnosticPipError(
@@ -244,8 +231,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             hint_stmt=None,
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
@@ -253,8 +239,7 @@ class TestDiagnosticPipErrorPresentation_ASCII:
 
             Something went wrong
             very wrong.
-            """
-        )
+            """)
 
     def test_no_hint_no_note_no_context(self) -> None:
         err = DiagnosticPipError(
@@ -265,14 +250,12 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             note_stmt=None,
         )
 
-        assert rendered_in_ascii(err) == textwrap.dedent(
-            """\
+        assert rendered_in_ascii(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             Oh no!
             It broke. :(
-            """
-        )
+            """)
 
 
 def rendered(error: DiagnosticPipError, *, color: bool = False) -> str:
@@ -296,8 +279,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
@@ -307,8 +289,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_complete_color(self) -> None:
         err = DiagnosticPipError(
@@ -322,8 +303,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
         def esc(code: str = "0") -> str:
             return f"\x1b[{code}m"
 
-        assert rendered(err, color=True) == textwrap.dedent(
-            f"""\
+        assert rendered(err, color=True) == textwrap.dedent(f"""\
             {esc("1;31")}error{esc("0")}: {esc("1")}test-diagnostic{esc("0")}
 
             {esc("31")}×{esc("0")} Oh no!
@@ -333,8 +313,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
 
             {esc("1;35")}note{esc("0")}: You did something wrong.
             {esc("1;36")}hint{esc("0")}: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_context(self) -> None:
         err = DiagnosticPipError(
@@ -345,8 +324,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
@@ -354,8 +332,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
 
             note: You did something wrong, which is what caused this error.
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_note(self) -> None:
         err = DiagnosticPipError(
@@ -366,8 +343,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
@@ -376,8 +352,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
                 very wrong.
 
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_hint(self) -> None:
         err = DiagnosticPipError(
@@ -388,8 +363,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             hint_stmt=None,
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
@@ -398,8 +372,7 @@ class TestDiagnosticPipErrorPresentation_Unicode:
                 very wrong.
 
             note: You did something wrong, which is what caused this error.
-            """
-        )
+            """)
 
     def test_no_context_no_hint(self) -> None:
         err = DiagnosticPipError(
@@ -410,16 +383,14 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             hint_stmt=None,
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
               It broke. :(
 
             note: You did something wrong, which is what caused this error.
-            """
-        )
+            """)
 
     def test_no_context_no_note(self) -> None:
         err = DiagnosticPipError(
@@ -430,16 +401,14 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             hint_stmt="Do it better next time, by trying harder.",
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
               It broke. :(
 
             hint: Do it better next time, by trying harder.
-            """
-        )
+            """)
 
     def test_no_hint_no_note(self) -> None:
         err = DiagnosticPipError(
@@ -450,16 +419,14 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             hint_stmt=None,
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
             │ It broke. :(
             ╰─> Something went wrong
                 very wrong.
-            """
-        )
+            """)
 
     def test_no_hint_no_note_no_context(self) -> None:
         err = DiagnosticPipError(
@@ -470,14 +437,12 @@ class TestDiagnosticPipErrorPresentation_Unicode:
             note_stmt=None,
         )
 
-        assert rendered(err) == textwrap.dedent(
-            """\
+        assert rendered(err) == textwrap.dedent("""\
             error: test-diagnostic
 
             × Oh no!
               It broke. :(
-            """
-        )
+            """)
 
 
 class TestExternallyManagedEnvironment:
@@ -492,8 +457,8 @@ class TestExternallyManagedEnvironment:
     def patch_locale(self, monkeypatch: pytest.MonkeyPatch) -> None:
         orig_getlocal = locale.getlocale
 
-        def fake_getlocale(category: int) -> Tuple[Optional[str], Optional[str]]:
-            """Fake getlocale() that always reports zh_Hant for LC_MESSASGES."""
+        def fake_getlocale(category: int) -> tuple[str | None, str | None]:
+            """Fake getlocale() that always reports zh_Hant for LC_MESSAGES."""
             result = orig_getlocal(category)
             if category == getattr(locale, "LC_MESSAGES", None):
                 return "zh_Hant", result[1]

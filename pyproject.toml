@@ -1,24 +1,27 @@
 [project]
 dynamic = ["version"]
-
 name = "pip"
 description = "The PyPA recommended tool for installing Python packages."
 readme = "README.rst"
-license = {text = "MIT"}
+license = "MIT"
+license-files = [
+  "AUTHORS.txt",
+  "LICENSE.txt",
+  "src/pip/_vendor/**/*COPYING*",
+  "src/pip/_vendor/**/*LICENSE*",
+]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Topic :: Software Development :: Build Tools",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -28,7 +31,7 @@ authors = [
 
 # NOTE: requires-python is duplicated in __pip-runner__.py.
 # When changing this value, please change the other copy as well.
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 [project.scripts]
 pip = "pip._internal.cli.main:main"
@@ -41,34 +44,83 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-# The lower bound is for <https://github.com/pypa/setuptools/issues/3865>.
-requires = ["setuptools>=67.6.1"]
-build-backend = "setuptools.build_meta"
+requires = ["flit-core >=3.11,<4"]
+build-backend = "flit_core.buildapi"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-include-package-data = false
+[dependency-groups]
+test = [
+    "cryptography",
+    "flit-core >= 3.11, < 4",
+    "freezegun",
+    "installer",
+    # pytest-subket requires 7.0+
+    "pytest >= 7.0",
+    "pytest-cov",
+    "pytest-rerunfailures",
+    "pytest-xdist",
+    "pytest-subket",
+    "scripttest",
+    "setuptools",
+    "virtualenv >= 20.0",
+    "werkzeug",
+    "tomli-w",
+    "proxy.py",
+]
 
-[tool.setuptools.dynamic]
-version = {attr = "pip.__version__"}
+test-common-wheels = [
+    "flit-core >= 3.11, < 4",
+    # We pin setuptools<80 because our test suite currently
+    # depends on setup.py develop to generate egg-link files.
+    "setuptools >= 70.1.0, <80",
+    # As required by pytest-cov.
+    "coverage >= 4.4",
+    "pytest-subket >= 0.8.1",
+    "keyring",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["contrib", "docs", "tests*", "tasks"]
+typecheck = [
+    {include-group = "test"},
+    "keyring",  # An optional runtime dependency.
+    "nox",
+    "packaging",
+    "httpx",
+    "rich",
+    "types-PyYAML",  # tools/update-rtd-redirects.py
+    "types-setuptools",  # provides top-level distutils stubs for locations/
+]
 
-[tool.setuptools.package-data]
-"pip" = ["py.typed"]
-"pip._vendor" = ["vendor.txt"]
-"pip._vendor.certifi" = ["*.pem"]
-"pip._vendor.requests" = ["*.pem"]
-"pip._vendor.distlib._backport" = ["sysconfig.cfg"]
-"pip._vendor.distlib" = [
-    "t32.exe",
-    "t64.exe",
-    "t64-arm.exe",
-    "w32.exe",
-    "w64.exe",
-    "w64-arm.exe",
+docs = [
+    "sphinx ~= 7.0",
+    # currently incompatible with sphinxcontrib-towncrier
+    # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
+    "towncrier < 24",
+    "furo",
+    "myst_parser",
+    "sphinx-copybutton",
+    "sphinx-inline-tabs",
+    "sphinxcontrib-towncrier >= 0.2.0a0",
+    "sphinx-issues",
+]
+
+[tool.flit.sdist]
+include = [
+    "NEWS.rst",
+    "SECURITY.md",
+    "AI_POLICY.md",
+    "build-project/README.md",
+    "build-project/build-project.py",
+    "build-project/pyproject.toml",
+    "build-project/pylock.toml",
+    "docs/**/*.css",
+    "docs/**/*.dot",
+    "docs/**/*.md",
+    "docs/**/*.png",
+    "docs/**/*.py",
+    "docs/**/*.rst",
+]
+exclude = [
+    ".devcontainer/devcontainer.json",
+    "src/pip/_vendor/**/*.pyi",
 ]
 
 ######################################################################################
@@ -107,6 +159,7 @@ type = [
 destination = "src/pip/_vendor/"
 requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
+sbom-file = "src/pip/_vendor/bom.cdx.json"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
 patches-dir = "tools/vendoring/patches"
@@ -119,6 +172,8 @@ substitute = [
   { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexers." },
 ]
 drop = [
+  # Don't include dist-info directories in the vendored code
+  "*.dist-info/",
   # contains unnecessary scripts
   "bin/",
   # interpreter and OS specific msgpack libs
@@ -130,11 +185,15 @@ drop = [
   "_distutils_hack",
   "distutils-precedence.pth",
   "pkg_resources/extern/",
-  # trim vendored pygments styles and lexers
+  # trim vendored pygments styles, lexers, formatters, and CLI
   "pygments/styles/[!_]*.py",
   '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
+  '^pygments/formatters/(?!__init__|_mapping).*\.py$',
+  '^pygments/cmdline\.py$',
   # trim rich's markdown support
   "rich/markdown.py",
+  # trim parts of distlib that aren't related to scripts
+  '^distlib/(?!__init__|compat|resources|scripts|util).*\.py$',
 ]
 
 [tool.vendoring.typing-stubs]
@@ -151,6 +210,8 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 #
 
 [tool.ruff]
+# Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
+target-version = "py310"  # Pin Ruff to Python 3.10
 src = ["src"]
 line-length = 88
 extend-exclude = [
@@ -162,10 +223,10 @@ extend-exclude = [
 
 [tool.ruff.lint]
 ignore = [
-    "B019",
     "B020",
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
+    "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
 ]
 select = [
     "ASYNC",
@@ -174,15 +235,16 @@ select = [
     "C90",
     "E",
     "F",
+    "FA",
     "G",
     "I",
     "ISC",
-    "PERF",
+    "PIE810",
     "PLE",
     "PLR0",
-    "W",
     "RUF100",
     "UP",
+    "W",
 ]
 
 [tool.ruff.lint.isort]
@@ -213,8 +275,13 @@ max-complexity = 33  # default is 10
 [tool.ruff.lint.pylint]
 max-args = 15  # default is 5
 max-branches = 28  # default is 12
-max-returns = 13  # default is 6
+max-returns = 15  # default is 6
 max-statements = 134  # default is 50
+
+[tool.ruff.per-file-target-version]
+# `__pip-runner__.py` should be Python 2.7 compatible but the
+# earliest version of Python ruff will check is 3.7
+"src/pip/__pip-runner__.py" = "py37"
 
 ######################################################################################
 # mypy
@@ -245,16 +312,21 @@ ignore_errors = true
 module = "pip._vendor.pkg_resources"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "pip._vendor.requests.*"
-follow_imports = "skip"
 
 ######################################################################################
 # pytest
 #
 
 [tool.pytest.ini_options]
-addopts = "--ignore src/pip/_vendor --ignore tests/tests_cache -r aR --color=yes"
+addopts = [
+    "-r=aR",
+    "--color=yes",
+    "--ignore=src/pip/_vendor",
+    "--ignore=tests/tests_cache",
+    "--disable-socket",
+    "--allow-unix-socket",
+    "--allow-hosts=localhost",
+]
 xfail_strict = true
 markers = [
     "network: tests that need network",
@@ -268,6 +340,9 @@ markers = [
     "mercurial: VCS: Mercurial",
     "git: VCS: git",
     "search: tests for 'pip search'",
+]
+filterwarnings = [
+  'error::pip._internal.utils.deprecation.PipDeprecationWarning:',
 ]
 
 ######################################################################################
@@ -304,10 +379,20 @@ source0 = [
 ]
 
 [tool.coverage.report]
-exclude_lines = [
-    # We must re-state the default because the `exclude_lines` option overrides
-    # it.
-    "pragma: no cover",
+exclude_also = [
     # This excludes typing-specific code, which will be validated by mypy anyway.
     "if TYPE_CHECKING",
+]
+
+[tool.check-sdist]
+git-only = [
+  "tests/**",
+  "tools/**",
+  "news/.gitignore",
+  ".devcontainer/**",
+  ".gitattributes",
+  ".gitignore",
+  ".git-blame-ignore-revs",
+  ".mailmap",
+  ".readthedocs-custom-redirects.yml"
 ]
