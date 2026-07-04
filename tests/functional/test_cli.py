@@ -69,6 +69,15 @@ def _run_pip_without_virtualenv(
     return script.run("python", str(test_script), expect_error=expect_error)
 
 
+def test_option_error_prints_rendered_usage(script: PipTestEnvironment) -> None:
+    result = script.pip("install", "--updgrade", expect_error=True)
+
+    assert "no such option: --updgrade" in result.stderr
+    assert "Usage:" in result.stderr
+    assert "[optparse." not in result.stderr
+    assert "\\[options]" not in result.stderr
+
+
 def test_require_virtualenv_blocks_commands_when_not_in_venv(
     script: PipTestEnvironment,
 ) -> None:
