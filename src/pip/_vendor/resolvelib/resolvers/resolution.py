@@ -173,6 +173,16 @@ class Resolution(Generic[RT, CT, KT]):
                     if (
                         information.parent is None
                         or self._p.identify(information.parent) not in parents
+                        # Keep edges contributed by a parent that is still the
+                        # current pin. Such a parent is only unsatisfied because
+                        # it needs re-pinning; its dependencies remain real until
+                        # it is actually replaced. Dropping them here loses them
+                        # for good if the requirement that unsatisfied the parent
+                        # is itself backtracked away before the re-pin happens.
+                        or information.parent
+                        is self.state.mapping.get(
+                            self._p.identify(information.parent)
+                        )
                     )
                 ],
                 criterion.incompatibilities,
