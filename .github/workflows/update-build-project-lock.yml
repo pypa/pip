@@ -32,7 +32,7 @@ jobs:
 
       - name: Update the lock file
         working-directory: build-project
-        run: python -m pip lock --group build --uploaded-prior-to P3D
+        run: "python -m pip lock --group build --uploaded-prior-to P3D --only-binary=:all:"
 
       - name: Test the build works with the new lock file
         run: python build-project/build-project.py
