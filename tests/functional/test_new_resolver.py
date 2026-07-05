@@ -408,6 +408,37 @@ def test_new_resolver_only_backtracked_extra_dropped(
     script.assert_not_installed("ydep")
 
 
+def test_new_resolver_backtracked_extra_in_cycle_dropped(
+    script: PipTestEnvironment,
+) -> None:
+    """A stale extra is dropped even when its own dependencies keep asking for
+    it in a cycle.
+
+    ``base 2.0`` requires ``lib[x]``, but ``cap`` forces ``base`` down to
+    ``1.0``, which does not ask for the extra. ``lib``'s ``x`` extra pulls
+    ``plugin[q]``, which asks for ``lib[x]`` again, so the stranded extra
+    reappears as its own requester. It must still be dropped, leaving ``plugin``
+    uninstalled.
+    """
+    create_basic_wheel_for_package(script, "plugin", "1.0", extras={"q": ["lib[x]"]})
+    create_basic_wheel_for_package(script, "lib", "1.0", extras={"x": ["plugin[q]"]})
+    create_basic_wheel_for_package(script, "base", "2.0", depends=["lib[x]"])
+    create_basic_wheel_for_package(script, "base", "1.0")
+    create_basic_wheel_for_package(script, "cap", "1.0", depends=["base<2"])
+    create_basic_wheel_for_package(script, "app", "1.0", depends=["lib", "base", "cap"])
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "app",
+    )
+    script.assert_installed(app="1.0", lib="1.0", base="1.0", cap="1.0")
+    script.assert_not_installed("plugin")
+
+
 def test_new_resolver_installed_message(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "A", "1.0")
     result = script.pip(

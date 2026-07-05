@@ -3,8 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 import os
-from collections import defaultdict, deque
-from collections.abc import Callable, Iterable
+from collections import deque
 from typing import TYPE_CHECKING, cast
 
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -202,15 +201,9 @@ class Resolver(BaseResolver):
         A project stays pinned with an extra even after the requirement that
         asked for it is backtracked away (see the note in ``resolve``), which
         strands that extra's dependencies in ``result.mapping``. Walk the
-        solution from the root requirements, following each project's
+        solution from the root requirements, re-deriving each project's
         dependencies under only the extras still asked of it; projects the walk
         never reaches were held solely by a stale extra and are dropped.
-
-        resolvelib already recorded every dependency edge in ``result.criteria``,
-        so the walk reuses those. They are exact unless a project kept an extra
-        no surviving requirement asks for, in which case a recorded edge may
-        belong to that stale extra. That is rare, so it is detected with a cheap
-        check and only then are the dependencies re-derived from scratch.
         """
         mapping = result.mapping
 
@@ -218,50 +211,6 @@ class Resolver(BaseResolver):
         if not any(candidate.extras for candidate in mapping.values()):
             return {name: frozenset() for name in mapping}
 
-        name_of = {id(c): name for name, c in mapping.items()}
-
-        # Invert the criteria into parent -> [(child, requested extras)], keeping
-        # only edges whose parent is still pinned in the final solution.
-        recorded: dict[str, list[tuple[str, frozenset[NormalizedName]]]] = defaultdict(
-            list
-        )
-        for child, criterion in result.criteria.items():
-            if child not in mapping:
-                continue
-            for info in criterion.information:
-                parent = name_of.get(id(info.parent))
-                if parent is not None:
-                    recorded[parent].append((child, info.requirement.extras))
-
-        active = self._walk_required_extras(
-            roots, mapping, lambda name, _extras: recorded.get(name, ())
-        )
-
-        stale = any(
-            frozenset(extras) != mapping[name].extras
-            for name, extras in active.items()
-            if mapping[name].extras
-        )
-        if stale:
-            # A project kept a stale extra, so a recorded edge may belong to it;
-            # re-derive dependencies under only each project's surviving extras.
-            active = self._walk_required_extras(roots, mapping, self._derived_edges)
-
-        return {name: frozenset(extras) for name, extras in active.items()}
-
-    def _walk_required_extras(
-        self,
-        roots: list[Requirement],
-        mapping: dict[str, Candidate],
-        edges_of: Callable[
-            [str, set[NormalizedName]],
-            Iterable[tuple[str, frozenset[NormalizedName]]],
-        ],
-    ) -> dict[str, set[NormalizedName]]:
-        """Propagate requested extras from the roots along ``edges_of``.
-
-        Returns the reached projects mapped to the union of extras asked of them.
-        """
         active: dict[str, set[NormalizedName]] = {}
         queue: deque[str] = deque()
 
@@ -281,19 +230,20 @@ class Resolver(BaseResolver):
 
         while queue:
             name = queue.popleft()
-            for child, child_extras in edges_of(name, active[name]):
+            for child, child_extras in self._derived_edges(name, active[name]):
                 request(child, child_extras)
 
-        return active
+        return {name: frozenset(extras) for name, extras in active.items()}
 
     def _derived_edges(
         self, name: str, extras: set[NormalizedName]
     ) -> list[tuple[str, frozenset[NormalizedName]]]:
-        """Recompute a project's in-solution dependencies under ``extras``.
+        """A project's in-solution dependencies under ``extras``.
 
-        Used only when a stale extra is present. Extras the project does not
-        provide are dropped: they pull nothing, and re-deriving them would repeat
-        the "does not provide the extra" warning already emitted during resolve.
+        Reads the edges from the resolved candidate, keeping only those whose
+        target is in the solution. Extras the project does not provide are
+        dropped: they pull nothing, and re-deriving them would repeat the "does
+        not provide the extra" warning already emitted during resolve.
         """
         assert self._result is not None
         mapping = self._result.mapping
