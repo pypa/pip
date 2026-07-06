@@ -134,6 +134,7 @@ def call_subprocess(
             stderr=subprocess.STDOUT if not stdout_only else subprocess.PIPE,
             cwd=cwd,
             env=env,
+            encoding="locale",
             errors="backslashreplace",
         )
     except Exception as exc:
