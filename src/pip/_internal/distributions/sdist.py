@@ -94,9 +94,13 @@ class SourceDistribution(AbstractDistribution):
         assert pyproject_requires is not None
         assert not isinstance(self.req.build_env, NoOpBuildEnvironment)
 
-        self.req.build_env.install_requirements(
-            pyproject_requires, "overlay", kind="build dependencies", for_req=self.req
-        )
+        with self.req.build_env:
+            self.req.build_env.install_requirements(
+                pyproject_requires,
+                "overlay",
+                kind="build dependencies",
+                for_req=self.req,
+            )
         conflicting, missing = self.req.build_env.check_requirements(
             self.req.requirements_to_check
         )
@@ -148,9 +152,10 @@ class SourceDistribution(AbstractDistribution):
         conflicting, missing = self.req.build_env.check_requirements(build_reqs)
         if conflicting:
             self._raise_conflicts("the backend dependencies", conflicting)
-        self.req.build_env.install_requirements(
-            missing, "normal", kind="backend dependencies", for_req=self.req
-        )
+        with self.req.build_env:
+            self.req.build_env.install_requirements(
+                missing, "normal", kind="backend dependencies", for_req=self.req
+            )
 
     def _raise_conflicts(
         self, conflicting_with: str, conflicting_reqs: set[tuple[str, str]]
