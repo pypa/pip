@@ -518,8 +518,6 @@ def join_lines(lines_enum: ReqFileLines) -> ReqFileLines:
         assert primary_line_number is not None
         yield primary_line_number, "".join(new_line)
 
-    # TODO: handle space after '\'.
-
 
 def ignore_comments(lines_enum: ReqFileLines) -> ReqFileLines:
     """
