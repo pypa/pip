@@ -104,7 +104,8 @@ class SubprocessBuildEnvironmentInstaller:
         for link in finder.find_links:
             args.extend(["--find-links", link])
 
-        if finder.proxy:
+        # is not None: forward an empty --proxy "" (disable proxying) too.
+        if finder.proxy is not None:
             args.extend(["--proxy", finder.proxy])
         if finder.no_proxy_env:
             args.append("--no-proxy-env")

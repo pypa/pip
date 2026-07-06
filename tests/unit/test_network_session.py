@@ -355,3 +355,30 @@ class TestPipSession:
         assert options.no_proxy_env is False
         assert session.trust_env is True
         assert session.pip_no_proxy_env is False
+
+    def test_empty_proxy_bypasses_environment_proxies(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+        monkeypatch.setenv("https_proxy", "http://127.0.0.1:9999")
+
+        options, session = self._build_session(monkeypatch, ["--proxy", "", "example"])
+
+        assert options.proxy == ""
+        assert session.trust_env is False
+        # "" (not None) so it is forwarded to build subprocesses.
+        assert session.pip_proxy == ""
+        for url in ("http://example.com", "https://example.com"):
+            assert self._resolved_proxy(session, url) is None
+
+    def test_unset_proxy_is_distinct_from_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Unset must stay distinct from --proxy "": the env proxy is still used.
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+
+        options, session = self._build_session(monkeypatch, ["example"])
+
+        assert options.proxy is None
+        assert session.trust_env is True
+        assert self._resolved_proxy(session, "http://example.com") is not None

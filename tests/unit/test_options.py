@@ -449,6 +449,16 @@ class TestGeneralOptions(AddFakeCommandMixin):
         assert options1.no_proxy_env
         assert options2.no_proxy_env
 
+    def test_proxy_default_is_none(self) -> None:
+        # Unset must stay distinguishable from an explicit ``--proxy ""``.
+        options, _ = cast(tuple[Values, list[str]], main(["fake"]))
+        assert options.proxy is None
+
+    def test_proxy_empty_string(self) -> None:
+        # FakeCommand intentionally returns the wrong type.
+        options, _ = cast(tuple[Values, list[str]], main(["--proxy", "", "fake"]))
+        assert options.proxy == ""
+
     def test_retries(self) -> None:
         # FakeCommand intentionally returns the wrong type.
         options1, args1 = cast(

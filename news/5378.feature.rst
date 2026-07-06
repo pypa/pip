@@ -1,2 +1,3 @@
-Add a ``--no-proxy-env`` option to ignore proxies configured through
-environment variables. A proxy set with ``--proxy`` is still used.
+Add a ``--no-proxy-env`` (or ``--proxy ""``) option to ignore proxies
+configured via non-pip environment variables or configuration files.
+A proxy set with ``--proxy`` is still used.
