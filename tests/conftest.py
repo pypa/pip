@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import zlib
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
@@ -99,6 +100,20 @@ def pytest_addoption(parser: Parser) -> None:
         default=False,
         help="use a zipapp when running pip in tests",
     )
+    parser.addoption(
+        "--num-test-groups",
+        action="store",
+        type=int,
+        default=None,
+        help="split collected tests into this many groups, for parallel CI shards",
+    )
+    parser.addoption(
+        "--test-group",
+        action="store",
+        type=int,
+        default=None,
+        help="run only the given 1-based group (requires --num-test-groups)",
+    )
 
 
 def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) -> None:
@@ -147,6 +162,42 @@ def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) 
                 )
         else:
             raise RuntimeError(f"Unknown test type (filename = {module_path})")
+
+    _shard_collected_items(config, items)
+
+
+def _shard_collected_items(config: Config, items: list[pytest.Function]) -> None:
+    """Keep only the tests belonging to the configured CI shard.
+
+    Tests are assigned to a group by a stable hash of their node id, which keeps
+    the groups balanced by count and deterministic across xdist workers (so each
+    worker collects an identical subset). This lets CI run the suite across
+    several runners in parallel without overlapping work.
+    """
+    num_groups = config.getoption("--num-test-groups")
+    group = config.getoption("--test-group")
+    if num_groups is None and group is None:
+        return
+    if num_groups is None or group is None:
+        raise pytest.UsageError(
+            "--num-test-groups and --test-group must be supplied together"
+        )
+    if num_groups < 1 or not 1 <= group <= num_groups:
+        raise pytest.UsageError(
+            f"--test-group must be between 1 and --num-test-groups ({num_groups})"
+        )
+
+    selected: list[pytest.Function] = []
+    deselected: list[pytest.Function] = []
+    for item in items:
+        shard = zlib.crc32(item.nodeid.encode("utf-8")) % num_groups
+        if shard == group - 1:
+            selected.append(item)
+        else:
+            deselected.append(item)
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+    items[:] = selected
 
 
 @pytest.fixture(scope="session", autouse=True)

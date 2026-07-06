@@ -24,7 +24,12 @@ from pip._internal.exceptions import (
     SSLMissing,
     SSLVerificationError,
 )
-from pip._internal.models.link import Link
+from pip._internal.models.link import (
+    Link,
+    PathComponent,
+    as_path_component,
+    join_within_directory,
+)
 from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
@@ -35,9 +40,14 @@ logger = logging.getLogger(__name__)
 
 def _get_http_response_size(resp: Response) -> int | None:
     try:
-        return int(resp.headers["content-length"])
+        size = int(resp.headers["content-length"])
     except (ValueError, KeyError, TypeError):
         return None
+    # A negative length would make _FileDownload.is_incomplete() report a
+    # truncated download as complete, so treat it as unknown instead.
+    if size < 0:
+        return None
+    return size
 
 
 def _get_http_response_etag_or_last_modified(resp: Response) -> str | None:
@@ -121,11 +131,14 @@ def parse_content_disposition(content_disposition: str, default_filename: str) -
     return filename or default_filename
 
 
-def _get_http_response_filename(resp: Response, link: Link) -> str:
+def _get_http_response_filename(resp: Response, link: Link) -> PathComponent:
     """Get an ideal filename from the given HTTP response, falling back to
     the link filename if not provided.
+
+    The result is validated as a single path component, so it can be joined onto
+    a download directory without escaping it.
     """
-    filename = link.filename  # fallback
+    filename: str = link.filename  # fallback
     # Have a look at the Content-Disposition header for a better guess
     content_disposition = resp.headers.get("content-disposition")
     if content_disposition:
@@ -139,7 +152,7 @@ def _get_http_response_filename(resp: Response, link: Link) -> str:
         ext = os.path.splitext(resp.url)[1]
         if ext:
             filename += ext
-    return filename
+    return as_path_component(filename)
 
 
 @dataclass
@@ -192,7 +205,9 @@ class Downloader:
         resp = self._http_get(link)
         download_size = _get_http_response_size(resp)
 
-        filepath = os.path.join(location, _get_http_response_filename(resp, link))
+        filepath = join_within_directory(
+            location, _get_http_response_filename(resp, link)
+        )
         with open(filepath, "wb") as content_file:
             download = _FileDownload(link, content_file, download_size)
             self._process_response(download, resp)
@@ -246,6 +261,14 @@ class Downloader:
                     download.reset_file()
                     download.size = _get_http_response_size(resume_resp)
                     first_resp = resume_resp
+                else:
+                    # If the resume request starts at the wrong location, fail
+                    # outright since the server is misbehaving.
+                    content_range = resume_resp.headers.get("Content-Range", "")
+                    resumed_at = content_range.lower().partition("bytes ")[2]
+                    resumed_at = resumed_at.partition("-")[0]
+                    if resumed_at and resumed_at != str(download.bytes_received):
+                        raise IncompleteDownloadError(download)
 
                 self._process_response(download, resume_resp)
             except (ConnectionError, ReadTimeoutError, ProtocolError) as e:
