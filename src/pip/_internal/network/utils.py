@@ -12,6 +12,7 @@ from pip._internal.exceptions import (
     ProxyConnectionError,
     SSLVerificationError,
 )
+from pip._internal.utils.misc import redact_auth_from_url
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -119,6 +120,7 @@ def raise_connection_error(
           requests.ProxyError, requests.SSLError, and requests.ConnectTimeout
           so these errors are also handled here.
     """
+    url = redact_auth_from_url(url)
     reason = error.args[0] if error.args else error
 
     # urllib3 seemingly always wraps the original error in a MaxRetryError
@@ -149,7 +151,7 @@ def raise_connection_error(
             raise ConnectionTimeoutError(url, host, kind="read", timeout=timeout[1])
     if isinstance(reason, urllib3.exceptions.ProxyError):
         assert proxy is not None
-        raise ProxyConnectionError(url, str(proxy), reason)
+        raise ProxyConnectionError(url, redact_auth_from_url(str(proxy)), reason)
 
     # Unknown error, give up and raise a generic error.
     raise ConnectionFailedError(
