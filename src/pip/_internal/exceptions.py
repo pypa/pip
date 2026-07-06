@@ -339,7 +339,7 @@ class NetworkConnectionError(PipError):
         return str(self.error_msg)
 
 
-class ConnectionFailedError(DiagnosticPipError):
+class ConnectionFailedError(DiagnosticPipError, ConnectionError):
     reference = "connection-failed"
 
     def __init__(self, url: str, host: str, error: Exception) -> None:
@@ -380,7 +380,7 @@ class ConnectionFailedError(DiagnosticPipError):
         )
 
 
-class ConnectionTimeoutError(DiagnosticPipError):
+class ConnectionTimeoutError(DiagnosticPipError, ConnectionError):
     reference = "connection-timeout"
 
     def __init__(
@@ -403,7 +403,7 @@ class ConnectionTimeoutError(DiagnosticPipError):
         )
 
 
-class SSLMissing(DiagnosticPipError):
+class SSLMissing(DiagnosticPipError, ConnectionError):
     reference = "ssl-missing"
 
     def __init__(self, url: str) -> None:
@@ -414,7 +414,7 @@ class SSLMissing(DiagnosticPipError):
         )
 
 
-class SSLVerificationError(DiagnosticPipError):
+class SSLVerificationError(DiagnosticPipError, ConnectionError):
     reference = "ssl-verification-failed"
 
     def __init__(self, url: str, host: str, error: urllib3.exceptions.SSLError) -> None:
@@ -426,7 +426,7 @@ class SSLVerificationError(DiagnosticPipError):
         super().__init__(message=message, context=context, hint_stmt=None)
 
 
-class ProxyConnectionError(DiagnosticPipError):
+class ProxyConnectionError(DiagnosticPipError, ConnectionError):
     reference = "proxy-connection-failed"
 
     def __init__(

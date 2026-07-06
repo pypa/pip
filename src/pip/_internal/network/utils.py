@@ -108,9 +108,12 @@ def response_chunks(
 
 
 def raise_connection_error(
-    error: requests.RequestException, *, url: str, timeout: tuple[float, float] | None
+    error: requests.ConnectionError | requests.Timeout,
+    *,
+    url: str,
+    timeout: tuple[float, float] | None,
 ) -> NoReturn:
-    """Raise a specific error for a given ConnectionError, if possible.
+    """Raise a specific error for a given connection error, if possible.
 
     Note: requests.ConnectionError is the parent class of
           requests.ProxyError, requests.SSLError, and requests.ConnectTimeout

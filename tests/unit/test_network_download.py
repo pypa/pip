@@ -8,9 +8,14 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from pip._vendor.urllib3.exceptions import ProtocolError
+from pip._vendor.urllib3.exceptions import ProtocolError, ProxyError
 
-from pip._internal.exceptions import IncompleteDownloadError
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    IncompleteDownloadError,
+    ProxyConnectionError,
+)
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
@@ -406,6 +411,53 @@ def test_downloader_retries_protocol_error_during_resume(tmpdir: Path) -> None:
     _http_get_mock = MagicMock(
         side_effect=[broken_resp, ProtocolError("Connection broken"), resume_resp]
     )
+
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    assert _http_get_mock.call_count == 3
+    with open(filepath, "rb") as f:
+        assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+
+@pytest.mark.parametrize(
+    "resume_error",
+    [
+        ConnectionFailedError(
+            "https://example.com/foo.tgz",
+            "example.com",
+            ConnectionError("Connection broken"),
+        ),
+        ConnectionTimeoutError(
+            "https://example.com/foo.tgz",
+            "example.com",
+            kind="read",
+            timeout=15,
+        ),
+        ProxyConnectionError(
+            "https://example.com/foo.tgz",
+            "https://proxy.example.com",
+            ProxyError("Cannot connect to proxy", OSError("Connection broken")),
+        ),
+    ],
+)
+def test_downloader_retries_diagnostic_connection_errors_during_resume(
+    resume_error: Exception, tmpdir: Path
+) -> None:
+    """Diagnostic connection errors during resume should consume a resume retry."""
+    session = PipSession(resume_retries=5)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    broken_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    broken_resp.headers.update({"content-length": "36"})
+    broken_resp.status_code = 200
+
+    resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.headers.update({"content-length": "12"})
+    resume_resp.status_code = 206
+
+    _http_get_mock = MagicMock(side_effect=[broken_resp, resume_error, resume_resp])
 
     with patch.object(Downloader, "_http_get", _http_get_mock):
         filepath, _ = downloader(link, str(tmpdir))

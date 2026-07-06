@@ -18,7 +18,12 @@ from pip._vendor.urllib3._collections import HTTPHeaderDict
 from pip._vendor.urllib3.exceptions import ProtocolError, ReadTimeoutError
 
 from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
-from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
+from pip._internal.exceptions import (
+    IncompleteDownloadError,
+    NetworkConnectionError,
+    SSLMissing,
+    SSLVerificationError,
+)
 from pip._internal.models.link import Link
 from pip._internal.network.cache import SafeFileCache, is_from_cache
 from pip._internal.network.session import CacheControlAdapter, PipSession
@@ -243,7 +248,19 @@ class Downloader:
                     first_resp = resume_resp
 
                 self._process_response(download, resume_resp)
-            except (ConnectionError, ReadTimeoutError, ProtocolError, OSError):
+            except (ConnectionError, ReadTimeoutError, ProtocolError) as e:
+                # The error handling here is tricky, a few notes:
+                #
+                # - ConnectionError is primarily raised by our custom requests.request()
+                #   connection exception handler.
+                # - ProtocolError is raised by urllib3 when the returned data length
+                #   doesn't match the response Content-Length.
+                # - ReadTimeoutError / ProtocolError come straight from urllib3 (via
+                #   process_response) and aren't caught by our connection exception
+                #   handler since they occur while *streaming* a response.
+                if isinstance(e, (SSLMissing, SSLVerificationError)):
+                    # Retrying SSL errors is pointless. Give up.
+                    raise
                 continue
 
         # No more resume attempts. Raise an error if the download is still incomplete.
