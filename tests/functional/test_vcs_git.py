@@ -45,7 +45,7 @@ def checkout_new_branch(script: PipTestEnvironment, repo_dir: str, branch: str) 
 
 
 def do_commit(script: PipTestEnvironment, dest: str) -> str:
-    _git_commit(script, dest, message="test commit", allow_empty=True)
+    _git_commit(dest, message="test commit", allow_empty=True)
     return get_head_sha(script, dest)
 
 
