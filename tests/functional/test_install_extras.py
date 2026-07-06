@@ -329,9 +329,15 @@ def test_install_extra_not_equal_marker_resolves_newly_applicable_dependency(
     script.assert_installed(root="1", trigger="1", a="1", b="1", c="1")
 
 
-def test_install_extra_not_equal_marker_self_invalidating_extra_request(
+def test_install_extra_not_equal_marker_rejects_self_invalidating_cycle(
     script: PipTestEnvironment,
 ) -> None:
+    # There is no stable resolution for this graph:
+    #   project -> cpu-only ; extra != "gpu"
+    #   cpu-only -> project[gpu]
+    #   project[gpu] -> gpu-only
+    # Resolving cpu-only activates the gpu extra, which removes cpu-only.
+    # pip must not silently install gpu-only through the now-dropped cpu-only.
     create_basic_wheel_for_package(script, "gpu-only", "1")
     create_basic_wheel_for_package(
         script,
@@ -357,8 +363,13 @@ def test_install_extra_not_equal_marker_self_invalidating_extra_request(
         expect_error=True,
     )
 
-    assert "Cannot install gpu-only" in result.stderr, str(result)
-    assert "dependency chain through cpu-only" in result.stderr, str(result)
+    expected_stderr = (
+        "ERROR: Cannot install gpu-only because it was only required through "
+        "cpu-only, but cpu-only is no longer part of the resolved dependency "
+        "graph. This can happen with dependencies guarded by negative extra "
+        'markers such as extra != "gpu".\n'
+    )
+    assert result.stderr == expected_stderr, str(result)
     script.assert_not_installed("project", "cpu-only", "gpu-only")
 
 

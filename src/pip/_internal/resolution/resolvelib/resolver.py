@@ -223,9 +223,11 @@ def _validate_final_dependency_paths(result: Result) -> None:
                 parent_name = canonicalize_name(parent.name)
                 if parent_name not in resolved_names:
                     raise InstallationError(
-                        f"Cannot install {candidate.name} because it has a dependency "
-                        f"chain through {parent.name}, but {parent.name} is not in "
-                        "the final resolution."
+                        f"Cannot install {candidate.name} because it was only "
+                        f"required through {parent.name}, but {parent.name} is no "
+                        "longer part of the resolved dependency graph. This can "
+                        "happen with dependencies guarded by negative extra markers "
+                        'such as extra != "gpu".'
                     )
             parent = parent.comes_from
 
