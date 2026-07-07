@@ -387,16 +387,16 @@ def _get_index_content(
         _handle_get_simple_fail(link, exc)
         _record_error_if_present(error_context, str(link.url), exc)
     except RetryError as exc:
-        reason = _get_error_reason(exc.args[0].reason)
+        reason = _get_error_reason(exc)
         _handle_get_simple_fail(link, exc)
         _record_error_if_present(error_context, str(link.url), reason)
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate: "
-        reason += str(_get_error_reason(exc.args[0].reason))
+        reason += str(_get_error_reason(exc))
         _handle_get_simple_fail(link, reason, meth=logger.info)
         _record_error_if_present(error_context, str(link.url), reason)
     except requests.ConnectionError as exc:
-        reason = _get_error_reason(exc.args[0].reason)
+        reason = _get_error_reason(exc)
         _handle_get_simple_fail(link, f"connection error: {exc}")
         _record_error_if_present(error_context, str(link.url), reason)
     except requests.Timeout:
