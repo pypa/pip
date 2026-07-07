@@ -404,7 +404,6 @@ def test_build_env_can_still_access_python_tools_on_system_path(
     script.pip_install_local("cmake", find_links=[data.common_wheels])
     script.pip_install_local(
         data.src / "python-cmake-issue-13222",
-        "--use-feature=inprocess-build-deps",
         "--use-feature=venv-isolation",
         find_links=[data.common_wheels],
         build_isolation=True,

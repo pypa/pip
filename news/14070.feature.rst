@@ -1,3 +1,7 @@
 Add experimental support for isolating build subprocesses by creating standard
 virtual environments. The feature can be enabled via ``--use-feature=venv-isolation``
 and will be enabled by default in a future release.
+
+Note that the feature has limited compatibility with ``--use-feature=inprocess-build-deps``.
+While most builds should work with both features enabled, there are known edge cases.
+``inprocess-build-deps`` will not be enabled by default until they are fixed.

@@ -218,6 +218,12 @@ class RequirementCommand(IndexGroupCommand):
             build_isolation: BuildIsolationMode = "off"
         elif "venv-isolation" in options.features_enabled:
             build_isolation = "venv"
+            if "inprocess-build-deps" in options.features_enabled:
+                logger.warning(
+                    "Using --use-feature 'inprocess-build-deps' and 'venv-isolation'"
+                    " together is currently partially supported. If you encounter"
+                    " broken behaviour, use only one feature."
+                )
         else:
             build_isolation = "virtual"
 
