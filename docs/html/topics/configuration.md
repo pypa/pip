@@ -96,6 +96,10 @@ Site
   the Python installation root (run `pip config debug` to identify the exact path).
 ```
 
+```{versionchanged} 26.2
+pip will also respect `XDG_CONFIG_DIRS` and `XDG_CONFIG_HOME` on macOS.
+```
+
 ### `PIP_CONFIG_FILE`
 
 Additionally, the environment variable `PIP_CONFIG_FILE` can be used to specify

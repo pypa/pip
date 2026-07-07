@@ -96,6 +96,10 @@ pip will also respect `XDG_CACHE_HOME`.
 ```
 ````
 
+```{versionchanged} 26.2
+pip will also respect `XDG_CACHE_HOME` on macOS.
+```
+
 ## Avoiding caching
 
 pip tries to use its cache whenever possible, and it is designed do the right
