@@ -267,6 +267,27 @@ class TestPipSession:
         assert actual_level == "WARNING"
         assert "is not a trusted or secure host" in actual_message
 
+
+class TestSessionProxy:
+    @staticmethod
+    def _build_session(
+        monkeypatch: pytest.MonkeyPatch, args: list[str]
+    ) -> tuple[Values, PipSession]:
+        # Option parsing also reads PIP_* env vars; clear the proxy ones so an
+        # ambient (e.g. corporate) proxy config can't perturb these assertions.
+        monkeypatch.delenv("PIP_PROXY", raising=False)
+        monkeypatch.delenv("PIP_NO_PROXY_ENV", raising=False)
+        command = create_command("download")
+        options, _ = command.parse_args(args)
+        session = cast(SessionCommandMixin, command)._build_session(options)
+        return options, session
+
+    @staticmethod
+    def _resolved_proxy(session: PipSession, url: str) -> str | None:
+        # Pick the proxy for a URL the way Session.request() does, no network.
+        settings = session.merge_environment_settings(url, {}, None, None, None)
+        return select_proxy(url, settings["proxies"])
+
     @pytest.mark.network
     def test_proxy(self, proxy: str | None) -> None:
         session = PipSession(trusted_hosts=[])
@@ -294,25 +315,6 @@ class TestPipSession:
             f"Invalid proxy {proxy} or session.proxies: "
             f"{session.proxies} is not correctly passed to session.request."
         )
-
-    @staticmethod
-    def _build_session(
-        monkeypatch: pytest.MonkeyPatch, args: list[str]
-    ) -> tuple[Values, PipSession]:
-        # Option parsing also reads PIP_* env vars; clear the proxy ones so an
-        # ambient (e.g. corporate) proxy config can't perturb these assertions.
-        monkeypatch.delenv("PIP_PROXY", raising=False)
-        monkeypatch.delenv("PIP_NO_PROXY_ENV", raising=False)
-        command = create_command("download")
-        options, _ = command.parse_args(args)
-        session = cast(SessionCommandMixin, command)._build_session(options)
-        return options, session
-
-    @staticmethod
-    def _resolved_proxy(session: PipSession, url: str) -> str | None:
-        # Pick the proxy for a URL the way Session.request() does, no network.
-        settings = session.merge_environment_settings(url, {}, None, None, None)
-        return select_proxy(url, settings["proxies"])
 
     def test_no_proxy_env_ignores_environment_proxies(
         self, monkeypatch: pytest.MonkeyPatch
