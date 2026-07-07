@@ -5,7 +5,6 @@ Requirements file parsing
 from __future__ import annotations
 
 import codecs
-import locale
 import logging
 import optparse
 import os
@@ -26,6 +25,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.utils.compat import get_locale_encoding
 
 if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
@@ -518,8 +518,6 @@ def join_lines(lines_enum: ReqFileLines) -> ReqFileLines:
         assert primary_line_number is not None
         yield primary_line_number, "".join(new_line)
 
-    # TODO: handle space after '\'.
-
 
 def ignore_comments(lines_enum: ReqFileLines) -> ReqFileLines:
     """
@@ -607,7 +605,7 @@ def _decode_req_file(data: bytes, url: str) -> str:
     try:
         return data.decode(DEFAULT_ENCODING)
     except UnicodeDecodeError:
-        locale_encoding = locale.getpreferredencoding(False) or sys.getdefaultencoding()
+        locale_encoding = get_locale_encoding() or sys.getdefaultencoding()
         logging.warning(
             "unable to decode data from %s with default encoding %s, "
             "falling back to encoding from locale: %s. "

@@ -741,6 +741,10 @@ class PackageFinder:
         return self._link_collector.session.pip_proxy
 
     @property
+    def no_proxy_env(self) -> bool:
+        return self._link_collector.session.pip_no_proxy_env
+
+    @property
     def trusted_hosts(self) -> Iterable[str]:
         for host_port in self._link_collector.session.pip_trusted_origins:
             yield build_netloc(*host_port)

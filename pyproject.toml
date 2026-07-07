@@ -78,6 +78,17 @@ test-common-wheels = [
     "keyring",
 ]
 
+typecheck = [
+    {include-group = "test"},
+    "keyring",  # An optional runtime dependency.
+    "nox",
+    "packaging",
+    "httpx",
+    "rich",
+    "types-PyYAML",  # tools/update-rtd-redirects.py
+    "types-setuptools",  # provides top-level distutils stubs for locations/
+]
+
 docs = [
     "sphinx ~= 7.0",
     # currently incompatible with sphinxcontrib-towncrier
@@ -96,10 +107,10 @@ include = [
     "NEWS.rst",
     "SECURITY.md",
     "AI_POLICY.md",
-    "build-project/.python-version",
+    "build-project/README.md",
     "build-project/build-project.py",
-    "build-project/build-requirements.in",
-    "build-project/build-requirements.txt",
+    "build-project/pyproject.toml",
+    "build-project/pylock.toml",
     "docs/**/*.css",
     "docs/**/*.dot",
     "docs/**/*.md",
