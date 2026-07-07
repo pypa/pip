@@ -411,15 +411,9 @@ def test_build_env_can_still_access_python_tools_on_system_path(
     )
 
 
-@pytest.mark.parametrize(
-    "installer_method",
-    [
-        pytest.param("subprocess"),
-        pytest.param("inprocess", marks=pytest.mark.xfail(reason="not yet supported")),
-    ],
-)
+@with_both_installers
 def test_build_env_console_scripts_use_venv_python(
-    script: PipTestEnvironment, installer_method: Literal["subprocess", "inprocess"]
+    script: PipTestEnvironment, install_method: InstallMethod
 ) -> None:
     """
     When using venv isolation, it's important that the build environment
@@ -439,7 +433,7 @@ def test_build_env_console_scripts_use_venv_python(
     ).save_to(script.scratch_path / "goldfish-1.0-py2.py3-none-any.whl")
 
     finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
-    with make_test_build_env_installer(installer_method, finder) as installer:
+    with make_test_build_env_installer(install_method, finder) as installer:
         build_env = VenvBuildEnvironment(installer)
         build_env.install_requirements(
             ["goldfish==1.0"], "normal", kind="script dependency"

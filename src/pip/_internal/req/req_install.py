@@ -786,6 +786,7 @@ class InstallRequirement:
         warn_script_location: bool = True,
         use_user_site: bool = False,
         pycompile: bool = True,
+        script_executable: str | None = None,
     ) -> None:
         assert self.req is not None
         scheme = get_scheme(
@@ -809,6 +810,7 @@ class InstallRequirement:
             warn_script_location=warn_script_location,
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
+            script_executable=script_executable,
         )
         self.install_succeeded = True
 

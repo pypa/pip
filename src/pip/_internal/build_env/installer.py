@@ -341,6 +341,8 @@ class InprocessBuildEnvironmentInstaller:
             # pre-compile everything since not all modules will be used.
             pycompile=False,
             progress_bar="off",
+            # Link console scripts to the build env's interpreter, not pip's.
+            script_executable=prefix.venv_executable,
         )
 
         env = get_environment(list(prefix.lib_dirs))
