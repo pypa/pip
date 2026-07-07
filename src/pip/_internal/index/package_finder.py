@@ -884,13 +884,19 @@ class PackageFinder:
         self, project_name: str, error_context: IndexErrorContext
     ) -> None:
         error_type = "network"
+        dont_raise_exception = False
         for url, exc in error_context.network_errors:
             logger.warning("Failed to fetch %s: %s", url, exc)
             if isinstance(exc, NetworkConnectionError) and exc.response is not None:
                 if 400 <= exc.response.status_code < 500:
+                    if exc.response.status_code == 404:
+                        dont_raise_exception = True
                     error_type = "client"
                 elif 500 <= exc.response.status_code < 600:
                     error_type = "server"
+
+        if dont_raise_exception:
+            return
 
         raise InstallationError(
             f"Could not find a version of {project_name} due to {error_type} errors."
@@ -957,10 +963,7 @@ class PackageFinder:
         # This is an intentional priority ordering
         self._all_candidates[project_name] = file_candidates + page_candidates
         if not self._all_candidates[project_name] and error_context.had_errors():
-            if project_name == "requirements-txt":
-                pass
-            else:
-                self._log_and_raise_network_errors(project_name, error_context)
+            self._log_and_raise_network_errors(project_name, error_context)
 
         return self._all_candidates[project_name]
 
