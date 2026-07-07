@@ -4,20 +4,24 @@ import os
 import sys
 from collections.abc import Generator
 from contextlib import contextmanager
+from pathlib import Path
 from textwrap import dedent
 from typing import Literal
+from unittest import mock
 
 import pytest
 
 from pip._internal.build_env import (
-    BuildEnvironment,
     BuildEnvironmentInstaller,
     InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
-    _get_system_sitepackages,
+    VirtualBuildEnvironment,
 )
+from pip._internal.build_env.base import Prefix
+from pip._internal.build_env.virtual import get_system_sitepackages
 from pip._internal.cache import WheelCache
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
 
 from tests.lib import (
@@ -66,9 +70,9 @@ def run_with_build_env(
             import sys
 
             from pip._internal.build_env import (
-                BuildEnvironment,
                 InprocessBuildEnvironmentInstaller,
                 SubprocessBuildEnvironmentInstaller,
+                VirtualBuildEnvironment,
             )
             from pip._internal.cache import WheelCache
             from pip._internal.index.collector import LinkCollector
@@ -102,7 +106,7 @@ def run_with_build_env(
                         build_tracker=tracker,
                         wheel_cache=WheelCache(None),
                     )
-                build_env = BuildEnvironment(installer)
+                build_env = VirtualBuildEnvironment(installer)
             """)
         + indent(dedent(setup_script_contents), "    ")
         + indent(
@@ -128,7 +132,7 @@ def test_build_env_allow_empty_requirements_install(
 ) -> None:
     finder = make_test_finder()
     with make_test_build_env_installer(install_method, finder) as installer:
-        build_env = BuildEnvironment(installer)
+        build_env = VirtualBuildEnvironment(installer)
         for prefix in ("normal", "overlay"):
             build_env.install_requirements(
                 [], prefix, kind="Installing build dependencies"
@@ -143,7 +147,7 @@ def test_build_env_allow_only_one_install(
     create_basic_wheel_for_package(script, "bar", "1.0")
     finder = make_test_finder(find_links=[os.fspath(script.scratch_path)])
     with make_test_build_env_installer(install_method, finder) as installer:
-        build_env = BuildEnvironment(installer)
+        build_env = VirtualBuildEnvironment(installer)
         for prefix in ("normal", "overlay"):
             build_env.install_requirements(
                 ["foo"], prefix, kind=f"installing foo in {prefix}"
@@ -308,7 +312,7 @@ def test_build_env_isolation(
     script.pip_install_local("-t", target, pkg_whl)
     script.environ["PYTHONPATH"] = target
 
-    system_sites = _get_system_sitepackages()
+    system_sites = get_system_sitepackages()
     # there should always be something to exclude
     assert system_sites
 
@@ -336,3 +340,81 @@ def test_build_env_isolation(
         """,
         install_method=install_method,
     )
+
+
+class TestProxyPassthrough:
+    @mock.patch("pip._internal.build_env.installer.call_subprocess")
+    def test_install_forwards_no_proxy_env(
+        self, mock_call_subprocess: mock.Mock, tmp_path: Path
+    ) -> None:
+        """When the parent session bypasses environment proxies, the build
+        subprocess is told to do the same via --no-proxy-env."""
+        session = PipSession()
+        session.pip_no_proxy_env = True
+        installer = SubprocessBuildEnvironmentInstaller(
+            make_test_finder(session=session)
+        )
+
+        installer.install(
+            requirements=["setuptools"],
+            prefix=Prefix(str(tmp_path)),
+            kind="build dependencies",
+            for_req=None,
+        )
+
+        args = mock_call_subprocess.call_args.args[0]
+        assert "--no-proxy-env" in args
+
+    @mock.patch("pip._internal.build_env.installer.call_subprocess")
+    def test_install_omits_no_proxy_env_by_default(
+        self, mock_call_subprocess: mock.Mock, tmp_path: Path
+    ) -> None:
+        installer = SubprocessBuildEnvironmentInstaller(make_test_finder())
+
+        installer.install(
+            requirements=["setuptools"],
+            prefix=Prefix(str(tmp_path)),
+            kind="build dependencies",
+            for_req=None,
+        )
+
+        args = mock_call_subprocess.call_args.args[0]
+        assert "--no-proxy-env" not in args
+
+    @mock.patch("pip._internal.build_env.installer.call_subprocess")
+    def test_install_forwards_empty_proxy(
+        self, mock_call_subprocess: mock.Mock, tmp_path: Path
+    ) -> None:
+        """An empty --proxy "" must reach the build subprocess, not be dropped."""
+        session = PipSession()
+        session.pip_proxy = ""
+        installer = SubprocessBuildEnvironmentInstaller(
+            make_test_finder(session=session)
+        )
+
+        installer.install(
+            requirements=["setuptools"],
+            prefix=Prefix(str(tmp_path)),
+            kind="build dependencies",
+            for_req=None,
+        )
+
+        args = mock_call_subprocess.call_args.args[0]
+        assert "--proxy" in args
+        assert args[args.index("--proxy") + 1] == ""
+
+    @mock.patch("pip._internal.build_env.installer.call_subprocess")
+    def test_install_omits_proxy_when_unset(
+        self, mock_call_subprocess: mock.Mock, tmp_path: Path
+    ) -> None:
+        installer = SubprocessBuildEnvironmentInstaller(make_test_finder())
+
+        installer.install(
+            requirements=["setuptools"],
+            prefix=Prefix(str(tmp_path)),
+            kind="build dependencies",
+            for_req=None,
+        )
+
+        args = mock_call_subprocess.call_args.args[0]
+        assert "--proxy" not in args

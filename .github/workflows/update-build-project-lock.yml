@@ -1,0 +1,65 @@
+name: Update build-project lock
+
+on:
+  schedule:
+    - cron: 0 5 * * MON # Run every Monday at 05:00
+  workflow_dispatch:
+    # allow manual runs
+
+env:
+  FORCE_COLOR: "1"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  update-build-project-lock:
+    if: github.repository_owner == 'pypa'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: true  # because we'll git push
+
+      # remove this step when the GitHub runner has pip>=26.1
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.x"
+
+      - name: Update the lock file
+        working-directory: build-project
+        run: "python -m pip lock --group build --uploaded-prior-to P3D --only-binary=:all:"
+
+      - name: Test the build works with the new lock file
+        run: python build-project/build-project.py
+
+      - name: Create a pull request if the lock file changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- build-project/pylock.toml; then
+            echo "build-project/pylock.toml is already up to date."
+            exit 0
+          fi
+
+          branch="update-build-project-lock"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add build-project/pylock.toml
+          git commit -m "Update build-project/pylock.toml"
+          git push --force origin "$branch"
+
+          if gh pr view "$branch" --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            echo "An open pull request already exists; its branch was updated."
+          else
+            gh pr create \
+              --base "${GITHUB_REF}" \
+              --head "$branch" \
+              --title "Update build-project/pylock.toml" \
+              --body "Automated update of the build-project lock file produced by \`pip lock --group build\`."
+          fi

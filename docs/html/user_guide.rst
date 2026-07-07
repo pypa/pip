@@ -96,6 +96,8 @@ pip can be configured to connect through a proxy server in various ways:
 * using ``proxy`` in a :ref:`config-file`
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
+* using the ``--no-proxy-env`` command-line option to ignore proxies set through
+  those environment variables (an explicit ``--proxy`` is still used).
 * using the environment variable ``PIP_USER_AGENT_USER_DATA`` to include
   a JSON-encoded string in the user-agent variable used in pip's requests.
 
@@ -263,6 +265,11 @@ Build Constraints
 
 .. versionadded:: 25.3
 
+.. versionchanged:: 26.2
+   Constraints files, including those set with the ``PIP_CONSTRAINT`` environment
+   variable, no longer affect isolated build environments. Use build constraints
+   to constrain build dependencies.
+
 Build constraints are a type of constraints file that applies only to isolated
 build environments used for building packages from source. Unlike regular
 constraints, which affect the packages installed in your environment, build
@@ -295,6 +302,9 @@ Example build constraints file (``build-constraints.txt``):
    setuptools>=45,<80
    # Pin Cython for packages that use it to build
    cython==0.29.24
+
+The ``--build-constraint`` option can be set with the ``PIP_BUILD_CONSTRAINT``
+environment variable.
 
 Controlling Pre-release Installation
 =====================================
@@ -771,7 +781,11 @@ To setup for bash::
 
 To setup for zsh::
 
-    python -m pip completion --zsh >> ~/.zprofile
+    python -m pip completion --zsh >> ~/.zshrc
+
+If you see ``command not found: compdef``, ensure your ``~/.zshrc`` initializes
+auto-completion (for example, by running ``autoload -Uz compinit && compinit``)
+before the appended pip snippet.
 
 To setup for fish::
 

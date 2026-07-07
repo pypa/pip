@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+
+from pip._vendor.urllib3.exceptions import ProtocolError
 
 from pip._internal.exceptions import IncompleteDownloadError
 from pip._internal.models.link import Link
@@ -19,7 +22,11 @@ from pip._internal.network.download import (
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import HEADERS
 
-from tests.lib.requests_mocks import MockResponse
+from tests.lib.requests_mocks import BrokenStream, MockResponse
+from tests.lib.server import Body, MockServer
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIEnvironment
 
 
 @pytest.mark.parametrize(
@@ -87,7 +94,7 @@ def test_log_download(
     caplog.set_level(logging.INFO)
     resp = MockResponse(b"")
     resp.url = url
-    resp.headers = headers
+    resp.headers.update(headers)
     if from_cache:
         resp.from_cache = from_cache
     link = Link(url)
@@ -104,6 +111,24 @@ def test_log_download(
     record = caplog.records[0]
     assert record.levelname == "INFO"
     assert expected in record.message
+
+
+@pytest.mark.parametrize(
+    "content_length, expected",
+    [
+        ("0", 0),
+        ("36", 36),
+        ("", None),
+        ("not-a-number", None),
+        # A negative length must not be passed through: it would make
+        # _FileDownload.is_incomplete() treat a truncated download as complete.
+        ("-1", None),
+    ],
+)
+def test_get_http_response_size(content_length: str, expected: int | None) -> None:
+    resp = MockResponse(b"")
+    resp.headers["content-length"] = content_length
+    assert _get_http_response_size(resp) == expected
 
 
 @pytest.mark.parametrize(
@@ -322,7 +347,7 @@ def test_downloader(
     responses = []
     for headers, status_code, body in mock_responses:
         resp = MockResponse(body)
-        resp.headers = headers
+        resp.headers.update(headers)
         resp.status_code = status_code
         responses.append(resp)
     _http_get_mock = MagicMock(side_effect=responses)
@@ -352,6 +377,146 @@ def test_downloader(
     _http_get_mock.assert_has_calls(calls)
 
 
+def test_downloader_resumes_on_protocol_error(tmpdir: Path) -> None:
+    """A ProtocolError mid-stream should trigger resume logic, not crash."""
+    session = PipSession(resume_retries=3)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    # First response: raises ProtocolError after partial read
+    broken_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    broken_resp.headers.update({"content-length": "36"})
+    broken_resp.status_code = 200
+    broken_resp.raw = BrokenStream(b"0cfa7e9d-1868-4dd7-9fb3-")
+
+    # Second response: successful resume
+    resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.headers.update({"content-length": "12"})
+    resume_resp.status_code = 206
+
+    _http_get_mock = MagicMock(side_effect=[broken_resp, resume_resp])
+
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    with open(filepath, "rb") as f:
+        assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+
+def test_downloader_retries_protocol_error_during_resume(tmpdir: Path) -> None:
+    """A ProtocolError raised while fetching a resume response is retried."""
+    session = PipSession(resume_retries=5)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    # Initial response: raises ProtocolError after a partial read
+    broken_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    broken_resp.headers.update({"content-length": "36"})
+    broken_resp.status_code = 200
+    broken_resp.raw = BrokenStream(b"0cfa7e9d-1868-4dd7-9fb3-")
+
+    # Final resume that completes the file
+    resume_resp = MockResponse(b"f2561d5dfd89")
+    resume_resp.headers.update({"content-length": "12"})
+    resume_resp.status_code = 206
+
+    # The first resume attempt drops with a ProtocolError before responding
+    _http_get_mock = MagicMock(
+        side_effect=[broken_resp, ProtocolError("Connection broken"), resume_resp]
+    )
+
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    assert _http_get_mock.call_count == 3
+    with open(filepath, "rb") as f:
+        assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+
+def test_downloader_resumes_on_truncated_http_stream(
+    mock_server: MockServer, tmpdir: Path
+) -> None:
+    """A truncated stream raises a real urllib3 ProtocolError that resume recovers."""
+    body = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+    def truncated(environ: WSGIEnvironment, start_response: StartResponse) -> Body:
+        # Advertise the full length but send only part of the body
+        start_response("200 OK", [("Content-Length", str(len(body)))])
+        return [body[:10]]
+
+    def resumed(environ: WSGIEnvironment, start_response: StartResponse) -> Body:
+        start = int(environ["HTTP_RANGE"].split("=", 1)[1].split("-", 1)[0])
+        start_response(
+            "206 Partial Content",
+            [
+                ("Content-Length", str(len(body) - start)),
+                ("Content-Range", f"bytes {start}-{len(body) - 1}/{len(body)}"),
+            ],
+        )
+        return [body[start:]]
+
+    mock_server.set_responses([truncated, resumed])
+    mock_server.start()
+    url = f"http://{mock_server.host}:{mock_server.port}/foo.tgz"
+
+    session = PipSession(resume_retries=3)
+    downloader = Downloader(session, "on")
+    filepath, _ = downloader(Link(url), str(tmpdir))
+
+    with open(filepath, "rb") as f:
+        assert f.read() == body
+
+
+def test_downloader_crashes_on_mismatched_resume_offset(tmpdir: Path) -> None:
+    """A 206 whose Content-Range starts at a different offset than requested
+    must fail, otherwise the misplaced bytes would corrupt the file."""
+    body = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+    session = PipSession(resume_retries=5)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    # Incomplete first response (24 of 36 bytes).
+    first = MockResponse(body[:24])
+    first.headers.update({"content-length": "36"})
+    first.status_code = 200
+
+    # The resume asks for bytes=24- but the server answers with content that
+    # (per its Content-Range) starts at offset 0.
+    mismatched = MockResponse(b"XXXXXXXXXXXX")
+    mismatched.headers.update(
+        {"content-length": "12", "content-range": "bytes 0-11/36"}
+    )
+    mismatched.status_code = 206
+
+    _http_get_mock = MagicMock(side_effect=[first, mismatched])
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        with pytest.raises(IncompleteDownloadError):
+            downloader(link, str(tmpdir))
+
+
+def test_downloader_without_content_length(tmpdir: Path) -> None:
+    """A response without a Content-Length header should be treated as an
+    unknown size and still download fully.
+
+    This guards against MockResponse inventing its own Content-Length, which
+    would hide the unknown-size download path from the tests.
+    """
+    body = b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+    resp = MockResponse(body)
+    resp.status_code = 200
+
+    assert _get_http_response_size(resp) is None
+
+    session = PipSession(resume_retries=0)
+    downloader = Downloader(session, "on")
+    link = Link("http://example.com/foo.tgz")
+    with patch.object(Downloader, "_http_get", MagicMock(return_value=resp)):
+        filepath, _ = downloader(link, str(tmpdir))
+
+    with open(filepath, "rb") as downloaded_file:
+        assert downloaded_file.read() == body
+
+
 def test_resumed_download_caching(tmpdir: Path) -> None:
     """Test that resumed downloads are cached properly for future use."""
     cache_dir = tmpdir / "cache"
@@ -361,11 +526,11 @@ def test_resumed_download_caching(tmpdir: Path) -> None:
 
     # Mock an incomplete download followed by a successful resume
     incomplete_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
-    incomplete_resp.headers = {"content-length": "36"}
+    incomplete_resp.headers.update({"content-length": "36"})
     incomplete_resp.status_code = 200
 
     resume_resp = MockResponse(b"f2561d5dfd89")
-    resume_resp.headers = {"content-length": "12"}
+    resume_resp.headers.update({"content-length": "12"})
     resume_resp.status_code = 206
 
     responses = [incomplete_resp, resume_resp]
