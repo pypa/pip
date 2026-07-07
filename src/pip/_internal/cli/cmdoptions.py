@@ -969,14 +969,30 @@ no_deps: Callable[..., Option] = partial(
     help="Don't install package dependencies.",
 )
 
-force_metadata_refresh: Callable[..., Option] = partial(
-    Option,
-    "--force-metadata-refresh",
-    dest="force_metadata_refresh",
-    action="store_true",
-    default=False,
-    help=("Revalidate package index metadata instead of using cached responses."),
-)
+
+def _handle_force_metadata_refresh(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    existing = _get_format_control(parser.values, option)
+    FormatControl.handle_mutual_excludes(
+        value,
+        existing,
+        set(),
+    )
+
+
+def force_metadata_refresh() -> Option:
+    return Option(
+        "--force-metadata-refresh",
+        dest="force_metadata_refresh",
+        action="callback",
+        callback=_handle_force_metadata_refresh,
+        type="str",
+        default=set(),
+        help="Revalidate package index metadata for the given packages "
+        "instead of using cached responses. Accepts ':all:' to apply "
+        "to all packages, or a comma-separated list of package names.",
+    )
 
 
 def _handle_dependency_group(
