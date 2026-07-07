@@ -570,12 +570,9 @@ def get_file_content(
     scheme = urllib.parse.urlsplit(url).scheme
     # Pip has special support for file:// URLs (LocalFSAdapter).
     if scheme in ["http", "https", "file"]:
-        # Delay importing heavy network modules until absolutely necessary.
-        from pip._internal.network.utils import raise_for_status
+        from pip._internal.network.utils import fetch_url_content
 
-        resp = session.get(url)
-        raise_for_status(resp)
-        return resp.url, resp.text
+        return fetch_url_content(url, session)
 
     # Assume this is a bare path.
     try:

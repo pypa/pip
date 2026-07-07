@@ -1,8 +1,12 @@
 from collections.abc import Generator
+from typing import TYPE_CHECKING
 
 from pip._vendor.requests.models import Response
 
 from pip._internal.exceptions import NetworkConnectionError
+
+if TYPE_CHECKING:
+    from pip._internal.network.session import PipSession
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -96,3 +100,13 @@ def response_chunks(
             if not chunk:
                 break
             yield chunk
+
+
+def fetch_url_content(url: str, session: "PipSession") -> tuple[str, str]:
+    """Fetch content from a URL (http/https/file scheme).
+
+    Returns (final_url, text_content).
+    """
+    resp = session.get(url)
+    raise_for_status(resp)
+    return resp.url, resp.text
