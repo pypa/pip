@@ -853,7 +853,9 @@ class PackageFinder:
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        index_response = self._link_collector.fetch_response(project_url)
+        index_response = self._link_collector.fetch_response(
+            project_url, package_name=link_evaluator.project_name
+        )
         if index_response is None:
             return []
 

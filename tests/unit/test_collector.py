@@ -86,7 +86,7 @@ def test_get_simple_response_archive_to_http_scheme(
     if the scheme supports it, and raise `_NotAPIContent` if the response isn't HTML.
     """
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
     session.head.return_value = mock.Mock(
         **{
             "request.method": "HEAD",
@@ -123,7 +123,7 @@ def test_get_index_content_invalid_content_type_archive(
     link = Link(url)
 
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
 
     assert _get_index_content(link, session=session) is None
     assert (
@@ -150,7 +150,7 @@ def test_get_simple_response_archive_to_http_scheme_is_html(
     request is responded with text/html.
     """
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
     session.head.return_value = mock.Mock(
         **{
             "request.method": "HEAD",
@@ -194,7 +194,7 @@ def test_get_simple_response_no_head(
     look like an archive, only the GET request that retrieves data.
     """
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
 
     # Mock the headers dict to ensure it is accessed.
     session.get.return_value = mock.Mock(
@@ -231,7 +231,7 @@ def test_get_simple_response_dont_log_clear_text_password(
     in its DEBUG log message.
     """
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
 
     # Mock the headers dict to ensure it is accessed.
     session.get.return_value = mock.Mock(
@@ -727,7 +727,7 @@ def test_request_http_error(
     caplog.set_level(logging.DEBUG)
     link = Link("http://localhost")
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
     session.get.return_value = mock.Mock()
     mock_raise_for_status.side_effect = NetworkConnectionError("Http error")
     assert _get_index_content(link, session=session) is None
@@ -738,7 +738,7 @@ def test_request_retries(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG)
     link = Link("http://localhost")
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
     session.get.side_effect = requests.exceptions.RetryError("Retry error")
     assert _get_index_content(link, session=session) is None
     assert "Could not fetch URL http://localhost: Retry error - skipping" in caplog.text
@@ -807,7 +807,7 @@ def test_get_index_content_invalid_content_type(
     link = Link(url)
 
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
     session.get.return_value = mock.Mock(
         **{
             "request.method": "GET",
@@ -847,7 +847,7 @@ def test_get_index_content_directory_append_index(tmpdir: Path) -> None:
     expected_url = "{}/index.html".format(dir_url.rstrip("/"))
 
     session = mock.Mock(PipSession)
-    session.force_metadata_refresh = False
+    session.force_metadata_refresh = set()
     fake_response = make_fake_html_response(expected_url)
     mock_func = mock.patch("pip._internal.index.collector._get_simple_response")
     with mock_func as mock_func:

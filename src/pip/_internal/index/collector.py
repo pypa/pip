@@ -22,6 +22,7 @@ from typing import (
 )
 
 from pip._vendor import requests
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
@@ -104,7 +105,9 @@ def _ensure_api_response(url: str, session: PipSession) -> None:
     _ensure_api_header(resp)
 
 
-def _get_simple_response(url: str, session: PipSession) -> Response:
+def _get_simple_response(
+    url: str, session: PipSession, package_name: str | None = None
+) -> Response:
     """Access an Simple API response with GET, and return the response.
 
     This consists of three parts:
@@ -117,6 +120,7 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
     3. Check the Content-Type header to make sure we got a Simple API response,
        and raise `_NotAPIContent` otherwise.
     """
+    print(f"DEBUG _get_simple_response: url={url!r} package_name={package_name!r}")
     if is_archive_file(Link(url).filename):
         _ensure_api_response(url, session=session)
 
@@ -132,8 +136,20 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
         ),
     }
 
-    if session.force_metadata_refresh:
-        logger.debug("Forcing metadata to be refreshed.")
+    force_refresh = session.force_metadata_refresh
+    should_force_refresh = bool(force_refresh) and (
+        ":all:" in force_refresh
+        or (
+            package_name is not None
+            and canonicalize_name(package_name) in force_refresh
+        )
+    )
+
+    if should_force_refresh:
+        logger.debug(
+            "Forcing metadata refresh for %s.",
+            package_name or url,
+        )
         headers["Cache-Control"] = "max-age=0"
 
     resp = session.get(url, headers=headers)
@@ -304,7 +320,9 @@ def _make_index_content(
     )
 
 
-def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | None:
+def _get_index_content(
+    link: Link, *, session: PipSession, package_name: str | None = None
+) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
@@ -331,7 +349,7 @@ def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | Non
         logger.debug(" file: URL is directory, getting %s", url)
 
     try:
-        resp = _get_simple_response(url, session=session)
+        resp = _get_simple_response(url, session=session, package_name=package_name)
     except _NotHTTP:
         logger.warning(
             "Skipping page %s because it looks like an archive, and cannot "
@@ -423,11 +441,15 @@ class LinkCollector:
     def find_links(self) -> list[str]:
         return self.search_scope.find_links
 
-    def fetch_response(self, location: Link) -> IndexContent | None:
+    def fetch_response(
+        self, location: Link, package_name: str | None = None
+    ) -> IndexContent | None:
         """
         Fetch an HTML page containing package links.
         """
-        return _get_index_content(location, session=self.session)
+        return _get_index_content(
+            location, session=self.session, package_name=package_name
+        )
 
     def collect_sources(
         self,
