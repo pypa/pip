@@ -328,6 +328,13 @@ def _record_error_if_present(
         error_context.record_error(url, exc)
 
 
+def _get_error_reason(exc: Exception) -> str | Exception:
+    """Extract the underlying reason from a urllib3 wrapped exception."""
+    if exc.args and hasattr(exc.args[0], "reason"):
+        return exc.args[0].reason
+    return exc
+
+
 def _get_index_content(
     link: Link,
     *,
@@ -380,16 +387,18 @@ def _get_index_content(
         _handle_get_simple_fail(link, exc)
         _record_error_if_present(error_context, str(link.url), exc)
     except RetryError as exc:
+        reason = _get_error_reason(exc.args[0].reason)
         _handle_get_simple_fail(link, exc)
-        _record_error_if_present(error_context, str(link.url), exc.args[0].reason)
+        _record_error_if_present(error_context, str(link.url), reason)
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate: "
-        reason += str(exc.args[0].reason)
+        reason += str(_get_error_reason(exc.args[0].reason))
         _handle_get_simple_fail(link, reason, meth=logger.info)
         _record_error_if_present(error_context, str(link.url), reason)
     except requests.ConnectionError as exc:
+        reason = _get_error_reason(exc.args[0].reason)
         _handle_get_simple_fail(link, f"connection error: {exc}")
-        _record_error_if_present(error_context, str(link.url), exc.args[0].reason)
+        _record_error_if_present(error_context, str(link.url), reason)
     except requests.Timeout:
         _handle_get_simple_fail(link, "timed out")
         _record_error_if_present(error_context, str(link.url), "timed out")
