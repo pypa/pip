@@ -25,6 +25,7 @@ from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
     InvalidWheelFilename,
+    NetworkConnectionError,
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
@@ -62,9 +63,9 @@ class IndexErrorContext:
     """Tracks network errors during index access"""
 
     def __init__(self) -> None:
-        self.network_errors: list[tuple[str, Exception]] = []
+        self.network_errors: list[tuple[str, str | Exception]] = []
 
-    def record_error(self, url: str, exc: Exception) -> None:
+    def record_error(self, url: str, exc: str | Exception) -> None:
         self.network_errors.append((url, exc))
 
     def had_errors(self) -> bool:
@@ -879,6 +880,27 @@ class PackageFinder:
 
         return package_links
 
+    def _log_and_raise_network_errors(
+        self, project_name: str, error_context: IndexErrorContext
+    ) -> None:
+        error_type = "network"
+        for url, exc in error_context.network_errors:
+            logger.warning("Failed to fetch %s: %s", url, exc)
+            if isinstance(exc, NetworkConnectionError) and exc.response is not None:
+                if 400 <= exc.response.status_code < 500:
+                    error_type = "client"
+                elif 500 <= exc.response.status_code < 600:
+                    error_type = "server"
+
+        raise InstallationError(
+            f"Could not find a version of {project_name} due to {error_type} errors."
+            + (
+                " See above for details."
+                if logger.isEnabledFor(logging.WARNING)
+                else ""
+            )
+        )
+
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
 
@@ -938,16 +960,7 @@ class PackageFinder:
             if project_name == "requirements-txt":
                 pass
             else:
-                for url, exc in error_context.network_errors:
-                    logger.warning("Failed to fetch %s: %s", url, exc)
-                raise InstallationError(
-                    f"Could not find a version of {project_name} due to network errors."
-                    + (
-                        " See above for details."
-                        if logger.isEnabledFor(logging.WARNING)
-                        else ""
-                    )
-                )
+                self._log_and_raise_network_errors(project_name, error_context)
 
         return self._all_candidates[project_name]
 

@@ -322,7 +322,7 @@ def _make_index_content(
 def _record_error_if_present(
     error_context: IndexErrorContext | None,
     url: str,
-    exc: Exception,
+    exc: str | Exception,
 ) -> None:
     if error_context is not None:
         error_context.record_error(url, exc)
@@ -381,18 +381,18 @@ def _get_index_content(
         _record_error_if_present(error_context, str(link.url), exc)
     except RetryError as exc:
         _handle_get_simple_fail(link, exc)
-        _record_error_if_present(error_context, str(link.url), exc)
+        _record_error_if_present(error_context, str(link.url), exc.args[0].reason)
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate: "
-        reason += str(exc)
+        reason += str(exc.args[0].reason)
         _handle_get_simple_fail(link, reason, meth=logger.info)
-        _record_error_if_present(error_context, str(link.url), exc)
+        _record_error_if_present(error_context, str(link.url), reason)
     except requests.ConnectionError as exc:
         _handle_get_simple_fail(link, f"connection error: {exc}")
-        _record_error_if_present(error_context, str(link.url), exc)
-    except requests.Timeout as exc:
+        _record_error_if_present(error_context, str(link.url), exc.args[0].reason)
+    except requests.Timeout:
         _handle_get_simple_fail(link, "timed out")
-        _record_error_if_present(error_context, str(link.url), exc)
+        _record_error_if_present(error_context, str(link.url), "timed out")
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None
