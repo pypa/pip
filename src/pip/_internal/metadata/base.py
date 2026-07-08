@@ -160,14 +160,13 @@ class BaseDistribution(Protocol):
         """
         raise NotImplementedError()
 
-    @property
+    @functools.cached_property
     def editable_project_location(self) -> str | None:
         """The project location for editable distributions.
 
         This is the directory where pyproject.toml or setup.py is located.
         None if the distribution is not installed in editable mode.
         """
-        # TODO: this property is relatively costly to compute, memoize it ?
         direct_url = self.direct_url
         if direct_url:
             if direct_url.is_local_editable():

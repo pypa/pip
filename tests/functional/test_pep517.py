@@ -49,6 +49,7 @@ def test_backend(tmpdir: Path, data: TestData) -> None:
     finder = make_test_finder(find_links=[data.backends])
     env = VirtualBuildEnvironment(SubprocessBuildEnvironmentInstaller(finder))
     env.install_requirements(["dummy_backend"], "normal", kind="Installing")
+    req.configure_backend(env.python_executable)
     conflicting, missing = env.check_requirements(["dummy_backend"])
     assert not conflicting
     assert not missing
@@ -77,6 +78,7 @@ def test_backend_path(tmpdir: Path, data: TestData) -> None:
     req.load_pyproject_toml()
 
     env = VirtualBuildEnvironment(object())  # type: ignore
+    req.configure_backend(env.python_executable)
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:
         assert req.pep517_backend is not None
@@ -97,6 +99,7 @@ def test_backend_path_and_dep(tmpdir: Path, data: TestData) -> None:
     finder = make_test_finder(find_links=[data.backends])
     env = VirtualBuildEnvironment(SubprocessBuildEnvironmentInstaller(finder))
     env.install_requirements(["dummy_backend"], "normal", kind="Installing")
+    req.configure_backend(env.python_executable)
 
     assert hasattr(req.pep517_backend, "build_wheel")
     with env:

@@ -86,6 +86,8 @@ pip will also respect `XDG_CACHE_HOME`.
 ```
 ~/Library/Caches/pip
 ```
+
+pip will also respect `XDG_CACHE_HOME`.
 ````
 
 ````{tab} Windows
@@ -93,6 +95,10 @@ pip will also respect `XDG_CACHE_HOME`.
 %LocalAppData%\pip\Cache
 ```
 ````
+
+```{versionchanged} 26.2
+pip will also respect `XDG_CACHE_HOME` on macOS.
+```
 
 ## Avoiding caching
 
