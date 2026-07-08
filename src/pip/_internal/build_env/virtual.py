@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import site
+import sys
 import textwrap
 from collections import OrderedDict
 from collections.abc import Iterable
@@ -28,10 +29,13 @@ def get_system_sitepackages() -> set[str]:
 class VirtualBuildEnvironment(BuildEnvironment):
     """Legacy build environment implementation.
 
-    Patches sys.path and uses sitecustomize.py to isolate Python processes.
+    Patches sys.path and uses sitecustomize.py to isolate Python processes. It has
+    known bugs and weird edge cases, but it exists as a fallback for platforms where
+    the venv module is unavailable or dysfunctional.
     """
 
     def __init__(self, installer: BuildEnvironmentInstaller) -> None:
+        self.python_executable = sys.executable
         self.installer = installer
         temp_dir = TempDirectory(kind=tempdir_kinds.BUILD_ENV, globally_managed=True)
 

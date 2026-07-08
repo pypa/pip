@@ -16,6 +16,7 @@ from typing import Any, TypeVar
 
 from pip._internal.build_env import (
     BuildEnvironmentInstaller,
+    BuildIsolationMode,
     InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
 )
@@ -62,11 +63,14 @@ from pip._internal.utils.temp_dir import (
 logger = logging.getLogger(__name__)
 
 
-def should_ignore_regular_constraints(options: Values) -> bool:
+def should_ignore_regular_constraints() -> bool:
     """
-    Check if regular constraints should be ignored because
-    we are in a isolated build process and build constraints
-    feature is enabled but no build constraints were passed.
+    Whether this process should ignore the regular constraints it inherits.
+
+    The parent pip sets ``_PIP_IN_BUILD_IGNORE_CONSTRAINTS`` whenever it starts
+    an isolated build in a subprocess, so that regular constraints the build
+    inherits (such as via ``PIP_CONSTRAINT`` or config files) do not affect it.
+    Only build constraints apply there.
     """
 
     return os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1"
@@ -190,9 +194,6 @@ class RequirementCommand(IndexGroupCommand):
 
         # Handle build constraints
         build_constraints = getattr(options, "build_constraints", [])
-        build_constraint_feature_enabled = (
-            "build-constraint" in options.features_enabled
-        )
 
         env_installer: BuildEnvironmentInstaller
         if "inprocess-build-deps" in options.features_enabled:
@@ -210,14 +211,26 @@ class RequirementCommand(IndexGroupCommand):
             env_installer = SubprocessBuildEnvironmentInstaller(
                 finder,
                 build_constraints=build_constraints,
-                build_constraint_feature_enabled=build_constraint_feature_enabled,
             )
+
+        if not options.build_isolation:
+            build_isolation: BuildIsolationMode = "off"
+        elif "venv-isolation" in options.features_enabled:
+            build_isolation = "venv"
+            if "inprocess-build-deps" in options.features_enabled:
+                logger.warning(
+                    "Using --use-feature 'inprocess-build-deps' and 'venv-isolation'"
+                    " together is currently partially supported. If you encounter"
+                    " broken behaviour, use only one feature."
+                )
+        else:
+            build_isolation = "virtual"
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            build_isolation="virtual" if options.build_isolation else "off",
+            build_isolation=build_isolation,
             build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
@@ -300,11 +313,15 @@ class RequirementCommand(IndexGroupCommand):
         """
         requirements: list[InstallRequirement] = []
 
-        if not should_ignore_regular_constraints(options):
-            constraints = parse_constraint_files(
-                options.constraints, finder, options, session
-            )
-            requirements.extend(constraints)
+        if should_ignore_regular_constraints():
+            # Inside an isolated build subprocess: apply the build constraints
+            # (forwarded via --build-constraint) instead of the inherited ones.
+            constraint_files = getattr(options, "build_constraints", [])
+        else:
+            constraint_files = options.constraints
+
+        constraints = parse_constraint_files(constraint_files, finder, options, session)
+        requirements.extend(constraints)
 
         for req in args:
             if not req.strip():

@@ -76,6 +76,7 @@ _MISSING_MODULES: set[str] = set()
 # after installation has started. Importing them eagerly keeps the audit
 # hook from misattributing them to a freshly installed distribution.
 _EAGER_IMPORTS: tuple[str, ...] = (
+    "pip._internal.operations.install.wheel",
     # Used by rich when emitting output to a legacy Windows console.
     "pip._vendor.rich._windows_renderer",
 )

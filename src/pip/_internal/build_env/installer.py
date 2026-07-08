@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import logging
-import os
 import sys
 import textwrap
 from collections.abc import Iterable, Sequence
 from contextlib import AbstractContextManager as ContextManager
 from contextlib import nullcontext
 from io import StringIO
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
 from pip._internal.build_env.base import Prefix
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
@@ -19,7 +18,6 @@ from pip._internal.exceptions import (
     PipError,
 )
 from pip._internal.metadata import get_environment
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import VERBOSE, capture_logging
 from pip._internal.utils.misc import get_runnable_pip
 from pip._internal.utils.subprocess import call_subprocess
@@ -31,9 +29,6 @@ if TYPE_CHECKING:
     from pip._internal.operations.build.build_tracker import BuildTracker
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import BaseResolver
-
-    class ExtraEnviron(TypedDict, total=False):
-        extra_environ: dict[str, str]
 
 
 logger = logging.getLogger(__name__)
@@ -48,40 +43,9 @@ class SubprocessBuildEnvironmentInstaller:
         self,
         finder: PackageFinder,
         build_constraints: list[str] | None = None,
-        build_constraint_feature_enabled: bool = False,
     ) -> None:
         self.finder = finder
         self._build_constraints = build_constraints or []
-        self._build_constraint_feature_enabled = build_constraint_feature_enabled
-
-    def _deprecation_constraint_check(self) -> None:
-        """
-        Check for deprecation warning: PIP_CONSTRAINT affecting build environments.
-
-        This warns when build-constraint feature is NOT enabled and PIP_CONSTRAINT
-        is not empty.
-        """
-        if self._build_constraint_feature_enabled or self._build_constraints:
-            return
-
-        pip_constraint = os.environ.get("PIP_CONSTRAINT")
-        if not pip_constraint or not pip_constraint.strip():
-            return
-
-        deprecated(
-            reason=(
-                "Setting PIP_CONSTRAINT will not affect "
-                "build constraints in the future,"
-            ),
-            replacement=(
-                "to specify build constraints using --build-constraint or "
-                "PIP_BUILD_CONSTRAINT. To disable this warning without "
-                "any build constraints set --use-feature=build-constraint or "
-                'PIP_USE_FEATURE="build-constraint"'
-            ),
-            gone_in="26.2",
-            issue=None,
-        )
 
     def install(
         self,
@@ -91,17 +55,16 @@ class SubprocessBuildEnvironmentInstaller:
         kind: str,
         for_req: InstallRequirement | None,
     ) -> None:
-        self._deprecation_constraint_check()
-
         finder = self.finder
         args: list[str] = [
-            sys.executable,
             get_runnable_pip(),
             "install",
-            "--ignore-installed",
-            "--no-user",
+            # HACK: --prefix shouldn't be necessary for venv environments, but
+            # we set it anyway so if it's set via an envvar or configuration
+            # file, it won't break things, *sigh*.
             "--prefix",
             prefix.path,
+            "--no-user",
             "--no-warn-script-location",
             "--disable-pip-version-check",
             # As the build environment is ephemeral, it's wasteful to
@@ -113,6 +76,12 @@ class SubprocessBuildEnvironmentInstaller:
             "--target",
             "",
         ]
+        if prefix.venv_executable:
+            args.insert(0, prefix.venv_executable)
+        else:
+            args.insert(0, sys.executable)
+            args.append("--ignore-installed")
+
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append("-vv")
         elif logger.getEffectiveLevel() <= VERBOSE:
@@ -142,8 +111,11 @@ class SubprocessBuildEnvironmentInstaller:
         for link in finder.find_links:
             args.extend(["--find-links", link])
 
-        if finder.proxy:
+        # is not None: forward an empty --proxy "" (disable proxying) too.
+        if finder.proxy is not None:
             args.extend(["--proxy", finder.proxy])
+        if finder.no_proxy_env:
+            args.append("--no-proxy-env")
         for host in finder.trusted_hosts:
             args.extend(["--trusted-host", host])
         if finder.custom_cert:
@@ -153,24 +125,13 @@ class SubprocessBuildEnvironmentInstaller:
         if finder.prefer_binary:
             args.append("--prefer-binary")
 
-        # Handle build constraints
-        if self._build_constraint_feature_enabled:
-            args.extend(["--use-feature", "build-constraint"])
-
-        if self._build_constraints:
-            # Build constraints must be passed as both constraints
-            # and build constraints, so that nested builds receive
-            # build constraints
-            for constraint_file in self._build_constraints:
-                args.extend(["--constraint", constraint_file])
-                args.extend(["--build-constraint", constraint_file])
-
-        extra_environ: ExtraEnviron = {}
-        if self._build_constraint_feature_enabled and not self._build_constraints:
-            # If there are no build constraints but the build constraints
-            # feature is enabled then we must ignore regular constraints
-            # in the isolated build environment
-            extra_environ = {"extra_environ": {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}}
+        # Only build constraints apply in the isolated build environment.
+        # _PIP_IN_BUILD_IGNORE_CONSTRAINTS tells the subprocess to ignore the
+        # regular constraints it inherits (via PIP_CONSTRAINT or config files).
+        # Build constraints reach it through --build-constraint, which also
+        # constrains any nested builds.
+        for constraint_file in self._build_constraints:
+            args.extend(["--build-constraint", constraint_file])
 
         if finder.uploaded_prior_to:
             args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
@@ -185,13 +146,13 @@ class SubprocessBuildEnvironmentInstaller:
                 args,
                 command_desc=f"installing {kind}{identify_requirement}",
                 spinner=spinner,
-                **extra_environ,
+                extra_environ={"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"},
             )
 
 
 class InprocessBuildEnvironmentInstaller:
     """
-    Build dependency installer that runs in the same pip process.
+    Install build dependencies via the already running pip process.
 
     This contains a stripped down version of the install command with
     only the logic necessary for installing build dependencies. The
@@ -202,6 +163,10 @@ class InprocessBuildEnvironmentInstaller:
     they don't make sense for build dependencies (in which case, they
     are hard-coded, see comments below).
     """
+
+    # TODO: this plays poorly with venv-based build environments, but cannot be
+    # fixed until pip gains better support for operating within a Python
+    # environment that isn't the running environment.
 
     def __init__(
         self,
@@ -330,6 +295,8 @@ class InprocessBuildEnvironmentInstaller:
             # pre-compile everything since not all modules will be used.
             pycompile=False,
             progress_bar="off",
+            # Link console scripts to the build env's interpreter, not pip's.
+            script_executable=prefix.venv_executable,
         )
 
         env = get_environment(list(prefix.lib_dirs))
