@@ -66,6 +66,16 @@ def test_help_command_should_exit_status_ok_when_no_cmd_is_specified(
     assert result.returncode == SUCCESS
 
 
+def test_help_command_quiet_shows_general_help(script: PipTestEnvironment) -> None:
+    """
+    Test that quiet mode does not suppress the no-argument help command.
+    """
+    result = script.pip("help", "--quiet")
+    assert result.returncode == SUCCESS
+    assert "Usage:" in result.stdout
+    assert "Commands:" in result.stdout
+
+
 def test_help_command_should_exit_status_error_when_cmd_does_not_exist(
     script: PipTestEnvironment,
 ) -> None:

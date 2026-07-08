@@ -298,11 +298,13 @@ class ListCommand(IndexGroupCommand):
                 except InvalidVersion:
                     req_string = f"{dist.raw_name}==={dist.raw_version}"
                 if options.verbose >= 1:
-                    write_output("%s (%s)", req_string, dist.location)
+                    write_output(
+                        "%s (%s)", req_string, dist.location, show_on_quiet=True
+                    )
                 else:
-                    write_output(req_string)
+                    write_output(req_string, show_on_quiet=True)
         elif options.list_format == "json":
-            write_output(format_for_json(packages, options))
+            write_output(format_for_json(packages, options), show_on_quiet=True)
 
     def output_package_listing_columns(
         self, data: list[list[str]], header: list[str]
@@ -318,7 +320,7 @@ class ListCommand(IndexGroupCommand):
             pkg_strings.insert(1, " ".join("-" * x for x in sizes))
 
         for val in pkg_strings:
-            write_output(val)
+            write_output(val, show_on_quiet=True)
 
 
 def format_for_columns(

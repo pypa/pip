@@ -179,13 +179,13 @@ class ConfigurationCommand(Command):
 
         for key, value in sorted(self.configuration.items()):
             for key, value in sorted(value.items()):
-                write_output("%s=%r", key, value)
+                write_output("%s=%r", key, value, show_on_quiet=True)
 
     def get_name(self, options: Values, args: list[str]) -> None:
         key = self._get_n_args(args, "get [name]", n=1)
         value = self.configuration.get_value(key)
 
-        write_output("%s", value)
+        write_output("%s", value, show_on_quiet=True)
 
     def set_name_value(self, options: Values, args: list[str]) -> None:
         key, value = self._get_n_args(args, "set [name] [value]", n=2)
@@ -207,11 +207,13 @@ class ConfigurationCommand(Command):
         # Iterate over config files and print if they exist, and the
         # key-value pairs present in them if they do
         for variant, files in sorted(self.configuration.iter_config_files()):
-            write_output("%s:", variant)
+            write_output("%s:", variant, show_on_quiet=True)
             for fname in files:
                 with indent_log():
                     file_exists = os.path.exists(fname)
-                    write_output("%s, exists: %r", fname, file_exists)
+                    write_output(
+                        "%s, exists: %r", fname, file_exists, show_on_quiet=True
+                    )
                     if file_exists:
                         self.print_config_file_values(variant, fname)
 
@@ -221,15 +223,15 @@ class ConfigurationCommand(Command):
             with indent_log():
                 if name == fname:
                     for confname, confvalue in value.items():
-                        write_output("%s: %s", confname, confvalue)
+                        write_output("%s: %s", confname, confvalue, show_on_quiet=True)
 
     def print_env_var_values(self) -> None:
         """Get key-values pairs present as environment variables"""
-        write_output("%s:", "env_var")
+        write_output("%s:", "env_var", show_on_quiet=True)
         with indent_log():
             for key, value in sorted(self.configuration.get_environ_vars()):
                 env_var = f"PIP_{key.upper()}"
-                write_output("%s=%r", env_var, value)
+                write_output("%s=%r", env_var, value, show_on_quiet=True)
 
     def open_in_editor(self, options: Values, args: list[str]) -> None:
         editor = self._determine_editor(options)

@@ -25,6 +25,15 @@ def test_basic_check_clean(script: PipTestEnvironment) -> None:
     assert result.returncode == 0
 
 
+def test_basic_check_clean_quiet(script: PipTestEnvironment) -> None:
+    """Quiet mode should not suppress check's dependency report."""
+    result = script.pip("check", "--quiet")
+
+    expected_lines = ("No broken requirements found.",)
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0
+
+
 def test_basic_check_missing_dependency(script: PipTestEnvironment) -> None:
     # Setup a small project
     pkga_path = create_test_package_with_setup(

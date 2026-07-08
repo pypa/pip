@@ -54,6 +54,9 @@ class TestBasicLoading(ConfigurationMixin):
         result = script.pip("config", "get", "test.blah")
         assert result.stdout.strip() == "1"
 
+        result = script.pip("config", "get", "test.blah", "--quiet")
+        assert result.stdout.strip() == "1"
+
         script.pip("config", "unset", "test.blah")
         script.pip("config", "get", "test.blah", expect_error=True)
 

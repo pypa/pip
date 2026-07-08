@@ -113,21 +113,26 @@ def transform_hits(hits: list[dict[str, str]]) -> list[TransformedHit]:
     return list(packages.values())
 
 
-def print_dist_installation_info(latest: str, dist: BaseDistribution | None) -> None:
+def print_dist_installation_info(
+    latest: str, dist: BaseDistribution | None, show_on_quiet: bool = False
+) -> None:
     if dist is not None:
         with indent_log():
             if dist.version == latest:
-                write_output("INSTALLED: %s (latest)", dist.version)
+                write_output(
+                    "INSTALLED: %s (latest)", dist.version, show_on_quiet=show_on_quiet
+                )
             else:
-                write_output("INSTALLED: %s", dist.version)
+                write_output("INSTALLED: %s", dist.version, show_on_quiet=show_on_quiet)
                 if parse_version(latest).pre:
                     write_output(
                         "LATEST:    %s (pre-release; install"
                         " with `pip install --pre`)",
                         latest,
+                        show_on_quiet=show_on_quiet,
                     )
                 else:
-                    write_output("LATEST:    %s", latest)
+                    write_output("LATEST:    %s", latest, show_on_quiet=show_on_quiet)
 
 
 def get_installed_distribution(name: str) -> BaseDistribution | None:
@@ -167,9 +172,9 @@ def print_results(
         name_latest = f"{name} ({latest})"
         line = f"{name_latest:{name_column_width}} - {summary}"
         try:
-            write_output(line)
+            write_output(line, show_on_quiet=True)
             dist = get_installed_distribution(name)
-            print_dist_installation_info(latest, dist)
+            print_dist_installation_info(latest, dist, show_on_quiet=True)
         except UnicodeEncodeError:
             pass
 

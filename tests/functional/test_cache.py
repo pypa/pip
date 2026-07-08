@@ -184,6 +184,12 @@ def test_cache_dir(script: PipTestEnvironment, cache_dir: str) -> None:
     assert os.path.normcase(cache_dir) == result.stdout.strip()
 
 
+def test_cache_dir_quiet(script: PipTestEnvironment, cache_dir: str) -> None:
+    result = script.pip("cache", "dir", "--quiet")
+
+    assert os.path.normcase(cache_dir) == result.stdout.strip()
+
+
 def test_cache_dir_too_many_args(script: PipTestEnvironment, cache_dir: str) -> None:
     result = script.pip("cache", "dir", "aaa", expect_error=True)
 

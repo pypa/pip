@@ -40,6 +40,7 @@ class CheckCommand(Command):
                     project_name,
                     version,
                     dependency[0],
+                    show_on_quiet=True,
                 )
 
         for project_name in conflicting:
@@ -52,15 +53,17 @@ class CheckCommand(Command):
                     req,
                     dep_name,
                     dep_version,
+                    show_on_quiet=True,
                 )
         for package in unsupported:
             write_output(
                 "%s %s is not supported on this platform",
                 package.raw_name,
                 package.version,
+                show_on_quiet=True,
             )
         if missing or conflicting or parsing_probs or unsupported:
             return ERROR
         else:
-            write_output("No broken requirements found.")
+            write_output("No broken requirements found.", show_on_quiet=True)
             return SUCCESS

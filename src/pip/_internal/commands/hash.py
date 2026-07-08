@@ -44,7 +44,11 @@ class HashCommand(Command):
         algorithm = options.algorithm
         for path in args:
             write_output(
-                "%s:\n--hash=%s:%s", path, algorithm, _hash_of_file(path, algorithm)
+                "%s:\n--hash=%s:%s",
+                path,
+                algorithm,
+                _hash_of_file(path, algorithm),
+                show_on_quiet=True,
             )
         return SUCCESS
 
