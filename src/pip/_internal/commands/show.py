@@ -187,7 +187,6 @@ def print_results(
     Print the information from installed distributions found.
     """
     results_printed = False
-
     for i, dist in enumerate(distributions):
         results_printed = True
         if i > 0:

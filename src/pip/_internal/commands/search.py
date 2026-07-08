@@ -113,26 +113,22 @@ def transform_hits(hits: list[dict[str, str]]) -> list[TransformedHit]:
     return list(packages.values())
 
 
-def print_dist_installation_info(
-    latest: str, dist: BaseDistribution | None, show_on_quiet: bool = True
-) -> None:
+def print_dist_installation_info(latest: str, dist: BaseDistribution | None) -> None:
     if dist is not None:
         with indent_log():
             if dist.version == latest:
-                write_output(
-                    "INSTALLED: %s (latest)", dist.version, show_on_quiet=show_on_quiet
-                )
+                write_output("INSTALLED: %s (latest)", dist.version, show_on_quiet=True)
             else:
-                write_output("INSTALLED: %s", dist.version, show_on_quiet=show_on_quiet)
+                write_output("INSTALLED: %s", dist.version, show_on_quiet=True)
                 if parse_version(latest).pre:
                     write_output(
                         "LATEST:    %s (pre-release; install"
                         " with `pip install --pre`)",
                         latest,
-                        show_on_quiet=show_on_quiet,
+                        show_on_quiet=True,
                     )
                 else:
-                    write_output("LATEST:    %s", latest, show_on_quiet=show_on_quiet)
+                    write_output("LATEST:    %s", latest, show_on_quiet=True)
 
 
 def get_installed_distribution(name: str) -> BaseDistribution | None:
