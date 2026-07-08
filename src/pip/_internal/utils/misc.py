@@ -381,59 +381,18 @@ def is_local(path: str) -> bool:
     return path.startswith(normalize_path(sys.prefix))
 
 
-def _format_output(msg: Any, *args: Any) -> str:
-    if args:
-        return str(msg) % args
-    return str(msg)
+def write_output(msg: Any, *args: Any, show_on_quiet: bool = True) -> None:
+    if show_on_quiet:
+        from pip._internal.utils.logging import (
+            should_directly_write_output,
+            write_output_direct,
+        )
 
+        if should_directly_write_output(logger):
+            write_output_direct(msg, *args)
+            return
 
-def _console_logging_accepts_info() -> bool:
-    if not logger.isEnabledFor(logging.INFO):
-        return False
-
-    has_console_handler = False
-    for handler in logging.getLogger().handlers:
-        if getattr(handler, "console", None) is None:
-            continue
-        has_console_handler = True
-        if handler.level <= logging.INFO:
-            return True
-
-    return not has_console_handler
-
-
-def _write_stdout_direct(msg: Any, *args: Any) -> None:
-    from pip._internal.utils.logging import (
-        BrokenStdoutLoggingError,
-        get_console,
-        get_indentation,
-    )
-
-    text = _format_output(msg, *args)
-    indentation = get_indentation()
-    if indentation:
-        prefix = " " * indentation
-        text = "".join(prefix + line for line in text.splitlines(True))
-
-    try:
-        try:
-            console = get_console()
-        except AssertionError:
-            console = None
-
-        if console is None:
-            sys.stdout.write(text)
-            sys.stdout.write(os.linesep)
-        else:
-            console.print(text, overflow="ignore", crop=False, highlight=False)
-    except BrokenPipeError as exc:
-        raise BrokenStdoutLoggingError() from exc
-
-
-def write_output(msg: Any, *args: Any, show_on_quiet: bool = False) -> None:
     logger.info(msg, *args)
-    if show_on_quiet and not _console_logging_accepts_info():
-        _write_stdout_direct(msg, *args)
 
 
 class StreamWrapper(StringIO):

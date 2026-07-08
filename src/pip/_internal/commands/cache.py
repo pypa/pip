@@ -88,7 +88,7 @@ class CacheCommand(Command):
         if args:
             raise CommandError("Too many arguments")
 
-        write_output(options.cache_dir, show_on_quiet=True)
+        write_output(options.cache_dir)
 
     def get_cache_info(self, options: Values, args: list[str]) -> None:
         if args:
@@ -128,7 +128,7 @@ class CacheCommand(Command):
             .strip()
         )
 
-        write_output(message, show_on_quiet=True)
+        write_output(message)
 
     def list_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
@@ -147,7 +147,7 @@ class CacheCommand(Command):
 
     def format_for_human(self, files: list[str]) -> None:
         if not files:
-            write_output("No locally built wheels cached.", show_on_quiet=True)
+            write_output("No locally built wheels cached.")
             return
 
         results = []
@@ -155,12 +155,12 @@ class CacheCommand(Command):
             wheel = os.path.basename(filename)
             size = filesystem.format_file_size(filename)
             results.append(f" - {wheel} ({size})")
-        write_output("Cache contents:\n", show_on_quiet=True)
-        write_output("\n".join(sorted(results)), show_on_quiet=True)
+        write_output("Cache contents:\n")
+        write_output("\n".join(sorted(results)))
 
     def format_for_abspath(self, files: list[str]) -> None:
         if files:
-            write_output("\n".join(sorted(files)), show_on_quiet=True)
+            write_output("\n".join(sorted(files)))
 
     def remove_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:

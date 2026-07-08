@@ -185,6 +185,7 @@ def test_cache_dir(script: PipTestEnvironment, cache_dir: str) -> None:
 
 
 def test_cache_dir_quiet(script: PipTestEnvironment, cache_dir: str) -> None:
+    """Test that quiet mode does not suppress the cache dir output."""
     result = script.pip("cache", "dir", "--quiet")
 
     assert os.path.normcase(cache_dir) == result.stdout.strip()

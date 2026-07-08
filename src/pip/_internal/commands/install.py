@@ -498,6 +498,7 @@ class InstallCommand(RequirementCommand):
                     write_output(
                         "Would install %s",
                         " ".join("-".join(item) for item in would_install_items),
+                        show_on_quiet=False,
                     )
                 return SUCCESS
 
@@ -580,7 +581,7 @@ class InstallCommand(RequirementCommand):
                     resolver_variant=self.determine_resolver_variant(options),
                 )
             if summary := installed_packages_summary(installed, env):
-                write_output(summary)
+                write_output(summary, show_on_quiet=False)
         except OSError as error:
             show_traceback = self.verbosity >= 1
 

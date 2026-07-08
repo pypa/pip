@@ -158,12 +158,9 @@ class IndexCommand(IndexGroupCommand):
             if dist is not None:
                 structured_output["installed_version"] = str(dist.version)
 
-            write_output(json.dumps(structured_output), show_on_quiet=True)
+            write_output(json.dumps(structured_output))
 
         else:
-            write_output(f"{query} ({latest})", show_on_quiet=True)
-            write_output(
-                "Available versions: {}".format(", ".join(formatted_versions)),
-                show_on_quiet=True,
-            )
-            print_dist_installation_info(latest, dist, show_on_quiet=True)
+            write_output(f"{query} ({latest})")
+            write_output("Available versions: {}".format(", ".join(formatted_versions)))
+            print_dist_installation_info(latest, dist)

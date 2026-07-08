@@ -114,7 +114,7 @@ def transform_hits(hits: list[dict[str, str]]) -> list[TransformedHit]:
 
 
 def print_dist_installation_info(
-    latest: str, dist: BaseDistribution | None, show_on_quiet: bool = False
+    latest: str, dist: BaseDistribution | None, show_on_quiet: bool = True
 ) -> None:
     if dist is not None:
         with indent_log():
@@ -172,9 +172,9 @@ def print_results(
         name_latest = f"{name} ({latest})"
         line = f"{name_latest:{name_column_width}} - {summary}"
         try:
-            write_output(line, show_on_quiet=True)
+            write_output(line)
             dist = get_installed_distribution(name)
-            print_dist_installation_info(latest, dist, show_on_quiet=True)
+            print_dist_installation_info(latest, dist)
         except UnicodeEncodeError:
             pass
 

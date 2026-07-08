@@ -188,52 +188,51 @@ def print_results(
     """
     results_printed = False
 
-    def output(msg: str, *args: object) -> None:
-        write_output(msg, *args, show_on_quiet=True)
-
     for i, dist in enumerate(distributions):
         results_printed = True
         if i > 0:
-            output("---")
+            write_output("---")
 
         metadata_version = dist.metadata_version
         metadata_version_tuple = (
             tuple(map(int, metadata_version.split("."))) if metadata_version else ()
         )
 
-        output("Name: %s", dist.name)
-        output("Version: %s", dist.version)
-        output("Summary: %s", dist.summary)
-        output("Home-page: %s", dist.homepage)
-        output("Author: %s", dist.author)
-        output("Author-email: %s", dist.author_email)
+        write_output("Name: %s", dist.name)
+        write_output("Version: %s", dist.version)
+        write_output("Summary: %s", dist.summary)
+        write_output("Home-page: %s", dist.homepage)
+        write_output("Author: %s", dist.author)
+        write_output("Author-email: %s", dist.author_email)
         if metadata_version_tuple >= (2, 4) and dist.license_expression:
-            output("License-Expression: %s", dist.license_expression)
+            write_output("License-Expression: %s", dist.license_expression)
         else:
-            output("License: %s", dist.license)
-        output("Location: %s", dist.location)
+            write_output("License: %s", dist.license)
+        write_output("Location: %s", dist.location)
         if dist.editable_project_location is not None:
-            output("Editable project location: %s", dist.editable_project_location)
-        output("Requires: %s", ", ".join(dist.requires))
-        output("Required-by: %s", ", ".join(dist.required_by))
+            write_output(
+                "Editable project location: %s", dist.editable_project_location
+            )
+        write_output("Requires: %s", ", ".join(dist.requires))
+        write_output("Required-by: %s", ", ".join(dist.required_by))
 
         if verbose:
-            output("Metadata-Version: %s", dist.metadata_version)
-            output("Installer: %s", dist.installer)
-            output("Classifiers:")
+            write_output("Metadata-Version: %s", dist.metadata_version)
+            write_output("Installer: %s", dist.installer)
+            write_output("Classifiers:")
             for classifier in dist.classifiers:
-                output("  %s", classifier)
-            output("Entry-points:")
+                write_output("  %s", classifier)
+            write_output("Entry-points:")
             for entry in dist.entry_points:
-                output("  %s", entry.strip())
-            output("Project-URLs:")
+                write_output("  %s", entry.strip())
+            write_output("Project-URLs:")
             for project_url in dist.project_urls:
-                output("  %s", project_url)
+                write_output("  %s", project_url)
         if list_files:
-            output("Files:")
+            write_output("Files:")
             if dist.files is None:
-                output("Cannot locate RECORD or installed-files.txt")
+                write_output("Cannot locate RECORD or installed-files.txt")
             else:
                 for line in dist.files:
-                    output("  %s", line.strip())
+                    write_output("  %s", line.strip())
     return results_printed
