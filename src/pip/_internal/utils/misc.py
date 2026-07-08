@@ -425,7 +425,7 @@ def _write_stdout_direct(msg: Any, *args: Any) -> None:
             sys.stdout.write(text)
             sys.stdout.write(os.linesep)
         else:
-            console.print(text, overflow="ignore", crop=False)
+            console.print(text, overflow="ignore", crop=False, highlight=False)
     except BrokenPipeError as exc:
         raise BrokenStdoutLoggingError() from exc
 
