@@ -1,0 +1,9 @@
+Note: platformdirs 4.6.0+ adds support for ``XDG_*`` environment variables, so
+some directory locations may change on Unix if any of these are set:
+
+- ``XDG_CACHE_HOME``: The `pip cache directory <https://pip.pypa.io/en/stable/cli/pip_cache/>`_
+  will be at ``$XDG_CACHE_HOME/pip``.
+- ``XDG_DATA_DIRS``: The `global configuration file <https://pip.pypa.io/en/stable/topics/configuration/#config-file>`_
+  will be inside ``$XDG_DATA_DIRS/pip``
+- ``XDG_DATA_HOME``: The `user configuration file <https://pip.pypa.io/en/stable/topics/configuration/#config-file>`_
+  will be inside ``$XDG_DATA_HOME/pip``, if the directory exists
