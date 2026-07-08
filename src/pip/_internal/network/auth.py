@@ -135,12 +135,27 @@ class KeyRingCliProvider(KeyRingBaseProvider):
 
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
-        res = subprocess.run(
+        res = subprocess.run(  # noqa: UP022
             cmd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             env=env,
         )
+
+        # Detect if the user is running an outdated version of keyring without support
+        # for querying credentials without username
+        errs = res.stderr.decode("utf-8")
+        if (
+            res.returncode == 2
+            and "unrecognized arguments" in errs
+            and "--mode=creds" in errs
+        ):
+            raise RuntimeError(
+                "Keyring util is outdated; must be at least version 25.2.1, "
+                "please upgrade it"
+            )
+
         if res.returncode:
             return None
 

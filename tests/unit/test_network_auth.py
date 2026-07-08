@@ -459,6 +459,10 @@ class KeyringSubprocessResult(KeyringModuleV2):
 
     returncode = 0  # Default to zero retcode
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.old_version = False
+
     def __call__(
         self,
         cmd: list[str],
@@ -466,6 +470,7 @@ class KeyringSubprocessResult(KeyringModuleV2):
         env: dict[str, str],
         stdin: Any | None = None,
         stdout: Any | None = None,
+        stderr: Any | None = None,
         input: bytes | None = None,
         check: bool | None = None,
     ) -> Any:
@@ -487,6 +492,7 @@ class KeyringSubprocessResult(KeyringModuleV2):
             env=env,
             stdin=stdin,
             stdout=stdout,
+            stderr=stderr,
             input=input,
             check=check,
         )
@@ -500,6 +506,7 @@ class KeyringSubprocessResult(KeyringModuleV2):
         env: dict[str, str],
         stdin: Any | None = None,
         stdout: Any | None = None,
+        stderr: Any | None = None,
         input: bytes | None = None,
         check: bool | None = None,
     ) -> None:
@@ -507,9 +514,22 @@ class KeyringSubprocessResult(KeyringModuleV2):
         assert cmd.pop(0) == "--output=json"
         assert stdin == -3  # subprocess.DEVNULL
         assert stdout == subprocess.PIPE
+        assert stderr == subprocess.PIPE
         assert env["PYTHONIOENCODING"] == "utf-8"
         assert check is None
         assert cmd.pop(0) == "get"
+
+        # Return the same error message as an old keyring version, if requested
+        if self.old_version:
+            self.stderr = (
+                b"usage: keyring [-h] [-p KEYRING_PATH] [-b KEYRING_BACKEND] "
+                b"[--list-backends] [--disable] [--print-completion {bash,zsh,tcsh}] "
+                b"[{get,set,del,diagnose}] [service] [username]\n"
+                b"keyring: error: unrecognized arguments: --mode=creds --output=json"
+            )
+            self.returncode = 2
+            return
+        self.stderr = b""
 
         service = cmd.pop(0)
         username = cmd.pop(0) if len(cmd) > 0 else None
@@ -534,12 +554,14 @@ class KeyringSubprocessResult(KeyringModuleV2):
         env: dict[str, str],
         stdin: Any | None = None,
         stdout: Any | None = None,
+        stderr: Any | None = None,
         input: bytes | None = None,
         check: bool | None = None,
     ) -> None:
         assert cmd.pop(0) == "set"
         assert stdin is None
         assert stdout is None
+        assert stderr is None
         assert env["PYTHONIOENCODING"] == "utf-8"
         assert input is not None
         assert check
@@ -669,3 +691,58 @@ def test_keyring_cli_set_password(
         }
     else:
         assert keyring.saved_credential_by_username_by_system == {}
+
+
+@pytest.mark.parametrize(
+    "url, expect",
+    [
+        # It's not obvious, but this url ultimately resolves to index url
+        # http://example.com/path2, so we get the creds for that index.
+        ("http://example.com/path1", ("saved-user1", "pw1")),
+        ("http://saved-user1@example.com/path2", ("saved-user1", "pw1")),
+        ("http://saved-user2@example.com/path2", ("saved-user2", "pw2")),
+        ("http://new-user@example.com/path2", ("new-user", None)),
+        ("http://example.com/path2/path3", ("saved-user1", "pw1")),
+        ("http://foo@example.com/path2/path3", ("foo", None)),
+    ],
+)
+def test_keyring_cli_outdated_version(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    url: str,
+    expect: tuple[str | None, str | None],
+) -> None:
+    keyring_subprocess = KeyringSubprocessResult()
+    keyring_subprocess.old_version = True
+
+    monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
+    monkeypatch.setattr(
+        pip._internal.network.auth.subprocess, "run", keyring_subprocess
+    )
+    auth = MultiDomainBasicAuth(
+        index_urls=["http://example.com/path2", "http://example.com/path3"],
+        keyring_provider="subprocess",
+    )
+
+    with (
+        keyring_subprocess.add_credential("example.com", "example", "!netloc"),
+        keyring_subprocess.add_credential(
+            "http://example.com/path2/", "saved-user1", "pw1"
+        ),
+        keyring_subprocess.add_credential(
+            "http://example.com/path2/", "saved-user2", "pw2"
+        ),
+    ):
+        actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
+
+        # Verify no password is returned
+        assert actual[1] is None
+
+    # Verify the correct warning is given to the user
+    log_records = [(r.levelname, r.message) for r in caplog.records]
+
+    assert len(log_records) == 1
+    actual_level, actual_message = log_records[0]
+    assert actual_level == "WARNING"
+    assert "Keyring util is outdated" in actual_message
+    assert "version 25.2.1" in actual_message
