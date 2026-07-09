@@ -450,7 +450,7 @@ Forcing Metadata Refresh
 .. versionadded:: 26.x
 
 By default, pip may use cached index metadata when looking for packages.
-If you have just published a new version of a package to PyPI and want to
+If you have just published a new version of a package and want to
 install it immediately without waiting for the cache to expire, use
 ``--force-metadata-refresh``:
 
