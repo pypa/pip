@@ -445,7 +445,7 @@ You can combine this option with other filtering mechanisms like constraints fil
 .. _`Force Metadata Refresh`:
 
 Forcing Metadata Refresh
-=========================
+========================
 
 .. versionadded:: 26.x
 

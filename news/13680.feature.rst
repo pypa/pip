@@ -1,1 +1,3 @@
-Add ``--force-metadata-refresh`` to send ``max-age=0`` in the request headers; otherwise, respect the HTML server’s ``max-age`` value.
+Cache simple responses in accordance to the responses' `Cache-Control` header
+instead of always revalidating on every request. To force revalidation and ensure
+newly published packages are found, use `--force-metadata-refresh <project-name>`.

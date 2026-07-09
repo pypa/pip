@@ -120,7 +120,6 @@ def _get_simple_response(
     3. Check the Content-Type header to make sure we got a Simple API response,
        and raise `_NotAPIContent` otherwise.
     """
-
     if is_archive_file(Link(url).filename):
         _ensure_api_response(url, session=session)
 
