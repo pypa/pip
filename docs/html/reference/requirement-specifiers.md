@@ -59,3 +59,27 @@ A few example URL-based requirement specifiers:
 pip @ https://github.com/pypa/pip/archive/22.0.2.zip
 requests [security] @ https://github.com/psf/requests/archive/refs/heads/main.zip ; python_version >= "3.11"
 ```
+
+## Self-referential extras
+
+```{versionadded} 21.2
+Support for self-referential extras.
+```
+
+A package can define optional dependencies that refer back to itself with other extras. This is useful for creating convenience extras that combine multiple existing ones.
+
+For example, a `pyproject.toml` could define:
+
+```toml
+[project]
+name = "SomeProject"
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+format = ["ruff"]
+docs = ["sphinx"]
+dev = ["SomeProject[test]", "SomeProject[format]"]  # separate form
+all = ["SomeProject[test, format, docs]"]  # combined form
+```
+
+Installing `SomeProject[all]` would install `pytest`, `pytest-cov`, `ruff`, and `sphinx`.
