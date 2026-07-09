@@ -1,1 +1,1 @@
-Document support for self-referential extras in requirement specifiers.
+Document support for self-referential extras in requirement specifiers, also add a test case for the feature.
