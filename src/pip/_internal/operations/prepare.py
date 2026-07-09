@@ -282,6 +282,11 @@ class RequirementPreparer:
         # Memoized downloaded files, as mapping of url: path.
         self._downloaded: dict[str, str] = {}
 
+        # URLs whose cached files have already passed hash verification in
+        # _check_download_dir, so _prepare_linked_requirement can skip the
+        # redundant second check_against_path call for those files.
+        self._hash_verified: set[str] = set()
+
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
 
@@ -523,8 +528,13 @@ class RequirementPreparer:
                 )
 
             if file_path is not None:
-                # The file is already available, so mark it as downloaded
+                # The file is already available, so mark it as downloaded.
                 self._downloaded[req.link.url] = file_path
+                # _check_download_dir already verified the hash (when hashes
+                # were provided), so record that to avoid a redundant re-check
+                # in _prepare_linked_requirement.
+                if hashes:
+                    self._hash_verified.add(req.link.url)
             else:
                 # The file is not available, attempt to fetch only metadata
                 metadata_dist = self._fetch_metadata_only(req)
@@ -553,6 +563,8 @@ class RequirementPreparer:
                 file_path = _check_download_dir(req.link, self.download_dir, hashes)
                 if file_path is not None:
                     self._downloaded[req.link.url] = file_path
+                    if hashes:
+                        self._hash_verified.add(req.link.url)
                     req.needs_more_preparation = False
 
         # Prepare requirements we found were already downloaded for some
@@ -625,7 +637,10 @@ class RequirementPreparer:
                 )
         else:
             file_path = self._downloaded[link.url]
-            if hashes:
+            # Skip hash verification if the file was already verified by
+            # _check_download_dir (tracked in self._hash_verified) to avoid
+            # reading the entire file from disk a second time.
+            if hashes and link.url not in self._hash_verified:
                 hashes.check_against_path(file_path)
             local_file = File(file_path, content_type=None)
 

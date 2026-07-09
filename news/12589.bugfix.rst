@@ -1,0 +1,2 @@
+Avoid redundant hash verification when a wheel file was already verified
+from the download directory cache, improving performance for large wheels.
