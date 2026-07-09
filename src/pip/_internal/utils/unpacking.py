@@ -212,6 +212,22 @@ def untar_file(filename: str, location: str) -> None:
                         if lnk_lead == name_lead:
                             member.linkname = lnk_rest
 
+            def check_link_target(member: tarfile.TarInfo) -> None:
+                if not member.islnk() and not member.issym():
+                    return
+
+                target = os.path.join(
+                    location, os.path.dirname(member.name), member.linkname
+                )
+                if is_within_directory(location, target, resolve_symlinks=True):
+                    return
+
+                exc = tarfile.LinkOutsideDestinationError(
+                    member, os.path.realpath(target)
+                )
+                message = "Invalid member in the tar file {}: {}"
+                raise InstallationError(message.format(filename, exc))
+
             def pip_filter(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
                 orig_mode = member.mode
                 try:
@@ -229,6 +245,7 @@ def untar_file(filename: str, location: str) -> None:
                             # Ignore the error there, but do use the
                             # more lax `tar_filter`
                             member = tarfile.tar_filter(member, location)
+                            check_link_target(member)
                         else:
                             raise
                 except tarfile.TarError as exc:
