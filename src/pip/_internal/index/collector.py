@@ -313,7 +313,10 @@ def _make_index_content(
 
 
 def _get_index_content(
-    link: Link, *, session: PipSession, package_name: str | None = None
+    link: Link,
+    *,
+    session: PipSession,
+    force_refresh: bool = False,
 ) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
 
@@ -340,23 +343,8 @@ def _get_index_content(
         url = urllib.parse.urljoin(url, "index.html")
         logger.debug(" file: URL is directory, getting %s", url)
 
-    # We don't want to blindly return cached data for /simple/, because
-    # authors generally expect that twine upload && pip install will work,
-    # but if they've done a pip install in the last ~10 minutes it won't.
-    # See pypa/pip#5670.
-    force_refresh = session.force_metadata_refresh
-    should_force_refresh = bool(force_refresh) and (
-        ":all:" in force_refresh
-        or (
-            package_name is not None
-            and canonicalize_name(package_name) in force_refresh
-        )
-    )
-
     try:
-        resp = _get_simple_response(
-            url, session=session, force_refresh=should_force_refresh
-        )
+        resp = _get_simple_response(url, session=session, force_refresh=force_refresh)
     except _NotHTTP:
         logger.warning(
             "Skipping page %s because it looks like an archive, and cannot "
@@ -454,8 +442,22 @@ class LinkCollector:
         """
         Fetch an HTML page containing package links.
         """
+        # We don't want to blindly return cached data for /simple/, because
+        # authors generally expect that twine upload && pip install will work,
+        # but if they've done a pip install in the last ~10 minutes it won't.
+        # See pypa/pip#5670.
+        force_refresh = self.session.force_metadata_refresh
+        should_force_refresh = bool(force_refresh) and (
+            ":all:" in force_refresh
+            or (
+                package_name is not None
+                and canonicalize_name(package_name) in force_refresh
+            )
+        )
         return _get_index_content(
-            location, session=self.session, package_name=package_name
+            location,
+            session=self.session,
+            force_refresh=should_force_refresh,
         )
 
     def collect_sources(
