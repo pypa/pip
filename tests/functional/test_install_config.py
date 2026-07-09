@@ -473,24 +473,30 @@ def test_prompt_for_keyring_if_needed(
     ]
 
     url = f"https://USERNAME@{server.host}:{server.port}/simple"
+    log_file = virtualenv_script.scratch_path / "log"
+    log_file.touch()
 
     if keyring_script is not None:
-        keyring_content = textwrap.dedent("""\
+        keyring_content = textwrap.dedent(f"""\
             import os
             import sys
             import keyring
             from keyring.backend import KeyringBackend
             from keyring.credentials import SimpleCredential
 
+            def log(msg):
+                with open({str(log_file)!r}, 'a', encoding='utf8') as f:
+                    f.write(msg + '\\n')
+
             class TestBackend(KeyringBackend):
                 priority = 1
 
                 def get_credential(self, url, username):
-                    sys.stderr.write("get_credential was called" + os.linesep)
+                    log("get_credential was called")
                     return SimpleCredential(username="USERNAME", password="PASSWORD")
 
                 def get_password(self, url, username):
-                    sys.stderr.write("get_password was called" + os.linesep)
+                    log("get_password was called")
                     return "PASSWORD"
 
                 def set_password(self, url, username):
@@ -508,7 +514,7 @@ def test_prompt_for_keyring_if_needed(
         keyring_path.write_text(keyring_content)
 
     with server_running(server):
-        result = virtualenv_script.pip(
+        virtualenv_script.pip(
             "install",
             "--no-build-isolation",
             "--index-url",
@@ -521,10 +527,11 @@ def test_prompt_for_keyring_if_needed(
             "simple",
         )
 
+    logs = log_file.read_text("utf8").splitlines()
     if auth_needed:
-        assert "get_credential was called" in result.stderr
+        assert "get_credential was called" in logs
     else:
-        assert "get_credential was called" not in result.stderr
+        assert "get_credential was called" not in logs
 
 
 @pytest.mark.network
