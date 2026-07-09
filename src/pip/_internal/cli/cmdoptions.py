@@ -973,12 +973,24 @@ no_deps: Callable[..., Option] = partial(
 def _handle_force_metadata_refresh(
     option: Option, opt_str: str, value: str, parser: OptionParser
 ) -> None:
-    existing = _get_format_control(parser.values, option)
-    FormatControl.handle_mutual_excludes(
-        value,
-        existing,
-        set(),
-    )
+    if value.startswith("-"):
+        raise CommandError("--force-metadata-refresh option requires 1 argument.")
+
+    existing: set[str] = getattr(parser.values, option.dest)
+
+    if value == ":all:":
+        existing.clear()
+        existing.add(":all:")
+        return
+
+    if ":all:" in existing:
+        return
+
+    for name in value.split(","):
+        if name == ":none:":
+            existing.clear()
+        else:
+            existing.add(canonicalize_name(name))
 
 
 def force_metadata_refresh() -> Option:

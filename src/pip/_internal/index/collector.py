@@ -106,7 +106,9 @@ def _ensure_api_response(url: str, session: PipSession) -> None:
 
 
 def _get_simple_response(
-    url: str, session: PipSession, package_name: str | None = None
+    url: str,
+    session: PipSession,
+    force_refresh: bool = False,
 ) -> Response:
     """Access an Simple API response with GET, and return the response.
 
@@ -135,20 +137,11 @@ def _get_simple_response(
         ),
     }
 
-    force_refresh = session.force_metadata_refresh
-    should_force_refresh = bool(force_refresh) and (
-        ":all:" in force_refresh
-        or (
-            package_name is not None
-            and canonicalize_name(package_name) in force_refresh
-        )
-    )
-
-    if should_force_refresh:
-        logger.debug(
-            "Forcing metadata refresh for %s.",
-            package_name or url,
-        )
+    if force_refresh:
+        # Using max-age=0 rather than no-cache still supports conditional
+        # requests, minimizing traffic when the page hasn't changed.
+        # See pypa/pip#5670.
+        logger.debug("Forcing metadata refresh.")
         headers["Cache-Control"] = "max-age=0"
 
     resp = session.get(url, headers=headers)
@@ -347,8 +340,23 @@ def _get_index_content(
         url = urllib.parse.urljoin(url, "index.html")
         logger.debug(" file: URL is directory, getting %s", url)
 
+    # We don't want to blindly return cached data for /simple/, because
+    # authors generally expect that twine upload && pip install will work,
+    # but if they've done a pip install in the last ~10 minutes it won't.
+    # See pypa/pip#5670.
+    force_refresh = session.force_metadata_refresh
+    should_force_refresh = bool(force_refresh) and (
+        ":all:" in force_refresh
+        or (
+            package_name is not None
+            and canonicalize_name(package_name) in force_refresh
+        )
+    )
+
     try:
-        resp = _get_simple_response(url, session=session, package_name=package_name)
+        resp = _get_simple_response(
+            url, session=session, force_refresh=should_force_refresh
+        )
     except _NotHTTP:
         logger.warning(
             "Skipping page %s because it looks like an archive, and cannot "

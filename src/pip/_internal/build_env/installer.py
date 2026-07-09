@@ -117,6 +117,10 @@ class SubprocessBuildEnvironmentInstaller:
             args.extend(["--client-cert", finder.client_cert])
         if finder.prefer_binary:
             args.append("--prefer-binary")
+        if finder.force_metadata_refresh:
+            args.extend(
+                ["--force-metadata-refresh", ",".join(finder.force_metadata_refresh)]
+            )
 
         # Only build constraints apply in the isolated build environment.
         # _PIP_IN_BUILD_IGNORE_CONSTRAINTS tells the subprocess to ignore the

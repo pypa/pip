@@ -723,6 +723,10 @@ class PackageFinder:
         return self.search_scope.index_urls
 
     @property
+    def force_metadata_refresh(self) -> set[str]:
+        return self._link_collector.session.force_metadata_refresh
+
+    @property
     def proxy(self) -> str | None:
         return self._link_collector.session.pip_proxy
 

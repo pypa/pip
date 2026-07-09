@@ -854,7 +854,7 @@ def test_get_index_content_directory_append_index(tmpdir: Path) -> None:
         mock_func.return_value = fake_response
         actual = _get_index_content(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
-            mock.call(expected_url, session=session, package_name=None),
+            mock.call(expected_url, session=session),
         ], f"actual calls: {mock_func.mock_calls}"
 
         assert actual is not None
@@ -971,7 +971,6 @@ class TestLinkCollector:
         mock_get_simple_response.assert_called_once_with(
             url,
             session=link_collector.session,
-            package_name=None,
         )
 
     def test_collect_page_sources(
