@@ -389,28 +389,41 @@ def test_install_self_referential_extras_after_partial_install(
     script.assert_installed(pkg="1", dep_a="1", dep_b="1")
 
 
+@pytest.mark.parametrize(
+    "initial_extras, initial_req",
+    [
+        ({}, "pkg==1"),
+        ({"a": ["dep_a"]}, "pkg[a]==1"),
+    ],
+    ids=["had-no-extra", "had-different-extras"],
+)
 def test_install_self_referential_extras_upgrade_different_extras(
     script: PipTestEnvironment,
+    initial_extras: dict[str, list[str]],
+    initial_req: str,
 ) -> None:
-    """Upgrading can change which extras exist and which deps they pull in."""
+    """Upgrading package can change which extras exist and which deps they pull in."""
     create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(script, "dep_a", "2")
     create_basic_wheel_for_package(script, "dep_b", "1")
     create_basic_wheel_for_package(
         script,
         "pkg",
         "1",
-        extras={"a": ["dep_a"]},
+        extras=initial_extras,
     )
 
+    # Ensure dep_a ver 2 is present so pkg ver 2's dep_a==1 pin is a downgrade.
+    initial_install = [initial_req] if initial_extras else [initial_req, "dep_a==2"]
     script.pip(
         "install",
         "--no-cache-dir",
         "--no-index",
         "--find-links",
         script.scratch_path,
-        "pkg[a]",
+        *initial_install,
     )
-    script.assert_installed(pkg="1", dep_a="1")
+    script.assert_installed(pkg="1", dep_a="2")
     script.assert_not_installed("dep_b")
 
     create_basic_wheel_for_package(
@@ -418,7 +431,7 @@ def test_install_self_referential_extras_upgrade_different_extras(
         "pkg",
         "2",
         extras={
-            "a": ["dep_a"],
+            "a": ["dep_a==1"],
             "b": ["dep_b"],
             "all": ["pkg[a]", "pkg[b]"],
         },
@@ -433,51 +446,8 @@ def test_install_self_referential_extras_upgrade_different_extras(
         "pkg[all]==2",
         expect_stderr=True,
     )
-    assert "does not provide the extra 'b'" not in result.stderr, str(result)
-    script.assert_installed(pkg="2", dep_a="1", dep_b="1")
-
-
-def test_install_self_referential_extras_skips_older_versions_without_extras(
-    script: PipTestEnvironment,
-) -> None:
-    """Self-ref extras must not probe older installed versions lacking those extras."""
-    create_basic_wheel_for_package(script, "dep_a", "1")
-    create_basic_wheel_for_package(script, "dep_b", "1")
-    create_basic_wheel_for_package(script, "pkg", "1")
-    create_basic_wheel_for_package(script, "pkg", "2")
-
-    script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        script.scratch_path,
-        "pkg==1",
-    )
-    script.assert_installed(pkg="1")
-
-    create_basic_wheel_for_package(
-        script,
-        "pkg",
-        "3",
-        extras={
-            "a": ["dep_a"],
-            "b": ["dep_b"],
-            "all": ["pkg[a]", "pkg[b]"],
-        },
-    )
-
-    result = script.pip(
-        "install",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links",
-        script.scratch_path,
-        "pkg[all]==3",
-        expect_stderr=True,
-    )
     assert "does not provide the extra" not in result.stderr, str(result)
-    script.assert_installed(pkg="3", dep_a="1", dep_b="1")
+    script.assert_installed(pkg="2", dep_a="1", dep_b="1")
 
 
 def test_install_self_referential_extras_upgrade_changes_dep_version(
