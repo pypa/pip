@@ -440,7 +440,7 @@ def test_install_self_referential_extras_upgrade_different_extras(
 def test_install_self_referential_extras_skips_older_versions_without_extras(
     script: PipTestEnvironment,
 ) -> None:
-    """Self-ref extras must not probe older installed versions that lack those extras."""
+    """Self-ref extras must not probe older installed versions lacking those extras."""
     create_basic_wheel_for_package(script, "dep_a", "1")
     create_basic_wheel_for_package(script, "dep_b", "1")
     create_basic_wheel_for_package(script, "pkg", "1")
