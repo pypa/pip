@@ -1,0 +1,1 @@
+Read ``X-Error-Message`` response header on HTTP errors and use its value as the error detail instead of the unreliable HTTP reason phrase.

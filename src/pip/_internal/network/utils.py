@@ -42,6 +42,14 @@ def raise_for_status(resp: Response) -> None:
     else:
         reason = resp.reason
 
+    if 400 <= resp.status_code < 600:
+        # The HTTP reason phrase is unreliable: RFC 7230 section 6.1 says
+        # clients SHOULD ignore it, and servers often leave it empty.
+        # Prefer the X-Error-Message header when the server provides one.
+        x_error_message = resp.headers.get("X-Error-Message")
+        if x_error_message:
+            reason = x_error_message
+
     if 400 <= resp.status_code < 500:
         http_error_msg = (
             f"{resp.status_code} Client Error: {reason} for url: {resp.url}"
