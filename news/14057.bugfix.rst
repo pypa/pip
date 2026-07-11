@@ -1,1 +1,0 @@
-Fix ``pip show`` crash when a distribution has no ``Metadata-Version``.

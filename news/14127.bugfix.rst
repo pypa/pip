@@ -1,3 +1,0 @@
-Additional rejection of tar archives that write outside the target
-directory through symlink traversal when extracting on Python
-versions pre-PEP 706.

@@ -1,1 +1,0 @@
-Report a copy failure in ``pip wheel`` instead of a misleading build failure.

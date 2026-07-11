@@ -1,2 +1,0 @@
-Never use persistent wheel cache for local directory requirements even if there
-is a matching entry, somehow.

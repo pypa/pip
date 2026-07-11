@@ -1,2 +1,0 @@
-Fix caching bug where local directory requirements would be cached if the
-directory name contains a dash.

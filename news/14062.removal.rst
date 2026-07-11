@@ -1,2 +1,0 @@
-Drop support for detecting legacy, non-:pep:`405`, ``virtualenv`` (< 20)
-environments.
