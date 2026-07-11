@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import contextlib
 import functools
-import logging
 import sys
-import time
 from collections.abc import Callable, Generator, Iterable, Iterator
-from contextlib import AbstractContextManager
-from typing import IO, TYPE_CHECKING, Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
-from pip._vendor.rich.console import Console
 from pip._vendor.rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -23,14 +18,9 @@ from pip._vendor.rich.progress import (
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
-from pip._vendor.rich.status import Status
 
-from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.logging import (
-    get_console,
-    get_console_or_create,
-    get_indentation,
-)
+from pip._internal.cli.spinners import RateLimiter
+from pip._internal.utils.logging import get_console, get_indentation
 
 if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
@@ -38,8 +28,6 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 ProgressRenderer = Callable[[Iterable[T]], Iterator[T]]
 BarType = Literal["on", "off", "raw"]
-
-logger = logging.getLogger(__name__)
 
 
 def _rich_download_progress_bar(
@@ -118,92 +106,15 @@ def _raw_progress_bar(
 
     current = initial_progress or 0
     total = size or 0
-    last_update = 0.0
+    rate_limiter = RateLimiter(0.25)
 
     write_progress(current, total)
     for chunk in iterable:
         current += len(chunk)
-        now = time.time()
-        if now - last_update >= 0.25 or current == total:
+        if rate_limiter.ready() or current == total:
             write_progress(current, total)
-            last_update = now
+            rate_limiter.reset()
         yield chunk
-
-
-@contextlib.contextmanager
-def hidden_cursor(file: IO[str]) -> Generator[None, None, None]:
-    """Hide cursor if output is a TTY (ANSI codes not supported on Windows)."""
-
-    if WINDOWS or not getattr(file, "isatty", lambda: False)():
-        yield
-    else:
-        file.write("\x1b[?25l")
-        file.flush()
-        try:
-            yield
-        finally:
-            file.write("\x1b[?25h")
-            file.flush()
-
-
-@contextlib.contextmanager
-def status(message: str) -> Generator[None, None, None]:
-    """Yield a Rich ``Status`` spinner if INFO-level logging is enabled.
-
-    When ``--quiet`` or a higher log level is set, this becomes a no-op.
-    """
-    if not logger.isEnabledFor(logging.INFO):
-        yield
-        return
-
-    console = get_console_or_create()
-    if not getattr(console.file, "isatty", lambda: False)():
-        logger.info("%s: started", message)
-        try:
-            yield
-        except KeyboardInterrupt:
-            logger.info("%s: finished with status 'canceled'", message)
-            raise
-        except Exception:
-            logger.info("%s: finished with status 'error'", message)
-            raise
-        else:
-            logger.info("%s: finished with status 'done'", message)
-        return
-
-    with Status(message, console=console):
-        yield
-
-
-@contextlib.contextmanager
-def open_spinner(
-    label: str, console: Console | None = None
-) -> Generator[None, None, None]:
-    if console is None:
-        console = get_console_or_create()
-    visible = logger.getEffectiveLevel() <= logging.INFO
-    hide: AbstractContextManager[None] = (
-        hidden_cursor(console.file)
-        if visible and getattr(console.file, "isatty", lambda: False)()
-        else contextlib.nullcontext()
-    )
-    try:
-        with hide:
-            yield
-    except KeyboardInterrupt:
-        if visible:
-            console.file.write(f"{label} ... canceled")
-            console.file.flush()
-        raise
-    except Exception:
-        if visible:
-            console.file.write(f"{label} ... error")
-            console.file.flush()
-        raise
-    else:
-        if visible:
-            console.file.write(f"{label} ... done")
-            console.file.flush()
 
 
 def get_download_progress_renderer(

@@ -10,7 +10,7 @@ from io import StringIO
 from typing import TYPE_CHECKING
 
 from pip._internal.build_env.base import Prefix
-from pip._internal.cli.ui import status
+from pip._internal.cli.spinners import open_rich_spinner, open_spinner
 from pip._internal.exceptions import (
     BuildDependencyInstallError,
     DiagnosticPipError,
@@ -131,10 +131,11 @@ class SubprocessBuildEnvironmentInstaller:
         identify_requirement = (
             f" for {for_req.name}" if for_req and for_req.name else ""
         )
-        with status(f"Installing {kind}"):
+        with open_spinner(f"Installing {kind}") as spinner:
             call_subprocess(
                 args,
                 command_desc=f"installing {kind}{identify_requirement}",
+                spinner=spinner,
                 extra_environ={"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"},
             )
 
@@ -207,7 +208,7 @@ class InprocessBuildEnvironmentInstaller:
             # Hide the logs from the installation of build dependencies.
             # They will be shown only if an error occurs.
             capture_ctx: ContextManager[StringIO] = capture_logging()
-            spinner: ContextManager[None] = status(f"Installing {kind}")
+            spinner: ContextManager[None] = open_rich_spinner(f"Installing {kind}")
         else:
             # Otherwise, pass-through all logs (with a header).
             capture_ctx, spinner = nullcontext(StringIO()), nullcontext()

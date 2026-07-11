@@ -298,10 +298,6 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: str | None) -> 
 
     Returns the requested logging level, as its integer value.
     """
-    # Auto-disable color when output is not a TTY unless explicitly requested
-    is_tty = sys.stderr.isatty()
-    if not no_color and not is_tty:
-        no_color = True
 
     # Determine the level to be logging at.
     if verbosity >= 2:
@@ -342,15 +338,8 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: str | None) -> 
         ["user_log"] if include_user_log else []
     )
     global _stdout_console, stderr_console
-    _stdout_console = PipConsole(
-        file=sys.stdout,
-        no_color=no_color,
-        soft_wrap=True,
-        force_terminal=is_tty,
-    )
-    _stderr_console = PipConsole(
-        file=sys.stderr, no_color=no_color, soft_wrap=True, force_terminal=is_tty
-    )
+    _stdout_console = PipConsole(file=sys.stdout, no_color=no_color, soft_wrap=True)
+    _stderr_console = PipConsole(file=sys.stderr, no_color=no_color, soft_wrap=True)
 
     logging.config.dictConfig(
         {

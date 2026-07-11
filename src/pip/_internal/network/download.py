@@ -17,7 +17,7 @@ from pip._vendor.urllib3 import HTTPResponse as URLlib3Response
 from pip._vendor.urllib3._collections import HTTPHeaderDict
 from pip._vendor.urllib3.exceptions import ProtocolError, ReadTimeoutError
 
-from pip._internal.cli.ui import BarType, get_download_progress_renderer
+from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
 from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
 from pip._internal.models.link import (
     Link,
