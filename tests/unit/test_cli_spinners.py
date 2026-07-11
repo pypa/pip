@@ -31,7 +31,6 @@ class TestRichSpinner:
         caplog: pytest.LogCaptureFixture,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        stream = StringIO()
         monkeypatch.setattr(
             spinners,
             "sys",
