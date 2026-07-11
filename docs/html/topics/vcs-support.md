@@ -66,7 +66,7 @@ hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
 
 pip requests partial clones by default when using Git 2.17 or later. If a Git
-server or network configuration cannot complete partial clones, set
+server or network configuration doesn't support partial clones, set
 `PIP_NO_GIT_PARTIAL_CLONE=1` to use a full clone instead.
 
 ### Mercurial
