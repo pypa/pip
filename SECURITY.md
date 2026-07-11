@@ -44,7 +44,7 @@ as feature requests.
 
 ## Vendored libraries
 
-pip ships its own copies of its dependencies in `pip/_vendor`. A
+Pip ships its own copies of its dependencies in `pip/_vendor`. A
 vulnerability in one of them is not a vulnerability in pip unless
 pip's use of the library is affected. Report the library's bug to
 that library's project.

@@ -2,9 +2,9 @@
 hide-toc: true
 ---
 
-# pip
+# Pip
 
-pip is the [package installer for Python][recommended]. You can use it to
+Pip is the [package installer for Python][recommended]. You can use it to
 install packages from the [Python Package Index][pypi] and other indexes.
 
 ```{toctree}
