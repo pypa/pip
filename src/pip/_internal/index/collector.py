@@ -108,7 +108,7 @@ def _ensure_api_response(url: str, session: PipSession) -> None:
 def _get_simple_response(
     url: str,
     session: PipSession,
-    force_refresh: bool = False,
+    force_revalidate: bool = False,
 ) -> Response:
     """Access an Simple API response with GET, and return the response.
 
@@ -137,7 +137,7 @@ def _get_simple_response(
         ),
     }
 
-    if force_refresh:
+    if force_revalidate:
         # Using max-age=0 rather than no-cache still supports conditional
         # requests, minimizing traffic when the page hasn't changed.
         # See pypa/pip#5670.
@@ -316,7 +316,7 @@ def _get_index_content(
     link: Link,
     *,
     session: PipSession,
-    force_refresh: bool = False,
+    force_revalidate: bool = False,
 ) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
 
@@ -344,7 +344,9 @@ def _get_index_content(
         logger.debug(" file: URL is directory, getting %s", url)
 
     try:
-        resp = _get_simple_response(url, session=session, force_refresh=force_refresh)
+        resp = _get_simple_response(
+            url, session=session, force_revalidate=force_revalidate
+        )
     except _NotHTTP:
         logger.warning(
             "Skipping page %s because it looks like an archive, and cannot "
@@ -442,22 +444,18 @@ class LinkCollector:
         """
         Fetch an HTML page containing package links.
         """
-        # We don't want to blindly return cached data for /simple/, because
-        # authors generally expect that twine upload && pip install will work,
-        # but if they've done a pip install in the last ~10 minutes it won't.
-        # See pypa/pip#5670.
-        force_refresh = self.session.force_metadata_refresh
-        should_force_refresh = bool(force_refresh) and (
-            ":all:" in force_refresh
-            or (
-                package_name is not None
-                and canonicalize_name(package_name) in force_refresh
-            )
+        # By default we may return cached /simple/ responses. Users can force
+        # revalidation to ensure newly uploaded distributions become visible
+        # immediately after publication. See pypa/pip#5670.
+        force_revalidate = self.session.force_metadata_refresh
+        should_force_revalidate = ":all:" in force_revalidate or (
+            package_name is not None
+            and canonicalize_name(package_name) in force_revalidate
         )
         return _get_index_content(
             location,
             session=self.session,
-            force_refresh=should_force_refresh,
+            force_revalidate=should_force_revalidate,
         )
 
     def collect_sources(
