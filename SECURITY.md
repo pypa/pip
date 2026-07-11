@@ -16,7 +16,7 @@ about the time and attention your report requires. Reports that
 repeatedly disregard this policy may be rejected regardless of
 technical merit.
 
-## What pip is expected to do
+## What pip is expected to do with wheels
 
 pip downloads a wheel
 ([binary distribution](https://packaging.python.org/en/latest/specifications/binary-distribution-format/))
