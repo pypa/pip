@@ -277,7 +277,11 @@ class AdjacentTempDirectory(TempDirectory):
         for candidate in self._generate_names(name):
             path = os.path.join(root, candidate)
             try:
-                os.mkdir(path)
+                # Match the 0o700 that tempfile.mkdtemp() (used by the base
+                # class and the fallback below) applies; a bare os.mkdir()
+                # honors the umask and typically yields a world-readable
+                # 0o755 directory next to site-packages.
+                os.mkdir(path, 0o700)
             except OSError as ex:
                 # Continue if the name exists already
                 if ex.errno != errno.EEXIST:

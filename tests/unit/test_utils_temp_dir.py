@@ -184,6 +184,16 @@ def test_adjacent_directory_exists(name: str, tmpdir: Path) -> None:
         assert expect_name == os.path.split(atmp_dir.path)[1]
 
 
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_adjacent_directory_permissions(tmpdir: Path) -> None:
+    original = os.path.join(tmpdir, "pkg")
+    ensure_dir(original)
+
+    with AdjacentTempDirectory(original) as atmp_dir:
+        mode = stat.S_IMODE(os.stat(atmp_dir.path).st_mode)
+    assert mode == 0o700
+
+
 def test_adjacent_directory_permission_error(monkeypatch: pytest.MonkeyPatch) -> None:
     name = "ABC"
 
