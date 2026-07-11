@@ -360,6 +360,7 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setenv("GIT_AUTHOR_NAME", "pip")
     monkeypatch.setenv("GIT_AUTHOR_EMAIL", "distutils-sig@python.org")
+    monkeypatch.delenv("PIP_NO_GIT_PARTIAL_CLONE", False)
 
     # We want to disable the version check from running in the tests
     monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "true")

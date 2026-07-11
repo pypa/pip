@@ -884,6 +884,27 @@ class TestGitArgs(_TestVcsArgs):
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=1)
 
+    def test_fetch_new_partial_clone_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("PIP_NO_GIT_PARTIAL_CLONE", "1")
+        with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            hide_url("git+http://username:password@git.example.com/"),
+            self.dest,
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
     def test_fetch_new_legacy(self) -> None:
         with mock.patch.object(self.svn, "get_git_version", return_value=(1, 0)):
             with mock.patch.object(
