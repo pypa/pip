@@ -253,6 +253,26 @@ def _canonicalize_requirement(raw: str) -> str:
     return "".join(parts)
 
 
+def _canonical_requires(
+    req: InstallRequirement, dist: BaseDistribution, source: str
+) -> frozenset[str]:
+    """Return the canonicalized ``Requires-Dist`` entries of ``dist``.
+
+    ``source`` describes which metadata file ``dist`` was parsed from, for
+    use in error messages.
+    """
+    canonical: set[str] = set()
+    for raw in dist.iter_raw_dependencies():
+        try:
+            # strip() because a folded metadata header may be returned
+            # with a leading newline; iter_dependencies() strips for the
+            # same reason.
+            canonical.add(_canonicalize_requirement(raw.strip()))
+        except InvalidRequirement as e:
+            raise MetadataInvalid(req, f"Requires-Dist in {source}: {e}")
+    return frozenset(canonical)
+
+
 def _check_sidecar_matches_wheel(
     req: InstallRequirement,
     sidecar_dist: BaseDistribution,
@@ -272,17 +292,6 @@ def _check_sidecar_matches_wheel(
     inconsistent already. Checking them again here is purely defensive.
     """
 
-    def _canonical_requires(dist: BaseDistribution) -> frozenset[str]:
-        canonical: set[str] = set()
-        for raw in dist.iter_raw_dependencies():
-            try:
-                canonical.add(_canonicalize_requirement(raw))
-            except InvalidRequirement as e:
-                raise MetadataInvalid(req, str(e))
-        return frozenset(canonical)
-
-    # For multi-use fields, only report the symmetric difference to avoid
-    # unnecessarily flagging matching values.
     sidecar_name = canonicalize_name(sidecar_dist.raw_name)
     wheel_name = canonicalize_name(wheel_dist.raw_name)
     if sidecar_name != wheel_name:
@@ -296,8 +305,12 @@ def _check_sidecar_matches_wheel(
             str(wheel_dist.version),
         )
 
-    sidecar_requires = _canonical_requires(sidecar_dist)
-    wheel_requires = _canonical_requires(wheel_dist)
+    # For multi-use fields, only report the symmetric difference to avoid
+    # unnecessarily flagging matching values.
+    sidecar_requires = _canonical_requires(
+        req, sidecar_dist, "the PEP 658 .metadata file"
+    )
+    wheel_requires = _canonical_requires(req, wheel_dist, "the wheel's METADATA")
     if sidecar_requires != wheel_requires:
         raise SidecarMetadataInconsistent(
             req,
@@ -773,9 +786,10 @@ class RequirementPreparer:
         # dependency resolution match with the wheel's METADATA file.
         #
         # NOTE: PEP 658 also permits .metadata files for source distributions,
-        # but PyPI doesn't serve such files. In addition, pip seems to use the
-        # locally built metadata for resolution anyway, so it's been decided
-        # to skip this check for sdists. This can change later if needed.
+        # but PyPI doesn't serve such files. In addition, an sdist's metadata
+        # is generated at build time and may legitimately differ from what the
+        # index declared, so it's been decided to skip this check for sdists.
+        # This can change later if needed.
         #
         # TODO: this is a hack for checking whether a distribution is metadata-
         # only or not. If/when we refactor distributions to delineate between

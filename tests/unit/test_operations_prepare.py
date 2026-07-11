@@ -192,6 +192,19 @@ class TestCheckSidecarMatchesWheel:
         wheel = _make_distribution(_metadata("Requires-Dist: requests>=2.0"))
         _check_sidecar_matches_wheel(self._req(), sidecar, wheel)
 
+    def test_folded_requires_dist_header_is_tolerated(self) -> None:
+        # For a folded Requires-Dist header, the email parser preserves a
+        # leading newline in the raw value on Python versions without the
+        # python/cpython#124452 fix (3.10, 3.11, <3.12.8, 3.13.0). The check
+        # must strip it, like iter_dependencies() does.
+        dist = _make_distribution(
+            _metadata(
+                "Requires-Dist:",
+                " some-package-with-a-very-long-name[extra-one]>=2.31.0,<3.0.0",
+            )
+        )
+        _check_sidecar_matches_wheel(self._req(), dist, dist)
+
     def test_requires_dist_mismatch_raises(self) -> None:
         sidecar = _make_distribution(_metadata("Requires-Dist: shadow-pkg"))
         wheel = _make_distribution(_metadata())
