@@ -1,0 +1,1 @@
+Allow opting out of Git partial clones with ``PIP_NO_GIT_PARTIAL_CLONE``.
