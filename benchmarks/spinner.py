@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-from contextlib import ExitStack
 from dataclasses import dataclass
 
 from pip._internal.cli import spinners
@@ -10,13 +9,10 @@ from pip._internal.utils import logging as pip_logging
 
 class CountingTTY(io.TextIOBase):
     def __init__(self) -> None:
+        self.encoding = "utf-8"
         self.write_calls = 0
         self.flush_calls = 0
         self.bytes_written = 0
-
-    @property
-    def encoding(self) -> str:
-        return "utf-8"
 
     def isatty(self) -> bool:
         return True
