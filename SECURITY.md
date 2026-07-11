@@ -18,7 +18,7 @@ technical merit.
 
 ## What pip is expected to do with wheels
 
-pip downloads a wheel
+Pip downloads a wheel
 ([binary distribution](https://packaging.python.org/en/latest/specifications/binary-distribution-format/))
 by saving it as a file in the target directory, and installs a
 wheel by unpacking it into the target environment. If pip runs
@@ -52,7 +52,7 @@ as feature requests.
 
 ## Vendored libraries
 
-pip ships its own copies of its dependencies in `pip/_vendor`. A
+Pip ships its own copies of its dependencies in `pip/_vendor`. A
 vulnerability in one of them is not a vulnerability in pip unless
 pip's use of the library is affected. Report the library's bug to
 that library's project.
