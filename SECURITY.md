@@ -16,6 +16,15 @@ about the time and attention your report requires. Reports that
 repeatedly disregard this policy may be rejected regardless of
 technical merit.
 
+## What pip is expected to do with wheels
+
+Pip downloads a wheel
+([binary distribution](https://packaging.python.org/en/latest/specifications/binary-distribution-format/))
+by saving it as a file in the target directory, and installs a
+wheel by unpacking it into the target environment. If pip runs
+code from a wheel while downloading or installing it, or writes
+files outside the target directory, that should be reported.
+
 ## What is not a pip vulnerability
 
 Due to the design of the Python packaging ecosystem, pip has no way
@@ -26,9 +35,8 @@ following are not pip vulnerabilities:
 - A malicious or compromised package index.
 - A malicious package. Building a package from source runs the build
   tool the package itself chooses
-  ([PEP 517](https://peps.python.org/pep-0517/)).
-  A wheel ([binary distribution](https://packaging.python.org/en/latest/specifications/binary-distribution-format/))
-  is installed by "simply unpacking" it, but once any package is
+  ([PEP 517](https://peps.python.org/pep-0517/)). Installing a
+  wheel does not run code from it, but once any package is
   installed, its code can run whenever Python runs in that
   environment. Report malicious packages on PyPI through
   its [malware reporting process](https://pypi.org/security/).
