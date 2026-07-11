@@ -23,7 +23,7 @@ pip downloads a wheel
 by saving it as a file in the target directory, and installs a
 wheel by unpacking it into the target environment. If pip runs
 code from a wheel while downloading or installing it, or writes
-its files outside the target, that should be reported.
+files outside the target directory, that should be reported.
 
 ## What is not a pip vulnerability
 
