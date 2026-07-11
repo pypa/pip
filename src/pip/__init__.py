@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "99.9"
+__version__ = "99.10.dev0"
 
 
 def main(args: list[str] | None = None) -> int:
