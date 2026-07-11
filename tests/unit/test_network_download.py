@@ -8,13 +8,15 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from pip._vendor.urllib3.exceptions import ProtocolError, ProxyError
+from pip._vendor.urllib3.exceptions import ProtocolError, ProxyError, SSLError
 
 from pip._internal.exceptions import (
     ConnectionFailedError,
     ConnectionTimeoutError,
     IncompleteDownloadError,
     ProxyConnectionError,
+    SSLMissingError,
+    SSLVerificationError,
 )
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
@@ -483,6 +485,38 @@ def test_downloader_retries_diagnostic_connection_errors_during_resume(
     assert _http_get_mock.call_count == 3
     with open(filepath, "rb") as f:
         assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
+
+
+@pytest.mark.parametrize(
+    "resume_error",
+    [
+        SSLMissingError("https://example.com/foo.tgz"),
+        SSLVerificationError(
+            "https://example.com/foo.tgz",
+            "example.com",
+            SSLError("bad certificate"),
+        ),
+    ],
+)
+def test_downloader_does_not_retry_ssl_errors_during_resume(
+    resume_error: Exception, tmpdir: Path
+) -> None:
+    """SSL errors during resume should fail immediately because retries can't help."""
+    session = PipSession(resume_retries=5)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    broken_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
+    broken_resp.headers.update({"content-length": "36"})
+    broken_resp.status_code = 200
+
+    _http_get_mock = MagicMock(side_effect=[broken_resp, resume_error])
+
+    with patch.object(Downloader, "_http_get", _http_get_mock):
+        with pytest.raises(type(resume_error)):
+            downloader(link, str(tmpdir))
+
+    assert _http_get_mock.call_count == 2
 
 
 def test_downloader_resumes_on_truncated_http_stream(

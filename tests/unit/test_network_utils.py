@@ -5,8 +5,10 @@ from pip._vendor.urllib3.util import parse_url
 
 from pip._internal.exceptions import (
     ConnectionFailedError,
+    ConnectionTimeoutError,
     NetworkConnectionError,
     ProxyConnectionError,
+    SSLVerificationError,
 )
 from pip._internal.network.utils import raise_connection_error, raise_for_status
 
@@ -55,6 +57,19 @@ def test_raise_connection_error_redacts_auth_from_url() -> None:
     message = render_to_text(excinfo.value.message).rstrip()
     assert "https://user:****@example.com/whatever.tgz" in message
     assert "password" not in message
+    assert not isinstance(excinfo.value, OSError)
+
+
+def test_raise_connection_error_escapes_url_markup() -> None:
+    """Diagnostic connection error URLs should render markup-like text literally."""
+    url = "https://example.com/path/[beta]/whatever.tgz"
+    error = requests.ConnectionError(ConnectionError("Network Error"))
+
+    with pytest.raises(ConnectionFailedError) as excinfo:
+        raise_connection_error(error, url=url, timeout=None)
+
+    message = render_to_text(excinfo.value.message).rstrip()
+    assert url in message
 
 
 def test_raise_connection_error_redacts_auth_from_proxy() -> None:
@@ -78,3 +93,46 @@ def test_raise_connection_error_redacts_auth_from_proxy() -> None:
     assert "https://user:****@example.com/whatever.tgz" in message
     assert "https://user:****@proxy.example.com" in message
     assert "password" not in message
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        2,
+        (1, 2),
+        urllib3.util.Timeout(connect=1, read=2),
+    ],
+)
+def test_raise_connection_error_classifies_bare_read_timeout(
+    timeout: tuple[int, int] | urllib3.util.Timeout,
+) -> None:
+    """Bare urllib3 read timeouts should still produce timeout diagnostics."""
+    url = "https://user:password@example.com/whatever.tgz"
+    pool = urllib3.connectionpool.HTTPSConnectionPool("example.com")
+    reason = urllib3.exceptions.ReadTimeoutError(
+        pool, url, "Read timed out. (read timeout=2)"
+    )
+    error = requests.ConnectionError(reason)
+
+    with pytest.raises(ConnectionTimeoutError) as excinfo:
+        raise_connection_error(error, url=url, timeout=timeout)
+
+    message = render_to_text(excinfo.value.message).rstrip()
+    assert excinfo.value.context is not None
+    context = render_to_text(excinfo.value.context).rstrip()
+    assert "https://user:****@example.com/whatever.tgz" in message
+    assert "password" not in message
+    assert context.startswith("example.com didn't respond within ")
+
+
+def test_ssl_verification_error_details_do_not_escape_text() -> None:
+    """Diagnostic details stored as Text should not include markup backslashes."""
+    error = SSLVerificationError(
+        "https://example.com/whatever.tgz",
+        "example.com",
+        urllib3.exceptions.SSLError("[ssl: certificate_verify_failed] bad"),
+    )
+
+    assert error.context is not None
+    context = render_to_text(error.context).rstrip()
+    assert context == "[ssl: certificate_verify_failed] bad"

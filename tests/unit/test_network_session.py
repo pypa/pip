@@ -25,7 +25,7 @@ from pip._internal.exceptions import (
     ConnectionTimeoutError,
     DiagnosticPipError,
     ProxyConnectionError,
-    SSLMissing,
+    SSLMissingError,
     SSLVerificationError,
 )
 from pip._internal.models.link import Link
@@ -367,13 +367,13 @@ class TestPipSession:
         )
 
 
-@pytest.mark.network
 class TestConnectionErrors:
     @pytest.fixture
     def session(self) -> Iterator[PipSession]:
         with PipSession() as session:
             yield session
 
+    @pytest.mark.network
     def test_non_existent_domain(self, session: PipSession) -> None:
         url = "https://404.example.com/"
         with pytest.raises(ConnectionFailedError) as e:
@@ -394,9 +394,7 @@ class TestConnectionErrors:
             f"Failed to connect to {instant_close_server.host} "
             f"while fetching {instant_close_server.url}"
         )
-        assert context == (
-            "Details: the connection was closed without a reply from the server."
-        )
+        assert context == "the connection was closed without a reply from the server."
 
     def test_timeout(self, session: PipSession, delayed_server: Address) -> None:
         url = delayed_server.url
@@ -409,9 +407,10 @@ class TestConnectionErrors:
             f"{delayed_server.host} didn't respond within 0.2 seconds"
         )
 
-    def test_expired_ssl(
+    def test_self_signed_ssl(
         self, session: PipSession, self_signed_server: Address
     ) -> None:
+        """A self-signed certificate should produce a TLS verification diagnostic."""
         url = f"https://{self_signed_server.host}:{self_signed_server.port}/"
         with pytest.raises(SSLVerificationError) as e:
             session.get(url)
@@ -428,13 +427,46 @@ class TestConnectionErrors:
         # This is unfortunate, but there is no good way of mocking a missing
         # ssl module without reloading import trickery (which is worse).
         monkeypatch.setattr(HTTPSConnectionPool, "ConnectionCls", DummyConnection)
-        url = "https://example.com/"
-        with pytest.raises(SSLMissing) as e:
+        url = "https://user:password@example.com/"
+        with pytest.raises(SSLMissingError) as e:
             session.get(url)
         message, context = render_diagnostic_error(e.value)
-        assert message == f"Failed to establish a secure connection for {url}"
+        assert message == (
+            "Failed to establish a secure connection for "
+            "https://user:****@example.com/"
+        )
+        assert "password" not in message
         assert context == "The 'ssl' module is unavailable but required for HTTPS URLs"
 
+    def test_uses_failed_request_url(
+        self, monkeypatch: pytest.MonkeyPatch, session: PipSession
+    ) -> None:
+        """Redirect failures should report the final URL that actually failed."""
+        failed_request = requests.Request("GET", "https://example.com/final").prepare()
+
+        def request(
+            self: requests.Session,
+            method: str,
+            url: str,
+            *args: object,
+            **kwargs: object,
+        ) -> None:
+            raise requests.ConnectionError(
+                ConnectionError("Network Error"), request=failed_request
+            )
+
+        monkeypatch.setattr(requests.Session, "request", request)
+
+        with pytest.raises(ConnectionFailedError) as e:
+            session.get("https://example.com/start")
+
+        message, _ = render_diagnostic_error(e.value)
+        assert message == (
+            "Failed to connect to example.com while fetching "
+            "https://example.com/final"
+        )
+
+    @pytest.mark.network
     def test_broken_proxy(self, session: PipSession) -> None:
         url = "https://pypi.org/"
         proxy = "https://404.example.com"

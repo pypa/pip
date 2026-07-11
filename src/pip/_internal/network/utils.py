@@ -1,9 +1,10 @@
-import urllib.parse
 from collections.abc import Generator
-from typing import NoReturn
+from typing import Literal, NoReturn, TypeAlias, cast
+from urllib.parse import urlsplit
 
 from pip._vendor import requests, urllib3
 from pip._vendor.requests.models import Response
+from pip._vendor.urllib3.exceptions import TimeoutStateError
 
 from pip._internal.exceptions import (
     ConnectionFailedError,
@@ -13,6 +14,10 @@ from pip._internal.exceptions import (
     SSLVerificationError,
 )
 from pip._internal.utils.misc import redact_auth_from_url
+
+TimeoutValue: TypeAlias = (
+    float | tuple[float | None, float | None] | urllib3.util.Timeout | None
+)
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -108,11 +113,49 @@ def response_chunks(
             yield chunk
 
 
+def _parse_timeout(timeout: TimeoutValue, kind: Literal["connect", "read"]) -> float:
+    connect_timeout: float | None
+    read_timeout: float | None
+    if isinstance(timeout, tuple):
+        connect_timeout, read_timeout = timeout
+    elif isinstance(timeout, urllib3.util.Timeout):
+        connect_timeout = cast(float | None, timeout.connect_timeout)
+        try:
+            read_timeout = timeout.read_timeout
+        except TimeoutStateError:
+            read_timeout = None
+    else:
+        connect_timeout = read_timeout = timeout
+
+    if kind == "connect":
+        assert connect_timeout is not None
+        return connect_timeout
+    else:
+        assert read_timeout is not None
+        return read_timeout
+
+
+def _raise_timeout_error(
+    reason: urllib3.exceptions.TimeoutError,
+    url: str,
+    host: str,
+    timeout: TimeoutValue,
+) -> NoReturn:
+    if isinstance(reason, urllib3.exceptions.ConnectTimeoutError):
+        raise ConnectionTimeoutError(
+            url, host, kind="connect", timeout=_parse_timeout(timeout, "connect")
+        )
+    else:
+        raise ConnectionTimeoutError(
+            url, host, kind="read", timeout=_parse_timeout(timeout, "read")
+        )
+
+
 def raise_connection_error(
     error: requests.ConnectionError | requests.Timeout,
     *,
     url: str,
-    timeout: tuple[float, float] | None,
+    timeout: TimeoutValue,
 ) -> NoReturn:
     """Raise a specific error for a given connection error, if possible.
 
@@ -121,15 +164,19 @@ def raise_connection_error(
           so these errors are also handled here.
     """
     url = redact_auth_from_url(url)
+    raw_hostname = urlsplit(url).hostname or urlsplit(url).netloc
     reason = error.args[0] if error.args else error
 
-    # urllib3 seemingly always wraps the original error in a MaxRetryError
-    # (even for --retries 0) but being defensive can't hurt.
+    if isinstance(reason, urllib3.exceptions.TimeoutError) and not isinstance(
+        reason, urllib3.exceptions.NewConnectionError
+    ):
+        # A bare timeout error can occur during non-streamed responses. Don't
+        # ask me how.
+        _raise_timeout_error(reason, url, raw_hostname, timeout)
+
+    # At this point, all errors should be wrapped in MaxRetryError.
     if not isinstance(reason, urllib3.exceptions.MaxRetryError):
-        # Even --retries 0 still results in a MaxRetryError(!) but being
-        # defensive can't hurt.
-        host = urllib.parse.urlsplit(url).netloc
-        raise ConnectionFailedError(url, host, reason)
+        raise ConnectionFailedError(url, raw_hostname, reason)
 
     max_retry_error = reason
     assert isinstance(max_retry_error.pool, urllib3.connectionpool.HTTPConnectionPool)
@@ -144,11 +191,7 @@ def raise_connection_error(
     if isinstance(reason, urllib3.exceptions.TimeoutError) and not isinstance(
         reason, urllib3.exceptions.NewConnectionError
     ):
-        assert timeout is not None
-        if isinstance(reason, urllib3.exceptions.ConnectTimeoutError):
-            raise ConnectionTimeoutError(url, host, kind="connect", timeout=timeout[0])
-        else:
-            raise ConnectionTimeoutError(url, host, kind="read", timeout=timeout[1])
+        _raise_timeout_error(reason, url, host, timeout)
     if isinstance(reason, urllib3.exceptions.ProxyError):
         assert proxy is not None
         raise ProxyConnectionError(url, redact_auth_from_url(str(proxy)), reason)
