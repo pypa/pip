@@ -57,13 +57,14 @@ class SubprocessBuildEnvironmentInstaller:
     ) -> None:
         finder = self.finder
         args: list[str] = [
-            sys.executable,
             get_runnable_pip(),
             "install",
-            "--ignore-installed",
-            "--no-user",
+            # HACK: --prefix shouldn't be necessary for venv environments, but
+            # we set it anyway so if it's set via an envvar or configuration
+            # file, it won't break things, *sigh*.
             "--prefix",
             prefix.path,
+            "--no-user",
             "--no-warn-script-location",
             "--disable-pip-version-check",
             # As the build environment is ephemeral, it's wasteful to
@@ -75,6 +76,12 @@ class SubprocessBuildEnvironmentInstaller:
             "--target",
             "",
         ]
+        if prefix.venv_executable:
+            args.insert(0, prefix.venv_executable)
+        else:
+            args.insert(0, sys.executable)
+            args.append("--ignore-installed")
+
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append("-vv")
         elif logger.getEffectiveLevel() <= VERBOSE:
@@ -104,8 +111,11 @@ class SubprocessBuildEnvironmentInstaller:
         for link in finder.find_links:
             args.extend(["--find-links", link])
 
-        if finder.proxy:
+        # is not None: forward an empty --proxy "" (disable proxying) too.
+        if finder.proxy is not None:
             args.extend(["--proxy", finder.proxy])
+        if finder.no_proxy_env:
+            args.append("--no-proxy-env")
         for host in finder.trusted_hosts:
             args.extend(["--trusted-host", host])
         if finder.custom_cert:
@@ -142,7 +152,7 @@ class SubprocessBuildEnvironmentInstaller:
 
 class InprocessBuildEnvironmentInstaller:
     """
-    Build dependency installer that runs in the same pip process.
+    Install build dependencies via the already running pip process.
 
     This contains a stripped down version of the install command with
     only the logic necessary for installing build dependencies. The
@@ -153,6 +163,10 @@ class InprocessBuildEnvironmentInstaller:
     they don't make sense for build dependencies (in which case, they
     are hard-coded, see comments below).
     """
+
+    # TODO: this plays poorly with venv-based build environments, but cannot be
+    # fixed until pip gains better support for operating within a Python
+    # environment that isn't the running environment.
 
     def __init__(
         self,
@@ -281,6 +295,8 @@ class InprocessBuildEnvironmentInstaller:
             # pre-compile everything since not all modules will be used.
             pycompile=False,
             progress_bar="off",
+            # Link console scripts to the build env's interpreter, not pip's.
+            script_executable=prefix.venv_executable,
         )
 
         env = get_environment(list(prefix.lib_dirs))
