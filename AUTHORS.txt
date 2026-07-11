@@ -2,6 +2,7 @@
 A_Rog
 Aakanksha Agrawal
 Aarni Koskela
+Abdul Rawoof Khan
 Abhinav Sagar
 ABHYUDAY PRATAP SINGH
 abs51295
@@ -72,6 +73,7 @@ Anudit Nagar
 Anuj Godase
 AQNOUCH Mohammed
 AraHaan
+Aren Siekmeier
 arena
 arenasys
 Arindam Choudhury
@@ -222,12 +224,14 @@ David Runge
 David Tucker
 David Wales
 Davidovich
+Dayna Blackwell
 ddelange
 Deepak Sharma
 Deepyaman Datta
 Denis Roussel (ACSONE)
 Denise Yu
 dependabot[bot]
+dereksz
 derwolfe
 Desetude
 developer
@@ -344,6 +348,7 @@ Herbert Pfennig
 Holly Stotelmyer
 Honnix
 Hsiaoming Yang
+Hugo
 Hugo Lopes Tavares
 Hugo van Kemenade
 Hugues Bruant
@@ -489,8 +494,10 @@ Lincoln de Sousa
 Lipis
 lorddavidiii
 Loren Carvalho
+Louis Liu
 Lucas Cimon
 Ludovic Gasc
+Luis Carlos
 Luis Medel
 Lukas Geiger
 Lukas Juhrich
@@ -564,6 +571,7 @@ Mike Hendricks
 Min RK
 MinRK
 Miro Hrončok
+Mohsen Fooladnezhad
 Monica Baluna
 montefra
 Monty Taylor
@@ -612,6 +620,7 @@ Oliver Tonnhofer
 Olivier Girardot
 Olivier Grisel
 Ollie Rutherfurd
+Omar Abdalgwad
 OMOTO Kenji
 Omry Yadan
 onlinejudge95
@@ -675,6 +684,7 @@ Quentin Lee
 Quentin Pradet
 R. David Murray
 Rafael Caricio
+rahulkotargasthi
 Ralf Schmitt
 Ran Benita
 Randy Döring
@@ -707,6 +717,7 @@ Ronny Pfannschmidt
 Rory McCann
 Ross Brattain
 Roy Wellington Ⅳ
+RoyS
 Ruairidh MacLeod
 Russell Keith-Magee
 Ryan Shepherd
@@ -715,6 +726,7 @@ ryneeverett
 Ryuma Asai
 S. Guliaev
 Sachi King
+Sai Sridhar Tarra
 Salvatore Rinchiera
 sandeepkiran-js
 Sander Van Balen
@@ -736,6 +748,7 @@ Shahar Epstein
 Shantanu
 shenxianpeng
 shireenrao
+Shivam Shrey
 Shivansh-007
 Shixian Sheng
 Shlomi Fish
@@ -852,6 +865,7 @@ Yash
 Yashraj
 Yen Chi Hsuan
 Yeray Diaz Diaz
+Youngkwang Yang
 Yoval P
 Yu Jian
 Yuan Jing Vincent Yan
