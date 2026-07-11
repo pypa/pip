@@ -103,6 +103,10 @@ docs = [
     "sphinx-issues",
 ]
 
+benchmark = [
+    "asv",
+]
+
 [tool.flit.sdist]
 include = [
     "NEWS.rst",
