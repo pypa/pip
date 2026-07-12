@@ -276,6 +276,8 @@ def select_from_pylock_path_or_url(
         ) from exc
 
     try:
+        # TODO: for completeness, pylock.select should support preferring sdist
+        # over wheels to support --no-binary
         yield from lock.select()
     except Exception as exc:
         raise InstallationError(
