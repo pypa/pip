@@ -547,5 +547,7 @@ class PipSession(requests.Session):
             raise_connection_error(e, url=failed_url, timeout=kwargs["timeout"])
         except ImportError as e:
             if "ssl" in str(e).lower():
+                # Unfortunately, if this TLS error was the result of a redirect from
+                # a HTTP to a HTTPS url, we don't know what the final url was.
                 raise SSLMissingError(redact_auth_from_url(url))
             raise
