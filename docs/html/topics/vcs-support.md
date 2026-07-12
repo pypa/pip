@@ -65,9 +65,11 @@ When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
 
-pip requests partial clones by default when using Git 2.17 or later. If a Git
-server or network configuration doesn't support partial clones, set
-`PIP_NO_GIT_PARTIAL_CLONE=1` to use a full clone instead.
+Pip requests partial clones by default when using Git 2.17 or later, and will
+detect when git advertises support for partial clones. If a Git server or
+network configuration incorrectly claims to support partial clones, but does
+not do so in practice, setting `PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER=1`
+will force pip to ignore the claim and use a full clone.
 
 ### Mercurial
 
