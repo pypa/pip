@@ -657,5 +657,6 @@ def install_req_from_pylock_package(
         locked_link = Link(
             requirement_url,
             comes_from=pylock_path_or_url,
+            upload_time=package_dist.upload_time,
         )
         return ireq, locked_link
