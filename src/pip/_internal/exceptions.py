@@ -380,6 +380,23 @@ class MetadataInconsistent(InstallationError):
         )
 
 
+class SidecarMetadataInconsistent(MetadataInconsistent):
+    """The wheel's METADATA disagrees with its PEP 658 ``.metadata`` file.
+
+    Raised after the wheel has been downloaded and hash-verified, when a
+    resolver-affecting field in the wheel's embedded ``METADATA`` does not
+    match the value taken from the remote ``.metadata`` sidecar that drove
+    resolution. ``f_val`` is the sidecar value, ``m_val`` is the wheel value.
+    """
+
+    def __str__(self) -> str:
+        return (
+            f"Requested {self.ireq} has inconsistent {self.field} between "
+            f"its PEP 658 .metadata file and the wheel's METADATA: "
+            f"sidecar has {self.f_val!r}, wheel has {self.m_val!r}"
+        )
+
+
 class MetadataInvalid(InstallationError):
     """Metadata is invalid."""
 
