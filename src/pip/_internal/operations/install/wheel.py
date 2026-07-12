@@ -441,6 +441,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     warn_script_location: bool = True,
     direct_url: DirectUrl | None = None,
     requested: bool = False,
+    script_executable: str | None = None,
 ) -> None:
     """Install a wheel.
 
@@ -452,6 +453,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     :param pycompile: Whether to byte-compile installed Python files
     :param warn_script_location: Whether to check that scripts are installed
         into a directory on PATH
+    :param script_executable: Python executable to use for console scripts
     :raises UnsupportedWheel:
         * when the directory holds an unpacked wheel with incompatible
           Wheel-Version
@@ -640,6 +642,12 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
     maker = PipScriptMaker(None, scheme.scripts)
 
+    # Embed the target environment's interpreter in console-script launchers
+    # rather than the one running pip, so an in-process install into another
+    # environment (e.g. a venv build environment) produces working launchers.
+    if script_executable is not None:
+        maker.executable = script_executable  # type: ignore  # it's untyped in distlib
+
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
     maker.clobber = True
@@ -739,6 +747,7 @@ def install_wheel(
     warn_script_location: bool = True,
     direct_url: DirectUrl | None = None,
     requested: bool = False,
+    script_executable: str | None = None,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
@@ -751,4 +760,5 @@ def install_wheel(
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,
+                script_executable=script_executable,
             )

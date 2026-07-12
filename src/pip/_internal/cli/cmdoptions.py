@@ -314,8 +314,17 @@ proxy: Callable[..., Option] = partial(
     "--proxy",
     dest="proxy",
     type="str",
-    default="",
+    default=None,
     help="Specify a proxy in the form scheme://[user:passwd@]proxy.server:port.",
+)
+
+no_proxy_env: Callable[..., Option] = partial(
+    Option,
+    "--no-proxy-env",
+    dest="no_proxy_env",
+    action="store_true",
+    default=False,
+    help="Do not read proxy configuration from environment variables.",
 )
 
 retries: Callable[..., Option] = partial(
@@ -1222,6 +1231,7 @@ use_new_feature: Callable[..., Option] = partial(
     choices=[
         "fast-deps",
         "inprocess-build-deps",
+        "venv-isolation",
     ]
     + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",
@@ -1260,6 +1270,7 @@ general_group: dict[str, Any] = {
         no_input,
         keyring_provider,
         proxy,
+        no_proxy_env,
         retries,
         timeout,
         exists_action,

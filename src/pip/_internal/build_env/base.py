@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
 
 
-BuildIsolationMode = Literal["off", "virtual"]
+BuildIsolationMode = Literal["off", "virtual", "venv"]
 
 
 def _dedup(a: str, b: str) -> tuple[str] | tuple[str, str]:
@@ -23,12 +23,14 @@ def _dedup(a: str, b: str) -> tuple[str] | tuple[str, str]:
 
 
 class Prefix:
-    def __init__(self, path: str) -> None:
+    # TODO: simplify this data model when the legacy subprocess installer is removed
+    def __init__(self, path: str, *, venv_executable: str | None = None) -> None:
         self.path = path
         self.setup = False
         scheme = get_scheme("", prefix=path)
         self.bin_dir = scheme.scripts
         self.lib_dirs = _dedup(scheme.purelib, scheme.platlib)
+        self.venv_executable = venv_executable
 
 
 class BuildEnvironmentInstaller(Protocol):
@@ -51,6 +53,10 @@ class BuildEnvironment(ContextManager[None], metaclass=abc.ABCMeta):
     """Creates and manages an isolated environment to install build deps"""
 
     lib_dirs: list[str]
+    python_executable: str
+
+    @abc.abstractmethod
+    def __init__(self, installer: BuildEnvironmentInstaller): ...
 
     def check_requirements(
         self, reqs: Iterable[str]

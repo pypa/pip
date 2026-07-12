@@ -134,6 +134,8 @@ class SimpleWheelCache(Cache):
     ) -> Link:
         candidates = []
 
+        if link.is_existing_dir():
+            return link
         if not package_name:
             return link
 
