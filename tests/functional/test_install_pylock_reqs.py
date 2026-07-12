@@ -193,3 +193,61 @@ def test_install_pylock_only_binary_ignored_for_archives(
     )
     assert "experimental" in result.stderr
     assert "Would install simple2-3.0" in result.stdout
+
+
+def test_install_pylock_default_prerelease(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """Prereleases are allowed by default."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.prerelease-wheel.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install pkg-prerelease-1.0a1" in result.stdout
+
+
+def test_install_pylock_reject_prerelease(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """Prereleases are rejected when --only-final is set."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.prerelease-wheel.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--only-final=pkg-prerelease",
+        expect_error=True,
+    )
+    assert (
+        "Could not find a final version that satisfies the requirement pkg-prerelease"
+        in result.stderr
+    )
+
+
+def test_install_pylock_allow_archive_prerelease(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """--only-final does not influence direct URL requirements."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.prerelease-archive.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--only-final=pkg-prerelease",
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install pkg-prerelease-1.0a1" in result.stdout
