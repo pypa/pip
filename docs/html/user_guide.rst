@@ -447,7 +447,7 @@ You can combine this option with other filtering mechanisms like constraints fil
 Forcing Metadata Refresh
 ========================
 
-.. versionadded:: 26.x
+.. versionadded:: 26.2
 
 By default, pip may use cached index metadata when looking for packages.
 If you have just published a new version of a package and want to

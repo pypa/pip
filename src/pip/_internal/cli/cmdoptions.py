@@ -978,15 +978,15 @@ def _handle_force_metadata_refresh(
 
     existing: set[str] = getattr(parser.values, option.dest)
 
-    if value == ":all:":
+    new = value.split(",")
+    while ":all:" in new:
         existing.clear()
         existing.add(":all:")
-        return
+        del new[: new.index(":all:") + 1]
+        if ":none:" not in new:
+            return
 
-    if ":all:" in existing:
-        return
-
-    for name in value.split(","):
+    for name in new:
         if name == ":none:":
             existing.clear()
         else:

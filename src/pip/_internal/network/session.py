@@ -340,6 +340,7 @@ class PipSession(requests.Session):
             HTTPS.
         """
         super().__init__(*args, **kwargs)
+
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
         self.pip_trusted_origins: list[tuple[str, int | None]] = []
