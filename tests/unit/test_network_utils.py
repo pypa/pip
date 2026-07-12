@@ -96,15 +96,19 @@ def test_raise_connection_error_redacts_auth_from_proxy() -> None:
 
 
 @pytest.mark.parametrize(
-    "timeout",
+    "timeout, expected_context",
     [
-        2,
-        (1, 2),
-        urllib3.util.Timeout(connect=1, read=2),
+        (2, "example.com didn't respond within 2 seconds"),
+        ((1, 2), "example.com didn't respond within 2 seconds"),
+        (
+            urllib3.util.Timeout(connect=1, read=2),
+            "example.com didn't respond within 2 seconds",
+        ),
     ],
 )
 def test_raise_connection_error_classifies_bare_read_timeout(
-    timeout: tuple[int, int] | urllib3.util.Timeout,
+    timeout: int | tuple[int, int] | urllib3.util.Timeout,
+    expected_context: str,
 ) -> None:
     """Bare urllib3 read timeouts should still produce timeout diagnostics."""
     url = "https://user:password@example.com/whatever.tgz"
@@ -122,7 +126,29 @@ def test_raise_connection_error_classifies_bare_read_timeout(
     context = render_to_text(excinfo.value.context).rstrip()
     assert "https://user:****@example.com/whatever.tgz" in message
     assert "password" not in message
-    assert context.startswith("example.com didn't respond within ")
+    assert context == expected_context
+
+
+def test_raise_connection_error_classifies_connect_timeout() -> None:
+    """Connect timeouts should use connect timeout details in diagnostics."""
+    url = "https://example.com/whatever.tgz"
+    pool = urllib3.connectionpool.HTTPSConnectionPool("example.com")
+    reason = urllib3.exceptions.ConnectTimeoutError(
+        pool, url, "Connection timed out. (connect timeout=1)"
+    )
+    error = requests.ConnectionError(
+        urllib3.exceptions.MaxRetryError(pool, url, reason)
+    )
+
+    with pytest.raises(ConnectionTimeoutError) as excinfo:
+        raise_connection_error(error, url=url, timeout=(1, 2))
+
+    assert excinfo.value.context is not None
+    context = render_to_text(excinfo.value.context).rstrip()
+    assert context == (
+        "example.com didn't respond within 1 seconds "
+        "(while establishing a connection)"
+    )
 
 
 def test_ssl_verification_error_details_do_not_escape_text() -> None:

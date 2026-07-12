@@ -8,7 +8,13 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from pip._vendor.urllib3.exceptions import ProtocolError, ProxyError, SSLError
+from pip._vendor.urllib3.connectionpool import HTTPConnectionPool
+from pip._vendor.urllib3.exceptions import (
+    ProtocolError,
+    ProxyError,
+    ReadTimeoutError,
+    SSLError,
+)
 
 from pip._internal.exceptions import (
     ConnectionFailedError,
@@ -410,8 +416,18 @@ def test_downloader_resumes_on_protocol_error(tmpdir: Path) -> None:
         assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
 
 
-def test_downloader_retries_protocol_error_during_resume(tmpdir: Path) -> None:
-    """A ProtocolError raised while fetching a resume response is retried."""
+@pytest.mark.parametrize(
+    "resume_error",
+    [
+        ProtocolError("Connection broken"),
+        ReadTimeoutError(HTTPConnectionPool("example.com"), None, "Read timed out"),
+        OSError("Connection broken"),
+    ],
+)
+def test_downloader_retries_low_level_errors_during_resume(
+    resume_error: Exception, tmpdir: Path
+) -> None:
+    """Low-level errors raised while fetching a resume response are retried."""
     session = PipSession(resume_retries=5)
     link = Link("http://example.com/foo.tgz")
     downloader = Downloader(session, "on")
@@ -427,10 +443,7 @@ def test_downloader_retries_protocol_error_during_resume(tmpdir: Path) -> None:
     resume_resp.headers.update({"content-length": "12"})
     resume_resp.status_code = 206
 
-    # The first resume attempt drops with a ProtocolError before responding
-    _http_get_mock = MagicMock(
-        side_effect=[broken_resp, ProtocolError("Connection broken"), resume_resp]
-    )
+    _http_get_mock = MagicMock(side_effect=[broken_resp, resume_error, resume_resp])
 
     with patch.object(Downloader, "_http_get", _http_get_mock):
         filepath, _ = downloader(link, str(tmpdir))

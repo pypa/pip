@@ -432,7 +432,8 @@ class SSLVerificationError(DiagnosticPipError):
             "Failed to establish a secure connection to "
             f"[magenta]{escape(host)}[/] while fetching {escape(url)}"
         )
-        super().__init__(message=message, context=Text(str(error)), hint_stmt=None)
+        hint = "You may need to use --cert or check your proxy configuration"
+        super().__init__(message=message, context=Text(str(error)), hint_stmt=hint)
 
 
 class ProxyConnectionError(DiagnosticPipError):

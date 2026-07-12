@@ -19,7 +19,7 @@ from pip._vendor.packaging.pylock import (
 )
 from pip._vendor.packaging.version import Version
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import DiagnosticPipError, InstallationError
 from pip._internal.models.link import Link
 from pip._internal.utils.compat import tomllib
 from pip._internal.utils.urls import path_to_url, url_to_path
@@ -263,6 +263,8 @@ def select_from_pylock_path_or_url(
 ]:
     try:
         pylock_content = _get_pylock_path_or_url_content(pylock_path_or_url, session)
+    except DiagnosticPipError:
+        raise
     except Exception as exc:
         raise InstallationError(
             f"Error reading pylock file {pylock_path_or_url!r}: {exc}"

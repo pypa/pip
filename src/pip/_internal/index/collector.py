@@ -372,8 +372,8 @@ def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | Non
         _handle_get_simple_fail(link, f"connection error: {exc.context}")
     except ProxyConnectionError as exc:
         _handle_get_simple_fail(link, f"proxy connection error: {exc.context}")
-    except ConnectionTimeoutError:
-        _handle_get_simple_fail(link, "timed out")
+    except ConnectionTimeoutError as exc:
+        _handle_get_simple_fail(link, str(exc.context))
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None

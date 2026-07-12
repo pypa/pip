@@ -40,7 +40,7 @@ from pip._internal.network.session import (
 )
 
 from tests.lib.output import render_to_text
-from tests.lib.server import make_mock_server, server_running, text_html_response
+from tests.lib.server import make_mock_server, server_running
 
 
 def render_diagnostic_error(error: DiagnosticPipError) -> tuple[str, str | None]:
@@ -94,7 +94,6 @@ def self_signed_server(cert_factory: Callable[[], str]) -> Iterator[Address]:
     ctx.load_cert_chain(cert_path, cert_path)
 
     server = make_mock_server(ssl_context=ctx)
-    server.mock.side_effect = [text_html_response("ok")]
     with server_running(server):
         yield Address(server.host, server.port)
 
@@ -469,11 +468,13 @@ class TestConnectionErrors:
 
     @pytest.mark.network
     def test_non_existent_domain(self, session: PipSession) -> None:
-        url = "https://404.example.com/"
+        url = "https://404.example.invalid/"
         with pytest.raises(ConnectionFailedError) as e:
             session.get(url)
         message, _ = render_diagnostic_error(e.value)
-        assert message == f"Failed to connect to 404.example.com while fetching {url}"
+        assert (
+            message == f"Failed to connect to 404.example.invalid while fetching {url}"
+        )
 
     @pytest.mark.skipif(
         sys.platform != "linux", reason="Only Linux raises the needed urllib3 error"
@@ -563,7 +564,7 @@ class TestConnectionErrors:
     @pytest.mark.network
     def test_broken_proxy(self, session: PipSession) -> None:
         url = "https://pypi.org/"
-        proxy = "https://404.example.com"
+        proxy = "https://404.example.invalid"
         session.proxies = {"https": proxy}
         with pytest.raises(ProxyConnectionError) as e:
             session.get(url)
