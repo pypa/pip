@@ -281,7 +281,7 @@ class Git(VersionControl):
         else:
             flags = ("--verbose", "--progress")
         if self.get_git_version() >= (2, 17) and not os.environ.get(
-            "PIP_NO_GIT_PARTIAL_CLONE"
+            "PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER"
         ):
             # Git added support for partial clone in 2.17
             # https://git-scm.com/docs/partial-clone

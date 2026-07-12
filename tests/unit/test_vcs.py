@@ -887,7 +887,7 @@ class TestGitArgs(_TestVcsArgs):
     def test_fetch_new_partial_clone_disabled(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("PIP_NO_GIT_PARTIAL_CLONE", "1")
+        monkeypatch.setenv("PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER", "1")
         with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
             with mock.patch.object(
                 self.svn, "update_submodules"
