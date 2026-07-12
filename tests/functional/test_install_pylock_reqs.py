@@ -152,10 +152,8 @@ def test_install_pylock_no_binary(
         "--no-binary=simplewheel",
         expect_error=True,
     )
-    assert (
-        "binaries are not permitted for package 'simplewheel' and "
-        "there is no source distribution for it in" in result.stderr
-    )
+    assert "Could not install locked package 'simplewheel'"
+    assert "No binaries permitted for simplewheel" in result.stderr
 
 
 def test_install_pylock_only_binary(
@@ -172,10 +170,8 @@ def test_install_pylock_only_binary(
         "--only-binary=:all:",
         expect_error=True,
     )
-    assert (
-        "source distributions are not permitted for package 'simple' and "
-        "there is no compatible wheel for it in" in result.stderr
-    )
+    assert "Could not install locked package 'simple'"
+    assert "No sources permitted for simple" in result.stderr
 
 
 def test_install_pylock_only_binary_ignored_for_archives(
