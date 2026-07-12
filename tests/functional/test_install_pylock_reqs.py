@@ -271,3 +271,43 @@ def test_install_pylock_conflict(
         "The requirement simplewheel<2 is not compatible with version 2.0 specified "
         "in a provided lock file" in result.stderr
     )
+
+
+def test_install_pylock_uploadded_prior_to(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.certify-with-upload_time.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--uploaded-prior-to=2026-01-01",
+        expect_error=True,
+    )
+    assert "Could not install locked package 'certifi' from " in result.stderr
+    assert (
+        "Upload time 2026-06-17 10:31:06+00:00 not prior to 2026-01-01" in result.stderr
+    )
+
+
+def test_install_pylock_uploadded_prior_to_missing_upload_time(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.certify-without-upload_time.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--uploaded-prior-to=2026-01-01",
+        expect_error=True,
+    )
+    assert (
+        "pylock.certify-without-upload_time.toml does not provide upload-time metadata"
+        in result.stderr
+    )
