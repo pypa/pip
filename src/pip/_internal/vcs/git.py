@@ -9,7 +9,7 @@ from dataclasses import replace
 from typing import Any
 
 from pip._internal.exceptions import BadCommand, InstallationError
-from pip._internal.utils.misc import HiddenText, display_path, hide_url
+from pip._internal.utils.misc import HiddenText, display_path, hide_url, strtobool
 from pip._internal.utils.subprocess import make_command
 from pip._internal.vcs.versioncontrol import (
     AuthInfo,
@@ -280,8 +280,8 @@ class Git(VersionControl):
             flags = ()
         else:
             flags = ("--verbose", "--progress")
-        if self.get_git_version() >= (2, 17) and not os.environ.get(
-            "PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER"
+        if self.get_git_version() >= (2, 17) and not strtobool(
+            os.environ.get("PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER", "no") or "no"
         ):
             # Git added support for partial clone in 2.17
             # https://git-scm.com/docs/partial-clone
