@@ -898,7 +898,7 @@ class PackageFinder:
                     f"from {locked_link.comes_from!r}: {detail}"
                 )
             self._all_candidates[project_name] = [
-                InstallationCandidate(project_name, detail, locked_link)
+                InstallationCandidate(project_name, detail, locked_link, locked=True)
             ]
             return self._all_candidates[project_name]
 

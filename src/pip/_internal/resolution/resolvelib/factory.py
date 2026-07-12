@@ -723,6 +723,7 @@ class Factory:
 
         # Check if only final releases are allowed for this package
         version_type = "version"
+        allows_pre = None
         if self._finder.release_control is not None:
             allows_pre = self._finder.release_control.allows_prereleases(
                 canonicalize_name(req.project_name)
@@ -730,12 +731,32 @@ class Factory:
             if allows_pre is False:
                 version_type = "final version"
 
-        logger.critical(
-            "Could not find a %s that satisfies the requirement %s (from versions: %s)",
-            version_type,
-            req_disp,
-            ", ".join(versions) or "none",
-        )
+        if len(cands) == 1 and cands[0].locked:
+            # The package finder ensures that requirements from pylock files
+            # have exactly one candidate. So we can provide a specific error
+            # message in this case.
+            if cands[0].version.is_prerelease and allows_pre is False:
+                logger.critical(
+                    "A pre-release version %s is specified in a provided lock file "
+                    "for %s but only final versions are allowed",
+                    cands[0].version,
+                    cands[0].name,
+                )
+            else:
+                logger.critical(
+                    "The requirement %s is not compatible with "
+                    "version %s specified in a provided lock file",
+                    req_disp,
+                    ", ".join(versions),
+                )
+        else:
+            logger.critical(
+                "Could not find a %s that satisfies the requirement %s "
+                "(from versions: %s)",
+                version_type,
+                req_disp,
+                ", ".join(versions) or "none",
+            )
         if str(req) == "requirements.txt":
             logger.info(
                 "HINT: You are attempting to install a package literally "

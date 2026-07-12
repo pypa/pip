@@ -229,8 +229,8 @@ def test_install_pylock_reject_prerelease(
         expect_error=True,
     )
     assert (
-        "Could not find a final version that satisfies the requirement pkg-prerelease"
-        in result.stderr
+        "A pre-release version 1.0a1 is specified in a provided lock file "
+        "for pkg-prerelease but only final versions are allowed" in result.stderr
     )
 
 
@@ -251,3 +251,23 @@ def test_install_pylock_allow_archive_prerelease(
     )
     assert "experimental" in result.stderr
     assert "Would install pkg-prerelease-1.0a1" in result.stdout
+
+
+def test_install_pylock_conflict(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.onewheel.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "simplewheel<2",  # conflict with simplewheel==2.0 in lock file
+        expect_error=True,
+    )
+    assert (
+        "The requirement simplewheel<2 is not compatible with version 2.0 specified "
+        "in a provided lock file" in result.stderr
+    )
