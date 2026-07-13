@@ -1,0 +1,1 @@
+Refuse to follow an HTTP redirect that switches to a non-``http(s)`` scheme, so a remote server can no longer redirect a request into a ``file://`` URL and make pip read a local path.

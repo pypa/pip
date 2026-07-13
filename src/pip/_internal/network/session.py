@@ -42,7 +42,11 @@ from pip._internal.network.cache import SafeFileCache
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.misc import build_url_from_netloc, parse_netloc
+from pip._internal.utils.misc import (
+    build_url_from_netloc,
+    parse_netloc,
+    redact_auth_from_url,
+)
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
@@ -525,6 +529,26 @@ class PipSession(requests.Session):
         )
 
         return False
+
+    def get_redirect_target(self, resp: Response) -> str | None:
+        target = super().get_redirect_target(resp)
+        if target is None:
+            return None
+        # A file:// URL is served by LocalFSAdapter, so following a redirect
+        # into it would let a remote server make pip read a local path (or, via
+        # a UNC target on Windows, reach an SMB share). Only follow redirects
+        # that stay on http(s); a relative target carries no scheme here and
+        # inherits the current one.
+        scheme = urllib.parse.urlparse(target).scheme
+        if scheme and scheme.lower() not in ("http", "https"):
+            logger.warning(
+                "Not following redirect from %s to %s: a redirect to a non-http(s)"
+                " location is not allowed.",
+                redact_auth_from_url(resp.url),
+                redact_auth_from_url(target),
+            )
+            return None
+        return target
 
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:  # type: ignore[override]
         # Allow setting a default timeout on a session
