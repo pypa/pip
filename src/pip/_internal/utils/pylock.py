@@ -157,13 +157,10 @@ def _package_dist_url(
             # relative path, join to pylock location
             if _is_url(pylock_path_or_url):
                 dist_url = urljoin(pylock_path_or_url, path)
-                # A relative path must resolve within the lock file's own
-                # location. os.path.isabs does not consider "file:..." (or any
-                # other scheme-carrying value) absolute, so such a path reaches
-                # here and urljoin honors its scheme, discarding the pylock base.
-                # That lets a lock file obtained from a URL point at the local
-                # filesystem or another host, which the absolute-path branch
-                # below is meant to forbid. Reject anything that leaves the base.
+                # os.path.isabs does not treat a scheme-carrying value like
+                # "file:..." as absolute, so it reaches here and urljoin honors
+                # its scheme, discarding the pylock base. Only keep the result
+                # if its scheme and host still match the lock's own.
                 base = urlsplit(pylock_path_or_url)
                 target = urlsplit(dist_url)
                 if (target.scheme, target.netloc) != (base.scheme, base.netloc):
