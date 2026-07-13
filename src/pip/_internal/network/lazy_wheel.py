@@ -209,7 +209,7 @@ class LazyZipOverHTTP:
             right = bisect_right(self._left, end)
             for start, end in self._merge(start, end, left, right):
                 response = self._stream_response(start, end)
-                response.raise_for_status()
+                raise_for_status(response)
                 self.seek(start)
                 for chunk in response_chunks(response, self._chunk_size):
                     self._file.write(chunk)

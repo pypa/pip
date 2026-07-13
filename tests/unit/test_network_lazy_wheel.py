@@ -1,18 +1,22 @@
 from collections.abc import Iterator
+from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 
 import pytest
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.exceptions import InvalidWheel
+from pip._internal.exceptions import InvalidWheel, NetworkConnectionError
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
+    LazyZipOverHTTP,
     dist_from_wheel_url,
 )
 from pip._internal.network.session import PipSession
 
 from tests.lib import TestData
+from tests.lib.requests_mocks import MockResponse
 from tests.lib.server import MockServer, file_response
 
 MYPY_0_782_WHL = (
@@ -60,6 +64,27 @@ def test_dist_from_wheel_url_no_range(
     """Test handling when HTTP range requests are not supported."""
     with pytest.raises(HTTPRangeRequestUnsupported):
         dist_from_wheel_url(canonicalize_name("mypy"), mypy_whl_no_range, session)
+
+
+def test_download_range_request_403_uses_x_error_message() -> None:
+    """_download raises NetworkConnectionError with X-Error-Message on 403."""
+    resp = MockResponse(b"")
+    resp.status_code = 403
+    resp.url = "https://files.pythonhosted.org/packages/example.whl"
+    resp.reason = "Forbidden"
+    resp.headers["X-Error-Message"] = "This package is not available from this index."
+
+    obj = LazyZipOverHTTP.__new__(LazyZipOverHTTP)
+    obj._left = []
+    obj._right = []
+    obj._chunk_size = 4096
+    obj._file = NamedTemporaryFile()
+
+    with patch.object(obj, "_stream_response", return_value=resp):
+        with pytest.raises(NetworkConnectionError) as excinfo:
+            obj._download(0, 100)
+    assert "not available" in str(excinfo.value)
+    assert "Forbidden" not in str(excinfo.value)
 
 
 @pytest.mark.network
