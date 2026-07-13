@@ -22,6 +22,7 @@ from pip._internal.network.session import (
     PipSession,
     user_agent,
 )
+from pip._internal.utils.urls import path_to_url
 
 
 def get_user_agent() -> str:
@@ -384,3 +385,46 @@ class TestSessionProxy:
         assert options.proxy is None
         assert session.trust_env is True
         assert self._resolved_proxy(session, "http://example.com") is not None
+
+
+def _make_redirect_response(location: str) -> requests.Response:
+    resp = requests.Response()
+    resp.status_code = 302
+    resp.headers["Location"] = location
+    resp.url = "https://example.com/simple/foo/"
+    request = requests.PreparedRequest()
+    request.prepare(method="GET", url=resp.url, headers={})
+    resp.request = request
+    return resp
+
+
+def test_get_redirect_target_refuses_file_scheme(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    # A remote server must not be able to redirect pip into the file:// adapter
+    # and have it read a local file.
+    secret = tmpdir.joinpath("secret.txt")
+    secret.write_text("s3cr3t", encoding="utf-8")
+    resp = _make_redirect_response(path_to_url(str(secret)))
+
+    session = PipSession()
+    with caplog.at_level(logging.WARNING):
+        assert session.get_redirect_target(resp) is None
+    assert "non-http(s) location is not allowed" in caplog.text
+
+    # Following the redirect the way requests does must not read the file.
+    followed = list(session.resolve_redirects(resp, resp.request))
+    assert followed == []
+
+
+@pytest.mark.parametrize(
+    "location",
+    [
+        "https://other.example.com/elsewhere/",
+        "http://other.example.com/elsewhere/",
+        "/relative/path/",
+    ],
+)
+def test_get_redirect_target_allows_http_schemes(location: str) -> None:
+    resp = _make_redirect_response(location)
+    assert PipSession().get_redirect_target(resp) == location
