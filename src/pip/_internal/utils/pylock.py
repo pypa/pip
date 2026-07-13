@@ -156,7 +156,19 @@ def _package_dist_url(
         if not os.path.isabs(path):
             # relative path, join to pylock location
             if _is_url(pylock_path_or_url):
-                return urljoin(pylock_path_or_url, path)
+                dist_url = urljoin(pylock_path_or_url, path)
+                # os.path.isabs does not treat a scheme-carrying value like
+                # "file:..." as absolute, so it reaches here and urljoin honors
+                # its scheme, discarding the pylock base. Only keep the result
+                # if its scheme and host still match the lock's own.
+                base = urlsplit(pylock_path_or_url)
+                target = urlsplit(dist_url)
+                if (target.scheme, target.netloc) != (base.scheme, base.netloc):
+                    raise InstallationError(
+                        f"Path {path!r} in pylock file obtained from a URL "
+                        f"resolves outside its location: {pylock_path_or_url!r}"
+                    )
+                return dist_url
             else:
                 return path_to_url(
                     os.path.join(os.path.dirname(pylock_path_or_url), path)
