@@ -495,6 +495,11 @@ only specific packages:
       py -m pip install --force-metadata-refresh=:all: -r requirements.txt
       py -m pip install --force-metadata-refresh=:none: -r requirements.txt
 
+.. note::
+
+   This option also applies to remote :ref:`--find-links <install_--find-links>`
+   pages.
+
 .. _`Dependency Groups`:
 
 
