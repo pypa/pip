@@ -3,14 +3,14 @@ created-by = "pip"
 
 [[packages]]
 name = "build"
-version = "1.5.0"
+version = "1.5.1"
 
 [[packages.wheels]]
-name = "build-1.5.0-py3-none-any.whl"
-url = "https://files.pythonhosted.org/packages/0d/fe/6bea5c9162869c5beba5d9c8abbed835ec85bf1ec1fba05a3822325c45f3/build-1.5.0-py3-none-any.whl"
+name = "build-1.5.1-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/c7/f7/2c3f99ff9282f1c1ec9f6298f2c03034658a0901eeacb3b3501cb488574c/build-1.5.1-py3-none-any.whl"
 
 [packages.wheels.hashes]
-sha256 = "13f3eecb844759ab66efec90ca17639bbf14dc06cb2fdf37a9010322d9c50a6f"
+sha256 = "f1a58fe2e5af5b0238a07b9e70207492c79ddebbdb1ad954fc86d62a56be3e0d"
 
 [[packages]]
 name = "flit-core"
