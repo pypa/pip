@@ -466,8 +466,9 @@ install it immediately without waiting for the cache to expire, use
 
       py -m pip install --force-metadata-refresh=requests requests
 
-The option accepts ``:all:`` to force refresh for all packages, or a
-comma-separated list of package names to refresh only specific packages:
+The option accepts ``:all:`` to force refresh for all packages, ``:none:`` to
+disable refresh entirely, or a comma-separated list of package names to refresh
+only specific packages:
 
 .. tab:: Unix/macOS
 
@@ -482,6 +483,9 @@ comma-separated list of package names to refresh only specific packages:
       # Refresh metadata for all packages
       python -m pip install --force-metadata-refresh=:all: -r requirements.txt
 
+      # Disable refresh explicitly
+      python -m pip install --force-metadata-refresh=:none: -r requirements.txt
+
 .. tab:: Windows
 
    .. code-block:: shell
@@ -489,7 +493,7 @@ comma-separated list of package names to refresh only specific packages:
       py -m pip install --force-metadata-refresh=requests requests
       py -m pip install --force-metadata-refresh=requests,urllib3 requests urllib3
       py -m pip install --force-metadata-refresh=:all: -r requirements.txt
-
+      py -m pip install --force-metadata-refresh=:none: -r requirements.txt
 
 .. _`Dependency Groups`:
 
