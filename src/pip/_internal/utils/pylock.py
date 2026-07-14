@@ -183,6 +183,21 @@ def _package_dist_url(
             return path_to_url(path)
     else:
         assert url is not None  # guaranteed by packaging.pylock validation
+        # The path branch above stops a relative or absolute path from escaping
+        # a URL-obtained lock's location. The url field is returned as-is, so a
+        # file:// value would still be read off the local filesystem (or an SMB
+        # share on Windows, leaking credentials) even though the lock came from
+        # a remote server. Reject that, mirroring the directory-entry check,
+        # while still allowing a remote lock to reference other http(s) hosts.
+        if (
+            _is_url(pylock_path_or_url)
+            and not pylock_path_or_url.startswith("file://")
+            and urlsplit(url).scheme == "file"
+        ):
+            raise InstallationError(
+                f"The file:// url {url!r} is not allowed in a pylock file "
+                f"obtained from a URL: {pylock_path_or_url!r}"
+            )
         return url
 
 
