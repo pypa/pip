@@ -1,1 +1,1 @@
-Better error messages in case of conflicts with requirements from -r pylock.toml.
+Better error messages in case of conflicts with requirements from ``-r pylock.toml``.
