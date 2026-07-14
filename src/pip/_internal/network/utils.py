@@ -173,6 +173,10 @@ def raise_connection_error(
         # A bare timeout error can occur during non-streamed responses. Don't
         # ask me how.
         _raise_timeout_error(reason, url, raw_hostname, timeout)
+    if isinstance(reason, urllib3.exceptions.SSLError):
+        # A bare SSL error can occur during non-streamed responses, after the
+        # initial connection and TLS handshake have completed.
+        raise SSLVerificationError(url, raw_hostname, reason)
 
     # At this point, all errors should be wrapped in MaxRetryError.
     if not isinstance(reason, urllib3.exceptions.MaxRetryError):

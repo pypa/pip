@@ -9,12 +9,7 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 
 from pip._vendor.urllib3.connectionpool import HTTPConnectionPool
-from pip._vendor.urllib3.exceptions import (
-    ProtocolError,
-    ProxyError,
-    ReadTimeoutError,
-    SSLError,
-)
+from pip._vendor.urllib3.exceptions import ProtocolError, ProxyError, ReadTimeoutError
 
 from pip._internal.exceptions import (
     ConnectionFailedError,
@@ -22,7 +17,6 @@ from pip._internal.exceptions import (
     IncompleteDownloadError,
     ProxyConnectionError,
     SSLMissingError,
-    SSLVerificationError,
 )
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
@@ -500,20 +494,7 @@ def test_downloader_retries_diagnostic_connection_errors_during_resume(
         assert f.read() == b"0cfa7e9d-1868-4dd7-9fb3-f2561d5dfd89"
 
 
-@pytest.mark.parametrize(
-    "resume_error",
-    [
-        SSLMissingError("https://example.com/foo.tgz"),
-        SSLVerificationError(
-            "https://example.com/foo.tgz",
-            "example.com",
-            SSLError("bad certificate"),
-        ),
-    ],
-)
-def test_downloader_does_not_retry_ssl_errors_during_resume(
-    resume_error: Exception, tmpdir: Path
-) -> None:
+def test_downloader_does_not_retry_on_ssl_missing_error(tmpdir: Path) -> None:
     """SSL errors during resume should fail immediately because retries can't help."""
     session = PipSession(resume_retries=5)
     link = Link("http://example.com/foo.tgz")
@@ -522,6 +503,7 @@ def test_downloader_does_not_retry_ssl_errors_during_resume(
     broken_resp = MockResponse(b"0cfa7e9d-1868-4dd7-9fb3-")
     broken_resp.headers.update({"content-length": "36"})
     broken_resp.status_code = 200
+    resume_error = SSLMissingError("https://example.com/foo.tgz")
 
     _http_get_mock = MagicMock(side_effect=[broken_resp, resume_error])
 

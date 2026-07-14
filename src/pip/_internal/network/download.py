@@ -24,6 +24,7 @@ from pip._internal.exceptions import (
     IncompleteDownloadError,
     NetworkConnectionError,
     ProxyConnectionError,
+    SSLVerificationError,
 )
 from pip._internal.models.link import (
     Link,
@@ -276,6 +277,7 @@ class Downloader:
                 ConnectionFailedError,
                 ConnectionTimeoutError,
                 ProxyConnectionError,
+                SSLVerificationError,
                 ReadTimeoutError,
                 ProtocolError,
                 OSError,

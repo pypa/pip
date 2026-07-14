@@ -151,6 +151,23 @@ def test_raise_connection_error_classifies_connect_timeout() -> None:
     )
 
 
+def test_raise_connection_error_classifies_bare_ssl_error() -> None:
+    """Bare urllib3 SSL errors should still produce certificate diagnostics."""
+    url = "https://example.com/whatever.tgz"
+    reason = urllib3.exceptions.SSLError("[SSL: CERTIFICATE_VERIFY_FAILED] bad")
+    error = requests.exceptions.SSLError(reason)
+
+    with pytest.raises(SSLVerificationError) as excinfo:
+        raise_connection_error(error, url=url, timeout=None)
+
+    assert excinfo.value.context is not None
+    context = render_to_text(excinfo.value.context).rstrip()
+    assert context == "[SSL: CERTIFICATE_VERIFY_FAILED] bad"
+    assert excinfo.value.hint_stmt is not None
+    hint = render_to_text(excinfo.value.hint_stmt).rstrip()
+    assert "--cert" in hint
+
+
 def test_ssl_verification_error_details_do_not_escape_text() -> None:
     """Diagnostic details stored as Text should not include markup backslashes."""
     error = SSLVerificationError(
