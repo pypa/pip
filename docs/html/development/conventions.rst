@@ -93,13 +93,23 @@ it.
 Writing
 =======
 
+The name of the application (and the project) is "pip". This is a normal noun,
+and as such should be capitalised the same as any other noun (uppercase at the
+start of a sentence, lowercase within a sentence).
+
+The command name, ``pip`` (generally rendered in a fixed-width font, as
+here), is case sensitive and should be rendered in lowercase at all times.
+If you find that you need to start a sentence with ``pip`` (the command name),
+you should still use lowercase, but it can be better to reword your text to
+avoid starting the sentence with the command name. A simple rewording is
+to use the phrase "The ``pip`` command...".
+
 .. note::
 
-   We're still discussing *how* pip should be capitalized in prose. The
-   current statement here is tentative.
-
-pip is a proper noun, and spelt all lowercase. Do not capitalize pip as
-"Pip" at the start of a sentence.
+   Previously, it was a common practice to write "pip" in lowercase in all
+   contexts. You may still see that usage in some cases. However, this was
+   never the formal project policy, and the advice here supersedes that
+   convention.
 
 Avoid using phrases such as "easy", "just", "simply" etc, which imply
 that the task is trivial. If it were trivial, the user wouldn't be

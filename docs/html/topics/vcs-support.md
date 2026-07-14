@@ -1,7 +1,7 @@
 (vcs support)=
 # VCS Support
 
-pip supports installing from various version control systems (VCS).
+Pip supports installing from various version control systems (VCS).
 This support requires a working executable to be available (for the version
 control system being used). It is used through URL prefixes:
 
@@ -161,11 +161,11 @@ take on the VCS requirement (not the commit itself).
 
 ## URL fragments
 
-pip looks at the `subdirectory` fragments of VCS URLs for specifying the path to the
+Pip looks at the `subdirectory` fragments of VCS URLs for specifying the path to the
 Python package, when it is not in the root of the VCS directory.
 
 ```{note}
-pip also supports an `egg` fragment to specify the "project name". This is a legacy
+Pip also supports an `egg` fragment to specify the "project name". This is a legacy
 feature and its use is discouraged in favour of the
 {ref}`Direct URL <pypug:dependency-specifiers>` form.
 
