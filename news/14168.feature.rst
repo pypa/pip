@@ -1,1 +1,1 @@
-Add support for ``pylock.toml`` ``upload-time`` field, so ``--uploaded-priori-to`` works with ``-r pylock.toml``.
+Add support for ``pylock.toml`` ``upload-time`` field, so ``--uploaded-prior-to`` works with ``-r pylock.toml``.

@@ -152,7 +152,7 @@ def test_install_pylock_no_binary(
         "--no-binary=simplewheel",
         expect_error=True,
     )
-    assert "Could not install locked package 'simplewheel'"
+    assert "Could not install locked package 'simplewheel'" in result.stderr
     assert "No binaries permitted for simplewheel" in result.stderr
 
 
@@ -170,7 +170,7 @@ def test_install_pylock_only_binary(
         "--only-binary=:all:",
         expect_error=True,
     )
-    assert "Could not install locked package 'simple'"
+    assert "Could not install locked package 'simple'" in result.stderr
     assert "No sources permitted for simple" in result.stderr
 
 
@@ -273,11 +273,11 @@ def test_install_pylock_conflict(
     )
 
 
-def test_install_pylock_uploadded_prior_to(
+def test_install_pylock_uploaded_prior_to(
     script: PipTestEnvironment,
     data: TestData,
 ) -> None:
-    pylock_path = data.lockfiles.joinpath("pylock.certify-with-upload_time.toml")
+    pylock_path = data.lockfiles.joinpath("pylock.certifi-with-upload_time.toml")
     result = script.pip(
         "install",
         "--no-index",
@@ -293,11 +293,11 @@ def test_install_pylock_uploadded_prior_to(
     )
 
 
-def test_install_pylock_uploadded_prior_to_missing_upload_time(
+def test_install_pylock_uploaded_prior_to_missing_upload_time(
     script: PipTestEnvironment,
     data: TestData,
 ) -> None:
-    pylock_path = data.lockfiles.joinpath("pylock.certify-without-upload_time.toml")
+    pylock_path = data.lockfiles.joinpath("pylock.certifi-without-upload_time.toml")
     result = script.pip(
         "install",
         "--no-index",
@@ -308,6 +308,6 @@ def test_install_pylock_uploadded_prior_to_missing_upload_time(
         expect_error=True,
     )
     assert (
-        "pylock.certify-without-upload_time.toml does not provide upload-time metadata"
+        "pylock.certifi-without-upload_time.toml does not provide upload-time metadata"
         in result.stderr
     )
