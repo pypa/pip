@@ -10,6 +10,7 @@ from pip._internal.build_env.installer import (
     SubprocessBuildEnvironmentInstaller,
 )
 from pip._internal.build_env.noop import NoOpBuildEnvironment
+from pip._internal.build_env.venv import VenvBuildEnvironment
 from pip._internal.build_env.virtual import VirtualBuildEnvironment
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "InprocessBuildEnvironmentInstaller",
     "NoOpBuildEnvironment",
     "SubprocessBuildEnvironmentInstaller",
+    "VenvBuildEnvironment",
     "VirtualBuildEnvironment",
 ]

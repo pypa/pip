@@ -1,0 +1,3 @@
+Reject a package ``path`` in a ``pylock.toml`` fetched from a URL when it
+resolves outside the lock file's own location, so a remote lock file can no
+longer point at the local filesystem or another host.

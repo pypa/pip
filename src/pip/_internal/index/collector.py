@@ -22,11 +22,17 @@ from typing import (
     Protocol,
 )
 
-from pip._vendor import requests
 from pip._vendor.requests import Response
-from pip._vendor.requests.exceptions import RetryError, SSLError
+from pip._vendor.requests.exceptions import RetryError
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    NetworkConnectionError,
+    ProxyConnectionError,
+    SSLMissingError,
+    SSLVerificationError,
+)
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
@@ -383,25 +389,27 @@ def _get_index_content(
             exc.request_desc,
             exc.content_type,
         )
-    except NetworkConnectionError as exc:
+    except (RetryError, NetworkConnectionError) as exc:
         _handle_get_simple_fail(link, exc)
-        _record_error_if_present(error_context, str(link.url), exc)
-    except RetryError as exc:
         reason = _get_error_reason(exc)
-        _handle_get_simple_fail(link, exc)
         _record_error_if_present(error_context, str(link.url), reason)
-    except SSLError as exc:
-        reason = "There was a problem confirming the ssl certificate: "
+    except (SSLVerificationError, SSLMissingError) as exc:
+        reason = f"There was a problem confirming the ssl certificate: {exc.context}"
         reason += str(_get_error_reason(exc))
         _handle_get_simple_fail(link, reason, meth=logger.info)
         _record_error_if_present(error_context, str(link.url), reason)
-    except requests.ConnectionError as exc:
+    except ConnectionFailedError as exc:
         reason = _get_error_reason(exc)
-        _handle_get_simple_fail(link, f"connection error: {exc}")
+        _handle_get_simple_fail(link, f"connection error: {exc.context}")
         _record_error_if_present(error_context, str(link.url), reason)
-    except requests.Timeout:
-        _handle_get_simple_fail(link, "timed out")
-        _record_error_if_present(error_context, str(link.url), "timed out")
+    except ProxyConnectionError as exc:
+        reason = _get_error_reason(exc)
+        _handle_get_simple_fail(link, f"proxy connection error: {exc.context}")
+        _record_error_if_present(error_context, str(link.url), reason)
+    except ConnectionTimeoutError as exc:
+        reason = _get_error_reason(exc)
+        _handle_get_simple_fail(link, str(exc.context))
+        _record_error_if_present(error_context, str(link.url), reason)
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None

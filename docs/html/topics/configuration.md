@@ -59,12 +59,16 @@ Site
 ```{tab} MacOS
 
 Global
-: {file}`/Library/Application Support/pip/pip.conf`
+: In a "pip" subdirectory of any of the paths set in the environment variable
+  `XDG_DATA_DIRS` (if it exists), for example {file}`/etc/xdg/pip/pip.conf`.
+
+  This will be followed by loading {file}`/Library/Application Support/pip/pip.conf`.
 
 User
 : {file}`$HOME/Library/Application Support/pip/pip.conf`
   if directory `$HOME/Library/Application Support/pip` exists
-  else {file}`$HOME/.config/pip/pip.conf`
+  else {file}`$HOME/.config/pip/pip.conf`, which respects the
+  `XDG_DATA_HOME` environment variable.
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
@@ -90,6 +94,10 @@ User
 Site
 : {file}`%VIRTUAL_ENV%\\pip.ini`, If no virtual environment is activated, `pip.ini` is loaded from
   the Python installation root (run `pip config debug` to identify the exact path).
+```
+
+```{versionchanged} 26.2
+pip will also respect `XDG_CONFIG_DIRS` and `XDG_CONFIG_HOME` on macOS.
 ```
 
 ### `PIP_CONFIG_FILE`
