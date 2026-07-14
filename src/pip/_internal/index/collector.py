@@ -29,6 +29,7 @@ from pip._internal.exceptions import (
     ConnectionTimeoutError,
     NetworkConnectionError,
     ProxyConnectionError,
+    SSLMissingError,
     SSLVerificationError,
 )
 from pip._internal.models.link import Link
@@ -365,7 +366,7 @@ def _get_index_content(link: Link, *, session: PipSession) -> IndexContent | Non
         )
     except (RetryError, NetworkConnectionError) as exc:
         _handle_get_simple_fail(link, exc)
-    except SSLVerificationError as exc:
+    except (SSLVerificationError, SSLMissingError) as exc:
         reason = f"There was a problem confirming the ssl certificate: {exc.context}"
         _handle_get_simple_fail(link, reason, meth=logger.info)
     except ConnectionFailedError as exc:

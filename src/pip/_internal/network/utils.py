@@ -167,6 +167,7 @@ def raise_connection_error(
     raw_hostname = urlsplit(url).hostname or urlsplit(url).netloc
     reason = error.args[0] if error.args else error
 
+    # NewConnectionError is a subclass of TimeoutError for some reason...
     if isinstance(reason, urllib3.exceptions.TimeoutError) and not isinstance(
         reason, urllib3.exceptions.NewConnectionError
     ):
@@ -191,7 +192,6 @@ def raise_connection_error(
 
     if isinstance(reason, urllib3.exceptions.SSLError):
         raise SSLVerificationError(url, host, reason)
-    # NewConnectionError is a subclass of TimeoutError for some reason...
     if isinstance(reason, urllib3.exceptions.TimeoutError) and not isinstance(
         reason, urllib3.exceptions.NewConnectionError
     ):
