@@ -3,7 +3,7 @@ import pytest
 from pip._vendor import requests, urllib3
 from pip._vendor.urllib3.util import parse_url
 
-from pip._internal.exceptions import (
+from pip._internal.exceptions.network import (
     ConnectionFailedError,
     ConnectionTimeoutError,
     NetworkConnectionError,

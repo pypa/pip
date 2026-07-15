@@ -34,7 +34,7 @@ from pip._vendor.urllib3.connectionpool import ConnectionPool
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
-from pip._internal.exceptions import SSLMissingError
+from pip._internal.exceptions.network import SSLMissingError
 from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth

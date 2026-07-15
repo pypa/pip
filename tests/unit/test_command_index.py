@@ -1,7 +1,7 @@
 import pytest
 
 from pip._internal.commands import create_command
-from pip._internal.exceptions import SSLMissingError
+from pip._internal.exceptions.network import SSLMissingError
 
 
 def test_index_propagates_diagnostic_errors(

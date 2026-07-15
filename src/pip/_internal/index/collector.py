@@ -24,7 +24,7 @@ from typing import (
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError
 
-from pip._internal.exceptions import (
+from pip._internal.exceptions.network import (
     ConnectionFailedError,
     ConnectionTimeoutError,
     NetworkConnectionError,

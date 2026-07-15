@@ -22,7 +22,6 @@ from pip._internal.exceptions import (
     InstallationError,
     MetadataInconsistent,
     MetadataInvalid,
-    NetworkConnectionError,
     SidecarMetadataInconsistent,
 )
 from pip._internal.exceptions.hashes import (
@@ -31,6 +30,7 @@ from pip._internal.exceptions.hashes import (
     HashUnpinned,
     VcsHashUnsupported,
 )
+from pip._internal.exceptions.network import NetworkConnectionError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl

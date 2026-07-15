@@ -24,10 +24,10 @@ from pip._vendor.urllib3.connectionpool import HTTPSConnectionPool
 from pip import __version__
 from pip._internal.cli.index_command import SessionCommandMixin
 from pip._internal.commands import create_command
-from pip._internal.exceptions import (
+from pip._internal.exceptions import DiagnosticPipError
+from pip._internal.exceptions.network import (
     ConnectionFailedError,
     ConnectionTimeoutError,
-    DiagnosticPipError,
     ProxyConnectionError,
     SSLMissingError,
     SSLVerificationError,
