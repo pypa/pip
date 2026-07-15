@@ -37,6 +37,10 @@ from pip._internal.exceptions._base import (
     InstallationError,
     PipError,
 )
+from pip._internal.exceptions.pyproject import (
+    InvalidPyProjectBuildRequires,
+    MissingPyProjectBuildRequires,
+)
 
 if TYPE_CHECKING:
     from hashlib import _Hash
@@ -55,6 +59,9 @@ __all__ = [
     "DiagnosticPipError",
     "InstallationError",
     "PipError",
+    # pyproject
+    "InvalidPyProjectBuildRequires",
+    "MissingPyProjectBuildRequires",
 ]
 
 logger = logging.getLogger(__name__)
@@ -79,40 +86,6 @@ class FailedToPrepareCandidate(InstallationError):
         self.package_name = package_name
         self.requirement_chain = requirement_chain
         self.failed_step = failed_step
-
-
-class MissingPyProjectBuildRequires(DiagnosticPipError):
-    """Raised when pyproject.toml has `build-system`, but no `build-system.requires`."""
-
-    reference = "missing-pyproject-build-system-requires"
-
-    def __init__(self, *, package: str) -> None:
-        super().__init__(
-            message=f"Can not process {escape(package)}",
-            context=Text(
-                "This package has an invalid pyproject.toml file.\n"
-                "The [build-system] table is missing the mandatory `requires` key."
-            ),
-            note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt=Text("See PEP 518 for the detailed specification."),
-        )
-
-
-class InvalidPyProjectBuildRequires(DiagnosticPipError):
-    """Raised when pyproject.toml an invalid `build-system.requires`."""
-
-    reference = "invalid-pyproject-build-system-requires"
-
-    def __init__(self, *, package: str, reason: str) -> None:
-        super().__init__(
-            message=f"Can not process {escape(package)}",
-            context=Text(
-                "This package has an invalid `build-system.requires` key in "
-                f"pyproject.toml.\n{reason}"
-            ),
-            note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt=Text("See PEP 518 for the detailed specification."),
-        )
 
 
 class NoneMetadataError(PipError):
