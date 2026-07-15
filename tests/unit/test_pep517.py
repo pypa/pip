@@ -4,7 +4,7 @@ from textwrap import dedent
 
 import pytest
 
-from pip._internal.exceptions import InvalidPyProjectBuildRequires
+from pip._internal.exceptions.pyproject import InvalidPyProjectBuildRequires
 from pip._internal.req import InstallRequirement
 
 

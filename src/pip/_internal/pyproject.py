@@ -6,8 +6,8 @@ from typing import Any
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 
-from pip._internal.exceptions import (
-    InstallationError,
+from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions.pyproject import (
     InvalidPyProjectBuildRequires,
     MissingPyProjectBuildRequires,
 )
