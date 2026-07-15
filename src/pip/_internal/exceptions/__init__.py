@@ -41,6 +41,11 @@ from pip._internal.exceptions.pyproject import (
     InvalidPyProjectBuildRequires,
     MissingPyProjectBuildRequires,
 )
+from pip._internal.exceptions.wheel import (
+    InvalidWheel,
+    InvalidWheelFilename,
+    UnsupportedWheel,
+)
 
 if TYPE_CHECKING:
     from hashlib import _Hash
@@ -62,6 +67,10 @@ __all__ = [
     # pyproject
     "InvalidPyProjectBuildRequires",
     "MissingPyProjectBuildRequires",
+    # wheel
+    "InvalidWheel",
+    "InvalidWheelFilename",
+    "UnsupportedWheel",
 ]
 
 logger = logging.getLogger(__name__)
@@ -293,25 +302,6 @@ class ProxyConnectionError(DiagnosticPipError):
             context=Text(str(error)),
             hint_stmt="This is likely a proxy configuration issue.",
         )
-
-
-class InvalidWheelFilename(InstallationError):
-    """Invalid wheel filename."""
-
-
-class UnsupportedWheel(InstallationError):
-    """Unsupported wheel."""
-
-
-class InvalidWheel(InstallationError):
-    """Invalid (e.g. corrupt) wheel."""
-
-    def __init__(self, location: str, name: str):
-        self.location = location
-        self.name = name
-
-    def __str__(self) -> str:
-        return f"Wheel '{self.name}' located at {self.location} is invalid."
 
 
 class MetadataInconsistent(InstallationError):
