@@ -115,12 +115,13 @@ def transform_hits(hits: list[dict[str, str]]) -> list[TransformedHit]:
 
 def print_dist_installation_info(latest: str, dist: BaseDistribution | None) -> None:
     if dist is not None:
+        latest_version = parse_version(latest)
         with indent_log():
-            if dist.version == latest:
+            if dist.version == latest_version:
                 write_output("INSTALLED: %s (latest)", dist.version)
             else:
                 write_output("INSTALLED: %s", dist.version)
-                if parse_version(latest).pre:
+                if latest_version.pre:
                     write_output(
                         "LATEST:    %s (pre-release; install"
                         " with `pip install --pre`)",
