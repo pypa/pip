@@ -10,11 +10,8 @@ import pytest
 
 from pip._vendor.requests import Response
 
-from pip._internal.exceptions import (
-    HashMismatch,
-    MetadataInvalid,
-    SidecarMetadataInconsistent,
-)
+from pip._internal.exceptions import MetadataInvalid, SidecarMetadataInconsistent
+from pip._internal.exceptions.hashes import HashMismatch
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader

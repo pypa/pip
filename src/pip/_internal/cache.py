@@ -12,7 +12,7 @@ from typing import Any
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.exceptions.wheel import InvalidWheelFilename
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel

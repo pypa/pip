@@ -10,7 +10,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.exceptions.wheel import UnsupportedWheel
 from pip._internal.metadata.pkg_resources import (
     Distribution,
     Environment,

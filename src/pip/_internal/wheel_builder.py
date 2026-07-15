@@ -12,7 +12,7 @@ from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
 from pip._vendor.packaging.version import InvalidVersion, Version
 
 from pip._internal.cache import WheelCache
-from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.exceptions.wheel import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.metadata import FilesystemWheel, get_wheel_distribution
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel

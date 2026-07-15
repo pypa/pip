@@ -7,7 +7,7 @@ from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.exceptions.wheel import UnsupportedWheel
 
 VERSION_COMPATIBLE = (1, 0)
 

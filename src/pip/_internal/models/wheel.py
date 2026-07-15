@@ -12,7 +12,7 @@ from pip._vendor.packaging.utils import (
 )
 from pip._vendor.packaging.utils import parse_wheel_filename
 
-from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.exceptions.wheel import InvalidWheelFilename
 
 
 class Wheel:

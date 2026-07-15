@@ -2,7 +2,7 @@ import pytest
 
 from pip._vendor.packaging.tags import Tag
 
-from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.exceptions.wheel import InvalidWheelFilename
 from pip._internal.models.wheel import Wheel
 from pip._internal.utils import compatibility_tags
 

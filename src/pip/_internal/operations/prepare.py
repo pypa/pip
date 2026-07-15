@@ -19,14 +19,16 @@ from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMod
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
-    DirectoryUrlHashUnsupported,
-    HashMismatch,
-    HashUnpinned,
     InstallationError,
     MetadataInconsistent,
     MetadataInvalid,
     NetworkConnectionError,
     SidecarMetadataInconsistent,
+)
+from pip._internal.exceptions.hashes import (
+    DirectoryUrlHashUnsupported,
+    HashMismatch,
+    HashUnpinned,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder

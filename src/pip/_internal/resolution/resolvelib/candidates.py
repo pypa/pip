@@ -11,12 +11,12 @@ from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import (
     FailedToPrepareCandidate,
-    HashError,
     InstallationSubprocessError,
     InvalidInstalledPackage,
     MetadataInconsistent,
     MetadataInvalid,
 )
+from pip._internal.exceptions.hashes import HashError
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
