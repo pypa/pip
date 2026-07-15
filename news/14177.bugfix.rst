@@ -1,0 +1,2 @@
+Mark an up-to-date installed package as ``(latest)`` in ``pip index versions``
+output instead of printing a redundant ``LATEST`` line.
