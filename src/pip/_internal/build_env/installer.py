@@ -12,11 +12,11 @@ from typing import TYPE_CHECKING
 from pip._internal.build_env.base import Prefix
 from pip._internal.cli.spinners import open_rich_spinner, open_spinner
 from pip._internal.exceptions import (
-    BuildDependencyInstallError,
     DiagnosticPipError,
     InstallWheelBuildError,
     PipError,
 )
+from pip._internal.exceptions.build_env import BuildDependencyInstallError
 from pip._internal.metadata import get_environment
 from pip._internal.utils.logging import VERBOSE, capture_logging
 from pip._internal.utils.misc import get_runnable_pip
