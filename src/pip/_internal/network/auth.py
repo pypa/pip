@@ -487,15 +487,17 @@ class MultiDomainBasicAuth(AuthBase):
         if resp.status_code != 401:
             return resp
 
-        username, password = None, None
-
-        # Query the keyring for credentials:
-        if self.use_keyring:
-            username, password = self._get_new_credentials(
-                resp.url,
-                allow_netrc=False,
-                allow_keyring=True,
-            )
+        # Look for credentials for the (possibly redirected) URL. Credentials
+        # embedded in the URL -- e.g. carried in the ``Location`` of a
+        # cross-origin redirect, whose ``Authorization`` header requests strips
+        # -- are always honoured, since recovering them needs no user
+        # interaction. Keyring is only consulted when it is enabled, because it
+        # may require interaction and is therefore disabled under --no-input.
+        username, password = self._get_new_credentials(
+            resp.url,
+            allow_netrc=False,
+            allow_keyring=self.use_keyring,
+        )
 
         # We are not able to prompt the user so simply return the response
         if not self.prompting and not username and not password:
