@@ -1,0 +1,1 @@
+Prevent OS command injection in editor execution during ``pip config edit``.
