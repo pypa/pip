@@ -232,20 +232,23 @@ class ConfigurationCommand(Command):
                 write_output("%s=%r", env_var, value)
 
     def open_in_editor(self, options: Values, args: list[str]) -> None:
+        import shlex
+        import sys
+
         editor = self._determine_editor(options)
 
         fname = self.configuration.get_file_to_edit()
         if fname is None:
             raise PipError("Could not determine appropriate file.")
-        elif '"' in fname:
-            # This shouldn't happen, unless we see a username like that.
-            # If that happens, we'd appreciate a pull request fixing this.
-            raise PipError(
-                f'Can not open an editor for a file name containing "\n{fname}'
-            )
 
         try:
-            subprocess.check_call(f'{editor} "{fname}"', shell=True)
+            editor_args = [
+                arg.strip('"\'')
+                for arg in shlex.split(editor, posix=(sys.platform != "win32"))
+            ]
+            if not editor_args:
+                raise PipError("Could not determine editor command to use.")
+            subprocess.check_call(editor_args + [fname])
         except FileNotFoundError as e:
             if not e.filename:
                 e.filename = editor

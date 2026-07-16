@@ -175,6 +175,15 @@ class TestBasicLoading(ConfigurationMixin):
         )
         assert "notrealeditor" in result.stderr
 
+    def test_editor_with_special_characters(self, script: PipTestEnvironment) -> None:
+        """Ensure that editors with options and filenames with special characters work correctly"""
+        config_file = script.scratch_path / 'test config "file".cfg'
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+        config_file.touch()
+
+        editor_cmd = f'"{sys.executable}" -c "import sys; sys.exit(0)"'
+        script.pip("config", "edit", "--editor", editor_cmd)
+
     def test_config_separated(
         self, script: PipTestEnvironment, virtualenv: VirtualEnvironment
     ) -> None:
