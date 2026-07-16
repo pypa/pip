@@ -293,6 +293,13 @@ class _SSLContextAdapterMixin:
         # context here too. https://github.com/pypa/pip/issues/13288
         if self._ssl_context is not None:
             proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+            # For HTTPS proxies, urllib3 also opens a separate TLS connection
+            # to the proxy itself (before tunnelling to the destination) and
+            # uses "proxy_ssl_context" for that handshake. Without setting it
+            # too, connecting through an HTTPS proxy falls back to plain
+            # OpenSSL verification instead of our SSL store, causing
+            # certificate verification failures. https://github.com/pypa/pip/issues/13465
+            proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
         return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
