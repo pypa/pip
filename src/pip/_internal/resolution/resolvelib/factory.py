@@ -433,10 +433,10 @@ class Factory:
                 extras = frozenset(parsed_requirement.extras)
 
         for link in constraint.links:
-            self._fail_if_link_is_unsupported_wheel(link)
+            self._fail_if_link_is_unsupported_wheel(link.link)
             base_candidate = self._make_base_candidate_from_link(
-                link,
-                template=install_req_from_link_and_ireq(link, template),
+                link.link,
+                template=install_req_from_link_and_ireq(link.link, template),
                 name=canonicalize_name(base_identifier),
                 version=None,
             )
@@ -581,10 +581,11 @@ class Factory:
         self, root_ireqs: list[InstallRequirement]
     ) -> CollectedRootRequirements:
         # Record which links are editable as editable requirements take priority
-        # over matching regular direct URL requirements (or a regular non-link
-        # requirement constrained to the same location).
+        # over regular requirements that point (or are constrained) to the same
+        # location. Similarly, an editable constraint causes any matching regular
+        # requirements to be treated as an editable.
         for ireq in root_ireqs:
-            if ireq.editable and not ireq.constraint:
+            if ireq.editable:
                 assert ireq.link is not None, f"editable must have link: {ireq!r}"
                 self._editable_links.add(ireq.link)
 

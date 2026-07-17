@@ -250,6 +250,7 @@ class RequirementCommand(IndexGroupCommand):
         preparer: RequirementPreparer,
         finder: PackageFinder,
         options: Values,
+        *,
         wheel_cache: WheelCache | None = None,
         use_user_site: bool = False,
         ignore_installed: bool = True,
@@ -257,6 +258,7 @@ class RequirementCommand(IndexGroupCommand):
         force_reinstall: bool = False,
         upgrade_strategy: str = "to-satisfy-only",
         py_version_info: tuple[int, ...] | None = None,
+        permit_editable_wheels: bool = False,
     ) -> BaseResolver:
         """
         Create a Resolver instance for the given parameters.
@@ -264,6 +266,7 @@ class RequirementCommand(IndexGroupCommand):
         make_install_req = partial(
             install_req_from_req_string,
             isolated=options.isolated_mode,
+            permit_editable_wheels=permit_editable_wheels,
         )
         resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
