@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import functools
 import os
 import subprocess
@@ -542,3 +543,51 @@ def test_keyring_cli_set_password(
         assert keyring.saved_passwords == [("example.com", creds[0], creds[1])]
     else:
         assert keyring.saved_passwords == []
+
+
+@pytest.mark.parametrize("prompting", [True, False])
+def test_handle_401_extracts_credentials_embedded_in_url(
+    prompting: bool,
+) -> None:
+    """Credentials embedded in the (redirect) URL must be recovered on 401.
+
+    When an index issues a cross-origin redirect whose ``Location`` carries
+    embedded Basic-auth credentials, the vendored requests session strips the
+    ``Authorization`` header, so the upstream host answers ``401``. ``resp.url``
+    still contains the ``user:password@host`` credentials, and ``handle_401``
+    should extract them and retry -- this needs no user interaction, so it must
+    work even under ``--no-input`` (``prompting=False``).
+
+    Regression test: previously the extraction was gated behind ``use_keyring``,
+    so ``--no-input`` with the default keyring provider returned the 401 without
+    retrying.
+    """
+    auth = MultiDomainBasicAuth(prompting=prompting, keyring_provider="disabled")
+
+    url_with_creds = "http://user:pass@example.com/simple/pkg/"
+    req = MockRequest(url_with_creds)
+    resp = MockResponse(b"")
+    resp.request = req
+    resp.url = url_with_creds
+    resp.status_code = 401
+
+    sent_headers: dict[str, str] = {}
+    connection = MockConnection()
+
+    def _send(sent_req: MockRequest, **kwargs: Any) -> MockResponse:
+        sent_headers.update(sent_req.headers)
+        r = MockResponse(b"")
+        r.status_code = 200
+        return r
+
+    connection._send = _send  # type: ignore[assignment]
+    resp.connection = connection
+
+    new_resp = auth.handle_401(resp)
+
+    assert new_resp.status_code == 200
+    # The retry must carry the exact credentials embedded in the URL, not just
+    # any Authorization header.
+    scheme, _, encoded = sent_headers["Authorization"].partition(" ")
+    assert scheme == "Basic"
+    assert base64.b64decode(encoded).decode() == "user:pass"
