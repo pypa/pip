@@ -16,7 +16,7 @@ Continuous Integration
 Supported interpreters
 ======================
 
-pip supports a variety of Python interpreters:
+Pip supports a variety of Python interpreters:
 
 - CPython 3.10
 - CPython 3.11
@@ -64,7 +64,7 @@ interpreters.
 Services
 ========
 
-pip test suite and checks are distributed on `GitHub Actions`_ which provides
+The pip test suite and checks are distributed on `GitHub Actions`_ which provides
 free executors for open source packages.
 
 .. _`GitHub Actions`: https://github.com/features/actions

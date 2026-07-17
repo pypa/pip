@@ -128,7 +128,7 @@ The current version of pip works on:
 - Windows, Linux and macOS.
 - CPython 3.10, 3.11, 3.12, 3.13, 3.14 and latest PyPy3.
 
-pip is tested to work on the latest patch version of the Python interpreter,
+Pip is tested to work on the latest patch version of the Python interpreter,
 for each of the minor versions listed above. Previous patch versions are
 supported on a best effort approach.
 
