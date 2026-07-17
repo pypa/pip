@@ -24,7 +24,7 @@ available on `GitHub`_.
 Development Environment
 =======================
 
-pip is a command line application written in Python. For developing pip,
+Pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
 For developing pip, you need to install :pypi:`nox`. The full development setup would then be:
@@ -69,7 +69,7 @@ You can then invoke your local source tree pip normally (be sure virtualenv is a
 Running Tests
 =============
 
-pip's tests are written using the :pypi:`pytest` test framework and
+Pip's tests are written using the :pypi:`pytest` test framework and
 :mod:`unittest.mock`. :pypi:`nox` is used to automate the setup and execution
 of pip's tests.
 
@@ -130,7 +130,7 @@ explicitly tell pytest to skip those tests:
 Running Linters
 ===============
 
-pip uses :pypi:`pre-commit` for managing linting of the codebase.
+Pip uses :pypi:`pre-commit` for managing linting of the codebase.
 ``pre-commit`` performs various checks on all files in pip and uses tools that
 help follow a consistent code style within the codebase.
 
@@ -170,7 +170,7 @@ debugger. This way you'll be able to debug an exception post-mortem via PDB.
 Building Documentation
 ======================
 
-pip's documentation is built using :pypi:`Sphinx`. The documentation is written
+Pip's documentation is built using :pypi:`Sphinx`. The documentation is written
 in reStructuredText.
 
 To build it locally, run:

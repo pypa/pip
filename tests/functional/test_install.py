@@ -4,6 +4,7 @@ import hashlib
 import io
 import os
 import re
+import shutil
 import ssl
 import sys
 import sysconfig
@@ -15,9 +16,11 @@ from pathlib import Path
 
 import pytest
 
+from pip._internal.cache import SimpleWheelCache
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.index import PyPI, TestPyPI
+from pip._internal.models.link import Link
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
 
@@ -347,6 +350,8 @@ def test_install_warns_on_unexpected_post_install_import(
             )
         """))
 
+    # Make sure PipDeprecationWarnings don't turn into errors
+    script.environ["_PIP_TEST_ENV"] = ""
     result = script.run(
         "python", str(runner), str(wheel_path.parent), expect_stderr=True
     )
@@ -1858,6 +1863,32 @@ def test_install_no_binary_uses_cached_wheels(
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # upper is built and not obtained from cache
     assert "Building wheel for upper" not in str(res), str(res)
+
+
+def test_install_local_directory_ignores_cached_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A cached wheel is not reused for a local directory (#14044)."""
+    cache_dir = script.scratch_path / "cache"
+    link_url = path_to_url(os.fspath(data.packages.joinpath("FSPkg")))
+    cache = SimpleWheelCache(os.fspath(cache_dir))
+    cache_path = cache.get_path_for_link(Link(link_url))
+    os.makedirs(cache_path)
+    stale_wheel = create_basic_wheel_for_package(script, "FSPkg", "9.9")
+    shutil.copy(stale_wheel, os.path.join(cache_path, stale_wheel.name))
+
+    result = script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "--no-deps",
+        "--cache-dir",
+        os.fspath(cache_dir),
+        f"FSPkg @ {link_url}",
+    )
+    # Built from source (0.1.dev0), not served from the stale cache (9.9).
+    result.did_create(script.site_packages / "fspkg-0.1.dev0.dist-info")
+    result.did_not_create(script.site_packages / "fspkg-9.9.dist-info")
 
 
 def test_install_editable_with_wrong_egg_name(

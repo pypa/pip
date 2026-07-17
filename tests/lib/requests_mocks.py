@@ -6,6 +6,9 @@ from collections.abc import Callable, Iterator
 from io import BytesIO
 from typing import Any
 
+from pip._vendor.requests.models import Response
+from pip._vendor.urllib3.exceptions import ProtocolError
+
 _Hook = Callable[["MockResponse"], None]
 
 
@@ -23,18 +26,17 @@ class FakeStream:
         pass
 
 
-class MockResponse:
-    request: MockRequest
-    connection: MockConnection
-    url: str
+class MockResponse(Response):
+    request: MockRequest  # type: ignore[assignment]
+    connection: MockConnection  # type: ignore[assignment]
 
     def __init__(self, contents: bytes) -> None:
+        super().__init__()
         self.raw = FakeStream(contents)
-        self.content = contents
+        self._content = contents
         self.reason = "OK"
         self.status_code = 200
-        self.headers = {"Content-Length": str(len(contents))}
-        self.history: list[MockResponse] = []
+        self.history: list[Response] = []
         self.from_cache = False
 
 
@@ -57,3 +59,11 @@ class MockRequest:
 
     def register_hook(self, event_name: str, callback: _Hook) -> None:
         self.hooks.setdefault(event_name, []).append(callback)
+
+
+class BrokenStream(FakeStream):
+    """A stream that raises ProtocolError after yielding its contents."""
+
+    def stream(self, size: int, decode_content: bool | None = None) -> Iterator[bytes]:
+        yield self._io.read(size)
+        raise ProtocolError("Connection broken: IncompleteRead")

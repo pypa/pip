@@ -5,11 +5,13 @@ import contextlib
 import fnmatch
 import http.server
 import os
+import py_compile
 import re
 import shutil
 import subprocess
 import sys
 import threading
+import zlib
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
@@ -34,7 +36,6 @@ from installer import install
 from installer.destinations import SchemeDictionaryDestination
 from installer.sources import WheelFile
 
-from pip import __file__ as pip_location
 from pip._internal.locations import _USE_SYSCONFIG
 from pip._internal.utils.temp_dir import global_tempdir_manager
 
@@ -52,6 +53,13 @@ from tests.lib.venv import VirtualEnvironment, VirtualEnvironmentType
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
+# For the pip zipapp, Python modules are replaced with their .pyc equivalent to
+# speed up startup, but some modules must remain as .py files for pip to function.
+ZIPAPP_PYC_BLOCKLIST = [
+    "pip/__pip-runner__.py",
+    "pip/_vendor/pyproject_hooks/_in_process/_in_process.py",
+]
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -91,6 +99,20 @@ def pytest_addoption(parser: Parser) -> None:
         action="store_true",
         default=False,
         help="use a zipapp when running pip in tests",
+    )
+    parser.addoption(
+        "--num-test-groups",
+        action="store",
+        type=int,
+        default=None,
+        help="split collected tests into this many groups, for parallel CI shards",
+    )
+    parser.addoption(
+        "--test-group",
+        action="store",
+        type=int,
+        default=None,
+        help="run only the given 1-based group (requires --num-test-groups)",
     )
 
 
@@ -140,6 +162,42 @@ def pytest_collection_modifyitems(config: Config, items: list[pytest.Function]) 
                 )
         else:
             raise RuntimeError(f"Unknown test type (filename = {module_path})")
+
+    _shard_collected_items(config, items)
+
+
+def _shard_collected_items(config: Config, items: list[pytest.Function]) -> None:
+    """Keep only the tests belonging to the configured CI shard.
+
+    Tests are assigned to a group by a stable hash of their node id, which keeps
+    the groups balanced by count and deterministic across xdist workers (so each
+    worker collects an identical subset). This lets CI run the suite across
+    several runners in parallel without overlapping work.
+    """
+    num_groups = config.getoption("--num-test-groups")
+    group = config.getoption("--test-group")
+    if num_groups is None and group is None:
+        return
+    if num_groups is None or group is None:
+        raise pytest.UsageError(
+            "--num-test-groups and --test-group must be supplied together"
+        )
+    if num_groups < 1 or not 1 <= group <= num_groups:
+        raise pytest.UsageError(
+            f"--test-group must be between 1 and --num-test-groups ({num_groups})"
+        )
+
+    selected: list[pytest.Function] = []
+    deselected: list[pytest.Function] = []
+    for item in items:
+        shard = zlib.crc32(item.nodeid.encode("utf-8")) % num_groups
+        if shard == group - 1:
+            selected.append(item)
+        else:
+            deselected.append(item)
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+    items[:] = selected
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -302,6 +360,7 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setenv("GIT_AUTHOR_NAME", "pip")
     monkeypatch.setenv("GIT_AUTHOR_EMAIL", "distutils-sig@python.org")
+    monkeypatch.delenv("PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER", False)
 
     # We want to disable the version check from running in the tests
     monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "true")
@@ -601,24 +660,33 @@ runpy.run_module("pip", run_name="__main__")
 """
 
 
-def make_zipapp_from_pip(zipapp_name: Path) -> None:
-    pip_dir = Path(pip_location).parent
-    with zipapp_name.open("wb") as zipapp_file:
+def make_zipapp_from_pip(pip_src: Path, zipapp_path: Path) -> None:
+    # pip_src will exclude existing .pyc files, but to speed up zipapp
+    # startup, replace the .py files with their equivalent .pyc (CPython only)
+    src_dir = pip_src / "src"
+    with zipapp_path.open("wb") as zipapp_file:
         zipapp_file.write(b"#!/usr/bin/env python\n")
         with ZipFile(zipapp_file, "w") as zipapp:
-            for pip_file in pip_dir.rglob("*"):
-                if pip_file.suffix == ".pyc":
-                    continue
-                if pip_file.name == "__pycache__":
-                    continue
-                rel_name = pip_file.relative_to(pip_dir.parent)
+            for pip_file in src_dir.rglob("*"):
+                rel_name = pip_file.relative_to(src_dir)
+                if (
+                    sys.implementation.name == "cpython"
+                    and pip_file.suffix == ".py"
+                    and str(rel_name) not in ZIPAPP_PYC_BLOCKLIST
+                ):
+                    pyc_path = pip_file.with_suffix(".pyc")
+                    py_compile.compile(str(pip_file), str(pyc_path), doraise=True)
+                    pip_file = pyc_path
+                    rel_name = rel_name.with_suffix(".pyc")
                 zipapp.write(pip_file, arcname=f"lib/{rel_name}")
             zipapp.writestr("__main__.py", ZIPAPP_MAIN)
 
 
 @pytest.fixture(scope="session")
 def zipapp(
-    request: pytest.FixtureRequest, tmpdir_factory: pytest.TempPathFactory
+    request: pytest.FixtureRequest,
+    pip_src: Path,
+    tmpdir_factory: pytest.TempPathFactory,
 ) -> str | None:
     """
     If the user requested for pip to be run from a zipapp, build that zipapp
@@ -630,8 +698,12 @@ def zipapp(
         return None
 
     temp_location = tmpdir_factory.mktemp("zipapp")
+    # pip_src has session scope, so make a copy to avoid littering it with
+    # .pyc files.
+    pip_src_copy = temp_location / "pip-src"
+    shutil.copytree(pip_src, pip_src_copy)
     pyz_file = temp_location / "pip.pyz"
-    make_zipapp_from_pip(pyz_file)
+    make_zipapp_from_pip(pip_src_copy, pyz_file)
     return str(pyz_file)
 
 
@@ -746,6 +818,8 @@ class FakePackage:
     metadata: MetadataKind
     # This will override any dependencies specified in the actual dist's METADATA.
     requires_dist: tuple[str, ...] = ()
+    # This will override the Provides-Extra entries in the actual dist's METADATA.
+    provides_extra: tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
     metadata_name: str | None = None
 
@@ -766,21 +840,17 @@ class FakePackage:
         checksum = sha256(self.generate_metadata()).hexdigest()
         return f'data-dist-info-metadata="sha256={checksum}"'
 
-    def requires_str(self) -> str:
-        if not self.requires_dist:
-            return ""
-        joined = " and ".join(self.requires_dist)
-        return f"Requires-Dist: {joined}"
-
     def generate_metadata(self) -> bytes:
         """This is written to `self.metadata_filename()` and will override the actual
         dist's METADATA, unless `self.metadata == MetadataKind.NoFile`."""
-        return dedent(f"""\
-        Metadata-Version: 2.1
-        Name: {self.metadata_name or self.name}
-        Version: {self.version}
-        {self.requires_str()}
-        """).encode("utf-8")
+        lines = [
+            "Metadata-Version: 2.1",
+            f"Name: {self.metadata_name or self.name}",
+            f"Version: {self.version}",
+        ]
+        lines.extend(f"Requires-Dist: {entry}" for entry in self.requires_dist)
+        lines.extend(f"Provides-Extra: {extra}" for extra in self.provides_extra)
+        return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 @pytest.fixture(scope="session")
@@ -825,8 +895,8 @@ def fake_packages() -> dict[str, list[FakePackage]]:
             ),
         ],
         "compilewheel": [
-            # Ensure we can override the dependencies of a wheel file by injecting PEP
-            # 658 metadata.
+            # The sidecar declares a dependency the wheel's embedded METADATA
+            # does not, which must be rejected as a Requires-Dist mismatch.
             FakePackage(
                 "compilewheel",
                 "1.0",
@@ -862,12 +932,16 @@ def fake_packages() -> dict[str, list[FakePackage]]:
             ),
         ],
         "requires-simple-extra": [
-            # Metadata name is not canonicalized.
+            # Metadata name is not canonicalized. The sidecar mirrors the
+            # wheel's embedded Requires-Dist and Provides-Extra so the
+            # post-download metadata reconciliation accepts it.
             FakePackage(
                 "requires-simple-extra",
                 "0.1",
                 "requires_simple_extra-0.1-py2.py3-none-any.whl",
                 MetadataKind.Sha256,
+                requires_dist=("simple==1.0; extra == 'extra'",),
+                provides_extra=("extra",),
                 metadata_name="Requires_Simple.Extra",
             ),
         ],

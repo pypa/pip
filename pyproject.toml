@@ -76,6 +76,18 @@ test-common-wheels = [
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
     "keyring",
+    "cmake",
+]
+
+typecheck = [
+    {include-group = "test"},
+    "keyring",  # An optional runtime dependency.
+    "nox",
+    "packaging",
+    "httpx",
+    "rich",
+    "types-PyYAML",  # tools/update-rtd-redirects.py
+    "types-setuptools",  # provides top-level distutils stubs for locations/
 ]
 
 docs = [
@@ -96,10 +108,10 @@ include = [
     "NEWS.rst",
     "SECURITY.md",
     "AI_POLICY.md",
-    "build-project/.python-version",
+    "build-project/README.md",
     "build-project/build-project.py",
-    "build-project/build-requirements.in",
-    "build-project/build-requirements.txt",
+    "build-project/pyproject.toml",
+    "build-project/pylock.toml",
     "docs/**/*.css",
     "docs/**/*.dot",
     "docs/**/*.md",
@@ -301,9 +313,6 @@ ignore_errors = true
 module = "pip._vendor.pkg_resources"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "pip._vendor.requests.*"
-follow_imports = "skip"
 
 ######################################################################################
 # pytest
@@ -332,6 +341,9 @@ markers = [
     "mercurial: VCS: Mercurial",
     "git: VCS: git",
     "search: tests for 'pip search'",
+]
+filterwarnings = [
+  'error::pip._internal.utils.deprecation.PipDeprecationWarning:',
 ]
 
 ######################################################################################

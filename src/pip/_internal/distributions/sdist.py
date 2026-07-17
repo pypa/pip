@@ -4,7 +4,12 @@ import logging
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import (
+    BuildIsolationMode,
+    NoOpBuildEnvironment,
+    VenvBuildEnvironment,
+    VirtualBuildEnvironment,
+)
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.metadata import BaseDistribution
@@ -35,17 +40,18 @@ class SourceDistribution(AbstractDistribution):
     def prepare_distribution_metadata(
         self,
         build_env_installer: BuildEnvironmentInstaller,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         check_build_deps: bool,
     ) -> None:
-        # Load pyproject.toml
+        # Load pyproject.toml and set up backend environment
         self.req.load_pyproject_toml()
+        self._prepare_build_env(build_isolation, build_env_installer)
 
         # Set up the build isolation, if this requirement should be isolated
-        if build_isolation:
+        if build_isolation != "off":
             # Setup an isolated environment and install the build backend static
             # requirements in it.
-            self._prepare_build_backend(build_env_installer)
+            self._prepare_build_backend()
             # Check that the build backend supports PEP 660. This cannot be done
             # earlier because we need to setup the build backend to verify it
             # supports build_editable, nor can it be done later, because we want
@@ -70,18 +76,31 @@ class SourceDistribution(AbstractDistribution):
                 self._raise_missing_reqs(missing)
         self.req.prepare_metadata()
 
-    def _prepare_build_backend(
-        self, build_env_installer: BuildEnvironmentInstaller
+    def _prepare_build_env(
+        self,
+        build_isolation: BuildIsolationMode,
+        build_env_installer: BuildEnvironmentInstaller,
     ) -> None:
-        # Isolate in a BuildEnvironment and install the build-time
-        # requirements.
+        if build_isolation == "virtual":
+            self.req.build_env = VirtualBuildEnvironment(build_env_installer)
+        elif build_isolation == "venv":
+            self.req.build_env = VenvBuildEnvironment(build_env_installer)
+
+        self.req.configure_backend(self.req.build_env.python_executable)
+
+    def _prepare_build_backend(self) -> None:
+        # Install the pyproject.toml declared build-time requirements.
         pyproject_requires = self.req.pyproject_requires
         assert pyproject_requires is not None
+        assert not isinstance(self.req.build_env, NoOpBuildEnvironment)
 
-        self.req.build_env = BuildEnvironment(build_env_installer)
-        self.req.build_env.install_requirements(
-            pyproject_requires, "overlay", kind="build dependencies", for_req=self.req
-        )
+        with self.req.build_env:
+            self.req.build_env.install_requirements(
+                pyproject_requires,
+                "overlay",
+                kind="build dependencies",
+                for_req=self.req,
+            )
         conflicting, missing = self.req.build_env.check_requirements(
             self.req.requirements_to_check
         )
@@ -133,9 +152,10 @@ class SourceDistribution(AbstractDistribution):
         conflicting, missing = self.req.build_env.check_requirements(build_reqs)
         if conflicting:
             self._raise_conflicts("the backend dependencies", conflicting)
-        self.req.build_env.install_requirements(
-            missing, "normal", kind="backend dependencies", for_req=self.req
-        )
+        with self.req.build_env:
+            self.req.build_env.install_requirements(
+                missing, "normal", kind="backend dependencies", for_req=self.req
+            )
 
     def _raise_conflicts(
         self, conflicting_with: str, conflicting_reqs: set[tuple[str, str]]

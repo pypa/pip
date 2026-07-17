@@ -537,6 +537,8 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
         # Make sure we get UTF-8 on output, even on Windows...
         environ["PYTHONIOENCODING"] = "UTF-8"
+        # Custom env flag so pip knows it's running in test environment
+        environ["_PIP_TEST_ENV"] = "1"
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
@@ -910,7 +912,6 @@ def _create_main_file(
 
 
 def _git_commit(
-    env_or_script: PipTestEnvironment,
     repo_dir: StrPath,
     message: str | None = None,
     allow_empty: bool = False,
@@ -920,7 +921,6 @@ def _git_commit(
     Run git-commit.
 
     Args:
-      env_or_script: pytest's `script` or `env` argument.
       repo_dir: a path to a Git repository.
       message: an optional commit message.
     """
@@ -944,7 +944,7 @@ def _git_commit(
     ]
     new_args.extend(args)
     new_args.extend(["-m", message])
-    env_or_script.run(*new_args, cwd=repo_dir)
+    subprocess.check_call(new_args, cwd=os.fspath(repo_dir))
 
 
 def _vcs_add(
@@ -1041,7 +1041,7 @@ def _create_test_package_with_subdirectory(
 
     script.run("git", "init", cwd=version_pkg_path)
     script.run("git", "add", ".", cwd=version_pkg_path)
-    _git_commit(script, version_pkg_path, message="initial version")
+    _git_commit(version_pkg_path, message="initial version")
 
     return version_pkg_path
 
@@ -1115,7 +1115,7 @@ def _change_test_package_version(
         version_pkg_path, name="version_pkg", output="some different version"
     )
     # Pass -a to stage the change to the main file.
-    _git_commit(script, version_pkg_path, message="messed version", stage_modified=True)
+    _git_commit(version_pkg_path, message="messed version", stage_modified=True)
 
 
 @contextmanager

@@ -31,14 +31,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.x"
-      - run: pip install nox
-      - run: nox -s docs
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s docs
 
   determine-changes:
     runs-on: ubuntu-latest
@@ -47,7 +48,7 @@ jobs:
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
         id: filter
         with:
           filters: |
@@ -75,10 +76,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.x"
       - name: Set up git credentials
@@ -86,9 +87,10 @@ jobs:
           git config --global user.email "pypa-dev@googlegroups.com"
           git config --global user.name "pip"
 
-      - run: pip install nox
-      - run: nox -s prepare-release -- 99.9
-      - run: nox -s build-release -- 99.9
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s prepare-release -- 99.9
+      - run: python -m nox -s build-release -- 99.9
       - run: pipx run check-sdist
 
   vendoring:
@@ -101,15 +103,16 @@ jobs:
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.x"
 
-      - run: pip install nox
-      - run: nox -s vendoring
+      - run: python -m pip install .
+      - run: python -m pip install nox
+      - run: python -m nox -s vendoring
       - run: git diff --exit-code
 
   tests-unix:
@@ -150,16 +153,16 @@ jobs:
             python: { key: "3.14", version: "3.14.0" }
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
 
       - name: Set PYTHON_GIL
-        if: endsWith(matrix.python-version, 't')
+        if: endsWith(matrix.python.version || matrix.python, 't')
         run: |
           echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
@@ -178,23 +181,24 @@ jobs:
           fi
           brew install ${DEPS}
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run unit tests
         run: >-
-          nox -s test-${{ matrix.python.key || matrix.python }} --
+          python -m nox -s test-${{ matrix.python.key || matrix.python }} --
           tests/unit
           --verbose --numprocesses auto --showlocals
       - name: Run integration tests
         run: >-
-          nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
+          python -m nox -s test-${{ matrix.python.key || matrix.python }} --no-install --
           tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=15
 
   tests-windows:
-    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group.number }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }} / ${{ matrix.group }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [determine-changes]
@@ -216,9 +220,9 @@ jobs:
           - "3.14"
           - "3.15"
           - "3.14t"
-        group:
-          - { number: 1, pytest-filter: "not test_install" }
-          - { number: 2, pytest-filter: "test_install" }
+        # Windows is slow, so shard unit + functional across runners, split by a
+        # stable hash of each test's node id (see --num-test-groups in conftest).
+        group: [1, 2, 3]
 
     steps:
       # The D: drive is significantly faster than the system C: drive.
@@ -228,16 +232,16 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
       - name: Set PYTHON_GIL
-        if: endsWith(matrix.python-version, 't')
+        if: endsWith(matrix.python, 't')
         run: |
           echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
 
@@ -252,21 +256,19 @@ jobs:
           }
           echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
-      # Main check
-      - name: Run unit tests (group 1)
-        if: matrix.group.number == 1
+      # Main check. worksteal rebalances the long tail of slow install tests
+      # onto idle workers:
+      # https://pytest-xdist.readthedocs.io/en/stable/distribution.html
+      - name: Run tests (shard ${{ matrix.group }} of 3)
         run: >-
-          nox -s test-${{ matrix.python }} --
-          tests/unit
-          --verbose --numprocesses auto --showlocals
-
-      - name: Run integration tests (group ${{ matrix.group.number }})
-        run: >-
-          nox -s test-${{ matrix.python }} --no-install --
-          tests/functional -k "${{ matrix.group.pytest-filter }}"
+          python -m nox -s test-${{ matrix.python }} --
+          tests/unit tests/functional
+          --num-test-groups 3 --test-group ${{ matrix.group }}
           --verbose --numprocesses auto --showlocals --durations=15
+          --dist worksteal
 
   tests-zipapp:
     name: tests / zipapp
@@ -275,28 +277,29 @@ jobs:
     # nature, and we don't care where they run, so we pick the fastest one.
     runs-on: macos-latest
 
-    needs: [packaging, determine-changes]
+    needs: [determine-changes]
     if: >-
       needs.determine-changes.outputs.tests == 'true' ||
       github.event_name != 'pull_request'
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.10"
 
       - name: Install MacOS dependencies
         run: brew install breezy subversion
 
-      - run: pip install nox
+      - run: python -m pip install .
+      - run: python -m pip install nox
 
       # Main check
       - name: Run integration tests
         run: >-
-          nox -s test-3.10 --
+          python -m nox -s test-3.10 --
           tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=15

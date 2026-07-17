@@ -34,22 +34,27 @@ from pip._vendor.urllib3.connectionpool import ConnectionPool
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
+from pip._internal.exceptions import SSLMissingError
 from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
+from pip._internal.network.utils import raise_connection_error
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.misc import build_url_from_netloc, parse_netloc
+from pip._internal.utils.misc import (
+    build_url_from_netloc,
+    parse_netloc,
+    redact_auth_from_url,
+)
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
     from ssl import SSLContext
 
     from pip._vendor.urllib3 import ProxyManager
-    from pip._vendor.urllib3.poolmanager import PoolManager
 
 
 logger = logging.getLogger(__name__)
@@ -210,7 +215,7 @@ class LocalFSAdapter(BaseAdapter):
         self,
         request: PreparedRequest,
         stream: bool = False,
-        timeout: float | tuple[float, float] | tuple[float, None] | None = None,
+        timeout: float | tuple[float | None, float | None] | None = None,
         verify: bool | str = True,
         cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
         proxies: Mapping[str, str] | None = None,
@@ -273,10 +278,10 @@ class _SSLContextAdapterMixin:
         maxsize: int,
         block: bool = DEFAULT_POOLBLOCK,
         **pool_kwargs: Any,
-    ) -> PoolManager:
+    ) -> None:
         if self._ssl_context is not None:
             pool_kwargs.setdefault("ssl_context", self._ssl_context)
-        return super().init_poolmanager(  # type: ignore[misc, no-any-return]
+        super().init_poolmanager(  # type: ignore[misc]
             connections=connections,
             maxsize=maxsize,
             block=block,
@@ -288,7 +293,7 @@ class _SSLContextAdapterMixin:
         # context here too. https://github.com/pypa/pip/issues/13288
         if self._ssl_context is not None:
             proxy_kwargs.setdefault("ssl_context", self._ssl_context)
-        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc, no-any-return]
+        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
 class HTTPAdapter(_SSLContextAdapterMixin, _BaseHTTPAdapter):
@@ -344,7 +349,9 @@ class PipSession(requests.Session):
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
         self.pip_trusted_origins: list[tuple[str, int | None]] = []
-        self.pip_proxy = None
+        # "" disables proxying; None means no --proxy was given.
+        self.pip_proxy: str | None = None
+        self.pip_no_proxy_env = False
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
@@ -532,4 +539,15 @@ class PipSession(requests.Session):
         kwargs.setdefault("proxies", self.proxies)
 
         # Dispatch the actual request
-        return super().request(method, url, *args, **kwargs)
+        try:
+            return super().request(method, url, *args, **kwargs)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            request = getattr(e, "request", None)
+            failed_url = getattr(request, "url", None) or url
+            raise_connection_error(e, url=failed_url, timeout=kwargs["timeout"])
+        except ImportError as e:
+            if "ssl" in str(e).lower():
+                # Unfortunately, if this TLS error was the result of a redirect from
+                # a HTTP to a HTTPS url, we don't know what the final url was.
+                raise SSLMissingError(redact_auth_from_url(url))
+            raise

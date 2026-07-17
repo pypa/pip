@@ -348,7 +348,7 @@ def test_freeze_git_clone(script: PipTestEnvironment) -> None:
     # in issue #1867).
     (repo_dir / "newfile").touch()
     script.run("git", "add", "newfile", cwd=repo_dir)
-    _git_commit(script, repo_dir, message="...")
+    _git_commit(repo_dir, message="...")
     result = script.pip("freeze", expect_stderr=True)
     expected = textwrap.dedent("""
             ...-e ...@...#egg=version_pkg

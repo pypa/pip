@@ -57,11 +57,11 @@
       "version": "26.2"
     },
     {
-      "bom-ref": "pkg:pypi/platformdirs@4.5.1",
+      "bom-ref": "pkg:pypi/platformdirs@4.10.0",
       "name": "platformdirs",
-      "purl": "pkg:pypi/platformdirs@4.5.1",
+      "purl": "pkg:pypi/platformdirs@4.10.0",
       "type": "library",
-      "version": "4.5.1"
+      "version": "4.10.0"
     },
     {
       "bom-ref": "pkg:pypi/pygments@2.20.0",
@@ -78,11 +78,11 @@
       "version": "1.2.0"
     },
     {
-      "bom-ref": "pkg:pypi/requests@2.33.1",
+      "bom-ref": "pkg:pypi/requests@2.34.2",
       "name": "requests",
-      "purl": "pkg:pypi/requests@2.33.1",
+      "purl": "pkg:pypi/requests@2.34.2",
       "type": "library",
-      "version": "2.33.1"
+      "version": "2.34.2"
     },
     {
       "bom-ref": "pkg:pypi/resolvelib@1.2.1",
@@ -144,10 +144,10 @@
         "pkg:pypi/idna@3.18",
         "pkg:pypi/msgpack@1.1.2",
         "pkg:pypi/packaging@26.2",
-        "pkg:pypi/platformdirs@4.5.1",
+        "pkg:pypi/platformdirs@4.10.0",
         "pkg:pypi/pygments@2.20.0",
         "pkg:pypi/pyproject-hooks@1.2.0",
-        "pkg:pypi/requests@2.33.1",
+        "pkg:pypi/requests@2.34.2",
         "pkg:pypi/resolvelib@1.2.1",
         "pkg:pypi/rich@14.2.0",
         "pkg:pypi/setuptools@70.3.0",
@@ -180,7 +180,7 @@
       "ref": "pkg:pypi/packaging@26.2"
     },
     {
-      "ref": "pkg:pypi/platformdirs@4.5.1"
+      "ref": "pkg:pypi/platformdirs@4.10.0"
     },
     {
       "ref": "pkg:pypi/pygments@2.20.0"
@@ -189,7 +189,7 @@
       "ref": "pkg:pypi/pyproject-hooks@1.2.0"
     },
     {
-      "ref": "pkg:pypi/requests@2.33.1"
+      "ref": "pkg:pypi/requests@2.34.2"
     },
     {
       "ref": "pkg:pypi/resolvelib@1.2.1"

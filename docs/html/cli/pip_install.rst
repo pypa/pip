@@ -27,7 +27,7 @@ Description
 Overview
 --------
 
-pip install has several stages:
+``pip install`` has several stages:
 
 1. Identify the base requirements. The user supplied arguments are processed
    here.
@@ -60,11 +60,11 @@ Working Out the Name and Version
 For each candidate item, pip needs to know the project name and version. For
 wheels (identified by the ``.whl`` file extension) this can be obtained from
 the filename, as per the Wheel spec. For local directories, or explicitly
-specified sdist files, the ``setup.py egg_info`` command is used to determine
-the project metadata. For sdists located via an index, the filename is parsed
-for the name and project version (this is in theory slightly less reliable
-than using the ``egg_info`` command, but avoids downloading and processing
-unnecessary numbers of files).
+specified source distributions (sdists), pip determines project metadata using
+the project's build backend. For sdists located via an index, the filename is
+parsed for the name and project version (this is in theory slightly less
+reliable than obtaining metadata from the distribution, but avoids downloading
+and processing unnecessary numbers of files).
 
 The :ref:`Direct URL requirement syntax <pypug:dependency-specifiers>` can be used
 to explicitly state the project name (see :doc:`../topics/vcs-support`).
@@ -204,15 +204,15 @@ This is now covered in :doc:`../topics/vcs-support`.
 Finding Packages
 ----------------
 
-pip searches for packages on `PyPI`_ using the
+Pip searches for packages on `PyPI`_ using the
 `HTTP simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://packaging.python.org/specifications/simple-repository-api/>`_
 and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 
-pip offers a number of package index options for modifying how packages are
+Pip offers a number of package index options for modifying how packages are
 found.
 
-pip looks for packages in a number of places: on PyPI (or the index given as
+Pip looks for packages in a number of places: on PyPI (or the index given as
 ``--index-url``, if not disabled via ``--no-index``), in the local filesystem,
 and in any additional repositories specified via ``--find-links`` or
 ``--extra-index-url``. There is no priority in the locations that are searched.
