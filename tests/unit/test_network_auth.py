@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import functools
 import os
 import subprocess
@@ -585,4 +586,8 @@ def test_handle_401_extracts_credentials_embedded_in_url(
     new_resp = auth.handle_401(resp)
 
     assert new_resp.status_code == 200
-    assert "Authorization" in sent_headers
+    # The retry must carry the exact credentials embedded in the URL, not just
+    # any Authorization header.
+    scheme, _, encoded = sent_headers["Authorization"].partition(" ")
+    assert scheme == "Basic"
+    assert base64.b64decode(encoded).decode() == "user:pass"
