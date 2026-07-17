@@ -158,6 +158,8 @@ class ConfigurationCommand(Command):
         if not file_options:
             if not need_value:
                 return None
+            elif "PIP_CONFIG_FILE" in os.environ:
+                return kinds.ENV
             # Default to user, unless there's a site file.
             elif any(
                 os.path.exists(site_config_file)
@@ -238,20 +240,17 @@ class ConfigurationCommand(Command):
         if fname is None:
             raise PipError("Could not determine appropriate file.")
 
-        import shlex
         import sys
 
-        if sys.platform == "win32":
-            if '"' in fname:
-                raise PipError(
-                    f'Can not open an editor for a file name containing "\n{fname}'
-                )
-            safe_fname = f'"{fname}"'
-        else:
-            safe_fname = shlex.quote(fname)
-
         try:
-            subprocess.check_call(f"{editor} {safe_fname}", shell=True)
+            if sys.platform == "win32":
+                if '"' in fname:
+                    raise PipError(
+                        f'Can not open an editor for a file name containing "\n{fname}'
+                    )
+                subprocess.check_call(f'{editor} "{fname}"', shell=True)
+            else:
+                subprocess.check_call([f'{editor} "$@"', editor, fname], shell=True)
         except FileNotFoundError as e:
             if not e.filename:
                 e.filename = editor
