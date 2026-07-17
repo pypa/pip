@@ -176,13 +176,19 @@ class TestBasicLoading(ConfigurationMixin):
         assert "notrealeditor" in result.stderr
 
     def test_editor_with_special_characters(self, script: PipTestEnvironment) -> None:
-        """Ensure that editors with options and filenames with spaces work correctly"""
+        """Ensure that editors and filenames with spaces work correctly"""
         config_file = script.scratch_path / "test config file.cfg"
         script.environ["PIP_CONFIG_FILE"] = str(config_file)
         config_file.touch()
 
-        editor_cmd = f'"{sys.executable}" -c "import sys; sys.exit(0)"'
-        script.pip("config", "edit", "--editor", editor_cmd)
+        script.pip("config", "edit", "--editor", "echo")
+
+        if sys.platform != "win32":
+            # Test that filenames with double quotes work on POSIX platforms
+            config_file_quotes = script.scratch_path / 'test config "file".cfg'
+            script.environ["PIP_CONFIG_FILE"] = str(config_file_quotes)
+            config_file_quotes.touch()
+            script.pip("config", "edit", "--editor", "echo")
 
     def test_config_separated(
         self, script: PipTestEnvironment, virtualenv: VirtualEnvironment

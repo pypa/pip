@@ -232,23 +232,26 @@ class ConfigurationCommand(Command):
                 write_output("%s=%r", env_var, value)
 
     def open_in_editor(self, options: Values, args: list[str]) -> None:
-        import shlex
-        import sys
-
         editor = self._determine_editor(options)
 
         fname = self.configuration.get_file_to_edit()
         if fname is None:
             raise PipError("Could not determine appropriate file.")
 
+        import shlex
+        import sys
+
+        if sys.platform == "win32":
+            if '"' in fname:
+                raise PipError(
+                    f'Can not open an editor for a file name containing "\n{fname}'
+                )
+            safe_fname = f'"{fname}"'
+        else:
+            safe_fname = shlex.quote(fname)
+
         try:
-            editor_args = [
-                arg.strip('"\'')
-                for arg in shlex.split(editor, posix=(sys.platform != "win32"))
-            ]
-            if not editor_args:
-                raise PipError("Could not determine editor command to use.")
-            subprocess.check_call(editor_args + [fname])
+            subprocess.check_call(f"{editor} {safe_fname}", shell=True)
         except FileNotFoundError as e:
             if not e.filename:
                 e.filename = editor
