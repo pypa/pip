@@ -43,7 +43,7 @@ kinds = enum(
     ENV_VAR="env-var",  # from Environment Variables
 )
 OVERRIDE_ORDER = kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
-VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.SITE
+VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.SITE, kinds.ENV
 
 logger = getLogger(__name__)
 
