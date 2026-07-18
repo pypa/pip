@@ -1048,7 +1048,8 @@ def html_index_with_onetime_server(
     """Serve files from a generated pypi index, erroring if a file is downloaded more
     than once.
 
-    Provide `-i http://localhost:<port>` to pip invocations, where `<port>` is the server's assigned port.
+    Provide `-i http://localhost:<port>` to pip invocations, where `<port>` is
+    the server's assigned port.
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
