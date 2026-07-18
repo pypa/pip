@@ -24,12 +24,10 @@ import os
 import pty
 import select
 import subprocess
-import sys
 import time
 from pathlib import Path
 
 import pyte
-
 
 CHILD = r"""
 import logging
@@ -72,6 +70,8 @@ def run(python: Path, seconds: float) -> bytes:
             chunks.append(chunk)
     finally:
         os.close(master)
+    if process.wait() != 0:
+        raise RuntimeError(f"{python} exited with status {process.returncode}")
     return b"".join(chunks)
 
 

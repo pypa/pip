@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import itertools
 import logging
 import sys
 import time
@@ -11,7 +12,7 @@ from pip._vendor.rich.console import Console
 from pip._vendor.rich.status import Status
 
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.logging import get_console_or_create, get_indentation
+from pip._internal.utils.logging import get_console, get_indentation
 
 logger = logging.getLogger(__name__)
 
@@ -28,32 +29,51 @@ class SpinnerInterface:
 
 
 class InteractiveSpinner(SpinnerInterface):
-    def __init__(self, message: str, console: Console | None = None) -> None:
-        self._message = " " * get_indentation() + message
-        self._console = console or get_console_or_create()
-        self._status: Status | None = None
-        if getattr(self._console.file, "isatty", lambda: False)():
-            self._status = Status(
-                f"{self._message} ...", console=self._console, spinner="line"
-            )
-            self._status.__enter__()
+    def __init__(
+        self,
+        message: str,
+        file: IO[str] | None = None,
+        spin_chars: str = SPINNER_CHARS,
+        # Empirically, 8 updates/second looks nice
+        min_update_interval_seconds: float = 1 / SPINS_PER_SECOND,
+    ):
+        self._message = message
+        if file is None:
+            file = sys.stdout
+        self._file = file
+        self._rate_limiter = RateLimiter(min_update_interval_seconds)
         self._finished = False
 
+        self._spin_cycle = itertools.cycle(spin_chars)
+
+        self._file.write(" " * get_indentation() + self._message + " ... ")
+        self._width = 0
+
+    def _write(self, status: str) -> None:
+        assert not self._finished
+        # Erase what we wrote before by backspacing to the beginning, writing
+        # spaces to overwrite the old text, and then backspacing again
+        backup = "\b" * self._width
+        self._file.write(backup + " " * self._width + backup)
+        # Now we have a blank slate to add our status
+        self._file.write(status)
+        self._width = len(status)
+        self._file.flush()
+        self._rate_limiter.reset()
+
     def spin(self) -> None:
-        # Rich handles refresh rate limiting internally.
-        return None
+        if self._finished:
+            return
+        if not self._rate_limiter.ready():
+            return
+        self._write(next(self._spin_cycle))
 
     def finish(self, final_status: str) -> None:
         if self._finished:
             return
-        if self._status is not None:
-            self._status.update(f"{self._message} ... {final_status}")
-            self._status.__exit__(None, None, None)
-            self._console.file.write(f"{self._message} ... {final_status}\n")
-            self._console.file.flush()
-        else:
-            self._console.file.write(f"{self._message} ... {final_status}")
-            self._console.file.flush()
+        self._write(final_status)
+        self._file.write("\n")
+        self._file.flush()
         self._finished = True
 
 
@@ -101,6 +121,33 @@ class RateLimiter:
         self._last_update = time.time()
 
 
+class RichStatusSpinner:
+    def __init__(self, message: str, console: Console | None = None) -> None:
+        self._message = message
+        self._label = " " * get_indentation() + message
+        self._console = console or get_console()
+        self._status: Status | None = None
+        if getattr(self._console.file, "isatty", lambda: False)():
+            self._status = Status(
+                f"{self._label} ...", console=self._console, spinner="line"
+            )
+            self._status.__enter__()
+        self._finished = False
+
+    def finish(self, final_status: str) -> None:
+        if self._finished:
+            return
+        if self._status is not None:
+            self._status.update(f"{self._label} ... {final_status}")
+            self._status.__exit__(None, None, None)
+            self._console.file.write(f"{self._label} ... {final_status}\n")
+            self._console.file.flush()
+        else:
+            self._console.file.write(f"{self._message} ... {final_status}")
+            self._console.file.flush()
+        self._finished = True
+
+
 @contextlib.contextmanager
 def open_spinner(message: str) -> Generator[SpinnerInterface, None, None]:
     # Interactive spinner goes directly to sys.stdout rather than being routed
@@ -132,7 +179,7 @@ def open_rich_spinner(label: str, console: Console | None = None) -> Generator[N
         yield
         return
 
-    spinner = InteractiveSpinner(label, console=console)
+    spinner = RichStatusSpinner(label, console=console)
     try:
         yield
     except KeyboardInterrupt:
