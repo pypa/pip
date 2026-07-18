@@ -11,7 +11,7 @@ from pip._vendor.rich.console import Console
 from pip._vendor.rich.status import Status
 
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.logging import get_console_or_create
+from pip._internal.utils.logging import get_console_or_create, get_indentation
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,13 @@ class SpinnerInterface:
 
 class InteractiveSpinner(SpinnerInterface):
     def __init__(self, message: str, console: Console | None = None) -> None:
-        self._message = message
+        self._message = " " * get_indentation() + message
         self._console = console or get_console_or_create()
         self._status: Status | None = None
         if getattr(self._console.file, "isatty", lambda: False)():
-            self._status = Status(message, console=self._console)
+            self._status = Status(
+                f"{self._message} ...", console=self._console, spinner="line"
+            )
             self._status.__enter__()
         self._finished = False
 
@@ -47,6 +49,8 @@ class InteractiveSpinner(SpinnerInterface):
         if self._status is not None:
             self._status.update(f"{self._message} ... {final_status}")
             self._status.__exit__(None, None, None)
+            self._console.file.write(f"{self._message} ... {final_status}\n")
+            self._console.file.flush()
         else:
             self._console.file.write(f"{self._message} ... {final_status}")
             self._console.file.flush()

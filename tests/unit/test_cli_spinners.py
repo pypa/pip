@@ -26,6 +26,24 @@ def patch_logger_level(level: int) -> Generator[None]:
 
 
 class TestRichSpinner:
+    def test_interactive_output_keeps_finished_line(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class TTY(StringIO):
+            def isatty(self) -> bool:
+                return True
+
+        monkeypatch.setattr(spinners, "get_indentation", lambda: 2)
+        stream = TTY()
+        with patch_logger_level(logging.INFO):
+            with open_rich_spinner(
+                "working", Console(file=stream, force_terminal=True)
+            ):
+                pass
+
+        output = stream.getvalue()
+        assert "\x1b[2K  working ... done\n" in output
+
     def test_non_interactive_output(
         self,
         caplog: pytest.LogCaptureFixture,

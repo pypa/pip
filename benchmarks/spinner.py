@@ -8,8 +8,9 @@ from pip._internal.utils import logging as pip_logging
 
 
 class CountingTTY(io.TextIOBase):
+    encoding = "utf-8"
+
     def __init__(self) -> None:
-        self.encoding = "utf-8"
         self.write_calls = 0
         self.flush_calls = 0
         self.bytes_written = 0
