@@ -1048,7 +1048,7 @@ def html_index_with_onetime_server(
     """Serve files from a generated pypi index, erroring if a file is downloaded more
     than once.
 
-    The server listens on an ephemeral port assigned by the operating system.
+    Provide `-i http://localhost:<port>` to pip invocations, where `<port>` is the server's assigned port.
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
