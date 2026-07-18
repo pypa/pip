@@ -363,7 +363,7 @@ class RequirementCommand(IndexGroupCommand):
                     "without prior warning."
                 )
                 for package, package_dist in select_from_pylock_path_or_url(
-                    filename, session=session
+                    filename, session=session, format_control=options.format_control
                 ):
                     req_to_add, locked_link = install_req_from_pylock_package(
                         package,
