@@ -1177,6 +1177,17 @@ require_hashes: Callable[..., Option] = partial(
 )
 
 
+no_require_hashes: Callable[..., Option] = partial(
+    Option,
+    "--no-require-hashes",
+    dest="no_require_hashes",
+    action="store_true",
+    default=False,
+    help="Do not automatically enable --require-hashes "
+    "when encountering a requirement with hashes.",
+)
+
+
 list_path: Callable[..., Option] = partial(
     PipOption,
     "--path",

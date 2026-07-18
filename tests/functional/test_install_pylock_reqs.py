@@ -40,6 +40,57 @@ def test_install_pylock(
     ]
 
 
+def test_install_pylock_no_require_hashes(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """Install from pylock with a mix of requirements with hash
+    and local directories, with --no-require-hashes."""
+    pylock_path = data.lockfiles.joinpath("pylock.mixed.toml")
+    cmd: list[str | Path] = [
+        "install",
+        "--no-index",
+        "--find-links",
+        data.common_wheels,  # to obtain build backend to build sdist
+        "--quiet",
+        "--report",
+        "-",
+        "--dry-run",
+        "-r",
+        pylock_path,
+    ]
+    # Mixing requirement with hashes and local directory fails because local
+    # directory has no hash
+    result = script.pip(
+        *cmd,
+        expect_error=True,
+    )
+    assert "experimental" in result.stderr
+    assert "there is no single file to hash" in result.stderr
+    # With --no-require-hashes, it succeeds
+    result = script.pip(
+        *cmd,
+        "--no-require-hashes",
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    report = json.loads(result.stdout)
+    installed = sorted(report["install"], key=lambda r: r["metadata"]["name"])
+    assert [
+        (
+            r["metadata"]["name"],
+            r["metadata"]["version"],
+            r["is_direct"],
+            r["requested"],
+            r["download_info"].get("dir_info", {}).get("editable", False),
+        )
+        for r in installed
+    ] == [
+        ("simplewheel", "2.0", False, True, False),  # wheel
+        ("singlemodule", "0.0.1", True, True, True),  # directory, editable
+    ]
+
+
 def test_install_pylock_wheel_cache(
     script: PipTestEnvironment,
     data: TestData,

@@ -209,6 +209,35 @@ class TestRequirementSet:
             command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
+    def test_auto_require_hashes(self, data: TestData, tmpdir: Path) -> None:
+        """A requirement with hashes auto-enables --require-hashes"""
+        finder = make_test_finder(find_links=[data.find_links])
+        session = finder._link_collector.session
+        command = cast(InstallCommand, create_command("install"))
+        reqs = (
+            r"simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
+            r"af95fb866d6ca016b42d2e6ce53619b653$"
+        )
+        with requirements_file(reqs, tmpdir) as reqs_file:
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
+            command.get_requirements(args, options, finder, session)
+        assert options.require_hashes
+
+    def test_no_auto_require_hashes(self, data: TestData, tmpdir: Path) -> None:
+        """A requirement with hashes does not auto-enable --require-hashes
+        when --no-require-hashes is set"""
+        finder = make_test_finder(find_links=[data.find_links])
+        session = finder._link_collector.session
+        command = cast(InstallCommand, create_command("install"))
+        reqs = (
+            r"simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
+            r"af95fb866d6ca016b42d2e6ce53619b653$"
+        )
+        with requirements_file("--no-require-hashes\n" + reqs, tmpdir) as reqs_file:
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
+            command.get_requirements(args, options, finder, session)
+        assert not options.require_hashes
+
     def test_unsupported_hashes(self, data: TestData) -> None:
         """VCS and dir links should raise errors when --require-hashes is
         on.
