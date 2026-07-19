@@ -44,6 +44,7 @@ from pip._internal.models.link import (
     _ensure_quoted_url,
 )
 from pip._internal.network.session import PipSession
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib import (
     TestData,
@@ -1001,6 +1002,36 @@ def check_links_include(links: list[Link], names: list[str]) -> None:
         assert any(
             link.url.endswith(name) for link in links
         ), f"name {name!r} not among links: {links}"
+
+
+def test_flat_directory_source_ignores_non_package_files_before_url_conversion(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "ignored file #1.txt").touch()
+    (tmp_path / "demo_pkg-1.0-py3-none-any.whl").touch()
+    (tmp_path / "page with spaces.html").touch()
+
+    def guarded_path_to_url(path: str) -> str:
+        assert "ignored file" not in path
+        return path_to_url(path)
+
+    with mock.patch(
+        "pip._internal.index.sources.path_to_url", side_effect=guarded_path_to_url
+    ):
+        source = _FlatDirectorySource(
+            candidates_from_page=lambda link: [
+                InstallationCandidate("demo-pkg", "1.0", link)
+            ],
+            path=os.fspath(tmp_path),
+            project_name="demo-pkg",
+        )
+
+        file_links = list(source.file_links())
+        page_candidates = list(source.page_candidates())
+
+    check_links_include(file_links, names=["demo_pkg-1.0-py3-none-any.whl"])
+    assert len(page_candidates) == 1
+    check_links_include([page_candidates[0].link], names=["page%20with%20spaces.html"])
 
 
 class TestLinkCollector:
