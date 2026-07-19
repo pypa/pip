@@ -1244,7 +1244,7 @@ def download_server_html_index(
             "-d",
             str(download_dir),
             "-i",
-            "http://localhost:8000",
+            f"http://localhost:{html_index_with_onetime_server.server_port}",
             *args,
         ]
         result = script.pip(*pip_args, allow_error=allow_error)
