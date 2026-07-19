@@ -1,4 +1,2 @@
-Fix certificate verification errors when installing packages through an
-HTTPS proxy with ``truststore`` enabled (the default on Python 3.10+). The
-connection to the proxy itself now uses the same SSL context as the
-connection to the destination host.
+Ensure truststore feature remains active while initially connecting to
+a HTTPS proxy.
