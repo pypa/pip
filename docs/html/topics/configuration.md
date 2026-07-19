@@ -2,7 +2,7 @@
 
 # Configuration
 
-pip allows a user to change its behaviour via 3 mechanisms:
+Pip allows a user to change its behaviour via 3 mechanisms:
 
 - command line options
 - environment variables
@@ -22,7 +22,7 @@ and how they are related to pip's various command line options.
 Configuration files can change the default values for command line options.
 The files are written using standard INI format.
 
-pip has 3 "levels" of configuration files:
+Pip has 3 "levels" of configuration files:
 
 - `global`: system-wide configuration file, shared across users.
 - `user`: per-user configuration file.
@@ -32,7 +32,7 @@ Additionally, environment variables can be specified which will override any of 
 
 ### Location
 
-pip's configuration files are located in fairly standard locations. This
+Pip's configuration files are located in fairly standard locations. This
 location is different on different operating systems, and has some additional
 complexity for backwards compatibility reasons. Note that if user config files
 exist in both the legacy and current locations, values in the current file
@@ -212,7 +212,7 @@ command line arguments.
 
 ## Environment Variables
 
-pip's command line options can be set with environment variables using the
+Pip's command line options can be set with environment variables using the
 format `PIP_<UPPER_LONG_NAME>` . Dashes (`-`) have to be replaced with
 underscores (`_`).
 

@@ -116,6 +116,25 @@ def test_install_pylock_not_found(
     assert "Error reading pylock file" in result.stderr
 
 
+def test_install_remote_pylock_preserves_network_diagnostic(
+    script: PipTestEnvironment,
+) -> None:
+    """Remote pylock network failures should render the diagnostic error."""
+    result = script.pip(
+        "install",
+        "--retries",
+        "0",
+        "--dry-run",
+        "-r",
+        "http://127.0.0.1:1/pylock.toml",
+        expect_error=True,
+    )
+
+    assert "<ConnectionFailedError: connection-failed>" not in result.stderr
+    assert "connection-failed" in result.stderr
+    assert "127.0.0.1" in result.stderr
+
+
 def test_install_pylock_invalid_lockfile(
     script: PipTestEnvironment,
     data: TestData,

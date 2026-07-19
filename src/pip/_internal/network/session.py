@@ -34,15 +34,21 @@ from pip._vendor.urllib3.connectionpool import ConnectionPool
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
+from pip._internal.exceptions import SSLMissingError
 from pip._internal.metadata import get_default_environment
 from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
+from pip._internal.network.utils import raise_connection_error
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.misc import build_url_from_netloc, parse_netloc
+from pip._internal.utils.misc import (
+    build_url_from_netloc,
+    parse_netloc,
+    redact_auth_from_url,
+)
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
@@ -287,6 +293,11 @@ class _SSLContextAdapterMixin:
         # context here too. https://github.com/pypa/pip/issues/13288
         if self._ssl_context is not None:
             proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+            # For HTTPS proxies, urllib3 also opens a separate TLS connection
+            # to the proxy itself (before tunnelling to the destination) and
+            # uses "proxy_ssl_context" for that handshake.
+            # https://github.com/pypa/pip/issues/13465
+            proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
         return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
@@ -533,4 +544,15 @@ class PipSession(requests.Session):
         kwargs.setdefault("proxies", self.proxies)
 
         # Dispatch the actual request
-        return super().request(method, url, *args, **kwargs)
+        try:
+            return super().request(method, url, *args, **kwargs)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            request = getattr(e, "request", None)
+            failed_url = getattr(request, "url", None) or url
+            raise_connection_error(e, url=failed_url, timeout=kwargs["timeout"])
+        except ImportError as e:
+            if "ssl" in str(e).lower():
+                # Unfortunately, if this TLS error was the result of a redirect from
+                # a HTTP to a HTTPS url, we don't know what the final url was.
+                raise SSLMissingError(redact_auth_from_url(url))
+            raise
