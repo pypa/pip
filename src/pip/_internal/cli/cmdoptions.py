@@ -1001,8 +1001,8 @@ def refresh_package() -> Option:
         callback=_handle_refresh_package,
         type="str",
         default=set(),
-        help="Revalidate package index metadata for the given packages "
-        "instead of using cached responses. Accepts ':all:' to apply "
+        help="Refresh package index information for the given packages instead "
+        "of using cached responses. Accepts ':all:' to apply "
         "to all packages, or a comma-separated list of package names.",
     )
 

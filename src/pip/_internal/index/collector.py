@@ -147,7 +147,7 @@ def _get_simple_response(
         # Using max-age=0 rather than no-cache still supports conditional
         # requests, minimizing traffic when the page hasn't changed.
         # See pypa/pip#5670.
-        logger.debug("Forcing metadata refresh.")
+        logger.debug("Refreshing package index response.")
         headers["Cache-Control"] = "max-age=0"
 
     resp = session.get(url, headers=headers)

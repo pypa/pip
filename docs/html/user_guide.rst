@@ -442,14 +442,14 @@ You can combine this option with other filtering mechanisms like constraints fil
 
       py -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
 
-.. _`Force Metadata Refresh`:
+.. _`Refresh Package`:
 
-Forcing Metadata Refresh
-========================
+Refreshing Package Metadata
+===========================
 
 .. versionadded:: 26.2
 
-By default, pip may use cached index metadata when looking for packages.
+By default, pip may use cached package index information when looking for packages.
 If you have just published a new version of a package and want to
 install it immediately without waiting for the cache to expire, use
 ``--refresh-package``:
