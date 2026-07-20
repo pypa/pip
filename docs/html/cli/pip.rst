@@ -31,7 +31,7 @@ Logging
 Console logging
 ~~~~~~~~~~~~~~~
 
-pip offers :ref:`-v, --verbose <--verbose>` and :ref:`-q, --quiet <--quiet>`
+Pip offers :ref:`-v, --verbose <--verbose>` and :ref:`-q, --quiet <--quiet>`
 to control the console log level. By default, some messages (error and warnings)
 are colored in the terminal. If you want to suppress the colored output use
 :ref:`--no-color <--no-color>`.
@@ -42,7 +42,7 @@ are colored in the terminal. If you want to suppress the colored output use
 File logging
 ~~~~~~~~~~~~
 
-pip offers the :ref:`--log <--log>` option for specifying a file where a maximum
+Pip offers the :ref:`--log <--log>` option for specifying a file where a maximum
 verbosity log will be kept.  This option is empty by default. This log appends
 to previous logging.
 
