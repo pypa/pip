@@ -24,9 +24,16 @@ from typing import (
 from pip._vendor import requests
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests import Response
-from pip._vendor.requests.exceptions import RetryError, SSLError
+from pip._vendor.requests.exceptions import RetryError
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    NetworkConnectionError,
+    ProxyConnectionError,
+    SSLMissingError,
+    SSLVerificationError,
+)
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.session import PipSession
@@ -362,18 +369,17 @@ def _get_index_content(
             exc.request_desc,
             exc.content_type,
         )
-    except NetworkConnectionError as exc:
+    except (RetryError, NetworkConnectionError) as exc:
         _handle_get_simple_fail(link, exc)
-    except RetryError as exc:
-        _handle_get_simple_fail(link, exc)
-    except SSLError as exc:
-        reason = "There was a problem confirming the ssl certificate: "
-        reason += str(exc)
+    except (SSLVerificationError, SSLMissingError) as exc:
+        reason = f"There was a problem confirming the ssl certificate: {exc.context}"
         _handle_get_simple_fail(link, reason, meth=logger.info)
-    except requests.ConnectionError as exc:
-        _handle_get_simple_fail(link, f"connection error: {exc}")
-    except requests.Timeout:
-        _handle_get_simple_fail(link, "timed out")
+    except ConnectionFailedError as exc:
+        _handle_get_simple_fail(link, f"connection error: {exc.context}")
+    except ProxyConnectionError as exc:
+        _handle_get_simple_fail(link, f"proxy connection error: {exc.context}")
+    except ConnectionTimeoutError as exc:
+        _handle_get_simple_fail(link, str(exc.context))
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None

@@ -16,6 +16,7 @@ from typing import Any, TypeVar
 
 from pip._internal.build_env import (
     BuildEnvironmentInstaller,
+    BuildIsolationMode,
     InprocessBuildEnvironmentInstaller,
     SubprocessBuildEnvironmentInstaller,
 )
@@ -212,11 +213,24 @@ class RequirementCommand(IndexGroupCommand):
                 build_constraints=build_constraints,
             )
 
+        if not options.build_isolation:
+            build_isolation: BuildIsolationMode = "off"
+        elif "venv-isolation" in options.features_enabled:
+            build_isolation = "venv"
+            if "inprocess-build-deps" in options.features_enabled:
+                logger.warning(
+                    "Using --use-feature 'inprocess-build-deps' and 'venv-isolation'"
+                    " together is currently partially supported. If you encounter"
+                    " broken behaviour, use only one feature."
+                )
+        else:
+            build_isolation = "virtual"
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            build_isolation="virtual" if options.build_isolation else "off",
+            build_isolation=build_isolation,
             build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
