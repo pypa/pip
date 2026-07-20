@@ -75,4 +75,3 @@ def test_url_to_path_path_to_url_symmetry_win() -> None:
 
     unc_path = r"\\unc\share\path"
     assert url_to_path(path_to_url(unc_path)) == unc_path
-
