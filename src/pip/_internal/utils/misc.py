@@ -124,7 +124,7 @@ def get_prog() -> str:
         prog = os.path.basename(sys.argv[0])
         if prog in ("__main__.py", "-c"):
             return f"{sys.executable} -m pip"
-        else:
+        elif prog:
             return prog
     except (AttributeError, TypeError, IndexError):
         pass

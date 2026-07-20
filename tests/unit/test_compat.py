@@ -44,3 +44,4 @@ def test_get_path_uid_symlink_without_NOFOLLOW(
     os.symlink(f, fs)
     with pytest.raises(OSError):
         get_path_uid(fs)
+

@@ -558,6 +558,7 @@ class TestGetProg:
             ("-c", "/usr/bin/python", "/usr/bin/python -m pip"),
             ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pip"),
             ("/usr/bin/pip3", "", "pip3"),
+            ("", "", "pip"),
         ],
     )
     def test_get_prog(
