@@ -21,7 +21,6 @@ from typing import (
     Protocol,
 )
 
-from pip._vendor import requests
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError
@@ -453,7 +452,7 @@ class LinkCollector:
         # By default we may return cached /simple/ responses. Users can force
         # revalidation to ensure newly uploaded distributions become visible
         # immediately after publication. See pypa/pip#5670.
-        force_revalidate = self.session.force_metadata_refresh
+        force_revalidate = self.session.refresh_package
         should_force_revalidate = ":all:" in force_revalidate or (
             package_name is not None
             and canonicalize_name(package_name) in force_revalidate

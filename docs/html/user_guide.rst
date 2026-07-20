@@ -452,19 +452,19 @@ Forcing Metadata Refresh
 By default, pip may use cached index metadata when looking for packages.
 If you have just published a new version of a package and want to
 install it immediately without waiting for the cache to expire, use
-``--force-metadata-refresh``:
+``--refresh-package``:
 
 .. tab:: Unix/macOS
 
    .. code-block:: shell
 
-      python -m pip install --force-metadata-refresh=requests requests
+      python -m pip install --refresh-package=requests requests
 
 .. tab:: Windows
 
    .. code-block:: shell
 
-      py -m pip install --force-metadata-refresh=requests requests
+      py -m pip install --refresh-package=requests requests
 
 The option accepts ``:all:`` to force refresh for all packages, ``:none:`` to
 disable refresh entirely, or a comma-separated list of package names to refresh
@@ -475,25 +475,25 @@ only specific packages:
    .. code-block:: shell
 
       # Refresh metadata for a single package
-      python -m pip install --force-metadata-refresh=requests requests
+      python -m pip install --refresh-package=requests requests
 
       # Refresh metadata for multiple packages
-      python -m pip install --force-metadata-refresh=requests,urllib3 requests urllib3
+      python -m pip install --refresh-package=requests,urllib3 requests urllib3
 
       # Refresh metadata for all packages
-      python -m pip install --force-metadata-refresh=:all: -r requirements.txt
+      python -m pip install --refresh-package=:all: -r requirements.txt
 
       # Disable refresh explicitly
-      python -m pip install --force-metadata-refresh=:none: -r requirements.txt
+      python -m pip install --refresh-package=:none: -r requirements.txt
 
 .. tab:: Windows
 
    .. code-block:: shell
 
-      py -m pip install --force-metadata-refresh=requests requests
-      py -m pip install --force-metadata-refresh=requests,urllib3 requests urllib3
-      py -m pip install --force-metadata-refresh=:all: -r requirements.txt
-      py -m pip install --force-metadata-refresh=:none: -r requirements.txt
+      py -m pip install --refresh-package=requests requests
+      py -m pip install --refresh-package=requests,urllib3 requests urllib3
+      py -m pip install --refresh-package=:all: -r requirements.txt
+      py -m pip install --refresh-package=:none: -r requirements.txt
 
 .. note::
 

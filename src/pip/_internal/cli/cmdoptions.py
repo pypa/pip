@@ -970,11 +970,11 @@ no_deps: Callable[..., Option] = partial(
 )
 
 
-def _handle_force_metadata_refresh(
+def _handle_refresh_package(
     option: Option, opt_str: str, value: str, parser: OptionParser
 ) -> None:
     if value.startswith("-"):
-        raise CommandError("--force-metadata-refresh option requires 1 argument.")
+        raise CommandError("--refresh-package option requires 1 argument.")
 
     existing: set[str] = getattr(parser.values, option.dest)
 
@@ -993,12 +993,12 @@ def _handle_force_metadata_refresh(
             existing.add(canonicalize_name(name))
 
 
-def force_metadata_refresh() -> Option:
+def refresh_package() -> Option:
     return Option(
-        "--force-metadata-refresh",
-        dest="force_metadata_refresh",
+        "--refresh-package",
+        dest="refresh_package",
         action="callback",
-        callback=_handle_force_metadata_refresh,
+        callback=_handle_refresh_package,
         type="str",
         default=set(),
         help="Revalidate package index metadata for the given packages "
@@ -1331,7 +1331,7 @@ index_group: dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
-        force_metadata_refresh,
+        refresh_package,
         find_links,
         uploaded_prior_to,
     ],

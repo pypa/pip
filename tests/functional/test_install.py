@@ -49,12 +49,12 @@ from tests.lib.server import (
 )
 
 
-def test_force_metadata_refresh_sends_cache_control_header(
+def test_refresh_package_sends_cache_control_header(
     script: PipTestEnvironment,
     data: TestData,
 ) -> None:
     """
-    Check if --force-metadata-refresh=:all: adds max-age=0 to all request headers.
+    Check if --refresh-package=:all: adds max-age=0 to all request headers.
     """
     server = make_mock_server()
     server.mock.side_effect = [
@@ -69,7 +69,7 @@ def test_force_metadata_refresh_sends_cache_control_header(
     with server_running(server):
         script.pip(
             "install",
-            "--force-metadata-refresh=:all:",
+            "--refresh-package=:all:",
             "--no-build-isolation",
             "--index-url",
             url,
@@ -81,12 +81,12 @@ def test_force_metadata_refresh_sends_cache_control_header(
     assert environ["HTTP_CACHE_CONTROL"] == "max-age=0"
 
 
-def test_force_metadata_refresh_per_package(
+def test_refresh_package_per_package(
     script: PipTestEnvironment,
     data: TestData,
 ) -> None:
     """
-    Check that --force-metadata-refresh=<name> only adds max-age=0
+    Check that --refresh-package=<name> only adds max-age=0
     for the specified package, not others.
     """
     server = make_mock_server()
@@ -106,7 +106,7 @@ def test_force_metadata_refresh_per_package(
     with server_running(server):
         script.pip(
             "install",
-            "--force-metadata-refresh=simple",
+            "--refresh-package=simple",
             "--no-build-isolation",
             "--index-url",
             url,
@@ -122,12 +122,12 @@ def test_force_metadata_refresh_per_package(
     assert "HTTP_CACHE_CONTROL" not in environ_simplewheel
 
 
-def test_force_metadata_refresh_not_set_by_default(
+def test_refresh_package_not_set_by_default(
     script: PipTestEnvironment,
     data: TestData,
 ) -> None:
     """
-    Check that without --force-metadata-refresh, no max-age=0 is sent.
+    Check that without --refresh-package, no max-age=0 is sent.
     """
     server = make_mock_server()
     server.mock.side_effect = [

@@ -343,7 +343,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
         ssl_context: SSLContext | None = None,
-        force_metadata_refresh: set[str] | None = None,
+        refresh_package: set[str] | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -358,7 +358,7 @@ class PipSession(requests.Session):
         # "" disables proxying; None means no --proxy was given.
         self.pip_proxy: str | None = None
         self.pip_no_proxy_env = False
-        self.force_metadata_refresh: set[str] = force_metadata_refresh or set()
+        self.refresh_package: set[str] = refresh_package or set()
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
