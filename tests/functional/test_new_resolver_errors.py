@@ -221,6 +221,4 @@ def test_new_resolver_hint_not_shown_when_versions_available(
     assert "ResolutionImpossible" in result.stderr, str(result)
     assert "pkga 1.0 depends on base==1.0" in result.stdout, str(result)
     assert "pkgb 1.0 depends on base==2.0" in result.stdout, str(result)
-    assert (
-        "have no matching distributions available" not in result.stdout
-    ), str(result)
+    assert "have no matching distributions available" not in result.stdout, str(result)
