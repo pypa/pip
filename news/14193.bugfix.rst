@@ -1,0 +1,2 @@
+Fix the no-matching-distributions hint being shown for packages that are
+installable.
