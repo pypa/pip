@@ -25,11 +25,11 @@ from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
 from pip._internal.exceptions import (
-    HashErrors,
     InstallationError,
-    InvalidWheelFilename,
     PreviousBuildDirError,
 )
+from pip._internal.exceptions.hashes import HashErrors
+from pip._internal.exceptions.wheel import InvalidWheelFilename
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link

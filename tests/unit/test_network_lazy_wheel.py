@@ -5,7 +5,7 @@ import pytest
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.exceptions import InvalidWheel
+from pip._internal.exceptions.wheel import InvalidWheel
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,

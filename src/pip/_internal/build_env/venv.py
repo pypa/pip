@@ -12,7 +12,7 @@ from pip._internal.build_env.base import (
     BuildEnvironmentInstaller,
     Prefix,
 )
-from pip._internal.exceptions import VenvCreationError, VenvImportError
+from pip._internal.exceptions.build_env import VenvCreationError, VenvImportError
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:

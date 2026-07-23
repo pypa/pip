@@ -28,8 +28,8 @@ from pip._internal.exceptions import (
     MetadataInconsistent,
     MetadataInvalid,
     UnsupportedPythonVersion,
-    UnsupportedWheel,
 )
+from pip._internal.exceptions.wheel import UnsupportedWheel
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.candidate import InstallationCandidate

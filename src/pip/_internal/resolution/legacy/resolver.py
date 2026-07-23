@@ -25,12 +25,11 @@ from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
-    HashError,
-    HashErrors,
     InstallationError,
     NoneMetadataError,
     UnsupportedPythonVersion,
 )
+from pip._internal.exceptions.hashes import HashError, HashErrors
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link

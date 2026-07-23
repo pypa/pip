@@ -4,7 +4,8 @@ import hashlib
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, BinaryIO, NoReturn
 
-from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
+from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions.hashes import HashMismatch, HashMissing
 from pip._internal.utils.misc import read_chunks
 
 if TYPE_CHECKING:

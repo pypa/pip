@@ -11,7 +11,7 @@ import pytest
 from pip._vendor.urllib3.connectionpool import HTTPConnectionPool
 from pip._vendor.urllib3.exceptions import ProtocolError, ProxyError, ReadTimeoutError
 
-from pip._internal.exceptions import (
+from pip._internal.exceptions.network import (
     ConnectionFailedError,
     ConnectionTimeoutError,
     IncompleteDownloadError,

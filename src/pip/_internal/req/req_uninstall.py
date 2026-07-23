@@ -8,7 +8,10 @@ from collections.abc import Callable, Generator, Iterable
 from importlib.util import cache_from_source
 from typing import Any
 
-from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
+from pip._internal.exceptions.uninstall import (
+    LegacyDistutilsInstall,
+    UninstallMissingRecord,
+)
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS

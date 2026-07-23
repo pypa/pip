@@ -20,7 +20,8 @@ import pytest
 
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
+from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions.hashes import HashMismatch, HashMissing
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.glibc import (

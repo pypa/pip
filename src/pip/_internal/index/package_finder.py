@@ -24,9 +24,8 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
     InstallationError,
-    InvalidWheelFilename,
-    UnsupportedWheel,
 )
+from pip._internal.exceptions.wheel import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.index.collector import LinkCollector, parse_links
 from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import InstallationCandidate
