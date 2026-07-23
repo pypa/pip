@@ -495,11 +495,6 @@ only specific packages:
       py -m pip install --refresh-package=:all: -r requirements.txt
       py -m pip install --refresh-package=:none: -r requirements.txt
 
-.. note::
-
-   This option also applies to remote :ref:`--find-links <install_--find-links>`
-   pages.
-
 .. _`Dependency Groups`:
 
 
