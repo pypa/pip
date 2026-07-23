@@ -411,7 +411,6 @@ def test_prompt_for_keyring_if_needed(
     cert_factory: CertFactory,
     auth_needed: bool,
     flags: list[str],
-    keyring_provider: str,
     keyring_provider_implementation: str,
     tmpdir: Path,
     script_factory: ScriptFactory,
@@ -420,29 +419,40 @@ def test_prompt_for_keyring_if_needed(
     """Test behaviour while installing from an index url
     requiring authentication and keyring is possible.
     """
-    environ = os.environ.copy()
     workspace = tmpdir.joinpath("workspace")
 
+    virtualenv = virtualenv_factory(workspace.joinpath("venv"))
+
     if keyring_provider_implementation == "subprocess":
+        # Install keyring into its own venv.
         keyring_virtualenv = virtualenv_factory(workspace.joinpath("keyring"))
         keyring_script = script_factory(
             workspace.joinpath("keyring"), keyring_virtualenv
         )
         keyring_script.pip_install_local("keyring", "-f", data.common_wheels)
 
-        environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
-
-    virtualenv = virtualenv_factory(workspace.joinpath("venv"))
-    script = script_factory(workspace.joinpath("venv"), virtualenv, environ=environ)
-
-    if (
-        keyring_provider not in [None, "auto"]
-        or keyring_provider_implementation != "subprocess"
-    ):
-        script.pip_install_local("keyring", "-f", data.common_wheels)
-
-    if keyring_provider_implementation != "subprocess":
-        keyring_script = script
+        # Set up this venv with a PATH that can see the keyring installed in a
+        # separate venv.
+        virtualenv_script = script_factory(
+            workspace.joinpath("venv"),
+            virtualenv,
+            environ={
+                **os.environ,
+                "PATH": str(keyring_script.bin_path) + os.pathsep + os.environ["PATH"],
+            },
+        )
+    elif keyring_provider_implementation == "import":
+        # Set up a venv with keyring installed.
+        virtualenv_script = script_factory(workspace.joinpath("venv"), virtualenv)
+        virtualenv_script.pip_install_local("keyring", "-f", data.common_wheels)
+        keyring_script = virtualenv_script
+    elif keyring_provider_implementation == "disabled":
+        # Set up an venv that does not have keyring installed, nor is able to
+        # find keyring anywhere on the PATH.
+        virtualenv_script = script_factory(workspace.joinpath("venv"), virtualenv)
+        keyring_script = None
+    else:
+        pytest.fail(f"Unrecognized {keyring_provider_implementation=}")
 
     cert_path = cert_factory()
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
@@ -463,41 +473,48 @@ def test_prompt_for_keyring_if_needed(
     ]
 
     url = f"https://USERNAME@{server.host}:{server.port}/simple"
+    log_file = virtualenv_script.scratch_path / "log"
+    log_file.touch()
 
-    keyring_content = textwrap.dedent("""\
-        import os
-        import sys
-        import keyring
-        from keyring.backend import KeyringBackend
-        from keyring.credentials import SimpleCredential
+    if keyring_script is not None:
+        keyring_content = textwrap.dedent(f"""\
+            import os
+            import sys
+            import keyring
+            from keyring.backend import KeyringBackend
+            from keyring.credentials import SimpleCredential
 
-        class TestBackend(KeyringBackend):
-            priority = 1
+            def log(msg):
+                with open({str(log_file)!r}, 'a', encoding='utf8') as f:
+                    f.write(msg + '\\n')
 
-            def get_credential(self, url, username):
-                sys.stderr.write("get_credential was called" + os.linesep)
-                return SimpleCredential(username="USERNAME", password="PASSWORD")
+            class TestBackend(KeyringBackend):
+                priority = 1
 
-            def get_password(self, url, username):
-                sys.stderr.write("get_password was called" + os.linesep)
-                return "PASSWORD"
+                def get_credential(self, url, username):
+                    log("get_credential was called")
+                    return SimpleCredential(username="USERNAME", password="PASSWORD")
 
-            def set_password(self, url, username):
-                pass
-    """)
-    keyring_path = keyring_script.site_packages_path / "keyring_test.py"
-    keyring_path.write_text(keyring_content)
+                def get_password(self, url, username):
+                    log("get_password was called")
+                    return "PASSWORD"
 
-    keyring_content = (
-        "import keyring_test;"
-        " import keyring;"
-        " keyring.set_keyring(keyring_test.TestBackend())" + os.linesep
-    )
-    keyring_path = keyring_path.with_suffix(".pth")
-    keyring_path.write_text(keyring_content)
+                def set_password(self, url, username):
+                    pass
+        """)
+        keyring_path = keyring_script.site_packages_path / "keyring_test.py"
+        keyring_path.write_text(keyring_content)
+
+        keyring_content = (
+            "import keyring_test;"
+            " import keyring;"
+            " keyring.set_keyring(keyring_test.TestBackend())" + os.linesep
+        )
+        keyring_path = keyring_path.with_suffix(".pth")
+        keyring_path.write_text(keyring_content)
 
     with server_running(server):
-        result = script.pip(
+        virtualenv_script.pip(
             "install",
             "--no-build-isolation",
             "--index-url",
@@ -510,15 +527,11 @@ def test_prompt_for_keyring_if_needed(
             "simple",
         )
 
-    function_name = (
-        "get_credential"
-        if keyring_provider_implementation == "import"
-        else "get_password"
-    )
+    logs = log_file.read_text("utf8").splitlines()
     if auth_needed:
-        assert function_name + " was called" in result.stderr
+        assert "get_credential was called" in logs
     else:
-        assert function_name + " was called" not in result.stderr
+        assert "get_credential was called" not in logs
 
 
 @pytest.mark.network

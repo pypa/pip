@@ -35,6 +35,7 @@ from pip._internal.exceptions import (
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
     CI_ENVIRONMENT_VARIABLES,
+    HTTPAdapter,
     PipSession,
     user_agent,
 )
@@ -458,6 +459,36 @@ class TestSessionProxy:
         assert options.proxy is None
         assert session.trust_env is True
         assert self._resolved_proxy(session, "http://example.com") is not None
+
+
+class TestSSLContextAdapterMixinProxy:
+    """Regression tests for https://github.com/pypa/pip/issues/13465
+
+    When connecting through an HTTPS proxy, urllib3's ``ProxyManager`` opens
+    a TLS connection to the proxy itself using ``proxy_ssl_context``, which
+    is separate from the ``ssl_context`` used for the tunnelled connection to
+    the destination host. Only setting ``ssl_context`` leaves the proxy leg
+    verified with a plain, default SSL context (i.e. not truststore's system
+    trust store), which can cause spurious certificate verification errors.
+    """
+
+    def test_https_proxy_uses_same_ssl_context_for_both_legs(self) -> None:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        session = PipSession(ssl_context=ssl_context)
+
+        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
+
+        assert proxy_manager.proxy_ssl_context is ssl_context
+        assert proxy_manager.connection_pool_kw["ssl_context"] is ssl_context
+
+    def test_no_ssl_context_leaves_proxy_ssl_context_unset(self) -> None:
+        session = PipSession()
+
+        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
+
+        assert proxy_manager.proxy_ssl_context is None
 
 
 class TestConnectionErrors:
