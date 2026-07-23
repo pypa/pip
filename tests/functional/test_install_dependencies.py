@@ -53,6 +53,21 @@ def test_install_only_deps(script: PipTestEnvironment, reqs_test_package: Path) 
     result.assert_not_installed("child")
 
 
+def test_install_only_deps_skips_user_supplied_dependencies(
+    script: PipTestEnvironment, reqs_test_package: Path
+) -> None:
+    """Test dependencies are skipped when they are also user-supplied."""
+    result = script.pip_install_local(
+        str(reqs_test_package),
+        "simple==3.0",
+        "--only-deps",
+    )
+    result.assert_not_installed("pkga")
+    result.assert_not_installed("simple")
+    result.assert_not_installed("simple2")
+    result.assert_not_installed("child")
+
+
 def test_install_only_deps_and_extras(
     script: PipTestEnvironment, reqs_test_package: Path
 ) -> None:
