@@ -79,7 +79,7 @@ def check_only_deps_option_does_not_conflict(options: Values) -> None:
     if "legacy-resolver" in options.deprecated_features_enabled:
         conflicts.append("'--use-deprecated legacy-resolver'")
     if options.requirements:
-        conflicts.append("'--requirements'")
+        conflicts.append("'--requirement'")
     if options.requirements_from_scripts:
         conflicts.append("'--requirements-from-script'")
     if options.dependency_groups:
@@ -1011,7 +1011,7 @@ only_deps: Callable[..., Option] = partial(
     help=(
         "Take only the dependencies of the provided requirements into account, "
         "not the requirements themselves. Cannot be used in combination with "
-        "--no-deps, --group, --requirement. "
+        "--no-deps, --group, --requirement, or --requirements-from-script. "
         "No user-supplied requirements will be handled, even if they were "
         "dependencies of other user-supplied requirements."
     ),

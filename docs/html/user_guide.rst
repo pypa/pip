@@ -590,10 +590,10 @@ implementation easy and err on the side of caution, pip will thus not install
 SomeDependency.
 
 
-A note on ``--only-deps`` and ``--requirements`` / ``--requirements-from-script`` and ``--group``
+A note on ``--only-deps`` and ``--requirement`` / ``--requirements-from-script`` and ``--group``
 -------------------------------------------------------------------------------------------------
 
-The ``--only-deps`` option is inherently incompatible with ``--requirements``
+The ``--only-deps`` option is inherently incompatible with ``--requirement``
 and ``--group``.
 
 In the ``--requirements`` case, all specified packages are considered to be
