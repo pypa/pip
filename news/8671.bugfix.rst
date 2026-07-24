@@ -1,0 +1,1 @@
+Prevent pip from becoming unusable due to invalid configuration values.

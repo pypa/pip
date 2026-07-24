@@ -57,6 +57,24 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "unset", "test.blah")
         script.pip("config", "get", "test.blah", expect_error=True)
 
+    def test_invalid_use_feature_doesnt_softlock_and_warns(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.pip("config", "set", "global.use-feature", "blah")
+
+        result = script.pip("list")
+        assert "is no longer a valid value for use-feature" in result.stderr
+        assert result.returncode == 0
+
+    def test_invalid_config_value_throws_error(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.pip("config", "set", "global.use-deprecated", "blah")
+
+        result = script.pip("list", expect_error=True)
+        assert "Invalid configuration value for" in result.stderr
+        assert result.returncode == 1
+
     def test_listing_is_correct(self, script: PipTestEnvironment) -> None:
         script.pip("config", "set", "test.listing-beta", "2")
         script.pip("config", "set", "test.listing-alpha", "1")
