@@ -26,6 +26,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.req_file import ParsedRequirement
 from pip._internal.req.req_install import InstallRequirement
@@ -598,6 +599,7 @@ def install_req_from_pylock_package(
     ),
     pylock_path_or_url: str,
     format_control: FormatControl,
+    release_control: ReleaseControl | None,
     user_supplied: bool,
 ) -> InstallRequirement:
     pass
@@ -668,6 +670,17 @@ def install_req_from_pylock_package(
                 _, version = parse_sdist_filename(package_dist.filename)
             requirement_url = package_sdist_requirement_url(
                 pylock_path_or_url, package_dist
+            )
+        if (
+            release_control is not None
+            and version.is_prerelease
+            # is False is intentional as allows_prereleases is tri-valued
+            and release_control.allows_prereleases(package.name) is False
+        ):
+            raise InstallationError(
+                f"Only final releases are allowed for package {package.name!r} "
+                f"but it is pinned to a prerelease version {version!s} "
+                f"in {pylock_path_or_url!r}."
             )
         ireq = InstallRequirement(
             req=Requirement(f"{package.name}=={version}"),

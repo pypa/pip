@@ -371,6 +371,7 @@ class RequirementCommand(IndexGroupCommand):
                             package_dist,
                             filename,
                             options.format_control,
+                            options.release_control,
                             user_supplied=True,
                         )
                     )
