@@ -1,16 +1,23 @@
-"""Tests for pip install --uploaded-prior-to."""
+"""Tests for pip --uploaded-prior-to."""
 
 from __future__ import annotations
+
+import json
+from typing import TYPE_CHECKING
 
 import pytest
 
 from tests.lib import PipTestEnvironment, TestData
 from tests.lib.server import (
     file_response,
+    json_index_page,
     make_mock_server,
     package_page,
     server_running,
 )
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
 
 class TestUploadedPriorTo:
@@ -132,3 +139,100 @@ class TestUploadedPriorTo:
             "--uploaded-prior-to=2000-01-01T00:00:00", "simple==1.0"
         )
         assert "Successfully installed simple-1.0" in result.stdout
+
+    def test_uploaded_prior_to_list_outdated(self, script: PipTestEnvironment) -> None:
+        """Test that list --outdated applies upload-time filtering to Latest."""
+        script.pip_install_local("simple==1.0")
+
+        files = [
+            {
+                "url": "simple-1.0.tar.gz",
+                "hashes": {},
+                "upload-time": "2020-01-01T00:00:00Z",
+            },
+            {
+                "url": "simple-2.0.tar.gz",
+                "hashes": {},
+                "upload-time": "2020-06-01T00:00:00Z",
+            },
+            {
+                "url": "simple-3.0.tar.gz",
+                "hashes": {},
+                "upload-time": "2021-01-01T00:00:00Z",
+            },
+        ]
+
+        def index_router(
+            environ: WSGIEnvironment, start_response: StartResponse
+        ) -> WSGIApplication:
+            name = environ["PATH_INFO"].strip("/")
+            return json_index_page(name, files if name == "simple" else [])
+
+        server = make_mock_server()
+        server.mock.side_effect = index_router
+
+        with server_running(server):
+            args = [
+                "list",
+                "--index-url",
+                f"http://{server.host}:{server.port}",
+                "--format=json",
+            ]
+
+            result = script.pip(*args, "--outdated")
+            assert {
+                "name": "simple",
+                "version": "1.0",
+                "latest_version": "3.0",
+                "latest_filetype": "sdist",
+            } in json.loads(result.stdout)
+
+            result = script.pip(
+                *args, "--outdated", "--uploaded-prior-to=2020-12-31T00:00:00Z"
+            )
+            assert {
+                "name": "simple",
+                "version": "1.0",
+                "latest_version": "2.0",
+                "latest_filetype": "sdist",
+            } in json.loads(result.stdout)
+
+            result = script.pip(
+                *args, "--outdated", "--uploaded-prior-to=2020-03-01T00:00:00Z"
+            )
+            assert "simple" not in {p["name"] for p in json.loads(result.stdout)}
+
+            # The same cutoff must leave 1.0 as the best candidate, making the
+            # package up-to-date rather than filtered out entirely.
+            result = script.pip(
+                *args, "--uptodate", "--uploaded-prior-to=2020-03-01T00:00:00Z"
+            )
+            assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
+
+    def test_uploaded_prior_to_list_outdated_no_upload_time(
+        self, script: PipTestEnvironment
+    ) -> None:
+        """Test that list --outdated errors if the index lacks upload-time."""
+        script.pip_install_local("simple==1.0")
+
+        def index_router(
+            environ: WSGIEnvironment, start_response: StartResponse
+        ) -> WSGIApplication:
+            if environ["PATH_INFO"] == "/simple/":
+                return package_page({"simple-2.0.tar.gz": "/files/simple-2.0.tar.gz"})
+            return package_page({})
+
+        server = make_mock_server()
+        server.mock.side_effect = index_router
+
+        with server_running(server):
+            result = script.pip(
+                "list",
+                "--index-url",
+                f"http://{server.host}:{server.port}",
+                "--outdated",
+                "--uploaded-prior-to=2100-01-01T00:00:00",
+                expect_error=True,
+            )
+
+        assert "does not provide upload-time metadata" in result.stderr

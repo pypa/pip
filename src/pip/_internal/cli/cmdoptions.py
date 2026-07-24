@@ -510,7 +510,7 @@ def uploaded_prior_to() -> Option:
             "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
             "uses local timezone if none specified) or a duration in days "
             "(e.g., 'P3D' for packages uploaded at least 3 days ago). "
-            "Only effective when installing from indexes that provide "
+            "Only effective when using indexes that provide "
             "upload-time metadata."
         ),
     )
