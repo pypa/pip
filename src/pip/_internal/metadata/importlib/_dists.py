@@ -215,6 +215,12 @@ class Distribution(BaseDistribution):
             return email.message.Message()
         return cast(email.message.Message, metadata)
 
+    def iter_default_extras(self) -> Iterable[NormalizedName]:
+        return [
+            canonicalize_name(extra)
+            for extra in self.metadata.get_all("Default-Extra", [])
+        ]
+
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return [
             canonicalize_name(extra)

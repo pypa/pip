@@ -131,6 +131,9 @@ class RawMetadata(TypedDict, total=False):
     import_names: list[str]
     import_namespaces: list[str]
 
+    # Metadata 2.6 - PEP 771
+    default_extra: list[str]
+
 
 # 'keywords' is special as it's a string in the core metadata spec, but we
 # represent it as a list.
@@ -168,6 +171,7 @@ _LIST_FIELDS = {
     "supported_platforms",
     "import_names",
     "import_namespaces",
+    "default_extra",
 }
 
 _DICT_FIELDS = {
@@ -254,6 +258,7 @@ _EMAIL_TO_RAW_MAPPING = {
     "author": "author",
     "author-email": "author_email",
     "classifier": "classifiers",
+    "default-extra": "default_extra",
     "description": "description",
     "description-content-type": "description_content_type",
     "download-url": "download_url",
@@ -511,8 +516,8 @@ _NOT_FOUND = object()
 
 
 # Keep the two values in sync.
-_VALID_METADATA_VERSIONS = ["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5"]
-_MetadataVersion = Literal["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5"]
+_VALID_METADATA_VERSIONS = ["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"]
+_MetadataVersion = Literal["1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"]
 
 _REQUIRED_ATTRS = frozenset(["metadata_version", "name", "version"])
 
@@ -928,6 +933,12 @@ class Metadata:
     """``Provides`` (deprecated)"""
     obsoletes: _Validator[list[str] | None] = _Validator(added="1.1")
     """``Obsoletes`` (deprecated)"""
+    # PEP 771 lets us define a default `extras_require` if none is passed by the
+    # user.
+    default_extra: _Validator[list[utils.NormalizedName] | None] = _Validator(
+        added="2.6",
+    )
+    """:external:ref:`core-metadata-default-extra`"""
 
     def as_rfc822(self) -> RFC822Message:
         """

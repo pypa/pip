@@ -243,6 +243,9 @@ class Distribution(BaseDistribution):
             extras = [self._extra_mapping[extra] for extra in relevant_extras]
         return self._dist.requires(extras)
 
+    def iter_default_extras(self) -> Iterable[NormalizedName]:
+        return self._dist.default_extras_require or []
+
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return self._extra_mapping.keys()
 
