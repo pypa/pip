@@ -129,10 +129,13 @@ class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
 
     def __init__(self, ireq: InstallRequirement) -> None:
         assert ireq.link is None, "This is a link, not a specifier"
+        # install_req_drop_extras already sets ``explicit_no_default_extras``
+        # when the original ireq had extras, so the bare base requirement does
+        # not turn around and pull in PEP 771 defaults.
         self._ireq = install_req_drop_extras(ireq)
         self._equal_cache: str | None = None
         self._hash: int | None = None
-        self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
+        self._extras = frozenset()
 
     @property
     def _equal(self) -> str:

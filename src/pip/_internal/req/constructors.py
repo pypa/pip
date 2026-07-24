@@ -48,6 +48,12 @@ __all__ = [
     "parse_editable",
 ]
 
+# Matches an empty extras list, optionally with internal whitespace. PEP 771
+# uses ``pkg[]`` to mean "install pkg without applying any default extras";
+# PEP 508's parser silently treats ``pkg[]`` and ``pkg`` the same, so we
+# detect the marker ourselves before delegating to it.
+_EMPTY_EXTRAS_RE = re.compile(r"\[\s*\]")
+
 logger = logging.getLogger(__name__)
 
 # All standard version specifier operators
@@ -55,7 +61,19 @@ logger = logging.getLogger(__name__)
 operators = ("~=", "==", "!=", "<=", ">=", "<", ">", "===")
 
 
-def _strip_extras(path: str) -> tuple[str, str | None]:
+def _strip_empty_extras(req_string: str) -> tuple[str, bool]:
+    """Detect and remove the PEP 771 ``[]`` empty-extras marker.
+
+    Returns the input with the first ``[]`` (allowing internal whitespace)
+    stripped, and a boolean indicating whether the marker was present.
+    """
+    if _EMPTY_EXTRAS_RE.search(req_string) is None:
+        return req_string, False
+    return _EMPTY_EXTRAS_RE.sub("", req_string, count=1), True
+
+
+def _strip_extras(path: str) -> tuple[str, str | None, bool]:
+    path, explicit_no_default_extras = _strip_empty_extras(path)
     m = re.match(r"^(.+)(\[[^\]]+\])$", path)
     extras = None
     if m:
@@ -63,8 +81,7 @@ def _strip_extras(path: str) -> tuple[str, str | None]:
         extras = m.group(2)
     else:
         path_no_extras = path
-
-    return path_no_extras, extras
+    return path_no_extras, extras, explicit_no_default_extras
 
 
 def convert_extras(extras: str | None) -> set[str]:
@@ -99,8 +116,12 @@ def _set_requirement_extras(req: Requirement, new_extras: set[str]) -> Requireme
 
 
 def _parse_direct_url_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
+    # ``packaging.Requirement`` accepts and silently drops the PEP 771 ``[]``
+    # marker; the caller is responsible for detecting it before delegating
+    # here (``_strip_empty_extras``).
+    candidate, _ = _strip_empty_extras(editable_req)
     try:
-        req = Requirement(editable_req)
+        req = Requirement(candidate)
     except InvalidRequirement:
         pass
     else:
@@ -120,7 +141,7 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
     url = editable_req
 
     # If a file path is specified with extras, strip off the extras.
-    url_no_extras, extras = _strip_extras(url)
+    url_no_extras, extras, _ = _strip_extras(url)
 
     if os.path.isdir(url_no_extras):
         # Treating it as code that has already been checked out
@@ -238,9 +259,14 @@ class RequirementParts:
     link: Link | None
     markers: Marker | None
     extras: set[str]
+    explicit_no_default_extras: bool = False
 
 
 def parse_req_from_editable(editable_req: str) -> RequirementParts:
+    # PEP 771: ``pkg[]`` opts out of default extras. Detect it on the raw
+    # input here so that ``parse_editable`` (which is part of pip's stable
+    # public surface) can keep returning a 3-tuple.
+    _, explicit_no_default_extras = _strip_empty_extras(editable_req)
     name, url, extras_override = parse_editable(editable_req)
 
     if name is not None:
@@ -253,7 +279,9 @@ def parse_req_from_editable(editable_req: str) -> RequirementParts:
 
     link = Link(url)
 
-    return RequirementParts(req, link, None, extras_override)
+    return RequirementParts(
+        req, link, None, extras_override, explicit_no_default_extras
+    )
 
 
 # ---- The actual constructors follow ----
@@ -286,6 +314,7 @@ def install_req_from_editable(
         hash_options=hash_options,
         config_settings=config_settings,
         extras=parts.extras,
+        explicit_no_default_extras=parts.explicit_no_default_extras,
     )
 
 
@@ -365,10 +394,11 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     link = None
     extras_as_string = None
 
+    explicit_no_default_extras = False
     if is_url(name):
         link = Link(name)
     else:
-        p, extras_as_string = _strip_extras(path)
+        p, extras_as_string, explicit_no_default_extras = _strip_extras(path)
         url = _get_url_from_path(p, name)
         if url is not None:
             link = Link(url)
@@ -421,7 +451,7 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     else:
         req = None
 
-    return RequirementParts(req, link, markers, extras)
+    return RequirementParts(req, link, markers, extras, explicit_no_default_extras)
 
 
 def install_req_from_line(
@@ -454,6 +484,7 @@ def install_req_from_line(
         constraint=constraint,
         extras=parts.extras,
         user_supplied=user_supplied,
+        explicit_no_default_extras=parts.explicit_no_default_extras,
     )
 
 
@@ -463,6 +494,7 @@ def install_req_from_req_string(
     isolated: bool = False,
     user_supplied: bool = False,
 ) -> InstallRequirement:
+    req_string, explicit_no_default_extras = _strip_empty_extras(req_string)
     try:
         req = get_requirement(req_string)
     except InvalidRequirement as exc:
@@ -490,6 +522,7 @@ def install_req_from_req_string(
         comes_from,
         isolated=isolated,
         user_supplied=user_supplied,
+        explicit_no_default_extras=explicit_no_default_extras,
     )
 
 
@@ -538,6 +571,7 @@ def install_req_from_link_and_ireq(
         hash_options=ireq.hash_options,
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
+        explicit_no_default_extras=ireq.explicit_no_default_extras,
     )
 
 
@@ -562,6 +596,10 @@ def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
         permit_editable_wheels=ireq.permit_editable_wheels,
+        # If the original explicitly listed extras then the extras-less clone
+        # represents the bare base requirement; per PEP 771 we must not turn
+        # around and apply default extras to it.
+        explicit_no_default_extras=ireq.explicit_no_default_extras or bool(ireq.extras),
     )
 
 
