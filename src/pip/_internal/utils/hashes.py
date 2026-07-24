@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable
+from collections.abc import Container, Iterable
 from typing import TYPE_CHECKING, BinaryIO, NoReturn
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
@@ -19,6 +19,9 @@ FAVORITE_HASH = "sha256"
 # Names of hashlib algorithms allowed by the --hash option and ``pip hash``
 # Currently, those are the ones at least as collision-resistant as sha256.
 STRONG_HASHES = ["sha256", "sha384", "sha512"]
+
+
+_HASH_INTERSECTION_LIST_SCAN_LIMIT = 64
 
 
 class Hashes:
@@ -55,7 +58,11 @@ class Hashes:
         for alg, values in other._allowed.items():
             if alg not in self._allowed:
                 continue
-            new[alg] = [v for v in values if v in self._allowed[alg]]
+            allowed = self._allowed[alg]
+            lookup: Container[str] = allowed
+            if len(allowed) * len(values) > _HASH_INTERSECTION_LIST_SCAN_LIMIT:
+                lookup = set(allowed)
+            new[alg] = [v for v in values if v in lookup]
         return Hashes(new)
 
     @property
