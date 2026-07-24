@@ -42,6 +42,7 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.server import (
+    authorization_response,
     file_response,
     make_mock_server,
     package_page,
@@ -360,6 +361,25 @@ def test_install_warns_on_unexpected_post_install_import(
         "after pip install started" in result.stderr
     )
     assert "run_install.py:7)" in result.stderr
+
+
+def test_install_401_error(script: PipTestEnvironment, data: TestData) -> None:
+    server = make_mock_server()
+    server.mock.side_effect = lambda _, __: authorization_response(
+        data.packages / "simple-3.0.tar.gz"
+    )
+    index_url = f"http://{server.host}:{server.port}/simple"
+    with server_running(server):
+        result = script.pip(
+            "install",
+            "--no-input",
+            "--index-url",
+            index_url,
+            "simple",
+            expect_error=True,
+        )
+    assert result.returncode != 0
+    assert "401 Client Error" in result.stderr
 
 
 def test_install_exit_status_code_when_no_requirements(

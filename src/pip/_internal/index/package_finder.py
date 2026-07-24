@@ -25,6 +25,7 @@ from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
     InvalidWheelFilename,
+    NetworkConnectionError,
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
@@ -56,6 +57,19 @@ logger = getLogger(__name__)
 
 BuildTag = tuple[()] | tuple[int, str]
 CandidateSortingKey = tuple[int, int, int, _BaseVersion, int | None, BuildTag]
+
+
+class IndexErrorContext:
+    """Tracks network errors during index access"""
+
+    def __init__(self) -> None:
+        self.network_errors: list[tuple[str, str | Exception]] = []
+
+    def record_error(self, url: str, exc: str | Exception) -> None:
+        self.network_errors.append((url, exc))
+
+    def had_errors(self) -> bool:
+        return len(self.network_errors) > 0
 
 
 def _check_link_requires_python(
@@ -847,13 +861,16 @@ class PackageFinder:
         return candidates
 
     def process_project_url(
-        self, project_url: Link, link_evaluator: LinkEvaluator
+        self,
+        project_url: Link,
+        link_evaluator: LinkEvaluator,
+        error_context: IndexErrorContext | None = None,
     ) -> list[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        index_response = self._link_collector.fetch_response(project_url)
+        index_response = self._link_collector.fetch_response(project_url, error_context)
         if index_response is None:
             return []
 
@@ -866,6 +883,33 @@ class PackageFinder:
             )
 
         return package_links
+
+    def _log_and_raise_network_errors(
+        self, project_name: str, error_context: IndexErrorContext
+    ) -> None:
+        error_type = "network"
+        dont_raise_exception = False
+        for url, exc in error_context.network_errors:
+            logger.warning("Failed to fetch %s: %s", url, exc)
+            if isinstance(exc, NetworkConnectionError) and exc.response is not None:
+                if 400 <= exc.response.status_code < 500:
+                    if exc.response.status_code == 404:
+                        dont_raise_exception = True
+                    error_type = "client"
+                elif 500 <= exc.response.status_code < 600:
+                    error_type = "server"
+
+        if dont_raise_exception:
+            return
+
+        raise InstallationError(
+            f"Could not find a version of {project_name} due to {error_type} errors."
+            + (
+                " See above for details."
+                if logger.isEnabledFor(logging.WARNING)
+                else ""
+            )
+        )
 
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
@@ -880,12 +924,13 @@ class PackageFinder:
             return self._all_candidates[project_name]
 
         link_evaluator = self.make_link_evaluator(project_name)
-
+        error_context = IndexErrorContext()
         collected_sources = self._link_collector.collect_sources(
             project_name=project_name,
             candidates_from_page=functools.partial(
                 self.process_project_url,
                 link_evaluator=link_evaluator,
+                error_context=error_context,
             ),
         )
 
@@ -921,6 +966,8 @@ class PackageFinder:
 
         # This is an intentional priority ordering
         self._all_candidates[project_name] = file_candidates + page_candidates
+        if not self._all_candidates[project_name] and error_context.had_errors():
+            self._log_and_raise_network_errors(project_name, error_context)
 
         return self._all_candidates[project_name]
 
