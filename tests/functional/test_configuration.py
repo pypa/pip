@@ -118,6 +118,63 @@ class TestBasicLoading(ConfigurationMixin):
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"env:\n(  .+\n)+", result.stdout)
 
+    def test_env_set_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when setting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_unset_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when unsetting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        result = script.pip(
+            "config", "unset", "global.index-url", allow_stderr_warning=True
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_raises_error_on_devnull_directory(
+        self, script: PipTestEnvironment
+    ) -> None:
+        config_file = os.devnull
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            expect_error=True,
+        )
+        assert "Cannot write to PIP_CONFIG_VALUE" in result.stderr
+        assert result.returncode == 1
+
     def test_user_values(self, script: PipTestEnvironment) -> None:
         """Test that the user pip configuration set using --user
         is correctly displayed under "user".  This configuration takes place
