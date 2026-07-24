@@ -365,15 +365,15 @@ class RequirementCommand(IndexGroupCommand):
                 for package, package_dist in select_from_pylock_path_or_url(
                     filename, session=session
                 ):
-                    requirements.append(
-                        install_req_from_pylock_package(
-                            package,
-                            package_dist,
-                            filename,
-                            options.format_control,
-                            user_supplied=True,
-                        )
+                    req_to_add, locked_link = install_req_from_pylock_package(
+                        package,
+                        package_dist,
+                        filename,
+                        user_supplied=True,
                     )
+                    requirements.append(req_to_add)
+                    if locked_link:
+                        finder.add_locked_link(package.name, locked_link)
                 continue
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session

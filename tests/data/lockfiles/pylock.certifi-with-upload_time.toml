@@ -1,0 +1,8 @@
+lock-version = "1.0"
+created-by = "uv"
+
+[[packages]]
+name = "certifi"
+version = "2026.6.17"
+sdist = { url = "https://files.pythonhosted.org/packages/c9/c7/424b75da314c1045981bd9777432fad05a9e0c69daa4ed7e308bbaffe405/certifi-2026.6.17.tar.gz", upload-time = 2026-06-17T10:31:07Z, size = 134594, hashes = { sha256 = "024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/ef/2f/c5464532e965badff2f4c4c1a3a83f5697f0d7c407ed0cda44aaa99bb451/certifi-2026.6.17-py3-none-any.whl", upload-time = 2026-06-17T10:31:06Z, size = 133289, hashes = { sha256 = "2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db" } }]
