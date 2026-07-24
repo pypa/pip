@@ -313,11 +313,6 @@ class RequirementCommand(IndexGroupCommand):
         """
         requirements: list[InstallRequirement] = []
 
-        if options.require_hashes and options.no_require_hashes:
-            raise CommandError(
-                "--require-hashes and --no-require-hashes are mutually exclusive"
-            )
-
         if should_ignore_regular_constraints():
             # Inside an isolated build subprocess: apply the build constraints
             # (forwarded via --build-constraint) instead of the inherited ones.
@@ -427,8 +422,13 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
+        if options.require_hashes and options.no_require_hashes:
+            raise CommandError(
+                "--require-hashes and --no-require-hashes are mutually exclusive"
+            )
+
         # If any requirement has hash options, enable hash checking for all
-        # requirements, unlesss this mechanism has been explicitly disabled
+        # requirements, unless this mechanism has been explicitly disabled
         # with --no-require-hashes.
         if not options.no_require_hashes and any(
             req.has_hash_options for req in requirements

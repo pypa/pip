@@ -25,6 +25,7 @@ from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
 from pip._internal.exceptions import (
+    CommandError,
     HashErrors,
     InstallationError,
     InvalidWheelFilename,
@@ -237,6 +238,26 @@ class TestRequirementSet:
             options, args = command.parse_args(["-r", os.fspath(reqs_file)])
             command.get_requirements(args, options, finder, session)
         assert not options.require_hashes
+
+    def test_require_hases_no_require_hasesh_in_reqs_file(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        finder = make_test_finder(find_links=[data.find_links])
+        session = finder._link_collector.session
+        command = cast(InstallCommand, create_command("install"))
+        reqs = (
+            r"simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
+            r"af95fb866d6ca016b42d2e6ce53619b653$"
+        )
+        with requirements_file(
+            "--require-hashes\n--no-require-hashes\n" + reqs, tmpdir
+        ) as reqs_file:
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
+            with pytest.raises(
+                CommandError,
+                match="--require-hashes and --no-require-hashes are mutually exclusive",
+            ):
+                command.get_requirements(args, options, finder, session)
 
     def test_unsupported_hashes(self, data: TestData) -> None:
         """VCS and dir links should raise errors when --require-hashes is
