@@ -640,6 +640,11 @@ class TestInstallRequirement:
         assert str(req.req.specifier) == ""
         assert str(req.markers) == 'os_name == "a; b"'
 
+    def test_markers_invalid(self) -> None:
+        with pytest.raises(InstallationError) as e:
+            install_req_from_line('name; python_version == "1"; python_version == "2"')
+        assert "Invalid requirement" in e.value.args[0]
+
     def test_markers_url(self) -> None:
         # test "URL; markers" syntax
         url = "http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz"

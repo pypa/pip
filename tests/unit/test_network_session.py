@@ -2,22 +2,101 @@ from __future__ import annotations
 
 import logging
 import os
+import ssl
+import sys
+import time
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from optparse import Values
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 from urllib.request import getproxies
 
 import pytest
 
 from pip._vendor import requests
+from pip._vendor.requests.utils import select_proxy
+from pip._vendor.urllib3.connection import DummyConnection
+from pip._vendor.urllib3.connectionpool import HTTPSConnectionPool
 
 from pip import __version__
+from pip._internal.cli.index_command import SessionCommandMixin
+from pip._internal.commands import create_command
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    DiagnosticPipError,
+    ProxyConnectionError,
+    SSLMissingError,
+    SSLVerificationError,
+)
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
     CI_ENVIRONMENT_VARIABLES,
+    HTTPAdapter,
     PipSession,
     user_agent,
 )
+
+from tests.lib.output import render_to_text
+from tests.lib.server import make_mock_server, server_running
+
+
+def render_diagnostic_error(error: DiagnosticPipError) -> tuple[str, str | None]:
+    message = render_to_text(error.message).rstrip()
+    if error.context is None:
+        return (message, None)
+    return (message, render_to_text(error.context).rstrip())
+
+
+@dataclass(frozen=True)
+class Address:
+    host: str
+    port: int
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.host}:{self.port}/"
+
+
+class InstantCloseHTTPHandler(BaseHTTPRequestHandler):
+    def handle(self) -> None:
+        self.connection.close()
+
+
+class DelayedHTTPHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        time.sleep(1)
+        self.send_response(200)
+        self.end_headers()
+
+
+@pytest.fixture(scope="module")
+def instant_close_server() -> Iterator[Address]:
+    with HTTPServer(("127.0.0.1", 0), InstantCloseHTTPHandler) as server:
+        with server_running(server):
+            yield Address("127.0.0.1", server.server_port)
+
+
+@pytest.fixture(scope="module")
+def delayed_server() -> Iterator[Address]:
+    with HTTPServer(("127.0.0.1", 0), DelayedHTTPHandler) as server:
+        with server_running(server):
+            yield Address("127.0.0.1", server.server_port)
+
+
+@pytest.fixture(scope="module")
+def self_signed_server(cert_factory: Callable[[], str]) -> Iterator[Address]:
+    """HTTPS server that uses a self-signed certificate to provoke TLS errors."""
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.load_cert_chain(cert_path, cert_path)
+
+    server = make_mock_server(ssl_context=ctx)
+    with server_running(server):
+        yield Address(server.host, server.port)
 
 
 def get_user_agent() -> str:
@@ -263,6 +342,27 @@ class TestPipSession:
         assert actual_level == "WARNING"
         assert "is not a trusted or secure host" in actual_message
 
+
+class TestSessionProxy:
+    @staticmethod
+    def _build_session(
+        monkeypatch: pytest.MonkeyPatch, args: list[str]
+    ) -> tuple[Values, PipSession]:
+        # Option parsing also reads PIP_* env vars; clear the proxy ones so an
+        # ambient (e.g. corporate) proxy config can't perturb these assertions.
+        monkeypatch.delenv("PIP_PROXY", raising=False)
+        monkeypatch.delenv("PIP_NO_PROXY_ENV", raising=False)
+        command = create_command("download")
+        options, _ = command.parse_args(args)
+        session = cast(SessionCommandMixin, command)._build_session(options)
+        return options, session
+
+    @staticmethod
+    def _resolved_proxy(session: PipSession, url: str) -> str | None:
+        # Pick the proxy for a URL the way Session.request() does, no network.
+        settings = session.merge_environment_settings(url, {}, None, None, None)
+        return select_proxy(url, settings["proxies"])
+
     @pytest.mark.network
     def test_proxy(self, proxy: str | None) -> None:
         session = PipSession(trusted_hosts=[])
@@ -290,3 +390,214 @@ class TestPipSession:
             f"Invalid proxy {proxy} or session.proxies: "
             f"{session.proxies} is not correctly passed to session.request."
         )
+
+    def test_no_proxy_env_ignores_environment_proxies(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+        monkeypatch.setenv("https_proxy", "http://127.0.0.1:9999")
+
+        options, session = self._build_session(
+            monkeypatch, ["--no-proxy-env", "example"]
+        )
+
+        assert options.no_proxy_env is True
+        assert session.trust_env is False
+        # Propagated so isolated build subprocesses also bypass env proxies.
+        assert session.pip_no_proxy_env is True
+        for url in ("http://example.com", "https://example.com"):
+            assert self._resolved_proxy(session, url) is None
+
+    def test_no_proxy_env_keeps_command_line_proxy(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+        monkeypatch.setenv("https_proxy", "http://127.0.0.1:9999")
+
+        _, session = self._build_session(
+            monkeypatch,
+            ["--proxy", "http://proxy.example:8080", "--no-proxy-env", "example"],
+        )
+
+        assert session.trust_env is False
+        assert session.pip_proxy == "http://proxy.example:8080"
+        for url in ("http://example.com", "https://example.com"):
+            assert self._resolved_proxy(session, url) == "http://proxy.example:8080"
+
+    def test_environment_trusted_without_no_proxy_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        options, session = self._build_session(monkeypatch, ["example"])
+
+        assert options.no_proxy_env is False
+        assert session.trust_env is True
+        assert session.pip_no_proxy_env is False
+
+    def test_empty_proxy_bypasses_environment_proxies(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+        monkeypatch.setenv("https_proxy", "http://127.0.0.1:9999")
+
+        options, session = self._build_session(monkeypatch, ["--proxy", "", "example"])
+
+        assert options.proxy == ""
+        assert session.trust_env is False
+        # "" (not None) so it is forwarded to build subprocesses.
+        assert session.pip_proxy == ""
+        for url in ("http://example.com", "https://example.com"):
+            assert self._resolved_proxy(session, url) is None
+
+    def test_unset_proxy_is_distinct_from_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Unset must stay distinct from --proxy "": the env proxy is still used.
+        monkeypatch.setenv("http_proxy", "http://127.0.0.1:9999")
+
+        options, session = self._build_session(monkeypatch, ["example"])
+
+        assert options.proxy is None
+        assert session.trust_env is True
+        assert self._resolved_proxy(session, "http://example.com") is not None
+
+
+class TestSSLContextAdapterMixinProxy:
+    """Regression tests for https://github.com/pypa/pip/issues/13465
+
+    When connecting through an HTTPS proxy, urllib3's ``ProxyManager`` opens
+    a TLS connection to the proxy itself using ``proxy_ssl_context``, which
+    is separate from the ``ssl_context`` used for the tunnelled connection to
+    the destination host. Only setting ``ssl_context`` leaves the proxy leg
+    verified with a plain, default SSL context (i.e. not truststore's system
+    trust store), which can cause spurious certificate verification errors.
+    """
+
+    def test_https_proxy_uses_same_ssl_context_for_both_legs(self) -> None:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        session = PipSession(ssl_context=ssl_context)
+
+        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
+
+        assert proxy_manager.proxy_ssl_context is ssl_context
+        assert proxy_manager.connection_pool_kw["ssl_context"] is ssl_context
+
+    def test_no_ssl_context_leaves_proxy_ssl_context_unset(self) -> None:
+        session = PipSession()
+
+        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
+
+        assert proxy_manager.proxy_ssl_context is None
+
+
+class TestConnectionErrors:
+    @pytest.fixture
+    def session(self) -> Iterator[PipSession]:
+        with PipSession() as session:
+            yield session
+
+    @pytest.mark.network
+    def test_non_existent_domain(self, session: PipSession) -> None:
+        url = "https://404.example.invalid/"
+        with pytest.raises(ConnectionFailedError) as e:
+            session.get(url)
+        message, _ = render_diagnostic_error(e.value)
+        assert (
+            message == f"Failed to connect to 404.example.invalid while fetching {url}"
+        )
+
+    @pytest.mark.skipif(
+        sys.platform != "linux", reason="Only Linux raises the needed urllib3 error"
+    )
+    def test_connection_closed_by_peer(
+        self, session: PipSession, instant_close_server: Address
+    ) -> None:
+        with pytest.raises(ConnectionFailedError) as e:
+            session.get(instant_close_server.url)
+        message, context = render_diagnostic_error(e.value)
+        assert message == (
+            f"Failed to connect to {instant_close_server.host} "
+            f"while fetching {instant_close_server.url}"
+        )
+        assert context == "the connection was closed without a reply from the server."
+
+    def test_timeout(self, session: PipSession, delayed_server: Address) -> None:
+        url = delayed_server.url
+        with pytest.raises(ConnectionTimeoutError) as e:
+            session.get(url, timeout=0.2)
+        message, context = render_diagnostic_error(e.value)
+        assert message == f"Unable to fetch {url}"
+        assert context is not None
+        assert context.startswith(
+            f"{delayed_server.host} didn't respond within 0.2 seconds"
+        )
+
+    def test_self_signed_ssl(
+        self, session: PipSession, self_signed_server: Address
+    ) -> None:
+        """A self-signed certificate should produce a TLS verification diagnostic."""
+        url = f"https://{self_signed_server.host}:{self_signed_server.port}/"
+        with pytest.raises(SSLVerificationError) as e:
+            session.get(url)
+        message, _ = render_diagnostic_error(e.value)
+        expected_host = self_signed_server.host
+        assert message == (
+            f"Failed to establish a secure connection to {expected_host} while "
+            f"fetching {url}"
+        )
+
+    def test_missing_python_ssl_support(
+        self, monkeypatch: pytest.MonkeyPatch, session: PipSession
+    ) -> None:
+        # This is unfortunate, but there is no good way of mocking a missing
+        # ssl module without reloading import trickery (which is worse).
+        monkeypatch.setattr(HTTPSConnectionPool, "ConnectionCls", DummyConnection)
+        url = "https://user:password@example.com/"
+        with pytest.raises(SSLMissingError) as e:
+            session.get(url)
+        message, context = render_diagnostic_error(e.value)
+        assert message == (
+            "Failed to establish a secure connection for "
+            "https://user:****@example.com/"
+        )
+        assert "password" not in message
+        assert context == "The 'ssl' module is unavailable but required for HTTPS URLs"
+
+    def test_uses_failed_request_url(
+        self, monkeypatch: pytest.MonkeyPatch, session: PipSession
+    ) -> None:
+        """Redirect failures should report the final URL that actually failed."""
+        failed_request = requests.Request("GET", "https://example.com/final").prepare()
+
+        def request(
+            self: requests.Session,
+            method: str,
+            url: str,
+            *args: object,
+            **kwargs: object,
+        ) -> None:
+            raise requests.ConnectionError(
+                ConnectionError("Network Error"), request=failed_request
+            )
+
+        monkeypatch.setattr(requests.Session, "request", request)
+
+        with pytest.raises(ConnectionFailedError) as e:
+            session.get("https://example.com/start")
+
+        message, _ = render_diagnostic_error(e.value)
+        assert message == (
+            "Failed to connect to example.com while fetching "
+            "https://example.com/final"
+        )
+
+    @pytest.mark.network
+    def test_broken_proxy(self, session: PipSession) -> None:
+        url = "https://pypi.org/"
+        proxy = "https://404.example.invalid"
+        session.proxies = {"https": proxy}
+        with pytest.raises(ProxyConnectionError) as e:
+            session.get(url)
+        message, _ = render_diagnostic_error(e.value)
+        assert message == f"Failed to connect to proxy {proxy}:443 while fetching {url}"

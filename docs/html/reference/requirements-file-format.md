@@ -132,11 +132,11 @@ You can also refer to {ref}`constraints files <Constraints Files>`, like this:
 
 ```
 
-pip supports the use of environment variables inside the
+Pip supports the use of environment variables inside the
 requirements file.
 
 You have to use the POSIX format for variable names including brackets around
-the uppercase name as shown in this example: `${API_TOKEN}`. pip will attempt
+the uppercase name as shown in this example: `${API_TOKEN}`. Pip will attempt
 to find the corresponding environment variable defined on the host system at
 runtime.
 

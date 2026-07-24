@@ -18,7 +18,14 @@ from pip._vendor.urllib3._collections import HTTPHeaderDict
 from pip._vendor.urllib3.exceptions import ProtocolError, ReadTimeoutError
 
 from pip._internal.cli.progress_bars import BarType, get_download_progress_renderer
-from pip._internal.exceptions import IncompleteDownloadError, NetworkConnectionError
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    IncompleteDownloadError,
+    NetworkConnectionError,
+    ProxyConnectionError,
+    SSLVerificationError,
+)
 from pip._internal.models.link import (
     Link,
     PathComponent,
@@ -256,9 +263,34 @@ class Downloader:
                     download.reset_file()
                     download.size = _get_http_response_size(resume_resp)
                     first_resp = resume_resp
+                else:
+                    # If the resume request starts at the wrong location, fail
+                    # outright since the server is misbehaving.
+                    content_range = resume_resp.headers.get("Content-Range", "")
+                    resumed_at = content_range.lower().partition("bytes ")[2]
+                    resumed_at = resumed_at.partition("-")[0]
+                    if resumed_at and resumed_at != str(download.bytes_received):
+                        raise IncompleteDownloadError(download)
 
                 self._process_response(download, resume_resp)
-            except (ConnectionError, ReadTimeoutError, ProtocolError, OSError):
+            except (
+                ConnectionFailedError,
+                ConnectionTimeoutError,
+                ProxyConnectionError,
+                SSLVerificationError,
+                ReadTimeoutError,
+                ProtocolError,
+                OSError,
+            ):
+                # The error handling here is tricky, a few notes:
+                #
+                # - The diagnostic connection errors are raised by our custom
+                #   requests.request() connection exception handler.
+                # - ProtocolError is raised by urllib3 when the returned data length
+                #   doesn't match the response Content-Length.
+                # - ReadTimeoutError / ProtocolError come straight from urllib3 (via
+                #   process_response) and aren't caught by our connection exception
+                #   handler since they occur while *streaming* a response.
                 continue
 
         # No more resume attempts. Raise an error if the download is still incomplete.

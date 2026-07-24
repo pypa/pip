@@ -14,8 +14,15 @@ import pytest
 
 from pip._vendor import requests
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.urllib3.exceptions import ProxyError, SSLError
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    NetworkConnectionError,
+    ProxyConnectionError,
+    SSLVerificationError,
+)
 from pip._internal.index.collector import (
     IndexContent,
     LinkCollector,
@@ -953,6 +960,61 @@ def test_request_retries(caplog: pytest.LogCaptureFixture) -> None:
     session.get.side_effect = requests.exceptions.RetryError("Retry error")
     assert _get_index_content(link, session=session) is None
     assert "Could not fetch URL http://localhost: Retry error - skipping" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "error, expected",
+    [
+        (
+            SSLVerificationError(
+                "https://localhost",
+                "localhost",
+                SSLError("bad certificate"),
+            ),
+            "There was a problem confirming the ssl certificate: bad certificate",
+        ),
+        (
+            ConnectionFailedError(
+                "http://localhost",
+                "localhost",
+                ConnectionError("Network error"),
+            ),
+            "connection error: Network error",
+        ),
+        (
+            ProxyConnectionError(
+                "http://localhost",
+                "http://proxy.example.com",
+                ProxyError("Cannot connect to proxy", OSError("Network error")),
+            ),
+            "proxy connection error:",
+        ),
+        (
+            ConnectionTimeoutError(
+                "http://localhost",
+                "localhost",
+                kind="read",
+                timeout=2,
+            ),
+            "localhost didn't respond within 2 seconds",
+        ),
+    ],
+)
+@mock.patch("pip._internal.index.collector._get_simple_response")
+def test_get_index_content_handles_diagnostic_connection_errors(
+    mock_get_simple_response: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+    error: Exception,
+    expected: str,
+) -> None:
+    """Diagnostic connection errors should be logged and skipped by the collector."""
+    caplog.set_level(logging.DEBUG)
+    link = Link("http://localhost")
+    session = mock.Mock(PipSession)
+    mock_get_simple_response.side_effect = error
+
+    assert _get_index_content(link, session=session) is None
+    assert expected in caplog.text
 
 
 def test_make_index_content() -> None:

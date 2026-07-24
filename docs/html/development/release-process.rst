@@ -72,7 +72,7 @@ their merits.
 
 .. note::
 
-  pip has a helper function for making deprecation easier for pip maintainers.
+  Pip has a helper function for making deprecation easier for pip maintainers.
   The supporting documentation can be found in the source code of
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
@@ -89,19 +89,19 @@ regular updates to their version of pip in order to remain supported.
 Python 2 Support
 ----------------
 
-pip 20.3 was the last version of pip that supported Python 2. Bugs reported
+Pip 20.3 was the last version of pip that supported Python 2. Bugs reported
 with pip which only occur on Python 2.7 will likely be closed as "won't fix"
 issues by pip's maintainers.
 
 Python Support Policy
 ---------------------
 
-pip supports `CPython versions that are not end-of-life`_. Older versions of CPython may
+Pip supports `CPython versions that are not end-of-life`_. Older versions of CPython may
 be supported at the discretion of pip maintainers (based on criteria such as download
 statistics on PyPI, Python versions supported by the vendored dependencies and
 maintenance burden).
 
-pip maintainers accept pull requests to support other Python implementations, but the
+The pip maintainers accept pull requests to support other Python implementations, but the
 pip CI does not test for compatibility with them.
 
 .. _`Feature Flags`:

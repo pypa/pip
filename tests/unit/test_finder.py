@@ -412,6 +412,20 @@ def test_finder_only_installs_data_require(data: TestData) -> None:
     assert {str(v.version) for v in links} == {"1.0.0", "3.3.0", "9.9.9"}
 
 
+def test_finder_records_requires_python_skips_without_debug_logging(
+    data: TestData, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO)
+    finder = make_test_finder(index_urls=[data.index_url("datarequire")])
+
+    finder.find_all_candidates("fakepackage")
+
+    assert finder.requires_python_skipped_reasons() == [
+        "2.6.0 Requires-Python <2.7",
+        "2.7.0 Requires-Python <3,>=2.7",
+    ]
+
+
 def test_finder_installs_pre_releases(data: TestData) -> None:
     """
     Test PackageFinder finds pre-releases if asked to.

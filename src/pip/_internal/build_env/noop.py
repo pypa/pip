@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterable
 from types import TracebackType
 from typing import TYPE_CHECKING
@@ -14,7 +15,7 @@ class NoOpBuildEnvironment(BuildEnvironment):
     """A no-op drop-in replacement for BuildEnvironment"""
 
     def __init__(self) -> None:
-        pass
+        self.python_executable = sys.executable
 
     def __enter__(self) -> None:
         pass
