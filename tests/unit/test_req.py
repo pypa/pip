@@ -239,7 +239,7 @@ class TestRequirementSet:
             command.get_requirements(args, options, finder, session)
         assert not options.require_hashes
 
-    def test_require_hases_no_require_hasesh_in_reqs_file(
+    def test_require_hashes_no_require_hashes_in_reqs_file(
         self, data: TestData, tmpdir: Path
     ) -> None:
         finder = make_test_finder(find_links=[data.find_links])

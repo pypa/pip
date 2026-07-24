@@ -57,7 +57,7 @@ This can be useful in deploy scripts, to ensure that the author of the requireme
 
 By default, when at least one requirement has hashes, hashes become required for all requirements. This behaviour notably prevent the combination of hashed requirements with local directories or VCS URLs.
 
-To help with such use cases, a `--no-require-hashes` option is available to disable this mechanism. Hashes are then verified only for requirements where they are provided.
+To help with such use cases, a `--no-require-hashes` flag is available to disable this mechanism. Hashes are then verified only for requirements where they are provided.
 
 ### Hash algorithms
 
