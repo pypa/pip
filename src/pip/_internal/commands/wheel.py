@@ -75,6 +75,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.config_settings())
 
         self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.no_require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,

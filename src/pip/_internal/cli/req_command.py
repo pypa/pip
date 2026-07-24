@@ -422,8 +422,17 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
-        # If any requirement has hash options, enable hash checking.
-        if any(req.has_hash_options for req in requirements):
+        if options.require_hashes and options.no_require_hashes:
+            raise CommandError(
+                "--require-hashes and --no-require-hashes are mutually exclusive"
+            )
+
+        # If any requirement has hash options, enable hash checking for all
+        # requirements, unless this mechanism has been explicitly disabled
+        # with --no-require-hashes.
+        if not options.no_require_hashes and any(
+            req.has_hash_options for req in requirements
+        ):
             options.require_hashes = True
 
         if not (

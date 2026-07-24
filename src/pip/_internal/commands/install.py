@@ -322,6 +322,7 @@ class InstallCommand(RequirementCommand):
             help="Do not warn about broken dependencies",
         )
         self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.no_require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
 
