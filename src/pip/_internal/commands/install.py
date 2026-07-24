@@ -443,6 +443,7 @@ class InstallCommand(RequirementCommand):
             globally_managed=True,
         )
 
+        requirement_set = None
         try:
             reqs = self.get_requirements(args, options, finder, session)
 
@@ -582,6 +583,28 @@ class InstallCommand(RequirementCommand):
                 )
             if summary := installed_packages_summary(installed, env):
                 write_output(summary)
+        except (InstallationError, CommandError, InstallWheelBuildError) as e:
+            # If a JSON report is requested, write the installation failure details
+            # in JSON format before re-raising the exception.
+            if options.json_report_file:
+                reqs_to_report = (
+                    requirement_set.requirements_to_install
+                    if requirement_set is not None
+                    and hasattr(requirement_set, "requirements_to_install")
+                    else []
+                )
+                report = InstallationReport(reqs_to_report)
+                report_dict = report.to_dict()
+                report_dict["error"] = {
+                    "code": e.__class__.__name__,
+                    "description": str(e),
+                }
+                if options.json_report_file == "-":
+                    print_json(data=report_dict)
+                else:
+                    with open(options.json_report_file, "w", encoding="utf-8") as f:
+                        json.dump(report_dict, f, indent=2, ensure_ascii=False)
+            raise e
         except OSError as error:
             show_traceback = self.verbosity >= 1
 
