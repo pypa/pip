@@ -474,6 +474,7 @@ class InstallCommand(RequirementCommand):
                 force_reinstall=options.force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=options.python_version,
+                permit_editable_wheels=True,
             )
 
             self.trace_basic_info(finder)

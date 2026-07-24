@@ -90,7 +90,6 @@ def make_install_req_from_link(
 def make_install_req_from_editable(
     link: Link, template: InstallRequirement
 ) -> InstallRequirement:
-    assert template.editable, "template not editable"
     if template.name:
         req_string = f"{template.name} @ {link.url}"
     else:
@@ -169,7 +168,10 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._hash: int | None = None
 
     def __str__(self) -> str:
-        return f"{self.name} {self.version}"
+        if self.is_editable:
+            return f"{self.name} {self.version} (editable)"
+        else:
+            return f"{self.name} {self.version}"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self._link)!r})"
