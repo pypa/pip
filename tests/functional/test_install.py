@@ -49,6 +49,104 @@ from tests.lib.server import (
 )
 
 
+def test_refresh_package_sends_cache_control_header(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check if --refresh-package=:all: adds max-age=0 to all request headers.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page(
+            {
+                "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+            }
+        ),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--refresh-package=:all:",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+        )
+    call_args = server.mock.call_args_list[0].args
+    environ = call_args[0]
+    assert "HTTP_CACHE_CONTROL" in environ
+    assert environ["HTTP_CACHE_CONTROL"] == "max-age=0"
+
+
+def test_refresh_package_per_package(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check that --refresh-package=<name> only adds max-age=0
+    for the specified package, not others.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+        package_page(
+            {
+                "simplewheel-2.0-py2.py3-none-any.whl": (
+                    "/files/simplewheel-2.0-py2.py3-none-any.whl"
+                )
+            }
+        ),
+        file_response(data.packages / "simplewheel-2.0-py2.py3-none-any.whl"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--refresh-package=simple",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+            "simplewheel",
+        )
+
+    environ_simple = server.mock.call_args_list[0].args[0]
+    assert "HTTP_CACHE_CONTROL" in environ_simple
+    assert environ_simple["HTTP_CACHE_CONTROL"] == "max-age=0"
+
+    environ_simplewheel = server.mock.call_args_list[2].args[0]
+    assert "HTTP_CACHE_CONTROL" not in environ_simplewheel
+
+
+def test_refresh_package_not_set_by_default(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check that without --refresh-package, no max-age=0 is sent.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+        )
+    environ = server.mock.call_args_list[0].args[0]
+    assert "HTTP_CACHE_CONTROL" not in environ
+
+
 @pytest.mark.parametrize("command", ["install", "wheel"])
 @pytest.mark.parametrize("variant", ["missing_setuptools", "bad_setuptools"])
 def test_pep518_uses_build_env(

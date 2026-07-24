@@ -970,6 +970,43 @@ no_deps: Callable[..., Option] = partial(
 )
 
 
+def _handle_refresh_package(
+    option: Option, opt_str: str, value: str, parser: OptionParser
+) -> None:
+    if value.startswith("-"):
+        raise CommandError("--refresh-package option requires 1 argument.")
+
+    existing: set[str] = getattr(parser.values, option.dest)
+
+    new = value.split(",")
+    while ":all:" in new:
+        existing.clear()
+        existing.add(":all:")
+        del new[: new.index(":all:") + 1]
+        if ":none:" not in new:
+            return
+
+    for name in new:
+        if name == ":none:":
+            existing.clear()
+        else:
+            existing.add(canonicalize_name(name))
+
+
+def refresh_package() -> Option:
+    return Option(
+        "--refresh-package",
+        dest="refresh_package",
+        action="callback",
+        callback=_handle_refresh_package,
+        type="str",
+        default=set(),
+        help="Refresh package index information for the given packages instead "
+        "of using cached responses. Accepts ':all:' to apply "
+        "to all packages, or a comma-separated list of package names.",
+    )
+
+
 def _handle_dependency_group(
     option: Option, opt: str, value: str, parser: OptionParser
 ) -> None:
@@ -1305,6 +1342,7 @@ index_group: dict[str, Any] = {
         index_url,
         extra_index_url,
         no_index,
+        refresh_package,
         find_links,
         uploaded_prior_to,
     ],
