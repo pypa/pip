@@ -192,7 +192,21 @@ def test_pip_wheel_builds_when_no_binary_set(
         data.find_links,
         "simple==3.0",
     )
-    assert "Building wheel for simple" in str(res), str(res)
+    expected = (
+        rf"Looking in links: {re.escape(data.find_links)}\n"
+        rf"Processing {re.escape(os.fspath(data.packages / 'simple-3.0.tar.gz'))}\n"
+        r"  Preparing metadata \(pyproject\.toml\): started\n"
+        r"  Preparing metadata \(pyproject\.toml\): finished with status 'done'\n"
+        r"Building wheels for collected packages: simple\n"
+        r"  Building wheel for simple \(pyproject\.toml\): started\n"
+        r"  Building wheel for simple \(pyproject\.toml\): "
+        r"finished with status 'done'\n"
+        rf"  Created wheel for simple: filename=simple-3.0-py{pyversion[0]}-"
+        r"none-any\.whl size=\d+ sha256=[a-f0-9]{64}\n"
+        r"  Stored in directory: .+\n"
+        r"Successfully built simple\n"
+    )
+    assert re.fullmatch(expected, res.stdout), str(res)
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")

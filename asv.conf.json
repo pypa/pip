@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "project": "pip",
+  "project_url": "https://github.com/pypa/pip",
+  "repo": ".",
+  "branches": ["main", "pr-14026"],
+  "pythons": ["3.11"],
+  "environment_type": "virtualenv",
+  "benchmark_dir": "benchmarks",
+  "results_dir": ".asv/results",
+  "html_dir": ".asv/html",
+  "build_command": [
+    "python -m ensurepip --upgrade",
+    "python -m pip wheel -w {build_cache_dir} {build_dir}"
+  ],
+  "install_command": [
+    "python -m ensurepip --upgrade",
+    "in-dir={env_dir} python -m pip install {wheel_file} --force-reinstall --disable-pip-version-check --no-index"
+  ],
+  "uninstall_command": [],
+  "matrix": {},
+  "build_cache_size": 2
+}

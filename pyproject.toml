@@ -103,8 +103,14 @@ docs = [
     "sphinx-issues",
 ]
 
+benchmark = [
+    "asv",
+]
+
 [tool.flit.sdist]
 include = [
+    "asv.conf.json",
+    "benchmarks/**/*.py",
     "NEWS.rst",
     "SECURITY.md",
     "AI_POLICY.md",
