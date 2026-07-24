@@ -27,7 +27,12 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.index.collector import (
+    LinkCollector,
+    ProjectStatus,
+    parse_index_response,
+    parse_links,
+)
 from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
@@ -655,6 +660,10 @@ class PackageFinder:
         # the error message when resolution fails.
         self._requires_python_skipped: set[str] = set()
 
+        # Collects the non-active PEP 792 project statuses encountered while
+        # fetching project index pages, keyed by canonicalized project name.
+        self._project_statuses: dict[NormalizedName, ProjectStatus] = {}
+
         # Cache of the result of finding candidates
         self._all_candidates: dict[str, list[InstallationCandidate]] = {}
         self._best_candidates: dict[
@@ -857,7 +866,20 @@ class PackageFinder:
         if index_response is None:
             return []
 
-        page_links = list(parse_links(index_response))
+        # Only record a PEP 792 status from the project's own index page,
+        # which is fetched with link parsing caching disabled. Other pages
+        # (notably --find-links pages, which are fetched with caching
+        # enabled) are shared across projects, so a status found there
+        # cannot be attributed to this project. For those, the cached
+        # parse_links() is used; the project's own page is parsed once for
+        # both its links and its status.
+        if index_response.cache_link_parsing:
+            page_links = list(parse_links(index_response))
+        else:
+            page_links, project_status = parse_index_response(index_response)
+            if project_status.status != "active":
+                canonical_name = canonicalize_name(link_evaluator.project_name)
+                self._project_statuses.setdefault(canonical_name, project_status)
 
         with indent_log():
             package_links = self.evaluate_links(
@@ -866,6 +888,16 @@ class PackageFinder:
             )
 
         return package_links
+
+    def get_project_status(self, project_name: str) -> ProjectStatus | None:
+        """Return the non-active PEP 792 status recorded for a project.
+
+        Only statuses encountered on project index pages fetched during
+        candidate discovery are known; None means no non-active status was
+        seen. If multiple indexes report a non-active status, the first one
+        encountered wins.
+        """
+        return self._project_statuses.get(canonicalize_name(project_name))
 
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
