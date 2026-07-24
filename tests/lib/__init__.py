@@ -389,6 +389,12 @@ class TestPipResult:
                     f"Package directory {pkg_dir!r} has unexpected content {f}"
                 )
 
+    def assert_not_installed(self, pkg_name: str) -> None:
+        pkg_name = canonicalize_name(pkg_name)
+        for created in self.files_created:
+            if re.match(rf"{pkg_name}-.+\.dist-info", created.name):
+                raise TestFailure(f"Package {pkg_name} installed at {created!r}.")
+
     def did_create(self, path: StrPath, message: str | None = None) -> None:
         assert path in self.files_created, _one_or_both(message, self)
 

@@ -108,6 +108,33 @@ def test_pip_wheel_success_with_dependency_group(
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
+def test_pip_wheel_only_deps(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test 'pip wheel --only-deps' success.
+    """
+    pyproject = script.scratch_path / "pyproject.toml"
+    pyproject.write_text(textwrap.dedent("""\
+            [project]
+            name = "pkga"
+            version = "1.0"
+            dependencies = ["simple==3.0"]
+            """))
+    result = script.pip(
+        "wheel",
+        "--only-deps",
+        "--no-build-isolation",
+        "--no-index",
+        "-f",
+        data.find_links,
+        script.scratch_path,
+    )
+
+    dep_file_name = f"simple-3.0-py{pyversion[0]}-none-any.whl"
+    assert dep_file_name in (file.name for file in result.files_created)
+    pkg_file_name = f"pkga-1.0-py{pyversion[0]}-none-any.whl"
+    assert pkg_file_name not in (file.name for file in result.files_created)
+
+
 def test_pip_wheel_build_cache(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test 'pip wheel' builds and caches.
