@@ -135,9 +135,6 @@ def test_show_require_invalid_version(
     result = script.pip("show", "require-invalid-version")
     assert "Name: require-invalid-version\nVersion: 1.0\n" in result.stdout
     assert "Requires: invalid-version ==2010i\n" in result.stdout
-    if select_backend().NAME == "importlib":
-        assert "Required-by: #N/A\n" in result.stdout
-    elif select_backend().NAME == "pkg_resources":
-        assert "Required-by: \n" in result.stdout
-    else:
+    if select_backend().NAME not in {"importlib", "pkg_resources"}:
         pytest.fail("Unknown metadata backend")
+    assert "Required-by: #N/A\n" in result.stdout

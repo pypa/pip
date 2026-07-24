@@ -5,13 +5,12 @@ import email.parser
 import logging
 import os
 import zipfile
-from collections.abc import Collection, Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from typing import (
     NamedTuple,
 )
 
 from pip._vendor import pkg_resources
-from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
@@ -234,14 +233,6 @@ class Distribution(BaseDistribution):
         feed_parser = email.parser.FeedParser()
         feed_parser.feed(metadata)
         return feed_parser.close()
-
-    def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        if extras:
-            relevant_extras = set(self._extra_mapping) & set(
-                map(canonicalize_name, extras)
-            )
-            extras = [self._extra_mapping[extra] for extra in relevant_extras]
-        return self._dist.requires(extras)
 
     def iter_provided_extras(self) -> Iterable[NormalizedName]:
         return self._extra_mapping.keys()

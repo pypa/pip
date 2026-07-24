@@ -3,17 +3,17 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from functools import cache
 from typing import (
     TYPE_CHECKING,
     TypeVar,
 )
 
+from pip._vendor.packaging.utils import NormalizedName
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.req.req_install import InstallRequirement
 
-from .base import Candidate, Constraint, Requirement
+from .base import Candidate, Constraint, Requirement, collect_requested_extras
 from .candidates import REQUIRES_PYTHON_IDENTIFIER
 from .factory import Factory
 from .requirements import ExplicitRequirement
@@ -104,6 +104,7 @@ class PipProvider(_ProviderBase):
         self._user_requested = user_requested
         self._conflict_counts: defaultdict[str, int] = defaultdict(int)
         self._conflict_promoted: set[str] = set()
+        self._active_extras: dict[str, frozenset[NormalizedName]] = {}
 
     @property
     def constraints(self) -> dict[str, Constraint]:
@@ -115,7 +116,7 @@ class PipProvider(_ProviderBase):
         return self._constraints
 
     def identify(self, requirement_or_candidate: Requirement | Candidate) -> str:
-        return requirement_or_candidate.name
+        return requirement_or_candidate.project_name
 
     def narrow_requirement_selection(
         self,
@@ -141,9 +142,9 @@ class PipProvider(_ProviderBase):
         """
         backtrack_identifiers = set()
         for info in backtrack_causes:
-            names = [info.requirement.name]
+            names = [self.identify(info.requirement)]
             if info.parent is not None:
-                names.append(info.parent.name)
+                names.append(self.identify(info.parent))
             for name in names:
                 backtrack_identifiers.add(name)
                 if name not in resolutions:
@@ -259,6 +260,8 @@ class PipProvider(_ProviderBase):
         requirements: Mapping[str, Iterator[Requirement]],
         incompatibilities: Mapping[str, Iterator[Candidate]],
     ) -> Iterable[Candidate]:
+        self._active_extras = _get_extras_from_requirements(requirements)
+
         def _eligible_for_upgrade(identifier: str) -> bool:
             """Are upgrades allowed for this project?
 
@@ -295,12 +298,28 @@ class PipProvider(_ProviderBase):
             is_satisfied_by=self.is_satisfied_by,
         )
 
-    @staticmethod
-    @cache
-    def is_satisfied_by(requirement: Requirement, candidate: Candidate) -> bool:
+    def is_satisfied_by(self, requirement: Requirement, candidate: Candidate) -> bool:
+        # Extras are attached to the whole project criterion, so a stale
+        # candidate must stop satisfying every requirement for that project.
+        requested_extras = self._active_extras.get(
+            candidate.project_name,
+            frozenset(),
+        )
+        if candidate.requested_extras != requested_extras:
+            return False
         return requirement.is_satisfied_by(candidate)
 
     def get_dependencies(self, candidate: Candidate) -> Iterable[Requirement]:
         with_requires = not self._ignore_dependencies
         # iter_dependencies() can perform nontrivial work so delay until needed.
         return (r for r in candidate.iter_dependencies(with_requires) if r is not None)
+
+
+def _get_extras_from_requirements(
+    requirements: Mapping[str, Iterable[Requirement]],
+) -> dict[str, frozenset[NormalizedName]]:
+    return {
+        identifier: extras
+        for identifier in requirements
+        if (extras := collect_requested_extras(requirements[identifier]))
+    }

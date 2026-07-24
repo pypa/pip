@@ -21,6 +21,7 @@ from pip._internal.metadata import BaseDistribution
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
+    install_req_extend_extras,
     install_req_from_editable,
     install_req_from_line,
 )
@@ -47,6 +48,8 @@ REQUIRES_PYTHON_IDENTIFIER = cast(NormalizedName, "<Python from Requires-Python>
 
 def as_base_candidate(candidate: Candidate) -> BaseCandidate | None:
     """The runtime version of BaseCandidate."""
+    if isinstance(candidate, ExtrasCandidate):
+        return candidate.base
     base_candidate_classes = (
         AlreadyInstalledCandidate,
         EditableCandidate,
@@ -217,18 +220,33 @@ class _InstallRequirementBackedCandidate(Candidate):
     def _prepare_distribution(self) -> BaseDistribution:
         raise NotImplementedError("Override in subclass")
 
+    def _get_metadata_inconsistent_ireq(self) -> InstallRequirement:
+        comes_from = self._ireq.comes_from
+        if not (
+            isinstance(comes_from, InstallRequirement)
+            and self._ireq.req is not None
+            and comes_from.req is not None
+            and not self._ireq.extras
+            and comes_from.extras
+            and canonicalize_name(self._ireq.req.name)
+            == canonicalize_name(comes_from.req.name)
+        ):
+            return self._ireq
+        return comes_from
+
     def _check_metadata_consistency(self, dist: BaseDistribution) -> None:
         """Check for consistency of project name and version of dist."""
+        metadata_ireq = self._get_metadata_inconsistent_ireq()
         if self._name is not None and self._name != dist.canonical_name:
             raise MetadataInconsistent(
-                self._ireq,
+                metadata_ireq,
                 "name",
                 self._name,
                 dist.canonical_name,
             )
         if self._version is not None and self._version != dist.version:
             raise MetadataInconsistent(
-                self._ireq,
+                metadata_ireq,
                 "version",
                 str(self._version),
                 str(dist.version),
@@ -272,7 +290,9 @@ class _InstallRequirementBackedCandidate(Candidate):
         # Emit the Requires-Python requirement first to fail fast on
         # unsupported candidates and avoid pointless downloads/preparation.
         yield self._factory.make_requires_python_requirement(self.dist.requires_python)
-        requires = self.dist.iter_dependencies() if with_requires else ()
+        requires = (
+            self.dist.iter_dependencies(self.requested_extras) if with_requires else ()
+        )
         for r in requires:
             yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
 
@@ -423,7 +443,7 @@ class AlreadyInstalledCandidate(Candidate):
             return
 
         try:
-            for r in self.dist.iter_dependencies():
+            for r in self.dist.iter_dependencies(self.requested_extras):
                 yield from self._factory.make_requirements_from_spec(str(r), self._ireq)
         except InvalidRequirement as exc:
             raise InvalidInstalledPackage(dist=self.dist, invalid_exc=exc) from None
@@ -440,21 +460,12 @@ class ExtrasCandidate(Candidate):
     directly, but indicate that we need additional dependencies. We model that
     by having an artificial ExtrasCandidate that wraps the "base" candidate.
 
-    The ExtrasCandidate differs from the base in the following ways:
-
-    1. It has a unique name, of the form foo[extra]. This causes the resolver
-       to treat it as a separate node in the dependency graph.
-    2. When we're getting the candidate's dependencies,
-       a) We specify that we want the extra dependencies as well.
-       b) We add a dependency on the base candidate.
-          See below for why this is needed.
-    3. We return None for the underlying InstallRequirement, as the base
-       candidate will provide it, and we don't want to end up with duplicates.
-
-    The dependency on the base candidate is needed so that the resolver can't
-    decide that it should recommend foo[extra1] version 1.0 and foo[extra2]
-    version 2.0. Having those candidates depend on foo=1.0 and foo=2.0
-    respectively forces the resolver to recognise that this is a conflict.
+    The resolver groups candidates by project name, so an ExtrasCandidate is
+    not a separate dependency graph node from its base candidate. Instead, it
+    represents a candidate for the project with the currently requested extras
+    attached. When the active extras set changes, the provider will reject the
+    previously pinned candidate so resolvelib can choose a candidate carrying
+    the updated extras and dependencies.
     """
 
     def __init__(
@@ -475,10 +486,11 @@ class ExtrasCandidate(Candidate):
         self.base = base
         self.extras = frozenset(canonicalize_name(e) for e in extras)
         self._comes_from = comes_from if comes_from is not None else self.base._ireq
+        self._warned_invalid_extras: set[NormalizedName] = set()
 
     def __str__(self) -> str:
         name, rest = str(self.base).split(" ", 1)
-        return "{}[{}] {}".format(name, ",".join(self.extras), rest)
+        return "{}[{}] {}".format(name, ",".join(sorted(self.extras)), rest)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(base={self.base!r}, extras={self.extras!r})"
@@ -521,39 +533,47 @@ class ExtrasCandidate(Candidate):
     def source_link(self) -> Link | None:
         return self.base.source_link
 
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        return self.extras
+
     def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         factory = self.base._factory
 
-        # Add a dependency on the exact base
-        # (See note 2b in the class docstring)
-        yield factory.make_requirement_from_candidate(self.base)
+        # Emit the Requires-Python requirement from the wrapped base candidate.
+        yield factory.make_requires_python_requirement(self.base.dist.requires_python)
         if not with_requires:
             return
 
         # The user may have specified extras that the candidate doesn't
         # support. We ignore any unsupported extras here.
-        valid_extras = self.extras.intersection(self.base.dist.iter_provided_extras())
         invalid_extras = self.extras.difference(self.base.dist.iter_provided_extras())
         for extra in sorted(invalid_extras):
+            if extra in self._warned_invalid_extras:
+                continue
             logger.warning(
                 "%s %s does not provide the extra '%s'",
                 self.base.name,
                 self.version,
                 extra,
             )
+            self._warned_invalid_extras.add(extra)
 
-        for r in self.base.dist.iter_dependencies(valid_extras):
+        valid_selected_extras = self.extras.intersection(
+            self.base.dist.iter_provided_extras()
+        )
+        for r in self.base.dist.iter_dependencies(valid_selected_extras):
             yield from factory.make_requirements_from_spec(
                 str(r),
                 self._comes_from,
-                valid_extras,
+                valid_selected_extras,
             )
 
     def get_install_requirement(self) -> InstallRequirement | None:
-        # We don't return anything here, because we always
-        # depend on the base candidate, and we'll get the
-        # install requirement from that.
-        return None
+        ireq = self.base.get_install_requirement()
+        if ireq is None:
+            return None
+        return install_req_extend_extras(ireq, self.extras)
 
 
 class RequiresPythonCandidate(Candidate):

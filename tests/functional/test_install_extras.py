@@ -191,6 +191,188 @@ def test_install_special_extra(
     ) in result.stderr, str(result)
 
 
+@pytest.mark.parametrize(
+    "requirement, expected, absent",
+    [
+        ("pkg", {"pkg": "1", "cpu": "1"}, ("gpu",)),
+        ("pkg[gpu]", {"pkg": "1", "gpu": "1"}, ("cpu",)),
+    ],
+)
+def test_install_extra_not_equal_marker(
+    script: PipTestEnvironment,
+    requirement: str,
+    expected: dict[str, str],
+    absent: tuple[str, ...],
+) -> None:
+    create_basic_wheel_for_package(script, "cpu", "1")
+    create_basic_wheel_for_package(script, "gpu", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        depends=['cpu ; extra != "gpu"'],
+        extras={"gpu": ["gpu"]},
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        requirement,
+    )
+
+    script.assert_installed(**expected)
+    script.assert_not_installed(*absent)
+
+
+def test_install_extra_not_equal_marker_with_later_extra_request(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "cpu", "1")
+    create_basic_wheel_for_package(script, "gpu", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        depends=['cpu ; extra != "gpu"'],
+        extras={"gpu": ["gpu"]},
+    )
+    create_basic_wheel_for_package(script, "trigger", "1", depends=["pkg[gpu]"])
+    create_basic_wheel_for_package(script, "root", "1", depends=["pkg", "trigger"])
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "root",
+    )
+
+    script.assert_installed(root="1", trigger="1", pkg="1", gpu="1")
+    script.assert_not_installed("cpu")
+
+
+def test_install_extra_not_equal_marker_after_backtracking(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "cpu", "1")
+    create_basic_wheel_for_package(script, "gpu", "1")
+    create_basic_wheel_for_package(script, "conflict", "1")
+    create_basic_wheel_for_package(script, "conflict", "2")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        depends=['cpu ; extra != "gpu"'],
+        extras={"gpu": ["gpu"]},
+    )
+    create_basic_wheel_for_package(script, "chooser", "1", depends=["pkg"])
+    create_basic_wheel_for_package(
+        script,
+        "chooser",
+        "2",
+        depends=["pkg[gpu]", "conflict==2"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "root",
+        "1",
+        depends=["chooser", "conflict==1"],
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "root",
+    )
+
+    script.assert_installed(root="1", chooser="1", conflict="1", pkg="1", cpu="1")
+    script.assert_not_installed("gpu")
+
+
+def test_install_extra_not_equal_marker_resolves_newly_applicable_dependency(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "c", "1")
+    create_basic_wheel_for_package(
+        script,
+        "b",
+        "1",
+        depends=['c ; extra != "foo"'],
+        extras={"foo": []},
+    )
+    create_basic_wheel_for_package(
+        script,
+        "a",
+        "1",
+        depends=['b[foo] ; extra != "gpu"', "b"],
+        extras={"gpu": []},
+    )
+    create_basic_wheel_for_package(script, "trigger", "1", depends=["a[gpu]"])
+    create_basic_wheel_for_package(script, "root", "1", depends=["a", "trigger"])
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "root",
+    )
+
+    script.assert_installed(root="1", trigger="1", a="1", b="1", c="1")
+
+
+def test_install_extra_not_equal_marker_rejects_self_invalidating_cycle(
+    script: PipTestEnvironment,
+) -> None:
+    # There is no stable resolution for this graph:
+    #   project -> cpu-only ; extra != "gpu"
+    #   cpu-only -> project[gpu]
+    #   project[gpu] -> gpu-only
+    # Resolving cpu-only activates the gpu extra, which removes cpu-only.
+    # pip must not silently install gpu-only through the now-dropped cpu-only.
+    create_basic_wheel_for_package(script, "gpu-only", "1")
+    create_basic_wheel_for_package(
+        script,
+        "cpu-only",
+        "1",
+        depends=["project[gpu]"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "project",
+        "1",
+        depends=['cpu-only ; extra != "gpu"'],
+        extras={"gpu": ["gpu-only"]},
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "project",
+        expect_error=True,
+    )
+
+    expected_stderr = (
+        "ERROR: Cannot install gpu-only because it was only required through "
+        "cpu-only, but cpu-only is no longer part of the resolved dependency "
+        "graph. This can happen with dependencies guarded by negative extra "
+        'markers such as extra != "gpu".\n'
+    )
+    assert result.stderr == expected_stderr, str(result)
+    script.assert_not_installed("project", "cpu-only", "gpu-only")
+
+
 @pytest.mark.network
 def test_install_requirements_no_r_flag(script: PipTestEnvironment) -> None:
     """Beginners sometimes forget the -r and this leads to confusion"""

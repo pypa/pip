@@ -95,12 +95,17 @@ class Requirement:
 
     @property
     def name(self) -> str:
-        """The name identifying this requirement in the resolver.
+        """The formatted requirement name, including extras if present.
 
         This is different from ``project_name`` if this requirement contains
         extras, where ``project_name`` would not contain the ``[...]`` part.
         """
         raise NotImplementedError("Subclass should override")
+
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        """Extras requested by this requirement."""
+        return frozenset()
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
         return False
@@ -110,6 +115,14 @@ class Requirement:
 
     def format_for_error(self) -> str:
         raise NotImplementedError("Subclass should override")
+
+
+def collect_requested_extras(
+    requirements: Iterable[Requirement],
+) -> frozenset[NormalizedName]:
+    return frozenset(
+        extra for requirement in requirements for extra in requirement.requested_extras
+    )
 
 
 def _match_link(link: Link, candidate: Candidate) -> bool:
@@ -131,7 +144,7 @@ class Candidate:
 
     @property
     def name(self) -> str:
-        """The name identifying this candidate in the resolver.
+        """The formatted candidate name, including extras if present.
 
         This is different from ``project_name`` if this candidate contains
         extras, where ``project_name`` would not contain the ``[...]`` part.
@@ -153,6 +166,11 @@ class Candidate:
     @property
     def source_link(self) -> Link | None:
         raise NotImplementedError("Override in subclass")
+
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        """Extras requested for this candidate."""
+        return frozenset()
 
     def iter_dependencies(self, with_requires: bool) -> Iterable[Requirement | None]:
         raise NotImplementedError("Override in subclass")

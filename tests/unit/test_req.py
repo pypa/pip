@@ -754,6 +754,52 @@ class TestInstallRequirement:
             assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
+    def test_markers_match_extras_as_set(self) -> None:
+        req = install_req_from_line('name; extra != "gpu"')
+        assert req.match_markers()
+        assert req.match_markers(["docs"])
+        assert not req.match_markers(["gpu"])
+        assert not req.match_markers(["gpu", "docs"])
+
+        req = install_req_from_line('name; extra == "gpu"')
+        assert not req.match_markers()
+        assert req.match_markers(["gpu"])
+        assert req.match_markers(["gpu", "docs"])
+
+        req = install_req_from_line('name; extra == "gpu" or extra == "docs"')
+        assert req.match_markers(["docs"])
+        assert req.match_markers(["gpu"])
+        assert not req.match_markers(["tests"])
+
+        req = install_req_from_line('name; extra == ""')
+        assert req.match_markers()
+        assert not req.match_markers(["gpu"])
+
+        req = install_req_from_line('name; extra != ""')
+        assert not req.match_markers()
+        assert req.match_markers(["gpu"])
+
+        req = install_req_from_line('name; python_version >= "1" and extra != "gpu"')
+        assert req.match_markers()
+        assert not req.match_markers(["gpu"])
+
+    def test_markers_match_ordered_extra_comparison(self) -> None:
+        req = install_req_from_line('name; extra >= "gpu"')
+        assert not req.match_markers()
+        assert req.match_markers(["gpu"])
+        assert req.match_markers(["docs", "gpu"])
+
+    def test_markers_match_extra_in_operators(self) -> None:
+        req = install_req_from_line('name; extra in "gpu,docs"')
+        assert req.match_markers(["gpu"])
+        assert req.match_markers(["docs"])
+        assert not req.match_markers(["cpu"])
+
+        req = install_req_from_line('name; extra not in "gpu,docs"')
+        assert not req.match_markers(["gpu"])
+        assert req.match_markers(["cpu"])
+        assert not req.match_markers(["gpu", "cpu"])
+
     def test_extras_for_line_path_requirement(self) -> None:
         line = "SomeProject[ex1,ex2]"
         filename = "filename"

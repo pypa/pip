@@ -108,6 +108,40 @@ def test_metadata_dict(tmp_path: Path) -> None:
     assert metadata_dict["version"] == "1.0.1"
 
 
+def test_dist_iter_dependencies_matches_extra_markers_as_set(tmp_path: Path) -> None:
+    wheel_path = make_wheel(
+        name="pkga",
+        version="1",
+        metadata_updates={
+            "Provides-Extra": ["gpu", "docs"],
+            "Requires-Dist": [
+                "base",
+                'cpu ; extra != "gpu"',
+                'gpu ; extra == "gpu"',
+                'sphinx ; extra == "docs"',
+            ],
+        },
+    ).save_to_dir(tmp_path)
+    dist = get_wheel_distribution(
+        FilesystemWheel(wheel_path),
+        canonicalize_name("pkga"),
+    )
+
+    assert {str(r) for r in dist.iter_dependencies()} == {
+        "base",
+        'cpu; extra != "gpu"',
+    }
+    assert {str(r) for r in dist.iter_dependencies(["gpu"])} == {
+        "base",
+        'gpu; extra == "gpu"',
+    }
+    assert {str(r) for r in dist.iter_dependencies(["gpu", "docs"])} == {
+        "base",
+        'gpu; extra == "gpu"',
+        'sphinx; extra == "docs"',
+    }
+
+
 def test_no_dist_found_in_wheel(tmp_path: Path) -> None:
     location = os.fspath(tmp_path.joinpath("pkg-1-py3-none-any.whl"))
     make_wheel(name="pkg", version="1").save_to(location)

@@ -20,6 +20,7 @@ from pip._internal.distributions import make_distribution_for_install_requiremen
 from pip._internal.metadata import get_default_environment
 from pip._internal.metadata.base import BaseDistribution
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.markers import match_markers
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 class PackageDetails(NamedTuple):
     version: Version
     dependencies: list[Requirement]
+    requested_extras: frozenset[NormalizedName] = frozenset()
 
 
 # Shorthands
@@ -84,7 +86,7 @@ def check_package_set(
             if name not in package_set:
                 missed = True
                 if req.marker is not None:
-                    missed = req.marker.evaluate({"extra": ""})
+                    missed = match_markers(req.marker, package_detail.requested_extras)
                 if missed:
                     missing_deps.add((name, req))
                 continue
@@ -150,7 +152,15 @@ def _simulate_installation_of(
         abstract_dist = make_distribution_for_install_requirement(inst_req)
         dist = abstract_dist.get_metadata_distribution()
         name = dist.canonical_name
-        package_set[name] = PackageDetails(dist.version, list(dist.iter_dependencies()))
+        requested_extras = frozenset(
+            canonicalize_name(e) for e in inst_req.extras
+        ).intersection(dist.iter_provided_extras())
+        dependencies = list(dist.iter_dependencies(requested_extras))
+        package_set[name] = PackageDetails(
+            dist.version,
+            dependencies,
+            requested_extras,
+        )
 
         installed.add(name)
 

@@ -12,7 +12,7 @@ from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
-from pip._internal.exceptions import ResolutionTooDeepError
+from pip._internal.exceptions import InstallationError, ResolutionTooDeepError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import install_req_extend_extras
@@ -109,14 +109,10 @@ class Resolver(BaseResolver):
         except ResolutionTooDeep:
             raise ResolutionTooDeepError from None
 
+        _validate_final_dependency_paths(result)
+
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        # process candidates with extras last to ensure their base equivalent is
-        # already in the req_set if appropriate.
-        # Python's sort is stable so using a binary key function keeps relative order
-        # within both subsets.
-        for candidate in sorted(
-            result.mapping.values(), key=lambda c: c.name != c.project_name
-        ):
+        for candidate in result.mapping.values():
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 if candidate.name != candidate.project_name:
@@ -213,6 +209,27 @@ class Resolver(BaseResolver):
             reverse=True,
         )
         return [ireq for _, ireq in sorted_items]
+
+
+def _validate_final_dependency_paths(result: Result) -> None:
+    resolved_names = set(result.mapping)
+
+    for candidate in result.mapping.values():
+        ireq = candidate.get_install_requirement()
+        parent = ireq.comes_from if ireq is not None else None
+
+        while isinstance(parent, InstallRequirement):
+            if parent.name is not None and not parent.constraint:
+                parent_name = canonicalize_name(parent.name)
+                if parent_name not in resolved_names:
+                    raise InstallationError(
+                        f"Cannot install {candidate.name} because it was only "
+                        f"required through {parent.name}, but {parent.name} is no "
+                        "longer part of the resolved dependency graph. This can "
+                        "happen with dependencies guarded by negative extra markers "
+                        'such as extra != "gpu".'
+                    )
+            parent = parent.comes_from
 
 
 def get_topological_weights(

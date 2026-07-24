@@ -29,7 +29,9 @@ from pip._internal.models.direct_url import (
     DirectUrlValidationError,
 )
 from pip._internal.utils.egg_link import egg_link_path_from_sys_path
+from pip._internal.utils.markers import match_markers
 from pip._internal.utils.misc import is_local, normalize_path
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.urls import url_to_path
 
 from ._json import msg_to_json
@@ -445,7 +447,12 @@ class BaseDistribution(Protocol):
         For modern .dist-info distributions, this is the collection of
         "Requires-Dist:" entries in distribution metadata.
         """
-        raise NotImplementedError()
+        for req_string in self.iter_raw_dependencies():
+            # strip() because email.message.Message.get_all() may return a leading \n
+            # in case a long header was wrapped.
+            req = get_requirement(req_string.strip())
+            if req.marker is None or match_markers(req.marker, extras):
+                yield req
 
     def iter_raw_dependencies(self) -> Iterable[str]:
         """Raw Requires-Dist metadata."""

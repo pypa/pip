@@ -39,6 +39,10 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalize - the candidate did this
         return self.candidate.name
 
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        return self.candidate.requested_extras
+
     def format_for_error(self) -> str:
         return self.candidate.format_for_error()
 
@@ -46,6 +50,12 @@ class ExplicitRequirement(Requirement):
         return self.candidate, None
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
+        from .candidates import as_base_candidate
+
+        candidate_base = as_base_candidate(candidate)
+        self_base = as_base_candidate(self.candidate)
+        if candidate_base is not None and self_base is not None:
+            return candidate_base == self_base
         return candidate == self.candidate
 
 
@@ -92,6 +102,10 @@ class SpecifierRequirement(Requirement):
     def name(self) -> str:
         return format_name(self.project_name, self._extras)
 
+    @property
+    def requested_extras(self) -> frozenset[NormalizedName]:
+        return self._extras
+
     def format_for_error(self) -> str:
         # Convert comma-separated specifiers into "A, B, ..., F and G"
         # This makes the specifier a bit more "human readable", without
@@ -109,9 +123,9 @@ class SpecifierRequirement(Requirement):
         return None, self._ireq
 
     def is_satisfied_by(self, candidate: Candidate) -> bool:
-        assert candidate.name == self.name, (
+        assert candidate.project_name == self.project_name, (
             f"Internal issue: Candidate is not for this requirement "
-            f"{candidate.name} vs {self.name}"
+            f"{candidate.project_name} vs {self.project_name}"
         )
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
