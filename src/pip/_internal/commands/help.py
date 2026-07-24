@@ -20,9 +20,13 @@ class HelpCommand(Command):
         )
 
         try:
-            # 'pip help' with no args is handled by pip.__init__.parseopt()
             cmd_name = args[0]  # the command we need help for
         except IndexError:
+            # 'pip help' with no args is handled by parse_command(), but
+            # command-level options like 'pip help --quiet' reach this point.
+            from pip._internal.cli.main_parser import create_main_parser
+
+            create_main_parser().print_help()
             return SUCCESS
 
         if cmd_name not in commands_dict:

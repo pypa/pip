@@ -381,7 +381,17 @@ def is_local(path: str) -> bool:
     return path.startswith(normalize_path(sys.prefix))
 
 
-def write_output(msg: Any, *args: Any) -> None:
+def write_output(msg: Any, *args: Any, show_on_quiet: bool = True) -> None:
+    if show_on_quiet:
+        from pip._internal.utils.logging import (
+            should_directly_write_output,
+            write_output_direct,
+        )
+
+        if should_directly_write_output(logger):
+            write_output_direct(msg, *args)
+            return
+
     logger.info(msg, *args)
 
 

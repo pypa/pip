@@ -1,0 +1,1 @@
+Preserve primary output from display commands when ``--quiet`` is used.

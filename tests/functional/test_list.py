@@ -45,6 +45,15 @@ def test_basic_list(simple_script: PipTestEnvironment) -> None:
     assert "simple2    3.0" in result.stdout, str(result)
 
 
+def test_basic_list_quiet(simple_script: PipTestEnvironment) -> None:
+    """
+    Test that quiet mode does not suppress the list command's package output.
+    """
+    result = simple_script.pip("list", "--quiet")
+    assert "simple     1.0" in result.stdout, str(result)
+    assert "simple2    3.0" in result.stdout, str(result)
+
+
 def test_verbose_flag(simple_script: PipTestEnvironment) -> None:
     """
     Test the list command with the '-v' option
