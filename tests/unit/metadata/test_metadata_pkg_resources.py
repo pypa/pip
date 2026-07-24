@@ -1,5 +1,8 @@
 import email.message
 import itertools
+import logging
+import os
+from pathlib import Path
 from typing import cast
 from unittest import mock
 
@@ -124,3 +127,25 @@ def test_wheel_metadata_throws_on_bad_unicode() -> None:
     with pytest.raises(UnsupportedWheel) as e:
         metadata.get_metadata("METADATA")
     assert "METADATA" in str(e.value)
+
+
+def test_iter_all_distributions_warns_on_incomplete_removal(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    leftover_info = tmp_path / "~eftover-1.0.dist-info"
+    leftover_info.mkdir()
+    leftover_info.joinpath("METADATA").write_text(
+        "Metadata-Version: 1.0\nName: leftover\n"
+    )
+
+    env = Environment.from_paths([os.fspath(tmp_path)])
+    with caplog.at_level(logging.WARNING):
+        dists = list(env.iter_all_distributions())
+
+    assert dists == []
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert message.startswith(
+        "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
+    )
+    assert "safe to delete" in message
