@@ -201,6 +201,7 @@ class Factory:
             # Don't bother trying again.
             return None
 
+        # Editables are prioritized over matching regular direct URL requirements.
         if template.editable:
             if link not in self._editable_candidate_cache:
                 try:
@@ -221,6 +222,10 @@ class Factory:
                     self._build_failures[link] = e
                     return None
 
+            return self._editable_candidate_cache[link]
+        # If there is a pre-existing editable candidate for this link, use it
+        # (even if the link comes from a direct non-editable requirement).
+        elif link in self._editable_candidate_cache:
             return self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
@@ -578,6 +583,16 @@ class Factory:
     def collect_root_requirements(
         self, root_ireqs: list[InstallRequirement]
     ) -> CollectedRootRequirements:
+        # Move editable requirements to the front since they take priority.
+        # By processing editables first, matching direct URL requirements will
+        # be sastified by the editable candidate (avoiding a dependency
+        # conflict and unnecessary non-editable backend calls).
+        for ireq in reversed(root_ireqs[:]):
+            if ireq.editable and not ireq.constraint:
+                assert ireq.link is not None, f"editable must have link: {ireq.link=}"
+                root_ireqs.remove(ireq)
+                root_ireqs.insert(0, ireq)
+
         collected = CollectedRootRequirements([], {}, {})
         for i, ireq in enumerate(root_ireqs):
             if ireq.constraint:
