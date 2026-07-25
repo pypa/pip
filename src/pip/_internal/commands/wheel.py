@@ -62,6 +62,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         self.cmd_opts.add_option(
@@ -75,6 +76,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.config_settings())
 
         self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.no_require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -94,6 +96,7 @@ class WheelCommand(RequirementCommand):
     def run(self, options: Values, args: list[str]) -> int:
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_release_control_exclusive(options)
+        cmdoptions.check_only_deps_option_does_not_conflict(options)
 
         session = self.get_default_session(options)
 

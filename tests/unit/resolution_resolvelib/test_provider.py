@@ -175,6 +175,7 @@ def test_get_preference(
         factory=factory,
         constraints={},
         ignore_dependencies=False,
+        only_dependencies=False,
         upgrade_strategy="to-satisfy-only",
         user_requested=user_requested,
     )
@@ -243,6 +244,7 @@ def test_narrow_requirement_selection(
         factory=factory,
         constraints={},
         ignore_dependencies=False,
+        only_dependencies=False,
         upgrade_strategy="to-satisfy-only",
         user_requested={},
     )

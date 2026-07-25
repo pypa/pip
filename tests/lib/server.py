@@ -1,3 +1,4 @@
+import json
 import pathlib
 import ssl
 import threading
@@ -165,6 +166,25 @@ def package_page(spec: dict[str, str]) -> "WSGIApplication":
 
     links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
+
+
+def json_index_page(name: str, files: Iterable[dict[str, Any]]) -> "WSGIApplication":
+    page = {
+        "meta": {"api-version": "1.0"},
+        "name": name,
+        "files": list(files),
+    }
+
+    def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
+        start_response(
+            "200 OK",
+            [
+                ("Content-Type", "application/vnd.pypi.simple.v1+json"),
+            ],
+        )
+        return [json.dumps(page).encode("utf-8")]
+
+    return responder
 
 
 def file_response(path: pathlib.Path) -> "WSGIApplication":

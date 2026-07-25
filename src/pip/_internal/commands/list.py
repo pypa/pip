@@ -160,11 +160,14 @@ class ListCommand(IndexGroupCommand):
         selection_prefs = SelectionPreferences(
             allow_yanked=False,
             release_control=options.release_control,
+            format_control=options.format_control,
+            prefer_binary=options.prefer_binary,
         )
 
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            uploaded_prior_to=options.uploaded_prior_to,
         )
 
     def run(self, options: Values, args: list[str]) -> int:
