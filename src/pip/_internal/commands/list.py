@@ -160,6 +160,8 @@ class ListCommand(IndexGroupCommand):
         selection_prefs = SelectionPreferences(
             allow_yanked=False,
             release_control=options.release_control,
+            format_control=options.format_control,
+            prefer_binary=options.prefer_binary,
         )
 
         return PackageFinder.create(
