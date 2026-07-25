@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 operators = ("~=", "==", "!=", "<=", ">=", "<", ">", "===")
 
 
-def _strip_extras(path: str) -> tuple[str, str | None]:
+def strip_extras(path: str) -> tuple[str, set[str]]:
     m = re.match(r"^(.+)(\[[^\]]+\])$", path)
     extras = None
     if m:
@@ -64,10 +64,10 @@ def _strip_extras(path: str) -> tuple[str, str | None]:
     else:
         path_no_extras = path
 
-    return path_no_extras, extras
+    return path_no_extras, _convert_extras(extras)
 
 
-def convert_extras(extras: str | None) -> set[str]:
+def _convert_extras(extras: str | None) -> set[str]:
     if not extras:
         return set()
     return get_requirement("placeholder" + extras.lower()).extras
@@ -120,7 +120,7 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
     url = editable_req
 
     # If a file path is specified with extras, strip off the extras.
-    url_no_extras, extras = _strip_extras(url)
+    url_no_extras, extras = strip_extras(url)
 
     if os.path.isdir(url_no_extras):
         # Treating it as code that has already been checked out
@@ -128,14 +128,7 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
 
     if url_no_extras.lower().startswith("file:"):
         package_name = Link(url_no_extras).egg_fragment
-        if extras:
-            return (
-                package_name,
-                url_no_extras,
-                get_requirement("placeholder" + extras.lower()).extras,
-            )
-        else:
-            return package_name, url_no_extras, set()
+        return (package_name, url_no_extras, extras)
 
     for version_control in vcs:
         if url.lower().startswith(f"{version_control}:"):
@@ -363,12 +356,12 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     req_as_string = None
     path = os.path.normpath(os.path.abspath(name))
     link = None
-    extras_as_string = None
 
     if is_url(name):
         link = Link(name)
+        extras: set[str] = set()
     else:
-        p, extras_as_string = _strip_extras(path)
+        p, extras = strip_extras(path)
         url = _get_url_from_path(p, name)
         if url is not None:
             link = Link(url)
@@ -390,8 +383,6 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     # a requirement specifier
     else:
         req_as_string = name
-
-    extras = convert_extras(extras_as_string)
 
     def with_source(text: str) -> str:
         if not line_source:
