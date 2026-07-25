@@ -207,18 +207,20 @@ class SyncCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
 
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
+        # TODO: do we need index options? --uploaded-prior-to?
+        # index_opts = cmdoptions.make_option_group(
+        #     cmdoptions.index_group,
+        #     self.parser,
+        # )
+        # self.parser.insert_option_group(0, index_opts)
 
-        selection_opts = cmdoptions.make_option_group(
-            cmdoptions.package_selection_group,
-            self.parser,
-        )
+        # TODO: do we want format control? release control?
+        # selection_opts = cmdoptions.make_option_group(
+        #     cmdoptions.package_selection_group,
+        #     self.parser,
+        # )
+        # self.parser.insert_option_group(0, selection_opts)
 
-        self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
         # TODO: select extras, uv has these
@@ -265,11 +267,8 @@ class SyncCommand(RequirementCommand):
 
         # TODO: refactor _make_requirements_preparer to not need src_dir
         options.src_dir = get_src_prefix()
-        # TODO: refactor _make_requirements_preparer to not need require_hashes
-        # It's ok for require_hashes to be False because the pylock validator
-        # makes sure each downloadable artifact has hashes, except local directories
-        # and VCS packages.
         options.require_hashes = False
+        options.no_require_hashes = True
 
         logger.verbose("Using %s", get_pip_version())
 
