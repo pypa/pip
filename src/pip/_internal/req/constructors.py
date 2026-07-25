@@ -128,14 +128,11 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
 
     if url_no_extras.lower().startswith("file:"):
         package_name = Link(url_no_extras).egg_fragment
-        if extras:
-            return (
-                package_name,
-                url_no_extras,
-                get_requirement("placeholder" + extras.lower()).extras,
-            )
-        else:
-            return package_name, url_no_extras, set()
+        return (
+            package_name,
+            url_no_extras,
+            convert_extras(extras),
+        )
 
     for version_control in vcs:
         if url.lower().startswith(f"{version_control}:"):
