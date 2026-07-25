@@ -425,6 +425,74 @@ class TestUnpackArchives:
 
         assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
 
+    def test_unpack_tar_symlink_then_member_no_data_filter(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        """Reject a symlink to outside before a member is written through it."""
+        if hasattr(tarfile, "data_filter"):
+            monkeypatch.delattr("tarfile.data_filter")
+
+        tar_filepath = os.path.join(self.tempdir, "symlink_then_member.tar")
+        extract_path = os.path.join(self.tempdir, "extract_path")
+        outside_path = os.path.join(self.tempdir, "outside.txt")
+
+        with tarfile.open(tar_filepath, "w") as tar:
+            info = tarfile.TarInfo("outside_link")
+            info.type = tarfile.SYMTYPE
+            info.linkname = ".."
+            tar.addfile(info)
+
+            data = io.BytesIO(b"data\n")
+            info = tarfile.TarInfo("outside_link/outside.txt")
+            info.size = len(data.getbuffer())
+            tar.addfile(info, fileobj=data)
+
+            info = tarfile.TarInfo("..")
+            info.type = tarfile.DIRTYPE
+            tar.addfile(info)
+
+        with pytest.raises(InstallationError):
+            untar_file(tar_filepath, extract_path)
+
+        assert not os.path.exists(outside_path)
+        assert not os.path.exists(os.path.join(extract_path, "outside_link"))
+
+    def test_unpack_tar_nested_symlink_traversal_no_data_filter(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        """Reject a member that escapes through a chain of in-bounds symlinks."""
+        if hasattr(tarfile, "data_filter"):
+            monkeypatch.delattr("tarfile.data_filter")
+
+        tar_filepath = os.path.join(self.tempdir, "nested_traversal.tar")
+        extract_path = os.path.join(self.tempdir, "extract_path")
+        outside_path = os.path.join(self.tempdir, "outside.txt")
+
+        with tarfile.open(tar_filepath, "w") as tar:
+            info = tarfile.TarInfo(".")
+            info.type = tarfile.DIRTYPE
+            tar.addfile(info)
+
+            info = tarfile.TarInfo("redir")
+            info.type = tarfile.SYMTYPE
+            info.linkname = "."
+            tar.addfile(info)
+
+            info = tarfile.TarInfo("redir/up")
+            info.type = tarfile.SYMTYPE
+            info.linkname = ".."
+            tar.addfile(info)
+
+            data = io.BytesIO(b"data\n")
+            info = tarfile.TarInfo("redir/up/outside.txt")
+            info.size = len(data.getbuffer())
+            tar.addfile(info, fileobj=data)
+
+        with pytest.raises(InstallationError):
+            untar_file(tar_filepath, extract_path)
+
+        assert not os.path.exists(outside_path)
+
 
 def test_unpack_tar_unicode(tmpdir: Path) -> None:
     test_tar = tmpdir / "test.tar"

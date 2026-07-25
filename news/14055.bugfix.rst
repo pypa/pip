@@ -1,0 +1,1 @@
+Avoid re-fetching a pinned Git commit that is already present locally.

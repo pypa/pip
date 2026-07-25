@@ -1,0 +1,46 @@
+lock-version = "1.0"
+created-by = "pip"
+
+[[packages]]
+name = "build"
+version = "1.5.0"
+
+[[packages.wheels]]
+name = "build-1.5.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/0d/fe/6bea5c9162869c5beba5d9c8abbed835ec85bf1ec1fba05a3822325c45f3/build-1.5.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "13f3eecb844759ab66efec90ca17639bbf14dc06cb2fdf37a9010322d9c50a6f"
+
+[[packages]]
+name = "flit-core"
+version = "3.12.0"
+
+[[packages.wheels]]
+name = "flit_core-3.12.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/f2/65/b6ba90634c984a4fcc02c7e3afe523fef500c4980fec67cc27536ee50acf/flit_core-3.12.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "e7a0304069ea895172e3c7bb703292e992c5d1555dd1233ab7b5621b5b69e62c"
+
+[[packages]]
+name = "packaging"
+version = "26.2"
+
+[[packages.wheels]]
+name = "packaging-26.2-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e"
+
+[[packages]]
+name = "pyproject-hooks"
+version = "1.2.0"
+
+[[packages.wheels]]
+name = "pyproject_hooks-1.2.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/bd/24/12818598c362d7f300f18e74db45963dbcb85150324092410c8b49405e42/pyproject_hooks-1.2.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "9e5c6bfa8dcc30091c74b0cf803c81fdd29d94f01992a7707bc97babb1141913"

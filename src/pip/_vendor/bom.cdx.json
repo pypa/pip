@@ -15,11 +15,11 @@
       "version": "0.14.4"
     },
     {
-      "bom-ref": "pkg:pypi/certifi@2026.5.20",
+      "bom-ref": "pkg:pypi/certifi@2026.6.17",
       "name": "certifi",
-      "purl": "pkg:pypi/certifi@2026.5.20",
+      "purl": "pkg:pypi/certifi@2026.6.17",
       "type": "library",
-      "version": "2026.5.20"
+      "version": "2026.6.17"
     },
     {
       "bom-ref": "pkg:pypi/distlib@0.4.2",
@@ -57,11 +57,11 @@
       "version": "26.2"
     },
     {
-      "bom-ref": "pkg:pypi/platformdirs@4.5.1",
+      "bom-ref": "pkg:pypi/platformdirs@4.10.0",
       "name": "platformdirs",
-      "purl": "pkg:pypi/platformdirs@4.5.1",
+      "purl": "pkg:pypi/platformdirs@4.10.0",
       "type": "library",
-      "version": "4.5.1"
+      "version": "4.10.0"
     },
     {
       "bom-ref": "pkg:pypi/pygments@2.20.0",
@@ -138,13 +138,13 @@
     {
       "dependsOn": [
         "pkg:pypi/CacheControl@0.14.4",
-        "pkg:pypi/certifi@2026.5.20",
+        "pkg:pypi/certifi@2026.6.17",
         "pkg:pypi/distlib@0.4.2",
         "pkg:pypi/distro@1.9.0",
         "pkg:pypi/idna@3.18",
         "pkg:pypi/msgpack@1.1.2",
         "pkg:pypi/packaging@26.2",
-        "pkg:pypi/platformdirs@4.5.1",
+        "pkg:pypi/platformdirs@4.10.0",
         "pkg:pypi/pygments@2.20.0",
         "pkg:pypi/pyproject-hooks@1.2.0",
         "pkg:pypi/requests@2.34.2",
@@ -162,7 +162,7 @@
       "ref": "pkg:pypi/CacheControl@0.14.4"
     },
     {
-      "ref": "pkg:pypi/certifi@2026.5.20"
+      "ref": "pkg:pypi/certifi@2026.6.17"
     },
     {
       "ref": "pkg:pypi/distlib@0.4.2"
@@ -180,7 +180,7 @@
       "ref": "pkg:pypi/packaging@26.2"
     },
     {
-      "ref": "pkg:pypi/platformdirs@4.5.1"
+      "ref": "pkg:pypi/platformdirs@4.10.0"
     },
     {
       "ref": "pkg:pypi/pygments@2.20.0"

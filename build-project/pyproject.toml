@@ -1,0 +1,2 @@
+[dependency-groups]
+build = ["build", "flit-core"]

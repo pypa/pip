@@ -51,7 +51,7 @@ See {doc}`topics/vcs-support` for more information about this syntax.
 
 ### Install a package from a distribution file
 
-pip can install directly from distribution files as well. They come in 2 forms:
+Pip can install directly from distribution files as well. They come in 2 forms:
 
 - {term}`source distribution <Source Distribution (or "sdist")>` (usually shortened to "sdist")
 - {term}`wheel distribution <Wheel>` (usually shortened to "wheel")

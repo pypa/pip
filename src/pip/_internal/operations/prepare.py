@@ -12,9 +12,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.build_env import BuildEnvironmentInstaller
+from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -23,13 +24,15 @@ from pip._internal.exceptions import (
     HashUnpinned,
     InstallationError,
     MetadataInconsistent,
+    MetadataInvalid,
     NetworkConnectionError,
+    SidecarMetadataInconsistent,
     VcsHashUnsupported,
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, join_within_directory
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import Downloader
 from pip._internal.network.lazy_wheel import (
@@ -52,6 +55,7 @@ from pip._internal.utils.misc import (
     hide_url,
     redact_auth_from_requirement,
 )
+from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -66,7 +70,7 @@ def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
     build_env_installer: BuildEnvironmentInstaller,
-    build_isolation: bool,
+    build_isolation: BuildIsolationMode,
     check_build_deps: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
@@ -201,7 +205,7 @@ def _check_download_dir(
     """Check download_dir for previously downloaded file with correct hash
     If a correct file is found return its path else None
     """
-    download_path = os.path.join(download_dir, link.filename)
+    download_path = join_within_directory(download_dir, link.filename)
 
     if not os.path.exists(download_path):
         return None
@@ -222,6 +226,118 @@ def _check_download_dir(
     return download_path
 
 
+def _canonicalize_requirement(raw: str) -> str:
+    """Return a normalized form of a PEP 508 requirement string.
+
+    Used to compare ``Requires-Dist`` entries from two sources of metadata
+    for the same distribution without being confused by superficial
+    differences in name casing, extra casing, or extras ordering. May raise
+    ``InvalidRequirement`` if ``raw`` is not a valid PEP 508 string.
+
+    TODO: once https://github.com/pypa/packaging/pull/1278 is released and
+    vendored, ``Requirement.__eq__`` will canonicalize requested extras and
+    this manual normalization can be dropped in favour of comparing
+    ``Requirement`` objects directly.
+    """
+    parsed = get_requirement(raw)
+    parts: list[str] = [canonicalize_name(parsed.name)]
+    if parsed.extras:
+        normalized_extras = sorted(canonicalize_name(e) for e in parsed.extras)
+        parts.append(f"[{','.join(normalized_extras)}]")
+    if parsed.specifier:
+        parts.append(str(parsed.specifier))
+    if parsed.url:
+        parts.append(f" @ {parsed.url}")
+    if parsed.marker:
+        parts.append(f"; {parsed.marker}")
+    return "".join(parts)
+
+
+def _canonical_requires(
+    req: InstallRequirement, dist: BaseDistribution, source: str
+) -> frozenset[str]:
+    """Return the canonicalized ``Requires-Dist`` entries of ``dist``.
+
+    ``source`` describes which metadata file ``dist`` was parsed from, for
+    use in error messages.
+    """
+    canonical: set[str] = set()
+    for raw in dist.iter_raw_dependencies():
+        try:
+            # strip() because a folded metadata header may be returned
+            # with a leading newline; iter_dependencies() strips for the
+            # same reason.
+            canonical.add(_canonicalize_requirement(raw.strip()))
+        except InvalidRequirement as e:
+            raise MetadataInvalid(req, f"Requires-Dist in {source}: {e}")
+    return frozenset(canonical)
+
+
+def _check_sidecar_matches_wheel(
+    req: InstallRequirement,
+    sidecar_dist: BaseDistribution,
+    wheel_dist: BaseDistribution,
+) -> None:
+    """Check that a .metadata-based distribution matches the wheel's METADATA.
+
+    Compare ``Name``, ``Version``, ``Requires-Dist``, ``Requires-Python``
+    and ``Provides-Extra`` between the two and abort the install on any
+    mismatch as PEP 658 requires the metadata files "MUST be identical".
+
+    While the PEP doesn't mandate that consumers enforce the identical
+    requirement, it's good nonetheless to check to prevent confusing
+    behaviour when an index misbehaves.
+
+    Also note for name and version, pip usually rejects wheels if they're
+    inconsistent already. Checking them again here is purely defensive.
+    """
+
+    sidecar_name = canonicalize_name(sidecar_dist.raw_name)
+    wheel_name = canonicalize_name(wheel_dist.raw_name)
+    if sidecar_name != wheel_name:
+        raise SidecarMetadataInconsistent(req, "Name", sidecar_name, wheel_name)
+
+    if sidecar_dist.version != wheel_dist.version:
+        raise SidecarMetadataInconsistent(
+            req,
+            "Version",
+            str(sidecar_dist.version),
+            str(wheel_dist.version),
+        )
+
+    # For multi-use fields, only report the symmetric difference to avoid
+    # unnecessarily flagging matching values.
+    sidecar_requires = _canonical_requires(
+        req, sidecar_dist, "the PEP 658 .metadata file"
+    )
+    wheel_requires = _canonical_requires(req, wheel_dist, "the wheel's METADATA")
+    if sidecar_requires != wheel_requires:
+        raise SidecarMetadataInconsistent(
+            req,
+            "Requires-Dist",
+            ", ".join(sorted(sidecar_requires - wheel_requires)),
+            ", ".join(sorted(wheel_requires - sidecar_requires)),
+        )
+
+    if sidecar_dist.requires_python != wheel_dist.requires_python:
+        raise SidecarMetadataInconsistent(
+            req,
+            "Requires-Python",
+            str(sidecar_dist.requires_python),
+            str(wheel_dist.requires_python),
+        )
+
+    sidecar_extras = frozenset(sidecar_dist.iter_provided_extras())
+    wheel_extras = frozenset(wheel_dist.iter_provided_extras())
+    if sidecar_extras != wheel_extras:
+        raise SidecarMetadataInconsistent(
+            req,
+            "Provides-Extra",
+            ", ".join(sorted(sidecar_extras - wheel_extras)),
+            ", ".join(sorted(wheel_extras - sidecar_extras)),
+        )
+
+
 class RequirementPreparer:
     """Prepares a Requirement"""
 
@@ -231,7 +347,7 @@ class RequirementPreparer:
         build_dir: str,
         download_dir: str | None,
         src_dir: str,
-        build_isolation: bool,
+        build_isolation: BuildIsolationMode,
         build_isolation_installer: BuildEnvironmentInstaller,
         check_build_deps: bool,
         build_tracker: BuildTracker,
@@ -665,6 +781,27 @@ class RequirementPreparer:
             self.build_isolation,
             self.check_build_deps,
         )
+
+        # If a PEP 658 .metadata file was used, check that fields relevant for
+        # dependency resolution match with the wheel's METADATA file.
+        #
+        # NOTE: PEP 658 also permits .metadata files for source distributions,
+        # but PyPI doesn't serve such files. In addition, an sdist's metadata
+        # is generated at build time and may legitimately differ from what the
+        # index declared, so it's been decided to skip this check for sdists.
+        # This can change later if needed.
+        #
+        # TODO: this is a hack for checking whether a distribution is metadata-
+        # only or not. If/when we refactor distributions to delineate between
+        # metadata-only and concrete distributions, clean this up.
+        if (
+            link.is_wheel
+            and req._distribution is not None
+            and req._distribution is not dist
+            and link.metadata_link() is not None
+        ):
+            _check_sidecar_matches_wheel(req, req._distribution, dist)
+
         return dist
 
     def save_linked_requirement(self, req: InstallRequirement) -> None:
@@ -687,7 +824,7 @@ class RequirementPreparer:
             # No distribution was downloaded for this requirement.
             return
 
-        download_location = os.path.join(self.download_dir, link.filename)
+        download_location = join_within_directory(self.download_dir, link.filename)
         if not os.path.exists(download_location):
             shutil.copy(req.local_file_path, download_location)
             download_path = display_path(download_location)

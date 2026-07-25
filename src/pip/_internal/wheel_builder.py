@@ -49,6 +49,9 @@ def _should_cache(
     if req.editable or not req.source_dir:
         # never cache editable requirements
         return False
+    if req.link and req.link.is_existing_dir():
+        # never cache local directory requirements
+        return False
 
     if req.link and req.link.is_vcs:
         # VCS checkout. Do not cache

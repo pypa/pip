@@ -1,0 +1,1 @@
+Only emit the invalid-metadata warning once per location per run, instead of repeating it during the same command.

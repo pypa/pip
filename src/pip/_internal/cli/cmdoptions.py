@@ -32,7 +32,6 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.target_python import TargetPython
-from pip._internal.utils import pylock as pylock_utils
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
@@ -64,6 +63,37 @@ def make_option_group(group: dict[str, Any], parser: ConfigOptionParser) -> Opti
     for option in group["options"]:
         option_group.add_option(option())
     return option_group
+
+
+def check_only_deps_option_does_not_conflict(options: Values) -> None:
+    """Function for determining if --only-deps and other incompatible options are
+    specified.
+
+    :param options: The OptionParser options.
+    """
+    if not options.only_dependencies:
+        return
+    conflicts = []
+    if options.ignore_dependencies:
+        conflicts.append("'--no-deps'")
+    if "legacy-resolver" in options.deprecated_features_enabled:
+        conflicts.append("'--use-deprecated legacy-resolver'")
+    if options.requirements:
+        conflicts.append("'--requirement'")
+    if options.requirements_from_scripts:
+        conflicts.append("'--requirements-from-script'")
+    if options.dependency_groups:
+        conflicts.append("'--group'")
+    if conflicts:
+        if len(conflicts) > 1:
+            conflicts[-1] = "or " + conflicts[-1]
+        conflict_message = ", ".join(conflicts)
+        raise CommandError(
+            f"Cannot use '--only-dependencies' in combination with {conflict_message}. "
+            "If this is unexpected, please refer to the user guide:\n"
+            "\n"
+            "    https://pip.pypa.io/en/stable/user_guide/#installing-only-dependencies"
+        )
 
 
 def check_dist_restriction(options: Values, check_target: bool = False) -> None:
@@ -105,13 +135,17 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
                 "installing via '--target' or using '--dry-run'"
             )
 
-    for filename in options.requirements:
-        if dist_restriction_set and pylock_utils.is_valid_pylock_filename(filename):
-            raise CommandError(
-                "Platform and interpreter constraints using "
-                "--python-version, --platform, --abi, or --implementation, "
-                f"are not supported when selecting requirements from {filename!r}"
-            )
+    if dist_restriction_set:
+        # Lazy import to keep CLI startup fast
+        from pip._internal.utils import pylock as pylock_utils
+
+        for filename in options.requirements:
+            if pylock_utils.is_valid_pylock_filename(filename):
+                raise CommandError(
+                    "Platform and interpreter constraints using "
+                    "--python-version, --platform, --abi, or --implementation, "
+                    f"are not supported when selecting requirements from {filename!r}"
+                )
 
 
 def check_build_constraints(options: Values) -> None:
@@ -311,8 +345,17 @@ proxy: Callable[..., Option] = partial(
     "--proxy",
     dest="proxy",
     type="str",
-    default="",
+    default=None,
     help="Specify a proxy in the form scheme://[user:passwd@]proxy.server:port.",
+)
+
+no_proxy_env: Callable[..., Option] = partial(
+    Option,
+    "--no-proxy-env",
+    dest="no_proxy_env",
+    action="store_true",
+    default=False,
+    help="Do not read proxy configuration from environment variables.",
 )
 
 retries: Callable[..., Option] = partial(
@@ -498,7 +541,7 @@ def uploaded_prior_to() -> Option:
             "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
             "uses local timezone if none specified) or a duration in days "
             "(e.g., 'P3D' for packages uploaded at least 3 days ago). "
-            "Only effective when installing from indexes that provide "
+            "Only effective when using indexes that provide "
             "upload-time metadata."
         ),
     )
@@ -958,6 +1001,23 @@ no_deps: Callable[..., Option] = partial(
 )
 
 
+only_deps: Callable[..., Option] = partial(
+    Option,
+    "--only-deps",
+    "--only-dependencies",
+    dest="only_dependencies",
+    action="store_true",
+    default=False,
+    help=(
+        "Take only the dependencies of the provided requirements into account, "
+        "not the requirements themselves. Cannot be used in combination with "
+        "--no-deps, --group, --requirement, or --requirements-from-script. "
+        "No user-supplied requirements will be handled, even if they were "
+        "dependencies of other user-supplied requirements."
+    ),
+)
+
+
 def _handle_dependency_group(
     option: Option, opt: str, value: str, parser: OptionParser
 ) -> None:
@@ -1165,6 +1225,17 @@ require_hashes: Callable[..., Option] = partial(
 )
 
 
+no_require_hashes: Callable[..., Option] = partial(
+    Option,
+    "--no-require-hashes",
+    dest="no_require_hashes",
+    action="store_true",
+    default=False,
+    help="Do not automatically enable --require-hashes "
+    "when encountering a requirement with hashes.",
+)
+
+
 list_path: Callable[..., Option] = partial(
     PipOption,
     "--path",
@@ -1206,6 +1277,7 @@ no_python_version_warning: Callable[..., Option] = partial(
 ALWAYS_ENABLED_FEATURES = [
     "truststore",  # always on since 24.2
     "no-binary-enable-wheel-cache",  # always on since 23.1
+    "build-constraint",  # always on since 26.2
 ]
 
 use_new_feature: Callable[..., Option] = partial(
@@ -1217,8 +1289,8 @@ use_new_feature: Callable[..., Option] = partial(
     default=[],
     choices=[
         "fast-deps",
-        "build-constraint",
         "inprocess-build-deps",
+        "venv-isolation",
     ]
     + ALWAYS_ENABLED_FEATURES,
     help="Enable new functionality, that may be backward incompatible.",
@@ -1257,6 +1329,7 @@ general_group: dict[str, Any] = {
         no_input,
         keyring_provider,
         proxy,
+        no_proxy_env,
         retries,
         timeout,
         exists_action,

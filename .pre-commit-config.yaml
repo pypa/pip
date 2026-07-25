@@ -22,7 +22,7 @@ repos:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.16
+  rev: v0.15.20
   hooks:
     - id: ruff-check
       args: [--fix]
@@ -67,7 +67,7 @@ repos:
       args: ["--ignore-words", tools/codespell-ignore.txt]
 
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: v1.25.2
+  rev: v1.26.1
   hooks:
   - id: zizmor
     args: ["--fix=all"]

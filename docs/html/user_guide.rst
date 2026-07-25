@@ -15,7 +15,7 @@ User Guide
 Running pip
 ===========
 
-pip is a command line program. When you install pip, a ``pip`` command is added
+Pip is a command line program. When you install pip, a ``pip`` command is added
 to your system, which can be run from the command prompt as follows:
 
 .. tab:: Unix/macOS
@@ -41,7 +41,7 @@ to your system, which can be run from the command prompt as follows:
 Installing Packages
 ===================
 
-pip supports installing from `PyPI`_, version control, local projects, and
+Pip supports installing from `PyPI`_, version control, local projects, and
 directly from distribution files.
 
 
@@ -89,13 +89,15 @@ Using a Proxy Server
 When installing packages from `PyPI`_, pip requires internet access, which
 in many corporate environments requires an outbound HTTP proxy server.
 
-pip can be configured to connect through a proxy server in various ways:
+Pip can be configured to connect through a proxy server in various ways:
 
 * using the ``--proxy`` command-line option to specify a proxy in the form
   ``scheme://[user:passwd@]proxy.server:port``
 * using ``proxy`` in a :ref:`config-file`
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
+* using the ``--no-proxy-env`` command-line option to ignore proxies set through
+  those environment variables (an explicit ``--proxy`` is still used).
 * using the environment variable ``PIP_USER_AGENT_USER_DATA`` to include
   a JSON-encoded string in the user-agent variable used in pip's requests.
 
@@ -263,6 +265,11 @@ Build Constraints
 
 .. versionadded:: 25.3
 
+.. versionchanged:: 26.2
+   Constraints files, including those set with the ``PIP_CONSTRAINT`` environment
+   variable, no longer affect isolated build environments. Use build constraints
+   to constrain build dependencies.
+
 Build constraints are a type of constraints file that applies only to isolated
 build environments used for building packages from source. Unlike regular
 constraints, which affect the packages installed in your environment, build
@@ -295,6 +302,9 @@ Example build constraints file (``build-constraints.txt``):
    setuptools>=45,<80
    # Pin Cython for packages that use it to build
    cython==0.29.24
+
+The ``--build-constraint`` option can be set with the ``PIP_BUILD_CONSTRAINT``
+environment variable.
 
 Controlling Pre-release Installation
 =====================================
@@ -482,7 +492,7 @@ available in :ref:`the specification documentation <pypug:dependency-groups>`.
     ``pip``-specific syntax for requirements, only :ref:`standard dependency
     specifiers <pypug:dependency-specifiers>`.
 
-``pip`` does not search projects or directories to discover ``pyproject.toml``
+Pip does not search projects or directories to discover ``pyproject.toml``
 files. The ``--group`` option is used to pass the path to the file,
 and if the path is omitted, as in the example above, it defaults to
 ``pyproject.toml`` in the current directory. Using explicit paths,
@@ -529,6 +539,76 @@ subprojects thusly:
 .. _`Installing from Wheels`:
 
 
+Installing only dependencies
+============================
+
+.. versionadded:: 26.2
+
+In some cases it is desirable to install only the dependencies of a package, not
+the package itself. This is possible with the ``--only-deps`` flag, which
+instructs pip to handle only the dependencies of the supplied packages.
+Consider the package ``SomePackage`` with the dependency ``SomeDependency``. To
+install ``SomeDependency`` but not ``SomePackage``:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install SomePackage --only-deps
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install SomePackage --only-deps
+
+Note that ``--only-deps`` is incompatible with the legacy resolver
+(``--use-deprecated=legacy-resolver``), dependency groups (``--group``), ``-r``/
+``--requirement``, ``--requirements-from-script``, and ``--no-deps``.
+
+In some situations, ``--only-deps`` can exhibit seemingly confusing behavior.
+Consider the example above: ``SomePackage`` which depends on ``SomeDependency``.
+If you specify both with ``--only-deps``, pip will not install
+``SomeDependency``, as both dependencies are user-supplied:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install SomePackage SomeDependency --only-deps
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install SomePackage SomeDependency --only-deps
+
+The reason is that it is impossible to know what the intent of the user is, as
+pip cannot guess if the user wants to install ``SomeDependency`` as a dependency
+of ``SomePackage`` or if they do not want to install it. To keep the
+implementation easy and err on the side of caution, pip will thus not install
+SomeDependency.
+
+
+A note on ``--only-deps`` and ``--requirement`` / ``--requirements-from-script`` and ``--group``
+-------------------------------------------------------------------------------------------------
+
+The ``--only-deps`` option is inherently incompatible with ``--requirement``
+and ``--group``.
+
+In the ``--requirements`` case, all specified packages are considered to be
+user-supplied; thus when pip would allow both options together, no packages
+listed in the requirements file would be installed, but all dependencies not
+listed would be. The same applies for ``--requirements-from-script``.
+
+Similarly, the ``--group`` option already allows to install only a set of
+dependencies meant for a specific purpose, e.g., for building the documentation
+or setting up a developer environment. Pip considers the members of the group to
+be user-supplied. Pairing this with ``--only-deps`` would make it impossible to
+know if the user wanted to install the dependencies of the packages listed in
+the group, or if they were expecting the packages of the group to be installed.
+
+
 Installing from Wheels
 ======================
 
@@ -536,7 +616,7 @@ Installing from Wheels
 to building and installing from source archives. For more information, see the
 :ref:`specification <pypug:binary-distribution-format>`.
 
-pip prefers Wheels where they are available. To disable this, use the
+Pip prefers wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
 
 If no satisfactory wheels are found, pip will default to finding source
@@ -618,7 +698,7 @@ wheels (and not from PyPI):
 Uninstalling Packages
 =====================
 
-pip is able to uninstall most packages like so:
+Pip is able to uninstall most packages like so:
 
 .. tab:: Unix/macOS
 
@@ -633,7 +713,7 @@ pip is able to uninstall most packages like so:
       py -m pip uninstall SomePackage
 
 
-pip also performs an automatic uninstall of an old version of a package
+Pip also performs an automatic uninstall of an old version of a package
 before upgrading to a newer version.
 
 For more information and examples, see the :ref:`pip uninstall` reference.
@@ -714,7 +794,7 @@ reference pages.
 Searching for Packages
 ======================
 
-pip can search remote indexes that provide an XML-RPC search API for
+Pip can search remote indexes that provide an XML-RPC search API for
 packages using the ``pip search`` command:
 
 .. tab:: Unix/macOS
@@ -763,7 +843,7 @@ This is now covered in :doc:`topics/configuration`.
 Command Completion
 ==================
 
-pip comes with support for command line completion in bash, zsh and fish.
+Pip comes with support for command line completion in bash, zsh and fish.
 
 To setup for bash::
 
@@ -945,7 +1025,7 @@ To install "SomePackage" into an environment with ``site.USER_BASE`` customized 
    requirement is satisfied (similar to how global packages can satisfy
    requirements when installing packages in a ``--system-site-packages``
    virtualenv).
-#. pip will not perform a ``--user`` install in a ``--no-site-packages``
+#. Pip will not perform a ``--user`` install in a ``--no-site-packages``
    virtualenv (i.e. the default kind of virtualenv), due to the user site not
    being on the python path.  The installation would be pointless.
 #. In a ``--system-site-packages`` virtualenv, pip will not install a package
@@ -1091,10 +1171,10 @@ not use pip's internal APIs in this way. There are a number of reasons for this:
    the standard IO streams, without considering the possibility that user code
    might be affected.
 
-#. pip's code is *not* thread safe. If you were to run pip in a thread, there
+#. Pip's code is *not* thread safe. If you were to run pip in a thread, there
    is no guarantee that either your code or pip's would work as you expect.
 
-#. pip assumes that once it has finished its work, the process will terminate.
+#. Pip assumes that once it has finished its work, the process will terminate.
    It doesn't need to handle the possibility that other code will continue to
    run after that point, so (for example) calling pip twice in the same process
    is likely to have issues.
@@ -1159,8 +1239,8 @@ of ability. Some examples that you could consider include:
 Changes to the pip dependency resolver in 20.3 (2020)
 =====================================================
 
-pip 20.3 has a new dependency resolver, on by default for Python 3
-users. (pip 20.1 and 20.2 included pre-release versions of the new
+Pip 20.3 has a new dependency resolver, on by default for Python 3
+users. (Pip 20.1 and 20.2 included pre-release versions of the new
 dependency resolver, hidden behind optional user flags.) Read below
 for a migration guide, how to invoke the legacy resolver, and the
 deprecation timeline. We also made a `two-minute video explanation`_

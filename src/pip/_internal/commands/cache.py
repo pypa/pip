@@ -189,10 +189,13 @@ class CacheCommand(Command):
             logger.verbose("Removed %s", filename)
 
         http_dirs = filesystem.subdirs_without_files(self._cache_dir(options, "http"))
+        http_v2_dirs = filesystem.subdirs_without_files(
+            self._cache_dir(options, "http-v2")
+        )
         wheel_dirs = filesystem.subdirs_without_wheels(
             self._cache_dir(options, "wheels")
         )
-        dirs = [*http_dirs, *wheel_dirs]
+        dirs = [*http_dirs, *http_v2_dirs, *wheel_dirs]
 
         for subdir in dirs:
             try:

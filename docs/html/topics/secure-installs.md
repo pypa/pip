@@ -49,6 +49,16 @@ It is possible to force the hash checking mode to be enabled, by passing `--requ
 
 This can be useful in deploy scripts, to ensure that the author of the requirements file provided hashes. It is also a convenient way to bootstrap your list of hashes, since it shows the hashes of the packages it fetched. It fetches only the preferred archive for each package, so you may still need to add hashes for alternatives archives using {ref}`pip hash`: for instance if there is both a binary and a source distribution.
 
+### Disabling automatic enforcement of hash checking mode
+
+```{versionadded} 26.2
+
+```
+
+By default, when at least one requirement has hashes, hashes become required for all requirements. This behaviour notably prevent the combination of hashed requirements with local directories or VCS URLs.
+
+To help with such use cases, a `--no-require-hashes` flag is available to disable this mechanism. Hashes are then verified only for requirements where they are provided.
+
 ### Hash algorithms
 
 The recommended hash algorithm at the moment is sha256, but stronger ones are allowed, including all those supported by `hashlib`. However, weaker ones such as md5, sha1, and sha224 are excluded to avoid giving a false sense of security.

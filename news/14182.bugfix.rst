@@ -1,0 +1,5 @@
+Recover credentials embedded in a redirect ``Location`` URL when handling a
+``401`` response, even under ``--no-input``. Previously this extraction was
+gated behind keyring being enabled, so ``--no-input`` (with the default keyring
+provider) caused downloads that rely on a cross-origin redirect with embedded
+credentials to fail with ``401``.

@@ -1,0 +1,1 @@
+Report the correct configuration level for ``cert`` in ``pip debug`` output.

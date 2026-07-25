@@ -1,5 +1,5 @@
 ```{note}
-This section of the documentation is currently being written. pip
+This section of the documentation is currently being written. The pip
 developers welcome your help to complete this documentation. If
 you're interested in helping out, please let us know in the
 [tracking issue](https://github.com/pypa/pip/issues/6583), or
@@ -155,8 +155,8 @@ Requesting more information to better understand the context and environment
 that led to the issue. Examples of specific information that may be useful
 depending on the situation:
 
-- pip debug: `pip debug`
-- pip version: `pip -V`
+- Pip debug: `pip debug`
+- Pip version: `pip -V`
 - Python version: `python -VV`
 - Python path: `python -c 'import sys; print(sys.executable)'`
 - `python` on `PATH`: Unix: `which python`; Windows: `where python`

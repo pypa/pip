@@ -58,16 +58,16 @@ workingset_stdlib = _MockWorkingSet(
 
 @pytest.mark.parametrize(
     "ws, req_name",
-    itertools.chain(
-        itertools.product(
+    [
+        *itertools.product(
             [workingset],
             (d.project_name for d in workingset),
         ),
-        itertools.product(
+        *itertools.product(
             [workingset_stdlib],
             (d.project_name for d in workingset_stdlib),
         ),
-    ),
+    ],
 )
 def test_get_distribution(ws: _MockWorkingSet, req_name: str) -> None:
     """Ensure get_distribution() finds all kinds of distributions."""

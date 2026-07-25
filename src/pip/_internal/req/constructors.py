@@ -18,7 +18,7 @@ from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 
 from pip._vendor.packaging import pylock
-from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.markers import InvalidMarker, Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import parse_sdist_filename, parse_wheel_filename
 
@@ -353,7 +353,10 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
         if not markers_as_string:
             markers = None
         else:
-            markers = Marker(markers_as_string)
+            try:
+                markers = Marker(markers_as_string)
+            except InvalidMarker as exc:
+                raise InstallationError(f"Invalid requirement: {name.strip()!r}: {exc}")
     else:
         markers = None
     name = name.strip()

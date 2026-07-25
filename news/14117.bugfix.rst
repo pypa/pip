@@ -1,0 +1,1 @@
+Avoid reading installed file lists in ``pip show`` unless ``--files`` is used.

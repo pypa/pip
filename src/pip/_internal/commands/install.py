@@ -76,6 +76,7 @@ _MISSING_MODULES: set[str] = set()
 # after installation has started. Importing them eagerly keeps the audit
 # hook from misattributing them to a freshly installed distribution.
 _EAGER_IMPORTS: tuple[str, ...] = (
+    "pip._internal.operations.install.wheel",
     # Used by rich when emitting output to a legacy Windows console.
     "pip._vendor.rich._windows_renderer",
 )
@@ -165,6 +166,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -321,6 +323,7 @@ class InstallCommand(RequirementCommand):
             help="Do not warn about broken dependencies",
         )
         self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.no_require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
 
@@ -391,6 +394,7 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
+        cmdoptions.check_only_deps_option_does_not_conflict(options)
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
         cmdoptions.check_release_control_exclusive(options)

@@ -2,6 +2,7 @@ import base64
 import csv
 import hashlib
 import os
+import platform
 import shutil
 import sysconfig
 from pathlib import Path
@@ -525,6 +526,9 @@ def test_install_from_wheel_with_legacy(
 
     result.did_create(legacy_file1)
     result.did_create(legacy_file2)
+    if platform.system() in ("Linux", "Darwin"):
+        unix_script = script.bin_path / "testscript2"
+        assert unix_script.stat().st_mode & 0o111, "executable bit wasn't preserved"
 
 
 def test_install_from_wheel_no_setuptools_entrypoint(

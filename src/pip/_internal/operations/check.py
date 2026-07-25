@@ -167,7 +167,7 @@ def _create_whitelist(
             continue
 
         for req in package_set[package_name].dependencies:
-            if canonicalize_name(req.name) in packages_affected:
+            if canonicalize_name(req.name) in would_be_installed:
                 packages_affected.add(package_name)
                 break
 
