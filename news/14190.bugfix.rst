@@ -1,2 +1,3 @@
-Respect ``--uploaded-prior-to`` in ``pip list --outdated`` and
+Respect ``--uploaded-prior-to``, ``--no-binary``, ``--only-binary``,
+and ``--prefer-binary`` in ``pip list --outdated`` and
 ``pip list --uptodate`` when determining the latest available version.
