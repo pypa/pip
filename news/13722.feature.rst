@@ -1,0 +1,3 @@
+Add support for parallel downloads to improve installation performance when
+installing packages with many dependencies. Configurable via ``PipSession.parallel_downloads``
+parameter.
