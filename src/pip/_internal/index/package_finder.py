@@ -723,6 +723,10 @@ class PackageFinder:
         return self.search_scope.index_urls
 
     @property
+    def refresh_package(self) -> set[str]:
+        return self._link_collector.session.refresh_package
+
+    @property
     def proxy(self) -> str | None:
         return self._link_collector.session.pip_proxy
 
@@ -853,7 +857,9 @@ class PackageFinder:
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        index_response = self._link_collector.fetch_response(project_url)
+        index_response = self._link_collector.fetch_response(
+            project_url, package_name=link_evaluator.project_name
+        )
         if index_response is None:
             return []
 
