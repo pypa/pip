@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 operators = ("~=", "==", "!=", "<=", ">=", "<", ">", "===")
 
 
-def _strip_extras(path: str) -> tuple[str, set[str]]:
+def strip_extras(path: str) -> tuple[str, set[str]]:
     m = re.match(r"^(.+)(\[[^\]]+\])$", path)
     extras = None
     if m:
@@ -120,7 +120,7 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
     url = editable_req
 
     # If a file path is specified with extras, strip off the extras.
-    url_no_extras, extras = _strip_extras(url)
+    url_no_extras, extras = strip_extras(url)
 
     if os.path.isdir(url_no_extras):
         # Treating it as code that has already been checked out
@@ -361,7 +361,7 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
         link = Link(name)
         extras: set[str] = set()
     else:
-        p, extras = _strip_extras(path)
+        p, extras = strip_extras(path)
         url = _get_url_from_path(p, name)
         if url is not None:
             link = Link(url)
