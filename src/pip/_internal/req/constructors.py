@@ -67,7 +67,7 @@ def _strip_extras(path: str) -> tuple[str, str | None]:
     return path_no_extras, extras
 
 
-def convert_extras(extras: str | None) -> set[str]:
+def _convert_extras(extras: str | None) -> set[str]:
     if not extras:
         return set()
     return get_requirement("placeholder" + extras.lower()).extras
@@ -131,7 +131,7 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
         return (
             package_name,
             url_no_extras,
-            convert_extras(extras),
+            _convert_extras(extras),
         )
 
     for version_control in vcs:
@@ -388,7 +388,7 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     else:
         req_as_string = name
 
-    extras = convert_extras(extras_as_string)
+    extras = _convert_extras(extras_as_string)
 
     def with_source(text: str) -> str:
         if not line_source:
