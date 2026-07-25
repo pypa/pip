@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 operators = ("~=", "==", "!=", "<=", ">=", "<", ">", "===")
 
 
-def _strip_extras(path: str) -> tuple[str, str | None]:
+def _strip_extras(path: str) -> tuple[str, set[str]]:
     m = re.match(r"^(.+)(\[[^\]]+\])$", path)
     extras = None
     if m:
@@ -64,7 +64,7 @@ def _strip_extras(path: str) -> tuple[str, str | None]:
     else:
         path_no_extras = path
 
-    return path_no_extras, extras
+    return path_no_extras, _convert_extras(extras)
 
 
 def _convert_extras(extras: str | None) -> set[str]:
@@ -128,11 +128,7 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
 
     if url_no_extras.lower().startswith("file:"):
         package_name = Link(url_no_extras).egg_fragment
-        return (
-            package_name,
-            url_no_extras,
-            _convert_extras(extras),
-        )
+        return (package_name, url_no_extras, extras)
 
     for version_control in vcs:
         if url.lower().startswith(f"{version_control}:"):
@@ -360,12 +356,12 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     req_as_string = None
     path = os.path.normpath(os.path.abspath(name))
     link = None
-    extras_as_string = None
 
     if is_url(name):
         link = Link(name)
+        extras: set[str] = set()
     else:
-        p, extras_as_string = _strip_extras(path)
+        p, extras = _strip_extras(path)
         url = _get_url_from_path(p, name)
         if url is not None:
             link = Link(url)
@@ -387,8 +383,6 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
     # a requirement specifier
     else:
         req_as_string = name
-
-    extras = _convert_extras(extras_as_string)
 
     def with_source(text: str) -> str:
         if not line_source:
