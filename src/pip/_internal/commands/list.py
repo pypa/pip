@@ -165,6 +165,7 @@ class ListCommand(IndexGroupCommand):
         return PackageFinder.create(
             link_collector=link_collector,
             selection_prefs=selection_prefs,
+            uploaded_prior_to=options.uploaded_prior_to,
         )
 
     def run(self, options: Values, args: list[str]) -> int:

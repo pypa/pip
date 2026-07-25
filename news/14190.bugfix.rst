@@ -1,0 +1,2 @@
+Respect ``--uploaded-prior-to`` in ``pip list --outdated`` and
+``pip list --uptodate`` when determining the latest available version.
