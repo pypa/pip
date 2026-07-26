@@ -42,6 +42,7 @@ class SourceDistribution(AbstractDistribution):
         build_env_installer: BuildEnvironmentInstaller,
         build_isolation: BuildIsolationMode,
         check_build_deps: bool,
+        allow_editables: bool,
     ) -> None:
         # Load pyproject.toml and set up backend environment
         self.req.load_pyproject_toml()
@@ -58,7 +59,9 @@ class SourceDistribution(AbstractDistribution):
             # to avoid installing build requirements needlessly.
             self.req.editable_sanity_check()
             # Install the dynamic build requirements.
-            self._install_build_reqs(build_env_installer)
+            self._install_build_reqs(
+                build_env_installer, allow_editables=allow_editables
+            )
         else:
             # When not using build isolation, we still need to check that
             # the build backend supports PEP 660.
@@ -74,7 +77,7 @@ class SourceDistribution(AbstractDistribution):
                 self._raise_conflicts("the backend dependencies", conflicting)
             if missing:
                 self._raise_missing_reqs(missing)
-        self.req.prepare_metadata()
+        self.req.prepare_metadata(allow_editables)
 
     def _prepare_build_env(
         self,
@@ -136,14 +139,16 @@ class SourceDistribution(AbstractDistribution):
                 return backend.get_requires_for_build_editable()
 
     def _install_build_reqs(
-        self, build_env_installer: BuildEnvironmentInstaller
+        self,
+        build_env_installer: BuildEnvironmentInstaller,
+        allow_editables: bool,
     ) -> None:
         # Install any extra build dependencies that the backend requests.
         # This must be done in a second pass, as the pyproject.toml
         # dependencies must be installed before we can call the backend.
         if (
             self.req.editable
-            and self.req.permit_editable_wheels
+            and allow_editables
             and self.req.supports_pyproject_editable
         ):
             build_reqs = self._get_build_requires_editable()

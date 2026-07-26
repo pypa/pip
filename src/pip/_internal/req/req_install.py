@@ -79,7 +79,6 @@ class InstallRequirement:
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
-        permit_editable_wheels: bool = False,
         locked_link: Link | None = None,
         locked_version: Version | None = None,
     ) -> None:
@@ -88,7 +87,6 @@ class InstallRequirement:
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
-        self.permit_editable_wheels = permit_editable_wheels
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -527,7 +525,7 @@ class InstallRequirement:
                 f"Consider using a build backend that supports PEP 660."
             )
 
-    def prepare_metadata(self) -> None:
+    def prepare_metadata(self, allow_editables: bool) -> None:
         """Ensure that project metadata is available.
 
         Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
@@ -537,11 +535,7 @@ class InstallRequirement:
         details = self.name or f"from {self.link}"
 
         assert self.pep517_backend is not None
-        if (
-            self.editable
-            and self.permit_editable_wheels
-            and self.supports_pyproject_editable
-        ):
+        if self.editable and allow_editables and self.supports_pyproject_editable:
             self.metadata_directory = generate_editable_metadata(
                 build_env=self.build_env,
                 backend=self.pep517_backend,

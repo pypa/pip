@@ -260,7 +260,6 @@ def install_req_from_editable(
     hash_options: dict[str, list[str]] | None = None,
     constraint: bool = False,
     user_supplied: bool = False,
-    permit_editable_wheels: bool = False,
     config_settings: dict[str, str | list[str]] | None = None,
 ) -> InstallRequirement:
     if constraint:
@@ -272,7 +271,6 @@ def install_req_from_editable(
         comes_from=comes_from,
         user_supplied=user_supplied,
         editable=True,
-        permit_editable_wheels=permit_editable_wheels,
         link=parts.link,
         constraint=constraint,
         isolated=isolated,
@@ -552,7 +550,6 @@ def install_req_drop_extras(ireq: InstallRequirement) -> InstallRequirement:
         extras=[],
         config_settings=ireq.config_settings,
         user_supplied=ireq.user_supplied,
-        permit_editable_wheels=ireq.permit_editable_wheels,
     )
 
 

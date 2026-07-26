@@ -162,6 +162,8 @@ class RequirementCommand(IndexGroupCommand):
         build_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
+        *,
+        allow_editables: bool,
         use_user_site: bool,
         download_dir: str | None = None,
         verbosity: int = 0,
@@ -242,6 +244,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            allow_editables=allow_editables,
         )
 
     @classmethod
