@@ -223,7 +223,7 @@ class ConfigOptionParser(CustomOptionParser):
         # since failing on a feature they chose to use can be confusing.
         if key == "use-feature":
             logger.warning(
-                "%r is no longer a valid value for use-feature; "
+                "%r is not a valid value for use-feature; "
                 "consider removing it from your configuration.",
                 val,
             )
