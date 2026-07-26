@@ -221,15 +221,23 @@ class ConfigOptionParser(CustomOptionParser):
     ) -> None:
         # We don't want to punish users for use-feature config values they set,
         # since failing on a feature they chose to use can be confusing.
+        config_files = [
+            config_file
+            for _, files in self.config.iter_config_files()
+            for config_file in files
+            if os.path.exists(config_file)
+        ]
         if key == "use-feature":
             logger.warning(
                 "%r is not a valid value for use-feature; "
-                "consider removing it from your configuration.",
+                "consider removing it from your configuration file: %s",
                 val,
+                config_files[0],
             )
         else:
             raise optparse.OptionValueError(
-                f"Invalid configuration value for {key!r}: {exc}"
+                f"Invalid configuration value for {key!r}: {exc}. "
+                f"Consider removing it from your configuration file: {config_files[0]}"
             )
 
     def check_default(self, option: optparse.Option, key: str, val: str) -> Any:
