@@ -230,14 +230,14 @@ class ConfigOptionParser(CustomOptionParser):
         if key == "use-feature":
             logger.warning(
                 "%r is not a valid value for use-feature; "
-                "consider removing it from your configuration file: %s",
+                "consider removing it from the configuration file: %s",
                 val,
                 config_files[0],
             )
         else:
             raise optparse.OptionValueError(
-                f"Invalid configuration value for {key!r}: {exc}. "
-                f"Consider removing it from your configuration file: {config_files[0]}"
+                f"Invalid value for configuration option {key!r}: {exc}. "
+                f"Check the value in the configuration file: {config_files[0]}"
             )
 
     def check_default(self, option: optparse.Option, key: str, val: str) -> Any:
