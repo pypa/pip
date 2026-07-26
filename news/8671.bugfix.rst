@@ -1,1 +1,1 @@
-Prevent pip from becoming unusable due to invalid configuration values.
+Warn and skip invalid ``use-feature`` values instead of raising an error.
