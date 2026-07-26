@@ -59,16 +59,23 @@ Site
 ```{tab} MacOS
 
 Global
-: In a "pip" subdirectory of any of the paths set in the environment variable
-  `XDG_DATA_DIRS` (if it exists), for example {file}`/etc/xdg/pip/pip.conf`.
+: In a "pip" subdirectory of each path listed in the environment
+  variable `XDG_DATA_DIRS` (if it is non-empty).
 
-  This will be followed by loading {file}`/Library/Application Support/pip/pip.conf`.
+  If `XDG_DATA_DIRS` is unset or empty,
+  {file}`/Library/Application Support/pip/pip.conf` is loaded instead
+  (run `pip config debug` to identify the exact paths).
 
 User
-: {file}`$HOME/Library/Application Support/pip/pip.conf`
-  if directory `$HOME/Library/Application Support/pip` exists
-  else {file}`$HOME/.config/pip/pip.conf`, which respects the
-  `XDG_DATA_HOME` environment variable.
+: The user configuration file is loaded from one of the following
+  locations:
+
+  * {file}`$XDG_DATA_HOME/pip/pip.conf`, if `XDG_DATA_HOME` is
+    non-empty and {file}`$XDG_DATA_HOME/pip` exists.
+  * {file}`$HOME/Library/Application Support/pip/pip.conf`, if
+    `XDG_DATA_HOME` is unset or empty and
+    {file}`$HOME/Library/Application Support/pip` exists.
+  * {file}`$HOME/.config/pip/pip.conf`, otherwise.
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
@@ -97,7 +104,7 @@ Site
 ```
 
 ```{versionchanged} 26.2
-pip will also respect `XDG_CONFIG_DIRS` and `XDG_CONFIG_HOME` on macOS.
+Pip will also respect `XDG_DATA_DIRS` and `XDG_DATA_HOME` on macOS.
 ```
 
 ### `PIP_CONFIG_FILE`
