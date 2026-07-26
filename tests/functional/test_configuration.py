@@ -63,7 +63,7 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "set", "global.use-feature", "blah")
 
         result = script.pip("list")
-        assert "is no longer a valid value for use-feature" in result.stderr
+        assert "is not a valid value for use-feature" in result.stderr
         assert result.returncode == 0
 
     def test_invalid_config_value_throws_error(
