@@ -72,7 +72,7 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "set", "global.use-deprecated", "blah")
 
         result = script.pip("list", expect_error=True)
-        assert "Invalid configuration value for" in result.stderr
+        assert "Invalid value for configuration option" in result.stderr
         assert result.returncode == 1
 
     def test_listing_is_correct(self, script: PipTestEnvironment) -> None:
