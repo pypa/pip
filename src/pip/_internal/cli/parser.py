@@ -219,25 +219,23 @@ class ConfigOptionParser(CustomOptionParser):
     def _warn_or_fail_on_invalid_config(
         self, key: str, val: str, exc: optparse.OptionValueError
     ) -> None:
+        self._seen_invalid_options.add((key, val))
         # We don't want to punish users for use-feature config values they set,
         # since failing on a feature they chose to use can be confusing.
-        config_files = [
-            config_file
-            for _, files in self.config.iter_config_files()
-            for config_file in files
-            if os.path.exists(config_file)
-        ]
         if key == "use-feature":
             logger.warning(
                 "%r is not a valid value for use-feature; "
-                "consider removing it from the configuration file: %s",
+                "consider removing it from the configuration file. "
+                "See https://pip.pypa.io/en/stable/topics/configuration/#location "
+                "for config file locations.",
                 val,
-                config_files[0],
             )
         else:
-            raise optparse.OptionValueError(
+            raise self.error(
                 f"Invalid value for configuration option {key!r}: {exc}. "
-                f"Check the value in the configuration file: {config_files[0]}"
+                f"Check your pip configuration files for this value. "
+                f"See https://pip.pypa.io/en/stable/topics/configuration/#location "
+                "for config file locations."
             )
 
     def check_default(self, option: optparse.Option, key: str, val: str) -> Any:
@@ -247,7 +245,6 @@ class ConfigOptionParser(CustomOptionParser):
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
             self._warn_or_fail_on_invalid_config(key, val, exc)
-            self._seen_invalid_options.add((key, val))
             return None
 
     def _get_ordered_configuration_items(
