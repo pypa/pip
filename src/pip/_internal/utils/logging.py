@@ -322,10 +322,11 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: str | None) -> 
     global _stdout_console, stderr_console
     console_options: dict[str, Any] = {"no_color": no_color, "soft_wrap": True}
     if looks_like_ci():
-        # A lot of CI workflows use FORCE_COLOR and similar environment
-        # variables so their CI output remains colorized, but this has
-        # the unfortunate consequence of rendering progress bars that
-        # (often) span many lines.
+        # Don't animate progress bars and status spinners when running
+        # in CI. A lot of CI workflows use FORCE_COLOR and similar envvars
+        # so their CI output remains colorized, but this causes rich to
+        # assume a fully interactive terminal, resulting in any animated
+        # output to span many lines which is distracting (and unhelpful).
         console_options["force_interactive"] = False
     _stdout_console = PipConsole(file=sys.stdout, **console_options)
     _stderr_console = PipConsole(file=sys.stderr, **console_options)
