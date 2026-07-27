@@ -208,6 +208,7 @@ class InprocessBuildEnvironmentInstaller:
             use_user_site=False,
             lazy_wheel=False,
             legacy_resolver=False,
+            allow_editables=True,
         )
 
     def install(
@@ -281,7 +282,9 @@ class InprocessBuildEnvironmentInstaller:
         reqs_to_build = [
             r for r in resolved_set.requirements_to_install if not r.is_wheel
         ]
-        _, build_failures = build(reqs_to_build, self._wheel_cache, verify=True)
+        _, build_failures = build(
+            reqs_to_build, self._wheel_cache, verify=True, allow_editables=True
+        )
         if build_failures:
             raise InstallWheelBuildError(build_failures)
 

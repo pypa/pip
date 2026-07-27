@@ -72,6 +72,7 @@ def _get_prepared_distribution(
     build_env_installer: BuildEnvironmentInstaller,
     build_isolation: BuildIsolationMode,
     check_build_deps: bool,
+    allow_editables: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
@@ -79,7 +80,7 @@ def _get_prepared_distribution(
     if tracker_id is not None:
         with build_tracker.track(req, tracker_id):
             abstract_dist.prepare_distribution_metadata(
-                build_env_installer, build_isolation, check_build_deps
+                build_env_installer, build_isolation, check_build_deps, allow_editables
             )
     return abstract_dist.get_metadata_distribution()
 
@@ -359,6 +360,7 @@ class RequirementPreparer:
         lazy_wheel: bool,
         verbosity: int,
         legacy_resolver: bool,
+        allow_editables: bool,
     ) -> None:
         super().__init__()
 
@@ -400,6 +402,10 @@ class RequirementPreparer:
 
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
+
+        # Do we allow preparing editable wheels?
+        # When using pip wheel, editables must still produce regular wheels
+        self.allow_editables = allow_editables
 
     def _log_preparing_link(self, req: InstallRequirement) -> None:
         """Provide context for the requirement being prepared."""
@@ -780,6 +786,7 @@ class RequirementPreparer:
             self.build_env_installer,
             self.build_isolation,
             self.check_build_deps,
+            self.allow_editables,
         )
 
         # If a PEP 658 .metadata file was used, check that fields relevant for
@@ -857,6 +864,7 @@ class RequirementPreparer:
                 self.build_env_installer,
                 self.build_isolation,
                 self.check_build_deps,
+                self.allow_editables,
             )
 
             req.check_if_exists(self.use_user_site)
