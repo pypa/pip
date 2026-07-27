@@ -6,7 +6,7 @@ import csv
 import itertools
 from base64 import urlsafe_b64encode
 from collections import namedtuple
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from email.message import Message
 from enum import Enum
@@ -27,7 +27,7 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._internal.metadata import BaseDistribution, MemoryWheel, get_wheel_distribution
 
 # As would be used in metadata
-HeaderValue = Union[str, list[str]]
+HeaderValue = str | list[str]
 
 
 File = namedtuple("File", ["name", "contents"])
@@ -43,7 +43,7 @@ _default = Default.token
 T = TypeVar("T")
 
 # A type which may be defaulted.
-Defaulted = Union[Default, T]
+Defaulted = Union[Default, T]  # noqa: UP007
 
 
 def ensure_binary(value: bytes | str) -> bytes:
@@ -52,7 +52,7 @@ def ensure_binary(value: bytes | str) -> bytes:
     return value.encode()
 
 
-def message_from_dict(headers: dict[str, HeaderValue]) -> Message:
+def message_from_dict(headers: Mapping[str, HeaderValue]) -> Message:
     """Plain key-value pairs are set in the returned message.
 
     List values are converted into repeated headers in the result.
@@ -86,7 +86,7 @@ def make_metadata_file(
     if value is not _default:
         return File(path, ensure_binary(value))
 
-    metadata = CaseInsensitiveDict(
+    metadata: CaseInsensitiveDict[HeaderValue] = CaseInsensitiveDict(
         {
             "Metadata-Version": "2.1",
             "Name": name,
@@ -118,14 +118,13 @@ def make_wheel_metadata_file(
     if value is not _default:
         return File(path, ensure_binary(value))
 
-    metadata = CaseInsensitiveDict(
-        {
-            "Wheel-Version": "1.0",
-            "Generator": "pip-test-suite",
-            "Root-Is-Purelib": "true",
-            "Tag": ["-".join(parts) for parts in tags],
-        }
-    )
+    wheel_info: dict[str, HeaderValue] = {
+        "Wheel-Version": "1.0",
+        "Generator": "pip-test-suite",
+        "Root-Is-Purelib": "true",
+        "Tag": ["-".join(parts) for parts in tags],
+    }
+    metadata: CaseInsensitiveDict[HeaderValue] = CaseInsensitiveDict(wheel_info)
 
     if updates is not _default:
         metadata.update(updates)

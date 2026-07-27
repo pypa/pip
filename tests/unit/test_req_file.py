@@ -115,34 +115,28 @@ class TestPreprocess:
     """tests for `preprocess`"""
 
     def test_comments_and_joins_case1(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment \\
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
     def test_comments_and_joins_case2(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1\\
           # comment
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1")]
 
     def test_comments_and_joins_case3(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
@@ -954,15 +948,13 @@ class TestParseRequirements:
         Test parsing a requirements file without a finder
         """
         with open(tmpdir.joinpath("req.txt"), "w") as fp:
-            fp.write(
-                """
+            fp.write("""
     --find-links https://example.com/
     --index-url https://example.com/
     --extra-index-url https://two.example.com/
     --no-use-wheel
     --no-index
-            """
-            )
+            """)
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 
@@ -1044,7 +1036,10 @@ class TestParseRequirements:
         # so patch things out for simplicity
         with (
             caplog.at_level(logging.WARNING),
-            mock.patch("locale.getpreferredencoding", return_value=locale_encoding),
+            mock.patch(
+                "pip._internal.req.req_file.get_locale_encoding",
+                return_value=locale_encoding,
+            ),
         ):
             reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
 
@@ -1077,6 +1072,8 @@ class TestParseRequirements:
 
         with (
             pytest.raises(UnicodeDecodeError),
-            mock.patch("locale.getpreferredencoding", return_value=encoding),
+            mock.patch(
+                "pip._internal.req.req_file.get_locale_encoding", return_value=encoding
+            ),
         ):
             next(parse_reqfile(req_file.resolve(), session=session))

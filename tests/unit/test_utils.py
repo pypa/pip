@@ -10,10 +10,10 @@ import shutil
 import stat
 import sys
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, NoReturn
+from typing import Any, NoReturn
 from unittest.mock import Mock, patch
 
 import pytest

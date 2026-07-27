@@ -11,7 +11,7 @@ def _create_test_package_submodule(env: PipTestEnvironment) -> Path:
     env.run("touch", "testfile", cwd=submodule_path)
     env.run("git", "init", cwd=submodule_path)
     env.run("git", "add", ".", cwd=submodule_path)
-    _git_commit(env, submodule_path, message="initial version / submodule")
+    _git_commit(submodule_path, message="initial version / submodule")
 
     return submodule_path
 
@@ -22,7 +22,7 @@ def _change_test_package_submodule(
     submodule_path.joinpath("testfile").write_text("this is a changed file")
     submodule_path.joinpath("testfile2").write_text("this is an added file")
     env.run("git", "add", ".", cwd=submodule_path)
-    _git_commit(env, submodule_path, message="submodule change")
+    _git_commit(submodule_path, message="submodule change")
 
 
 def _pull_in_submodule_changes_to_module(
@@ -35,7 +35,7 @@ def _pull_in_submodule_changes_to_module(
     submodule_path = module_path / rel_path
     env.run("git", "pull", "-q", "origin", "master", cwd=submodule_path)
     # Pass -a to stage the submodule changes that were just pulled in.
-    _git_commit(env, module_path, message="submodule change", stage_modified=True)
+    _git_commit(module_path, message="submodule change", stage_modified=True)
 
 
 def _create_test_package_with_submodule(
@@ -52,20 +52,16 @@ def _create_test_package_with_submodule(
 
     pkg_path.joinpath("__init__.py").write_text("# hello there")
     _create_main_file(pkg_path, name="version_pkg", output="0.1")
-    version_pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """\
+    version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""\
                         from setuptools import setup, find_packages
                         setup(name='version_pkg',
                               version='0.1',
                               packages=find_packages(),
                              )
-                        """
-        )
-    )
+                        """))
     env.run("git", "init", cwd=version_pkg_path)
     env.run("git", "add", ".", cwd=version_pkg_path)
-    _git_commit(env, version_pkg_path, message="initial version")
+    _git_commit(version_pkg_path, message="initial version")
 
     submodule_path = _create_test_package_submodule(env)
 
@@ -77,6 +73,6 @@ def _create_test_package_with_submodule(
         rel_path,
         cwd=version_pkg_path,
     )
-    _git_commit(env, version_pkg_path, message="initial version w submodule")
+    _git_commit(version_pkg_path, message="initial version w submodule")
 
     return version_pkg_path, submodule_path

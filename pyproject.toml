@@ -76,6 +76,18 @@ test-common-wheels = [
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
     "keyring",
+    "cmake",
+]
+
+typecheck = [
+    {include-group = "test"},
+    "keyring",  # An optional runtime dependency.
+    "nox",
+    "packaging",
+    "httpx",
+    "rich",
+    "types-PyYAML",  # tools/update-rtd-redirects.py
+    "types-setuptools",  # provides top-level distutils stubs for locations/
 ]
 
 docs = [
@@ -96,10 +108,10 @@ include = [
     "NEWS.rst",
     "SECURITY.md",
     "AI_POLICY.md",
-    "build-project/.python-version",
+    "build-project/README.md",
     "build-project/build-project.py",
-    "build-project/build-requirements.in",
-    "build-project/build-requirements.txt",
+    "build-project/pyproject.toml",
+    "build-project/pylock.toml",
     "docs/**/*.css",
     "docs/**/*.dot",
     "docs/**/*.md",
@@ -148,6 +160,7 @@ type = [
 destination = "src/pip/_vendor/"
 requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
+sbom-file = "src/pip/_vendor/bom.cdx.json"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
 patches-dir = "tools/vendoring/patches"
@@ -166,9 +179,6 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
-  # optional accelerator extension libraries
-  "*mypyc*.so",
-  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
@@ -202,7 +212,7 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 
 [tool.ruff]
 # Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
-target-version = "py39"  # Pin Ruff to Python 3.9
+target-version = "py310"  # Pin Ruff to Python 3.10
 src = ["src"]
 line-length = 88
 extend-exclude = [
@@ -264,7 +274,7 @@ max-complexity = 33  # default is 10
 "src/pip/__pip-runner__.py" = ["UP"] # Must be compatible with Python 2.7
 
 [tool.ruff.lint.pylint]
-max-args = 15  # default is 5
+max-args = 16  # default is 5
 max-branches = 28  # default is 12
 max-returns = 15  # default is 6
 max-statements = 134  # default is 50
@@ -303,9 +313,6 @@ ignore_errors = true
 module = "pip._vendor.pkg_resources"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "pip._vendor.requests.*"
-follow_imports = "skip"
 
 ######################################################################################
 # pytest
@@ -334,6 +341,9 @@ markers = [
     "mercurial: VCS: Mercurial",
     "git: VCS: git",
     "search: tests for 'pip search'",
+]
+filterwarnings = [
+  'error::pip._internal.utils.deprecation.PipDeprecationWarning:',
 ]
 
 ######################################################################################

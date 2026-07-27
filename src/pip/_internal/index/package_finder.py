@@ -12,8 +12,6 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
-    Optional,
-    Union,
 )
 
 from pip._vendor.packaging import specifiers
@@ -49,15 +47,15 @@ from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeGuard
+    from typing import TypeGuard
 
 __all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
 
 logger = getLogger(__name__)
 
-BuildTag = Union[tuple[()], tuple[int, str]]
-CandidateSortingKey = tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
+BuildTag = tuple[()] | tuple[int, str]
+CandidateSortingKey = tuple[int, int, int, _BaseVersion, int | None, BuildTag]
 
 
 def _check_link_requires_python(
@@ -725,8 +723,16 @@ class PackageFinder:
         return self.search_scope.index_urls
 
     @property
+    def refresh_package(self) -> set[str]:
+        return self._link_collector.session.refresh_package
+
+    @property
     def proxy(self) -> str | None:
         return self._link_collector.session.pip_proxy
+
+    @property
+    def no_proxy_env(self) -> bool:
+        return self._link_collector.session.pip_no_proxy_env
 
     @property
     def trusted_hosts(self) -> Iterable[str]:
@@ -851,7 +857,9 @@ class PackageFinder:
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        index_response = self._link_collector.fetch_response(project_url)
+        index_response = self._link_collector.fetch_response(
+            project_url, package_name=link_evaluator.project_name
+        )
         if index_response is None:
             return []
 

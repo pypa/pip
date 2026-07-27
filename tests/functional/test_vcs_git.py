@@ -45,7 +45,7 @@ def checkout_new_branch(script: PipTestEnvironment, repo_dir: str, branch: str) 
 
 
 def do_commit(script: PipTestEnvironment, dest: str) -> str:
-    _git_commit(script, dest, message="test commit", allow_empty=True)
+    _git_commit(dest, message="test commit", allow_empty=True)
     return get_head_sha(script, dest)
 
 
@@ -460,3 +460,16 @@ def test_clone_without_partial_clone_support(
         "warning: filtering not recognized by server, ignoring"
         not in script.run("git", "pull", cwd=clone_path).stderr
     )
+
+
+def test_git_has_commit(script: PipTestEnvironment) -> None:
+    """
+    Test Git.has_commit().
+    """
+    repo_dir = str(script.scratch_path)
+
+    script.run("git", "init", cwd=repo_dir)
+    sha = do_commit(script, repo_dir)
+
+    assert Git.has_commit(repo_dir, sha)
+    assert not Git.has_commit(repo_dir, "0" * 40)

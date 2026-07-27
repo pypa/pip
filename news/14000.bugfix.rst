@@ -1,2 +1,0 @@
-Reject ``console_scripts`` and ``gui_scripts`` entry points whose name would
-install a script outside the scripts directory.

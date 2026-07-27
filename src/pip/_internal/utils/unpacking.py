@@ -76,15 +76,24 @@ def has_leading_dir(paths: Iterable[str]) -> bool:
     return True
 
 
-def is_within_directory(directory: str, target: str) -> bool:
+def is_within_directory(
+    directory: str, target: str, *, resolve_symlinks: bool = False
+) -> bool:
     """
     Return true if the absolute path of target is within the directory
-    """
-    abs_directory = os.path.abspath(directory)
-    abs_target = os.path.abspath(target)
+    (including when target is equal to the directory).
 
-    prefix = os.path.commonpath([abs_directory, abs_target])
-    return prefix == abs_directory
+    When ``resolve_symlinks`` is true, resolve symlinks before comparing so
+    traversal through a symlink (e.g. "link/../file") is also caught.
+    """
+    if resolve_symlinks:
+        abs_directory = os.path.realpath(directory)
+        abs_target = os.path.realpath(target)
+    else:
+        abs_directory = os.path.abspath(directory)
+        abs_target = os.path.abspath(target)
+
+    return abs_target == abs_directory or abs_target.startswith(abs_directory + os.sep)
 
 
 def _get_default_mode_plus_executable() -> int:
@@ -277,7 +286,13 @@ def _untar_without_filter(
         if leading:
             fn = split_leading_dir(fn)[1]
         path = os.path.join(location, fn)
-        if not is_within_directory(location, path):
+
+        # The plain check rejects textual ".." escapes; resolving symlinks also
+        # catches a later member redirected outside by an earlier member's
+        # symlink (e.g. "link/../file").
+        if not is_within_directory(location, path) or not is_within_directory(
+            location, path, resolve_symlinks=True
+        ):
             message = (
                 "The tar file ({}) has a file ({}) trying to install "
                 "outside target directory ({})"
@@ -286,6 +301,17 @@ def _untar_without_filter(
         if member.isdir():
             ensure_dir(path)
         elif member.issym():
+            # Reject symlinks resolving outside the destination, so a later
+            # member cannot be written through them.
+            target = os.path.join(os.path.dirname(path), member.linkname)
+            if not is_within_directory(location, target, resolve_symlinks=True):
+                message = (
+                    "The tar file ({}) has a file ({}) trying to install "
+                    "outside target directory ({})"
+                )
+                raise InstallationError(
+                    message.format(filename, member.name, member.linkname)
+                )
             if not is_symlink_target_in_tar(tar, member):
                 message = (
                     "The tar file ({}) has a file ({}) trying to install "

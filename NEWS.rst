@@ -9,6 +9,19 @@
 
 .. towncrier release notes start
 
+26.1.2 (2026-05-31)
+===================
+
+Bug Fixes
+---------
+
+- Reject ``console_scripts`` and ``gui_scripts`` entry points whose name would
+  install a script outside the scripts directory. (`#14000 <https://github.com/pypa/pip/issues/14000>`_)
+- Fix installation incorrectly failing when the target path contains a doubled
+  slash, such as with ``pip install --root //...``. (`#14001 <https://github.com/pypa/pip/issues/14001>`_)
+- Send a consistent ``Accept-Encoding`` header to avoid a spurious ``Cache entry
+  deserialization failed`` warning. (`#14012 <https://github.com/pypa/pip/issues/14012>`_)
+
 26.1.1 (2026-05-04)
 ===================
 

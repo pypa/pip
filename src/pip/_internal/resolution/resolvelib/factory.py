@@ -4,10 +4,9 @@ import contextlib
 import copy
 import functools
 import logging
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
-    Callable,
     NamedTuple,
     Protocol,
     TypeVar,
@@ -19,6 +18,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import InvalidVersion, Version
 from pip._vendor.resolvelib import ResolutionImpossible
+from pip._vendor.rich.markup import escape
 
 from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
@@ -214,8 +214,8 @@ class Factory:
                 except (MetadataInconsistent, MetadataInvalid) as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
-                        link,
-                        e,
+                        escape(str(link)),
+                        escape(str(e)),
                         extra={"markup": True},
                     )
                     self._build_failures[link] = e
@@ -235,8 +235,8 @@ class Factory:
                 except MetadataInconsistent as e:
                     logger.info(
                         "Discarding [blue underline]%s[/]: [yellow]%s[reset]",
-                        link,
-                        e,
+                        escape(str(link)),
+                        escape(str(e)),
                         extra={"markup": True},
                     )
                     self._build_failures[link] = e

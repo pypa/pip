@@ -34,7 +34,6 @@ from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_editable import generate_editable_metadata
-from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
@@ -80,7 +79,6 @@ class InstallRequirement:
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
-        permit_editable_wheels: bool = False,
         locked_link: Link | None = None,
         locked_version: Version | None = None,
     ) -> None:
@@ -89,7 +87,6 @@ class InstallRequirement:
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
-        self.permit_editable_wheels = permit_editable_wheels
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -180,6 +177,8 @@ class InstallRequirement:
         self.requirements_to_check: list[str] = []
 
         # The PEP 517 backend we should use to build the project
+        self._pep517_backend_spec: str
+        self._pep517_backend_path: str | None
         self.pep517_backend: BuildBackendHookCaller | None = None
 
         # This requirement needs more preparation before it can be built
@@ -496,11 +495,21 @@ class InstallRequirement:
         requires, backend, check, backend_path = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
+        self._pep517_backend_spec = backend
+        self._pep517_backend_path = backend_path
+
+    def configure_backend(self, python_executable: str) -> None:
+        """Set up the build backend hook caller.
+
+        This is done separately after pyproject.toml loading as the backend
+        need to be called with the build environment's Python executable,
+        which can vary."""
         self.pep517_backend = ConfiguredBuildBackendHookCaller(
             self,
             self.unpacked_source_directory,
-            backend,
-            backend_path=backend_path,
+            self._pep517_backend_spec,
+            backend_path=self._pep517_backend_path,
+            python_executable=python_executable,
         )
 
     def editable_sanity_check(self) -> None:
@@ -516,7 +525,7 @@ class InstallRequirement:
                 f"Consider using a build backend that supports PEP 660."
             )
 
-    def prepare_metadata(self) -> None:
+    def prepare_metadata(self, allow_editables: bool) -> None:
         """Ensure that project metadata is available.
 
         Under PEP 517 and PEP 660, call the backend hook to prepare the metadata.
@@ -526,11 +535,7 @@ class InstallRequirement:
         details = self.name or f"from {self.link}"
 
         assert self.pep517_backend is not None
-        if (
-            self.editable
-            and self.permit_editable_wheels
-            and self.supports_pyproject_editable
-        ):
+        if self.editable and allow_editables and self.supports_pyproject_editable:
             self.metadata_directory = generate_editable_metadata(
                 build_env=self.build_env,
                 backend=self.pep517_backend,
@@ -774,7 +779,15 @@ class InstallRequirement:
         warn_script_location: bool = True,
         use_user_site: bool = False,
         pycompile: bool = True,
+        script_executable: str | None = None,
     ) -> None:
+        # Lazy import to avoid transitively importing `_vendor.distlib.compat`
+        # which in turn imports `urllib.request` which is slow.
+        # During an actual installation, `urllib.request` will end up imported anyway,
+        # but `req.req_install` (this module) is also imported from commands that
+        # don't actually install anything (e.g. `pip freeze` or `pip show`).
+        from pip._internal.operations.install.wheel import install_wheel
+
         assert self.req is not None
         scheme = get_scheme(
             self.req.name,
@@ -797,6 +810,7 @@ class InstallRequirement:
             warn_script_location=warn_script_location,
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
+            script_executable=script_executable,
         )
         self.install_succeeded = True
 

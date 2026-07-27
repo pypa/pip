@@ -1,0 +1,3 @@
+Raise an error when the :pep:`658` ``.metadata`` file used during dependency
+resolution disagrees with the downloaded wheel's ``METADATA`` on ``Name``,
+``Version``, ``Requires-Dist``, ``Requires-Python`` or ``Provides-Extra``.

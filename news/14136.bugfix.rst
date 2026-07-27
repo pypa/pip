@@ -1,0 +1,1 @@
+Fix option errors printing the usage message with raw Rich markup.

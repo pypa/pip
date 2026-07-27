@@ -1,0 +1,1 @@
+Include a CycloneDX SBOM (Software Bill of Materials) file alongside vendored libraries.

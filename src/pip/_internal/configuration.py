@@ -14,7 +14,6 @@ Some terminology:
 from __future__ import annotations
 
 import configparser
-import locale
 import os
 import sys
 from collections.abc import Iterable
@@ -25,7 +24,7 @@ from pip._internal.exceptions import (
     ConfigurationFileCouldNotBeLoaded,
 )
 from pip._internal.utils import appdirs
-from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.compat import WINDOWS, get_locale_encoding
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import ensure_dir, enum
 
@@ -293,7 +292,7 @@ class Configuration:
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
         if os.path.exists(fname):
-            locale_encoding = locale.getpreferredencoding(False)
+            locale_encoding = get_locale_encoding()
             try:
                 parser.read(fname, encoding=locale_encoding)
             except UnicodeDecodeError:

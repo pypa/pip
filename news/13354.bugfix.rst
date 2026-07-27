@@ -1,0 +1,2 @@
+Stop animating progress bars and status spinners when running on CI, even
+if ``FORCE_COLOR`` is set.
