@@ -52,6 +52,7 @@ __all__ = [
     "ensure_dir",
     "remove_auth_from_url",
     "check_externally_managed",
+    "looks_like_ci",
     "ConfiguredBuildBackendHookCaller",
 ]
 
@@ -65,6 +66,23 @@ OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 
 FILE_CHUNK_SIZE = 1024 * 1024
+# These are environment variables present when running under various
+# CI systems.  For each variable, some CI systems that use the variable
+# are indicated.  The collection was chosen so that for each of a number
+# of popular systems, at least one of the environment variables is used.
+# This list is used to provide some indication of and lower bound for
+# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
+# For more background, see: https://github.com/pypa/pip/issues/5499
+CI_ENVIRONMENT_VARIABLES = (
+    # Azure Pipelines
+    "BUILD_BUILDID",
+    # Jenkins
+    "BUILD_ID",
+    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
+    "CI",
+    # Explicit environment variable.
+    "PIP_IS_CI",
+)
 
 
 def get_pip_version() -> str:
@@ -785,3 +803,13 @@ def warn_if_run_as_root() -> None:
         "Use the --root-user-action option if you know what you are doing and "
         "want to suppress this warning."
     )
+
+
+def looks_like_ci() -> bool:
+    """
+    Return whether it looks like pip is running under CI.
+    """
+    # We don't use the method of checking for a tty (e.g. using isatty())
+    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
+    # method doesn't provide definitive information in either direction.
+    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)

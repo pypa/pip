@@ -34,11 +34,11 @@ from pip._internal.exceptions import (
 )
 from pip._internal.models.link import Link
 from pip._internal.network.session import (
-    CI_ENVIRONMENT_VARIABLES,
     HTTPAdapter,
     PipSession,
     user_agent,
 )
+from pip._internal.utils.misc import CI_ENVIRONMENT_VARIABLES
 
 from tests.lib.output import render_to_text
 from tests.lib.server import make_mock_server, server_running
