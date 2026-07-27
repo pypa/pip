@@ -73,7 +73,7 @@ class TestBasicLoading(ConfigurationMixin):
 
         result = script.pip("list", expect_error=True)
         assert "Invalid value for configuration option" in result.stderr
-        assert result.returncode == 1
+        assert result.returncode == 2
 
     def test_listing_is_correct(self, script: PipTestEnvironment) -> None:
         script.pip("config", "set", "test.listing-beta", "2")
