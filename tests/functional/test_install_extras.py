@@ -292,6 +292,34 @@ def test_install_self_referential_extras(
     script.assert_installed(pkg="1", dep_a="1", dep_b="1")
 
 
+def test_install_nested_self_referential_extras(
+    script: PipTestEnvironment,
+) -> None:
+    """A package extra can depend on another extra that itself depends on a third extra."""
+    create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(script, "dep_b", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "a": ["dep_a"],
+            "b": ["pkg[a]", "dep_b"],
+            "all": ["pkg[b]"],
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]",
+    )
+    script.assert_installed(pkg="1", dep_a="1", dep_b="1")
+
+
 def test_install_setuptools_extras_inconsistency(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:
