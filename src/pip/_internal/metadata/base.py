@@ -5,6 +5,7 @@ import email.message
 import functools
 import json
 import logging
+import os
 import pathlib
 import re
 import zipfile
@@ -19,7 +20,7 @@ from typing import (
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import InvalidVersion, Version
 
 from pip._internal.exceptions import NoneMetadataError
 from pip._internal.locations import site_packages, user_site
@@ -592,7 +593,9 @@ class BaseEnvironment:
     def from_paths(cls, paths: list[str] | None) -> BaseEnvironment:
         raise NotImplementedError()
 
-    def get_distribution(self, name: str) -> BaseDistribution | None:
+    def get_distribution(
+        self, name: str, skip_invalid: bool = False
+    ) -> BaseDistribution | None:
         """Given a requirement name, return the installed distributions.
 
         The name may not be normalized. The implementation must canonicalize
@@ -609,24 +612,121 @@ class BaseEnvironment:
         """
         raise NotImplementedError()
 
-    def iter_all_distributions(self) -> Iterator[BaseDistribution]:
-        """Iterate through all installed distributions without any filtering."""
-        for dist in self._iter_distributions():
-            # Make sure the distribution actually comes from a valid Python
-            # packaging distribution. Pip's AdjacentTempDirectory leaves folders
-            # e.g. ``~atplotlib.dist-info`` if cleanup was interrupted. The
-            # valid project name pattern is taken from PEP 508.
-            project_name_valid = re.match(
-                r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$",
-                dist.canonical_name,
-                flags=re.IGNORECASE,
+    def _get_version_from_info_location(self, dist: BaseDistribution) -> str | None:
+        info_location = dist.info_location
+        if not info_location:
+            return None
+        stem, suffix = os.path.splitext(pathlib.Path(info_location).name)
+        if suffix == ".dist-info":
+            _, sep, version = stem.partition("-")
+            if sep:
+                return version
+        return None
+
+    def validate_distribution(self, dist: BaseDistribution) -> bool:
+        # does dir name exist?
+        if not dist.canonical_name:
+            logger.warning(
+                "Ignoring distribution at %s: could not determine "
+                "package name from the installation directory.",
+                dist.location,
             )
-            if not project_name_valid:
+            return False
+
+        # is dir name valid?
+        # Make sure the distribution actually comes from a valid Python
+        # packaging distribution. Pip's AdjacentTempDirectory leaves folders
+        # e.g. ``~atplotlib.dist-info`` if cleanup was interrupted. The
+        # valid project name pattern is taken from PEP 508.
+        project_name_valid = re.match(
+            r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$",
+            dist.canonical_name,
+            flags=re.IGNORECASE,
+        )
+        if not project_name_valid:
+            logger.warning(
+                "Ignoring distribution at %s: %r is not a valid package name. "
+                "This may be a partial or interrupted installation.",
+                dist.location,
+                dist.canonical_name,
+            )
+            return False
+
+        # does METADATA have a Name value?
+        name = dist.metadata.get("Name")
+        if not name:
+            logger.warning(
+                "Ignoring distribution %r at %s: METADATA is missing the "
+                "required Name field.",
+                dist.canonical_name,
+                dist.location,
+            )
+            return False
+
+        # do METADATA Name and directory name agree with each other?
+        if canonicalize_name(name) != dist.canonical_name:
+            logger.warning(
+                "Ignoring distribution %r at %s: package name in METADATA "
+                "(%r) does not match the installation directory name.",
+                dist.canonical_name,
+                dist.location,
+                name,
+            )
+            return False
+
+        # does dir version value exist?
+        dir_version = self._get_version_from_info_location(dist)
+        if not dir_version:
+            logger.warning(
+                "Ignoring distribution %r at %s: could not determine "
+                "package version from the installation directory.",
+                dist.canonical_name,
+                dist.location,
+            )
+            return False
+
+        # does METADATA have a Version value?
+        version = dist.metadata.get("Version")
+        if not version:
+            logger.warning(
+                "Ignoring distribution %r at %s: METADATA is missing the "
+                "required Version field.",
+                dist.canonical_name,
+                dist.location,
+            )
+            return False
+
+        # do METADATA Version and directory version agree with each other?
+        # also checking if METADATA Version or directory version are invalid
+        try:
+            if Version(version) != Version(dir_version):
                 logger.warning(
-                    "Ignoring invalid distribution %s (%s)",
+                    "Ignoring distribution %r at %s: version in METADATA (%r) "
+                    "does not match the installation directory name (%r).",
                     dist.canonical_name,
                     dist.location,
+                    version,
+                    dir_version,
                 )
+                return False
+        except InvalidVersion:
+            logger.warning(
+                "Ignoring distribution %r at %s: version %r is not a valid "
+                "PEP 440 version string.",
+                dist.canonical_name,
+                dist.location,
+                version,
+            )
+            return False
+
+        return True
+
+    def iter_all_distributions(
+        self, skip_invalid: bool = True
+    ) -> Iterator[BaseDistribution]:
+        """Iterate through all installed distributions without any filtering."""
+        for dist in self._iter_distributions():
+            if skip_invalid and not self.validate_distribution(dist):
                 continue
             yield dist
 
