@@ -222,10 +222,8 @@ def test_install_pylock_no_binary(
         "--no-binary=simplewheel",
         expect_error=True,
     )
-    assert (
-        "binaries are not permitted for package 'simplewheel' and "
-        "there is no source distribution for it in" in result.stderr
-    )
+    assert "Could not install locked package 'simplewheel'" in result.stderr
+    assert "No binaries permitted for simplewheel" in result.stderr
 
 
 def test_install_pylock_only_binary(
@@ -242,10 +240,8 @@ def test_install_pylock_only_binary(
         "--only-binary=:all:",
         expect_error=True,
     )
-    assert (
-        "source distributions are not permitted for package 'simple' and "
-        "there is no compatible wheel for it in" in result.stderr
-    )
+    assert "Could not install locked package 'simple'" in result.stderr
+    assert "No sources permitted for simple" in result.stderr
 
 
 def test_install_pylock_only_binary_ignored_for_archives(
@@ -267,3 +263,121 @@ def test_install_pylock_only_binary_ignored_for_archives(
     )
     assert "experimental" in result.stderr
     assert "Would install simple2-3.0" in result.stdout
+
+
+def test_install_pylock_default_prerelease(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """Prereleases are allowed by default."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.prerelease-wheel.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install pkg-prerelease-1.0a1" in result.stdout
+
+
+def test_install_pylock_reject_prerelease(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """Prereleases are rejected when --only-final is set."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.prerelease-wheel.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--only-final=pkg-prerelease",
+        expect_error=True,
+    )
+    assert (
+        "A pre-release version 1.0a1 is specified in a provided lock file "
+        "for pkg-prerelease but only final versions are allowed" in result.stderr
+    )
+
+
+def test_install_pylock_allow_archive_prerelease(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """--only-final does not influence direct URL requirements."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.prerelease-archive.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--only-final=pkg-prerelease",
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install pkg-prerelease-1.0a1" in result.stdout
+
+
+def test_install_pylock_conflict(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.onewheel.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "simplewheel<2",  # conflict with simplewheel==2.0 in lock file
+        expect_error=True,
+    )
+    assert (
+        "The requirement simplewheel<2 is not compatible with version 2.0 specified "
+        "in a provided lock file" in result.stderr
+    )
+
+
+def test_install_pylock_uploaded_prior_to(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.certifi-with-upload_time.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--uploaded-prior-to=2026-01-01",
+        expect_error=True,
+    )
+    assert "Could not install locked package 'certifi' from " in result.stderr
+    assert (
+        "Upload time 2026-06-17 10:31:06+00:00 not prior to 2026-01-01" in result.stderr
+    )
+
+
+def test_install_pylock_uploaded_prior_to_missing_upload_time(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.certifi-without-upload_time.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--uploaded-prior-to=2026-01-01",
+        expect_error=True,
+    )
+    assert (
+        "pylock.certifi-without-upload_time.toml does not provide upload-time metadata"
+        in result.stderr
+    )
