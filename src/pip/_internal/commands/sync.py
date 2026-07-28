@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import errno
+import json
 import operator
 import sys
 from collections.abc import Iterator
@@ -12,6 +13,7 @@ from typing import Any
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
+from pip._vendor.rich import print_json
 
 # Eagerly import self_outdated_check to avoid crashes. Otherwise,
 # this module would be imported *after* pip was replaced, resulting
@@ -31,6 +33,9 @@ from pip._internal.exceptions import CommandError, InstallWheelBuildError
 from pip._internal.locations import get_scheme
 from pip._internal.locations.base import get_src_prefix
 from pip._internal.metadata import BaseEnvironment, get_environment
+from pip._internal.models.format_control import FormatControl
+from pip._internal.models.installation_report import InstallationReport
+from pip._internal.models.release_control import ReleaseControl
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import InstallationResult, install_given_reqs
@@ -207,21 +212,31 @@ class SyncCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
 
-        # TODO: do we need index options? --uploaded-prior-to?
-        # index_opts = cmdoptions.make_option_group(
-        #     cmdoptions.index_group,
-        #     self.parser,
-        # )
-        # self.parser.insert_option_group(0, index_opts)
+        # TODO: we need index options for build dependencies, but we don't
+        # handle --uploaded-prior-to. Handle it or remove the option.
+        index_opts = cmdoptions.make_option_group(
+            cmdoptions.index_group,
+            self.parser,
+        )
+        self.parser.insert_option_group(0, index_opts)
 
         # TODO: do we want format control? release control?
-        # selection_opts = cmdoptions.make_option_group(
-        #     cmdoptions.package_selection_group,
-        #     self.parser,
-        # )
-        # self.parser.insert_option_group(0, selection_opts)
 
         self.parser.insert_option_group(0, self.cmd_opts)
+
+        self.cmd_opts.add_option(
+            "--report",
+            dest="json_report_file",
+            metavar="file",
+            default=None,
+            help=(
+                "Generate a JSON file describing what pip did to install "
+                "the provided requirements. "
+                "When - is used as file name it writes to stdout. "
+                "When writing to stdout, please combine with the --quiet option "
+                "to avoid mixing pip logging output with JSON output."
+            ),
+        )
 
         # TODO: select extras, uv has these
         #  --extra <EXTRA>           Include optional dependencies from the specified
@@ -270,6 +285,11 @@ class SyncCommand(RequirementCommand):
         options.require_hashes = False
         options.no_require_hashes = True
 
+        # TODO: do we want format control? release control?
+        options.format_control = FormatControl()
+        options.release_control = ReleaseControl()
+        options.prefer_binary = False
+
         logger.verbose("Using %s", get_pip_version())
 
         session = self.get_default_session(options)
@@ -310,15 +330,23 @@ class SyncCommand(RequirementCommand):
             for package, package_dist in select_from_pylock_path_or_url(
                 pylock_filename, session=session
             ):
-                reqs.append(
-                    install_req_from_pylock_package(
-                        package,
-                        package_dist,
-                        pylock_filename,
-                        options.format_control,
-                        user_supplied=True,
-                    )
+                req_to_add, locked_link = install_req_from_pylock_package(
+                    package,
+                    package_dist,
+                    pylock_filename,
+                    user_supplied=True,
                 )
+                reqs.append(req_to_add)
+                if locked_link:
+                    # Not a direct URL, set req.link so
+                    # prepare_linked_requirement below works.
+                    assert not req_to_add.link
+                    assert not req_to_add.original_link
+                    req_to_add.link = locked_link
+                else:
+                    # Direct URL: the req has a link
+                    assert req_to_add.link
+                    assert req_to_add.original_link
 
             # TODO: this does not seem to work, investigate
             wheel_cache = WheelCache(options.cache_dir)
@@ -331,18 +359,9 @@ class SyncCommand(RequirementCommand):
                 finder=finder,
                 use_user_site=False,
                 verbosity=self.verbosity,
+                allow_editables=True,
             )
             for req in reqs:
-                # Only when installing is it permitted to use PEP 660.
-                # In other circumstances (pip wheel, pip download) we generate
-                # regular (i.e. non editable) metadata and wheels.
-                req.permit_editable_wheels = True
-                # TODO: refactor, this link handling is not pretty
-                if req.locked_link:
-                    assert not req.link
-                    req.link = req.locked_link
-                else:
-                    assert req.link
                 if req.editable:
                     preparer.prepare_editable_requirement(req)
                 else:
@@ -351,6 +370,14 @@ class SyncCommand(RequirementCommand):
             #  TODO: do not install/prepare if already installed
             #  - for direct URLs, check direct_url.json
             #  - for sdist and wheels, rely on version only until we have PEP 710
+
+            if options.json_report_file:
+                report = InstallationReport(reqs)
+                if options.json_report_file == "-":
+                    print_json(data=report.to_dict())
+                else:
+                    with open(options.json_report_file, "w", encoding="utf-8") as f:
+                        json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
 
             if options.dry_run:
                 would_install_items = sorted(
@@ -379,6 +406,7 @@ class SyncCommand(RequirementCommand):
                 reqs_to_build,
                 wheel_cache=wheel_cache,
                 verify=True,
+                allow_editables=True,
             )
 
             if build_failures:
@@ -409,6 +437,7 @@ class SyncCommand(RequirementCommand):
             )
 
             # TODO: uninstall packages not part of the lock file
+            # TODO: how does that interact with build packages and --no-build-isolation?
 
             lib_locations = get_lib_location_guesses(
                 user=False,
