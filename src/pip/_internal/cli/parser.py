@@ -216,27 +216,16 @@ class ConfigOptionParser(CustomOptionParser):
         assert self.name
         super().__init__(*args, **kwargs)
 
-    def _warn_or_fail_on_invalid_config(
-        self, key: str, val: str, exc: optparse.OptionValueError
-    ) -> None:
-        self._seen_invalid_options.add((key, val))
-        # We don't want to punish users for use-feature config values they set,
-        # since failing on a feature they chose to use can be confusing.
-        raise self.error(
-            f"Invalid value for configuration option {key!r}: {exc}. "
-            f"Check your pip configuration files for this value. "
-            f"See https://pip.pypa.io/en/stable/topics/configuration/#location "
-            "for config file locations."
-        )
-
     def check_default(self, option: optparse.Option, key: str, val: str) -> Any:
-        if (key, val) in self._seen_invalid_options:
-            return None
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            self._warn_or_fail_on_invalid_config(key, val, exc)
-            return None
+            raise self.error(
+                f"Invalid value for configuration option {key!r}: {exc}. "
+                f"Check your pip configuration files for this value. "
+                f"See https://pip.pypa.io/en/stable/topics/configuration/#location "
+                "for config file locations."
+            )
 
     def _get_ordered_configuration_items(
         self,
