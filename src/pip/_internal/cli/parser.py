@@ -220,12 +220,11 @@ class ConfigOptionParser(CustomOptionParser):
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
             logger.error(
-                "Invalid value for configuration option %r: %s. "
+                "An error occurred during configuration: %s. "
                 "Check your pip configuration files or "
                 "environment variables for this value. "
                 "See https://pip.pypa.io/en/stable/topics/configuration/ "
                 "for more information.",
-                key,
                 exc,
             )
             sys.exit(3)
