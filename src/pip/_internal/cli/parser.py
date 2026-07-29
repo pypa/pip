@@ -219,12 +219,15 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            raise self.error(
-                f"Invalid value for configuration option {key!r}: {exc}. "
-                f"Check your pip configuration files for this value. "
-                f"See https://pip.pypa.io/en/stable/topics/configuration/#location "
-                "for config file locations."
+            logger.error(
+                "Invalid value for configuration option %r: %s. "
+                "Check your pip configuration files for this value. "
+                "See https://pip.pypa.io/en/stable/topics/configuration/#location "
+                "for config file locations.",
+                repr(key),
+                exc,
             )
+            sys.exit(3)
 
     def _get_ordered_configuration_items(
         self,
