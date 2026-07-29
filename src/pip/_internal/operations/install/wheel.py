@@ -133,18 +133,26 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> str | None:
         script_name = dest_path.name
         grouped_by_dir[parent_dir].add(script_name)
 
-    # We don't want to warn for directories that are on PATH.
-    not_warn_dirs = [
-        Path(i).resolve() for i in os.environ.get("PATH", "").split(os.pathsep)
-    ]
     # If an executable sits with sys.executable, we don't warn for it.
     #     This covers the case of venv invocations without activating the venv.
-    not_warn_dirs.append(Path(sys.executable).parent.resolve())
+    executable_dir = Path(sys.executable).parent.resolve()
+    path_entries = os.environ.get("PATH", "").split(os.pathsep)
+
+    # We don't want to warn for directories that are on PATH.
     warn_for: dict[Path, set[str]] = {
         parent_dir: scripts
         for parent_dir, scripts in grouped_by_dir.items()
-        if parent_dir not in not_warn_dirs
+        if parent_dir != executable_dir and str(parent_dir) not in path_entries
     }
+
+    # Resolving PATH entries hits the filesystem, so only do it for what's left.
+    if warn_for:
+        not_warn_dirs = {Path(i).resolve() for i in path_entries}
+        warn_for = {
+            parent_dir: scripts
+            for parent_dir, scripts in warn_for.items()
+            if parent_dir not in not_warn_dirs
+        }
     if not warn_for:
         return None
 
@@ -173,9 +181,7 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> str | None:
         msg_lines.append(last_line_fmt.format("these directories"))
 
     # Add a note if any directory starts with ~
-    warn_for_tilde = any(
-        i[0] == "~" for i in os.environ.get("PATH", "").split(os.pathsep) if i
-    )
+    warn_for_tilde = any(i[0] == "~" for i in path_entries if i)
     if warn_for_tilde:
         tilde_warning_msg = (
             "NOTE: The current PATH contains path(s) starting with `~`, "
