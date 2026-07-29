@@ -1,1 +1,0 @@
-Fix decoding the URL path twice while determining a link filename (CVE-2026-13346).

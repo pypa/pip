@@ -9,6 +9,139 @@
 
 .. towncrier release notes start
 
+26.2 (2026-07-29)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Newly published packages will no longer be immediately visible to pip
+  if the index uses caching. To install a newly published package, use
+  ``--refresh-package``. (`#13680 <https://github.com/pypa/pip/issues/13680>`_)
+- Drop support for detecting legacy, non-:pep:`405`, ``virtualenv`` (< 20)
+  environments. (`#14062 <https://github.com/pypa/pip/issues/14062>`_)
+- Constraints files, including ``PIP_CONSTRAINT``, no longer affect isolated
+  build environments. Use ``--build-constraint`` or the ``PIP_BUILD_CONSTRAINT``
+  environment variable to constrain build dependencies instead.
+
+  The ``--use-feature=build-constraint`` flag is now always enabled and has no
+  effect. (`#14094 <https://github.com/pypa/pip/issues/14094>`_)
+
+Features
+--------
+
+- Declare support for Python 3.15 (`#14208 <https://github.com/pypa/pip/issues/14208>`_)
+- Support self-referential extras officially. pip has supported this by accident since version 21.2. (`#11296 <https://github.com/pypa/pip/issues/11296>`_)
+- Add ``--only-deps`` flag to instruct pip to select only the dependencies
+  of supplied packages. It cannot be used with ``--no-deps``, ``-r``, ``--group``,
+  or ``--requirements-from-script``. (`#11440 <https://github.com/pypa/pip/issues/11440>`_)
+- Cache simple responses in accordance to their ``Cache-Control`` header
+  instead of always revalidating on every request. To refresh cached package index responses
+  and ensure newly published packages are found, use ``--refresh-package <package>``. (`#13680 <https://github.com/pypa/pip/issues/13680>`_)
+- Add ``--no-require-hashes`` to disable automatic enablement of
+  ``--require-hashes`` when encountering a requirement with hashes. (`#14169 <https://github.com/pypa/pip/issues/14169>`_)
+- Honor ``--only-final`` when sourcing requirements with ``-r pylock.toml``. (`#13950 <https://github.com/pypa/pip/issues/13950>`_)
+- Add support for ``pylock.toml`` ``upload-time`` field, so ``--uploaded-prior-to`` works with ``-r pylock.toml``. (`#14168 <https://github.com/pypa/pip/issues/14168>`_)
+- Better error messages in case of conflicts with requirements from ``-r pylock.toml``. (`#13963 <https://github.com/pypa/pip/issues/13963>`_)
+- Add experimental support for isolating build subprocesses by creating standard
+  virtual environments. This will fix most (if not all) subtle isolation issues
+  that can lead to broken builds exclusive to pip. The feature can be enabled
+  via ``--use-feature=venv-isolation`` and will be enabled by default in a future
+  release.
+
+  Note that the feature has limited compatibility with ``--use-feature=inprocess-build-deps``.
+  While most builds should work with both features enabled, there are known edge cases.
+  ``inprocess-build-deps`` will not be enabled by default until they are fixed. (`#14070 <https://github.com/pypa/pip/issues/14070>`_)
+- Present more informative diagnostic errors on uncaught network errors. (`#14115 <https://github.com/pypa/pip/issues/14115>`_)
+- Allow opting out of Git partial clones with ``PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER``. (`#11043 <https://github.com/pypa/pip/issues/11043>`_)
+- Add a ``--no-proxy-env`` (or ``--proxy ""``) option to ignore proxies
+  configured via non-pip environment variables or configuration files.
+  A proxy set with ``--proxy`` is still used. (`#5378 <https://github.com/pypa/pip/issues/5378>`_)
+- Add support for pulling username from keyring subprocess provider (`#12543 <https://github.com/pypa/pip/issues/12543>`_)
+- Speedup tab autocompletion by lazy-importing certain modules. (`#4768 <https://github.com/pypa/pip/issues/4768>`_)
+- Improve cached wheel lookup performance when many cached wheels are checked
+  for compatibility. (`#14122 <https://github.com/pypa/pip/issues/14122>`_)
+- Speed up path compaction when displaying uninstall changes. (`#14107 <https://github.com/pypa/pip/issues/14107>`_)
+
+Bug Fixes
+---------
+
+- Only emit the invalid-metadata warning once per location per run, instead of repeating it during the same command. (`#11436 <https://github.com/pypa/pip/issues/11436>`_)
+- Handle ``BrokenPipeError`` when pip output is piped to a command that closes early. (`#11608 <https://github.com/pypa/pip/issues/11608>`_)
+- Follow symlinks while checking if installed scripts are on PATH. (`#11953 <https://github.com/pypa/pip/issues/11953>`_)
+- Stop dropping extras from messages about candidates with inconsistent metadata. (`#12023 <https://github.com/pypa/pip/issues/12023>`_)
+- Stop animating progress bars and status spinners when running on CI, even
+  if ``FORCE_COLOR`` is set. (`#13354 <https://github.com/pypa/pip/issues/13354>`_)
+- Ensure truststore feature remains active while initially connecting to
+  a HTTPS proxy. (`#13465 <https://github.com/pypa/pip/issues/13465>`_)
+- Address encoding warnings emitted when Python's UTF-8 Mode is enabled by
+  continuing to use the configured locale. (`#13922 <https://github.com/pypa/pip/issues/13922>`_)
+- Raise an error when the :pep:`658` ``.metadata`` file used during dependency
+  resolution disagrees with the downloaded wheel's ``METADATA`` on ``Name``,
+  ``Version``, ``Requires-Dist``, ``Requires-Python`` or ``Provides-Extra``. (`#13983 <https://github.com/pypa/pip/issues/13983>`_)
+- Prevent system packages from leaking into isolated build environments on Python 3.15 (`#14033 <https://github.com/pypa/pip/issues/14033>`_)
+- Never use persistent wheel cache for local directory requirements even if there
+  is a matching entry. (`#14044 <https://github.com/pypa/pip/issues/14044>`_)
+- Avoid re-fetching a pinned Git commit that is already present locally. (`#14055 <https://github.com/pypa/pip/issues/14055>`_)
+- Report the correct configuration level for ``cert`` in ``pip debug`` output. (`#14056 <https://github.com/pypa/pip/issues/14056>`_)
+- Fix ``pip show`` crash when a distribution has no ``Metadata-Version``. (`#14057 <https://github.com/pypa/pip/issues/14057>`_)
+- Remove empty ``http-v2`` cache directories when running ``pip cache purge``. (`#14058 <https://github.com/pypa/pip/issues/14058>`_)
+- Report a copy failure in ``pip wheel`` instead of a misleading build failure. (`#14059 <https://github.com/pypa/pip/issues/14059>`_)
+- Make ``pip install`` conflict checks independent of installed distribution iteration order. (`#14074 <https://github.com/pypa/pip/issues/14074>`_)
+- Fix ``ProtocolError`` exceptions raised after an incomplete download from bypassing
+  download resume logic and leading to a crash. (`#14079 <https://github.com/pypa/pip/issues/14079>`_)
+- Fix caching bug where local directory requirements would be cached if the
+  directory name contains a dash. (`#14080 <https://github.com/pypa/pip/issues/14080>`_)
+- Avoid reparsing distribution metadata when formatting the default ``pip list``
+  columns output with the importlib backend. (`#14089 <https://github.com/pypa/pip/issues/14089>`_)
+- Fix decoding the URL path twice while determining a link filename (CVE-2026-13346). (`#14110 <https://github.com/pypa/pip/issues/14110>`_)
+- Avoid reading installed file lists in ``pip show`` unless ``--files`` is used. (`#14117 <https://github.com/pypa/pip/issues/14117>`_)
+- Additional rejection of tar archives that write outside the target
+  directory through symlink traversal when extracting on Python
+  versions pre-PEP 706. (`#14127 <https://github.com/pypa/pip/issues/14127>`_)
+- Fix ``pip list --not-required`` listing dependencies of packages excluded with ``--exclude``. (`#14129 <https://github.com/pypa/pip/issues/14129>`_)
+- Fail an interrupted download instead of corrupting the saved file when the
+  server resumes a range request from a different offset than was requested. (`#14131 <https://github.com/pypa/pip/issues/14131>`_)
+- Fix option errors printing the usage message with raw Rich markup. (`#14136 <https://github.com/pypa/pip/issues/14136>`_)
+- platformdirs 4.6.0+ adds support for ``XDG_*`` environment variables on macOS, so
+  some directory locations may change if any of these are set:
+
+  - ``XDG_CACHE_HOME``: The `pip cache directory <https://pip.pypa.io/en/stable/cli/pip_cache/>`_
+    will be at ``$XDG_CACHE_HOME/pip``.
+  - ``XDG_DATA_DIRS``: The `global configuration file <https://pip.pypa.io/en/stable/topics/configuration/#config-file>`_
+    will be inside ``$XDG_DATA_DIRS/pip``
+  - ``XDG_DATA_HOME``: The `user configuration file <https://pip.pypa.io/en/stable/topics/configuration/#config-file>`_
+    will be inside ``$XDG_DATA_HOME/pip``, if the directory exists (`#14142 <https://github.com/pypa/pip/issues/14142>`_)
+- Recover credentials embedded in a redirect ``Location`` URL when handling a
+  ``401`` response, even under ``--no-input``. Previously this extraction was
+  gated behind keyring being enabled, so ``--no-input`` (with the default keyring
+  provider) caused downloads that rely on a cross-origin redirect with embedded
+  credentials to fail with ``401``. (`#14182 <https://github.com/pypa/pip/issues/14182>`_)
+- Reject a package ``path`` in a ``pylock.toml`` fetched from a URL when it
+  resolves outside the lock file's own location, so a remote lock file can no
+  longer point at the local filesystem or another host. (`#14159 <https://github.com/pypa/pip/issues/14159>`_)
+- Respect ``--uploaded-prior-to``, ``--no-binary``, ``--only-binary``,
+  and ``--prefer-binary`` in ``pip list --outdated`` and
+  ``pip list --uptodate`` when determining the latest available version. (`#14190 <https://github.com/pypa/pip/issues/14190>`_)
+- Show a clear error instead of a traceback for an invalid requirement marker. (`#6385 <https://github.com/pypa/pip/issues/6385>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2026.6.17
+- Upgrade distlib to 0.4.2
+- Upgrade idna to 3.18
+- Upgrade platformdirs to 4.10.0
+- Upgrade pygments to 2.20.0
+- Upgrade requests to 2.34.2
+- Upgrade tomli to 2.4.1
+- Upgrade urllib3 to 2.7.0
+
+Process
+-------
+
+- Include a CycloneDX SBOM (Software Bill of Materials) file alongside vendored libraries.
+
 26.1.2 (2026-05-31)
 ===================
 

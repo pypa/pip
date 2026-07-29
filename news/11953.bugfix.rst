@@ -1,1 +1,0 @@
-Follow symlinks while checking if installed scripts are on PATH.

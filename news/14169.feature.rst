@@ -1,2 +1,0 @@
-Add ``--no-require-hashes`` to disable automatic enablement of
-``--require-hashes`` when encountering a requirement with hashes.
