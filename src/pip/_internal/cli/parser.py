@@ -222,21 +222,12 @@ class ConfigOptionParser(CustomOptionParser):
         self._seen_invalid_options.add((key, val))
         # We don't want to punish users for use-feature config values they set,
         # since failing on a feature they chose to use can be confusing.
-        if key == "use-feature":
-            logger.warning(
-                "%r is not a valid value for use-feature; "
-                "consider removing it from the configuration file. "
-                "See https://pip.pypa.io/en/stable/topics/configuration/#location "
-                "for config file locations.",
-                val,
-            )
-        else:
-            raise self.error(
-                f"Invalid value for configuration option {key!r}: {exc}. "
-                f"Check your pip configuration files for this value. "
-                f"See https://pip.pypa.io/en/stable/topics/configuration/#location "
-                "for config file locations."
-            )
+        raise self.error(
+            f"Invalid value for configuration option {key!r}: {exc}. "
+            f"Check your pip configuration files for this value. "
+            f"See https://pip.pypa.io/en/stable/topics/configuration/#location "
+            "for config file locations."
+        )
 
     def check_default(self, option: optparse.Option, key: str, val: str) -> Any:
         if (key, val) in self._seen_invalid_options:

@@ -57,15 +57,6 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "unset", "test.blah")
         script.pip("config", "get", "test.blah", expect_error=True)
 
-    def test_invalid_use_feature_doesnt_softlock_and_warns(
-        self, script: PipTestEnvironment
-    ) -> None:
-        script.pip("config", "set", "global.use-feature", "blah")
-
-        result = script.pip("list")
-        assert "is not a valid value for use-feature" in result.stderr
-        assert result.returncode == 0
-
     def test_invalid_config_value_throws_error(
         self, script: PipTestEnvironment
     ) -> None:
