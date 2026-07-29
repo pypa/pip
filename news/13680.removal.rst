@@ -1,0 +1,3 @@
+Newly published packages will no longer be immediately visible to pip
+if the index uses caching. To install a newly published package, use
+``--refresh-package``.
