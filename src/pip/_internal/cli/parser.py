@@ -224,7 +224,7 @@ class ConfigOptionParser(CustomOptionParser):
                 "Check your pip configuration files for this value. "
                 "See https://pip.pypa.io/en/stable/topics/configuration/#location "
                 "for config file locations.",
-                repr(key),
+                key,
                 exc,
             )
             sys.exit(3)
