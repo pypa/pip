@@ -212,7 +212,6 @@ class ConfigOptionParser(CustomOptionParser):
     ) -> None:
         self.name = name
         self.config = Configuration(isolated)
-        self._seen_invalid_options: set[tuple[str, str]] = set()
         assert self.name
         super().__init__(*args, **kwargs)
 

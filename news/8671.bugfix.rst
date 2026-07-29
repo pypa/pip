@@ -1,1 +1,1 @@
-Warn and skip invalid ``use-feature`` values instead of raising an error.
+Fail on invalid configuration values with a clear error message.
