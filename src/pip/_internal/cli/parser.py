@@ -215,15 +215,16 @@ class ConfigOptionParser(CustomOptionParser):
         assert self.name
         super().__init__(*args, **kwargs)
 
-    def check_default(self, option: optparse.Option, key: str, val: str) -> Any:
+    def check_default(self, option: optparse.Option, key: str, val: Any) -> Any:
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
             logger.error(
                 "Invalid value for configuration option %r: %s. "
-                "Check your pip configuration files for this value. "
-                "See https://pip.pypa.io/en/stable/topics/configuration/#location "
-                "for config file locations.",
+                "Check your pip configuration files or "
+                "environment variables for this value. "
+                "See https://pip.pypa.io/en/stable/topics/configuration/ "
+                "for more information.",
                 key,
                 exc,
             )
