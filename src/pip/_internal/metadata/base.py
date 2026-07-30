@@ -637,6 +637,10 @@ class BaseEnvironment:
     def validate_distribution(self, dist: BaseDistribution) -> bool:
         # do dir name and version exist?
         dir_info = self._get_name_and_version_from_info_location(dist)
+        if not dist.info_location or not dist.info_location.endswith(".dist-info"):
+            # Validation is only implemented for modern .dist-info installations.
+            # Legacy egg-info distributions are passed through without validation.
+            return True
         if not dir_info:
             logger.warning(
                 "Ignoring distribution at %s: could not determine "
