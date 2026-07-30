@@ -612,26 +612,17 @@ class BaseEnvironment:
         """
         raise NotImplementedError()
 
-    def _get_version_from_info_location(self, dist: BaseDistribution) -> str | None:
+    def _get_name_and_version_from_info_location(
+        self, dist: BaseDistribution
+    ) -> tuple[str, str] | None:
         info_location = dist.info_location
         if not info_location:
             return None
         stem, suffix = os.path.splitext(pathlib.Path(info_location).name)
         if suffix == ".dist-info":
-            _, sep, version = stem.partition("-")
-            if sep:
-                return version
-        return None
-
-    def _get_dir_name_from_info_location(self, dist: BaseDistribution) -> str | None:
-        info_location = dist.info_location
-        if not info_location:
-            return None
-        stem, suffix = os.path.splitext(pathlib.Path(info_location).name)
-        if suffix == ".dist-info":
-            name, sep, _ = stem.partition("-")
-            if sep:
-                return name
+            name, sep, version = stem.partition("-")
+            if sep and name and version:
+                return name, version
         return None
 
     def _is_valid_project_name(self, name: str) -> bool:
@@ -644,18 +635,18 @@ class BaseEnvironment:
         )
 
     def validate_distribution(self, dist: BaseDistribution) -> bool:
-        # does dir name exist?
-        dir_name = self._get_dir_name_from_info_location(dist)
-        if not dir_name:
+        # do dir name and version exist?
+        dir_info = self._get_name_and_version_from_info_location(dist)
+        if not dir_info:
             logger.warning(
                 "Ignoring distribution at %s: could not determine "
-                "package name from the installation directory.",
+                "package name and/or version from the installation directory.",
                 dist.location,
             )
             return False
 
+        dir_name, dir_version = dir_info
         # is dir name valid?
-
         # Make sure the distribution actually comes from a valid Python
         # packaging distribution. Pip's AdjacentTempDirectory leaves folders
         # e.g. ``~atplotlib.dist-info`` if cleanup was interrupted. The
@@ -665,7 +656,7 @@ class BaseEnvironment:
                 "Ignoring distribution at %s: %r is not a valid package name. "
                 "This may be a partial or interrupted installation.",
                 dist.location,
-                dist.canonical_name,
+                dir_name,
             )
             return False
 
@@ -675,7 +666,7 @@ class BaseEnvironment:
             logger.warning(
                 "Ignoring distribution %r at %s: METADATA is missing the "
                 "required Name field.",
-                dist.canonical_name,
+                dir_name,
                 dist.location,
             )
             return False
@@ -686,7 +677,7 @@ class BaseEnvironment:
                 "Ignoring distribution at %s: %r is not a valid package name. "
                 "This may be a partial or interrupted installation.",
                 dist.location,
-                dist.canonical_name,
+                dir_name,
             )
             return False
 
@@ -694,21 +685,11 @@ class BaseEnvironment:
         if canonicalize_name(name) != canonicalize_name(dir_name):
             logger.warning(
                 "Ignoring distribution %r at %s: package name in METADATA "
-                "(%r) does not match the installation directory name.",
-                dist.canonical_name,
+                "(%r) does not match the installation directory name (%r).",
+                dir_name,
                 dist.location,
                 name,
-            )
-            return False
-
-        # does dir version value exist?
-        dir_version = self._get_version_from_info_location(dist)
-        if not dir_version:
-            logger.warning(
-                "Ignoring distribution %r at %s: could not determine "
-                "package version from the installation directory.",
-                dist.canonical_name,
-                dist.location,
+                dir_name,
             )
             return False
 
@@ -718,7 +699,7 @@ class BaseEnvironment:
             logger.warning(
                 "Ignoring distribution %r at %s: METADATA is missing the "
                 "required Version field.",
-                dist.canonical_name,
+                dir_name,
                 dist.location,
             )
             return False
@@ -729,8 +710,8 @@ class BaseEnvironment:
             if Version(version) != Version(dir_version):
                 logger.warning(
                     "Ignoring distribution %r at %s: version in METADATA (%r) "
-                    "does not match the installation directory name (%r).",
-                    dist.canonical_name,
+                    "does not match the installation directory version (%r).",
+                    dir_name,
                     dist.location,
                     version,
                     dir_version,
@@ -740,7 +721,7 @@ class BaseEnvironment:
             logger.warning(
                 "Ignoring distribution %r at %s: version %r is not a valid "
                 "PEP 440 version string.",
-                dist.canonical_name,
+                dir_name,
                 dist.location,
                 version,
             )
