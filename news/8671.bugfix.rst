@@ -1,1 +1,1 @@
-Fail on invalid configuration values with a clear error message.
+Fail with a clearer error message on invalid configuration values.
