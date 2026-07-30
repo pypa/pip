@@ -22,6 +22,7 @@ from typing import (
     Protocol,
 )
 
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError
 
@@ -114,7 +115,11 @@ def _ensure_api_response(url: str, session: PipSession) -> None:
     _ensure_api_header(resp)
 
 
-def _get_simple_response(url: str, session: PipSession) -> Response:
+def _get_simple_response(
+    url: str,
+    session: PipSession,
+    force_revalidate: bool = False,
+) -> Response:
     """Access an Simple API response with GET, and return the response.
 
     This consists of three parts:
@@ -132,32 +137,24 @@ def _get_simple_response(url: str, session: PipSession) -> Response:
 
     logger.debug("Getting page %s", redact_auth_from_url(url))
 
-    resp = session.get(
-        url,
-        headers={
-            "Accept": ", ".join(
-                [
-                    "application/vnd.pypi.simple.v1+json",
-                    "application/vnd.pypi.simple.v1+html; q=0.1",
-                    "text/html; q=0.01",
-                ]
-            ),
-            # We don't want to blindly returned cached data for
-            # /simple/, because authors generally expecting that
-            # twine upload && pip install will function, but if
-            # they've done a pip install in the last ~10 minutes
-            # it won't. Thus by setting this to zero we will not
-            # blindly use any cached data, however the benefit of
-            # using max-age=0 instead of no-cache, is that we will
-            # still support conditional requests, so we will still
-            # minimize traffic sent in cases where the page hasn't
-            # changed at all, we will just always incur the round
-            # trip for the conditional GET now instead of only
-            # once per 10 minutes.
-            # For more information, please see pypa/pip#5670.
-            "Cache-Control": "max-age=0",
-        },
-    )
+    headers = {
+        "Accept": ", ".join(
+            [
+                "application/vnd.pypi.simple.v1+json",
+                "application/vnd.pypi.simple.v1+html; q=0.1",
+                "text/html; q=0.01",
+            ]
+        ),
+    }
+
+    if force_revalidate:
+        # Using max-age=0 rather than no-cache still supports conditional
+        # requests, minimizing traffic when the page hasn't changed.
+        # See pypa/pip#5670.
+        logger.debug("Refreshing package index response.")
+        headers["Cache-Control"] = "max-age=0"
+
+    resp = session.get(url, headers=headers)
     raise_for_status(resp)
 
     # The check for archives above only works if the url ends with
@@ -346,6 +343,7 @@ def _get_index_content(
     *,
     session: PipSession,
     error_context: IndexErrorContext | None = None,
+    force_revalidate: bool = False,
 ) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
 
@@ -373,7 +371,9 @@ def _get_index_content(
         logger.debug(" file: URL is directory, getting %s", url)
 
     try:
-        resp = _get_simple_response(url, session=session)
+        resp = _get_simple_response(
+            url, session=session, force_revalidate=force_revalidate
+        )
     except _NotHTTP:
         logger.warning(
             "Skipping page %s because it looks like an archive, and cannot "
@@ -475,13 +475,25 @@ class LinkCollector:
         return self.search_scope.find_links
 
     def fetch_response(
-        self, location: Link, error_context: IndexErrorContext | None = None
+        self, location: Link, error_context: IndexErrorContext | None = None,
+        package_name: str | None = None
     ) -> IndexContent | None:
         """
         Fetch an HTML page containing package links.
         """
+        # By default we may return cached /simple/ responses. Users can force
+        # revalidation to ensure newly uploaded distributions become visible
+        # immediately after publication. See pypa/pip#5670.
+        force_revalidate = self.session.refresh_package
+        should_force_revalidate = ":all:" in force_revalidate or (
+            package_name is not None
+            and canonicalize_name(package_name) in force_revalidate
+        )
         return _get_index_content(
-            location, session=self.session, error_context=error_context
+            location,
+            session=self.session,
+            force_revalidate=should_force_revalidate,
+            error_context=error_context,
         )
 
     def collect_sources(

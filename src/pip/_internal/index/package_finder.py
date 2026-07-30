@@ -676,6 +676,9 @@ class PackageFinder:
             BestCandidateResult,
         ] = {}
 
+        # projects for which a link is locked from a pylock
+        self._locked_links: dict[NormalizedName, Link] = {}
+
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
     # that decision to be made explicit in the calling code, which helps
@@ -735,6 +738,10 @@ class PackageFinder:
     @property
     def index_urls(self) -> list[str]:
         return self.search_scope.index_urls
+
+    @property
+    def refresh_package(self) -> set[str]:
+        return self._link_collector.session.refresh_package
 
     @property
     def proxy(self) -> str | None:
@@ -870,7 +877,9 @@ class PackageFinder:
             "Fetching project page and analyzing links: %s",
             project_url,
         )
-        index_response = self._link_collector.fetch_response(project_url, error_context)
+        index_response = self._link_collector.fetch_response(
+            project_url, error_context, package_name=link_evaluator.project_name
+        )
         if index_response is None:
             return []
 
@@ -914,7 +923,8 @@ class PackageFinder:
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
 
-        This checks index_urls and find_links.
+        This checks index_urls and find_links, unless a locked link is known
+        for that project.
         All versions found are returned as an InstallationCandidate list.
 
         See LinkEvaluator.evaluate_link() for details on which files
@@ -925,6 +935,24 @@ class PackageFinder:
 
         link_evaluator = self.make_link_evaluator(project_name)
         error_context = IndexErrorContext()
+
+        if locked_link := self._locked_links.get(canonicalize_name(project_name)):
+            # If a locked link is known for that project, do not check
+            # index_urls nor find_links. We don't use get_install_candidate here,
+            # because if a locked link is unsupported (due to format control,
+            # release control or otherwise), we want to error out immediately
+            # instead of ignoring it.
+            result, detail = link_evaluator.evaluate_link(locked_link)
+            if result != LinkType.candidate:
+                raise InstallationError(
+                    f"Could not install locked package {project_name!r} "
+                    f"from {locked_link.comes_from!r}: {detail}"
+                )
+            self._all_candidates[project_name] = [
+                InstallationCandidate(project_name, detail, locked_link, locked=True)
+            ]
+            return self._all_candidates[project_name]
+
         collected_sources = self._link_collector.collect_sources(
             project_name=project_name,
             candidates_from_page=functools.partial(
@@ -1116,6 +1144,16 @@ class PackageFinder:
             _format_versions(best_candidate_result.applicable_candidates),
         )
         raise BestVersionAlreadyInstalled
+
+    def add_locked_link(self, project_name: NormalizedName, locked_link: Link) -> None:
+        assert not self._all_candidates
+        if project_name in self._locked_links:
+            raise InstallationError(
+                f"Multiple locked links provided for {project_name}: "
+                f"{self._locked_links[project_name]} and {locked_link}"
+            )
+
+        self._locked_links[project_name] = locked_link
 
 
 def _find_name_version_sep(fragment: str, canonical_name: str) -> int:

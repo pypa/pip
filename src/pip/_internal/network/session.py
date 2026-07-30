@@ -46,6 +46,7 @@ from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
     build_url_from_netloc,
+    looks_like_ci,
     parse_netloc,
     redact_auth_from_url,
 )
@@ -77,35 +78,6 @@ SECURE_ORIGINS: list[SecureOrigin] = [
     # ssh is always secure.
     ("ssh", "*", "*"),
 ]
-
-
-# These are environment variables present when running under various
-# CI systems.  For each variable, some CI systems that use the variable
-# are indicated.  The collection was chosen so that for each of a number
-# of popular systems, at least one of the environment variables is used.
-# This list is used to provide some indication of and lower bound for
-# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
-# For more background, see: https://github.com/pypa/pip/issues/5499
-CI_ENVIRONMENT_VARIABLES = (
-    # Azure Pipelines
-    "BUILD_BUILDID",
-    # Jenkins
-    "BUILD_ID",
-    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
-    "CI",
-    # Explicit environment variable.
-    "PIP_IS_CI",
-)
-
-
-def looks_like_ci() -> bool:
-    """
-    Return whether it looks like pip is running under CI.
-    """
-    # We don't use the method of checking for a tty (e.g. using isatty())
-    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
-    # method doesn't provide definitive information in either direction.
-    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
 @functools.lru_cache(maxsize=1)
@@ -343,6 +315,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
         ssl_context: SSLContext | None = None,
+        refresh_package: set[str] | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -357,6 +330,7 @@ class PipSession(requests.Session):
         # "" disables proxying; None means no --proxy was given.
         self.pip_proxy: str | None = None
         self.pip_no_proxy_env = False
+        self.refresh_package: set[str] = refresh_package or set()
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()

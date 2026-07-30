@@ -1,1 +1,0 @@
-Remove empty ``http-v2`` cache directories when running ``pip cache purge``.
