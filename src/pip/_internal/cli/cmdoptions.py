@@ -453,7 +453,9 @@ def extra_index_url() -> Option:
         default=[],
         help="Extra URLs of package indexes to use in addition to "
         "--index-url. Should follow the same rules as "
-        "--index-url.",
+        "--index-url. Using this option to search for packages which "
+        "are not in the main repository is unsafe. This is a class of "
+        "security issue known as dependency confusion.",
     )
 
 
