@@ -623,9 +623,30 @@ class BaseEnvironment:
                 return version
         return None
 
+    def _get_dir_name_from_info_location(self, dist: BaseDistribution) -> str | None:
+        info_location = dist.info_location
+        if not info_location:
+            return None
+        stem, suffix = os.path.splitext(pathlib.Path(info_location).name)
+        if suffix == ".dist-info":
+            name, sep, _ = stem.partition("-")
+            if sep:
+                return name
+        return None
+
+    def _is_valid_project_name(self, name: str) -> bool:
+        return bool(
+            re.match(
+                r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$",
+                name,
+                flags=re.IGNORECASE,
+            )
+        )
+
     def validate_distribution(self, dist: BaseDistribution) -> bool:
         # does dir name exist?
-        if not dist.canonical_name:
+        dir_name = self._get_dir_name_from_info_location(dist)
+        if not dir_name:
             logger.warning(
                 "Ignoring distribution at %s: could not determine "
                 "package name from the installation directory.",
@@ -634,16 +655,12 @@ class BaseEnvironment:
             return False
 
         # is dir name valid?
+
         # Make sure the distribution actually comes from a valid Python
         # packaging distribution. Pip's AdjacentTempDirectory leaves folders
         # e.g. ``~atplotlib.dist-info`` if cleanup was interrupted. The
         # valid project name pattern is taken from PEP 508.
-        project_name_valid = re.match(
-            r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$",
-            dist.canonical_name,
-            flags=re.IGNORECASE,
-        )
-        if not project_name_valid:
+        if not self._is_valid_project_name(dir_name):
             logger.warning(
                 "Ignoring distribution at %s: %r is not a valid package name. "
                 "This may be a partial or interrupted installation.",
@@ -663,8 +680,18 @@ class BaseEnvironment:
             )
             return False
 
+        # is Name valid?
+        if not self._is_valid_project_name(name):
+            logger.warning(
+                "Ignoring distribution at %s: %r is not a valid package name. "
+                "This may be a partial or interrupted installation.",
+                dist.location,
+                dist.canonical_name,
+            )
+            return False
+
         # do METADATA Name and directory name agree with each other?
-        if canonicalize_name(name) != dist.canonical_name:
+        if canonicalize_name(name) != canonicalize_name(dir_name):
             logger.warning(
                 "Ignoring distribution %r at %s: package name in METADATA "
                 "(%r) does not match the installation directory name.",
