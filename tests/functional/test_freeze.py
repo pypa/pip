@@ -191,6 +191,27 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         assert f"Ignoring invalid distribution {name} (" in result.stderr
 
 
+def test_freeze_skips_malformed_dist(script: PipTestEnvironment) -> None:
+    """
+    Test that pip freeze skips malformed distributions with a warning.
+    """
+    dist_info_path = os.path.join(os.fspath(script.site_packages_path), "foo.dist-info")
+    os.makedirs(dist_info_path)
+    with open(os.path.join(dist_info_path, "METADATA"), "w") as f:
+        f.write(textwrap.dedent("""\
+            Metadata-Version: 1.0
+            Name: foo
+            Version: 1.0
+            """))
+
+    result = script.pip("freeze", expect_stderr=True)
+    output_lines = {line.strip() for line in result.stdout.splitlines()}
+    assert "foo==1.0" not in output_lines
+    assert (
+        "package name and/or version from the installation directory." in result.stderr
+    )
+
+
 @pytest.mark.git
 def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     """
