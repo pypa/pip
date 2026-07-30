@@ -475,8 +475,10 @@ class LinkCollector:
         return self.search_scope.find_links
 
     def fetch_response(
-        self, location: Link, error_context: IndexErrorContext | None = None,
-        package_name: str | None = None
+        self,
+        location: Link,
+        error_context: IndexErrorContext | None = None,
+        package_name: str | None = None,
     ) -> IndexContent | None:
         """
         Fetch an HTML page containing package links.
