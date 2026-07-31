@@ -14,7 +14,7 @@ import sysconfig
 import urllib.parse
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from pathlib import Path
@@ -92,6 +92,7 @@ def get_pip_version() -> str:
     return f"pip {__version__} from {pip_pkg_dir} (python {get_major_minor_version()})"
 
 
+@cache
 def running_under_zipapp() -> bool:
     return not pathlib.Path(pip_location).resolve().parent.is_dir()
 

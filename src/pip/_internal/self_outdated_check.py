@@ -229,9 +229,7 @@ def pip_self_version_check_fetch(
     Pair with :func:`pip_self_version_check_emit`, which displays the prompt
     after the command body runs.
     """
-    is_zipapp = running_under_zipapp()
-
-    if is_zipapp:
+    if running_under_zipapp():
         # Use the running pip's version; environment scans target the installed
         # pip, not the zipapp. Skip checks that don't apply to zipapps.
         local_version = parse_version(__version__)
@@ -262,7 +260,7 @@ def pip_self_version_check_fetch(
         local_version=local_version,
         remote_version_str=remote_version_str,
         installed_by_pip=installed_by_pip,
-        show_upgrade_hint=not is_zipapp,
+        show_upgrade_hint=not running_under_zipapp(),
     )
 
 
