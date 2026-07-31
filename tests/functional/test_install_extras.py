@@ -255,6 +255,43 @@ def test_install_extras(script: PipTestEnvironment) -> None:
     script.assert_installed(a="1", b="1", dep="1", meh="1")
 
 
+@pytest.mark.parametrize(
+    "all_extra",
+    [
+        ["pkg[a]", "pkg[b]"],
+        ["pkg[a, b]"],
+    ],
+    ids=["separate-specifiers", "combined-specifier"],
+)
+def test_install_self_referential_extras(
+    script: PipTestEnvironment,
+    all_extra: list[str],
+) -> None:
+    """A package extra can depend on the same package with a different extra."""
+    create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(script, "dep_b", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "a": ["dep_a"],
+            "b": ["dep_b"],
+            "all": all_extra,
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]",
+    )
+    script.assert_installed(pkg="1", dep_a="1", dep_b="1")
+
+
 def test_install_setuptools_extras_inconsistency(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:

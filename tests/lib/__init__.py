@@ -389,6 +389,12 @@ class TestPipResult:
                     f"Package directory {pkg_dir!r} has unexpected content {f}"
                 )
 
+    def assert_not_installed(self, pkg_name: str) -> None:
+        pkg_name = canonicalize_name(pkg_name)
+        for created in self.files_created:
+            if re.match(rf"{pkg_name}-.+\.dist-info", created.name):
+                raise TestFailure(f"Package {pkg_name} installed at {created!r}.")
+
     def did_create(self, path: StrPath, message: str | None = None) -> None:
         assert path in self.files_created, _one_or_both(message, self)
 
@@ -912,7 +918,6 @@ def _create_main_file(
 
 
 def _git_commit(
-    env_or_script: PipTestEnvironment,
     repo_dir: StrPath,
     message: str | None = None,
     allow_empty: bool = False,
@@ -922,7 +927,6 @@ def _git_commit(
     Run git-commit.
 
     Args:
-      env_or_script: pytest's `script` or `env` argument.
       repo_dir: a path to a Git repository.
       message: an optional commit message.
     """
@@ -946,7 +950,7 @@ def _git_commit(
     ]
     new_args.extend(args)
     new_args.extend(["-m", message])
-    env_or_script.run(*new_args, cwd=repo_dir)
+    subprocess.check_call(new_args, cwd=os.fspath(repo_dir))
 
 
 def _vcs_add(
@@ -1043,7 +1047,7 @@ def _create_test_package_with_subdirectory(
 
     script.run("git", "init", cwd=version_pkg_path)
     script.run("git", "add", ".", cwd=version_pkg_path)
-    _git_commit(script, version_pkg_path, message="initial version")
+    _git_commit(version_pkg_path, message="initial version")
 
     return version_pkg_path
 
@@ -1117,7 +1121,7 @@ def _change_test_package_version(
         version_pkg_path, name="version_pkg", output="some different version"
     )
     # Pass -a to stage the change to the main file.
-    _git_commit(script, version_pkg_path, message="messed version", stage_modified=True)
+    _git_commit(version_pkg_path, message="messed version", stage_modified=True)
 
 
 @contextmanager

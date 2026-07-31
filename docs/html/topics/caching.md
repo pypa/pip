@@ -4,7 +4,7 @@
 
 ```
 
-pip provides an on-by-default caching, designed to reduce the amount of time
+Pip provides an on-by-default caching, designed to reduce the amount of time
 spent on duplicate downloads and builds.
 
 ## What is cached
@@ -38,7 +38,7 @@ switched to newer versions of `pip`, you may wish to delete the old directory.
 
 ### Locally built wheels
 
-pip attempts to use wheels from its local wheel cache whenever possible.
+Pip attempts to use wheels from its local wheel cache whenever possible.
 
 This means that if there is a cached wheel for the same version of a specific
 package name, pip will use that wheel instead of rebuilding the project.
@@ -53,7 +53,7 @@ as `pip install .`) are not cached across runs, though they may be reused within
 the same `pip` execution.
 
 ```{versionchanged} 20.0
-pip now caches wheels when building from an immutable Git reference
+Pip now caches wheels when building from an immutable Git reference
 (i.e. a commit hash).
 ```
 
@@ -79,7 +79,7 @@ You can use `pip cache dir` to get the cache directory that pip is currently con
 ~/.cache/pip
 ```
 
-pip will also respect `XDG_CACHE_HOME`.
+Pip will also respect `XDG_CACHE_HOME`.
 ````
 
 ````{tab} MacOS
@@ -87,7 +87,7 @@ pip will also respect `XDG_CACHE_HOME`.
 ~/Library/Caches/pip
 ```
 
-pip will also respect `XDG_CACHE_HOME`.
+Pip will also respect `XDG_CACHE_HOME`.
 ````
 
 ````{tab} Windows
@@ -97,12 +97,12 @@ pip will also respect `XDG_CACHE_HOME`.
 ````
 
 ```{versionchanged} 26.2
-pip will also respect `XDG_CACHE_HOME` on macOS.
+Pip will also respect `XDG_CACHE_HOME` on macOS.
 ```
 
 ## Avoiding caching
 
-pip tries to use its cache whenever possible, and it is designed do the right
+Pip tries to use its cache whenever possible, and it is designed do the right
 thing by default.
 
 In some cases, pip's caching behaviour can be undesirable. As an example, if you
@@ -151,7 +151,7 @@ The {ref}`pip cache` command can be used to manage pip's cache.
 
 ## Disabling caching
 
-pip's caching behaviour is disabled by passing the `--no-cache-dir` option.
+Pip's caching behaviour is disabled by passing the `--no-cache-dir` option.
 
 It is, however, recommended to **NOT** disable pip's caching unless you have caching at a higher level (eg: layered caches in container builds). Doing so can
 significantly slow down pip (due to repeated operations and package builds)

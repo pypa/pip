@@ -360,6 +360,7 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setenv("GIT_AUTHOR_NAME", "pip")
     monkeypatch.setenv("GIT_AUTHOR_EMAIL", "distutils-sig@python.org")
+    monkeypatch.delenv("PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER", False)
 
     # We want to disable the version check from running in the tests
     monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "true")
@@ -817,6 +818,8 @@ class FakePackage:
     metadata: MetadataKind
     # This will override any dependencies specified in the actual dist's METADATA.
     requires_dist: tuple[str, ...] = ()
+    # This will override the Provides-Extra entries in the actual dist's METADATA.
+    provides_extra: tuple[str, ...] = ()
     # This will override the Name specified in the actual dist's METADATA.
     metadata_name: str | None = None
 
@@ -837,21 +840,17 @@ class FakePackage:
         checksum = sha256(self.generate_metadata()).hexdigest()
         return f'data-dist-info-metadata="sha256={checksum}"'
 
-    def requires_str(self) -> str:
-        if not self.requires_dist:
-            return ""
-        joined = " and ".join(self.requires_dist)
-        return f"Requires-Dist: {joined}"
-
     def generate_metadata(self) -> bytes:
         """This is written to `self.metadata_filename()` and will override the actual
         dist's METADATA, unless `self.metadata == MetadataKind.NoFile`."""
-        return dedent(f"""\
-        Metadata-Version: 2.1
-        Name: {self.metadata_name or self.name}
-        Version: {self.version}
-        {self.requires_str()}
-        """).encode("utf-8")
+        lines = [
+            "Metadata-Version: 2.1",
+            f"Name: {self.metadata_name or self.name}",
+            f"Version: {self.version}",
+        ]
+        lines.extend(f"Requires-Dist: {entry}" for entry in self.requires_dist)
+        lines.extend(f"Provides-Extra: {extra}" for extra in self.provides_extra)
+        return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 @pytest.fixture(scope="session")
@@ -896,8 +895,8 @@ def fake_packages() -> dict[str, list[FakePackage]]:
             ),
         ],
         "compilewheel": [
-            # Ensure we can override the dependencies of a wheel file by injecting PEP
-            # 658 metadata.
+            # The sidecar declares a dependency the wheel's embedded METADATA
+            # does not, which must be rejected as a Requires-Dist mismatch.
             FakePackage(
                 "compilewheel",
                 "1.0",
@@ -933,12 +932,16 @@ def fake_packages() -> dict[str, list[FakePackage]]:
             ),
         ],
         "requires-simple-extra": [
-            # Metadata name is not canonicalized.
+            # Metadata name is not canonicalized. The sidecar mirrors the
+            # wheel's embedded Requires-Dist and Provides-Extra so the
+            # post-download metadata reconciliation accepts it.
             FakePackage(
                 "requires-simple-extra",
                 "0.1",
                 "requires_simple_extra-0.1-py2.py3-none-any.whl",
                 MetadataKind.Sha256,
+                requires_dist=("simple==1.0; extra == 'extra'",),
+                provides_extra=("extra",),
                 metadata_name="Requires_Simple.Extra",
             ),
         ],
@@ -1045,7 +1048,8 @@ def html_index_with_onetime_server(
     """Serve files from a generated pypi index, erroring if a file is downloaded more
     than once.
 
-    Provide `-i http://localhost:8000` to pip invocations to point them at this server.
+    Provide `-i http://localhost:<port>` to pip invocations, where `<port>` is
+    the server's assigned port.
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
@@ -1060,7 +1064,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[set[str]] = set()
 
-    with patch_getfqdn(), InDirectoryServer(("", 8000), Handler) as httpd:
+    with patch_getfqdn(), InDirectoryServer(("", 0), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 

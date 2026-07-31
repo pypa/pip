@@ -166,6 +166,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -322,6 +323,7 @@ class InstallCommand(RequirementCommand):
             help="Do not warn about broken dependencies",
         )
         self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.no_require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
 
@@ -392,6 +394,7 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
+        cmdoptions.check_only_deps_option_does_not_conflict(options)
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
         cmdoptions.check_release_control_exclusive(options)
@@ -448,12 +451,6 @@ class InstallCommand(RequirementCommand):
 
             wheel_cache = WheelCache(options.cache_dir)
 
-            # Only when installing is it permitted to use PEP 660.
-            # In other circumstances (pip wheel, pip download) we generate
-            # regular (i.e. non editable) metadata and wheels.
-            for req in reqs:
-                req.permit_editable_wheels = True
-
             preparer = self.make_requirement_preparer(
                 temp_build_dir=directory,
                 options=options,
@@ -462,6 +459,7 @@ class InstallCommand(RequirementCommand):
                 finder=finder,
                 use_user_site=options.use_user_site,
                 verbosity=self.verbosity,
+                allow_editables=True,
             )
             resolver = self.make_resolver(
                 preparer=preparer,
@@ -527,6 +525,7 @@ class InstallCommand(RequirementCommand):
                 reqs_to_build,
                 wheel_cache=wheel_cache,
                 verify=True,
+                allow_editables=True,
             )
 
             if build_failures:

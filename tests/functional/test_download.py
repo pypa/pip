@@ -150,6 +150,30 @@ def test_download_should_download_wheel_deps(
     result.did_create(Path("scratch") / dep_filename)
 
 
+def test_download_only_deps_should_only_download_wheel_deps(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    It should download only dependencies for wheels (in the scratch path)
+    """
+    wheel_filename = "colander-0.9.9-py2.py3-none-any.whl"
+    dep_filename = "translationstring-1.1.tar.gz"
+    wheel_path = "/".join((data.find_links, wheel_filename))
+    result = script.pip(
+        "download",
+        "--only-deps",
+        "--no-build-isolation",
+        wheel_path,
+        "-d",
+        ".",
+        "--find-links",
+        data.find_links,
+        "--no-index",
+    )
+    result.did_not_create(Path("scratch") / wheel_filename)
+    result.did_create(Path("scratch") / dep_filename)
+
+
 def test_download_should_skip_existing_files(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1244,7 +1268,7 @@ def download_server_html_index(
             "-d",
             str(download_dir),
             "-i",
-            "http://localhost:8000",
+            f"http://localhost:{html_index_with_onetime_server.server_port}",
             *args,
         ]
         result = script.pip(*pip_args, allow_error=allow_error)
@@ -1261,10 +1285,6 @@ def download_server_html_index(
         (
             "colander",
             ["colander-0.9.9-py2.py3-none-any.whl", "translationstring-1.1.tar.gz"],
-        ),
-        (
-            "compilewheel",
-            ["compilewheel-1.0-py2.py3-none-any.whl", "simple-1.0.tar.gz"],
         ),
     ],
 )
@@ -1294,14 +1314,6 @@ def test_download_metadata(
             "colander",
             ["colander-0.9.9-py2.py3-none-any.whl", "translationstring-1.1.tar.gz"],
             "/colander/colander-0.9.9-py2.py3-none-any.whl",
-        ),
-        (
-            "compilewheel",
-            [
-                "compilewheel-1.0-py2.py3-none-any.whl",
-                "simple-1.0.tar.gz",
-            ],
-            "/compilewheel/compilewheel-1.0-py2.py3-none-any.whl",
         ),
     ],
 )
@@ -1337,11 +1349,11 @@ def test_download_metadata_server(
     [
         (
             "simple==3.0",
-            "95e0f200b6302989bcf2cead9465cf229168295ea330ca30d1ffeab5c0fed996",
+            "d522f4676f4d22e3d8954b7f1cf9e81f4f25bf623d0bf5e86def76299b23c9dd",
         ),
         (
             "has-script",
-            "16ba92d7f6f992f6de5ecb7d58c914675cf21f57f8e674fb29dcb4f4c9507e5b",
+            "45f8bb847670cb7306de7b8609f8b7b57b770e44f267cea3be46c50e84343804",
         ),
     ],
 )
@@ -1403,6 +1415,28 @@ def test_produces_error_for_mismatched_package_name_in_metadata(
         "simple2-3.0.tar.gz has inconsistent Name: expected 'simple2', but metadata "
         "has 'not-simple2'"
     ) in result.stdout
+
+
+def test_produces_error_for_mismatched_requires_dist_in_metadata(
+    download_local_html_index: Callable[..., tuple[TestPipResult, Path]],
+) -> None:
+    """Verify that a PEP 658 sidecar declaring dependencies absent from the
+    downloaded wheel's embedded METADATA causes the install to abort.
+
+    The ``compilewheel`` fixture serves a sidecar with
+    ``Requires-Dist: simple==1.0`` while the wheel itself declares no
+    dependencies; pip must reject this rather than resolving against the
+    sidecar's claim.
+    """
+    result, _ = download_local_html_index(
+        ["compilewheel"],
+        allow_error=True,
+    )
+    assert result.returncode != 0
+    assert (
+        "has inconsistent Requires-Dist between its PEP 658 .metadata file "
+        "and the wheel's METADATA: sidecar has 'simple==1.0', wheel has ''"
+    ) in result.stderr, str(result)
 
 
 @pytest.mark.parametrize(
