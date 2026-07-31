@@ -295,9 +295,7 @@ def test_fetch_zipapp_compares_running_version(
 @patch("pip._internal.self_outdated_check.__version__", "24.3.1")
 @patch("pip._internal.self_outdated_check.running_under_zipapp", new=lambda: True)
 @patch("pip._internal.self_outdated_check._get_current_remote_pip_version")
-def test_fetch_zipapp_current_is_silent(
-    mocked_get_remote: Mock, tmpdir: Path
-) -> None:
+def test_fetch_zipapp_current_is_silent(mocked_get_remote: Mock, tmpdir: Path) -> None:
     mocked_get_remote.return_value = "24.3.1"
     fake_options = Values({"cache_dir": str(tmpdir)})
 

@@ -9,13 +9,13 @@ import os.path
 import sys
 from dataclasses import dataclass
 
-from pip import __version__
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.rich.console import Group
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
+from pip import __version__
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import get_default_environment
