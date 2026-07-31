@@ -276,3 +276,31 @@ def test_fetch_skipped_when_pip_not_installed(
     result = pip_self_version_check_fetch(session=Mock(), options=fake_options)
     assert result is None
     mocked_get_remote.assert_not_called()
+
+
+@patch("pip._internal.self_outdated_check.__version__", "24.2")
+@patch("pip._internal.self_outdated_check.running_under_zipapp", new=lambda: True)
+@patch("pip._internal.self_outdated_check._get_current_remote_pip_version")
+def test_fetch_zipapp_compares_running_version(
+    mocked_get_remote: Mock, tmpdir: Path
+) -> None:
+    mocked_get_remote.return_value = "24.3.1"
+    fake_options = Values({"cache_dir": str(tmpdir)})
+
+    result = pip_self_version_check_fetch(session=Mock(), options=fake_options)
+
+    assert result == UpgradePrompt(old="24.2", new="24.3.1", show_upgrade_hint=False)
+
+
+@patch("pip._internal.self_outdated_check.__version__", "24.3.1")
+@patch("pip._internal.self_outdated_check.running_under_zipapp", new=lambda: True)
+@patch("pip._internal.self_outdated_check._get_current_remote_pip_version")
+def test_fetch_zipapp_current_is_silent(
+    mocked_get_remote: Mock, tmpdir: Path
+) -> None:
+    mocked_get_remote.return_value = "24.3.1"
+    fake_options = Values({"cache_dir": str(tmpdir)})
+
+    result = pip_self_version_check_fetch(session=Mock(), options=fake_options)
+
+    assert result is None
