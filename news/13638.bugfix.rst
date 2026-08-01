@@ -1,0 +1,3 @@
+Warn when installed distributions contain invalid metadata and skip
+invalid distributions consistently while allowing recovery commands to
+operate.
