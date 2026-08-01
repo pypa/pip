@@ -727,7 +727,7 @@ def installed_packages_summary(
     installed.sort(key=operator.attrgetter("name"))
     summary = []
     installed_versions = {}
-    for distribution in env.iter_all_distributions(skip_invalid=False):
+    for distribution in env.iter_all_distributions():
         installed_versions[distribution.canonical_name] = distribution.version
     for package in installed:
         display_name = package.name

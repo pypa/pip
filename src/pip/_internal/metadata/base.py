@@ -736,9 +736,10 @@ class BaseEnvironment:
         self, skip_invalid: bool = True
     ) -> Iterator[BaseDistribution]:
         """
-        Iterate through all installed distributions without any filtering.
-        If skip_invalid is set to True, pip will warn and skip on invalid
-        distributions.
+        Iterate through all installed distributions.
+
+        If skip_invalid is True (the default), invalid distributions are
+        logged and skipped.
         """
         for dist in self._iter_distributions():
             if skip_invalid and not self.validate_distribution(dist):
