@@ -563,6 +563,27 @@ class InstallationSubprocessError(DiagnosticPipError, InstallationError):
         return f"{self.command_description} exited with {self.exit_code}"
 
 
+class BackendUnavailableError(InstallationSubprocessError):
+    """The build backend could not be loaded."""
+
+    reference = "backend-unavailable"
+
+    def __init__(
+        self, *, hook_name: str, backend_name: str, backend_error: str
+    ) -> None:
+        DiagnosticPipError.__init__(
+            self,
+            message=f"Cannot import build backend {escape(backend_name)!r}.",
+            context=backend_error,
+            hint_stmt=None,
+            note_stmt="This is likely not a problem with pip.",
+        )
+        self.command_description = f"Calling build backend hook {hook_name}"
+
+    def __str__(self) -> str:
+        return str(self.message)
+
+
 class MetadataGenerationFailed(DiagnosticPipError, InstallationError):
     reference = "metadata-generation-failed"
 
