@@ -47,6 +47,11 @@ InfoPath = str | pathlib.PurePath
 
 logger = logging.getLogger(__name__)
 
+_VALID_PROJECT_NAME_RE = re.compile(
+    r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$",
+    flags=re.IGNORECASE,
+)
+
 
 class BaseEntryPoint(Protocol):
     @property
@@ -626,13 +631,7 @@ class BaseEnvironment:
         return None
 
     def _is_valid_project_name(self, name: str) -> bool:
-        return bool(
-            re.match(
-                r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$",
-                name,
-                flags=re.IGNORECASE,
-            )
-        )
+        return bool(_VALID_PROJECT_NAME_RE.match(name))
 
     def validate_distribution(self, dist: BaseDistribution) -> bool:
         # do dir name and version exist?
@@ -681,7 +680,7 @@ class BaseEnvironment:
                 "Ignoring distribution at %s: %r is not a valid package name. "
                 "This may be a partial or interrupted installation.",
                 dist.location,
-                dir_name,
+                name,
             )
             return False
 
@@ -736,7 +735,11 @@ class BaseEnvironment:
     def iter_all_distributions(
         self, skip_invalid: bool = True
     ) -> Iterator[BaseDistribution]:
-        """Iterate through all installed distributions without any filtering."""
+        """
+        Iterate through all installed distributions without any filtering.
+        If skip_invalid is set to True, pip will warn and skip on invalid
+        distributions.
+        """
         for dist in self._iter_distributions():
             if skip_invalid and not self.validate_distribution(dist):
                 continue
