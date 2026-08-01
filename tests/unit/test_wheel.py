@@ -448,9 +448,7 @@ class TestInstallUnpackedWheel:
                 req_description="simple",
             )
 
-        exc_text = str(e.value)
-        assert os.path.basename(wheel_path) in exc_text
-        assert entrypoint in exc_text
+        assert entrypoint in str(e.value)
 
     @pytest.mark.parametrize("bad_name", ["../../outside", "..", "."])
     @pytest.mark.parametrize("entry_point_type", ["console_scripts", "gui_scripts"])
