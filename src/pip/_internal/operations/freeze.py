@@ -3,6 +3,8 @@ from __future__ import annotations
 import collections
 import logging
 import os
+import re
+import urllib.parse
 from collections.abc import Container, Generator, Iterable
 from dataclasses import dataclass, field
 from typing import NamedTuple
@@ -18,6 +20,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.direct_url_helpers import direct_url_as_pep440_direct_reference
+from pip._internal.utils.misc import remove_auth_from_url
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,26 @@ logger = logging.getLogger(__name__)
 class _EditableInfo(NamedTuple):
     requirement: str
     comments: list[str]
+
+
+_PEP_610_AUTH_ENV_VARS = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
+
+
+def _strip_auth_from_editable_requirement(req: str) -> str:
+    """Remove credentials while preserving PEP 610-safe user information."""
+    parsed_req = urllib.parse.urlsplit(req)
+    netloc = parsed_req.netloc
+    if "@" not in netloc:
+        return req
+
+    user_pass = netloc.rsplit("@", 1)[0]
+    transport = parsed_req.scheme.rsplit("+", 1)[-1]
+    if (user_pass == "git" and transport == "ssh") or (
+        _PEP_610_AUTH_ENV_VARS.fullmatch(user_pass)
+    ):
+        return req
+
+    return remove_auth_from_url(req)
 
 
 def freeze(
@@ -214,7 +237,9 @@ def _get_editable_info(dist: BaseDistribution) -> _EditableInfo:
     except InstallationError as exc:
         logger.warning("Error when trying to get requirement for VCS system %s", exc)
     else:
-        return _EditableInfo(requirement=req, comments=[])
+        return _EditableInfo(
+            requirement=_strip_auth_from_editable_requirement(req), comments=[]
+        )
 
     logger.warning("Could not determine repository location of %s", location)
 

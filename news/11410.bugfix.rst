@@ -1,0 +1,1 @@
+Strip authentication credentials from editable VCS URLs in ``pip freeze``.
