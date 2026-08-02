@@ -42,6 +42,8 @@ def _strip_auth_from_editable_requirement(req: str) -> str:
 
     user_pass = netloc.rsplit("@", 1)[0]
     transport = parsed_req.scheme.rsplit("+", 1)[-1]
+    # Keep this exception deliberately narrow: only the literal SSH user
+    # "git" is known to be non-secret. Encoded user information is stripped.
     if (user_pass == "git" and transport == "ssh") or (
         _PEP_610_AUTH_ENV_VARS.fullmatch(user_pass)
     ):
