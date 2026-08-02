@@ -115,6 +115,11 @@ def test_new_resolver_candidates_match_requirement(
             assert req.is_satisfied_by(c)
 
 
+def test_new_resolver_has_any_candidates(factory: Factory) -> None:
+    assert factory._has_any_candidates("simple")
+    assert not factory._has_any_candidates("missing")
+
+
 def test_new_resolver_full_resolve(factory: Factory, provider: PipProvider) -> None:
     """A very basic full resolve"""
     reqs = list(factory.make_requirements_from_spec("simplewheel", comes_from=None))
