@@ -1,0 +1,1 @@
+Avoid reporting available packages as having no matching distributions.
