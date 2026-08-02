@@ -921,7 +921,7 @@ def test_list_skips_malformed_dist(script: PipTestEnvironment) -> None:
             Version: 1.0
             """))
 
-    result = script.pip("list", expect_stderr=True)
+    result = script.pip("list", "--format=freeze", expect_stderr=True)
     output_lines = {line.strip() for line in result.stdout.splitlines()}
 
     assert "foo==1.0" not in output_lines
