@@ -1,7 +1,7 @@
 CacheControl==0.14.4
 distlib==0.4.3
 distro==1.9.0
-msgpack==1.1.2
+msgpack==1.2.1
 packaging==26.2
 platformdirs==4.10.0
 pyproject-hooks==1.2.0
