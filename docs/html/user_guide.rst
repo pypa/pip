@@ -442,6 +442,58 @@ You can combine this option with other filtering mechanisms like constraints fil
 
       py -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
 
+.. _`Refresh Package`:
+
+Refreshing Package Metadata
+===========================
+
+.. versionadded:: 26.2
+
+By default, pip may use cached package index information when looking for packages.
+If you have just published a new version of a package and want to
+install it immediately without waiting for the cache to expire, use
+``--refresh-package``:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --refresh-package=requests requests
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --refresh-package=requests requests
+
+The option accepts ``:all:`` to force refresh for all packages, ``:none:`` to
+disable refresh entirely, or a comma-separated list of package names to refresh
+only specific packages:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      # Refresh metadata for a single package
+      python -m pip install --refresh-package=requests requests
+
+      # Refresh metadata for multiple packages
+      python -m pip install --refresh-package=requests,urllib3 requests urllib3
+
+      # Refresh metadata for all packages
+      python -m pip install --refresh-package=:all: -r requirements.txt
+
+      # Disable refresh explicitly
+      python -m pip install --refresh-package=:none: -r requirements.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --refresh-package=requests requests
+      py -m pip install --refresh-package=requests,urllib3 requests urllib3
+      py -m pip install --refresh-package=:all: -r requirements.txt
+      py -m pip install --refresh-package=:none: -r requirements.txt
 
 .. _`Dependency Groups`:
 
@@ -537,6 +589,76 @@ subprojects thusly:
 
 
 .. _`Installing from Wheels`:
+
+
+Installing only dependencies
+============================
+
+.. versionadded:: 26.2
+
+In some cases it is desirable to install only the dependencies of a package, not
+the package itself. This is possible with the ``--only-deps`` flag, which
+instructs pip to handle only the dependencies of the supplied packages.
+Consider the package ``SomePackage`` with the dependency ``SomeDependency``. To
+install ``SomeDependency`` but not ``SomePackage``:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install SomePackage --only-deps
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install SomePackage --only-deps
+
+Note that ``--only-deps`` is incompatible with the legacy resolver
+(``--use-deprecated=legacy-resolver``), dependency groups (``--group``), ``-r``/
+``--requirement``, ``--requirements-from-script``, and ``--no-deps``.
+
+In some situations, ``--only-deps`` can exhibit seemingly confusing behavior.
+Consider the example above: ``SomePackage`` which depends on ``SomeDependency``.
+If you specify both with ``--only-deps``, pip will not install
+``SomeDependency``, as both dependencies are user-supplied:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install SomePackage SomeDependency --only-deps
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install SomePackage SomeDependency --only-deps
+
+The reason is that it is impossible to know what the intent of the user is, as
+pip cannot guess if the user wants to install ``SomeDependency`` as a dependency
+of ``SomePackage`` or if they do not want to install it. To keep the
+implementation easy and err on the side of caution, pip will thus not install
+SomeDependency.
+
+
+A note on ``--only-deps`` and ``--requirement`` / ``--requirements-from-script`` and ``--group``
+-------------------------------------------------------------------------------------------------
+
+The ``--only-deps`` option is inherently incompatible with ``--requirement``
+and ``--group``.
+
+In the ``--requirements`` case, all specified packages are considered to be
+user-supplied; thus when pip would allow both options together, no packages
+listed in the requirements file would be installed, but all dependencies not
+listed would be. The same applies for ``--requirements-from-script``.
+
+Similarly, the ``--group`` option already allows to install only a set of
+dependencies meant for a specific purpose, e.g., for building the documentation
+or setting up a developer environment. Pip considers the members of the group to
+be user-supplied. Pairing this with ``--only-deps`` would make it impossible to
+know if the user wanted to install the dependencies of the packages listed in
+the group, or if they were expecting the packages of the group to be installed.
 
 
 Installing from Wheels

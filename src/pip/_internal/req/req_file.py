@@ -58,6 +58,7 @@ SUPPORTED_OPTIONS: list[Callable[..., optparse.Option]] = [
     cmdoptions.only_binary,
     cmdoptions.prefer_binary,
     cmdoptions.require_hashes,
+    cmdoptions.no_require_hashes,
     cmdoptions.pre,
     cmdoptions.all_releases,
     cmdoptions.only_final,
@@ -224,6 +225,8 @@ def handle_option_line(
         # percolate options upward
         if opts.require_hashes:
             options.require_hashes = opts.require_hashes
+        if opts.no_require_hashes:
+            options.no_require_hashes = opts.no_require_hashes
         if opts.features_enabled:
             options.features_enabled.extend(
                 f for f in opts.features_enabled if f not in options.features_enabled

@@ -22,6 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -274,7 +275,7 @@ max-complexity = 33  # default is 10
 "src/pip/__pip-runner__.py" = ["UP"] # Must be compatible with Python 2.7
 
 [tool.ruff.lint.pylint]
-max-args = 15  # default is 5
+max-args = 16  # default is 5
 max-branches = 28  # default is 12
 max-returns = 15  # default is 6
 max-statements = 134  # default is 50

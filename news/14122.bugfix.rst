@@ -1,2 +1,0 @@
-Improve cached wheel lookup performance when many cached wheels are checked
-for compatibility.
