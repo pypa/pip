@@ -228,12 +228,13 @@ class InstallRequirement:
     @functools.cached_property
     def supports_pyproject_editable(self) -> bool:
         assert self.pep517_backend
+        assert isinstance(self.pep517_backend, ConfiguredBuildBackendHookCaller)
         with self.build_env:
             runner = runner_with_spinner_message(
                 "Checking if build backend supports build_editable"
             )
             with self.pep517_backend.subprocess_runner(runner):
-                return "build_editable" in self.pep517_backend._supported_features()
+                return self.pep517_backend.supports_feature("build_editable")
 
     @property
     def specifier(self) -> SpecifierSet:
