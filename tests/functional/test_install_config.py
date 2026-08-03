@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import os
 import ssl
 import tempfile
 import textwrap
+from base64 import b64encode
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +21,10 @@ from tests.lib.server import (
     server_running,
 )
 from tests.lib.venv import VirtualEnvironment
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+
 
 TEST_PYPI_INITOOLS = "https://test.pypi.org/simple/initools/"
 
@@ -532,6 +540,117 @@ def test_prompt_for_keyring_if_needed(
         assert "get_credential was called" in logs
     else:
         assert "get_credential was called" not in logs
+
+
+@pytest.mark.parametrize(
+    "isolation",
+    [
+        pytest.param("", id="legacy-isolation"),
+        pytest.param(
+            "--use-feature=venv-isolation",
+            id="venv-isolation",
+            marks=pytest.mark.xfail(reason="needs inprocess-build-deps to work"),
+        ),
+    ],
+)
+def test_build_dependency_install_uses_same_keyring_as_root(
+    isolation: str, script: PipTestEnvironment, data: TestData
+) -> None:
+    """Ensure the root and build dependency pip processes use the same keyring.
+
+    When build dependencies are installed via a pip subprocess, it should be able
+    to import the same keyring directly. While normally the subprocess will be
+    able to find the same keyring by searching PATH, if the virtual environment
+    wasn't activated, pip may either fail to find keyring or pick a different
+    keyring (from the system).
+
+    See also: https://github.com/pypa/pip/issues/14227
+
+    NOTE: venv-isolation is still affected by this bug since it's necessary
+          to apply build isolation while install build dependencies. The
+          proper fix to also enable inprocess-build-deps (which will also
+          fix this for the custom isolation logic).
+    TODO: remove this test when the subprocess build installer is gone
+    """
+    script.pip_install_local("keyring", find_links=data.common_wheels)
+
+    keyring_module = script.site_packages_path / "keyring_test.py"
+    keyring_module.write_text(textwrap.dedent("""\
+        import os
+
+        import keyring
+        from keyring.backend import KeyringBackend
+        from keyring.credentials import SimpleCredential
+
+        class TestBackend(KeyringBackend):
+            priority = 1
+
+            def get_credential(self, url, username):
+                return SimpleCredential(username="USERNAME", password="PASSWORD")
+
+            def get_password(self, url, username):
+                return "PASSWORD"
+
+            def set_password(self, url, username, password):
+                pass
+        """))
+    script.environ["PYTHON_KEYRING_BACKEND"] = "keyring_test.TestBackend"
+
+    expected_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
+
+    def unauthorized_response(
+        environ: WSGIEnvironment, start_response: StartResponse
+    ) -> list[bytes]:
+        start_response("401 Unauthorized", [("WWW-Authenticate", "Basic")])
+        return []
+
+    def authenticated_index(
+        environ: WSGIEnvironment, start_response: StartResponse
+    ) -> WSGIApplication:
+        if environ.get("HTTP_AUTHORIZATION") != expected_auth:
+            return unauthorized_response
+        return package_page({})
+
+    # Emulate the bug report setup which uses --extra-url-index (which pip will access
+    # while install build dependencies). To avoid hitting PyPI, spin up a no-op index
+    # for --index-url itself.
+    primary_index = make_mock_server()
+    primary_index.mock.side_effect = lambda _, __: package_page({})
+    primary_index_url = f"http://{primary_index.host}:{primary_index.port}/simple"
+    authenticated_extra_index = make_mock_server()
+    authenticated_extra_index.mock.side_effect = authenticated_index
+    extra_index_url = (
+        f"http://{authenticated_extra_index.host}:"
+        f"{authenticated_extra_index.port}/simple"
+    )
+
+    # The script runner automatically adds the venv bin directory to PATH.
+    path_without_keyring = script.scratch_path / "path-without-keyring"
+    path_without_keyring.mkdir()
+    script.environ["PATH"] = str(path_without_keyring)
+    with server_running(primary_index), server_running(authenticated_extra_index):
+        result = script.run(
+            # Run Python directly because the python executable was lost when
+            # we removed the venv's bin directory from PATH.
+            str(script.bin_path / f"python{script.exe}"),
+            "-m",
+            "pip",
+            "wheel",
+            "--no-cache-dir",
+            "--index-url",
+            primary_index_url,
+            "--extra-index-url",
+            extra_index_url,
+            "--find-links",
+            str(data.packages),
+            "--find-links",
+            str(data.common_wheels),
+            "pep518==3.0",
+            isolation,
+        )
+
+    assert result.returncode == 0, result
+    assert "Successfully built pep518" in result.stdout, result.stdout
 
 
 @pytest.mark.network
