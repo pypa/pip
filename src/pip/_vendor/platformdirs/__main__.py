@@ -39,27 +39,27 @@ def main() -> None:
     app_name = "MyApp"
     app_author = "MyCompany"
 
-    print(f"-- platformdirs {__version__} --")  # noqa: T201
+    print(f"-- platformdirs {__version__} --")  # ruff:ignore[print]
 
-    print("-- app dirs (with optional 'version')")  # noqa: T201
+    print("-- app dirs (with optional 'version')")  # ruff:ignore[print]
     dirs = PlatformDirs(app_name, app_author, version="1.0")
     for prop in PROPS:
-        print(f"{prop}: {getattr(dirs, prop)}")  # noqa: T201
+        print(f"{prop}: {getattr(dirs, prop)}")  # ruff:ignore[print]
 
-    print("\n-- app dirs (without optional 'version')")  # noqa: T201
+    print("\n-- app dirs (without optional 'version')")  # ruff:ignore[print]
     dirs = PlatformDirs(app_name, app_author)
     for prop in PROPS:
-        print(f"{prop}: {getattr(dirs, prop)}")  # noqa: T201
+        print(f"{prop}: {getattr(dirs, prop)}")  # ruff:ignore[print]
 
-    print("\n-- app dirs (without optional 'appauthor')")  # noqa: T201
+    print("\n-- app dirs (without optional 'appauthor')")  # ruff:ignore[print]
     dirs = PlatformDirs(app_name)
     for prop in PROPS:
-        print(f"{prop}: {getattr(dirs, prop)}")  # noqa: T201
+        print(f"{prop}: {getattr(dirs, prop)}")  # ruff:ignore[print]
 
-    print("\n-- app dirs (with disabled 'appauthor')")  # noqa: T201
+    print("\n-- app dirs (with disabled 'appauthor')")  # ruff:ignore[print]
     dirs = PlatformDirs(app_name, appauthor=False)
     for prop in PROPS:
-        print(f"{prop}: {getattr(dirs, prop)}")  # noqa: T201
+        print(f"{prop}: {getattr(dirs, prop)}")  # ruff:ignore[print]
 
 
 if __name__ == "__main__":
