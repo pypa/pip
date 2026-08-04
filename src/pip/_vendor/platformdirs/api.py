@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
 
-class PlatformDirsABC(ABC):  # noqa: PLR0904
+class PlatformDirsABC(ABC):  # ruff:ignore[too-many-public-methods]
     """Abstract base class defining all platform directory properties, their :class:`~pathlib.Path` variants, and iterators.
 
     Platform-specific subclasses (e.g. :class:`~platformdirs.windows.Windows`, :class:`~platformdirs.macos.MacOS`,
@@ -21,16 +21,16 @@ class PlatformDirsABC(ABC):  # noqa: PLR0904
 
     """
 
-    def __init__(  # noqa: PLR0913, PLR0917
+    def __init__(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]
         self,
         appname: str | None = None,
         appauthor: str | Literal[False] | None = None,
         version: str | None = None,
-        roaming: bool = False,  # noqa: FBT001, FBT002
-        multipath: bool = False,  # noqa: FBT001, FBT002
-        opinion: bool = True,  # noqa: FBT001, FBT002
-        ensure_exists: bool = False,  # noqa: FBT001, FBT002
-        use_site_for_root: bool = False,  # noqa: FBT001, FBT002
+        roaming: bool = False,  # ruff:ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
+        multipath: bool = False,  # ruff:ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
+        opinion: bool = True,  # ruff:ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
+        ensure_exists: bool = False,  # ruff:ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
+        use_site_for_root: bool = False,  # ruff:ignore[boolean-type-hint-positional-argument, boolean-default-value-positional-argument]
     ) -> None:
         """Create a new platform directory.
 
@@ -106,7 +106,7 @@ class PlatformDirsABC(ABC):  # noqa: PLR0904
             params.append(self.appname)
             if self.version:
                 params.append(self.version)
-        path = os.path.join(base[0], *params)  # noqa: PTH118
+        path = os.path.join(base[0], *params)  # ruff:ignore[os-path-join]
         self._optionally_create_directory(path)
         return path
 
@@ -123,12 +123,12 @@ class PlatformDirsABC(ABC):  # noqa: PLR0904
     @property
     @abstractmethod
     def user_data_dir(self) -> str:
-        """:returns: data directory tied to the user"""
+        """Data directory tied to the user."""
 
     @property
     @abstractmethod
     def site_data_dir(self) -> str:
-        """:returns: data directory shared by users"""
+        """Data directory shared by users."""
 
     @property
     def _site_data_dirs(self) -> list[str]:
@@ -137,12 +137,12 @@ class PlatformDirsABC(ABC):  # noqa: PLR0904
     @property
     @abstractmethod
     def user_config_dir(self) -> str:
-        """:returns: config directory tied to the user"""
+        """Config directory tied to the user."""
 
     @property
     @abstractmethod
     def site_config_dir(self) -> str:
-        """:returns: config directory shared by users"""
+        """Config directory shared by users."""
 
     @property
     def _site_config_dirs(self) -> list[str]:
@@ -151,107 +151,107 @@ class PlatformDirsABC(ABC):  # noqa: PLR0904
     @property
     @abstractmethod
     def user_cache_dir(self) -> str:
-        """:returns: cache directory tied to the user"""
+        """Cache directory tied to the user."""
 
     @property
     @abstractmethod
     def site_cache_dir(self) -> str:
-        """:returns: cache directory shared by users"""
+        """Cache directory shared by users."""
 
     @property
     @abstractmethod
     def user_state_dir(self) -> str:
-        """:returns: state directory tied to the user"""
+        """State directory tied to the user."""
 
     @property
     @abstractmethod
     def site_state_dir(self) -> str:
-        """:returns: state directory shared by users"""
+        """State directory shared by users."""
 
     @property
     @abstractmethod
     def user_log_dir(self) -> str:
-        """:returns: log directory tied to the user"""
+        """Log directory tied to the user."""
 
     @property
     @abstractmethod
     def site_log_dir(self) -> str:
-        """:returns: log directory shared by users"""
+        """Log directory shared by users."""
 
     @property
     @abstractmethod
     def user_documents_dir(self) -> str:
-        """:returns: documents directory tied to the user"""
+        """Documents directory tied to the user."""
 
     @property
     @abstractmethod
     def user_downloads_dir(self) -> str:
-        """:returns: downloads directory tied to the user"""
+        """Downloads directory tied to the user."""
 
     @property
     @abstractmethod
     def user_pictures_dir(self) -> str:
-        """:returns: pictures directory tied to the user"""
+        """Pictures directory tied to the user."""
 
     @property
     @abstractmethod
     def user_videos_dir(self) -> str:
-        """:returns: videos directory tied to the user"""
+        """Videos directory tied to the user."""
 
     @property
     @abstractmethod
     def user_music_dir(self) -> str:
-        """:returns: music directory tied to the user"""
+        """Music directory tied to the user."""
 
     @property
     @abstractmethod
     def user_desktop_dir(self) -> str:
-        """:returns: desktop directory tied to the user"""
+        """Desktop directory tied to the user."""
 
     @property
     @abstractmethod
     def user_projects_dir(self) -> str:
-        """:returns: projects directory tied to the user"""
+        """Projects directory tied to the user."""
 
     @property
     @abstractmethod
     def user_publicshare_dir(self) -> str:
-        """:returns: public share directory tied to the user"""
+        """Public share directory tied to the user."""
 
     @property
     @abstractmethod
     def user_templates_dir(self) -> str:
-        """:returns: templates directory tied to the user"""
+        """Templates directory tied to the user."""
 
     @property
     @abstractmethod
     def user_fonts_dir(self) -> str:
-        """:returns: fonts directory tied to the user"""
+        """Fonts directory tied to the user."""
 
     @property
     @abstractmethod
     def user_preference_dir(self) -> str:
-        """:returns: preference directory tied to the user"""
+        """Preference directory tied to the user."""
 
     @property
     @abstractmethod
     def user_bin_dir(self) -> str:
-        """:returns: bin directory tied to the user"""
+        """Bin directory tied to the user."""
 
     @property
     @abstractmethod
     def site_bin_dir(self) -> str:
-        """:returns: bin directory shared by users"""
+        """Bin directory shared by users."""
 
     @property
     @abstractmethod
     def user_applications_dir(self) -> str:
-        """:returns: applications directory tied to the user"""
+        """Applications directory tied to the user."""
 
     @property
     @abstractmethod
     def site_applications_dir(self) -> str:
-        """:returns: applications directory shared by users"""
+        """Applications directory shared by users."""
 
     @property
     def _site_applications_dirs(self) -> list[str]:
@@ -260,146 +260,146 @@ class PlatformDirsABC(ABC):  # noqa: PLR0904
     @property
     @abstractmethod
     def user_runtime_dir(self) -> str:
-        """:returns: runtime directory tied to the user"""
+        """Runtime directory tied to the user."""
 
     @property
     @abstractmethod
     def site_runtime_dir(self) -> str:
-        """:returns: runtime directory shared by users"""
+        """Runtime directory shared by users."""
 
     @property
     def user_data_path(self) -> Path:
-        """:returns: data path tied to the user"""
+        """Data path tied to the user."""
         return Path(self.user_data_dir)
 
     @property
     def site_data_path(self) -> Path:
-        """:returns: data path shared by users"""
+        """Data path shared by users."""
         return Path(self.site_data_dir)
 
     @property
     def user_config_path(self) -> Path:
-        """:returns: config path tied to the user"""
+        """Config path tied to the user."""
         return Path(self.user_config_dir)
 
     @property
     def site_config_path(self) -> Path:
-        """:returns: config path shared by users"""
+        """Config path shared by users."""
         return Path(self.site_config_dir)
 
     @property
     def user_cache_path(self) -> Path:
-        """:returns: cache path tied to the user"""
+        """Cache path tied to the user."""
         return Path(self.user_cache_dir)
 
     @property
     def site_cache_path(self) -> Path:
-        """:returns: cache path shared by users"""
+        """Cache path shared by users."""
         return Path(self.site_cache_dir)
 
     @property
     def user_state_path(self) -> Path:
-        """:returns: state path tied to the user"""
+        """State path tied to the user."""
         return Path(self.user_state_dir)
 
     @property
     def site_state_path(self) -> Path:
-        """:returns: state path shared by users"""
+        """State path shared by users."""
         return Path(self.site_state_dir)
 
     @property
     def user_log_path(self) -> Path:
-        """:returns: log path tied to the user"""
+        """Log path tied to the user."""
         return Path(self.user_log_dir)
 
     @property
     def site_log_path(self) -> Path:
-        """:returns: log path shared by users"""
+        """Log path shared by users."""
         return Path(self.site_log_dir)
 
     @property
     def user_documents_path(self) -> Path:
-        """:returns: documents path tied to the user"""
+        """Documents path tied to the user."""
         return Path(self.user_documents_dir)
 
     @property
     def user_downloads_path(self) -> Path:
-        """:returns: downloads path tied to the user"""
+        """Downloads path tied to the user."""
         return Path(self.user_downloads_dir)
 
     @property
     def user_pictures_path(self) -> Path:
-        """:returns: pictures path tied to the user"""
+        """Pictures path tied to the user."""
         return Path(self.user_pictures_dir)
 
     @property
     def user_videos_path(self) -> Path:
-        """:returns: videos path tied to the user"""
+        """Videos path tied to the user."""
         return Path(self.user_videos_dir)
 
     @property
     def user_music_path(self) -> Path:
-        """:returns: music path tied to the user"""
+        """Music path tied to the user."""
         return Path(self.user_music_dir)
 
     @property
     def user_desktop_path(self) -> Path:
-        """:returns: desktop path tied to the user"""
+        """Desktop path tied to the user."""
         return Path(self.user_desktop_dir)
 
     @property
     def user_projects_path(self) -> Path:
-        """:returns: projects path tied to the user"""
+        """Projects path tied to the user."""
         return Path(self.user_projects_dir)
 
     @property
     def user_publicshare_path(self) -> Path:
-        """:returns: public share path tied to the user"""
+        """Public share path tied to the user."""
         return Path(self.user_publicshare_dir)
 
     @property
     def user_templates_path(self) -> Path:
-        """:returns: templates path tied to the user"""
+        """Templates path tied to the user."""
         return Path(self.user_templates_dir)
 
     @property
     def user_fonts_path(self) -> Path:
-        """:returns: fonts path tied to the user"""
+        """Fonts path tied to the user."""
         return Path(self.user_fonts_dir)
 
     @property
     def user_preference_path(self) -> Path:
-        """:returns: preference path tied to the user"""
+        """Preference path tied to the user."""
         return Path(self.user_preference_dir)
 
     @property
     def user_bin_path(self) -> Path:
-        """:returns: bin path tied to the user"""
+        """Bin path tied to the user."""
         return Path(self.user_bin_dir)
 
     @property
     def site_bin_path(self) -> Path:
-        """:returns: bin path shared by users"""
+        """Bin path shared by users."""
         return Path(self.site_bin_dir)
 
     @property
     def user_applications_path(self) -> Path:
-        """:returns: applications path tied to the user"""
+        """Applications path tied to the user."""
         return Path(self.user_applications_dir)
 
     @property
     def site_applications_path(self) -> Path:
-        """:returns: applications path shared by users"""
+        """Applications path shared by users."""
         return Path(self.site_applications_dir)
 
     @property
     def user_runtime_path(self) -> Path:
-        """:returns: runtime path tied to the user"""
+        """Runtime path tied to the user."""
         return Path(self.user_runtime_dir)
 
     @property
     def site_runtime_path(self) -> Path:
-        """:returns: runtime path shared by users"""
+        """Runtime path shared by users."""
         return Path(self.site_runtime_dir)
 
     def iter_config_dirs(self) -> Iterator[str]:
