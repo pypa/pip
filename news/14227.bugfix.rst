@@ -1,2 +1,0 @@
-Reallow keyring installed in a (non-activated) virtual environment to be be used
-via the ``import`` provider method while installing build dependencies.
