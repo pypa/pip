@@ -8,15 +8,8 @@ import time
 from collections.abc import Generator
 from typing import IO, Final
 
-from pip._vendor.rich.console import (
-    Console,
-    ConsoleOptions,
-    RenderableType,
-    RenderResult,
-)
-from pip._vendor.rich.live import Live
-from pip._vendor.rich.measure import Measurement
-from pip._vendor.rich.text import Text
+from pip._vendor.rich.console import Console
+from pip._vendor.rich.status import Status
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_console, get_indentation
@@ -128,6 +121,33 @@ class RateLimiter:
         self._last_update = time.time()
 
 
+class RichStatusSpinner:
+    def __init__(self, message: str, console: Console | None = None) -> None:
+        self._message = message
+        self._label = " " * get_indentation() + message
+        self._console = console or get_console()
+        self._status: Status | None = None
+        if getattr(self._console.file, "isatty", lambda: False)():
+            self._status = Status(
+                f"{self._label} ...", console=self._console, spinner="line"
+            )
+            self._status.__enter__()
+        self._finished = False
+
+    def finish(self, final_status: str) -> None:
+        if self._finished:
+            return
+        if self._status is not None:
+            self._status.update(f"{self._label} ... {final_status}")
+            self._status.__exit__(None, None, None)
+            self._console.file.write(f"{self._label} ... {final_status}\n")
+            self._console.file.flush()
+        else:
+            self._console.file.write(f"{self._message} ... {final_status}")
+            self._console.file.flush()
+        self._finished = True
+
+
 @contextlib.contextmanager
 def open_spinner(message: str) -> Generator[SpinnerInterface, None, None]:
     # Interactive spinner goes directly to sys.stdout rather than being routed
@@ -152,44 +172,6 @@ def open_spinner(message: str) -> Generator[SpinnerInterface, None, None]:
         spinner.finish("done")
 
 
-class _PipRichSpinner:
-    """
-    Custom rich spinner that matches the style of the legacy spinners.
-
-    (*) Updates will be handled in a background thread by a rich live panel
-        which will call render() automatically at the appropriate time.
-    """
-
-    def __init__(self, label: str) -> None:
-        self.label = label
-        self._spin_cycle = itertools.cycle(SPINNER_CHARS)
-        self._spinner_text = ""
-        self._finished = False
-        self._indent = get_indentation() * " "
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        yield self.render()
-
-    def __rich_measure__(
-        self, console: Console, options: ConsoleOptions
-    ) -> Measurement:
-        text = self.render()
-        return Measurement.get(console, options, text)
-
-    def render(self) -> RenderableType:
-        if not self._finished:
-            self._spinner_text = next(self._spin_cycle)
-
-        return Text.assemble(self._indent, self.label, " ... ", self._spinner_text)
-
-    def finish(self, status: str) -> None:
-        """Stop spinning and set a final status message."""
-        self._spinner_text = status
-        self._finished = True
-
-
 @contextlib.contextmanager
 def open_rich_spinner(label: str, console: Console | None = None) -> Generator[None]:
     if not logger.isEnabledFor(logging.INFO):
@@ -197,19 +179,17 @@ def open_rich_spinner(label: str, console: Console | None = None) -> Generator[N
         yield
         return
 
-    console = console or get_console()
-    spinner = _PipRichSpinner(label)
-    with Live(spinner, refresh_per_second=SPINS_PER_SECOND, console=console):
-        try:
-            yield
-        except KeyboardInterrupt:
-            spinner.finish("canceled")
-            raise
-        except Exception:
-            spinner.finish("error")
-            raise
-        else:
-            spinner.finish("done")
+    spinner = RichStatusSpinner(label, console=console)
+    try:
+        yield
+    except KeyboardInterrupt:
+        spinner.finish("canceled")
+        raise
+    except Exception:
+        spinner.finish("error")
+        raise
+    else:
+        spinner.finish("done")
 
 
 HIDE_CURSOR = "\x1b[?25l"

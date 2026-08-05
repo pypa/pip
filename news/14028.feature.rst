@@ -1,0 +1,1 @@
+Use Rich's own spinner for better performance.
