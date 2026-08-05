@@ -252,6 +252,9 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
+        if options.version:
+            self.parser.error("no such option: --version")
+
         return self._run_wrapper(level_number, options, args)
 
     def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
