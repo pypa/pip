@@ -1,1 +1,1 @@
-Show an error message when ``pip install`` fails with network issues.
+Show a clearer error message when pip commands that require a network connection fail due to network errors.
