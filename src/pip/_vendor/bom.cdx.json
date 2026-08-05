@@ -50,11 +50,11 @@
       "version": "1.2.1"
     },
     {
-      "bom-ref": "pkg:pypi/packaging@26.2",
+      "bom-ref": "pkg:pypi/packaging@26.3",
       "name": "packaging",
-      "purl": "pkg:pypi/packaging@26.2",
+      "purl": "pkg:pypi/packaging@26.3",
       "type": "library",
-      "version": "26.2"
+      "version": "26.3"
     },
     {
       "bom-ref": "pkg:pypi/platformdirs@4.11.0",
@@ -143,7 +143,7 @@
         "pkg:pypi/distro@1.9.0",
         "pkg:pypi/idna@3.18",
         "pkg:pypi/msgpack@1.2.1",
-        "pkg:pypi/packaging@26.2",
+        "pkg:pypi/packaging@26.3",
         "pkg:pypi/platformdirs@4.11.0",
         "pkg:pypi/pygments@2.20.0",
         "pkg:pypi/pyproject-hooks@1.2.0",
@@ -177,7 +177,7 @@
       "ref": "pkg:pypi/msgpack@1.2.1"
     },
     {
-      "ref": "pkg:pypi/packaging@26.2"
+      "ref": "pkg:pypi/packaging@26.3"
     },
     {
       "ref": "pkg:pypi/platformdirs@4.11.0"
