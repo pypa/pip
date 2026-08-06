@@ -77,6 +77,12 @@ class Command(CommandContextMixIn):
         )
         self.parser.add_option_group(gen_opts)
 
+        # Suppress --version help for subcommands
+        for option in gen_opts.option_list:
+            if option.dest == "version":
+                option.help = optparse.SUPPRESS_HELP
+                break
+
         self.add_options()
 
     def add_options(self) -> None:
