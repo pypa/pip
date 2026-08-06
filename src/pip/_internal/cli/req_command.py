@@ -162,6 +162,8 @@ class RequirementCommand(IndexGroupCommand):
         build_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
+        *,
+        allow_editables: bool,
         use_user_site: bool,
         download_dir: str | None = None,
         verbosity: int = 0,
@@ -242,6 +244,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            allow_editables=allow_editables,
         )
 
     @classmethod
@@ -279,6 +282,7 @@ class RequirementCommand(IndexGroupCommand):
                 make_install_req=make_install_req,
                 use_user_site=use_user_site,
                 ignore_dependencies=options.ignore_dependencies,
+                only_dependencies=options.only_dependencies,
                 ignore_installed=ignore_installed,
                 ignore_requires_python=ignore_requires_python,
                 force_reinstall=force_reinstall,
@@ -294,6 +298,7 @@ class RequirementCommand(IndexGroupCommand):
             make_install_req=make_install_req,
             use_user_site=use_user_site,
             ignore_dependencies=options.ignore_dependencies,
+            only_dependencies=options.only_dependencies,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
@@ -365,15 +370,15 @@ class RequirementCommand(IndexGroupCommand):
                 for package, package_dist in select_from_pylock_path_or_url(
                     filename, session=session
                 ):
-                    requirements.append(
-                        install_req_from_pylock_package(
-                            package,
-                            package_dist,
-                            filename,
-                            options.format_control,
-                            user_supplied=True,
-                        )
+                    req_to_add, locked_link = install_req_from_pylock_package(
+                        package,
+                        package_dist,
+                        filename,
+                        user_supplied=True,
                     )
+                    requirements.append(req_to_add)
+                    if locked_link:
+                        finder.add_locked_link(package.name, locked_link)
                 continue
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session
@@ -422,8 +427,17 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
-        # If any requirement has hash options, enable hash checking.
-        if any(req.has_hash_options for req in requirements):
+        if options.require_hashes and options.no_require_hashes:
+            raise CommandError(
+                "--require-hashes and --no-require-hashes are mutually exclusive"
+            )
+
+        # If any requirement has hash options, enable hash checking for all
+        # requirements, unless this mechanism has been explicitly disabled
+        # with --no-require-hashes.
+        if not options.no_require_hashes and any(
+            req.has_hash_options for req in requirements
+        ):
             options.require_hashes = True
 
         if not (

@@ -1,2 +1,0 @@
-Fail an interrupted download instead of corrupting the saved file when the
-server resumes a range request from a different offset than was requested.

@@ -22,13 +22,13 @@ repos:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.20
+  rev: v0.16.1
   hooks:
     - id: ruff-check
       args: [--fix]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v2.1.0
+  rev: v2.3.0
   hooks:
   - id: mypy
     exclude: tests/data
@@ -60,14 +60,14 @@ repos:
     exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
 
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.4.2
+  rev: v2.4.3
   hooks:
     - id: codespell
       exclude: AUTHORS.txt|tests/data
       args: ["--ignore-words", tools/codespell-ignore.txt]
 
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: v1.26.1
+  rev: v1.29.0
   hooks:
   - id: zizmor
     args: ["--fix=all"]

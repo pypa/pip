@@ -1048,7 +1048,8 @@ def html_index_with_onetime_server(
     """Serve files from a generated pypi index, erroring if a file is downloaded more
     than once.
 
-    Provide `-i http://localhost:8000` to pip invocations to point them at this server.
+    Provide `-i http://localhost:<port>` to pip invocations, where `<port>` is
+    the server's assigned port.
     """
 
     class InDirectoryServer(http.server.ThreadingHTTPServer):
@@ -1063,7 +1064,7 @@ def html_index_with_onetime_server(
     class Handler(OneTimeDownloadHandler):
         _seen_paths: ClassVar[set[str]] = set()
 
-    with patch_getfqdn(), InDirectoryServer(("", 8000), Handler) as httpd:
+    with patch_getfqdn(), InDirectoryServer(("", 0), Handler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.start()
 

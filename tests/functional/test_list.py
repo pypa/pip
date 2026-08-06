@@ -10,6 +10,8 @@ from tests.lib import (
     ScriptFactory,
     TestData,
     _create_test_package,
+    create_basic_sdist_for_package,
+    create_basic_wheel_for_package,
     create_test_package_with_setup,
     make_wheel,
     wheel,
@@ -327,6 +329,83 @@ def test_outdated_columns_flag(script: PipTestEnvironment, data: TestData) -> No
     assert "simple           1.0     3.0    sdist" in result.stdout, str(result)
     assert "simplewheel      1.0     2.0    wheel" in result.stdout, str(result)
     assert "simple2" not in result.stdout, str(result)  # 3.0 is latest
+
+
+@pytest.mark.parametrize(
+    "binary_option, expected_version, expected_filetype",
+    [
+        ("--no-binary=:all:", "1.5", "sdist"),
+        ("--only-binary=:all:", "1.5", "wheel"),
+        ("--prefer-binary", "1.5", "wheel"),
+    ],
+)
+def test_outdated_respects_binary_options(
+    script: PipTestEnvironment,
+    binary_option: str,
+    expected_version: str,
+    expected_filetype: str,
+) -> None:
+    """Test --outdated reports the best candidate allowed by binary options."""
+    script.pip_install_local("simple==1.0")
+
+    create_basic_wheel_for_package(script, "simple", "1.5")
+    if binary_option == "--no-binary=:all:":
+        create_basic_sdist_for_package(script, "simple", "1.5")
+        create_basic_wheel_for_package(script, "simple", "2.0")
+    else:
+        create_basic_sdist_for_package(script, "simple", "2.0")
+
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        binary_option,
+        "--outdated",
+        "--format=json",
+    )
+    assert json.loads(result.stdout) == [
+        {
+            "name": "simple",
+            "version": "1.0",
+            "latest_version": expected_version,
+            "latest_filetype": expected_filetype,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "binary_option",
+    [
+        "--no-binary=:all:",
+        "--only-binary=:all:",
+        "--prefer-binary",
+    ],
+)
+def test_uptodate_respects_binary_options(
+    script: PipTestEnvironment,
+    binary_option: str,
+) -> None:
+    """Test --uptodate uses binary options when checking for newer releases."""
+    wheel_path = create_basic_wheel_for_package(script, "simple", "1.5")
+    script.pip("install", "--no-index", wheel_path)
+
+    if binary_option == "--no-binary=:all:":
+        create_basic_sdist_for_package(script, "simple", "1.5")
+        create_basic_wheel_for_package(script, "simple", "2.0")
+    else:
+        create_basic_sdist_for_package(script, "simple", "2.0")
+
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        binary_option,
+        "--uptodate",
+        "--format=json",
+    )
+    assert {"name": "simple", "version": "1.5"} in json.loads(result.stdout)
 
 
 @pytest.fixture(scope="session")

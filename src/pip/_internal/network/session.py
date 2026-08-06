@@ -46,6 +46,7 @@ from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
     build_url_from_netloc,
+    looks_like_ci,
     parse_netloc,
     redact_auth_from_url,
 )
@@ -77,35 +78,6 @@ SECURE_ORIGINS: list[SecureOrigin] = [
     # ssh is always secure.
     ("ssh", "*", "*"),
 ]
-
-
-# These are environment variables present when running under various
-# CI systems.  For each variable, some CI systems that use the variable
-# are indicated.  The collection was chosen so that for each of a number
-# of popular systems, at least one of the environment variables is used.
-# This list is used to provide some indication of and lower bound for
-# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
-# For more background, see: https://github.com/pypa/pip/issues/5499
-CI_ENVIRONMENT_VARIABLES = (
-    # Azure Pipelines
-    "BUILD_BUILDID",
-    # Jenkins
-    "BUILD_ID",
-    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
-    "CI",
-    # Explicit environment variable.
-    "PIP_IS_CI",
-)
-
-
-def looks_like_ci() -> bool:
-    """
-    Return whether it looks like pip is running under CI.
-    """
-    # We don't use the method of checking for a tty (e.g. using isatty())
-    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
-    # method doesn't provide definitive information in either direction.
-    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
 @functools.lru_cache(maxsize=1)
@@ -293,6 +265,11 @@ class _SSLContextAdapterMixin:
         # context here too. https://github.com/pypa/pip/issues/13288
         if self._ssl_context is not None:
             proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+            # For HTTPS proxies, urllib3 also opens a separate TLS connection
+            # to the proxy itself (before tunnelling to the destination) and
+            # uses "proxy_ssl_context" for that handshake.
+            # https://github.com/pypa/pip/issues/13465
+            proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
         return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
@@ -338,6 +315,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
         ssl_context: SSLContext | None = None,
+        refresh_package: set[str] | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -352,6 +330,7 @@ class PipSession(requests.Session):
         # "" disables proxying; None means no --proxy was given.
         self.pip_proxy: str | None = None
         self.pip_no_proxy_env = False
+        self.refresh_package: set[str] = refresh_package or set()
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
@@ -531,6 +510,23 @@ class PipSession(requests.Session):
         )
 
         return False
+
+    def get_redirect_target(self, resp: Response) -> str | None:
+        target = super().get_redirect_target(resp)
+        if target is None:
+            return None
+        # Redirecting to a file:// URL doesn't make much sense and
+        # shouldn't be allowed.
+        scheme = urllib.parse.urlparse(target).scheme
+        if scheme and scheme.lower() not in ("http", "https"):
+            logger.warning(
+                "Not following redirect from %s to %s: a redirect to a non-http(s)"
+                " location is not allowed.",
+                redact_auth_from_url(resp.url),
+                redact_auth_from_url(target),
+            )
+            return None
+        return target
 
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:  # type: ignore[override]
         # Allow setting a default timeout on a session

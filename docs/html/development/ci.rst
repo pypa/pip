@@ -16,13 +16,14 @@ Continuous Integration
 Supported interpreters
 ======================
 
-pip supports a variety of Python interpreters:
+Pip supports a variety of Python interpreters:
 
 - CPython 3.10
 - CPython 3.11
 - CPython 3.12
 - CPython 3.13
 - CPython 3.14
+- CPython 3.15
 - Latest PyPy3
 
 on different operating systems:
@@ -64,7 +65,7 @@ interpreters.
 Services
 ========
 
-pip test suite and checks are distributed on `GitHub Actions`_ which provides
+The pip test suite and checks are distributed on `GitHub Actions`_ which provides
 free executors for open source packages.
 
 .. _`GitHub Actions`: https://github.com/features/actions
@@ -100,6 +101,8 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.14|               |                 |
 |           |          +-------+---------------+-----------------+
+|           |          | CP3.15|               |                 |
+|           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |  Windows  +----------+-------+---------------+-----------------+
 |           |   x64    | CP3.10|   GitHub      |   GitHub        |
@@ -111,6 +114,8 @@ Actual testing
 |           |          | CP3.13|   GitHub      |   GitHub        |
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.14|   GitHub      |   GitHub        |
+|           |          +-------+---------------+-----------------+
+|           |          | CP3.15|   GitHub      |   GitHub        |
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 +-----------+----------+-------+---------------+-----------------+
@@ -124,6 +129,8 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.14|               |                 |
 |           |          +-------+---------------+-----------------+
+|           |          | CP3.15|               |                 |
+|           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |   Linux   +----------+-------+---------------+-----------------+
 |           |   x64    | CP3.10|   GitHub      |   GitHub        |
@@ -135,6 +142,8 @@ Actual testing
 |           |          | CP3.13|   GitHub      |   GitHub        |
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.14|   GitHub      |   GitHub        |
+|           |          +-------+---------------+-----------------+
+|           |          | CP3.15|   GitHub      |   GitHub        |
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 +-----------+----------+-------+---------------+-----------------+
@@ -148,6 +157,8 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.14|   GitHub      |   GitHub        |
 |           |          +-------+---------------+-----------------+
+|           |          | CP3.15|   GitHub      |   GitHub        |
+|           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |   macOS   +----------+-------+---------------+-----------------+
 |           |   x64    | CP3.10|   GitHub      |   GitHub        |
@@ -159,6 +170,8 @@ Actual testing
 |           |          | CP3.13|   GitHub      |   GitHub        |
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.14|   GitHub      |   GitHub        |
+|           |          +-------+---------------+-----------------+
+|           |          | CP3.15|   GitHub      |   GitHub        |
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 +-----------+----------+-------+---------------+-----------------+
