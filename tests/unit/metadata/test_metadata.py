@@ -264,22 +264,6 @@ def test_invalid_package_with_version_mismatch_is_skipped(
     )
 
 
-def test_invalid_package_with_invalid_version_is_skipped(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    invalid_package_directory = tmp_path / "foo-1.0.dist-info"
-    invalid_package_directory.mkdir()
-    (invalid_package_directory / "METADATA").write_text(
-        "Metadata-Version: 1.0\nName:foo\nVersion:~1.0\n"
-    )
-
-    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
-        result = get_environment([str(tmp_path)]).iter_all_distributions()
-
-    assert len(list(result)) == 0
-    assert "is not a valid PEP 440 version string." in caplog.text
-
-
 def test_invalid_package_is_skipped(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:

@@ -188,7 +188,11 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
 
     # The invalid names should be logged.
     for name in canonical_invalid_names:
-        assert f"Ignoring invalid distribution {name} (" in result.stderr
+        print(result.stderr)
+        assert (
+            f"Ignoring distribution at {os.fspath(script.site_packages_path)}: {name!r}"
+            in result.stderr
+        )
 
 
 def test_freeze_skips_malformed_dist(script: PipTestEnvironment) -> None:
