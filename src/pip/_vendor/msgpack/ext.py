@@ -167,4 +167,4 @@ class Timestamp:
 
         :rtype: Timestamp
         """
-        return Timestamp(seconds=int(dt.timestamp()), nanoseconds=dt.microsecond * 1000)
+        return Timestamp(seconds=int(dt.timestamp() // 1), nanoseconds=dt.microsecond * 1000)

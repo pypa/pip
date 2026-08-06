@@ -150,6 +150,30 @@ def test_download_should_download_wheel_deps(
     result.did_create(Path("scratch") / dep_filename)
 
 
+def test_download_only_deps_should_only_download_wheel_deps(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """
+    It should download only dependencies for wheels (in the scratch path)
+    """
+    wheel_filename = "colander-0.9.9-py2.py3-none-any.whl"
+    dep_filename = "translationstring-1.1.tar.gz"
+    wheel_path = "/".join((data.find_links, wheel_filename))
+    result = script.pip(
+        "download",
+        "--only-deps",
+        "--no-build-isolation",
+        wheel_path,
+        "-d",
+        ".",
+        "--find-links",
+        data.find_links,
+        "--no-index",
+    )
+    result.did_not_create(Path("scratch") / wheel_filename)
+    result.did_create(Path("scratch") / dep_filename)
+
+
 def test_download_should_skip_existing_files(
     script: PipTestEnvironment, data: TestData
 ) -> None:
@@ -1244,7 +1268,7 @@ def download_server_html_index(
             "-d",
             str(download_dir),
             "-i",
-            "http://localhost:8000",
+            f"http://localhost:{html_index_with_onetime_server.server_port}",
             *args,
         ]
         result = script.pip(*pip_args, allow_error=allow_error)

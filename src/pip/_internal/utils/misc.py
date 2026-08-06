@@ -14,7 +14,7 @@ import sysconfig
 import urllib.parse
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from pathlib import Path
@@ -52,6 +52,7 @@ __all__ = [
     "ensure_dir",
     "remove_auth_from_url",
     "check_externally_managed",
+    "looks_like_ci",
     "ConfiguredBuildBackendHookCaller",
 ]
 
@@ -65,6 +66,23 @@ OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 
 FILE_CHUNK_SIZE = 1024 * 1024
+# These are environment variables present when running under various
+# CI systems.  For each variable, some CI systems that use the variable
+# are indicated.  The collection was chosen so that for each of a number
+# of popular systems, at least one of the environment variables is used.
+# This list is used to provide some indication of and lower bound for
+# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
+# For more background, see: https://github.com/pypa/pip/issues/5499
+CI_ENVIRONMENT_VARIABLES = (
+    # Azure Pipelines
+    "BUILD_BUILDID",
+    # Jenkins
+    "BUILD_ID",
+    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
+    "CI",
+    # Explicit environment variable.
+    "PIP_IS_CI",
+)
 
 
 def get_pip_version() -> str:
@@ -72,6 +90,11 @@ def get_pip_version() -> str:
     pip_pkg_dir = os.path.abspath(pip_pkg_dir)
 
     return f"pip {__version__} from {pip_pkg_dir} (python {get_major_minor_version()})"
+
+
+@cache
+def running_under_zipapp() -> bool:
+    return not pathlib.Path(pip_location).resolve().parent.is_dir()
 
 
 def get_runnable_pip() -> str:
@@ -82,7 +105,7 @@ def get_runnable_pip() -> str:
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    if not source.is_dir():
+    if running_under_zipapp():
         # This would happen if someone is using pip from inside a zip file. In that
         # case, we can use that directly.
         return str(source)
@@ -785,3 +808,13 @@ def warn_if_run_as_root() -> None:
         "Use the --root-user-action option if you know what you are doing and "
         "want to suppress this warning."
     )
+
+
+def looks_like_ci() -> bool:
+    """
+    Return whether it looks like pip is running under CI.
+    """
+    # We don't use the method of checking for a tty (e.g. using isatty())
+    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
+    # method doesn't provide definitive information in either direction.
+    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)

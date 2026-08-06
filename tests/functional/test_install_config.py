@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import os
 import ssl
 import tempfile
 import textwrap
+from base64 import b64encode
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +21,10 @@ from tests.lib.server import (
     server_running,
 )
 from tests.lib.venv import VirtualEnvironment
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+
 
 TEST_PYPI_INITOOLS = "https://test.pypi.org/simple/initools/"
 
@@ -411,7 +419,6 @@ def test_prompt_for_keyring_if_needed(
     cert_factory: CertFactory,
     auth_needed: bool,
     flags: list[str],
-    keyring_provider: str,
     keyring_provider_implementation: str,
     tmpdir: Path,
     script_factory: ScriptFactory,
@@ -420,29 +427,40 @@ def test_prompt_for_keyring_if_needed(
     """Test behaviour while installing from an index url
     requiring authentication and keyring is possible.
     """
-    environ = os.environ.copy()
     workspace = tmpdir.joinpath("workspace")
 
+    virtualenv = virtualenv_factory(workspace.joinpath("venv"))
+
     if keyring_provider_implementation == "subprocess":
+        # Install keyring into its own venv.
         keyring_virtualenv = virtualenv_factory(workspace.joinpath("keyring"))
         keyring_script = script_factory(
             workspace.joinpath("keyring"), keyring_virtualenv
         )
         keyring_script.pip_install_local("keyring", "-f", data.common_wheels)
 
-        environ["PATH"] = str(keyring_script.bin_path) + os.pathsep + environ["PATH"]
-
-    virtualenv = virtualenv_factory(workspace.joinpath("venv"))
-    script = script_factory(workspace.joinpath("venv"), virtualenv, environ=environ)
-
-    if (
-        keyring_provider not in [None, "auto"]
-        or keyring_provider_implementation != "subprocess"
-    ):
-        script.pip_install_local("keyring", "-f", data.common_wheels)
-
-    if keyring_provider_implementation != "subprocess":
-        keyring_script = script
+        # Set up this venv with a PATH that can see the keyring installed in a
+        # separate venv.
+        virtualenv_script = script_factory(
+            workspace.joinpath("venv"),
+            virtualenv,
+            environ={
+                **os.environ,
+                "PATH": str(keyring_script.bin_path) + os.pathsep + os.environ["PATH"],
+            },
+        )
+    elif keyring_provider_implementation == "import":
+        # Set up a venv with keyring installed.
+        virtualenv_script = script_factory(workspace.joinpath("venv"), virtualenv)
+        virtualenv_script.pip_install_local("keyring", "-f", data.common_wheels)
+        keyring_script = virtualenv_script
+    elif keyring_provider_implementation == "disabled":
+        # Set up an venv that does not have keyring installed, nor is able to
+        # find keyring anywhere on the PATH.
+        virtualenv_script = script_factory(workspace.joinpath("venv"), virtualenv)
+        keyring_script = None
+    else:
+        pytest.fail(f"Unrecognized {keyring_provider_implementation=}")
 
     cert_path = cert_factory()
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cert_path)
@@ -463,41 +481,48 @@ def test_prompt_for_keyring_if_needed(
     ]
 
     url = f"https://USERNAME@{server.host}:{server.port}/simple"
+    log_file = virtualenv_script.scratch_path / "log"
+    log_file.touch()
 
-    keyring_content = textwrap.dedent("""\
-        import os
-        import sys
-        import keyring
-        from keyring.backend import KeyringBackend
-        from keyring.credentials import SimpleCredential
+    if keyring_script is not None:
+        keyring_content = textwrap.dedent(f"""\
+            import os
+            import sys
+            import keyring
+            from keyring.backend import KeyringBackend
+            from keyring.credentials import SimpleCredential
 
-        class TestBackend(KeyringBackend):
-            priority = 1
+            def log(msg):
+                with open({str(log_file)!r}, 'a', encoding='utf8') as f:
+                    f.write(msg + '\\n')
 
-            def get_credential(self, url, username):
-                sys.stderr.write("get_credential was called" + os.linesep)
-                return SimpleCredential(username="USERNAME", password="PASSWORD")
+            class TestBackend(KeyringBackend):
+                priority = 1
 
-            def get_password(self, url, username):
-                sys.stderr.write("get_password was called" + os.linesep)
-                return "PASSWORD"
+                def get_credential(self, url, username):
+                    log("get_credential was called")
+                    return SimpleCredential(username="USERNAME", password="PASSWORD")
 
-            def set_password(self, url, username):
-                pass
-    """)
-    keyring_path = keyring_script.site_packages_path / "keyring_test.py"
-    keyring_path.write_text(keyring_content)
+                def get_password(self, url, username):
+                    log("get_password was called")
+                    return "PASSWORD"
 
-    keyring_content = (
-        "import keyring_test;"
-        " import keyring;"
-        " keyring.set_keyring(keyring_test.TestBackend())" + os.linesep
-    )
-    keyring_path = keyring_path.with_suffix(".pth")
-    keyring_path.write_text(keyring_content)
+                def set_password(self, url, username):
+                    pass
+        """)
+        keyring_path = keyring_script.site_packages_path / "keyring_test.py"
+        keyring_path.write_text(keyring_content)
+
+        keyring_content = (
+            "import keyring_test;"
+            " import keyring;"
+            " keyring.set_keyring(keyring_test.TestBackend())" + os.linesep
+        )
+        keyring_path = keyring_path.with_suffix(".pth")
+        keyring_path.write_text(keyring_content)
 
     with server_running(server):
-        result = script.pip(
+        virtualenv_script.pip(
             "install",
             "--no-build-isolation",
             "--index-url",
@@ -510,15 +535,122 @@ def test_prompt_for_keyring_if_needed(
             "simple",
         )
 
-    function_name = (
-        "get_credential"
-        if keyring_provider_implementation == "import"
-        else "get_password"
-    )
+    logs = log_file.read_text("utf8").splitlines()
     if auth_needed:
-        assert function_name + " was called" in result.stderr
+        assert "get_credential was called" in logs
     else:
-        assert function_name + " was called" not in result.stderr
+        assert "get_credential was called" not in logs
+
+
+@pytest.mark.parametrize(
+    "isolation",
+    [
+        pytest.param("", id="legacy-isolation"),
+        pytest.param(
+            "--use-feature=venv-isolation",
+            id="venv-isolation",
+            marks=pytest.mark.xfail(reason="needs inprocess-build-deps to work"),
+        ),
+    ],
+)
+def test_build_dependency_install_uses_same_keyring_as_root(
+    isolation: str, script: PipTestEnvironment, data: TestData
+) -> None:
+    """Ensure the root and build dependency pip processes use the same keyring.
+
+    When build dependencies are installed via a pip subprocess, it should be able
+    to import the same keyring directly. While normally the subprocess will be
+    able to find the same keyring by searching PATH, if the virtual environment
+    wasn't activated, pip may either fail to find keyring or pick a different
+    keyring (from the system).
+
+    See also: https://github.com/pypa/pip/issues/14227
+
+    NOTE: venv-isolation is still affected by this bug since it's necessary
+          to apply build isolation while install build dependencies. The
+          proper fix to also enable inprocess-build-deps (which will also
+          fix this for the custom isolation logic).
+    TODO: remove this test when the subprocess build installer is gone
+    """
+    script.pip_install_local("keyring", find_links=data.common_wheels)
+
+    keyring_module = script.site_packages_path / "keyring_test.py"
+    keyring_module.write_text(textwrap.dedent("""\
+        import os
+
+        import keyring
+        from keyring.backend import KeyringBackend
+        from keyring.credentials import SimpleCredential
+
+        class TestBackend(KeyringBackend):
+            priority = 1
+
+            def get_credential(self, url, username):
+                return SimpleCredential(username="USERNAME", password="PASSWORD")
+
+            def get_password(self, url, username):
+                return "PASSWORD"
+
+            def set_password(self, url, username, password):
+                pass
+        """))
+    script.environ["PYTHON_KEYRING_BACKEND"] = "keyring_test.TestBackend"
+
+    expected_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
+
+    def unauthorized_response(
+        environ: WSGIEnvironment, start_response: StartResponse
+    ) -> list[bytes]:
+        start_response("401 Unauthorized", [("WWW-Authenticate", "Basic")])
+        return []
+
+    def authenticated_index(
+        environ: WSGIEnvironment, start_response: StartResponse
+    ) -> WSGIApplication:
+        if environ.get("HTTP_AUTHORIZATION") != expected_auth:
+            return unauthorized_response
+        return package_page({})
+
+    # Emulate the bug report setup which uses --extra-url-index (which pip will access
+    # while install build dependencies). To avoid hitting PyPI, spin up a no-op index
+    # for --index-url itself.
+    primary_index = make_mock_server()
+    primary_index.mock.side_effect = lambda _, __: package_page({})
+    primary_index_url = f"http://{primary_index.host}:{primary_index.port}/simple"
+    authenticated_extra_index = make_mock_server()
+    authenticated_extra_index.mock.side_effect = authenticated_index
+    extra_index_url = (
+        f"http://{authenticated_extra_index.host}:"
+        f"{authenticated_extra_index.port}/simple"
+    )
+
+    # The script runner automatically adds the venv bin directory to PATH.
+    path_without_keyring = script.scratch_path / "path-without-keyring"
+    path_without_keyring.mkdir()
+    script.environ["PATH"] = str(path_without_keyring)
+    with server_running(primary_index), server_running(authenticated_extra_index):
+        result = script.run(
+            # Run Python directly because the python executable was lost when
+            # we removed the venv's bin directory from PATH.
+            str(script.bin_path / f"python{script.exe}"),
+            "-m",
+            "pip",
+            "wheel",
+            "--no-cache-dir",
+            "--index-url",
+            primary_index_url,
+            "--extra-index-url",
+            extra_index_url,
+            "--find-links",
+            str(data.packages),
+            "--find-links",
+            str(data.common_wheels),
+            "pep518==3.0",
+            isolation,
+        )
+
+    assert result.returncode == 0, result
+    assert "Successfully built pep518" in result.stdout, result.stdout
 
 
 @pytest.mark.network

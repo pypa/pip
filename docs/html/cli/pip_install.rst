@@ -27,7 +27,7 @@ Description
 Overview
 --------
 
-pip install has several stages:
+``pip install`` has several stages:
 
 1. Identify the base requirements. The user supplied arguments are processed
    here.
@@ -204,15 +204,15 @@ This is now covered in :doc:`../topics/vcs-support`.
 Finding Packages
 ----------------
 
-pip searches for packages on `PyPI`_ using the
+Pip searches for packages on `PyPI`_ using the
 `HTTP simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://packaging.python.org/specifications/simple-repository-api/>`_
 and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 
-pip offers a number of package index options for modifying how packages are
+Pip offers a number of package index options for modifying how packages are
 found.
 
-pip looks for packages in a number of places: on PyPI (or the index given as
+Pip looks for packages in a number of places: on PyPI (or the index given as
 ``--index-url``, if not disabled via ``--no-index``), in the local filesystem,
 and in any additional repositories specified via ``--find-links`` or
 ``--extra-index-url``. There is no priority in the locations that are searched.

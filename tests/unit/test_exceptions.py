@@ -15,6 +15,8 @@ from pip._vendor import rich
 
 from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
 
+from tests.lib.output import render_to_text as rendered
+
 
 class TestDiagnosticPipErrorCreation:
     def test_fails_without_reference(self) -> None:
@@ -256,17 +258,6 @@ class TestDiagnosticPipErrorPresentation_ASCII:
             Oh no!
             It broke. :(
             """)
-
-
-def rendered(error: DiagnosticPipError, *, color: bool = False) -> str:
-    with io.StringIO() as stream:
-        console = rich.console.Console(
-            force_terminal=False,
-            file=stream,
-            color_system="truecolor" if color else None,
-        )
-        console.print(error)
-        return stream.getvalue()
 
 
 class TestDiagnosticPipErrorPresentation_Unicode:
