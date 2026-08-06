@@ -534,11 +534,8 @@ class PipSession(requests.Session):
         target = super().get_redirect_target(resp)
         if target is None:
             return None
-        # A file:// URL is served by LocalFSAdapter, so following a redirect
-        # into it would let a remote server make pip read a local path (or, via
-        # a UNC target on Windows, reach an SMB share). Only follow redirects
-        # that stay on http(s); a relative target carries no scheme here and
-        # inherits the current one.
+        # Redirecting to a file:// URL doesn't make much sense and
+        # shouldn't be allowed.
         scheme = urllib.parse.urlparse(target).scheme
         if scheme and scheme.lower() not in ("http", "https"):
             logger.warning(
