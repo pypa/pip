@@ -270,13 +270,13 @@ def test_invalid_package_is_skipped(
     invalid_package_directory = tmp_path / ".dist-info"
     invalid_package_directory.mkdir()
     (invalid_package_directory / "METADATA").write_text(
-        "Metadata-Version: 1.0\nName: foo\n"
+        "Metadata-Version: 2.1\nName: foo\nVersion: 1.0\n"
     )
 
     valid_package_directory = tmp_path / "bar-1.0.0.dist-info"
     valid_package_directory.mkdir()
     (valid_package_directory / "METADATA").write_text(
-        "Metadata-Version: 1.0\nName: bar\nVersion:1.0.0\n"
+        "Metadata-Version: 2.1\nName: bar\nVersion:1.0.0\n"
     )
     with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
         result = get_environment([str(tmp_path)]).iter_all_distributions()
