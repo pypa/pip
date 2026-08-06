@@ -19,17 +19,17 @@ from pip._internal.configuration import Configuration
 from pip._internal.metadata import get_environment
 from pip._internal.utils.compat import get_locale_encoding, open_text_resource
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import get_pip_version
+from pip._internal.utils.misc import get_pip_version, write_output
 
 logger = logging.getLogger(__name__)
 
 
 def show_value(name: str, value: Any) -> None:
-    logger.info("%s: %s", name, value)
+    write_output("%s: %s", name, value)
 
 
 def show_sys_implementation() -> None:
-    logger.info("sys.implementation:")
+    write_output("sys.implementation:")
     implementation_name = sys.implementation.name
     with indent_log():
         show_value("name", implementation_name)
@@ -91,11 +91,11 @@ def show_actual_vendor_versions(vendor_txt_versions: dict[str, str]) -> None:
                 " (CONFLICT: vendor.txt suggests version should"
                 f" be {expected_version})"
             )
-        logger.info("%s==%s%s", module_name, actual_version, extra_message)
+        write_output("%s==%s%s", module_name, actual_version, extra_message)
 
 
 def show_vendor_versions() -> None:
-    logger.info("vendored library versions:")
+    write_output("vendored library versions:")
 
     vendor_txt_versions = create_vendor_txt_map()
     with indent_log():
@@ -115,7 +115,7 @@ def show_tags(options: Values) -> None:
         suffix = f" (target: {formatted_target})"
 
     msg = f"Compatible tags: {len(tags)}{suffix}"
-    logger.info(msg)
+    write_output(msg)
 
     if options.verbose < 1 and len(tags) > tag_limit:
         tags_limited = True
@@ -125,11 +125,11 @@ def show_tags(options: Values) -> None:
 
     with indent_log():
         for tag in tags:
-            logger.info(str(tag))
+            write_output(str(tag))
 
         if tags_limited:
             msg = f"...\n[First {tag_limit} tags shown. Pass --verbose to show all.]"
-            logger.info(msg)
+            write_output(msg)
 
 
 def ca_bundle_info(config: Configuration) -> str:

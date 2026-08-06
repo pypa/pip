@@ -142,6 +142,26 @@ def test_index_versions_all_releases_for_package(script: PipTestEnvironment) -> 
     assert "2.0a1" in result.stdout
 
 
+def test_index_versions_quiet_shows_versions(script: PipTestEnvironment) -> None:
+    """Test that quiet mode does not suppress index versions output."""
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.0").save_to_dir(wheelhouse_path)
+
+    result = script.pip(
+        "index",
+        "versions",
+        "--quiet",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "simple",
+    )
+
+    assert "simple (1.0)" in result.stdout
+    assert "Available versions: 1.0" in result.stdout
+
+
 def test_index_versions_only_final_for_package(script: PipTestEnvironment) -> None:
     """Test that --only-final filters prereleases for specific package."""
     # Create fake local package index with prerelease

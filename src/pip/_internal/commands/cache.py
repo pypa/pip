@@ -8,7 +8,7 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, PipError
 from pip._internal.utils import filesystem
 from pip._internal.utils.logging import getLogger
-from pip._internal.utils.misc import format_size
+from pip._internal.utils.misc import format_size, write_output
 
 logger = getLogger(__name__)
 
@@ -88,7 +88,7 @@ class CacheCommand(Command):
         if args:
             raise CommandError("Too many arguments")
 
-        logger.info(options.cache_dir)
+        write_output(options.cache_dir)
 
     def get_cache_info(self, options: Values, args: list[str]) -> None:
         if args:
@@ -128,7 +128,7 @@ class CacheCommand(Command):
             .strip()
         )
 
-        logger.info(message)
+        write_output(message)
 
     def list_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:
@@ -147,7 +147,7 @@ class CacheCommand(Command):
 
     def format_for_human(self, files: list[str]) -> None:
         if not files:
-            logger.info("No locally built wheels cached.")
+            write_output("No locally built wheels cached.")
             return
 
         results = []
@@ -155,12 +155,12 @@ class CacheCommand(Command):
             wheel = os.path.basename(filename)
             size = filesystem.format_file_size(filename)
             results.append(f" - {wheel} ({size})")
-        logger.info("Cache contents:\n")
-        logger.info("\n".join(sorted(results)))
+        write_output("Cache contents:\n")
+        write_output("\n".join(sorted(results)))
 
     def format_for_abspath(self, files: list[str]) -> None:
         if files:
-            logger.info("\n".join(sorted(files)))
+            write_output("\n".join(sorted(files)))
 
     def remove_cache_items(self, options: Values, args: list[str]) -> None:
         if len(args) > 1:

@@ -145,6 +145,10 @@ class DownloadCommand(RequirementCommand):
                 downloaded.append(req.name)
 
         if downloaded:
-            write_output("Successfully downloaded %s", " ".join(downloaded))
+            write_output(
+                "Successfully downloaded %s",
+                " ".join(downloaded),
+                show_on_quiet=False,
+            )
 
         return SUCCESS

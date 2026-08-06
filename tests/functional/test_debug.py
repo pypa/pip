@@ -39,6 +39,16 @@ def test_debug(script: PipTestEnvironment, expected_text: str) -> None:
     assert expected_text in stdout
 
 
+def test_debug_quiet(script: PipTestEnvironment) -> None:
+    """
+    Check that quiet mode does not suppress debug's primary output.
+    """
+    result = script.pip("debug", "--quiet", allow_stderr_warning=True)
+
+    assert "pip version: " in result.stdout
+    assert "Compatible tags: " in result.stdout
+
+
 def test_debug__library_versions(script: PipTestEnvironment) -> None:
     """
     Check the library versions normal output.

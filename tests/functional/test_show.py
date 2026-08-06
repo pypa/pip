@@ -32,6 +32,17 @@ def test_basic_show(script: PipTestEnvironment) -> None:
     assert "Requires: " in lines
 
 
+def test_basic_show_quiet(script: PipTestEnvironment) -> None:
+    """
+    Test that quiet mode does not suppress the show command's package output.
+    """
+    result = script.pip("show", "--quiet", "pip")
+    lines = result.stdout.splitlines()
+    assert "Name: pip" in lines
+    assert f"Version: {__version__}" in lines
+    assert any(line.startswith("Location: ") for line in lines)
+
+
 def test_show_without_files_does_not_read_installed_files(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

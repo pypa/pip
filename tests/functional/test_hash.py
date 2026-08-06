@@ -15,6 +15,16 @@ def test_basic_hash(script: PipTestEnvironment, tmpdir: Path) -> None:
     assert expected in str(result)
 
 
+def test_basic_hash_quiet(script: PipTestEnvironment, tmpdir: Path) -> None:
+    """Quiet mode should not suppress the generated hash."""
+    expected = (
+        "--hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425"
+        "e73043362938b9824"
+    )
+    result = script.pip("hash", "--quiet", _hello_file(tmpdir))
+    assert expected in str(result)
+
+
 def test_good_algo_option(script: PipTestEnvironment, tmpdir: Path) -> None:
     """Make sure the -a option works."""
     expected = (
