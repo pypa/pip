@@ -229,6 +229,7 @@ ignore = [
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
     "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
+    "ISC004" # implicit-string-concatenation-in-collection-literal
 ]
 select = [
     "ASYNC",
