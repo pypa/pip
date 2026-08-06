@@ -159,8 +159,10 @@ def get_scheme(
         scheme_name = _infer_prefix()
 
     # Special case: When installing into a custom prefix, use posix_prefix
-    # instead of posix_local because it should be used only to redirecting
-    # to /usr/local.
+    # instead of posix_local because it should *only* be used to redirecting
+    # to /usr/local for system packager installs. Notably, posix_local is used
+    # on Debian and its derivatives.
+    # See also: https://discuss.python.org/t/18240
     if prefix is not None and scheme_name == "posix_local":
         scheme_name = "posix_prefix"
 

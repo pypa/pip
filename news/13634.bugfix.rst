@@ -1,1 +1,3 @@
-Patch scheme to posix_prefix if posix_local and --prefix is specified
+When using installing to a custom ``--prefix``, use the ``posix_prefix`` scheme
+when running from a Debian patched Python distribution to avoid superfluous
+a ``/local/`` subdirectory.
