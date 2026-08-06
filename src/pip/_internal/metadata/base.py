@@ -619,16 +619,27 @@ class BaseEnvironment:
 
     def _get_name_and_version_from_info_location(
         self, dist: BaseDistribution
-    ) -> tuple[str, str] | None:
+    ) -> tuple[str, str | None] | None:
+        """Return (name, version) parsed from the info directory name."""
         info_location = dist.info_location
         if not info_location:
             return None
+
         stem, suffix = os.path.splitext(pathlib.Path(info_location).name)
-        if suffix == ".dist-info":
-            name, sep, version = stem.partition("-")
-            if sep and name and version:
-                return name, version
-        return None
+        if suffix not in {".dist-info", ".egg-info"}:
+            return None
+
+        name, sep, version = stem.partition("-")
+
+        if not name:
+            return None
+
+        if suffix == ".egg-info":
+            if not sep:
+                return name, None
+            version = re.split(r"-py\d+\.\d+", version, maxsplit=1)[0]
+
+        return (name, version) if version else None
 
     def _is_valid_project_name(self, name: str) -> bool:
         return bool(_VALID_PROJECT_NAME_RE.match(name))
@@ -636,9 +647,7 @@ class BaseEnvironment:
     def validate_distribution(self, dist: BaseDistribution) -> bool:
         # do dir name and version exist?
         dir_info = self._get_name_and_version_from_info_location(dist)
-        if not dist.info_location or not dist.info_location.endswith(".dist-info"):
-            # Validation is only implemented for modern .dist-info installations.
-            # Legacy egg-info distributions are passed through without validation.
+        if not dist.info_location:
             return True
         if not dir_info:
             logger.warning(
@@ -659,7 +668,7 @@ class BaseEnvironment:
                 "Ignoring distribution at %s: %r is not a valid package name. "
                 "This may be a partial or interrupted installation.",
                 dist.location,
-                dir_name,
+                canonicalize_name(dir_name),
             )
             return False
 
@@ -669,7 +678,7 @@ class BaseEnvironment:
             logger.warning(
                 "Ignoring distribution %r at %s: METADATA is missing the "
                 "required Name field.",
-                dir_name,
+                canonicalize_name(dir_name),
                 dist.location,
             )
             return False
@@ -680,7 +689,7 @@ class BaseEnvironment:
                 "Ignoring distribution at %s: %r is not a valid package name. "
                 "This may be a partial or interrupted installation.",
                 dist.location,
-                name,
+                canonicalize_name(name),
             )
             return False
 
@@ -689,12 +698,17 @@ class BaseEnvironment:
             logger.warning(
                 "Ignoring distribution %r at %s: package name in METADATA "
                 "(%r) does not match the installation directory name (%r).",
-                dir_name,
+                canonicalize_name(dir_name),
                 dist.location,
-                name,
+                canonicalize_name(name),
                 dir_name,
             )
             return False
+
+        if dir_version is None:
+            # No version encoded in the info directory name (e.g. bare
+            # egg-info from an editable install) — nothing to cross-check.
+            return True
 
         # does METADATA have a Version value?
         version = dist.metadata.get("Version")
@@ -710,23 +724,21 @@ class BaseEnvironment:
         # do METADATA Version and directory version agree with each other?
         # also checking if METADATA Version or directory version are invalid
         try:
-            if Version(version) != Version(dir_version):
-                logger.warning(
-                    "Ignoring distribution %r at %s: version in METADATA (%r) "
-                    "does not match the installation directory version (%r).",
-                    dir_name,
-                    dist.location,
-                    version,
-                    dir_version,
-                )
-                return False
+            versions_match = Version(version) == Version(dir_version)
         except InvalidVersion:
+            # Legacy, non-PEP 440 version identifiers (e.g. "2010i") are
+            # still permitted by the packaging spec. Don't invalidate the
+            # distribution just because it can't be parsed as PEP 440
+            versions_match = version == dir_version
+
+        if not versions_match:
             logger.warning(
-                "Ignoring distribution %r at %s: version %r is not a valid "
-                "PEP 440 version string.",
-                dir_name,
+                "Ignoring distribution %r at %s: version in METADATA (%r) "
+                "does not match the installation directory version (%r).",
+                canonicalize_name(dir_name),
                 dist.location,
                 version,
+                dir_version,
             )
             return False
 
