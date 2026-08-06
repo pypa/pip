@@ -10,9 +10,11 @@ from pip._internal.operations.check import (
 
 
 def package_details(*dependencies: str) -> PackageDetails:
+    dependency_requirements = [Requirement(dependency) for dependency in dependencies]
     return PackageDetails(
         Version("1"),
-        [Requirement(dependency) for dependency in dependencies],
+        dependency_requirements,
+        [canonicalize_name(req.name) for req in dependency_requirements],
     )
 
 
