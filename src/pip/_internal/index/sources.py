@@ -60,9 +60,8 @@ class _FlatDirectoryToUrls:
         and project_name_to_urls at the same time
         """
         for entry in os.scandir(self._path):
-            url = path_to_url(entry.path)
-            if _is_html_file(url):
-                self._page_candidates.append(url)
+            if _is_html_file(entry.name):
+                self._page_candidates.append(path_to_url(entry.path))
                 continue
 
             # File must have a valid wheel or sdist name,
@@ -75,7 +74,7 @@ class _FlatDirectoryToUrls:
                 except InvalidSdistFilename:
                     continue
 
-            self._project_name_to_urls[project_filename].append(url)
+            self._project_name_to_urls[project_filename].append(path_to_url(entry.path))
         self._scanned_directory = True
 
     @property
