@@ -1,0 +1,1 @@
+Refuse to follow an HTTP redirect to a ``file:`` URL.
