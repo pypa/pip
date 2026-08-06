@@ -647,15 +647,43 @@ class BaseEnvironment:
     def validate_distribution(self, dist: BaseDistribution) -> bool:
         # do dir name and version exist?
         dir_info = self._get_name_and_version_from_info_location(dist)
-        if not dist.info_location:
-            return True
-        if not dir_info:
+        # does METADATA have a Name value?
+        name = dist.metadata.get("Name")
+        if not name:
             logger.warning(
-                "Ignoring distribution at %s: could not determine "
-                "package name and/or version from the installation directory.",
+                "Ignoring distribution %r at %s: METADATA is missing the "
+                "required Name field.",
+                dist.canonical_name,
                 dist.location,
             )
             return False
+
+        # is METADATA Name valid?
+        if not self._is_valid_project_name(name):
+            logger.warning(
+                "Ignoring distribution at %s: %r is not a valid package name. "
+                "This may be a partial or interrupted installation.",
+                dist.location,
+                canonicalize_name(name),
+            )
+            return False
+
+        if not dist.info_location:
+            return True
+
+        info_name = pathlib.Path(dist.info_location).name
+        if info_name.endswith(".egg"):
+            return True
+
+        if dir_info is None:
+            if info_name.endswith(".dist-info"):
+                logger.warning(
+                    "Ignoring distribution at %s: could not determine "
+                    "package name and/or version from the installation directory.",
+                    dist.location,
+                )
+                return False
+            return True  # .egg-info without version is valid.
 
         dir_name, dir_version = dir_info
         # is dir name valid?
@@ -669,27 +697,6 @@ class BaseEnvironment:
                 "This may be a partial or interrupted installation.",
                 dist.location,
                 canonicalize_name(dir_name),
-            )
-            return False
-
-        # does METADATA have a Name value?
-        name = dist.metadata.get("Name")
-        if not name:
-            logger.warning(
-                "Ignoring distribution %r at %s: METADATA is missing the "
-                "required Name field.",
-                canonicalize_name(dir_name),
-                dist.location,
-            )
-            return False
-
-        # is Name valid?
-        if not self._is_valid_project_name(name):
-            logger.warning(
-                "Ignoring distribution at %s: %r is not a valid package name. "
-                "This may be a partial or interrupted installation.",
-                dist.location,
-                canonicalize_name(name),
             )
             return False
 
