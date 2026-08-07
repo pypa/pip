@@ -325,17 +325,17 @@ def _make_index_content(
 def _record_error_if_present(
     error_context: IndexErrorContext | None,
     url: str,
-    exc: str | Exception,
+    exc: Exception,
 ) -> None:
     if error_context is not None:
-        error_context.record_error(url, exc)
-
-
-def _get_error_reason(exc: Exception) -> str | Exception:
-    """Extract the underlying reason from a urllib3 wrapped exception."""
-    if exc.args and hasattr(exc.args[0], "reason"):
-        return exc.args[0].reason
-    return exc
+        if (
+            isinstance(exc, NetworkConnectionError)
+            and exc.response is not None
+            and exc.response.status_code == 404
+        ):
+            error_context.record_not_found(redact_auth_from_url(url), exc)
+        else:
+            error_context.record_unavailable(redact_auth_from_url(url), exc)
 
 
 def _get_index_content(
@@ -369,7 +369,6 @@ def _get_index_content(
         #       so we'll need to come up with something on our own.
         url = urllib.parse.urljoin(url, "index.html")
         logger.debug(" file: URL is directory, getting %s", url)
-
     try:
         resp = _get_simple_response(
             url, session=session, force_revalidate=force_revalidate
@@ -391,25 +390,20 @@ def _get_index_content(
         )
     except (RetryError, NetworkConnectionError) as exc:
         _handle_get_simple_fail(link, exc)
-        reason = _get_error_reason(exc)
-        _record_error_if_present(error_context, str(link.url), reason)
+        _record_error_if_present(error_context, str(link.url), exc)
     except (SSLVerificationError, SSLMissingError) as exc:
         reason = f"There was a problem confirming the ssl certificate: {exc.context}"
-        reason += str(_get_error_reason(exc))
         _handle_get_simple_fail(link, reason, meth=logger.info)
-        _record_error_if_present(error_context, str(link.url), reason)
+        _record_error_if_present(error_context, str(link.url), exc)
     except ConnectionFailedError as exc:
-        reason = _get_error_reason(exc)
         _handle_get_simple_fail(link, f"connection error: {exc.context}")
-        _record_error_if_present(error_context, str(link.url), reason)
+        _record_error_if_present(error_context, str(link.url), exc)
     except ProxyConnectionError as exc:
-        reason = _get_error_reason(exc)
         _handle_get_simple_fail(link, f"proxy connection error: {exc.context}")
-        _record_error_if_present(error_context, str(link.url), reason)
+        _record_error_if_present(error_context, str(link.url), exc)
     except ConnectionTimeoutError as exc:
-        reason = _get_error_reason(exc)
         _handle_get_simple_fail(link, str(exc.context))
-        _record_error_if_present(error_context, str(link.url), reason)
+        _record_error_if_present(error_context, str(link.url), exc)
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None
