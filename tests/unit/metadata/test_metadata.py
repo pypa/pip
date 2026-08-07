@@ -10,6 +10,7 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata import (
     BaseDistribution,
+    BaseEnvironment,
     get_directory_distribution,
     get_environment,
     get_wheel_distribution,
@@ -163,6 +164,49 @@ def test_invalid_package_with_invalid_dir_name_is_skipped(
 
     assert len(list(result)) == 0
     assert "This may be a partial or interrupted installation" in caplog.text
+
+
+def test_invalid_package_warning_is_only_emitted_once(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "~foo-1.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: foo\nVersion:1.0\n"
+    )
+
+    env = get_environment([str(tmp_path)])
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        assert len(list(env.iter_all_distributions())) == 0
+        assert len(list(env.iter_all_distributions())) == 0
+
+    assert caplog.text.count("is not a valid package name") == 1
+
+
+def test_valid_package_is_only_validated_once(
+    tmp_path: Path,
+) -> None:
+    valid_package_directory = tmp_path / "bar-1.0.0.dist-info"
+    valid_package_directory.mkdir()
+    (valid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: bar\nVersion:1.0.0\n"
+    )
+
+    env = get_environment([str(tmp_path)])
+    real_validate = BaseEnvironment._validate_distribution
+    calls: list[BaseDistribution] = []
+
+    def spy(self: BaseEnvironment, dist: BaseDistribution) -> bool:
+        calls.append(dist)
+        return real_validate(self, dist)
+
+    with mock.patch.object(BaseEnvironment, "_validate_distribution", spy):
+        assert len(list(env.iter_all_distributions())) == 1
+        assert len(list(env.iter_all_distributions())) == 1
+
+    # Each distribution should only be validated once, even though the
+    # environment was scanned twice.
+    assert len(calls) == 1
 
 
 def test_invalid_package_with_invalid_metadata_name_is_skipped(

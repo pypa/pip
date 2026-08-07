@@ -52,6 +52,13 @@ _VALID_PROJECT_NAME_RE = re.compile(
     flags=re.IGNORECASE,
 )
 
+# Validation results keyed by the distribution's info location. pip scans the
+# installed environment several times during a single run, and each scan re-validates
+# the metadata of every installed distribution. Cache the result per info
+# location so each distribution is validated (and any "Ignoring distribution"
+# warning is emitted) only once.
+_distribution_validity_cache: dict[str, bool] = {}
+
 
 class BaseEntryPoint(Protocol):
     @property
@@ -645,6 +652,17 @@ class BaseEnvironment:
         return bool(_VALID_PROJECT_NAME_RE.match(name))
 
     def validate_distribution(self, dist: BaseDistribution) -> bool:
+        info_location = dist.info_location
+        if info_location is not None:
+            if info_location in _distribution_validity_cache:
+                return _distribution_validity_cache[info_location]
+
+        result = self._validate_distribution(dist)
+        if info_location is not None:
+            _distribution_validity_cache[info_location] = result
+        return result
+
+    def _validate_distribution(self, dist: BaseDistribution) -> bool:
         # do dir name and version exist?
         dir_info = self._get_name_and_version_from_info_location(dist)
         # does METADATA have a Name value?
