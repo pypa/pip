@@ -326,7 +326,12 @@ def test_invalid_package_is_skipped(
         result = get_environment([str(tmp_path)]).iter_all_distributions()
 
     assert len(list(result)) == 1
-    assert "could not determine package name and/or version" in caplog.text
+    # The exact reason the distribution is rejected differs between the
+    # metadata backends (e.g. the pkg_resources backend cannot read the
+    # METADATA file for a name-less directory), so only check that a warning
+    # was emitted and the distribution was skipped.
+    # TODO: Change this once pkg_resources support is dropped.
+    assert "Ignoring distribution" in caplog.text
 
 
 def test_invalid_package_is_not_skipped_with_skip_invalid(
