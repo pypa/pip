@@ -186,13 +186,14 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         output_name, _, _ = line.partition("=")
         assert canonicalize_name(output_name) not in canonical_invalid_names
 
-    # The invalid names should be logged.
+    # The invalid names should be logged. The metadata backends normalize
+    # paths (pkg_resources lowercases them on Windows), so compare
+    # case-insensitively to avoid failing on the case of the path.
     for name in canonical_invalid_names:
         print(result.stderr)
         assert (
             f"Ignoring distribution at {os.fspath(script.site_packages_path)}: {name!r}"
-            in result.stderr
-        )
+        ).lower() in result.stderr.lower()
 
 
 def test_freeze_skips_malformed_dist(script: PipTestEnvironment) -> None:
