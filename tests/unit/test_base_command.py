@@ -14,7 +14,12 @@ import pytest
 
 from pip._internal.cli import base_command
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import BROKEN_STDOUT, UNKNOWN_ERROR, SUCCESS, ERROR, VIRTUALENV_NOT_FOUND
+from pip._internal.cli.status_codes import (
+    BROKEN_STDOUT,
+    SUCCESS,
+    UNKNOWN_ERROR,
+    VIRTUALENV_NOT_FOUND,
+)
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
