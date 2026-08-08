@@ -4,7 +4,6 @@ import contextlib
 import itertools
 import logging
 import sys
-import time
 from collections.abc import Generator
 from threading import Event, Thread
 from typing import Final, Protocol
@@ -34,20 +33,6 @@ class SpinnerInterface(Protocol):
 
     def start(self) -> None: ...
     def finish(self, label: str) -> None: ...
-
-
-class RateLimiter:
-    def __init__(self, min_update_interval_seconds: float) -> None:
-        self._min_update_interval_seconds = min_update_interval_seconds
-        self._last_update: float = 0
-
-    def ready(self) -> bool:
-        now = time.time()
-        delta = now - self._last_update
-        return delta >= self._min_update_interval_seconds
-
-    def reset(self) -> None:
-        self._last_update = time.time()
 
 
 class NoopSpinner(SpinnerInterface):
