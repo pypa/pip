@@ -1,0 +1,3 @@
+Reject a package ``url`` with a ``file://`` scheme in a ``pylock.toml`` fetched
+from a remote URL, so a remote lock file can no longer make pip read a local
+file or an SMB share while still allowing it to reference other http(s) hosts.

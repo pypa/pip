@@ -105,6 +105,36 @@ def test_package_dist_url_scheme_path_remote_lock_file(path: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "url",
+    [
+        "file:///etc/passwd",
+        "file://attacker/share/pkg.tgz",
+        "file:/etc/passwd",
+    ],
+)
+def test_package_dist_url_file_scheme_remote_lock_file(url: str) -> None:
+    """A remote lock file cannot point a package url at the local filesystem."""
+    with pytest.raises(InstallationError, match="file:// url"):
+        _package_dist_url(
+            "https://example.com/pylock.toml",
+            path=None,
+            url=url,
+        )
+
+
+def test_package_dist_url_cross_host_url_remote_lock_file() -> None:
+    """A remote lock file may still reference packages on other http(s) hosts."""
+    assert (
+        _package_dist_url(
+            "https://example.com/pylock.toml",
+            path=None,
+            url="https://other.example/pkg.tgz",
+        )
+        == "https://other.example/pkg.tgz"
+    )
+
+
+@pytest.mark.parametrize(
     "pylock_path_or_url,package_vcs,expected",
     [
         (

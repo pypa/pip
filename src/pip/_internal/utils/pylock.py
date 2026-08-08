@@ -183,6 +183,16 @@ def _package_dist_url(
             return path_to_url(path)
     else:
         assert url is not None  # guaranteed by packaging.pylock validation
+        # A file:// url in a lock fetched from a URL would still be read locally.
+        if (
+            _is_url(pylock_path_or_url)
+            and not pylock_path_or_url.startswith("file://")
+            and urlsplit(url).scheme == "file"
+        ):
+            raise InstallationError(
+                f"The file:// url {url!r} is not allowed in a pylock file "
+                f"obtained from a URL: {pylock_path_or_url!r}"
+            )
         return url
 
 
