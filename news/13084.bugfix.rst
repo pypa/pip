@@ -1,0 +1,2 @@
+Fix ``pip``'s self version check reporting an outdated version from the
+environment instead of the running pip when run as a zipapp.

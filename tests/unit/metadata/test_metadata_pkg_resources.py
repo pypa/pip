@@ -10,7 +10,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.metadata.pkg_resources import (
     Distribution,
     Environment,
@@ -124,3 +124,20 @@ def test_wheel_metadata_throws_on_bad_unicode() -> None:
     with pytest.raises(UnsupportedWheel) as e:
         metadata.get_metadata("METADATA")
     assert "METADATA" in str(e.value)
+
+
+def test_iter_entry_points_throws_on_invalid_entry_point() -> None:
+    dist = Distribution(
+        pkg_resources.DistInfoDistribution(
+            location="<in-memory>",
+            metadata=InMemoryMetadata(
+                {"entry_points.txt": b"[console_scripts]\nhello = hello:\n"},
+                "<in-memory>",
+            ),
+            project_name="simple",
+        ),
+    )
+
+    with pytest.raises(InstallationError) as e:
+        list(dist.iter_entry_points())
+    assert "hello = hello:" in str(e.value)
