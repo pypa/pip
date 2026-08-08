@@ -1,1 +1,0 @@
-Fix ``pip index versions`` to correctly show ``(latest)`` for up-to-date installed packages.
