@@ -186,9 +186,35 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         output_name, _, _ = line.partition("=")
         assert canonicalize_name(output_name) not in canonical_invalid_names
 
-    # The invalid names should be logged.
+    # The invalid names should be logged. The metadata backends normalize
+    # paths (pkg_resources lowercases them on Windows), so compare
+    # case-insensitively to avoid failing on the case of the path.
     for name in canonical_invalid_names:
-        assert f"Ignoring invalid distribution {name} (" in result.stderr
+        print(result.stderr)
+        assert (
+            f"Ignoring distribution at {os.fspath(script.site_packages_path)}: {name!r}"
+        ).lower() in result.stderr.lower()
+
+
+def test_freeze_skips_malformed_dist(script: PipTestEnvironment) -> None:
+    """
+    Test that pip freeze skips malformed distributions with a warning.
+    """
+    dist_info_path = os.path.join(os.fspath(script.site_packages_path), "foo.dist-info")
+    os.makedirs(dist_info_path)
+    with open(os.path.join(dist_info_path, "METADATA"), "w") as f:
+        f.write(textwrap.dedent("""\
+            Metadata-Version: 1.0
+            Name: foo
+            Version: 1.0
+            """))
+
+    result = script.pip("freeze", expect_stderr=True)
+    output_lines = {line.strip() for line in result.stdout.splitlines()}
+    assert "foo==1.0" not in output_lines
+    assert (
+        "package name and/or version from the installation directory." in result.stderr
+    )
 
 
 @pytest.mark.git

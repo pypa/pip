@@ -409,7 +409,9 @@ class InstallRequirement:
         """
         if self.req is None:
             return
-        existing_dist = get_default_environment().get_distribution(self.req.name)
+        existing_dist = get_default_environment().get_distribution(
+            self.req.name, skip_invalid=False
+        )
         if not existing_dist:
             return
 
@@ -670,7 +672,9 @@ class InstallRequirement:
 
         """
         assert self.req
-        dist = get_default_environment().get_distribution(self.req.name)
+        dist = get_default_environment().get_distribution(
+            self.req.name, skip_invalid=False
+        )
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None

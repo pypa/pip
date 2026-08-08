@@ -1,5 +1,6 @@
 import json
 import os
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -984,3 +985,23 @@ def test_outdated_all_releases_for_specific_package(
     assert len(outdated) == 1
     assert outdated[0]["name"] == "simple"
     assert outdated[0]["latest_version"] == "2.0a1"
+
+
+def test_list_skips_malformed_dist(script: PipTestEnvironment) -> None:
+    """
+    Test that pip list skips malformed distributions with a warning.
+    """
+    dist_info_path = os.path.join(os.fspath(script.site_packages_path), "foo.dist-info")
+    os.makedirs(dist_info_path)
+    with open(os.path.join(dist_info_path, "METADATA"), "w") as f:
+        f.write(textwrap.dedent("""\
+            Metadata-Version: 1.0
+            Name: foo
+            Version: 1.0
+            """))
+
+    result = script.pip("list", "--format=freeze", expect_stderr=True)
+    output_lines = {line.strip() for line in result.stdout.splitlines()}
+
+    assert "foo==1.0" not in output_lines
+    assert "could not determine package name and/or version" in result.stderr
