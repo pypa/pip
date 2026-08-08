@@ -456,6 +456,43 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     _check_output(result.stdout, expected)
 
 
+@pytest.mark.git
+def test_freeze_git_remote_strips_auth(script: PipTestEnvironment) -> None:
+    """Test that freezing a Git clone does not expose remote credentials."""
+    pkg_version = _create_test_package(script.scratch_path)
+    script.run(
+        "git",
+        "clone",
+        os.fspath(pkg_version),
+        "pip-test-package",
+        expect_stderr=True,
+    )
+    repo_dir = script.scratch_path / "pip-test-package"
+    script.run(
+        "python",
+        "setup.py",
+        "develop",
+        cwd=repo_dir,
+        expect_stderr=True,
+    )
+    script.run(
+        "git",
+        "remote",
+        "set-url",
+        "origin",
+        "https://username:password@example.com/repo.git",
+        cwd=repo_dir,
+    )
+    revision = script.run("git", "rev-parse", "HEAD", cwd=repo_dir).stdout.strip()
+
+    result = script.pip("freeze", expect_stderr=True)
+
+    expected = f"...-e git+https://example.com/repo.git@{revision}#egg=version_pkg..."
+    _check_output(result.stdout, expected)
+    assert "username" not in result.stdout
+    assert "password" not in result.stdout
+
+
 @need_mercurial
 def test_freeze_mercurial_clone(script: PipTestEnvironment) -> None:
     """
