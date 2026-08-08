@@ -145,7 +145,7 @@ def message_about_scripts_not_on_PATH(scripts: Sequence[str]) -> str | None:
         if parent_dir != executable_dir and str(parent_dir) not in path_entries
     }
 
-    # Resolving PATH entries hits the filesystem, so only do it for what's left.
+    # Resolving PATH entries can be slow, so only do it for what's left.
     if warn_for:
         not_warn_dirs = {Path(i).resolve() for i in path_entries}
         warn_for = {
