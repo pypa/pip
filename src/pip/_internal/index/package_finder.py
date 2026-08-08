@@ -22,9 +22,12 @@ from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
+    DiagnosticPipError,
     DistributionNotFound,
+    IndexUnavailableError,
     InstallationError,
     InvalidWheelFilename,
+    NetworkConnectionError,
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
@@ -56,6 +59,32 @@ logger = getLogger(__name__)
 
 BuildTag = tuple[()] | tuple[int, str]
 CandidateSortingKey = tuple[int, int, int, _BaseVersion, int | None, BuildTag]
+
+
+class IndexErrorContext:
+    """Tracks errors encountered while accessing package indexes.
+
+    package_missing_sources: Sources that returned 404 (package not found).
+        These are not treated as fatal network errors.
+    unavailable_sources: Sources that failed due to network/connection issues.
+        These may cause installation to fail if no candidates are found.
+    """
+
+    def __init__(self) -> None:
+        self.package_missing_sources: list[tuple[str, Exception]] = []
+        self.unavailable_sources: list[tuple[str, Exception]] = []
+
+    def record_not_found(self, url: str, exc: Exception) -> None:
+        self.package_missing_sources.append((url, exc))
+
+    def record_unavailable(self, url: str, exc: Exception) -> None:
+        self.unavailable_sources.append((url, exc))
+
+    def has_unavailable_sources(self) -> bool:
+        return bool(self.unavailable_sources)
+
+    def has_missing_sources(self) -> bool:
+        return bool(self.package_missing_sources)
 
 
 def _check_link_requires_python(
@@ -854,14 +883,17 @@ class PackageFinder:
         return candidates
 
     def process_project_url(
-        self, project_url: Link, link_evaluator: LinkEvaluator
+        self,
+        project_url: Link,
+        link_evaluator: LinkEvaluator,
+        error_context: IndexErrorContext | None = None,
     ) -> list[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
             project_url,
         )
         index_response = self._link_collector.fetch_response(
-            project_url, package_name=link_evaluator.project_name
+            project_url, error_context, package_name=link_evaluator.project_name
         )
         if index_response is None:
             return []
@@ -875,6 +907,58 @@ class PackageFinder:
             )
 
         return package_links
+
+    def _log_errors(self, project_name: str, error_context: IndexErrorContext) -> None:
+        for url, exc in error_context.unavailable_sources:
+            if isinstance(exc, NetworkConnectionError):
+                logger.warning("Failed to fetch %s: %s", url, exc.error_msg)
+            elif isinstance(exc, DiagnosticPipError):
+                logger.warning(
+                    "Failed to fetch %s: %s. %s", url, exc.message, exc.hint_stmt
+                )
+            else:
+                # retry error
+                logger.warning("Failed to fetch %s: %s", url, exc)
+
+    def _log_missing(self, project_name: str, error_context: IndexErrorContext) -> None:
+        for url, _ in error_context.package_missing_sources:
+            logger.warning("Package %s was not found at %s", project_name, url)
+
+    def report_network_errors(
+        self,
+        project_name: str,
+        error_context: IndexErrorContext,
+        warn_only: bool = False,
+    ) -> None:
+        has_missing = error_context.has_missing_sources()
+        has_unavailable = error_context.has_unavailable_sources()
+
+        # we found candidates, just warn about any issues
+        if warn_only:
+            if has_unavailable:
+                self._log_errors(project_name, error_context)
+            if has_missing:
+                self._log_missing(project_name, error_context)
+            if has_unavailable:
+                logger.warning(
+                    "Some indexes could not be queried, "
+                    "this might be a problem with your network connection "
+                    "or the index you're using."
+                )
+            return
+
+        # No candidates, and ALL sources returned 404
+        # Let the normal resolver "No matching distribution" message handle this
+        if has_missing and not has_unavailable:
+            return
+
+        # No candidates, and at least one source had a real error
+        if has_unavailable:
+            raise IndexUnavailableError(
+                project_name=project_name,
+                missing_sources=error_context.package_missing_sources,
+                unavailable_sources=error_context.unavailable_sources,
+            )
 
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
@@ -890,6 +974,7 @@ class PackageFinder:
             return self._all_candidates[project_name]
 
         link_evaluator = self.make_link_evaluator(project_name)
+        error_context = IndexErrorContext()
 
         if locked_link := self._locked_links.get(canonicalize_name(project_name)):
             # If a locked link is known for that project, do not check
@@ -913,6 +998,7 @@ class PackageFinder:
             candidates_from_page=functools.partial(
                 self.process_project_url,
                 link_evaluator=link_evaluator,
+                error_context=error_context,
             ),
         )
 
@@ -949,6 +1035,16 @@ class PackageFinder:
         # This is an intentional priority ordering
         self._all_candidates[project_name] = file_candidates + page_candidates
 
+        if self._all_candidates[project_name]:
+            if (
+                error_context.has_unavailable_sources()
+                or error_context.has_missing_sources()
+            ):
+                self.report_network_errors(project_name, error_context, warn_only=True)
+            return self._all_candidates[project_name]
+
+        # no candidates
+        self.report_network_errors(project_name, error_context)
         return self._all_candidates[project_name]
 
     def make_candidate_evaluator(
