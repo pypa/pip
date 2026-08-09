@@ -1360,7 +1360,6 @@ general_group: dict[str, Any] = {
         require_virtualenv,
         python,
         verbose,
-        version,
         quiet,
         log,
         no_input,
