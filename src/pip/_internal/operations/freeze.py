@@ -3,8 +3,6 @@ from __future__ import annotations
 import collections
 import logging
 import os
-import re
-import urllib.parse
 from collections.abc import Container, Generator, Iterable
 from dataclasses import dataclass, field
 from typing import NamedTuple
@@ -14,13 +12,14 @@ from pip._vendor.packaging.version import InvalidVersion
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.metadata import BaseDistribution, get_environment
+from pip._internal.models.direct_url import DirectUrl
+from pip._internal.models.link import Link
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.direct_url_helpers import direct_url_as_pep440_direct_reference
-from pip._internal.utils.misc import remove_auth_from_url
 
 logger = logging.getLogger(__name__)
 
@@ -30,26 +29,21 @@ class _EditableInfo(NamedTuple):
     comments: list[str]
 
 
-_PEP_610_AUTH_ENV_VARS = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
-
-
 def _strip_auth_from_editable_requirement(req: str) -> str:
     """Remove credentials while preserving PEP 610-safe user information."""
-    parsed_req = urllib.parse.urlsplit(req)
-    netloc = parsed_req.netloc
-    if "@" not in netloc:
+    link = Link(req)
+    if "@" not in link.netloc:
         return req
 
-    user_pass = netloc.rsplit("@", 1)[0]
-    transport = parsed_req.scheme.rsplit("+", 1)[-1]
-    # Keep this exception deliberately narrow: only the literal SSH user
-    # "git" is known to be non-secret. Encoded user information is stripped.
-    if (user_pass == "git" and transport == "ssh") or (
-        _PEP_610_AUTH_ENV_VARS.fullmatch(user_pass)
-    ):
-        return req
-
-    return remove_auth_from_url(req)
+    # Apply the same auth rules used for PEP 610 direct URLs to the full
+    # editable requirement, preserving its VCS prefix, revision, and fragment.
+    safe_user_passwords = ("git",) if link.scheme.endswith("+ssh") else ()
+    sanitized_req = DirectUrl(url=req).to_dict(
+        strip_user_password=True,
+        safe_user_passwords=safe_user_passwords,
+    )["url"]
+    assert isinstance(sanitized_req, str)
+    return sanitized_req
 
 
 def freeze(

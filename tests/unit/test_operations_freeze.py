@@ -23,6 +23,22 @@ from pip._internal.operations.freeze import _strip_auth_from_editable_requiremen
             "git+ssh://git@example.com/repo.git@rev#egg=project",
         ),
         (
+            "hg+ssh://git@example.com/repo@rev#egg=project",
+            "hg+ssh://git@example.com/repo@rev#egg=project",
+        ),
+        (
+            "svn+ssh://git@example.com/repo@rev#egg=project",
+            "svn+ssh://git@example.com/repo@rev#egg=project",
+        ),
+        (
+            "bzr+ssh://git@example.com/repo@rev#egg=project",
+            "bzr+ssh://git@example.com/repo@rev#egg=project",
+        ),
+        (
+            "bzr+sftp://git@example.com/repo@rev#egg=project",
+            "bzr+sftp://example.com/repo@rev#egg=project",
+        ),
+        (
             "git+https://git@example.com/repo.git@rev#egg=project",
             "git+https://example.com/repo.git@rev#egg=project",
         ),

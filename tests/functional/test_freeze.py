@@ -468,13 +468,7 @@ def test_freeze_git_remote_strips_auth(script: PipTestEnvironment) -> None:
         expect_stderr=True,
     )
     repo_dir = script.scratch_path / "pip-test-package"
-    script.run(
-        "python",
-        "setup.py",
-        "develop",
-        cwd=repo_dir,
-        expect_stderr=True,
-    )
+    script.pip("install", "--no-build-isolation", "-e", repo_dir)
     script.run(
         "git",
         "remote",
