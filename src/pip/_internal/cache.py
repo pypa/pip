@@ -269,7 +269,6 @@ class WheelCache(Cache):
     @staticmethod
     def record_download_origin(cache_dir: str, download_info: DirectUrl) -> None:
         origin_path = Path(cache_dir) / ORIGIN_JSON_NAME
-        download_url = download_info.to_dict_compat()["url"]
         if origin_path.exists():
             try:
                 origin = DirectUrl.from_json(origin_path.read_text(encoding="utf-8"))
@@ -283,13 +282,13 @@ class WheelCache(Cache):
             else:
                 # TODO: use DirectUrl.equivalent when
                 # https://github.com/pypa/pip/pull/10564 is merged.
-                origin_url = origin.to_dict_compat()["url"]
-                if origin_url != download_url:
+                download_url = download_info.to_dict_compat()["url"]
+                if origin.url != download_url:
                     logger.warning(
                         "Origin URL %s in cache entry %s does not match download URL "
                         "%s. This is likely a pip bug or a cache corruption issue. "
                         "Will overwrite it with the new value.",
-                        origin_url,
+                        origin.url,
                         cache_dir,
                         download_url,
                     )
