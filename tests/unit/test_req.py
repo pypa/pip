@@ -17,18 +17,22 @@ import pytest
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
+from pip._internal.build_env import (
+    BuildIsolationMode,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.commands import create_command
 from pip._internal.commands.install import InstallCommand
 from pip._internal.exceptions import (
+    CommandError,
     HashErrors,
     InstallationError,
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, VcsInfo
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.build.build_tracker import get_build_tracker
@@ -90,7 +94,7 @@ class TestRequirementSet:
         finder: PackageFinder,
         require_hashes: bool = False,
         wheel_cache: WheelCache | None = None,
-        build_isolation: bool = True,
+        build_isolation: BuildIsolationMode = "virtual",
     ) -> Iterator[Resolver]:
         make_install_req = partial(
             install_req_from_req_string,
@@ -116,6 +120,7 @@ class TestRequirementSet:
                 lazy_wheel=False,
                 verbosity=0,
                 legacy_resolver=True,
+                allow_editables=True,
             )
             yield Resolver(
                 preparer=preparer,
@@ -125,6 +130,7 @@ class TestRequirementSet:
                 use_user_site=False,
                 upgrade_strategy="to-satisfy-only",
                 ignore_dependencies=False,
+                only_dependencies=False,
                 ignore_installed=False,
                 ignore_requires_python=False,
                 force_reinstall=False,
@@ -165,7 +171,7 @@ class TestRequirementSet:
         req.user_supplied = True
         reqset.add_unnamed_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             reqset = resolver.resolve(reqset.all_requirements, True)
         assert not reqset.has_requirement("simple")
 
@@ -205,6 +211,55 @@ class TestRequirementSet:
             options, args = command.parse_args(["-r", os.fspath(reqs_file)])
             command.get_requirements(args, options, finder, session)
         assert options.require_hashes
+
+    def test_auto_require_hashes(self, data: TestData, tmpdir: Path) -> None:
+        """A requirement with hashes auto-enables --require-hashes"""
+        finder = make_test_finder(find_links=[data.find_links])
+        session = finder._link_collector.session
+        command = cast(InstallCommand, create_command("install"))
+        reqs = (
+            r"simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
+            r"af95fb866d6ca016b42d2e6ce53619b653$"
+        )
+        with requirements_file(reqs, tmpdir) as reqs_file:
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
+            command.get_requirements(args, options, finder, session)
+        assert options.require_hashes
+
+    def test_no_auto_require_hashes(self, data: TestData, tmpdir: Path) -> None:
+        """A requirement with hashes does not auto-enable --require-hashes
+        when --no-require-hashes is set"""
+        finder = make_test_finder(find_links=[data.find_links])
+        session = finder._link_collector.session
+        command = cast(InstallCommand, create_command("install"))
+        reqs = (
+            r"simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
+            r"af95fb866d6ca016b42d2e6ce53619b653$"
+        )
+        with requirements_file("--no-require-hashes\n" + reqs, tmpdir) as reqs_file:
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
+            command.get_requirements(args, options, finder, session)
+        assert not options.require_hashes
+
+    def test_require_hashes_no_require_hashes_in_reqs_file(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        finder = make_test_finder(find_links=[data.find_links])
+        session = finder._link_collector.session
+        command = cast(InstallCommand, create_command("install"))
+        reqs = (
+            r"simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1"
+            r"af95fb866d6ca016b42d2e6ce53619b653$"
+        )
+        with requirements_file(
+            "--require-hashes\n--no-require-hashes\n" + reqs, tmpdir
+        ) as reqs_file:
+            options, args = command.parse_args(["-r", os.fspath(reqs_file)])
+            with pytest.raises(
+                CommandError,
+                match="--require-hashes and --no-require-hashes are mutually exclusive",
+            ):
+                command.get_requirements(args, options, finder, session)
 
     def test_unsupported_hashes(self, data: TestData) -> None:
         """VCS and dir links should raise errors when --require-hashes is
@@ -319,7 +374,7 @@ class TestRequirementSet:
         )
 
         with self._basic_resolver(
-            finder, require_hashes=True, build_isolation=False
+            finder, require_hashes=True, build_isolation="off"
         ) as resolver:
             with pytest.raises(
                 HashErrors,
@@ -361,14 +416,14 @@ class TestRequirementSet:
     def test_download_info_find_links(self, data: TestData) -> None:
         """Test that download_info is set for requirements via find_links."""
         finder = make_test_finder(find_links=[data.find_links])
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq = get_processed_req_from_line("simple")
             reqset = resolver.resolve([ireq], True)
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert req.download_info.info.hash
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes
 
     @pytest.mark.network
     def test_download_info_index_url(self) -> None:
@@ -380,13 +435,13 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, ArchiveInfo)
+            assert req.download_info.archive_info
 
     @pytest.mark.network
     def test_download_info_web_archive(self) -> None:
         """Test that download_info is set for requirements from a web archive."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ "
                 "https://github.com/pypa/pip-test-package/tarball/0.1.1"
@@ -399,11 +454,12 @@ class TestRequirementSet:
                 req.download_info.url
                 == "https://github.com/pypa/pip-test-package/tarball/0.1.1"
             )
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert (
-                req.download_info.info.hash == "sha256="
-                "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
-            )
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {
+                "sha256": (
+                    "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+                )
+            }
 
     def test_download_info_archive_legacy_cache(
         self, tmp_path: Path, shared_data: TestData
@@ -424,8 +480,8 @@ class TestRequirementSet:
             assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert not req.download_info.info.hash
+            assert req.download_info.archive_info
+            assert not req.download_info.archive_info.hashes
 
     def test_download_info_archive_cache_with_origin(
         self, tmp_path: Path, shared_data: TestData
@@ -433,13 +489,15 @@ class TestRequirementSet:
         """Test download_info hash is set for a web archive with cache entry
         that has origin.json."""
         url = shared_data.packages.joinpath("simple-1.0.tar.gz").as_uri()
-        hash = "sha256=ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
+        hash = "ad977496000576e1b6c41f6449a9897087ce9da6db4f15b603fe8372af4bf3c6"
         finder = make_test_finder()
         wheel_cache = WheelCache(str(tmp_path / "cache"))
         cache_entry_dir = wheel_cache.get_path_for_link(Link(url))
         Path(cache_entry_dir).mkdir(parents=True)
         Path(cache_entry_dir).joinpath("origin.json").write_text(
-            DirectUrl(url, ArchiveInfo(hash=hash)).to_json()
+            DirectUrl(
+                url=url, archive_info=ArchiveInfo(hashes={"sha256": hash})
+            ).to_json()
         )
         wheel.make_wheel(name="simple", version="1.0").save_to_dir(cache_entry_dir)
         with self._basic_resolver(finder, wheel_cache=wheel_cache) as resolver:
@@ -451,8 +509,8 @@ class TestRequirementSet:
             assert req.cached_wheel_source_link
             assert req.download_info
             assert req.download_info.url == url
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert req.download_info.info.hash == hash
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {"sha256": hash}
 
     def test_download_info_archive_cache_with_invalid_origin(
         self, tmp_path: Path, shared_data: TestData, caplog: pytest.LogCaptureFixture
@@ -487,16 +545,17 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, ArchiveInfo)
-            assert (
-                req.download_info.info.hash == "sha256="
-                "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
-            )
+            assert req.download_info.archive_info
+            assert req.download_info.archive_info.hashes == {
+                "sha256": (
+                    "e63aa139caee941ec7f33f057a5b987708c2128238357cf905429846a2008718"
+                )
+            }
 
     def test_download_info_local_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"FSPkg @ {ireq_url}")
             reqset = resolver.resolve([ireq], True)
@@ -504,12 +563,12 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, DirInfo)
+            assert req.download_info.dir_info
 
     def test_download_info_local_editable_dir(self, data: TestData) -> None:
         """Test that download_info is set for requirements from a local editable dir."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq_url = data.packages.joinpath("FSPkg").as_uri()
             ireq = get_processed_req_from_line(f"-e {ireq_url}#egg=FSPkg")
             reqset = resolver.resolve([ireq], True)
@@ -517,14 +576,14 @@ class TestRequirementSet:
             req = reqset.all_requirements[0]
             assert req.download_info
             assert req.download_info.url.startswith("file://")
-            assert isinstance(req.download_info.info, DirInfo)
-            assert req.download_info.info.editable
+            assert req.download_info.dir_info
+            assert req.download_info.dir_info.editable
 
     @pytest.mark.network
     def test_download_info_vcs(self) -> None:
         """Test that download_info is set for requirements from git."""
         finder = make_test_finder()
-        with self._basic_resolver(finder, build_isolation=False) as resolver:
+        with self._basic_resolver(finder, build_isolation="off") as resolver:
             ireq = get_processed_req_from_line(
                 "pip-test-package @ git+https://github.com/pypa/pip-test-package"
             )
@@ -532,9 +591,9 @@ class TestRequirementSet:
             assert len(reqset.all_requirements) == 1
             req = reqset.all_requirements[0]
             assert req.download_info
-            assert isinstance(req.download_info.info, VcsInfo)
+            assert req.download_info.vcs_info
             assert req.download_info.url == "https://github.com/pypa/pip-test-package"
-            assert req.download_info.info.vcs == "git"
+            assert req.download_info.vcs_info.vcs == "git"
 
 
 class TestInstallRequirement:
@@ -633,6 +692,11 @@ class TestInstallRequirement:
         assert str(req.req.specifier) == ""
         assert str(req.markers) == 'os_name == "a; b"'
 
+    def test_markers_invalid(self) -> None:
+        with pytest.raises(InstallationError) as e:
+            install_req_from_line('name; python_version == "1"; python_version == "2"')
+        assert "Invalid requirement" in e.value.args[0]
+
     def test_markers_url(self) -> None:
         # test "URL; markers" syntax
         url = "http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz"
@@ -701,7 +765,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_line_url_requirement(self) -> None:
-        line = "git+https://url#egg=SomeProject[ex1,ex2]"
+        line = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_line(line, comes_from=comes_from)
@@ -717,7 +781,7 @@ class TestInstallRequirement:
         assert req.extras == {"ex1", "ex2"}
 
     def test_extras_for_editable_url_requirement(self) -> None:
-        url = "git+https://url#egg=SomeProject[ex1,ex2]"
+        url = "SomeProject[ex1,ex2] @ git+https://url"
         filename = "filename"
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_editable(url, comes_from=comes_from)
@@ -765,7 +829,7 @@ class TestInstallRequirement:
             ("pkg ; python_version<='3.6'", "pkg"),
             ("pkg[ext]", "pkg"),
             ("pkg [ ext1, ext2 ]", "pkg"),
-            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg@ https://example.com/"),
+            ("pkg [ ext1, ext2 ] @ https://example.com/", "pkg @ https://example.com/"),
             ("pkg [ext] == 1.0; python_version<='3.6'", "pkg==1.0"),
             ("pkg-all.allowed_chars0 ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
             ("pkg-all.allowed_chars0 [ext] ~= 2.0", "pkg-all.allowed_chars0~=2.0"),
@@ -798,7 +862,6 @@ class TestInstallRequirement:
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
         assert without_extras.user_supplied == req.user_supplied
-        assert without_extras.permit_editable_wheels == req.permit_editable_wheels
 
     @pytest.mark.parametrize(
         "inp, extras, out",
@@ -814,7 +877,7 @@ class TestInstallRequirement:
             (
                 "pkg-all.allowed_chars0 [ ext1 ] @ https://example.com/",
                 {"ext2"},
-                "pkg-all.allowed_chars0[ext1,ext2]@ https://example.com/",
+                "pkg-all.allowed_chars0[ext1,ext2] @ https://example.com/",
             ),
         ],
     )
@@ -845,7 +908,6 @@ class TestInstallRequirement:
         assert extended.constraint == req.constraint
         assert extended.config_settings == req.config_settings
         assert extended.user_supplied == req.user_supplied
-        assert extended.permit_editable_wheels == req.permit_editable_wheels
 
 
 @pytest.mark.parametrize(
@@ -894,10 +956,10 @@ def test_parse_editable_explicit_vcs() -> None:
 
 
 def test_parse_editable_vcs_extras() -> None:
-    assert parse_editable("svn+https://foo#egg=foo[extras]") == (
-        "foo[extras]",
-        "svn+https://foo#egg=foo[extras]",
-        set(),
+    assert parse_editable("foo[extras] @ svn+https://foo") == (
+        "foo",
+        "svn+https://foo",
+        {"extras"},
     )
 
 

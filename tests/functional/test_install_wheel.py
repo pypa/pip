@@ -2,6 +2,7 @@ import base64
 import csv
 import hashlib
 import os
+import platform
 import shutil
 import sysconfig
 from pathlib import Path
@@ -525,6 +526,9 @@ def test_install_from_wheel_with_legacy(
 
     result.did_create(legacy_file1)
     result.did_create(legacy_file2)
+    if platform.system() in ("Linux", "Darwin"):
+        unix_script = script.bin_path / "testscript2"
+        assert unix_script.stat().st_mode & 0o111, "executable bit wasn't preserved"
 
 
 def test_install_from_wheel_no_setuptools_entrypoint(
@@ -747,11 +751,8 @@ def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(
 def test_wheel_install_fails_with_badly_encoded_metadata(
     script: PipTestEnvironment,
 ) -> None:
-    package = create_basic_wheel_for_package(
-        script,
-        "simple",
-        "0.1.0",
-        extra_files={"simple-0.1.0.dist-info/METADATA": b"\xff"},
+    package = make_wheel("simple", "0.1.0", metadata=b"\xff").save_to_dir(
+        script.scratch_path
     )
     result = script.pip(
         "install", "--no-cache-dir", "--no-index", package, expect_error=True

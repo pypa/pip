@@ -9,11 +9,17 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from functools import partial
 from optparse import Values
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
-from pip._internal.build_env import SubprocessBuildEnvironmentInstaller
+from pip._internal.build_env import (
+    BuildEnvironmentInstaller,
+    BuildIsolationMode,
+    InprocessBuildEnvironmentInstaller,
+    SubprocessBuildEnvironmentInstaller,
+)
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -35,6 +41,7 @@ from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
     install_req_from_parsed_requirement,
+    install_req_from_pylock_package,
     install_req_from_req_string,
 )
 from pip._internal.req.pep723 import PEP723Exception, pep723_metadata
@@ -43,6 +50,10 @@ from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.packaging import check_requires_python
+from pip._internal.utils.pylock import (
+    is_valid_pylock_filename,
+    select_from_pylock_path_or_url,
+)
 from pip._internal.utils.temp_dir import (
     TempDirectory,
     TempDirectoryTypeRegistry,
@@ -52,11 +63,14 @@ from pip._internal.utils.temp_dir import (
 logger = logging.getLogger(__name__)
 
 
-def should_ignore_regular_constraints(options: Values) -> bool:
+def should_ignore_regular_constraints() -> bool:
     """
-    Check if regular constraints should be ignored because
-    we are in a isolated build process and build constraints
-    feature is enabled but no build constraints were passed.
+    Whether this process should ignore the regular constraints it inherits.
+
+    The parent pip sets ``_PIP_IN_BUILD_IGNORE_CONSTRAINTS`` whenever it starts
+    an isolated build in a subprocess, so that regular constraints the build
+    inherits (such as via ``PIP_CONSTRAINT`` or config files) do not affect it.
+    Only build constraints apply there.
     """
 
     return os.environ.get("_PIP_IN_BUILD_IGNORE_CONSTRAINTS") == "1"
@@ -100,6 +114,31 @@ def with_cleanup(
     return wrapper
 
 
+def parse_constraint_files(
+    constraint_files: list[str],
+    finder: PackageFinder,
+    options: Values,
+    session: PipSession,
+) -> list[InstallRequirement]:
+    requirements = []
+    for filename in constraint_files:
+        for parsed_req in parse_requirements(
+            filename,
+            constraint=True,
+            finder=finder,
+            options=options,
+            session=session,
+        ):
+            req_to_add = install_req_from_parsed_requirement(
+                parsed_req,
+                isolated=options.isolated_mode,
+                user_supplied=False,
+            )
+            requirements.append(req_to_add)
+
+    return requirements
+
+
 class RequirementCommand(IndexGroupCommand):
     def __init__(self, *args: Any, **kw: Any) -> None:
         super().__init__(*args, **kw)
@@ -123,6 +162,8 @@ class RequirementCommand(IndexGroupCommand):
         build_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
+        *,
+        allow_editables: bool,
         use_user_site: bool,
         download_dir: str | None = None,
         verbosity: int = 0,
@@ -155,20 +196,44 @@ class RequirementCommand(IndexGroupCommand):
 
         # Handle build constraints
         build_constraints = getattr(options, "build_constraints", [])
-        build_constraint_feature_enabled = (
-            "build-constraint" in options.features_enabled
-        )
+
+        env_installer: BuildEnvironmentInstaller
+        if "inprocess-build-deps" in options.features_enabled:
+            build_constraint_reqs = parse_constraint_files(
+                build_constraints, finder, options, session
+            )
+            env_installer = InprocessBuildEnvironmentInstaller(
+                finder=finder,
+                build_tracker=build_tracker,
+                build_constraints=build_constraint_reqs,
+                verbosity=verbosity,
+                wheel_cache=WheelCache(options.cache_dir),
+            )
+        else:
+            env_installer = SubprocessBuildEnvironmentInstaller(
+                finder,
+                build_constraints=build_constraints,
+            )
+
+        if not options.build_isolation:
+            build_isolation: BuildIsolationMode = "off"
+        elif "venv-isolation" in options.features_enabled:
+            build_isolation = "venv"
+            if "inprocess-build-deps" in options.features_enabled:
+                logger.warning(
+                    "Using --use-feature 'inprocess-build-deps' and 'venv-isolation'"
+                    " together is currently partially supported. If you encounter"
+                    " broken behaviour, use only one feature."
+                )
+        else:
+            build_isolation = "virtual"
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            build_isolation=options.build_isolation,
-            build_isolation_installer=SubprocessBuildEnvironmentInstaller(
-                finder,
-                build_constraints=build_constraints,
-                build_constraint_feature_enabled=build_constraint_feature_enabled,
-            ),
+            build_isolation=build_isolation,
+            build_isolation_installer=env_installer,
             check_build_deps=options.check_build_deps,
             build_tracker=build_tracker,
             session=session,
@@ -179,6 +244,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            allow_editables=allow_editables,
         )
 
     @classmethod
@@ -216,6 +282,7 @@ class RequirementCommand(IndexGroupCommand):
                 make_install_req=make_install_req,
                 use_user_site=use_user_site,
                 ignore_dependencies=options.ignore_dependencies,
+                only_dependencies=options.only_dependencies,
                 ignore_installed=ignore_installed,
                 ignore_requires_python=ignore_requires_python,
                 force_reinstall=force_reinstall,
@@ -231,6 +298,7 @@ class RequirementCommand(IndexGroupCommand):
             make_install_req=make_install_req,
             use_user_site=use_user_site,
             ignore_dependencies=options.ignore_dependencies,
+            only_dependencies=options.only_dependencies,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
@@ -250,23 +318,19 @@ class RequirementCommand(IndexGroupCommand):
         """
         requirements: list[InstallRequirement] = []
 
-        if not should_ignore_regular_constraints(options):
-            for filename in options.constraints:
-                for parsed_req in parse_requirements(
-                    filename,
-                    constraint=True,
-                    finder=finder,
-                    options=options,
-                    session=session,
-                ):
-                    req_to_add = install_req_from_parsed_requirement(
-                        parsed_req,
-                        isolated=options.isolated_mode,
-                        user_supplied=False,
-                    )
-                    requirements.append(req_to_add)
+        if should_ignore_regular_constraints():
+            # Inside an isolated build subprocess: apply the build constraints
+            # (forwarded via --build-constraint) instead of the inherited ones.
+            constraint_files = getattr(options, "build_constraints", [])
+        else:
+            constraint_files = options.constraints
+
+        constraints = parse_constraint_files(constraint_files, finder, options, session)
+        requirements.extend(constraints)
 
         for req in args:
+            if not req.strip():
+                continue
             req_to_add = install_req_from_line(
                 req,
                 comes_from=None,
@@ -296,6 +360,26 @@ class RequirementCommand(IndexGroupCommand):
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
+            if is_valid_pylock_filename(filename):
+                logger.warning(
+                    "Using pylock.toml as a requirements source "
+                    "is an experimental feature. "
+                    "It may be removed/changed in a future release "
+                    "without prior warning."
+                )
+                for package, package_dist in select_from_pylock_path_or_url(
+                    filename, session=session
+                ):
+                    req_to_add, locked_link = install_req_from_pylock_package(
+                        package,
+                        package_dist,
+                        filename,
+                        user_supplied=True,
+                    )
+                    requirements.append(req_to_add)
+                    if locked_link:
+                        finder.add_locked_link(package.name, locked_link)
+                continue
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session
             ):
@@ -343,8 +427,17 @@ class RequirementCommand(IndexGroupCommand):
                 )
                 requirements.append(req_to_add)
 
-        # If any requirement has hash options, enable hash checking.
-        if any(req.has_hash_options for req in requirements):
+        if options.require_hashes and options.no_require_hashes:
+            raise CommandError(
+                "--require-hashes and --no-require-hashes are mutually exclusive"
+            )
+
+        # If any requirement has hash options, enable hash checking for all
+        # requirements, unless this mechanism has been explicitly disabled
+        # with --no-require-hashes.
+        if not options.no_require_hashes and any(
+            req.has_hash_options for req in requirements
+        ):
             options.require_hashes = True
 
         if not (
@@ -386,7 +479,7 @@ class RequirementCommand(IndexGroupCommand):
         options: Values,
         session: PipSession,
         target_python: TargetPython | None = None,
-        ignore_requires_python: bool | None = None,
+        ignore_requires_python: bool = False,
     ) -> PackageFinder:
         """
         Create a package finder appropriate to this requirement command.
@@ -398,7 +491,7 @@ class RequirementCommand(IndexGroupCommand):
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=options.format_control,
-            allow_all_prereleases=options.pre,
+            release_control=options.release_control,
             prefer_binary=options.prefer_binary,
             ignore_requires_python=ignore_requires_python,
         )
@@ -407,4 +500,5 @@ class RequirementCommand(IndexGroupCommand):
             link_collector=link_collector,
             selection_prefs=selection_prefs,
             target_python=target_python,
+            uploaded_prior_to=options.uploaded_prior_to,
         )

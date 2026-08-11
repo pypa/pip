@@ -10,10 +10,10 @@ import shutil
 import stat
 import sys
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, NoReturn
+from typing import Any, NoReturn
 from unittest.mock import Mock, patch
 
 import pytest
@@ -769,15 +769,15 @@ def test_redact_auth_from_url(auth_url: str, expected_url: str) -> None:
         (
             "resolvelib@ "
             " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1",
-            "resolvelib@"
-            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1",
+            "resolvelib @ "
+            "git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1",
         ),
         (
             "resolvelib@"
             " git+https://test-user:test-pass@github.com/sarugaku/resolvelib@1.0.1"
             " ; python_version>='3.6'",
-            "resolvelib@"
-            " git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1"
+            "resolvelib @ "
+            "git+https://test-user:****@github.com/sarugaku/resolvelib@1.0.1"
             ' ; python_version >= "3.6"',
         ),
     ],

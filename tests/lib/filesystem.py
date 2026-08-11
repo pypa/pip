@@ -31,3 +31,14 @@ def chmod(path: str | Path, mode: int) -> Iterator[None]:
         yield
     finally:
         os.chmod(path, old_mode)
+
+
+def create_file(path: str | Path, contents: str | None = None) -> None:
+    """Create a file on the path, with the given contents"""
+    _path = Path(path)
+    _path.parent.mkdir(exist_ok=True, parents=True)
+    with _path.open("w") as f:
+        if contents is not None:
+            f.write(contents)
+        else:
+            f.write("\n")

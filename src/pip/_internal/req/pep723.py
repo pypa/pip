@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from pip._vendor import tomli as tomllib
+from pip._internal.utils.compat import tomllib
 
 REGEX = r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
 
@@ -14,7 +14,7 @@ class PEP723Exception(ValueError):
 
 
 def pep723_metadata(scriptfile: str) -> dict[str, Any]:
-    with open(scriptfile) as f:
+    with open(scriptfile, encoding="utf8") as f:
         script = f.read()
 
     name = "script"

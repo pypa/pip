@@ -1,0 +1,13 @@
+lock-version = "1.0"
+created-by = "pip"
+
+[[packages]]
+name = "simple"
+version = "2.0"
+
+[packages.sdist]
+name = "simple-2.0.tar.gz"
+path = "../packages/simple-2.0.tar.gz"
+
+[packages.sdist.hashes]
+sha256 = "3a084929238d13bcd3bb928af04f3bac7ca2357d419e29f01459dc848e2d69a0"

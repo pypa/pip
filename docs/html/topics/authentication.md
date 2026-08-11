@@ -2,7 +2,7 @@
 
 ## Basic HTTP authentication
 
-pip supports basic HTTP-based authentication credentials. This is done by
+Pip supports basic HTTP-based authentication credentials. This is done by
 providing the username (and optionally password) in the URL:
 
 ```
@@ -36,7 +36,7 @@ https://user:he%2F%2Fo@pypi.company.com/simple
 
 ## netrc support
 
-pip supports loading credentials from a user's `.netrc` file. If no credentials
+Pip supports loading credentials from a user's `.netrc` file. If no credentials
 are part of the URL, pip will attempt to get authentication credentials for the
 URL's hostname from the user's `.netrc` file. This behaviour comes from the
 underlying use of {pypi}`requests`, which in turn delegates it to the
@@ -65,8 +65,8 @@ man pages][netrc-docs].
 
 ## Keyring Support
 
-pip supports loading credentials stored in your keyring using the
-{pypi}`keyring` library, which can be enabled py passing `--keyring-provider`
+Pip supports loading credentials stored in your keyring using the
+{pypi}`keyring` library, which can be enabled by passing `--keyring-provider`
 with a value of `auto`, `disabled`, `import`, or `subprocess`. The default
 value `auto` respects `--no-input` and does not query keyring at all if the option
 is used; otherwise it tries the `import`, `subprocess`, and `disabled`
@@ -84,7 +84,7 @@ configure its usage would be to use a configuration instead:
 ```bash
 $ pip config set --global global.keyring-provider subprocess
 
-# A different user on the same system which has PYTHONPATH configured and and
+# A different user on the same system which has PYTHONPATH configured and
 # wanting to use keyring installed that way could then run
 $ pip config set --user global.keyring-provider import
 
@@ -159,7 +159,7 @@ $ export PIP_KEYRING_PROVIDER=import
 ```{warning}
 Be careful when doing this since it could cause tools such as pipx and Pipenv
 to appear to hang. They show their own progress indicator while hiding output
-from the subprocess in which they run Pip. You won't know whether the keyring
+from the subprocess in which they run pip. You won't know whether the keyring
 backend is waiting the user input or not in such situations.
 ```
 

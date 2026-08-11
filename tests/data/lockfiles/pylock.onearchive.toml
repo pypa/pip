@@ -1,0 +1,11 @@
+lock-version = "1.0"
+created-by = "pip"
+
+[[packages]]
+name = "simple2"
+
+[packages.archive]
+path = "../packages/simple2-3.0.tar.gz"
+
+[packages.archive.hashes]
+sha256 = "3ad45e1e9aa48b4462af0123f6a7e44a9115db1ef945d4d92c123dfe21815a06"

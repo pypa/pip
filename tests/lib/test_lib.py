@@ -11,7 +11,13 @@ from typing import Any
 
 import pytest
 
-from tests.lib import SRC_DIR, PipTestEnvironment
+from tests.lib import (
+    SRC_DIR,
+    PipTestEnvironment,
+    TestFailure,
+    create_basic_wheel_for_package,
+    create_test_package_with_setup,
+)
 
 
 @contextmanager
@@ -59,10 +65,10 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
         result.stdout,
     )
     assert match is not None
-    pip_folder_outputed = match.group(4)
+    pip_folder_outputted = match.group(4)
     pip_folder = join(SRC_DIR, "src", "pip")
 
-    diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
+    diffs = filecmp.dircmp(pip_folder, pip_folder_outputted)
 
     # If any non-matching .py files exist, we have a problem: run_pip
     # is picking up some other version!  N.B. if this project acquires
@@ -75,7 +81,7 @@ def test_correct_pip_version(script: PipTestEnvironment) -> None:
     ]
     assert not mismatch_py, (
         f"mismatched source files in {pip_folder!r} "
-        f"and {pip_folder_outputed!r}: {mismatch_py!r}"
+        f"and {pip_folder_outputted!r}: {mismatch_py!r}"
     )
 
 
@@ -259,3 +265,45 @@ class TestPipTestEnvironment:
         expected_start = "Script returned code: 1"
         with assert_error_startswith(AssertionError, expected_start):
             script.run("python", "-c", "import sys; sys.exit(1)")
+
+
+class TestPipTestResult:
+    def test_assert_not_installed_default(self, script: PipTestEnvironment) -> None:
+        pkg = create_basic_wheel_for_package(
+            script,
+            "pkga",
+            "1.0",
+            depends=["simple==3.0"],
+            extras={"doc": ["simple2==2.0"]},
+        )
+        result = script.pip_install_local(pkg)
+        with pytest.raises(TestFailure) as pkga_error:
+            result.assert_not_installed("pkga")
+        assert "site-packages" in str(pkga_error)
+        with pytest.raises(TestFailure) as simple_error:
+            result.assert_not_installed("simple")
+        assert "site-packages" in str(simple_error)
+        # not requested
+        result.assert_not_installed("simple2")
+        # not specified
+        result.assert_not_installed("simple3")
+
+    def test_assert_not_installed_editable(self, script: PipTestEnvironment) -> None:
+        pkg = create_test_package_with_setup(
+            script,
+            name="pkga",
+            version="1.0",
+            install_requires=["simple==3.0"],
+            extras={"doc": ["simple2==2.0"]},
+        )
+        result = script.pip_install_local("--editable", pkg)
+        with pytest.raises(TestFailure) as pkga_error:
+            result.assert_not_installed("pkga")
+        assert "site-packages" in str(pkga_error)
+        with pytest.raises(TestFailure) as simple_error:
+            result.assert_not_installed("simple")
+        assert "site-packages" in str(simple_error)
+        # not requested
+        result.assert_not_installed("simple2")
+        # not specified
+        result.assert_not_installed("simple3")

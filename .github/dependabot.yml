@@ -8,7 +8,5 @@ updates:
       github-actions:
         patterns:
           - "*"
-  - package-ecosystem: "pip"
-    directory: "/build-project"
-    schedule:
-      interval: "weekly"
+    cooldown:
+      default-days: 7

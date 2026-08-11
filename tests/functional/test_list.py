@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from pip._internal.models.direct_url import DirectUrl, DirInfo
-
 from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
     TestData,
     _create_test_package,
+    create_basic_sdist_for_package,
+    create_basic_wheel_for_package,
     create_test_package_with_setup,
     make_wheel,
     wheel,
@@ -130,36 +130,32 @@ def test_multiple_exclude_and_normalization(
     assert "pip" not in result.stdout
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_user_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user flag in the list command
 
     """
-    script.pip("download", "setuptools", "wheel", "-d", data.packages)
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
-    script.pip("install", "-f", data.find_links, "--no-index", "--user", "simple2==2.0")
+    script.pip_install_local("simplewheel==1.0")
+    script.pip_install_local("--user", "simple.dist==0.1")
     result = script.pip("list", "--user", "--format=json")
-    assert {"name": "simple", "version": "1.0"} not in json.loads(result.stdout)
-    assert {"name": "simple2", "version": "2.0"} in json.loads(result.stdout)
+    assert {"name": "simplewheel", "version": "1.0"} not in json.loads(result.stdout)
+    assert {"name": "simple.dist", "version": "0.1"} in json.loads(result.stdout)
 
 
-@pytest.mark.network
 @pytest.mark.usefixtures("enable_user_site")
 def test_user_columns_flag(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test the behavior of --user --format=columns flags in the list command
 
     """
-    script.pip("download", "setuptools", "wheel", "-d", data.packages)
-    script.pip("install", "-f", data.find_links, "--no-index", "simple==1.0")
-    script.pip("install", "-f", data.find_links, "--no-index", "--user", "simple2==2.0")
+    script.pip_install_local("simplewheel==1.0")
+    script.pip_install_local("--user", "simple.dist==0.1")
     result = script.pip("list", "--user", "--format=columns")
     assert "Package" in result.stdout
     assert "Version" in result.stdout
-    assert "simple2 (2.0)" not in result.stdout
-    assert "simple2 2.0" in result.stdout, str(result)
+    assert "simple.dist (2.0)" not in result.stdout
+    assert "simple.dist 0.1" in result.stdout, str(result)
 
 
 @pytest.mark.network
@@ -332,6 +328,83 @@ def test_outdated_columns_flag(script: PipTestEnvironment, data: TestData) -> No
     assert "simple           1.0     3.0    sdist" in result.stdout, str(result)
     assert "simplewheel      1.0     2.0    wheel" in result.stdout, str(result)
     assert "simple2" not in result.stdout, str(result)  # 3.0 is latest
+
+
+@pytest.mark.parametrize(
+    "binary_option, expected_version, expected_filetype",
+    [
+        ("--no-binary=:all:", "1.5", "sdist"),
+        ("--only-binary=:all:", "1.5", "wheel"),
+        ("--prefer-binary", "1.5", "wheel"),
+    ],
+)
+def test_outdated_respects_binary_options(
+    script: PipTestEnvironment,
+    binary_option: str,
+    expected_version: str,
+    expected_filetype: str,
+) -> None:
+    """Test --outdated reports the best candidate allowed by binary options."""
+    script.pip_install_local("simple==1.0")
+
+    create_basic_wheel_for_package(script, "simple", "1.5")
+    if binary_option == "--no-binary=:all:":
+        create_basic_sdist_for_package(script, "simple", "1.5")
+        create_basic_wheel_for_package(script, "simple", "2.0")
+    else:
+        create_basic_sdist_for_package(script, "simple", "2.0")
+
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        binary_option,
+        "--outdated",
+        "--format=json",
+    )
+    assert json.loads(result.stdout) == [
+        {
+            "name": "simple",
+            "version": "1.0",
+            "latest_version": expected_version,
+            "latest_filetype": expected_filetype,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "binary_option",
+    [
+        "--no-binary=:all:",
+        "--only-binary=:all:",
+        "--prefer-binary",
+    ],
+)
+def test_uptodate_respects_binary_options(
+    script: PipTestEnvironment,
+    binary_option: str,
+) -> None:
+    """Test --uptodate uses binary options when checking for newer releases."""
+    wheel_path = create_basic_wheel_for_package(script, "simple", "1.5")
+    script.pip("install", "--no-index", wheel_path)
+
+    if binary_option == "--no-binary=:all:":
+        create_basic_sdist_for_package(script, "simple", "1.5")
+        create_basic_wheel_for_package(script, "simple", "2.0")
+    else:
+        create_basic_sdist_for_package(script, "simple", "2.0")
+
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        binary_option,
+        "--uptodate",
+        "--format=json",
+    )
+    assert {"name": "simple", "version": "1.5"} in json.loads(result.stdout)
 
 
 @pytest.fixture(scope="session")
@@ -666,6 +739,32 @@ def test_not_required_flag(script: PipTestEnvironment, data: TestData) -> None:
     assert "TopoRequires3 " not in result.stdout
 
 
+def test_not_required_with_exclude_does_not_list_dependencies(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "TopoRequires4",
+    )
+
+    result = script.pip(
+        "list",
+        "--not-required",
+        "--exclude",
+        "TopoRequires4",
+        "--format=json",
+    )
+    names = {item["name"] for item in json.loads(result.stdout)}
+    listed_dependencies = names & {"TopoRequires", "TopoRequires2", "TopoRequires3"}
+
+    assert "TopoRequires4" not in names
+    assert not listed_dependencies
+
+
 def test_list_freeze(simple_script: PipTestEnvironment) -> None:
     """
     Test freeze formatting of list command
@@ -790,11 +889,11 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     assert direct_url_path
     # patch direct_url.json to simulate an editable install
     with open(direct_url_path) as f:
-        direct_url = DirectUrl.from_json(f.read())
-    assert isinstance(direct_url.info, DirInfo)
-    direct_url.info.editable = True
+        direct_url_dict = json.load(f)
+    assert "dir_info" in direct_url_dict
+    direct_url_dict["dir_info"]["editable"] = True
     with open(direct_url_path, "w") as f:
-        f.write(direct_url.to_json())
+        json.dump(direct_url_dict, f)
     result = script.pip("list", "--format=json")
     for item in json.loads(result.stdout):
         if item["name"] == "testpkg":
@@ -815,3 +914,73 @@ def test_list_wheel_build(script: PipTestEnvironment) -> None:
     result = script.pip("list")
     assert "Build" in result.stdout, str(result)
     assert "123" in result.stdout, str(result)
+
+
+def test_outdated_only_final_for_specific_package(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test that --only-final filters prereleases for specific package."""
+    script.pip_install_local("simple==1.0")
+
+    # Create fake wheelhouse with prerelease
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.1").save_to_dir(wheelhouse_path)
+    make_wheel("simple", "2.0a1").save_to_dir(wheelhouse_path)
+
+    # Without --only-final, should show 1.1 (highest stable)
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--outdated",
+        "--format=json",
+    )
+    outdated = json.loads(result.stdout)
+    assert len(outdated) == 1
+    assert outdated[0]["name"] == "simple"
+    assert outdated[0]["latest_version"] == "1.1"
+
+    # With --only-final for simple, should still show 1.1
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--outdated",
+        "--only-final=simple",
+        "--format=json",
+    )
+    outdated = json.loads(result.stdout)
+    assert len(outdated) == 1
+    assert outdated[0]["name"] == "simple"
+    assert outdated[0]["latest_version"] == "1.1"
+
+
+def test_outdated_all_releases_for_specific_package(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test that --all-releases allows prereleases for specific package."""
+    script.pip_install_local("simple==1.0")
+
+    # Create fake wheelhouse with prerelease
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.1").save_to_dir(wheelhouse_path)
+    make_wheel("simple", "2.0a1").save_to_dir(wheelhouse_path)
+
+    # With --all-releases for simple, should show 2.0a1 (highest including prereleases)
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "--outdated",
+        "--all-releases=simple",
+        "--format=json",
+    )
+    outdated = json.loads(result.stdout)
+    assert len(outdated) == 1
+    assert outdated[0]["name"] == "simple"
+    assert outdated[0]["latest_version"] == "2.0a1"

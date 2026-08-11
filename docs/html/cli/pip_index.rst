@@ -30,6 +30,9 @@ Options
 
 .. pip-command-options:: index
 
+.. pip-index-options:: index
+
+.. pip-package-selection-options:: index
 
 
 Examples

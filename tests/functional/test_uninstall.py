@@ -24,18 +24,16 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout, local_repo
 
 
-@pytest.mark.network
-def test_basic_uninstall(script: PipTestEnvironment) -> None:
+def test_basic_uninstall(script: PipTestEnvironment, data: TestData) -> None:
     """
     Test basic install and uninstall.
-
     """
-    result = script.pip("install", "INITools==0.2")
-    result.did_create(join(script.site_packages, "initools"))
+    result = script.pip_install_local("six", "-f", data.pypi_packages)
+    result.did_create(join(script.site_packages, "six.py"))
     # the import forces the generation of __pycache__ if the version of python
     # supports it
-    script.run("python", "-c", "import initools")
-    result2 = script.pip("uninstall", "INITools", "-y")
+    script.run("python", "-c", "import six")
+    result2 = script.pip("uninstall", "six", "-y")
     assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
@@ -50,17 +48,13 @@ def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     script.scratch_path.joinpath("distutils_install").mkdir()
     pkg_path = script.scratch_path / "distutils_install"
-    pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from distutils.core import setup
         setup(
             name='distutils-install',
             version='0.1',
         )
-    """
-        )
-    )
+    """))
     result = script.run("python", os.fspath(pkg_path / "setup.py"), "install")
     result = script.pip("list", "--format=json")
     script.assert_installed(distutils_install="0.1")
@@ -459,19 +453,13 @@ def test_uninstall_from_reqs_file(script: PipTestEnvironment, tmpdir: Path) -> N
         "svn+http://svn.colorstudy.com/INITools",
         tmpdir,
     )
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
             -e {url}#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """
-        ).format(url=local_svn_url)
-    )
+        """).format(url=local_svn_url))
     result = script.pip("install", "-r", "test-req.txt")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
             # -f, -i, and --extra-index-url should all be ignored by uninstall
             -f http://www.example.com
             -i http://www.example.com
@@ -480,9 +468,7 @@ def test_uninstall_from_reqs_file(script: PipTestEnvironment, tmpdir: Path) -> N
             -e {url}#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """
-        ).format(url=local_svn_url)
-    )
+        """).format(url=local_svn_url))
     result2 = script.pip("uninstall", "-r", "test-req.txt", "-y")
     assert_all_changes(
         result,
@@ -597,7 +583,7 @@ def test_uninstall_without_record_fails(
     if not isinstance(installer, str) or not installer.strip() or installer == "pip":
         hint = (
             "You might be able to recover from this via: "
-            "pip install --force-reinstall --no-deps simple.dist==0.1"
+            "pip install --ignore-installed --no-deps simple.dist==0.1"
         )
     elif installer:
         hint = f"The package was installed by {installer}."

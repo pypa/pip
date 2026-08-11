@@ -24,7 +24,7 @@ available on `GitHub`_.
 Development Environment
 =======================
 
-pip is a command line application written in Python. For developing pip,
+Pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
 For developing pip, you need to install :pypi:`nox`. The full development setup would then be:
@@ -69,7 +69,7 @@ You can then invoke your local source tree pip normally (be sure virtualenv is a
 Running Tests
 =============
 
-pip's tests are written using the :pypi:`pytest` test framework and
+Pip's tests are written using the :pypi:`pytest` test framework and
 :mod:`unittest.mock`. :pypi:`nox` is used to automate the setup and execution
 of pip's tests.
 
@@ -89,7 +89,7 @@ To run tests without parallelization, run:
     $ nox -s test-3.10
 
 The example above runs tests against Python 3.10. You can also use other
-versions like ``3.9`` and ``pypy3``.
+versions like ``3.15`` and ``pypy3``.
 
 ``nox`` has been configured to forward any additional arguments it is given to
 ``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you
@@ -130,7 +130,7 @@ explicitly tell pytest to skip those tests:
 Running Linters
 ===============
 
-pip uses :pypi:`pre-commit` for managing linting of the codebase.
+Pip uses :pypi:`pre-commit` for managing linting of the codebase.
 ``pre-commit`` performs various checks on all files in pip and uses tools that
 help follow a consistent code style within the codebase.
 
@@ -170,7 +170,7 @@ debugger. This way you'll be able to debug an exception post-mortem via PDB.
 Building Documentation
 ======================
 
-pip's documentation is built using :pypi:`Sphinx`. The documentation is written
+Pip's documentation is built using :pypi:`Sphinx`. The documentation is written
 in reStructuredText.
 
 To build it locally, run:
@@ -206,11 +206,11 @@ in order to start contributing.
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
-.. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
+.. _`rich CLI`: https://docs.pytest.org/en/latest/how-to/usage.html#specifying-which-tests-to-run
 .. _`GitHub`: https://github.com/pypa/pip
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
 .. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
 .. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/
-.. _`Hello World for Git`: https://guides.github.com/activities/hello-world/
-.. _`Understanding the GitHub flow`: https://guides.github.com/introduction/flow/
-.. _`Start using Git on the command line`: https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html
+.. _`Hello World for Git`: https://docs.github.com/en/get-started/start-your-journey/hello-world
+.. _`Understanding the GitHub flow`: https://docs.github.com/en/get-started/using-github/github-flow
+.. _`Start using Git on the command line`: https://docs.gitlab.com/topics/git/

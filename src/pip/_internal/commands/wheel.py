@@ -51,9 +51,6 @@ class WheelCommand(RequirementCommand):
                 "current working directory."
             ),
         )
-        self.cmd_opts.add_option(cmdoptions.no_binary())
-        self.cmd_opts.add_option(cmdoptions.only_binary())
-        self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.check_build_deps())
@@ -65,6 +62,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         self.cmd_opts.add_option(
@@ -77,29 +75,28 @@ class WheelCommand(RequirementCommand):
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
 
-        self.cmd_opts.add_option(
-            "--pre",
-            action="store_true",
-            default=False,
-            help=(
-                "Include pre-release and development versions. By default, "
-                "pip only finds stable versions."
-            ),
-        )
-
         self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.no_require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
         )
 
+        selection_opts = cmdoptions.make_option_group(
+            cmdoptions.package_selection_group,
+            self.parser,
+        )
+
         self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:
         cmdoptions.check_build_constraints(options)
+        cmdoptions.check_release_control_exclusive(options)
+        cmdoptions.check_only_deps_option_does_not_conflict(options)
 
         session = self.get_default_session(options)
 
@@ -129,6 +126,7 @@ class WheelCommand(RequirementCommand):
             download_dir=options.wheel_dir,
             use_user_site=False,
             verbosity=self.verbosity,
+            allow_editables=False,
         )
 
         resolver = self.make_resolver(
@@ -157,6 +155,7 @@ class WheelCommand(RequirementCommand):
             reqs_to_build,
             wheel_cache=wheel_cache,
             verify=(not options.no_verify),
+            allow_editables=False,
         )
         for req in build_successes:
             assert req.link and req.link.is_wheel
@@ -166,8 +165,9 @@ class WheelCommand(RequirementCommand):
                 shutil.copy(req.local_file_path, options.wheel_dir)
             except OSError as e:
                 logger.warning(
-                    "Building wheel for %s failed: %s",
+                    "Failed to copy built wheel %s to %s: %s",
                     req.name,
+                    options.wheel_dir,
                     e,
                 )
                 build_failures.append(req)

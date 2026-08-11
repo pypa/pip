@@ -17,12 +17,12 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -32,7 +32,7 @@ authors = [
 
 # NOTE: requires-python is duplicated in __pip-runner__.py.
 # When changing this value, please change the other copy as well.
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.scripts]
 pip = "pip._internal.cli.main:main"
@@ -62,12 +62,8 @@ test = [
     "pytest-subket",
     "scripttest",
     "setuptools",
-    # macOS (darwin) arm64 always uses virtualenv >= 20.0
-    # for other platforms, it depends on python version
-    "virtualenv < 20.0 ; python_version < '3.10' and (sys_platform != 'darwin' or platform_machine != 'arm64')",
-    "virtualenv >= 20.0 ; python_version >= '3.10' or (sys_platform == 'darwin' and platform_machine == 'arm64')",
+    "virtualenv >= 20.0",
     "werkzeug",
-    "wheel",
     "tomli-w",
     "proxy.py",
 ]
@@ -76,11 +72,23 @@ test-common-wheels = [
     "flit-core >= 3.11, < 4",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
-    "setuptools >= 40.8.0, != 60.6.0, <80",
-    "wheel",
+    "setuptools >= 70.1.0, <80",
     # As required by pytest-cov.
     "coverage >= 4.4",
     "pytest-subket >= 0.8.1",
+    "keyring",
+    "cmake",
+]
+
+typecheck = [
+    {include-group = "test"},
+    "keyring",  # An optional runtime dependency.
+    "nox",
+    "packaging",
+    "httpx",
+    "rich",
+    "types-PyYAML",  # tools/update-rtd-redirects.py
+    "types-setuptools",  # provides top-level distutils stubs for locations/
 ]
 
 docs = [
@@ -100,10 +108,11 @@ docs = [
 include = [
     "NEWS.rst",
     "SECURITY.md",
-    "build-project/.python-version",
+    "AI_POLICY.md",
+    "build-project/README.md",
     "build-project/build-project.py",
-    "build-project/build-requirements.in",
-    "build-project/build-requirements.txt",
+    "build-project/pyproject.toml",
+    "build-project/pylock.toml",
     "docs/**/*.css",
     "docs/**/*.dot",
     "docs/**/*.md",
@@ -112,6 +121,7 @@ include = [
     "docs/**/*.rst",
 ]
 exclude = [
+    ".devcontainer/devcontainer.json",
     "src/pip/_vendor/**/*.pyi",
 ]
 
@@ -151,6 +161,7 @@ type = [
 destination = "src/pip/_vendor/"
 requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
+sbom-file = "src/pip/_vendor/bom.cdx.json"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
 patches-dir = "tools/vendoring/patches"
@@ -163,13 +174,12 @@ substitute = [
   { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexers." },
 ]
 drop = [
+  # Don't include dist-info directories in the vendored code
+  "*.dist-info/",
   # contains unnecessary scripts
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
-  # optional accelerator extension libraries
-  "*mypyc*.so",
-  "tomli/*.so",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
@@ -203,7 +213,7 @@ distlib = "https://bitbucket.org/pypa/distlib/raw/master/LICENSE.txt"
 
 [tool.ruff]
 # Pinned to delay pyupgrade changes (https://github.com/pypa/pip/issues/13236)
-target-version = "py39"  # Pin Ruff to Python 3.9
+target-version = "py310"  # Pin Ruff to Python 3.10
 src = ["src"]
 line-length = 88
 extend-exclude = [
@@ -219,6 +229,7 @@ ignore = [
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
     "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
+    "ISC004" # implicit-string-concatenation-in-collection-literal
 ]
 select = [
     "ASYNC",
@@ -265,9 +276,9 @@ max-complexity = 33  # default is 10
 "src/pip/__pip-runner__.py" = ["UP"] # Must be compatible with Python 2.7
 
 [tool.ruff.lint.pylint]
-max-args = 15  # default is 5
+max-args = 16  # default is 5
 max-branches = 28  # default is 12
-max-returns = 13  # default is 6
+max-returns = 15  # default is 6
 max-statements = 134  # default is 50
 
 [tool.ruff.per-file-target-version]
@@ -304,9 +315,6 @@ ignore_errors = true
 module = "pip._vendor.pkg_resources"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "pip._vendor.requests.*"
-follow_imports = "skip"
 
 ######################################################################################
 # pytest
@@ -335,6 +343,9 @@ markers = [
     "mercurial: VCS: Mercurial",
     "git: VCS: git",
     "search: tests for 'pip search'",
+]
+filterwarnings = [
+  'error::pip._internal.utils.deprecation.PipDeprecationWarning:',
 ]
 
 ######################################################################################
@@ -381,6 +392,7 @@ git-only = [
   "tests/**",
   "tools/**",
   "news/.gitignore",
+  ".devcontainer/**",
   ".gitattributes",
   ".gitignore",
   ".git-blame-ignore-revs",

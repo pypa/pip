@@ -4,7 +4,7 @@ import logging
 import os
 import pathlib
 from typing import Any
-from unittest import TestCase, mock
+from unittest import mock
 
 import pytest
 
@@ -775,22 +775,30 @@ def test_subversion__get_remote_call_options(
     assert svn.get_remote_call_options() == expected_options
 
 
-class TestBazaarArgs(TestCase):
-    def setUp(self) -> None:
-        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
-        self.addCleanup(patcher.stop)
-        self.call_subprocess_mock = patcher.start()
+class _TestVcsArgs:
+    @pytest.fixture(autouse=True)
+    def setup_base(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+    ) -> None:
+        self.dest = os.fspath(tmp_path / "dest")
+        self.call_subprocess_mock = mock.MagicMock()
+        monkeypatch.setattr(
+            "pip._internal.vcs.versioncontrol.call_subprocess",
+            self.call_subprocess_mock,
+        )
 
+    def assert_call_args(self, args: CommandArgs) -> None:
+        assert self.call_subprocess_mock.call_args[0][0] == args
+
+
+class TestBazaarArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
         # Test Data.
         self.url = "bzr+http://username:password@bzr.example.com/"
         # use_interactive is set to False to test that remote call options are
         # properly added.
         self.svn = Bazaar()
         self.rev_options = RevOptions(Bazaar)
-        self.dest = "/tmp/test"
-
-    def assert_call_args(self, args: CommandArgs) -> None:
-        assert self.call_subprocess_mock.call_args[0][0] == args
 
     def test_fetch_new(self) -> None:
         self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
@@ -800,7 +808,7 @@ class TestBazaarArgs(TestCase):
                 "checkout",
                 "--lightweight",
                 hide_url("bzr+http://username:password@bzr.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -813,7 +821,7 @@ class TestBazaarArgs(TestCase):
                 "--lightweight",
                 "--quiet",
                 hide_url("bzr+http://username:password@bzr.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -826,7 +834,7 @@ class TestBazaarArgs(TestCase):
                 "--lightweight",
                 "-vv",
                 hide_url("bzr+http://username:password@bzr.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -850,17 +858,12 @@ class TestBazaarArgs(TestCase):
         )
 
 
-class TestGitArgs(TestCase):
-    def setUp(self) -> None:
-        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
-        self.addCleanup(patcher.stop)
-        self.call_subprocess_mock = patcher.start()
-
+class TestGitArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
         # Test Data.
         self.url = "git+http://username:password@git.example.com/"
         self.svn = Git()
         self.rev_options = RevOptions(Git)
-        self.dest = "/tmp/test"
 
     def test_fetch_new(self) -> None:
         with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
@@ -876,7 +879,28 @@ class TestGitArgs(TestCase):
             "clone",
             "--filter=blob:none",
             hide_url("git+http://username:password@git.example.com/"),
-            "/tmp/test",
+            self.dest,
+        ]
+
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_fetch_new_partial_clone_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER", "1")
+        with mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)):
+            with mock.patch.object(
+                self.svn, "update_submodules"
+            ) as update_submodules_mock:
+                self.svn.fetch_new(
+                    self.dest, hide_url(self.url), self.rev_options, verbosity=1
+                )
+
+        assert self.call_subprocess_mock.call_args_list[0][0][0] == [
+            "git",
+            "clone",
+            hide_url("git+http://username:password@git.example.com/"),
+            self.dest,
         ]
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=1)
@@ -894,7 +918,7 @@ class TestGitArgs(TestCase):
             "git",
             "clone",
             hide_url("git+http://username:password@git.example.com/"),
-            "/tmp/test",
+            self.dest,
         ]
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=1)
@@ -913,7 +937,7 @@ class TestGitArgs(TestCase):
             "clone",
             "--quiet",
             hide_url("git+http://username:password@git.example.com/"),
-            "/tmp/test",
+            self.dest,
         ]
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=0)
@@ -933,7 +957,7 @@ class TestGitArgs(TestCase):
             "--filter=blob:none",
             "--quiet",
             hide_url("git+http://username:password@git.example.com/"),
-            "/tmp/test",
+            self.dest,
         ]
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=0)
@@ -1066,17 +1090,12 @@ class TestGitArgs(TestCase):
         update_submodules_mock.assert_called_with(self.dest, verbosity=0)
 
 
-class TestMercurialArgs(TestCase):
-    def setUp(self) -> None:
-        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
-        self.addCleanup(patcher.stop)
-        self.call_subprocess_mock = patcher.start()
-
+class TestMercurialArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
         # Test Data.
         self.url = "hg+http://username:password@hg.example.com/"
         self.svn = Mercurial()
         self.rev_options = RevOptions(Mercurial)
-        self.dest = "/tmp/test"
 
     def test_fetch_new(self) -> None:
         self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options, verbosity=1)
@@ -1086,7 +1105,7 @@ class TestMercurialArgs(TestCase):
             "clone",
             "--noupdate",
             hide_url("hg+http://username:password@hg.example.com/"),
-            "/tmp/test",
+            self.dest,
         ]
 
         assert self.call_subprocess_mock.call_args_list[1][0][0] == [
@@ -1103,7 +1122,7 @@ class TestMercurialArgs(TestCase):
             "--noupdate",
             "--quiet",
             hide_url("hg+http://username:password@hg.example.com/"),
-            "/tmp/test",
+            self.dest,
         ]
 
         assert self.call_subprocess_mock.call_args_list[1][0][0] == [
@@ -1121,7 +1140,7 @@ class TestMercurialArgs(TestCase):
             "--noupdate",
             "--verbose",
             hide_url("hg+http://username:password@hg.example.com/"),
-            "/tmp/test",
+            self.dest,
         ]
 
         assert self.call_subprocess_mock.call_args_list[1][0][0] == [
@@ -1140,7 +1159,7 @@ class TestMercurialArgs(TestCase):
             "--verbose",
             "--debug",
             hide_url("hg+http://username:password@hg.example.com/"),
-            "/tmp/test",
+            self.dest,
         ]
 
         assert self.call_subprocess_mock.call_args_list[1][0][0] == [
@@ -1179,22 +1198,14 @@ class TestMercurialArgs(TestCase):
         ]
 
 
-class TestSubversionArgs(TestCase):
-    def setUp(self) -> None:
-        patcher = mock.patch("pip._internal.vcs.versioncontrol.call_subprocess")
-        self.addCleanup(patcher.stop)
-        self.call_subprocess_mock = patcher.start()
-
+class TestSubversionArgs(_TestVcsArgs):
+    def setup_method(self) -> None:
         # Test Data.
         self.url = "svn+http://username:password@svn.example.com/"
         # use_interactive is set to False to test that remote call options are
         # properly added.
         self.svn = Subversion(use_interactive=False)
         self.rev_options = RevOptions(Subversion)
-        self.dest = "/tmp/test"
-
-    def assert_call_args(self, args: CommandArgs) -> None:
-        assert self.call_subprocess_mock.call_args[0][0] == args
 
     def test_obtain(self) -> None:
         self.svn.obtain(self.dest, hide_url(self.url), verbosity=1)
@@ -1208,7 +1219,7 @@ class TestSubversionArgs(TestCase):
                 "--password",
                 hide_value("password"),
                 hide_url("http://svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -1225,7 +1236,7 @@ class TestSubversionArgs(TestCase):
                 "--password",
                 hide_value("password"),
                 hide_url("http://svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -1237,7 +1248,7 @@ class TestSubversionArgs(TestCase):
                 "checkout",
                 "--non-interactive",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -1250,7 +1261,7 @@ class TestSubversionArgs(TestCase):
                 "--quiet",
                 "--non-interactive",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -1265,7 +1276,7 @@ class TestSubversionArgs(TestCase):
                 "-r",
                 "123",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -1281,7 +1292,7 @@ class TestSubversionArgs(TestCase):
                 "-r",
                 "123",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -1293,7 +1304,7 @@ class TestSubversionArgs(TestCase):
                 "switch",
                 "--non-interactive",
                 hide_url("svn+http://username:password@svn.example.com/"),
-                "/tmp/test",
+                self.dest,
             ]
         )
 
@@ -1304,6 +1315,6 @@ class TestSubversionArgs(TestCase):
                 "svn",
                 "update",
                 "--non-interactive",
-                "/tmp/test",
+                self.dest,
             ]
         )

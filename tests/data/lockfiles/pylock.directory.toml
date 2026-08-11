@@ -1,0 +1,6 @@
+lock-version = "1.0"
+created-by = "pip"
+packages = [
+    { name = "simplewheel", directory = { path = "../src/simplewheel-2.0", editable = true } },
+    { name = "singlemodule", directory = { path = "../src/singlemodule" } },
+]

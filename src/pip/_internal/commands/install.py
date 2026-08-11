@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import contextlib
 import errno
 import json
 import operator
 import os
 import shutil
 import site
+import sys
+from collections.abc import Iterator
 from optparse import SUPPRESS_HELP, Values
 from pathlib import Path
+from typing import Any
 
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
 from pip._vendor.rich import print_json
@@ -34,15 +39,16 @@ from pip._internal.exceptions import (
     InstallWheelBuildError,
 )
 from pip._internal.locations import get_scheme
-from pip._internal.metadata import get_environment
+from pip._internal.metadata import BaseEnvironment, get_environment
 from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
-from pip._internal.req import install_given_reqs
+from pip._internal.req import InstallationResult, install_given_reqs
 from pip._internal.req.req_install import (
     InstallRequirement,
 )
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -61,6 +67,77 @@ from pip._internal.utils.virtualenv import (
 from pip._internal.wheel_builder import build
 
 logger = getLogger(__name__)
+
+
+_IMPORT_AUDIT_HOOK_INSTALLED = False
+_MISSING_MODULES: set[str] = set()
+
+# Non-stdlib modules pip (or its vendored dependencies) may import lazily
+# after installation has started. Importing them eagerly keeps the audit
+# hook from misattributing them to a freshly installed distribution.
+_EAGER_IMPORTS: tuple[str, ...] = (
+    "pip._internal.operations.install.wheel",
+    # Used by rich when emitting output to a legacy Windows console.
+    "pip._vendor.rich._windows_renderer",
+)
+
+
+# Imports of standard library modules are always safe: they cannot be
+# shadowed by a distribution pip has just installed.
+_STDLIB_MODULE_NAMES: frozenset[str] = frozenset(sys.stdlib_module_names) | frozenset(
+    sys.builtin_module_names
+)
+
+
+def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
+    if name != "import":
+        return
+    module = args[0]
+    if module in _MISSING_MODULES:
+        raise ImportError(f"No module named {module!r}")
+    if module.partition(".")[0] in _STDLIB_MODULE_NAMES:
+        return
+    deprecated(
+        reason=f"Unexpected import of {module!r} after pip install started.",
+        replacement=None,
+        gone_in="26.3",
+        issue=13842,
+        include_source=True,
+        stacklevel=3,
+    )
+
+
+def _eagerly_import_modules() -> None:
+    """Import modules pip uses lazily so the audit hook ignores them later."""
+    for module in _EAGER_IMPORTS:
+        try:
+            __import__(module)
+        except ImportError:
+            # Record the module as missing so the hook can raise ImportError
+            # instead of trying to import it again.
+            _MISSING_MODULES.add(module)
+
+
+def _prevent_further_imports() -> None:
+    """Install an audit hook that warns on unexpected imports after pip install starts.
+
+    Eagerly pre-imports the known lazy imports first so the hook only fires
+    on genuinely unexpected modules.
+    """
+    global _IMPORT_AUDIT_HOOK_INSTALLED
+    if _IMPORT_AUDIT_HOOK_INSTALLED:
+        return
+
+    _IMPORT_AUDIT_HOOK_INSTALLED = True
+    sys.addaudithook(_prevent_import_hook)
+
+
+def _arg_refers_to_pip(arg: str) -> bool:
+    try:
+        req = Requirement(arg)
+    except InvalidRequirement:
+        return False
+    return canonicalize_name(req.name) == "pip"
 
 
 class InstallCommand(RequirementCommand):
@@ -89,7 +166,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.build_constraints())
         self.cmd_opts.add_option(cmdoptions.requirements_from_scripts())
         self.cmd_opts.add_option(cmdoptions.no_deps())
-        self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.only_deps())
 
         self.cmd_opts.add_option(cmdoptions.editable())
         self.cmd_opts.add_option(
@@ -245,10 +322,8 @@ class InstallCommand(RequirementCommand):
             default=True,
             help="Do not warn about broken dependencies",
         )
-        self.cmd_opts.add_option(cmdoptions.no_binary())
-        self.cmd_opts.add_option(cmdoptions.only_binary())
-        self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.no_require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
         self.cmd_opts.add_option(cmdoptions.root_user_action())
 
@@ -257,7 +332,13 @@ class InstallCommand(RequirementCommand):
             self.parser,
         )
 
+        selection_opts = cmdoptions.make_option_group(
+            cmdoptions.package_selection_group,
+            self.parser,
+        )
+
         self.parser.insert_option_group(0, index_opts)
+        self.parser.insert_option_group(0, selection_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
         self.cmd_opts.add_option(
@@ -275,6 +356,17 @@ class InstallCommand(RequirementCommand):
                 "to avoid mixing pip logging output with JSON output."
             ),
         )
+
+    @contextlib.contextmanager
+    def pip_version_check(self, options: Values, args: list[str]) -> Iterator[None]:
+        # Skip the self-version check when pip itself is a requirement. The
+        # running pip may be replaced mid-command, and the upgrade prompt
+        # is redundant.
+        if any(_arg_refers_to_pip(arg) for arg in args):
+            yield
+            return
+        with super().pip_version_check(options, args):
+            yield
 
     @with_cleanup
     def run(self, options: Values, args: list[str]) -> int:
@@ -302,8 +394,10 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
+        cmdoptions.check_only_deps_option_does_not_conflict(options)
         cmdoptions.check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
+        cmdoptions.check_release_control_exclusive(options)
 
         logger.verbose("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
@@ -356,12 +450,6 @@ class InstallCommand(RequirementCommand):
 
             wheel_cache = WheelCache(options.cache_dir)
 
-            # Only when installing is it permitted to use PEP 660.
-            # In other circumstances (pip wheel, pip download) we generate
-            # regular (i.e. non editable) metadata and wheels.
-            for req in reqs:
-                req.permit_editable_wheels = True
-
             preparer = self.make_requirement_preparer(
                 temp_build_dir=directory,
                 options=options,
@@ -370,6 +458,7 @@ class InstallCommand(RequirementCommand):
                 finder=finder,
                 use_user_site=options.use_user_site,
                 verbosity=self.verbosity,
+                allow_editables=True,
             )
             resolver = self.make_resolver(
                 preparer=preparer,
@@ -435,6 +524,7 @@ class InstallCommand(RequirementCommand):
                 reqs_to_build,
                 wheel_cache=wheel_cache,
                 verify=True,
+                allow_editables=True,
             )
 
             if build_failures:
@@ -456,6 +546,13 @@ class InstallCommand(RequirementCommand):
             if options.target_dir or options.prefix_path:
                 warn_script_location = False
 
+            # Warn on late imports so we don't silently pick up a module
+            # from a distribution pip is about to install.
+            try:
+                _eagerly_import_modules()
+            finally:
+                _prevent_further_imports()
+
             installed = install_given_reqs(
                 to_install,
                 root=options.root_path,
@@ -476,34 +573,13 @@ class InstallCommand(RequirementCommand):
             )
             env = get_environment(lib_locations)
 
-            # Display a summary of installed packages, with extra care to
-            # display a package name as it was requested by the user.
-            installed.sort(key=operator.attrgetter("name"))
-            summary = []
-            installed_versions = {}
-            for distribution in env.iter_all_distributions():
-                installed_versions[distribution.canonical_name] = distribution.version
-            for package in installed:
-                display_name = package.name
-                version = installed_versions.get(canonicalize_name(display_name), None)
-                if version:
-                    text = f"{display_name}-{version}"
-                else:
-                    text = display_name
-                summary.append(text)
-
             if conflicts is not None:
                 self._warn_about_conflicts(
                     conflicts,
                     resolver_variant=self.determine_resolver_variant(options),
                 )
-
-            installed_desc = " ".join(summary)
-            if installed_desc:
-                write_output(
-                    "Successfully installed %s",
-                    installed_desc,
-                )
+            if summary := installed_packages_summary(installed, env):
+                write_output(summary)
         except OSError as error:
             show_traceback = self.verbosity >= 1
 
@@ -640,6 +716,30 @@ class InstallCommand(RequirementCommand):
                 parts.append(message)
 
         logger.critical("\n".join(parts))
+
+
+def installed_packages_summary(
+    installed: list[InstallationResult], env: BaseEnvironment
+) -> str:
+    # Format a summary of installed packages, with extra care to
+    # display a package name as it was requested by the user.
+    installed.sort(key=operator.attrgetter("name"))
+    summary = []
+    installed_versions = {}
+    for distribution in env.iter_all_distributions():
+        installed_versions[distribution.canonical_name] = distribution.version
+    for package in installed:
+        display_name = package.name
+        version = installed_versions.get(canonicalize_name(display_name), None)
+        if version:
+            text = f"{display_name}-{version}"
+        else:
+            text = display_name
+        summary.append(text)
+
+    if not summary:
+        return ""
+    return f"Successfully installed {' '.join(summary)}"
 
 
 def get_lib_location_guesses(

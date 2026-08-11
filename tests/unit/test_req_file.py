@@ -84,6 +84,17 @@ def parse_reqfile(
         )
 
 
+def test_missing_constraint_file_message_mentions_constraints(
+    tmp_path: Path, session: PipSession
+) -> None:
+    missing = tmp_path / "does-not-exist.txt"
+
+    with pytest.raises(InstallationError) as exc:
+        list(parse_reqfile(missing, session=session, constraint=True))
+
+    assert "Could not open constraint file:" in str(exc.value)
+
+
 def test_read_file_url(tmp_path: Path, session: PipSession) -> None:
     reqs = tmp_path.joinpath("requirements.txt")
     reqs.write_text("foo")
@@ -104,34 +115,28 @@ class TestPreprocess:
     """tests for `preprocess`"""
 
     def test_comments_and_joins_case1(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment \\
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
     def test_comments_and_joins_case2(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1\\
           # comment
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1")]
 
     def test_comments_and_joins_case3(self) -> None:
-        content = textwrap.dedent(
-            """\
+        content = textwrap.dedent("""\
           req1 \\
           # comment
           req2
-        """
-        )
+        """)
         result = preprocess(content)
         assert list(result) == [(1, "req1"), (3, "req2")]
 
@@ -276,7 +281,7 @@ class TestProcessLine:
 
         expected = (
             "Invalid requirement: 'my-package=1.0': "
-            "Expected end or semicolon (after name and no valid version specifier)\n"
+            "Expected semicolon (after name with no version specifier) or end\n"
             "    my-package=1.0\n"
             "              ^ (from line 3 of path/requirements.txt)\n"
             "Hint: = is not a valid operator. Did you mean == ?"
@@ -324,16 +329,6 @@ class TestProcessLine:
         comes_from = f"-r {filename} (line 1)"
         req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
-
-    def test_yield_editable_constraint(self, line_processor: LineProcessor) -> None:
-        url = "git+https://url#egg=SomeProject"
-        line = f"-e {url}"
-        filename = "filename"
-        comes_from = f"-c {filename} (line {1})"
-        req = install_req_from_editable(url, comes_from=comes_from, constraint=True)
-        found_req = line_processor(line, filename, 1, constraint=True)[0]
-        assert repr(found_req) == repr(req)
-        assert found_req.constraint is True
 
     def test_nested_constraints_file(
         self, monkeypatch: pytest.MonkeyPatch, tmpdir: Path, session: PipSession
@@ -527,7 +522,39 @@ class TestProcessLine:
         self, line_processor: LineProcessor, finder: PackageFinder
     ) -> None:
         line_processor("--pre", "file", 1, finder=finder)
-        assert finder.allow_all_prereleases
+        # --pre should add :all: to release_control.all_releases
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_all_releases(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--all-releases :all:", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_all_releases_specific_package(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--all-releases pkg1,pkg2", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert "pkg1" in finder._candidate_prefs.release_control.all_releases
+        assert "pkg2" in finder._candidate_prefs.release_control.all_releases
+
+    def test_set_finder_only_final(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--only-final :all:", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert ":all:" in finder._candidate_prefs.release_control.only_final
+
+    def test_set_finder_only_final_specific_package(
+        self, line_processor: LineProcessor, finder: PackageFinder
+    ) -> None:
+        line_processor("--only-final pkg1,pkg2", "file", 1, finder=finder)
+        assert finder._candidate_prefs.release_control is not None
+        assert "pkg1" in finder._candidate_prefs.release_control.only_final
+        assert "pkg2" in finder._candidate_prefs.release_control.only_final
 
     def test_use_feature(
         self, line_processor: LineProcessor, options: mock.Mock
@@ -921,15 +948,13 @@ class TestParseRequirements:
         Test parsing a requirements file without a finder
         """
         with open(tmpdir.joinpath("req.txt"), "w") as fp:
-            fp.write(
-                """
+            fp.write("""
     --find-links https://example.com/
     --index-url https://example.com/
     --extra-index-url https://two.example.com/
     --no-use-wheel
     --no-index
-            """
-            )
+            """)
 
         parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 
@@ -995,7 +1020,7 @@ class TestParseRequirements:
         assert reqs[0].name == req_name
         assert reqs[0].specifier == req_specifier
 
-    def test_warns_and_fallsback_to_locale_on_utf8_decode_fail(
+    def test_warns_and_falls_back_to_locale_on_utf8_decode_fail(
         self,
         tmpdir: Path,
         session: PipSession,
@@ -1011,7 +1036,10 @@ class TestParseRequirements:
         # so patch things out for simplicity
         with (
             caplog.at_level(logging.WARNING),
-            mock.patch("locale.getpreferredencoding", return_value=locale_encoding),
+            mock.patch(
+                "pip._internal.req.req_file.get_locale_encoding",
+                return_value=locale_encoding,
+            ),
         ):
             reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
 
@@ -1044,6 +1072,8 @@ class TestParseRequirements:
 
         with (
             pytest.raises(UnicodeDecodeError),
-            mock.patch("locale.getpreferredencoding", return_value=encoding),
+            mock.patch(
+                "pip._internal.req.req_file.get_locale_encoding", return_value=encoding
+            ),
         ):
             next(parse_reqfile(req_file.resolve(), session=session))

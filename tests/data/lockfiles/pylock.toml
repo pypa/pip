@@ -1,0 +1,33 @@
+lock-version = "1.0"
+created-by = "pip"
+
+[[packages]]
+name = "simple"
+version = "2.0"
+
+[packages.sdist]
+name = "simple-2.0.tar.gz"
+path = "../packages/simple-2.0.tar.gz"
+
+[packages.sdist.hashes]
+sha256 = "3a084929238d13bcd3bb928af04f3bac7ca2357d419e29f01459dc848e2d69a4"
+
+[[packages]]
+name = "simple2"
+
+[packages.archive]
+path = "../packages/simple2-3.0.tar.gz"
+
+[packages.archive.hashes]
+sha256 = "3ad45e1e9aa48b4462af0123f6a7e44a9115db1ef945d4d92c123dfe21815a06"
+
+[[packages]]
+name = "simplewheel"
+version = "2.0"
+
+[[packages.wheels]]
+name = "simplewheel-2.0-1-py2.py3-none-any.whl"
+path = "../packages/simplewheel-2.0-1-py2.py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "71e1ca6b16ae3382a698c284013f66504f2581099b2ce4801f60e9536236ceee"

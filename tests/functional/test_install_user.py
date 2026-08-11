@@ -25,27 +25,26 @@ def _patch_dist_in_site_packages(virtualenv: VirtualEnvironment) -> None:
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch the Distribution class so it's possible to install a
     # conflicting distribution in the user site.
-    virtualenv.sitecustomize = textwrap.dedent(
-        """
+    virtualenv.sitecustomize = textwrap.dedent("""
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.metadata.base import BaseDistribution
         BaseDistribution.in_site_packages = property(dist_in_site_packages)
-    """
-    )
+    """)
 
 
 @pytest.mark.usefixtures("enable_user_site")
 class Tests_UserSite:
-    @pytest.mark.network
     def test_reset_env_system_site_packages_usersite(
-        self, script: PipTestEnvironment
+        self,
+        script: PipTestEnvironment,
+        data: TestData,
     ) -> None:
         """
         Check user site works as expected.
         """
-        script.pip("install", "--user", "INITools==0.2")
+        script.pip_install_local("--user", "INITools==0.2", "-f", data.pypi_packages)
         result = script.run(
             "python",
             "-c",
@@ -121,29 +120,30 @@ class Tests_UserSite:
             "visible in this virtualenv." in result.stderr
         )
 
-    @pytest.mark.network
     def test_install_user_conflict_in_usersite(
-        self, script: PipTestEnvironment
+        self, script: PipTestEnvironment, data: TestData
     ) -> None:
         """
         Test user install with conflict in usersite updates usersite.
         """
 
-        script.pip("install", "--user", "INITools==0.3", "--no-binary=:all:")
+        script.pip_install_local("--user", "INITools==0.2", "-f", data.pypi_packages)
 
-        result2 = script.pip("install", "--user", "INITools==0.1", "--no-binary=:all:")
+        result2 = script.pip_install_local(
+            "--user", "INITools==0.1", "-f", data.pypi_packages
+        )
 
         # usersite has 0.1
         dist_info_folder = script.user_site / "initools-0.1.dist-info"
-        initools_v3_file = (
-            # file only in 0.3
+        initools_v2_file = (
+            # file only in 0.2
             script.base_path
             / script.user_site
             / "initools"
             / "configparser.py"
         )
         result2.did_create(dist_info_folder)
-        assert not isfile(initools_v3_file), initools_v3_file
+        assert not isfile(initools_v2_file), initools_v2_file
 
     def test_install_user_conflict_in_globalsite(
         self, virtualenv: VirtualEnvironment, script: PipTestEnvironment
@@ -341,9 +341,7 @@ class Tests_UserSite:
 
         # Create a custom Python script that disables user site and runs pip via exec
         test_script = script.scratch_path / "test_disable_user_site.py"
-        test_script.write_text(
-            textwrap.dedent(
-                f"""
+        test_script.write_text(textwrap.dedent(f"""
             import site
             import sys
 
@@ -367,9 +365,7 @@ class Tests_UserSite:
             # Import and run pip's main
             from pip._internal.cli.main import main
             sys.exit(main())
-            """
-            )
-        )
+            """))
 
         result = script.run("python", str(test_script), expect_error=True)
         assert (

@@ -1,0 +1,2 @@
+Expand self-referential extras regression tests to distinguish behaviour across
+pip versions before 20.3, 20.3 through 21.1, and 21.2+.
