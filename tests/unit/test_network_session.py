@@ -689,7 +689,7 @@ class TestRetryWarningRewriting:
                 with pytest.raises(DiagnosticPipError):
                     session.get(f"http://{server.server_name}:{server.server_port}/")
             assert caplog.messages == [
-                "failed to connect to localhost, retrying 1 last time"
+                f"failed to connect to {server.server_name}, retrying 1 last time"
             ]
 
     def test_selfsigned_cert(
