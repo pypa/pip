@@ -757,6 +757,7 @@ class Factory:
                 req_disp,
                 ", ".join(versions) or "none",
             )
+        self._finder.log_skipped_link_warning(req.project_name)
         if str(req) == "requirements.txt":
             logger.info(
                 "HINT: You are attempting to install a package literally "

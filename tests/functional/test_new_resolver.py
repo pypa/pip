@@ -280,6 +280,9 @@ def test_new_resolver_installed_message(script: PipTestEnvironment) -> None:
 
 def test_new_resolver_no_dist_message(script: PipTestEnvironment) -> None:
     create_basic_wheel_for_package(script, "A", "1.0")
+    script.scratch_path.joinpath("links.html").write_text(
+        '<a href="A-1.0.tar.gz">A-1.0.tar.gz</a>'
+    )
     result = script.pip(
         "install",
         "--no-cache-dir",
@@ -300,6 +303,68 @@ def test_new_resolver_no_dist_message(script: PipTestEnvironment) -> None:
         "Could not find a version that satisfies the requirement B" in result.stderr
     ), str(result)
     assert "No matching distribution found for B" in result.stderr, str(result)
+    assert "Some packages may have been found and excluded" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "resolver_args",
+    [
+        pytest.param((), id="resolvelib"),
+        pytest.param(("--use-deprecated=legacy-resolver",), id="legacy"),
+    ],
+)
+def test_excluded_dist_message(
+    script: PipTestEnvironment,
+    resolver_args: tuple[str, ...],
+) -> None:
+    script.scratch_path.joinpath("B-1.0-cp27-cp27m-any.whl").write_text("")
+    result = script.pip(
+        "install",
+        *resolver_args,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "B",
+        expect_error=True,
+        expect_stderr=True,
+    )
+
+    assert (
+        "Some packages may have been found and excluded. "
+        "To see details, re-run pip with -vv."
+    ) in result.stderr, str(result)
+
+    verbose_result = script.pip(
+        "install",
+        *resolver_args,
+        "-vv",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "B",
+        expect_error=True,
+        expect_stderr=True,
+    )
+    assert "Skipping link: none of the wheel's tags" in verbose_result.stdout
+    assert "re-run pip with -vv" not in verbose_result.stderr
+
+    log_path = script.base_path.joinpath("pip.log")
+    logged_result = script.pip(
+        f"--log={log_path}",
+        "install",
+        *resolver_args,
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "B",
+        expect_error=True,
+        expect_stderr=True,
+    )
+    assert "Some packages may have been found and excluded" in logged_result.stderr
+    assert "Skipping link: none of the wheel's tags" in log_path.read_text()
 
 
 def test_new_resolver_installs_editable(script: PipTestEnvironment) -> None:

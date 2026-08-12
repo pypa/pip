@@ -655,6 +655,11 @@ class PackageFinder:
         # the error message when resolution fails.
         self._requires_python_skipped: set[str] = set()
 
+        # Tracks projects for which at least one potentially relevant link was
+        # skipped. Used to direct users to the detailed verbose output when
+        # resolution fails.
+        self._projects_with_skipped_links: set[NormalizedName] = set()
+
         # Cache of the result of finding candidates
         self._all_candidates: dict[str, list[InstallationCandidate]] = {}
         self._best_candidates: dict[
@@ -777,6 +782,19 @@ class PackageFinder:
     def requires_python_skipped_reasons(self) -> list[str]:
         return sorted(self._requires_python_skipped)
 
+    def log_skipped_link_warning(self, project_name: str) -> None:
+        if canonicalize_name(project_name) not in self._projects_with_skipped_links:
+            return
+        if any(
+            handler.name == "console" and handler.level <= logging.DEBUG
+            for handler in logging.getLogger().handlers
+        ):
+            return
+        logger.critical(
+            "Some packages may have been found and excluded. "
+            "To see details, re-run pip with -vv."
+        )
+
     def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
         formats = self.format_control.get_allowed_formats(canonical_name)
@@ -807,10 +825,27 @@ class PackageFinder:
                     no_eggs.append(link)
         return no_eggs + eggs
 
-    def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
+    def _log_skipped_link(
+        self,
+        project_name: str,
+        link: Link,
+        result: LinkType,
+        detail: str,
+    ) -> None:
         # Put the link at the end so the reason is more visible and because
         # the link string is usually very long.
         logger.debug("Skipping link: %s: %s", detail, link)
+        if link.egg_fragment:
+            package_fragment = link.egg_fragment
+        else:
+            package_fragment, _ = link.splitext()
+        canonical_name = canonicalize_name(project_name)
+        try:
+            _find_name_version_sep(package_fragment, canonical_name)
+        except ValueError:
+            pass
+        else:
+            self._projects_with_skipped_links.add(canonical_name)
         if result == LinkType.requires_python_mismatch:
             self._requires_python_skipped.add(detail)
 
@@ -827,7 +862,12 @@ class PackageFinder:
             # when --uploaded-prior-to is specified
             raise InstallationError(detail)
         if result != LinkType.candidate:
-            self._log_skipped_link(link, result, detail)
+            self._log_skipped_link(
+                link_evaluator.project_name,
+                link,
+                result,
+                detail,
+            )
             return None
 
         try:
@@ -1053,6 +1093,7 @@ class PackageFinder:
                 req,
                 _format_versions(best_candidate_result.all_candidates),
             )
+            self.log_skipped_link_warning(name)
 
             raise DistributionNotFound(f"No matching distribution found for {req}")
 
