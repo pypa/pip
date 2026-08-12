@@ -670,9 +670,12 @@ class TestRetryWarningRewriting:
     def test_simple_urls(
         self, caplog: pytest.LogCaptureFixture, url: str, expected_message: str
     ) -> None:
-        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+        with PipSession(retries=2) as session, pytest.raises(DiagnosticPipError):
             session.get(url)
-        assert caplog.messages == [f"{expected_message}, retrying 1 last time"]
+        assert caplog.messages == [
+            f"{expected_message}, retrying 2 more times",
+            f"{expected_message}, retrying 1 last time",
+        ]
 
     def test_timeout(
         self, caplog: pytest.LogCaptureFixture, delayed_server: Address
