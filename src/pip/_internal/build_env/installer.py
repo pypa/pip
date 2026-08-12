@@ -43,9 +43,11 @@ class SubprocessBuildEnvironmentInstaller:
         self,
         finder: PackageFinder,
         build_constraints: list[str] | None = None,
+        require_hashes: bool = False,
     ) -> None:
         self.finder = finder
         self._build_constraints = build_constraints or []
+        self._require_hashes = require_hashes
 
     def install(
         self,
@@ -134,6 +136,8 @@ class SubprocessBuildEnvironmentInstaller:
         # constrains any nested builds.
         for constraint_file in self._build_constraints:
             args.extend(["--build-constraint", constraint_file])
+        if self._require_hashes:
+            args.append("--require-hashes")
 
         if finder.uploaded_prior_to:
             args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
@@ -178,6 +182,7 @@ class InprocessBuildEnvironmentInstaller:
         wheel_cache: WheelCache,
         build_constraints: Sequence[InstallRequirement] = (),
         verbosity: int = 0,
+        require_hashes: bool = False,
     ) -> None:
         from pip._internal.operations.prepare import RequirementPreparer
 
@@ -202,9 +207,7 @@ class InprocessBuildEnvironmentInstaller:
             build_isolation="virtual",
             check_build_deps=False,
             progress_bar="off",
-            # TODO: hash-checking should be extended to build deps, but that is
-            # deferred for later as it'd be a breaking change.
-            require_hashes=False,
+            require_hashes=require_hashes,
             use_user_site=False,
             lazy_wheel=False,
             legacy_resolver=False,

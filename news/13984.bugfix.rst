@@ -1,0 +1,1 @@
+Apply ``--require-hashes`` to dependencies installed into isolated build environments.

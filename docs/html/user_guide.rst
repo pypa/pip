@@ -303,6 +303,9 @@ Example build constraints file (``build-constraints.txt``):
    # Pin Cython for packages that use it to build
    cython==0.29.24
 
+When using ``--require-hashes``, build dependencies must also be pinned and
+hashed in this file.
+
 The ``--build-constraint`` option can be set with the ``PIP_BUILD_CONSTRAINT``
 environment variable.
 

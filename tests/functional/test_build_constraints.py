@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -259,3 +260,72 @@ def test_build_constraint_is_enforced(
         expect_error=True,
     )
     assert "setuptools==2000" in result.stderr
+
+
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
+def test_require_hashes_applies_to_build_dependencies(
+    script: PipTestEnvironment,
+    data: TestData,
+    tmpdir: Path,
+    installer_args: list[str],
+) -> None:
+    """Hash checking also covers build dependencies for both installers."""
+    sdist = data.packages / "simple-1.0.tar.gz"
+    requirements = script.scratch_path / "requirements.txt"
+    sdist_hash = hashlib.sha256(sdist.read_bytes()).hexdigest()
+    requirements.write_text(f"{path_to_url(str(sdist))} --hash=sha256:{sdist_hash}\n")
+    setuptools_wheel = next(data.common_wheels.glob("setuptools-*.whl"))
+    setuptools_version = setuptools_wheel.name.split("-", 2)[1]
+    setuptools_hash = hashlib.sha256(setuptools_wheel.read_bytes()).hexdigest()
+    build_constraints = _create_constraints_file(
+        script=script,
+        filename="build_constraints.txt",
+        content=f"setuptools=={setuptools_version} --hash=sha256:{setuptools_hash}\n",
+    )
+
+    result = script.pip_install_local(
+        "--require-hashes",
+        "--build-constraint",
+        build_constraints,
+        "--requirement",
+        requirements,
+        *installer_args,
+        build_isolation=True,
+        find_links=data.common_wheels,
+    )
+
+    result.assert_installed("simple", editable=False)
+
+
+@pytest.mark.parametrize("installer_args", INSTALLER_ARGS)
+def test_require_hashes_rejects_unhashed_build_dependencies(
+    script: PipTestEnvironment,
+    data: TestData,
+    installer_args: list[str],
+) -> None:
+    """Unhashed build dependencies must not bypass hash-checking mode."""
+    sdist = data.packages / "simple-1.0.tar.gz"
+    requirements = script.scratch_path / "requirements.txt"
+    sdist_hash = hashlib.sha256(sdist.read_bytes()).hexdigest()
+    requirements.write_text(f"{path_to_url(str(sdist))} --hash=sha256:{sdist_hash}\n")
+    setuptools_wheel = next(data.common_wheels.glob("setuptools-*.whl"))
+    setuptools_version = setuptools_wheel.name.split("-", 2)[1]
+    build_constraints = _create_constraints_file(
+        script=script,
+        filename="build_constraints.txt",
+        content=f"setuptools=={setuptools_version}\n",
+    )
+
+    result = script.pip_install_local(
+        "--require-hashes",
+        "--build-constraint",
+        build_constraints,
+        "--requirement",
+        requirements,
+        *installer_args,
+        build_isolation=True,
+        find_links=data.common_wheels,
+        expect_error=True,
+    )
+
+    assert "build dependencies" in result.stderr

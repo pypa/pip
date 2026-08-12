@@ -208,11 +208,13 @@ class RequirementCommand(IndexGroupCommand):
                 build_constraints=build_constraint_reqs,
                 verbosity=verbosity,
                 wheel_cache=WheelCache(options.cache_dir),
+                require_hashes=options.require_hashes,
             )
         else:
             env_installer = SubprocessBuildEnvironmentInstaller(
                 finder,
                 build_constraints=build_constraints,
+                require_hashes=options.require_hashes,
             )
 
         if not options.build_isolation:
