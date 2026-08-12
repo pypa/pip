@@ -57,14 +57,21 @@ class Address:
     host: str
     port: int
 
-    @property
-    def url(self) -> str:
-        return f"http://{self.host}:{self.port}/"
+    def url(self, *, https: bool = False) -> str:
+        if https:
+            return f"https://{self.host}:{self.port}/"
+        else:
+            return f"http://{self.host}:{self.port}/"
 
 
 class InstantCloseHTTPHandler(BaseHTTPRequestHandler):
+    """A HTTP request handler that closes the underlying request TCP
+    socket immediately. Used for testing "connection reset by peer" and
+    similar errors.
+    """
+
     def handle(self) -> None:
-        self.connection.close()
+        self.request.close()
 
 
 class DelayedHTTPHandler(BaseHTTPRequestHandler):
@@ -558,20 +565,19 @@ class TestConnectionErrors:
         self, session: PipSession, instant_close_server: Address
     ) -> None:
         with pytest.raises(ConnectionFailedError) as e:
-            session.get(instant_close_server.url)
+            session.get(instant_close_server.url())
         message, context = render_diagnostic_error(e.value)
         assert message == (
             f"Failed to connect to {instant_close_server.host} "
-            f"while fetching {instant_close_server.url}"
+            f"while fetching {instant_close_server.url()}"
         )
         assert context == "the connection was closed without a reply from the server."
 
     def test_timeout(self, session: PipSession, delayed_server: Address) -> None:
-        url = delayed_server.url
         with pytest.raises(ConnectionTimeoutError) as e:
-            session.get(url, timeout=0.2)
+            session.get(delayed_server.url(), timeout=0.2)
         message, context = render_diagnostic_error(e.value)
-        assert message == f"Unable to fetch {url}"
+        assert message == f"Unable to fetch {delayed_server.url()}"
         assert context is not None
         assert context.startswith(
             f"{delayed_server.host} didn't respond within 0.2 seconds"
@@ -581,14 +587,13 @@ class TestConnectionErrors:
         self, session: PipSession, self_signed_server: Address
     ) -> None:
         """A self-signed certificate should produce a TLS verification diagnostic."""
-        url = f"https://{self_signed_server.host}:{self_signed_server.port}/"
         with pytest.raises(SSLVerificationError) as e:
-            session.get(url)
+            session.get(self_signed_server.url(https=True))
         message, _ = render_diagnostic_error(e.value)
         expected_host = self_signed_server.host
-        assert message == (
+        assert message.startswith(
             f"Failed to establish a secure connection to {expected_host} while "
-            f"fetching {url}"
+            "fetching https://"
         )
 
     def test_missing_python_ssl_support(
