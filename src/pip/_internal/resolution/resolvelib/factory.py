@@ -757,7 +757,14 @@ class Factory:
                 req_disp,
                 ", ".join(versions) or "none",
             )
-        self._finder.log_skipped_link_warning(req.project_name)
+        if self._finder.has_skipped_links(req.project_name) and not any(
+            handler.name == "console" and handler.level <= logging.DEBUG
+            for handler in logging.getLogger().handlers
+        ):
+            logger.critical(
+                "Some packages may have been found and excluded. "
+                "To see details, re-run pip with -vv."
+            )
         if str(req) == "requirements.txt":
             logger.info(
                 "HINT: You are attempting to install a package literally "

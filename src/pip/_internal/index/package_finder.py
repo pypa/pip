@@ -782,18 +782,8 @@ class PackageFinder:
     def requires_python_skipped_reasons(self) -> list[str]:
         return sorted(self._requires_python_skipped)
 
-    def log_skipped_link_warning(self, project_name: str) -> None:
-        if canonicalize_name(project_name) not in self._projects_with_skipped_links:
-            return
-        if any(
-            handler.name == "console" and handler.level <= logging.DEBUG
-            for handler in logging.getLogger().handlers
-        ):
-            return
-        logger.critical(
-            "Some packages may have been found and excluded. "
-            "To see details, re-run pip with -vv."
-        )
+    def has_skipped_links(self, project_name: str) -> bool:
+        return canonicalize_name(project_name) in self._projects_with_skipped_links
 
     def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
@@ -1093,7 +1083,14 @@ class PackageFinder:
                 req,
                 _format_versions(best_candidate_result.all_candidates),
             )
-            self.log_skipped_link_warning(name)
+            if self.has_skipped_links(name) and not any(
+                handler.name == "console" and handler.level <= logging.DEBUG
+                for handler in logging.getLogger().handlers
+            ):
+                logger.critical(
+                    "Some packages may have been found and excluded. "
+                    "To see details, re-run pip with -vv."
+                )
 
             raise DistributionNotFound(f"No matching distribution found for {req}")
 
