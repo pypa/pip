@@ -231,13 +231,13 @@ class IndexUnavailableError(DiagnosticPipError):
 
         for url, exc in unavailable[:max_errors]:
             if isinstance(exc, NetworkConnectionError):
-                parts.append(f"Failed to fetch {url}: {exc.error_msg}\n")
+                parts.append(f"Failed to fetch {url} : {exc.error_msg}\n")
             elif isinstance(exc, DiagnosticPipError):
                 parts.append(
-                    f"Failed to fetch {url}: {exc.message}.\n{exc.hint_stmt}\n"
+                    f"Failed to fetch {url} : {exc.message}.\n{exc.hint_stmt}\n"
                 )
             else:
-                parts.append(f"Failed to fetch {url}: {exc}\n")
+                parts.append(f"Failed to fetch {url} : {exc}\n")
 
         if len(unavailable) > max_errors:
             parts.append(f"... and {len(unavailable) - max_errors} more\n")
