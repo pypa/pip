@@ -19,7 +19,6 @@ import sys
 import urllib.parse
 import warnings
 from collections.abc import Generator, Mapping, Sequence
-from functools import cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -82,11 +81,14 @@ SECURE_ORIGINS: list[SecureOrigin] = [
 ]
 
 
-@cache
+_retry_warning_handler = FilterOnlyHandler()
+_retry_warning_handler.addFilter(Urllib3RetryFilter())
+
+
 def _install_retry_warning_handler() -> None:
-    _retry_warning_handler = FilterOnlyHandler()
-    _retry_warning_handler.addFilter(Urllib3RetryFilter())
-    logging.getLogger("pip._vendor").addHandler(_retry_warning_handler)
+    vendor_logger = logging.getLogger("pip._vendor")
+    if _retry_warning_handler not in vendor_logger.handlers:
+        vendor_logger.addHandler(_retry_warning_handler)
 
 
 @functools.lru_cache(maxsize=1)
