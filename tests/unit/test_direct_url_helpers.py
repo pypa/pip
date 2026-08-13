@@ -7,8 +7,10 @@ from pip._internal.models.direct_url import ArchiveInfo, DirectUrl, DirInfo, Vcs
 from pip._internal.models.link import Link
 from pip._internal.utils.direct_url_helpers import (
     direct_url_as_pep440_direct_reference,
+    direct_url_for_editable,
     direct_url_from_link,
 )
+from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.git import Git
 
 
@@ -173,6 +175,27 @@ def test_from_link_dir(tmpdir: Path) -> None:
     direct_url = direct_url_from_link(Link(dir_url))
     assert direct_url.url == dir_url
     assert direct_url.dir_info
+
+
+def test_for_editable() -> None:
+    direct_url = direct_url_for_editable("/home/user/project")
+    direct_url.validate()
+    assert direct_url.url == path_to_url("/home/user/project")
+    assert direct_url.dir_info
+    assert direct_url.dir_info.editable is True
+    assert direct_url.subdirectory is None
+
+
+def test_for_editable_with_subdirectory() -> None:
+    # The subdirectory is kept in its own field, out of the URL, exactly like
+    # direct_url_from_link does for a non-editable local directory.
+    direct_url = direct_url_for_editable("/home/user/project", subdirectory="pkg_dir")
+    direct_url.validate()
+    assert direct_url.url == path_to_url("/home/user/project")
+    assert "pkg_dir" not in direct_url.url
+    assert direct_url.subdirectory == "pkg_dir"
+    assert direct_url.dir_info
+    assert direct_url.dir_info.editable is True
 
 
 def test_from_link_hide_user_password() -> None:

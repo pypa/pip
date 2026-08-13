@@ -33,10 +33,13 @@ def direct_url_as_pep440_direct_reference(direct_url: DirectUrl, name: str) -> s
     return requirement
 
 
-def direct_url_for_editable(source_dir: str) -> DirectUrl:
+def direct_url_for_editable(
+    source_dir: str, subdirectory: str | None = None
+) -> DirectUrl:
     return DirectUrl(
         url=path_to_url(source_dir),
         dir_info=DirInfo(editable=True),
+        subdirectory=subdirectory,
     )
 
 

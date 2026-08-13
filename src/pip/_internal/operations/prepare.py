@@ -712,7 +712,24 @@ class RequirementPreparer:
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable()
             assert req.source_dir
-            req.download_info = direct_url_for_editable(req.unpacked_source_directory)
+            assert req.link is not None
+            if req.link.is_existing_dir():
+                # A local directory installed with --editable: build the same
+                # PEP 610 DirectUrl a non-editable local directory would get
+                # (keeping any #subdirectory= fragment out of the URL), just
+                # with editable=True, so that the install report, the recorded
+                # direct_url.json and ``pip inspect`` all describe it the same
+                # way.
+                req.download_info = direct_url_for_editable(
+                    req.source_dir, subdirectory=req.link.subdirectory_fragment
+                )
+            else:
+                # A VCS editable: pip has checked the project out into the src
+                # directory; record that checkout location (PEP 610 records
+                # editables as a local dir_info).
+                req.download_info = direct_url_for_editable(
+                    req.unpacked_source_directory
+                )
 
             dist = _get_prepared_distribution(
                 req,

@@ -1,0 +1,5 @@
+Make ``pip install --report``, the recorded ``direct_url.json`` and ``pip inspect``
+describe a local ``--editable`` install with a ``#subdirectory=`` fragment the same
+way as the non-editable form: the subdirectory is kept out of the URL, in the
+``subdirectory`` field. ``pip inspect`` also no longer errors out on a malformed
+``direct_url.json`` -- such a distribution is now reported without a ``direct_url``.

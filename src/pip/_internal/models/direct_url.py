@@ -33,7 +33,16 @@ class DirectUrl(PackagingDirectUrl):
 
     @classmethod
     def from_json(cls, s: str) -> DirectUrl:
-        return cls.from_dict(json.loads(s))
+        obj = json.loads(s)
+        if not isinstance(obj, dict):
+            # Guard against a direct_url.json / origin.json whose top-level
+            # value is not a JSON object (e.g. a list or a bare scalar) so
+            # callers get a DirectUrlValidationError they already handle
+            # rather than an unexpected TypeError/AttributeError.
+            raise DirectUrlValidationError(
+                f"Expected a JSON object, got {type(obj).__name__}"
+            )
+        return cls.from_dict(obj)
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict_compat(), sort_keys=True)

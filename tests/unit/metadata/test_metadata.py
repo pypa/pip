@@ -30,15 +30,33 @@ def test_dist_get_direct_url_no_metadata(mock_read_text: mock.Mock) -> None:
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)
 
 
-@mock.patch.object(BaseDistribution, "read_text", return_value="{}")
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param("{}", id="empty-object"),
+        pytest.param("not a json document", id="not-json"),
+        pytest.param('{"url": 1}', id="wrong-value-type"),
+        # A top-level value that is not a JSON object must be rejected the same
+        # way (it used to raise an uncaught TypeError/AttributeError and crash
+        # `pip inspect` / `pip freeze` / `pip show`).
+        pytest.param("[]", id="json-array"),
+        pytest.param('"file:///x"', id="json-string"),
+        pytest.param("42", id="json-number"),
+    ],
+)
 def test_dist_get_direct_url_invalid_json(
-    mock_read_text: mock.Mock, caplog: pytest.LogCaptureFixture
+    content: str, caplog: pytest.LogCaptureFixture
 ) -> None:
     class FakeDistribution(BaseDistribution):
         canonical_name = cast(NormalizedName, "whatever")  # Needed for error logging.
 
     dist = FakeDistribution()  # type: ignore
-    with caplog.at_level(logging.WARNING):
+    with (
+        mock.patch.object(
+            BaseDistribution, "read_text", return_value=content
+        ) as mock_read_text,
+        caplog.at_level(logging.WARNING),
+    ):
         assert dist.direct_url is None
 
     mock_read_text.assert_called_once_with(DIRECT_URL_METADATA_NAME)

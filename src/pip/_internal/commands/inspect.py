@@ -11,7 +11,7 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.utils.compat import stdlib_pkgs
-from pip._internal.utils.urls import path_to_url
+from pip._internal.utils.direct_url_helpers import direct_url_for_editable
 
 logger = logging.getLogger(__name__)
 
@@ -70,18 +70,15 @@ class InspectCommand(Command):
         # direct_url. Note that we don't have download_info (as in the installation
         # report) since it is not recorded in installed metadata.
         direct_url = dist.direct_url
-        if direct_url is not None:
-            res["direct_url"] = direct_url.to_dict_compat()
-        else:
-            # Emulate direct_url for legacy editable installs.
+        if direct_url is None:
+            # Legacy editable installs (.egg-link) have no direct_url.json;
+            # synthesize the same DirectUrl a modern local editable install
+            # records, so the serialized shape is identical.
             editable_project_location = dist.editable_project_location
             if editable_project_location is not None:
-                res["direct_url"] = {
-                    "url": path_to_url(editable_project_location),
-                    "dir_info": {
-                        "editable": True,
-                    },
-                }
+                direct_url = direct_url_for_editable(editable_project_location)
+        if direct_url is not None:
+            res["direct_url"] = direct_url.to_dict_compat()
         # installer
         installer = dist.installer
         if dist.installer:

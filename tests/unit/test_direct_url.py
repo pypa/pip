@@ -16,6 +16,15 @@ def test_from_json() -> None:
     assert not direct_url.dir_info.editable
 
 
+@pytest.mark.parametrize("payload", ["[]", '"file:///x"', "42", "true", "null"])
+def test_from_json_non_object(payload: str) -> None:
+    # A direct_url.json / origin.json whose top-level value is not a JSON object
+    # must raise DirectUrlValidationError (which callers already handle), not an
+    # unexpected TypeError/AttributeError.
+    with pytest.raises(DirectUrlValidationError, match="Expected a JSON object"):
+        DirectUrl.from_json(payload)
+
+
 def test_to_json() -> None:
     direct_url = DirectUrl(
         url="file:///home/user/archive.tgz",
