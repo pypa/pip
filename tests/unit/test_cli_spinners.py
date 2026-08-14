@@ -26,14 +26,6 @@ def patch_logger_level(level: int) -> Generator[None]:
         spinners.logger.setLevel(original_level)
 
 
-@contextmanager
-def patch_stdout_isatty(isatty: bool) -> Generator[None]:
-    """Set the stdout mode used to select a spinner temporarily."""
-    with patch.object(spinners.sys, "stdout") as stdout:
-        stdout.isatty.return_value = isatty
-        yield
-
-
 @pytest.mark.parametrize(
     "status, func",
     [
@@ -54,9 +46,10 @@ def test_finish(
 ) -> None:
     """Check that the helper reports final statuses in each stdout mode."""
     stream = StringIO()
+    console = Console(file=stream, force_interactive=isatty)
     try:
-        with patch_logger_level(logging.INFO), patch_stdout_isatty(isatty):
-            with open_spinner("working", Console(file=stream), autostart=False):
+        with patch_logger_level(logging.INFO):
+            with open_spinner("working", console, autostart=False):
                 func()
     except BaseException:
         pass
@@ -77,8 +70,9 @@ def test_selects_spinner_for_environment(
     level: int, isatty: bool, expected_type: type[object]
 ) -> None:
     """Check that spinner selection follows verbosity and stdout mode."""
-    with patch_logger_level(level), patch_stdout_isatty(isatty):
-        with open_spinner("working", Console(), autostart=False) as spinner:
+    console = Console(force_interactive=isatty)
+    with patch_logger_level(level):
+        with open_spinner("working", console, autostart=False) as spinner:
             assert isinstance(spinner, expected_type)
 
 
@@ -91,12 +85,9 @@ def test_starts_spinner_when_requested(
     isatty: bool, spinner_type: type[object], autostart: bool
 ) -> None:
     """Check that autostart controls whether the selected spinner starts."""
-    with (
-        patch_logger_level(logging.INFO),
-        patch_stdout_isatty(isatty),
-        patch.object(spinner_type, "start") as start,
-    ):
-        with open_spinner("working", Console(), autostart=autostart):
+    console = Console(force_interactive=isatty)
+    with patch_logger_level(logging.INFO), patch.object(spinner_type, "start") as start:
+        with open_spinner("working", console, autostart=autostart):
             pass
 
     assert start.called is autostart
