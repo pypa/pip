@@ -62,7 +62,8 @@ class RichSpinner(SpinnerInterface):
         if not self._finished:
             self._spinner_text = next(self._spin_cycle)
 
-        return Text.assemble(self._indent, self.label, " ... ", self._spinner_text)
+        line = f"{self._indent}{self.label} ... {self._spinner_text}"
+        return Text(line, overflow="fold", no_wrap=False)
 
     def start(self) -> None:
         self._live = Live(
