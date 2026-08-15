@@ -346,7 +346,6 @@ jobs:
                 tests-unix,
                 tests-windows,
                 tests-zipapp,
-                tests-importlib-metadata,
               '
               || ''
             }}
