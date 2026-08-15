@@ -63,6 +63,8 @@ jobs:
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              # Holds the pytest configuration and the test dependency groups.
+              - "pyproject.toml"
               # The test suite should also run when cutting a release
               # (which is the only time this file is modified).
               - "NEWS.rst"
