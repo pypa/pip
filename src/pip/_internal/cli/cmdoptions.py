@@ -540,7 +540,7 @@ def uploaded_prior_to() -> Option:
             "Only consider packages uploaded prior to the given value. "
             "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
             "uses local timezone if none specified) "
-            "or an ISO 8601 duration in days "
+            "or duration in integer days with syntax `P<n>D` "
             "(e.g., 'P3D' for packages uploaded at least 3 days ago). "
             "Only effective when using indexes that provide "
             "upload-time metadata."
