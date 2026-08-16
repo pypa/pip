@@ -45,13 +45,13 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-requires = ["flit-core >=3.11,<4"]
+requires = ["flit-core >=3.11,<5"]
 build-backend = "flit_core.buildapi"
 
 [dependency-groups]
 test = [
     "cryptography",
-    "flit-core >= 3.11, < 4",
+    "flit-core >= 3.11, < 5",
     "freezegun",
     "installer",
     # pytest-subket requires 7.0+
@@ -69,7 +69,7 @@ test = [
 ]
 
 test-common-wheels = [
-    "flit-core >= 3.11, < 4",
+    "flit-core >= 3.11, < 5",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
     "setuptools >= 70.1.0, <80",
