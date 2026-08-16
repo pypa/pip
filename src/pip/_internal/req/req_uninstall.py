@@ -8,7 +8,11 @@ from collections.abc import Callable, Generator, Iterable
 from importlib.util import cache_from_source
 from typing import Any
 
-from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
+from pip._internal.exceptions import (
+    InstallationError,
+    LegacyDistutilsInstall,
+    UninstallMissingRecord,
+)
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
@@ -76,8 +80,26 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
     if entries is None:
         raise UninstallMissingRecord(distribution=dist)
 
+    normalized_location = normalize_path(location, resolve_symlinks=False)
     for entry in entries:
+        if os.path.isabs(entry):
+            raise InstallationError(
+                f"Cannot uninstall {dist}: RECORD entry {entry!r} is an absolute path."
+            )
+
         path = os.path.join(location, entry)
+        normalized_path = normalize_path(path, resolve_symlinks=False)
+        if normalized_path == normalized_location:
+            raise InstallationError(
+                f"Cannot uninstall {dist}: RECORD entry {entry!r} refers to the "
+                "installation root."
+            )
+        if os.path.isdir(path) and not os.path.islink(path):
+            raise InstallationError(
+                f"Cannot uninstall {dist}: RECORD entry {entry!r} refers to a "
+                "directory."
+            )
+
         yield path
         if path.endswith(".py"):
             dn, fn = os.path.split(path)

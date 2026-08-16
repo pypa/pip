@@ -22,6 +22,7 @@ from tests.lib import (
     need_svn,
 )
 from tests.lib.local_repos import local_checkout, local_repo
+from tests.lib.wheel import make_wheel
 
 
 def test_basic_uninstall(script: PipTestEnvironment, data: TestData) -> None:
@@ -589,6 +590,32 @@ def test_uninstall_without_record_fails(
         hint = f"The package was installed by {installer}."
     assert f"hint: {hint}" in result2.stderr
     assert_all_changes(result.files_after, result2, ignore_changes)
+
+
+def test_uninstall_rejects_record_entry_for_installation_root(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    package = make_wheel(
+        "malformedrecord",
+        "1.0",
+        extra_files={"malformedrecord/__init__.py": ""},
+    ).save_to_dir(tmpdir)
+    script.pip("install", package, "--no-index")
+
+    record_path = (
+        script.site_packages_path / "malformedrecord-1.0.dist-info" / "RECORD"
+    )
+    record_path.write_text("./,,\n")
+    sentinel = script.site_packages_path / "sentinel.py"
+    sentinel.write_text("sentinel")
+
+    result = script.pip(
+        "uninstall", "malformedrecord", "-y", expect_error=True
+    )
+
+    assert "installation root" in result.stderr
+    assert sentinel.exists()
+    assert (script.site_packages_path / "malformedrecord").exists()
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")

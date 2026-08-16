@@ -9,6 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 import pip._internal.req.req_uninstall
+from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_uninstall import (
     StashedUninstallPathSet,
     UninstallPathSet,
@@ -55,6 +56,45 @@ def test_uninstallation_paths() -> None:
     paths2 = list(uninstallation_paths(d))
 
     assert paths2 == paths
+
+
+@pytest.mark.parametrize("entry", [".", "./"])
+def test_uninstallation_paths_rejects_installation_root(
+    tmp_path: Path, entry: str
+) -> None:
+    class dist:
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter([entry])
+
+        location = str(tmp_path)
+
+    with pytest.raises(InstallationError, match="installation root"):
+        list(uninstallation_paths(dist()))
+
+
+def test_uninstallation_paths_rejects_directories(tmp_path: Path) -> None:
+    directory = tmp_path / "directory"
+    directory.mkdir()
+
+    class dist:
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter([directory.name])
+
+        location = str(tmp_path)
+
+    with pytest.raises(InstallationError, match="directory"):
+        list(uninstallation_paths(dist()))
+
+
+def test_uninstallation_paths_rejects_absolute_paths(tmp_path: Path) -> None:
+    class dist:
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter([str(tmp_path)])
+
+        location = str(tmp_path / "site-packages")
+
+    with pytest.raises(InstallationError, match="absolute path"):
+        list(uninstallation_paths(dist()))
 
 
 def test_compressed_listing(tmpdir: Path) -> None:
