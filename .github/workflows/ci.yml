@@ -48,7 +48,7 @@ jobs:
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           filters: |
@@ -63,6 +63,8 @@ jobs:
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              # Holds the pytest configuration and the test dependency groups.
+              - "pyproject.toml"
               # The test suite should also run when cutting a release
               # (which is the only time this file is modified).
               - "NEWS.rst"
@@ -344,7 +346,6 @@ jobs:
                 tests-unix,
                 tests-windows,
                 tests-zipapp,
-                tests-importlib-metadata,
               '
               || ''
             }}
