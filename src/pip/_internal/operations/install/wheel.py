@@ -91,8 +91,7 @@ def _validate_record_path(record_path: str, lib_dir: str, wheel_path: str) -> No
     """
     if not record_path or os.path.isabs(record_path):
         raise InstallationError(
-            f"The wheel {wheel_path!r} has an invalid RECORD entry "
-            f"{record_path!r}."
+            f"The wheel {wheel_path!r} has an invalid RECORD entry {record_path!r}."
         )
 
     target = os.path.normpath(os.path.join(lib_dir, record_path))

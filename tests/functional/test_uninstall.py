@@ -602,16 +602,12 @@ def test_uninstall_rejects_record_entry_for_installation_root(
     ).save_to_dir(tmpdir)
     script.pip("install", package, "--no-index")
 
-    record_path = (
-        script.site_packages_path / "malformedrecord-1.0.dist-info" / "RECORD"
-    )
+    record_path = script.site_packages_path / "malformedrecord-1.0.dist-info" / "RECORD"
     record_path.write_text("./,,\n")
     sentinel = script.site_packages_path / "sentinel.py"
     sentinel.write_text("sentinel")
 
-    result = script.pip(
-        "uninstall", "malformedrecord", "-y", expect_error=True
-    )
+    result = script.pip("uninstall", "malformedrecord", "-y", expect_error=True)
 
     assert "installation root" in result.stderr
     assert sentinel.exists()
