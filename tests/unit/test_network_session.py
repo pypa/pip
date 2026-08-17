@@ -464,11 +464,13 @@ class TestSessionProxy:
 
 class TestRedirectScheme:
     @staticmethod
-    def _make_redirect_response(location: str) -> requests.Response:
+    def _make_redirect_response(
+        location: str, *, source: str = "https://example.com/"
+    ) -> requests.Response:
         resp = requests.Response()
         resp.status_code = 302
         resp.headers["Location"] = location
-        resp.url = "https://example.com/simple/foo/"
+        resp.url = source
         request = requests.PreparedRequest()
         request.prepare(method="GET", url=resp.url, headers={})
         resp.request = request
@@ -495,14 +497,36 @@ class TestRedirectScheme:
     @pytest.mark.parametrize(
         "location",
         [
-            "https://other.example.com/elsewhere/",
-            "http://other.example.com/elsewhere/",
-            "/relative/path/",
+            "https://other.example/",
+            "/relative/",
+            "//other.example/path/",
         ],
     )
-    def test_get_redirect_target_allows_http_schemes(self, location: str) -> None:
+    def test_get_redirect_target_allows_secure_redirects(self, location: str) -> None:
         resp = self._make_redirect_response(location)
         assert PipSession().get_redirect_target(resp) == location
+
+    def test_get_redirect_target_allows_http_redirect_from_http(self) -> None:
+        location = "http://other.example/"
+        resp = self._make_redirect_response(location, source="http://example.com/")
+        assert PipSession().get_redirect_target(resp) == location
+
+    def test_get_redirect_target_allows_trusted_http_origin(self) -> None:
+        location = "http://other.example/"
+        resp = self._make_redirect_response(location)
+        session = PipSession(trusted_hosts=["other.example"])
+        assert session.get_redirect_target(resp) == location
+
+    def test_get_redirect_target_refuses_https_downgrade(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        resp = self._make_redirect_response("http://other.example/")
+        session = PipSession()
+        with caplog.at_level(logging.WARNING):
+            assert session.get_redirect_target(resp) is None
+        assert "not a trusted or secure host" in caplog.text
+
+        assert list(session.resolve_redirects(resp, resp.request)) == []
 
 
 class TestSSLContextAdapterMixinProxy:

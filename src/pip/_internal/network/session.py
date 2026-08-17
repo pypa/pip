@@ -526,6 +526,17 @@ class PipSession(requests.Session):
                 redact_auth_from_url(target),
             )
             return None
+
+        source_scheme = urllib.parse.urlparse(resp.url).scheme.lower()
+        redirect_url = urllib.parse.urljoin(resp.url, target)
+        redirect_scheme = urllib.parse.urlparse(redirect_url).scheme.lower()
+        # Avoid downgrading HTTPS unless pip already considers the target secure.
+        if (
+            source_scheme == "https"
+            and redirect_scheme == "http"
+            and not self.is_secure_origin(Link(redirect_url))
+        ):
+            return None
         return target
 
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:  # type: ignore[override]
