@@ -136,7 +136,7 @@ def open_spinner(
     if _active_spinner is not None:
         yield NoopSpinner()
         return
-    if not logger.isEnabledFor(logging.INFO):
+    if logger.getEffectiveLevel() > logging.INFO:
         # Don't write *anything* if --quiet is given.
         yield NoopSpinner()
         return
