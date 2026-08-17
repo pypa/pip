@@ -5,6 +5,7 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from io import StringIO
 from threading import Event
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -37,16 +38,19 @@ def patch_logger_level(level: int) -> Generator[None]:
 @pytest.mark.parametrize(
     "isatty, expected_output",
     [
-        (True, "working ... {status}\n"),
-        (False, "working: started\nworking: finished with status '{status}'\n"),
+        (True, "working ... {status}"),
+        (False, "working: started\nworking: finished with status '{status}'"),
     ],
 )
 def test_finish(
-    status: str, func: Callable[[], None], isatty: bool, expected_output: str
+    status: str,
+    func: Callable[[], None],
+    isatty: bool,
+    expected_output: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Check that the helper reports final statuses in each stdout mode."""
-    stream = StringIO()
-    console = Console(file=stream, force_interactive=isatty)
+    console = Console(force_interactive=isatty)
     try:
         with patch_logger_level(logging.INFO):
             with open_spinner("working", console, autostart=False):
@@ -54,7 +58,7 @@ def test_finish(
     except BaseException:
         pass
 
-    assert stream.getvalue() == expected_output.format(status=status)
+    assert caplog.messages == expected_output.format(status=status).splitlines()
 
 
 @pytest.mark.parametrize(
@@ -93,8 +97,9 @@ def test_starts_spinner_when_requested(
     assert start.called is autostart
 
 
+@patch_logger_level(logging.INFO)
 def test_noninteractive_spinner_lifecycle(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Ensure the noninteractive spinner starts, spins, and finishes correctly."""
     stream = StringIO()
@@ -102,9 +107,9 @@ def test_noninteractive_spinner_lifecycle(
     heartbeat_seen = Event()
     print_line = spinner._print_line
 
-    def record_printed_line(message: str) -> None:
-        print_line(message)
-        if message == "still running ...":
+    def record_printed_line(message: str, *args: Any, **kwargs: Any) -> None:
+        print_line(message, *args, **kwargs)
+        if message == "still running...":
             heartbeat_seen.set()
 
     monkeypatch.setattr(spinners, "NONINTERACTIVE_SPINNER_INTERVAL", 0.01)
@@ -118,9 +123,9 @@ def test_noninteractive_spinner_lifecycle(
 
     assert spinner._thread is not None
     assert not spinner._thread.is_alive()
-    assert "step: started\n" in stream.getvalue()
-    assert "step: still running ...\n" in stream.getvalue()
-    assert "step: finished with status 'done'\n" in stream.getvalue()
+    assert "step: started" == caplog.messages[0]
+    assert "step: still running...\n" in stream.getvalue()
+    assert "step: finished with status 'done'" == caplog.messages[1]
 
 
 def test_no_op_spinner_does_not_write_output() -> None:
