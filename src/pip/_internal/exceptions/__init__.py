@@ -34,8 +34,10 @@ from pip._internal.exceptions._base import (
     InstallationError,
     PipError,
 )
-from pip._internal.exceptions.build_env import (
+from pip._internal.exceptions.build import (
+    BackendUnavailableError,
     BuildDependencyInstallError,
+    InstallationSubprocessError,
     VenvCreationError,
     VenvImportError,
 )
@@ -82,8 +84,10 @@ __all__ = [
     "DiagnosticPipError",
     "InstallationError",
     "PipError",
-    # build_env
+    # build
+    "BackendUnavailableError",
     "BuildDependencyInstallError",
+    "InstallationSubprocessError",
     "VenvCreationError",
     "VenvImportError",
     # hashes
@@ -253,68 +257,6 @@ class MetadataInvalid(InstallationError):
 
     def __str__(self) -> str:
         return f"Requested {self.ireq} has invalid metadata: {self.error}"
-
-
-class InstallationSubprocessError(DiagnosticPipError, InstallationError):
-    """A subprocess call failed."""
-
-    reference = "subprocess-exited-with-error"
-
-    def __init__(
-        self,
-        *,
-        command_description: str,
-        exit_code: int,
-        output_lines: list[str] | None,
-    ) -> None:
-        if output_lines is None:
-            output_prompt = Text("No available output.")
-        else:
-            output_prompt = (
-                Text.from_markup(f"[red][{len(output_lines)} lines of output][/]\n")
-                + Text("".join(output_lines))
-                + Text.from_markup(R"[red]\[end of output][/]")
-            )
-
-        super().__init__(
-            message=(
-                f"[green]{escape(command_description)}[/] did not run successfully.\n"
-                f"exit code: {exit_code}"
-            ),
-            context=output_prompt,
-            hint_stmt=None,
-            note_stmt=(
-                "This error originates from a subprocess, and is likely not a "
-                "problem with pip."
-            ),
-        )
-
-        self.command_description = command_description
-        self.exit_code = exit_code
-
-    def __str__(self) -> str:
-        return f"{self.command_description} exited with {self.exit_code}"
-
-
-class BackendUnavailableError(InstallationSubprocessError):
-    """The build backend could not be loaded."""
-
-    reference = "backend-unavailable"
-
-    def __init__(
-        self, *, hook_name: str, backend_name: str, backend_error: str
-    ) -> None:
-        DiagnosticPipError.__init__(
-            self,
-            message=f"Cannot import build backend {escape(backend_name)!r}.",
-            context=backend_error,
-            hint_stmt=None,
-            note_stmt="This is likely not a problem with pip.",
-        )
-        self.command_description = f"Calling build backend hook {hook_name}"
-
-    def __str__(self) -> str:
-        return str(self.message)
 
 
 class MetadataGenerationFailed(DiagnosticPipError, InstallationError):

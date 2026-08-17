@@ -8,9 +8,14 @@ import traceback
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
+from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
-from pip._internal.exceptions._base import DiagnosticPipError, PipError
+from pip._internal.exceptions._base import (
+    DiagnosticPipError,
+    InstallationError,
+    PipError,
+)
 
 if TYPE_CHECKING:
     from pip._internal.req.req_install import InstallRequirement
@@ -104,3 +109,65 @@ class VenvCreationError(DiagnosticPipError):
             context=Text(context),
             hint_stmt=hint,
         )
+
+
+class InstallationSubprocessError(DiagnosticPipError, InstallationError):
+    """A subprocess call failed."""
+
+    reference = "subprocess-exited-with-error"
+
+    def __init__(
+        self,
+        *,
+        command_description: str,
+        exit_code: int,
+        output_lines: list[str] | None,
+    ) -> None:
+        if output_lines is None:
+            output_prompt = Text("No available output.")
+        else:
+            output_prompt = (
+                Text.from_markup(f"[red][{len(output_lines)} lines of output][/]\n")
+                + Text("".join(output_lines))
+                + Text.from_markup(R"[red]\[end of output][/]")
+            )
+
+        super().__init__(
+            message=(
+                f"[green]{escape(command_description)}[/] did not run successfully.\n"
+                f"exit code: {exit_code}"
+            ),
+            context=output_prompt,
+            hint_stmt=None,
+            note_stmt=(
+                "This error originates from a subprocess, and is likely not a "
+                "problem with pip."
+            ),
+        )
+
+        self.command_description = command_description
+        self.exit_code = exit_code
+
+    def __str__(self) -> str:
+        return f"{self.command_description} exited with {self.exit_code}"
+
+
+class BackendUnavailableError(InstallationSubprocessError):
+    """The build backend could not be loaded."""
+
+    reference = "backend-unavailable"
+
+    def __init__(
+        self, *, hook_name: str, backend_name: str, backend_error: str
+    ) -> None:
+        DiagnosticPipError.__init__(
+            self,
+            message=f"Cannot import build backend {escape(backend_name)!r}.",
+            context=backend_error,
+            hint_stmt=None,
+            note_stmt="This is likely not a problem with pip.",
+        )
+        self.command_description = f"Calling build backend hook {hook_name}"
+
+    def __str__(self) -> str:
+        return str(self.message)
