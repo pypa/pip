@@ -49,7 +49,7 @@ from pip._internal.req.req_install import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.filesystem import test_writable_dir
+from pip._internal.utils.filesystem import atomic_replace_path, test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     check_externally_managed,
@@ -653,7 +653,8 @@ class InstallCommand(RequirementCommand):
                     else:
                         os.remove(target_item_dir)
 
-                shutil.move(os.path.join(lib_dir, item), target_item_dir)
+                with atomic_replace_path(target_item_dir) as temp_target_item_dir:
+                    shutil.move(os.path.join(lib_dir, item), temp_target_item_dir)
 
     def _determine_conflicts(
         self, to_install: list[InstallRequirement]

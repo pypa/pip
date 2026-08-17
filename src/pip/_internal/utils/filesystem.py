@@ -8,7 +8,7 @@ import sys
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Any, BinaryIO, cast
 
 from pip._internal.utils.compat import get_path_uid
@@ -69,6 +69,19 @@ def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, Non
 
 
 replace = retry(stop_after_delay=1, wait=0.25)(os.replace)
+
+
+@contextmanager
+def atomic_replace_path(path: str) -> Generator[str, None, None]:
+    """Yield a temporary path on the same filesystem as ``path``.
+
+    When the context exits successfully, atomically move the item at the
+    temporary path to ``path``.
+    """
+    with TemporaryDirectory(dir=os.path.dirname(path)) as temp_dir:
+        temp_path = os.path.join(temp_dir, os.path.basename(path))
+        yield temp_path
+        replace(temp_path, path)
 
 
 # test_writable_dir and _test_writable_dir_win are copied from Flit,
