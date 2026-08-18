@@ -128,7 +128,7 @@ def test_noninteractive_spinner_lifecycle(
     assert "step: finished with status 'done'" == caplog.messages[1]
 
 
-def test_no_op_spinner_does_not_write_output() -> None:
+def test_no_op_spinner_does_not_write_output(caplog: pytest.LogCaptureFixture) -> None:
     """Check that quiet mode suppresses all spinner output."""
     stream = StringIO()
     with patch_logger_level(logging.ERROR):
@@ -137,3 +137,22 @@ def test_no_op_spinner_does_not_write_output() -> None:
             spinner.finish("done")
 
     assert stream.getvalue() == ""
+    assert not caplog.messages
+
+
+def test_repeated_spinner_is_blocked(caplog: pytest.LogCaptureFixture) -> None:
+    stream = StringIO()
+    with patch_logger_level(logging.INFO):
+        console = Console(file=stream)
+        with open_spinner("working", console) as spinner:
+            spinner.start()
+            with open_spinner("working2", console) as spinner2:
+                spinner2.start()
+                spinner2.finish("error")
+            spinner.finish("done")
+
+    assert stream.getvalue() == ""
+    assert caplog.messages == [
+        "working: started",
+        "working: finished with status 'done'",
+    ]
