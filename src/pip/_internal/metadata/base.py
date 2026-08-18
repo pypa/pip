@@ -634,7 +634,8 @@ class BaseEnvironment:
                 if leftover_name.startswith("~"):
                     logger.warning(
                         "Ignoring incompletely removed distribution %s (%s); "
-                        "'~'-prefixed leftover directories are safe to delete",
+                        "'~'-prefixed leftover directories are the result of a "
+                        "previous incomplete installation, and can be deleted",
                         leftover_name,
                         dist.location,
                     )

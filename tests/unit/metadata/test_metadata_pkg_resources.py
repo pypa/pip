@@ -148,7 +148,7 @@ def test_iter_all_distributions_warns_on_incomplete_removal(
     assert message.startswith(
         "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
     )
-    assert "safe to delete" in message
+    assert "previous incomplete installation, and can be deleted" in message
 
 
 def test_iter_entry_points_throws_on_invalid_entry_point() -> None:

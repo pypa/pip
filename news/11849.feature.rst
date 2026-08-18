@@ -1,1 +1,1 @@
-Warn that ``~``-prefixed leftover directories are safe to delete.
+Clarify the warning for ``~``-prefixed leftover distribution directories.
