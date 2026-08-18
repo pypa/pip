@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -67,6 +68,83 @@ def build_wheel(
 ):
     return "Backend called"
 """
+
+
+@pytest.mark.parametrize(
+    "install_args, failing_import",
+    [
+        ([], 2),
+        (["--editable"], 3),
+    ],
+)
+def test_backend_unavailable_during_metadata_generation(
+    script: PipTestEnvironment,
+    tmpdir: Path,
+    install_args: list[str],
+    failing_import: int,
+) -> None:
+    """Backend import errors during metadata generation use pip diagnostics."""
+    project_dir = make_project(tmpdir, backend="test_backend", backend_path=["."])
+    project_dir.joinpath("test_backend.py").write_text(textwrap.dedent(f"""\
+        from pathlib import Path
+
+        import_count_path = Path(__file__).with_name("import-count")
+        if import_count_path.exists():
+            import_count = int(import_count_path.read_text())
+        else:
+            import_count = 0
+        import_count_path.write_text(str(import_count + 1))
+
+        if import_count + 1 == {failing_import}:
+            import setuptools
+
+        def get_requires_for_build_wheel(config_settings=None):
+            return []
+
+        def get_requires_for_build_editable(config_settings=None):
+            return []
+
+        def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
+            Path("unexpected-metadata-hook-call").touch()
+
+        def prepare_metadata_for_build_editable(
+            metadata_directory, config_settings=None
+        ):
+            Path("unexpected-metadata-hook-call").touch()
+
+        def build_editable(
+            wheel_directory, config_settings=None, metadata_directory=None
+        ):
+            Path("unexpected-metadata-hook-call").touch()
+        """))
+
+    result = script.pip(
+        "install", "--no-index", *install_args, project_dir, expect_error=True
+    )
+
+    assert result.returncode != 0
+    assert "backend-unavailable" in result.stderr
+    assert "metadata-generation-failed" in result.stderr
+    assert "Encountered error while generating package metadata." in result.stderr
+    assert "ModuleNotFoundError: No module named 'setuptools'" in result.stderr
+    assert "ERROR: Exception:" not in result.stderr
+    assert not project_dir.joinpath("unexpected-metadata-hook-call").exists()
+
+
+def test_backend_unavailable_during_build_requirement_collection(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """Backend import errors before metadata generation use pip diagnostics."""
+    project_dir = make_project(tmpdir, backend="test_backend", backend_path=["."])
+    project_dir.joinpath("test_backend.py").write_text("import setuptools\n")
+
+    result = script.pip("install", "--no-index", project_dir, expect_error=True)
+
+    assert result.returncode != 0
+    assert "backend-unavailable" in result.stderr
+    assert "Cannot import build backend 'test_backend'." in result.stderr
+    assert "ModuleNotFoundError: No module named 'setuptools'" in result.stderr
+    assert "ERROR: Exception:" not in result.stderr
 
 
 def test_backend_path(tmpdir: Path, data: TestData) -> None:

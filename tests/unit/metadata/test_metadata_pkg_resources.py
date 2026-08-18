@@ -13,7 +13,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.metadata.pkg_resources import (
     Distribution,
     Environment,
@@ -149,3 +149,20 @@ def test_iter_all_distributions_warns_on_incomplete_removal(
         "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
     )
     assert "safe to delete" in message
+
+
+def test_iter_entry_points_throws_on_invalid_entry_point() -> None:
+    dist = Distribution(
+        pkg_resources.DistInfoDistribution(
+            location="<in-memory>",
+            metadata=InMemoryMetadata(
+                {"entry_points.txt": b"[console_scripts]\nhello = hello:\n"},
+                "<in-memory>",
+            ),
+            project_name="simple",
+        ),
+    )
+
+    with pytest.raises(InstallationError) as e:
+        list(dist.iter_entry_points())
+    assert "hello = hello:" in str(e.value)
