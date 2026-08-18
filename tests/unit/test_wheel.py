@@ -11,6 +11,7 @@ from email import message_from_string
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
+from zipfile import ZIP_STORED, ZipFile
 
 import pytest
 
@@ -429,6 +430,45 @@ class TestInstallUnpackedWheel:
         exc_text = str(e.value)
         assert os.path.basename(wheel_path) in exc_text
         assert "example" in exc_text
+
+    @pytest.mark.parametrize("corruption", ["not-a-zip", "bad-crc"])
+    def test_corrupt_wheel_error_names_the_file(
+        self, data: TestData, tmpdir: Path, corruption: str
+    ) -> None:
+        """A corrupt wheel should fail with an InstallationError naming the
+        file, rather than an unhandled zipfile.BadZipFile traceback.
+        """
+        self.prep(data, tmpdir)
+        wheel_path = make_wheel(
+            "simple", "0.1.0", extra_files={"simple/__init__.py": "canary = 1"}
+        ).save_to_dir(tmpdir)
+
+        if corruption == "not-a-zip":
+            Path(wheel_path).write_bytes(b"this is not a wheel")
+        else:
+            # Rewrite the wheel uncompressed, then flip a byte of an installed
+            # file so that reading it fails its CRC check part way through the
+            # install, after the metadata has been read successfully.
+            with ZipFile(wheel_path) as z:
+                contents = {
+                    info.filename: z.read(info.filename) for info in z.infolist()
+                }
+            with ZipFile(wheel_path, "w", ZIP_STORED) as z:
+                for filename, payload in contents.items():
+                    z.writestr(filename, payload)
+            raw = bytearray(Path(wheel_path).read_bytes())
+            raw[raw.index(b"canary")] = ord("X")
+            Path(wheel_path).write_bytes(bytes(raw))
+
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
+
+        assert wheel_path in str(e.value)
 
     @pytest.mark.parametrize("entrypoint", ["hello = hello", "hello = hello:"])
     @pytest.mark.parametrize("entrypoint_type", ["console_scripts", "gui_scripts"])

@@ -1,0 +1,2 @@
+Report a corrupt or unreadable wheel as a pip error naming the wheel file,
+instead of displaying an uncaught ``zipfile.BadZipFile`` traceback.

@@ -27,7 +27,7 @@ from typing import (
     Protocol,
     cast,
 )
-from zipfile import ZipFile, ZipInfo
+from zipfile import BadZipFile, ZipFile, ZipInfo
 
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
@@ -755,16 +755,19 @@ def install_wheel(
     requested: bool = False,
     script_executable: str | None = None,
 ) -> None:
-    with ZipFile(wheel_path, allowZip64=True) as z:
-        with req_error_context(req_description):
-            _install_wheel(
-                name=name,
-                wheel_zip=z,
-                wheel_path=wheel_path,
-                scheme=scheme,
-                pycompile=pycompile,
-                warn_script_location=warn_script_location,
-                direct_url=direct_url,
-                requested=requested,
-                script_executable=script_executable,
-            )
+    with req_error_context(req_description):
+        try:
+            with ZipFile(wheel_path, allowZip64=True) as z:
+                _install_wheel(
+                    name=name,
+                    wheel_zip=z,
+                    wheel_path=wheel_path,
+                    scheme=scheme,
+                    pycompile=pycompile,
+                    warn_script_location=warn_script_location,
+                    direct_url=direct_url,
+                    requested=requested,
+                    script_executable=script_executable,
+                )
+        except BadZipFile as e:
+            raise InstallationError(f"Failed to read {wheel_path}: {e}") from e
