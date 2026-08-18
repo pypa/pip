@@ -1,2 +1,2 @@
-Prevent a malformed ``RECORD`` file from causing pip to remove the installation
-root during package installation or uninstallation. (#10118)
+Prevent a malformed ``RECORD`` file from causing pip to remove unrelated files
+during installation or uninstallation.

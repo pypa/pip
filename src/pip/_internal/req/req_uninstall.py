@@ -21,6 +21,7 @@ from pip._internal.utils.logging import getLogger, indent_log
 from pip._internal.utils.misc import ask, normalize_path, renames, rmtree
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.virtualenv import running_under_virtualenv
+from pip._internal.utils.wheel import record_path_resolves_to_base
 
 logger = getLogger(__name__)
 
@@ -80,11 +81,9 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
     if entries is None:
         raise UninstallMissingRecord(distribution=dist)
 
-    normalized_location = normalize_path(location, resolve_symlinks=False)
     for entry in entries:
         path = os.path.join(location, entry)
-        normalized_path = normalize_path(path, resolve_symlinks=False)
-        if normalized_path == normalized_location:
+        if record_path_resolves_to_base(entry, location):
             raise InstallationError(
                 f"Cannot uninstall {dist}: RECORD entry {entry!r} refers to the "
                 "installation root."

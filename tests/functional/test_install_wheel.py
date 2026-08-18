@@ -362,6 +362,21 @@ def test_install_rejects_record_entry_for_installation_root(
     assert not (script.site_packages_path / "malformedrecord").exists()
 
 
+def test_install_rejects_empty_record_entry(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    package = make_wheel_with_file(
+        "malformedrecord",
+        "1.0",
+        record="\n",
+    ).save_to_dir(tmpdir)
+
+    result = script.pip("install", package, "--no-index", expect_error=True)
+
+    assert "invalid empty RECORD entry" in result.stderr
+    assert not (script.site_packages_path / "malformedrecord").exists()
+
+
 def test_wheel_record_lines_have_hash_for_data_files(
     script: PipTestEnvironment,
 ) -> None:
