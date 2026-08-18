@@ -1,0 +1,2 @@
+Fix malformed source locations for the requirements-file options list in
+gettext output, so the generated ``.pot`` entries have valid ``#:`` comments.

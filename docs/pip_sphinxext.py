@@ -222,6 +222,10 @@ class PipReqFileOptionsReference(PipOptions):
         raise KeyError(f"Could not identify prefix of opt {opt_name}")
 
     def process_options(self) -> None:
+        # Attribute every generated entry to the directive itself. Without an
+        # explicit source, docutils records a bogus location, which the gettext
+        # builder then emits as a malformed ``#:`` comment (see GH-14261).
+        source, line = self.state_machine.get_source_and_line(self.lineno)
         for option in SUPPORTED_OPTIONS:
             if getattr(option, "deprecated", False):
                 continue
@@ -240,7 +244,8 @@ class PipReqFileOptionsReference(PipOptions):
 
             self.view_list.append(
                 f"*  :ref:`{short_opt_name}{opt_name}<{prefix}{opt_name}>`",
-                "\n",
+                source,
+                line,
             )
 
 
