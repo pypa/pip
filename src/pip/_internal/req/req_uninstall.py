@@ -82,11 +82,6 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
 
     normalized_location = normalize_path(location, resolve_symlinks=False)
     for entry in entries:
-        if os.path.isabs(entry):
-            raise InstallationError(
-                f"Cannot uninstall {dist}: RECORD entry {entry!r} is an absolute path."
-            )
-
         path = os.path.join(location, entry)
         normalized_path = normalize_path(path, resolve_symlinks=False)
         if normalized_path == normalized_location:

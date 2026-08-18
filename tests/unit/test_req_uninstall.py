@@ -72,13 +72,30 @@ def test_uninstallation_paths_rejects_installation_root(
         list(uninstallation_paths(dist()))
 
 
-def test_uninstallation_paths_rejects_directories(tmp_path: Path) -> None:
+def test_uninstallation_paths_rejects_absolute_installation_root(
+    tmp_path: Path,
+) -> None:
+    class dist:
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter([str(tmp_path)])
+
+        location = str(tmp_path)
+
+    with pytest.raises(InstallationError, match="installation root"):
+        list(uninstallation_paths(dist()))
+
+
+@pytest.mark.parametrize("absolute", [False, True])
+def test_uninstallation_paths_rejects_directories(
+    tmp_path: Path, absolute: bool
+) -> None:
     directory = tmp_path / "directory"
     directory.mkdir()
 
     class dist:
         def iter_declared_entries(self) -> Iterator[str] | None:
-            return iter([directory.name])
+            entry = str(directory) if absolute else directory.name
+            return iter([entry])
 
         location = str(tmp_path)
 
@@ -86,15 +103,37 @@ def test_uninstallation_paths_rejects_directories(tmp_path: Path) -> None:
         list(uninstallation_paths(dist()))
 
 
-def test_uninstallation_paths_rejects_absolute_paths(tmp_path: Path) -> None:
+def test_uninstallation_paths_accepts_absolute_file(tmp_path: Path) -> None:
+    file = tmp_path / "file"
+    file.touch()
+
     class dist:
         def iter_declared_entries(self) -> Iterator[str] | None:
-            return iter([str(tmp_path)])
+            return iter([str(file)])
 
         location = str(tmp_path / "site-packages")
 
-    with pytest.raises(InstallationError, match="absolute path"):
-        list(uninstallation_paths(dist()))
+    assert list(uninstallation_paths(dist())) == [str(file)]
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.parametrize("absolute", [False, True])
+def test_uninstallation_paths_accepts_symlink_directory(
+    tmp_path: Path, absolute: bool
+) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    symlink = tmp_path / "symlink"
+    symlink.symlink_to(target, target_is_directory=True)
+
+    class dist:
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            entry = str(symlink) if absolute else symlink.name
+            return iter([entry])
+
+        location = str(tmp_path)
+
+    assert list(uninstallation_paths(dist())) == [str(symlink)]
 
 
 def test_compressed_listing(tmpdir: Path) -> None:

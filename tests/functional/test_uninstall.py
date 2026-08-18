@@ -1,3 +1,4 @@
+import csv
 import logging
 import os
 import sys
@@ -612,6 +613,27 @@ def test_uninstall_rejects_record_entry_for_installation_root(
     assert "installation root" in result.stderr
     assert sentinel.exists()
     assert (script.site_packages_path / "malformedrecord").exists()
+
+
+def test_uninstall_accepts_absolute_record_file(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    package = make_wheel(
+        "absoluterecord",
+        "1.0",
+        extra_files={"absoluterecord/__init__.py": ""},
+    ).save_to_dir(tmpdir)
+    script.pip("install", package, "--no-index")
+
+    absolute_file = script.bin_path / "absolute-record-file"
+    absolute_file.write_text("owned by absoluterecord")
+    record_path = script.site_packages_path / "absoluterecord-1.0.dist-info" / "RECORD"
+    with record_path.open("a", newline="", encoding="utf-8") as record_file:
+        csv.writer(record_file).writerow([str(absolute_file), "", ""])
+
+    script.pip("uninstall", "absoluterecord", "-y")
+
+    assert not absolute_file.exists()
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
