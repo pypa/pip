@@ -14,7 +14,7 @@ import sysconfig
 import urllib.parse
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from functools import cache, partial
+from functools import cache, partial, wraps
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from pathlib import Path
@@ -22,17 +22,22 @@ from types import FunctionType, TracebackType
 from typing import (
     Any,
     BinaryIO,
+    NoReturn,
     TextIO,
     TypeVar,
     cast,
 )
 
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.pyproject_hooks import BuildBackendHookCaller
+from pip._vendor.pyproject_hooks import BackendUnavailable, BuildBackendHookCaller
 
 from pip import __file__ as pip_location
 from pip import __version__
-from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
+from pip._internal.exceptions import (
+    BackendUnavailableError,
+    CommandError,
+    ExternallyManagedEnvironment,
+)
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.retry import retry
@@ -59,6 +64,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
 ExcInfo = tuple[type[BaseException], BaseException, TracebackType]
 VersionInfo = tuple[int, int, int]
 NetlocTuple = tuple[str, tuple[str | None, str | None]]
@@ -687,6 +693,21 @@ def partition(
     return filterfalse(pred, t1), filter(pred, t2)
 
 
+def _handle_backend_unavailable(func: F) -> F:
+    @wraps(func)
+    def wrapper(
+        self: ConfiguredBuildBackendHookCaller,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        try:
+            return func(self, *args, **kwargs)
+        except BackendUnavailable as error:
+            self._raise_backend_unavailable(func.__name__, error)
+
+    return cast(F, wrapper)
+
+
 class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def __init__(
         self,
@@ -702,6 +723,25 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         )
         self.config_holder = config_holder
 
+    def _raise_backend_unavailable(
+        self, hook_name: str, error: BackendUnavailable
+    ) -> NoReturn:
+        backend_error = (
+            error.traceback.strip().splitlines()[-1] if error.traceback else str(error)
+        )
+        exception = BackendUnavailableError(
+            hook_name=hook_name,
+            backend_name=self.build_backend,
+            backend_error=backend_error,
+        )
+        logger.error("%s", exception, extra={"rich": True})
+        raise exception from error
+
+    @_handle_backend_unavailable
+    def supports_feature(self, feature: str) -> bool:
+        return feature in self._supported_features()
+
+    @_handle_backend_unavailable
     def build_wheel(
         self,
         wheel_directory: str,
@@ -713,6 +753,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             wheel_directory, config_settings=cs, metadata_directory=metadata_directory
         )
 
+    @_handle_backend_unavailable
     def build_sdist(
         self,
         sdist_directory: str,
@@ -721,6 +762,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         cs = self.config_holder.config_settings
         return super().build_sdist(sdist_directory, config_settings=cs)
 
+    @_handle_backend_unavailable
     def build_editable(
         self,
         wheel_directory: str,
@@ -732,24 +774,28 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             wheel_directory, config_settings=cs, metadata_directory=metadata_directory
         )
 
+    @_handle_backend_unavailable
     def get_requires_for_build_wheel(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_wheel(config_settings=cs)
 
+    @_handle_backend_unavailable
     def get_requires_for_build_sdist(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_sdist(config_settings=cs)
 
+    @_handle_backend_unavailable
     def get_requires_for_build_editable(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_editable(config_settings=cs)
 
+    @_handle_backend_unavailable
     def prepare_metadata_for_build_wheel(
         self,
         metadata_directory: str,
@@ -763,6 +809,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             _allow_fallback=_allow_fallback,
         )
 
+    @_handle_backend_unavailable
     def prepare_metadata_for_build_editable(
         self,
         metadata_directory: str,
