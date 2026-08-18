@@ -31,7 +31,7 @@ def test_handle_target_dir_move_failure_leaves_no_partial_item(
         Path(destination).mkdir()
         raise OSError("move failed")
 
-    with mock.patch.object(install.shutil, "move", new=fail_move):
+    with mock.patch("pip._internal.utils.filesystem.shutil.move", new=fail_move):
         with pytest.raises(OSError):
             install.InstallCommand("install", "")._handle_target_dir(
                 str(target_dir), target_temp_dir, upgrade=False

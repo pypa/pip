@@ -46,7 +46,7 @@ def test_save_linked_requirement_copy_failure_leaves_no_partial_file(
         Path(destination).write_bytes(b"partial")
         raise OSError("copy failed")
 
-    with patch("pip._internal.operations.prepare.shutil.copy", new=fail_copy):
+    with patch("pip._internal.utils.filesystem.shutil.copy", new=fail_copy):
         with pytest.raises(OSError):
             RequirementPreparer.save_linked_requirement(preparer, req)
 

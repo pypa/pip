@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import mimetypes
 import os
-import shutil
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,7 +46,7 @@ from pip._internal.utils.direct_url_helpers import (
     direct_url_for_editable,
     direct_url_from_link,
 )
-from pip._internal.utils.filesystem import atomic_replace_path
+from pip._internal.utils.filesystem import atomic_copy
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -834,8 +833,7 @@ class RequirementPreparer:
 
         download_location = join_within_directory(self.download_dir, link.filename)
         if not os.path.exists(download_location):
-            with atomic_replace_path(download_location) as temp_location:
-                shutil.copy(req.local_file_path, temp_location)
+            atomic_copy(req.local_file_path, download_location)
             download_path = display_path(download_location)
             logger.info("Saved %s", download_path)
 
