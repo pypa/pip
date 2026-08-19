@@ -1,4 +1,5 @@
-Fix gettext extraction for the requirements-file options list: the generated
-``.pot`` entries had malformed ``#:`` source comments, and the whole list was
-extracted as a single merged ``msgid``. The list is also no longer wrapped in a
-paragraph, which produced invalid HTML.
+Fix gettext extraction for the requirements-file options list. The generated
+``.pot`` entries had malformed ``#:`` source comments, the whole list was
+extracted as a single merged ``msgid``, and the cross-references were extracted
+as reST roles, which cannot be translated in a MyST document. The list is also
+no longer wrapped in a paragraph, which produced invalid HTML.
