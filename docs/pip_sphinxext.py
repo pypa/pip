@@ -166,12 +166,17 @@ class PipOptions(rst.Directive):
                 self.view_list.append(line, "")
 
     def run(self) -> list[nodes.Node]:
-        node = nodes.paragraph()
+        # A scratch parent to parse into: the generated content is block-level
+        # (a bullet list, definition lists), so it must not be wrapped in a
+        # paragraph. Doing so produced invalid HTML (``<p><ul>``) and made the
+        # gettext builder extract the whole list as one merged msgid, because
+        # a paragraph is itself a translatable unit. See GH-14261.
+        node = nodes.Element()
         node.document = self.state.document
         self.view_list = ViewList()
         self.process_options()
         self.state.nested_parse(self.view_list, 0, node)
-        return [node]
+        return node.children
 
 
 class PipGeneralOptions(PipOptions):

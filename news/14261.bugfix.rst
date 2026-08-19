@@ -1,2 +1,4 @@
-Fix malformed source locations for the requirements-file options list in
-gettext output, so the generated ``.pot`` entries have valid ``#:`` comments.
+Fix gettext extraction for the requirements-file options list: the generated
+``.pot`` entries had malformed ``#:`` source comments, and the whole list was
+extracted as a single merged ``msgid``. The list is also no longer wrapped in a
+paragraph, which produced invalid HTML.
