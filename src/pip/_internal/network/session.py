@@ -444,9 +444,9 @@ class PipSession(requests.Session):
         for host, port in self.pip_trusted_origins:
             yield ("*", host, "*" if port is None else port)
 
-    def is_secure_origin(self, location: Link) -> bool:
+    def is_secure_origin(self, url: str) -> bool:
         # Determine if this url used a secure transport mechanism
-        parsed = urllib.parse.urlparse(str(location))
+        parsed = urllib.parse.urlparse(url)
         origin_protocol, origin_host, origin_port = (
             parsed.scheme,
             parsed.hostname,
@@ -497,19 +497,21 @@ class PipSession(requests.Session):
             # secure origin and we should return True
             return True
 
-        # If we've gotten to this point, then the origin isn't secure and we
-        # will not accept it as a valid location to search. We will however
-        # log a warning that we are ignoring it.
-        logger.warning(
-            "The repository located at %s is not a trusted or secure host and "
-            "is being ignored. If this repository is available via HTTPS we "
-            "recommend you use HTTPS instead, otherwise you may silence "
-            "this warning and allow it anyway with '--trusted-host %s'.",
-            origin_host,
-            origin_host,
+        return False
+
+    @staticmethod
+    def _request_has_used_https(request: PreparedRequest) -> bool:
+        return bool(getattr(request, "_pip_has_used_https", False)) or (
+            urllib.parse.urlparse(request.url).scheme.lower() == "https"
         )
 
-        return False
+    def rebuild_auth(
+        self, prepared_request: PreparedRequest, response: Response
+    ) -> None:
+        super().rebuild_auth(prepared_request, response)
+        if self._request_has_used_https(response.request):
+            # requests does not preserve custom attributes when copying a request.
+            setattr(prepared_request, "_pip_has_used_https", True)
 
     def get_redirect_target(self, resp: Response) -> str | None:
         target = super().get_redirect_target(resp)
@@ -527,14 +529,19 @@ class PipSession(requests.Session):
             )
             return None
 
-        source_scheme = urllib.parse.urlparse(resp.url).scheme.lower()
         redirect_url = urllib.parse.urljoin(resp.url, target)
-        # Avoid downgrading HTTPS unless pip already considers the target secure.
+        redirect_scheme = urllib.parse.urlparse(redirect_url).scheme.lower()
         if (
-            source_scheme == "https"
-            and scheme.lower() == "http"
-            and not self.is_secure_origin(Link(redirect_url))
+            self._request_has_used_https(resp.request)
+            and redirect_scheme == "http"
+            and not self.is_secure_origin(redirect_url)
         ):
+            logger.warning(
+                "Not following redirect from %s to %s: an HTTPS request cannot "
+                "be redirected to an insecure origin.",
+                redact_auth_from_url(resp.url),
+                redact_auth_from_url(redirect_url),
+            )
             return None
         return target
 

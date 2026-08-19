@@ -1,1 +1,1 @@
-Refuse to follow HTTPS-to-HTTP redirects to untrusted origins.
+Refuse to follow redirect chains that downgrade HTTPS to an untrusted HTTP origin.

@@ -322,26 +322,10 @@ class TestPipSession:
         trusted: list[str],
         expected: bool,
     ) -> None:
-        class MockLogger:
-            def __init__(self) -> None:
-                self.called = False
-
-            def warning(self, *args: Any, **kwargs: Any) -> None:
-                self.called = True
-
         session = PipSession(trusted_hosts=trusted)
-        actual = session.is_secure_origin(Link(location))
+        actual = session.is_secure_origin(location)
         assert actual == expected
-
-        log_records = [(r.levelname, r.message) for r in caplog.records]
-        if expected:
-            assert not log_records
-            return
-
-        assert len(log_records) == 1
-        actual_level, actual_message = log_records[0]
-        assert actual_level == "WARNING"
-        assert "is not a trusted or secure host" in actual_message
+        assert not caplog.records
 
 
 class TestSessionProxy:
@@ -524,9 +508,30 @@ class TestRedirectScheme:
         session = PipSession()
         with caplog.at_level(logging.WARNING):
             assert session.get_redirect_target(resp) is None
-        assert "not a trusted or secure host" in caplog.text
+        assert "HTTPS request cannot be redirected to an insecure origin" in caplog.text
 
         assert list(session.resolve_redirects(resp, resp.request)) == []
+
+    def test_get_redirect_target_refuses_laundered_https_downgrade(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        first = self._make_redirect_response("http://127.0.0.1/bounce")
+        second = self._make_redirect_response(
+            "http://untrusted.example/package.whl",
+            source="http://127.0.0.1/bounce",
+        )
+        session = PipSession()
+
+        def send(request: requests.PreparedRequest, **kwargs: Any) -> requests.Response:
+            second.request = request
+            return second
+
+        session.send = send  # type: ignore[method-assign]
+        with caplog.at_level(logging.WARNING):
+            followed = list(session.resolve_redirects(first, first.request))
+
+        assert followed == [second]
+        assert "HTTPS request cannot be redirected to an insecure origin" in caplog.text
 
 
 class TestSSLContextAdapterMixinProxy:

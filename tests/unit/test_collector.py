@@ -1011,6 +1011,22 @@ def check_links_include(links: list[Link], names: list[str]) -> None:
 
 
 class TestLinkCollector:
+    def test_insecure_page_source_warns(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        link_collector = make_test_link_collector(
+            index_urls=["http://example.com/simple/"]
+        )
+        collected_sources = link_collector.collect_sources(
+            "demo", candidates_from_page=lambda link: []
+        )
+
+        source = collected_sources.index_urls[0]
+        assert source is not None
+        with caplog.at_level(logging.WARNING):
+            assert list(source.page_candidates()) == []
+        assert "repository located at example.com is not a trusted" in caplog.text
+
     @mock.patch("pip._internal.index.collector._get_simple_response")
     def test_fetch_response(self, mock_get_simple_response: mock.Mock) -> None:
         url = "https://pypi.org/simple/twine/"
