@@ -72,7 +72,7 @@ def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, Non
 replace = retry(stop_after_delay=1, wait=0.25)(os.replace)
 
 
-def atomic_copy(source: str, destination: str) -> None:
+def atomic_copy(source: str | Path, destination: str | Path) -> None:
     """Copy a file, replacing ``destination`` only after the copy succeeds."""
     with TemporaryDirectory(dir=os.path.dirname(destination)) as temp_dir:
         temp_path = os.path.join(temp_dir, os.path.basename(destination))
@@ -80,7 +80,7 @@ def atomic_copy(source: str, destination: str) -> None:
         replace(temp_path, destination)
 
 
-def atomic_move(source: str, destination: str) -> None:
+def atomic_move(source: str | Path, destination: str | Path) -> None:
     """Move an item, replacing ``destination`` only after the move succeeds."""
     with TemporaryDirectory(dir=os.path.dirname(destination)) as temp_dir:
         temp_path = os.path.join(temp_dir, os.path.basename(destination))
