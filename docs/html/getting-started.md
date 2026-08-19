@@ -17,6 +17,12 @@ $ pip --version
 pip X.Y.Z from ... (python 3.N.N)
 ```
 
+```{note}
+The Python command name depends on how Python was installed. On macOS and
+some Linux systems, use `python3 --version` instead. Use the same command name
+when running pip as a module, for example `python3 -m pip`.
+```
+
 If that worked, congratulations! You have a working pip in your environment.
 
 If you got output that does not look like the sample above, please read

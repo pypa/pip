@@ -1,0 +1,1 @@
+Clarified that the Python interpreter command may be named ``python3``.
