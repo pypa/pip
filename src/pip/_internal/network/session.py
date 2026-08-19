@@ -22,6 +22,7 @@ from collections.abc import Generator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
+    cast,
 )
 
 from pip._vendor import requests, urllib3
@@ -36,7 +37,6 @@ from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 from pip import __version__
 from pip._internal.exceptions import SSLMissingError
 from pip._internal.metadata import get_default_environment
-from pip._internal.models.link import Link
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 from pip._internal.network.utils import raise_connection_error
@@ -511,7 +511,7 @@ class PipSession(requests.Session):
         super().rebuild_auth(prepared_request, response)
         if self._request_has_used_https(response.request):
             # requests does not preserve custom attributes when copying a request.
-            setattr(prepared_request, "_pip_has_used_https", True)
+            cast(Any, prepared_request)._pip_has_used_https = True
 
     def get_redirect_target(self, resp: Response) -> str | None:
         target = super().get_redirect_target(resp)

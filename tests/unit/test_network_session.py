@@ -32,7 +32,6 @@ from pip._internal.exceptions import (
     SSLMissingError,
     SSLVerificationError,
 )
-from pip._internal.models.link import Link
 from pip._internal.network.session import (
     HTTPAdapter,
     PipSession,

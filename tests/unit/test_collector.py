@@ -1011,9 +1011,7 @@ def check_links_include(links: list[Link], names: list[str]) -> None:
 
 
 class TestLinkCollector:
-    def test_insecure_page_source_warns(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_insecure_page_source_warns(self, caplog: pytest.LogCaptureFixture) -> None:
         link_collector = make_test_link_collector(
             index_urls=["http://example.com/simple/"]
         )
