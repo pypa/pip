@@ -1,6 +1,5 @@
 import errno
 import sys
-import warnings
 from unittest import mock
 
 import pytest
@@ -13,7 +12,6 @@ from pip._internal.commands.install import (
     create_os_error_message,
     decide_user_install,
 )
-from pip._internal.utils.deprecation import PipDeprecationWarning
 
 
 class TestDecideUserInstall:
@@ -191,11 +189,11 @@ def test_create_os_error_message(
     assert msg == expected
 
 
-def test_prevent_further_imports_warns_on_import() -> None:
+def test_prevent_further_imports_blocks_import() -> None:
     """
-    An import issued after _prevent_further_imports() has run must emit a
-    deprecation warning via the registered audit hook, except when the
-    imported module lives in the standard library.
+    An import issued after _prevent_further_imports() has run must raise
+    ImportError via the registered audit hook, except when the imported
+    module lives in the standard library.
     """
     captured_hooks: list[mock.Mock] = []
 
@@ -206,19 +204,20 @@ def test_prevent_further_imports_warns_on_import() -> None:
     assert len(captured_hooks) == 1, "Expected exactly one audit hook to be registered"
     audit_hook = captured_hooks[0]
 
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
+    with pytest.raises(ImportError, match="unknown_module") as exc_info:
         audit_hook("import", ("unknown_module",))
+    assert "before installation starts" in str(exc_info.value)
 
-    assert len(caught) == 1
-    assert "unknown_module" in str(caught[0].message)
-    assert issubclass(caught[0].category, PipDeprecationWarning)
+    # A module recorded as missing raises a plain ImportError, as a real
+    # import attempt would have.
+    with mock.patch.object(install, "_MISSING_MODULES", {"ghost_module"}):
+        with pytest.raises(ImportError, match="No module named 'ghost_module'"):
+            audit_hook("import", ("ghost_module",))
 
-    # Standard library imports must not emit a warning: pip cannot shadow
-    # them with a freshly installed distribution.
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        audit_hook("import", ("os",))
-        audit_hook("import", ("encodings.iso8859_15",))
+    # Standard library imports must not be blocked: pip cannot shadow them
+    # with a freshly installed distribution.
+    audit_hook("import", ("os",))
+    audit_hook("import", ("encodings.iso8859_15",))
 
-    assert caught == []
+    # Non-import audit events pass through.
+    audit_hook("open", ("unknown_module",))
