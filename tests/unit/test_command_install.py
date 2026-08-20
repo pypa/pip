@@ -1,6 +1,7 @@
 import errno
 import sys
 import warnings
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -14,6 +15,29 @@ from pip._internal.commands.install import (
     decide_user_install,
 )
 from pip._internal.utils.deprecation import PipDeprecationWarning
+from pip._internal.utils.temp_dir import TempDirectory
+
+
+def test_handle_target_dir_move_failure_leaves_no_partial_item(
+    tmp_path: Path,
+) -> None:
+    target_temp_dir = TempDirectory(path=str(tmp_path / "home"))
+    scheme = install.get_scheme("", home=target_temp_dir.path)
+    source = Path(scheme.purelib) / "package"
+    source.mkdir(parents=True)
+    target_dir = tmp_path / "target"
+
+    def fail_move(_source: str, destination: str) -> None:
+        Path(destination).mkdir()
+        raise OSError("move failed")
+
+    with mock.patch("pip._internal.utils.filesystem.shutil.move", new=fail_move):
+        with pytest.raises(OSError):
+            install.InstallCommand("install", "")._handle_target_dir(
+                str(target_dir), target_temp_dir, upgrade=False
+            )
+
+    assert not (target_dir / "package").exists()
 
 
 class TestDecideUserInstall:

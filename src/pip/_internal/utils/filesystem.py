@@ -4,11 +4,12 @@ import fnmatch
 import os
 import os.path
 import random
+import shutil
 import sys
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Any, BinaryIO, cast
 
 from pip._internal.utils.compat import get_path_uid
@@ -69,6 +70,22 @@ def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, Non
 
 
 replace = retry(stop_after_delay=1, wait=0.25)(os.replace)
+
+
+def atomic_copy(source: str | Path, destination: str | Path) -> None:
+    """Copy a file, replacing ``destination`` only after the copy succeeds."""
+    with TemporaryDirectory(dir=os.path.dirname(destination)) as temp_dir:
+        temp_path = os.path.join(temp_dir, os.path.basename(destination))
+        shutil.copy(source, temp_path)
+        replace(temp_path, destination)
+
+
+def atomic_move(source: str | Path, destination: str | Path) -> None:
+    """Move an item, replacing ``destination`` only after the move succeeds."""
+    with TemporaryDirectory(dir=os.path.dirname(destination)) as temp_dir:
+        temp_path = os.path.join(temp_dir, os.path.basename(destination))
+        shutil.move(source, temp_path)
+        replace(temp_path, destination)
 
 
 # test_writable_dir and _test_writable_dir_win are copied from Flit,
