@@ -282,6 +282,8 @@ class WheelCache(Cache):
             else:
                 # TODO: use DirectUrl.equivalent when
                 # https://github.com/pypa/pip/pull/10564 is merged.
+                # origin.url is already stripped because it came from the
+                # serialized origin.json file.
                 download_url = download_info.to_dict_compat()["url"]
                 if origin.url != download_url:
                     logger.warning(
