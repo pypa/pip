@@ -1354,6 +1354,14 @@ def need_mercurial(fn: _Test) -> _Test:
     return pytest.mark.mercurial(need_executable("Mercurial", ("hg", "version"))(fn))
 
 
+cpython_only = pytest.mark.skipif(
+    sys.implementation.name != "cpython", reason="CPython-only test"
+)
+linux_only = pytest.mark.skipif(sys.platform != "linux", reason="Linux-only test")
+windows_only = pytest.mark.skipif(sys.platform != "win32", reason="Windows-only test")
+macos_only = pytest.mark.skipif(sys.platform != "darwin", reason="macOS-only test")
+
+
 class InMemoryPipResult:
     def __init__(self, returncode: int, stdout: str) -> None:
         self.returncode = returncode
