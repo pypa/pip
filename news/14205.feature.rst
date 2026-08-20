@@ -1,0 +1,1 @@
+Add support for selecting extras in pylock.toml files with ``-r pylock.toml[extra1,extra2]``.
