@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 from typing import Literal, NoReturn, TypeAlias, cast
 from urllib.parse import urlsplit
@@ -5,6 +6,7 @@ from urllib.parse import urlsplit
 from pip._vendor import requests, urllib3
 from pip._vendor.requests.models import Response
 from pip._vendor.urllib3.exceptions import TimeoutStateError
+from pip._vendor.urllib3.util.retry import Retry as Urllib3Retry
 
 from pip._internal.exceptions import (
     ConnectionFailedError,
@@ -13,6 +15,7 @@ from pip._internal.exceptions import (
     ProxyConnectionError,
     SSLVerificationError,
 )
+from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import redact_auth_from_url
 
 TimeoutValue: TypeAlias = (
@@ -41,6 +44,8 @@ TimeoutValue: TypeAlias = (
 HEADERS: dict[str, str] = {"Accept-Encoding": "identity"}
 
 DOWNLOAD_CHUNK_SIZE = 256 * 1024
+
+logger = logging.getLogger(__name__)
 
 
 def raise_for_status(resp: Response) -> None:
@@ -204,3 +209,45 @@ def raise_connection_error(
     raise ConnectionFailedError(
         url, host, reason if isinstance(reason, Exception) else max_retry_error
     )
+
+
+class Urllib3RetryFilter(logging.Filter):
+    """A logging filter which captures urllib3's retrying warnings
+    and rewrites them to be more readable.
+
+    See https://github.com/urllib3/urllib3/issues/2580 for context.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # The warning we want has an unique extra attribute. Pop the attribute
+        # so if the warning is filtered repeatedly, we won't rewrite it again.
+        data = record.__dict__.pop("__urllib3-retry-warning", None)
+        if data is None:
+            return True
+
+        host = data["host"]
+        retry, error, _ = cast(tuple[Urllib3Retry, Exception, str], record.args)
+        try:
+            raise_connection_error(requests.ConnectionError(error), url="", timeout=0)
+        except ConnectionTimeoutError:
+            record.msg = f"{host} took too long to respond"
+        except SSLVerificationError:
+            record.msg = f"SSL verification failed while connecting to {host}"
+        except ConnectionFailedError:
+            record.msg = f"failed to connect to {host}"
+        else:
+            return True
+
+        assert isinstance(retry.total, int)
+        # The remaining retries is already decremented at the warning issuance
+        retries_left = retry.total + 1
+        if retries_left > 1:
+            record.msg += f", retrying {retries_left} more times"
+        elif retries_left == 1:
+            record.msg += ", retrying 1 last time"
+        if logger.isEnabledFor(VERBOSE):
+            # As it's hard to provide enough detail, show the original
+            # error under verbose mode.
+            record.msg += f": {error!s}"
+        record.args = ()
+        return True
