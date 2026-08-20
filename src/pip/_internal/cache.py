@@ -280,15 +280,21 @@ class WheelCache(Cache):
                     e,
                 )
             else:
+                # origin.json is written with the user:password stripped from
+                # the URL, so the URL read back has to be compared against that
+                # same representation. Comparing it against the raw URL makes an
+                # authenticated download mismatch against its own cache entry,
+                # and logging the raw URL puts the credentials in the log.
                 # TODO: use DirectUrl.equivalent when
                 # https://github.com/pypa/pip/pull/10564 is merged.
-                if origin.url != download_info.url:
+                download_url = download_info.to_dict()["url"]
+                if origin.url != download_url:
                     logger.warning(
                         "Origin URL %s in cache entry %s does not match download URL "
                         "%s. This is likely a pip bug or a cache corruption issue. "
                         "Will overwrite it with the new value.",
                         origin.url,
                         cache_dir,
-                        download_info.url,
+                        download_url,
                     )
         origin_path.write_text(download_info.to_json(), encoding="utf-8")

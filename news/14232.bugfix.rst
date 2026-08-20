@@ -1,0 +1,3 @@
+Compare the cache entry's origin URL against the credential-stripped download
+URL, so that re-recording an authenticated archive no longer reports a false
+mismatch and no longer writes the credentials to the log.
