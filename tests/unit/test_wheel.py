@@ -121,17 +121,31 @@ def test_normalized_outrows(
     assert actual == expected
 
 
-def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> list[InstalledCSVRow]:
+def call_get_csv_rows_for_installed(
+    tmpdir: Path,
+    text: str,
+    installed: dict[RecordPath, RecordPath] | None = None,
+) -> list[InstalledCSVRow]:
     path = tmpdir.joinpath("temp.txt")
     path.write_text(text)
 
-    # Test that an installed file appearing in RECORD has its filename
-    # updated in the new RECORD file.
-    installed = cast(dict[RecordPath, RecordPath], {"a": "z"})
     lib_dir = "/lib/dir"
 
     with open(path, **wheel.csv_io_kwargs("r")) as f:
         record_rows = list(csv.reader(f))
+
+    if installed is None:
+        installed = cast(
+            dict[RecordPath, RecordPath],
+            {
+                cast("RecordPath", row[0]): cast(
+                    "RecordPath",
+                    "z" if row[0] == "a" else row[0],
+                )
+                for row in record_rows
+            },
+        )
+
     outrows = wheel.get_csv_rows_for_installed(
         record_rows,
         installed=installed,
@@ -180,6 +194,47 @@ def test_get_csv_rows_for_installed__long_lines(
         "RECORD line has more than three elements: ['a', 'b', 'c', 'd']",
         "RECORD line has more than three elements: ['h', 'i', 'j', 'k']",
     ]
+
+def test_get_csv_rows_for_installed__skips_phantom_record_entries(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    text = textwrap.dedent("""\
+    a,b,c
+    ../../../tmp/evil.py,,
+    """)
+    outrows = call_get_csv_rows_for_installed(
+        tmpdir,
+        text,
+        installed=cast(dict[RecordPath, RecordPath], {"a": "z"}),
+    )
+    assert outrows == [
+        ("z", "b", "c"),
+    ]
+    assert len(caplog.records) == 0
+
+
+def test_get_csv_rows_for_installed__keeps_installed_paths_outside_lib_dir(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    text = textwrap.dedent("""\
+    a,b,c
+    ../../../bin/docutils,d,e
+    """)
+    installed = cast(
+        dict[RecordPath, RecordPath],
+        {
+            "a": "z",
+            "docutils-0.22.4.data/scripts/docutils": "../../../bin/docutils",
+        },
+    )
+
+    outrows = call_get_csv_rows_for_installed(tmpdir, text, installed=installed)
+
+    assert outrows == [
+        ("z", "b", "c"),
+        ("../../../bin/docutils", "d", "e"),
+    ]
+    assert len(caplog.records) == 0
 
 
 @pytest.mark.parametrize(

@@ -245,11 +245,18 @@ def get_csv_rows_for_installed(
         path.
     """
     installed_rows: list[InstalledCSVRow] = []
+    installed_record_paths = set(installed.values())
+    accounted_for_paths: set[RecordPath] = set()
     for row in old_csv_rows:
         if len(row) > 3:
             logger.warning("RECORD line has more than three elements: %s", row)
         old_record_path = cast("RecordPath", row[0])
-        new_record_path = installed.pop(old_record_path, old_record_path)
+        new_record_path = installed.pop(old_record_path, None)
+        if new_record_path is None:
+            if old_record_path not in installed_record_paths:
+                continue
+            new_record_path = old_record_path
+        accounted_for_paths.add(new_record_path)
         if new_record_path in changed:
             digest, length = rehash(_record_to_fs_path(new_record_path, lib_dir))
         else:
@@ -261,7 +268,9 @@ def get_csv_rows_for_installed(
         digest, length = rehash(f)
         installed_rows.append((path, digest, length))
     return installed_rows + [
-        (installed_record_path, "", "") for installed_record_path in installed.values()
+        (installed_record_path, "", "")
+        for installed_record_path in installed.values()
+        if installed_record_path not in accounted_for_paths
     ]
 
 

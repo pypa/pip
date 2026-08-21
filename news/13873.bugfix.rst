@@ -1,0 +1,1 @@
+Skip phantom ``RECORD`` rows that do not correspond to files pip actually installed when rewriting an installed wheel's ``RECORD`` metadata.
