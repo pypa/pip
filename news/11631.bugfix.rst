@@ -1,0 +1,1 @@
+Proceed with install if destination directory was different from origin directory.
