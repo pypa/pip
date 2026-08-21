@@ -242,6 +242,100 @@ class TestUnpackArchives:
 
         assert "is outside the destination" in str(e.value)
 
+    @pytest.mark.skipif(
+        not hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) not available",
+    )
+    def test_unpack_tar_filter_fallback_rejects_outside_hardlink(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        """
+        Test that the fallback for CPython issue #107845 still rejects links
+        outside the extraction destination.
+        """
+        monkeypatch.setattr(sys, "version_info", (3, 11, 4))
+
+        test_tar = os.path.join(self.tempdir, "test_tar_filter_fallback.tar")
+        extract_path = os.path.join(self.tempdir, "extract_path")
+        victim_path = os.path.join(self.tempdir, "victim.txt")
+        with open(victim_path, "wb") as f:
+            f.write(b"safe\n")
+
+        with tarfile.open(test_tar, "w") as mytar:
+            dir_tarinfo = tarfile.TarInfo("pkg")
+            dir_tarinfo.type = tarfile.DIRTYPE
+            mytar.addfile(dir_tarinfo)
+
+            hardlink_tarinfo = tarfile.TarInfo("pkg/link")
+            hardlink_tarinfo.type = tarfile.LNKTYPE
+            hardlink_tarinfo.linkname = "../victim.txt"
+            mytar.addfile(hardlink_tarinfo)
+
+            file_data = io.BytesIO(b"overwritten\n")
+            file_tarinfo = tarfile.TarInfo("pkg/link")
+            file_tarinfo.size = len(file_data.getbuffer())
+            mytar.addfile(file_tarinfo, fileobj=file_data)
+
+        with pytest.raises(InstallationError) as e:
+            untar_file(test_tar, extract_path)
+
+        assert "would link to" in str(e.value)
+        assert "outside the destination" in str(e.value)
+        with open(victim_path, "rb") as f:
+            assert f.read() == b"safe\n"
+
+    @pytest.mark.skipif(
+        not hasattr(tarfile, "data_filter"),
+        reason="tarfile filters (PEP-721) not available",
+    )
+    def test_unpack_tar_filter_fallback_allows_safe_links(
+        self, monkeypatch: MonkeyPatch
+    ) -> None:
+        """
+        Test that the CPython issue #107845 fallback still permits links that
+        resolve inside the extraction destination.
+        """
+        monkeypatch.setattr(sys, "version_info", (3, 11, 4))
+        original_data_filter = tarfile.data_filter
+
+        def data_filter_with_link_bug(
+            member: tarfile.TarInfo, location: str
+        ) -> tarfile.TarInfo:
+            if member.islnk() or member.issym():
+                target = os.path.join(
+                    location, os.path.dirname(member.name), member.linkname
+                )
+                raise tarfile.LinkOutsideDestinationError(member, target)
+            return original_data_filter(member, location)
+
+        monkeypatch.setattr(tarfile, "data_filter", data_filter_with_link_bug)
+
+        test_tar = os.path.join(self.tempdir, "test_tar_filter_fallback.tar")
+        extract_path = os.path.join(self.tempdir, "extract_path")
+        content = b"file content"
+
+        with tarfile.open(test_tar, "w") as mytar:
+            file_tarinfo = tarfile.TarInfo("regular_file.txt")
+            file_tarinfo.size = len(content)
+            mytar.addfile(file_tarinfo, io.BytesIO(content))
+
+            hardlink_tarinfo = tarfile.TarInfo("hardlink.txt")
+            hardlink_tarinfo.type = tarfile.LNKTYPE
+            hardlink_tarinfo.linkname = "regular_file.txt"
+            mytar.addfile(hardlink_tarinfo)
+
+            symlink_tarinfo = tarfile.TarInfo("symlink.txt")
+            symlink_tarinfo.type = tarfile.SYMTYPE
+            symlink_tarinfo.linkname = "regular_file.txt"
+            mytar.addfile(symlink_tarinfo)
+
+        untar_file(test_tar, extract_path)
+
+        with open(os.path.join(extract_path, "hardlink.txt"), "rb") as f:
+            assert f.read() == content
+        with open(os.path.join(extract_path, "symlink.txt"), "rb") as f:
+            assert f.read() == content
+
     @pytest.mark.parametrize(
         "input_prefix, unpack_prefix",
         [
