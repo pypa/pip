@@ -233,6 +233,67 @@ def _fs_to_record_path(path: str, lib_dir: str) -> RecordPath:
     return cast("RecordPath", path)
 
 
+def _relative_within(path: str, root: str) -> str | None:
+    """RECORD-style path of ``path`` inside ``root``, or None if outside it."""
+    # On Windows a path on another logical disk is never inside root.
+    if os.path.splitdrive(path)[0].lower() != os.path.splitdrive(root)[0].lower():
+        return None
+    relative = os.path.relpath(path, root)
+    if relative == os.pardir or relative.startswith(os.pardir + os.sep):
+        return None
+    return relative.replace(os.path.sep, "/")
+
+
+def rewrite_record_paths_for_target(lib_dirs: list[str], data_dir: str) -> None:
+    """Rewrite staged RECORD files for the flattened ``--target`` layout.
+
+    A wheel is installed into a staging directory first, where the scheme
+    spreads its files over ``<staging>/lib/python``, ``<staging>/bin`` and so
+    on, and RECORD holds paths relative to the directory containing the
+    ``.dist-info``. ``pip install --target`` then flattens all of those into
+    one directory, which leaves the recorded paths wrong: a console script
+    recorded as ``../../bin/foo`` resolves *above* the target directory.
+
+    Recompute each path against the layout the files actually end up in,
+    where every scheme directory is collapsed onto the target root.
+    """
+    # The lib directories are nested inside the data directory, so they have
+    # to be tried first.
+    roots = [*lib_dirs, data_dir]
+
+    for lib_dir in lib_dirs:
+        if not os.path.isdir(lib_dir):
+            continue
+        for entry in os.listdir(lib_dir):
+            if not entry.endswith(".dist-info"):
+                continue
+            record_path = os.path.join(lib_dir, entry, "RECORD")
+            if not os.path.isfile(record_path):
+                continue
+
+            with open(record_path, **csv_io_kwargs("r")) as record_file:
+                rows = list(csv.reader(record_file))
+
+            changed = False
+            for row in rows:
+                if not row:
+                    continue
+                fs_path = os.path.join(lib_dir, row[0])
+                for root in roots:
+                    relative = _relative_within(fs_path, root)
+                    if relative is not None:
+                        break
+                else:
+                    continue
+                if relative != row[0]:
+                    row[0] = relative
+                    changed = True
+
+            if changed:
+                with open(record_path, **csv_io_kwargs("w")) as record_file:
+                    csv.writer(record_file).writerows(rows)
+
+
 def get_csv_rows_for_installed(
     old_csv_rows: list[list[str]],
     installed: dict[RecordPath, RecordPath],

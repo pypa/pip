@@ -1,0 +1,3 @@
+Record the real paths of installed files when using ``--target``. Console
+scripts were recorded relative to the staging directory, so ``RECORD`` listed
+them as ``../../bin/<name>``, resolving above the target directory.

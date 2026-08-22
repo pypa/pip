@@ -34,6 +34,7 @@ from tests.lib import (
     _create_test_package,
     create_basic_wheel_for_package,
     create_test_package_with_setup,
+    make_wheel,
     need_bzr,
     need_mercurial,
     need_svn,
@@ -1268,6 +1269,31 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
         "-t", target_dir, "singlemodule==0.0.1", "--upgrade"
     )
     result.did_update(singlemodule_py)
+
+
+def test_install_package_with_target_records_real_paths(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    RECORD must describe where the files actually landed. --target flattens
+    the staging scheme into one directory, so a script staged in
+    ``<staging>/bin`` and recorded as ``../../bin/name`` would otherwise point
+    above the target directory.
+    """
+    wheel_path = make_wheel(
+        "scriptpkg", "1.0", console_scripts=["scriptpkg = scriptpkg:main"]
+    ).save_to_dir(script.scratch_path)
+    target_dir = script.scratch_path / "target"
+
+    script.pip("install", "--no-index", "--target", target_dir, wheel_path)
+
+    record = target_dir / "scriptpkg-1.0.dist-info" / "RECORD"
+    recorded = [line.split(",")[0] for line in record.read_text().splitlines() if line]
+
+    assert any(path.startswith("bin/") for path in recorded), recorded
+    for path in recorded:
+        assert not path.startswith("../"), f"{path} points outside the target"
+        assert (target_dir / path).exists(), f"{path} is recorded but missing"
 
 
 @pytest.mark.parametrize("target_option", ["--target", "-t"])

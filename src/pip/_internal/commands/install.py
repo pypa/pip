@@ -43,6 +43,7 @@ from pip._internal.metadata import BaseEnvironment, get_environment
 from pip._internal.models.installation_report import InstallationReport
 from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
+from pip._internal.operations.install.wheel import rewrite_record_paths_for_target
 from pip._internal.req import InstallationResult, install_given_reqs
 from pip._internal.req.req_install import (
     InstallRequirement,
@@ -623,6 +624,14 @@ class InstallCommand(RequirementCommand):
             lib_dir_list.append(platlib_dir)
         if os.path.exists(data_dir):
             lib_dir_list.append(data_dir)
+
+        # RECORD is written for the staging layout, where the .dist-info sits
+        # in the lib directory and scripts and data files sit beside it. The
+        # move below flattens all of that into target_dir, so fix the recorded
+        # paths up first, while the staging layout is still there to work from.
+        rewrite_record_paths_for_target(
+            [d for d in (purelib_dir, platlib_dir) if os.path.isdir(d)], data_dir
+        )
 
         for lib_dir in lib_dir_list:
             for item in os.listdir(lib_dir):
