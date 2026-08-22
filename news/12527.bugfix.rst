@@ -1,0 +1,4 @@
+Merge into the top-level ``__pycache__`` of a ``--target`` directory instead of
+skipping or replacing it. Installing a distribution no longer drops its own
+bytecode (while its ``RECORD`` still lists it), and ``--upgrade`` no longer
+deletes the bytecode of distributions already installed there.

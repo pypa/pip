@@ -630,30 +630,58 @@ class InstallCommand(RequirementCommand):
                     ddir = os.path.join(data_dir, item)
                     if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
                         continue
-                target_item_dir = os.path.join(target_dir, item)
-                if os.path.exists(target_item_dir):
-                    if not upgrade:
-                        logger.warning(
-                            "Target directory %s already exists. Specify "
-                            "--upgrade to force replacement.",
-                            target_item_dir,
-                        )
-                        continue
-                    if os.path.islink(target_item_dir):
-                        logger.warning(
-                            "Target directory %s already exists and is "
-                            "a link. pip will not automatically replace "
-                            "links, please remove if replacement is "
-                            "desired.",
-                            target_item_dir,
-                        )
-                        continue
-                    if os.path.isdir(target_item_dir):
-                        shutil.rmtree(target_item_dir)
-                    else:
-                        os.remove(target_item_dir)
+                self._move_to_target_dir(
+                    os.path.join(lib_dir, item),
+                    os.path.join(target_dir, item),
+                    upgrade,
+                )
 
-                shutil.move(os.path.join(lib_dir, item), target_item_dir)
+    def _move_to_target_dir(self, source: str, target: str, upgrade: bool) -> None:
+        if os.path.exists(target):
+            # A top-level ``__pycache__`` holds the bytecode of the top-level
+            # modules of every distribution installed into the target
+            # directory, so it is not owned by the distribution being
+            # installed. Merge into it entry by entry instead of treating it
+            # as a whole: replacing it would delete bytecode belonging to
+            # previously installed distributions, and skipping it would drop
+            # the bytecode of the distribution being installed while its
+            # RECORD still claims the files were written.
+            if (
+                os.path.basename(target) == "__pycache__"
+                and os.path.isdir(source)
+                and os.path.isdir(target)
+                and not os.path.islink(target)
+            ):
+                for item in os.listdir(source):
+                    self._move_to_target_dir(
+                        os.path.join(source, item),
+                        os.path.join(target, item),
+                        upgrade,
+                    )
+                return
+
+            if not upgrade:
+                logger.warning(
+                    "Target directory %s already exists. Specify "
+                    "--upgrade to force replacement.",
+                    target,
+                )
+                return
+            if os.path.islink(target):
+                logger.warning(
+                    "Target directory %s already exists and is "
+                    "a link. pip will not automatically replace "
+                    "links, please remove if replacement is "
+                    "desired.",
+                    target,
+                )
+                return
+            if os.path.isdir(target):
+                shutil.rmtree(target)
+            else:
+                os.remove(target)
+
+        shutil.move(source, target)
 
     def _determine_conflicts(
         self, to_install: list[InstallRequirement]

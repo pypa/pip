@@ -1270,6 +1270,55 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
     result.did_update(singlemodule_py)
 
 
+def test_install_package_with_target_merges_pycache(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    The ``__pycache__`` at the top of a --target directory holds the bytecode
+    of the top-level modules of every distribution installed there, so it must
+    be merged into: installing a second distribution may neither skip it (which
+    drops the new bytecode) nor, under --upgrade, replace it (which deletes the
+    bytecode of the distributions already installed).
+    """
+    create_basic_wheel_for_package(
+        script, "pkga", "1.0", extra_files={"modulea.py": "a = 1"}
+    )
+    create_basic_wheel_for_package(
+        script, "pkgb", "1.0", extra_files={"moduleb.py": "b = 1"}
+    )
+    target_dir = script.scratch_path / "target"
+
+    def install(*args: str) -> TestPipResult:
+        return script.pip(
+            "install",
+            "--no-index",
+            "--find-links",
+            script.scratch_path,
+            "--target",
+            target_dir,
+            *args,
+        )
+
+    def pyc(stem: str) -> list[Path]:
+        return list(target_dir.glob(f"__pycache__/{stem}.*.pyc"))
+
+    install("pkga")
+    assert pyc("modulea"), "bytecode of the first distribution was not installed"
+
+    # Installing a second distribution must add to the shared __pycache__
+    # instead of skipping it and leaving a RECORD that claims otherwise.
+    # script.pip() also fails on the spurious "Target directory ... already
+    # exists" warning that skipping it used to emit.
+    install("pkgb")
+    assert pyc("moduleb"), "bytecode of the second distribution was dropped"
+    assert pyc("modulea"), "bytecode of the first distribution disappeared"
+
+    # --upgrade must not delete bytecode belonging to other distributions.
+    install("--upgrade", "pkgb")
+    assert pyc("moduleb")
+    assert pyc("modulea"), "--upgrade deleted another distribution's bytecode"
+
+
 @pytest.mark.parametrize("target_option", ["--target", "-t"])
 def test_install_package_to_usersite_with_target_must_fail(
     script: PipTestEnvironment, target_option: str
