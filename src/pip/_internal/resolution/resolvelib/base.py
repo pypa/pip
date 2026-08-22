@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Container, Iterable
 from dataclasses import dataclass
 from typing import Optional
 
@@ -10,7 +10,7 @@ from pip._vendor.packaging.version import Version
 
 from pip._internal.models.link import Link, links_equivalent
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.hashes import _HASH_INTERSECTION_LIST_SCAN_LIMIT, Hashes
 
 CandidateLookup = tuple[Optional["Candidate"], InstallRequirement | None]
 
@@ -57,10 +57,18 @@ class Constraint:
         elif not other.hash_options:
             hash_options = {alg: list(v) for alg, v in self.hash_options.items()}
         else:
-            hash_options = {
-                alg: [v for v in other.hash_options[alg] if v in self.hash_options[alg]]
-                for alg in self.hash_options.keys() & other.hash_options.keys()
-            }
+            hash_options = {}
+            for alg in self.hash_options.keys() & other.hash_options.keys():
+                self_hash_options = self.hash_options[alg]
+                self_hashes: Container[str] = self_hash_options
+                if (
+                    len(self_hash_options) * len(other.hash_options[alg])
+                    > _HASH_INTERSECTION_LIST_SCAN_LIMIT
+                ):
+                    self_hashes = set(self_hash_options)
+                hash_options[alg] = [
+                    v for v in other.hash_options[alg] if v in self_hashes
+                ]
         links = self.links
         if other.link:
             links = links.union([other.link])
