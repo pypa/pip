@@ -9,28 +9,22 @@ from pip._internal.operations.check import (
 )
 
 
-def package_details(*dependencies: str) -> PackageDetails:
-    return PackageDetails(
-        Version("1"),
-        [Requirement(dependency) for dependency in dependencies],
-    )
-
-
 def test_create_whitelist_is_not_order_dependent() -> None:
     root = canonicalize_name("root")
     middle = canonicalize_name("middle")
     leaf = canonicalize_name("leaf")
+    version = Version("1")
     expected: set[NormalizedName] = {leaf, middle}
 
     package_set_with_dependent_first: PackageSet = {
-        root: package_details("middle"),
-        middle: package_details("leaf"),
-        leaf: package_details(),
+        root: PackageDetails.from_dependencies(version, [Requirement("middle")]),
+        middle: PackageDetails.from_dependencies(version, [Requirement("leaf")]),
+        leaf: PackageDetails.from_dependencies(version, []),
     }
     package_set_with_dependency_first: PackageSet = {
-        leaf: package_details(),
-        middle: package_details("leaf"),
-        root: package_details("middle"),
+        leaf: PackageDetails.from_dependencies(version, []),
+        middle: PackageDetails.from_dependencies(version, [Requirement("leaf")]),
+        root: PackageDetails.from_dependencies(version, [Requirement("middle")]),
     }
 
     assert _create_whitelist({leaf}, package_set_with_dependent_first) == expected
