@@ -27,7 +27,7 @@ from typing import (
     Protocol,
     cast,
 )
-from zipfile import ZipFile, ZipInfo
+from zipfile import BadZipFile, ZipFile, ZipInfo
 
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
@@ -755,16 +755,27 @@ def install_wheel(
     requested: bool = False,
     script_executable: str | None = None,
 ) -> None:
-    with ZipFile(wheel_path, allowZip64=True) as z:
-        with req_error_context(req_description):
-            _install_wheel(
-                name=name,
-                wheel_zip=z,
-                wheel_path=wheel_path,
-                scheme=scheme,
-                pycompile=pycompile,
-                warn_script_location=warn_script_location,
-                direct_url=direct_url,
-                requested=requested,
-                script_executable=script_executable,
-            )
+    try:
+        with ZipFile(wheel_path, allowZip64=True) as z:
+            with req_error_context(req_description):
+                _install_wheel(
+                    name=name,
+                    wheel_zip=z,
+                    wheel_path=wheel_path,
+                    scheme=scheme,
+                    pycompile=pycompile,
+                    warn_script_location=warn_script_location,
+                    direct_url=direct_url,
+                    requested=requested,
+                    script_executable=script_executable,
+                )
+    except (BadZipFile, EOFError) as e:
+        # A corrupt (e.g. truncated) wheel surfaces as BadZipFile at open time
+        # or as a bare EOFError from zipfile mid-extraction. Without naming the
+        # file here, the user gets an unactionable traceback and no way to know
+        # which wheel to delete (issue #13147).
+        raise InstallationError(
+            f"For req: {req_description}. Failed to read from wheel file"
+            f" {wheel_path!r} (the file may be corrupt or truncated;"
+            f" if it came from pip's cache, remove it and retry): {e!r}"
+        ) from e

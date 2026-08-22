@@ -1,0 +1,3 @@
+Name the wheel file on disk when installation fails because the wheel is
+corrupt or truncated, so the offending file (for example a damaged cache
+entry) can be found and removed.

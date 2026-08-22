@@ -473,6 +473,70 @@ class TestInstallUnpackedWheel:
         # Nothing was written outside the install destination.
         assert not os.path.exists(os.path.join(str(tmpdir), "outside"))
 
+    def test_truncated_wheel_error_names_the_file(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        """A wheel truncated at the end (the common corrupted-download /
+        corrupted-cache shape) fails to open as a zip. The error must name the
+        wheel path so the user knows which file to delete (issue #13147)."""
+        self.prep(data, tmpdir)
+        size = os.path.getsize(self.wheelpath)
+        with open(self.wheelpath, "r+b") as f:
+            f.truncate(size // 2)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+        assert repr(self.wheelpath) in str(e.value)
+        assert "corrupt" in str(e.value)
+
+    def test_corrupted_wheel_member_error_names_the_file(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        """A wheel whose zip structure is intact but whose member payload is
+        damaged opens fine and then fails a CRC check mid-extraction. That
+        failure must also name the wheel path (issue #13147)."""
+        self.prep(data, tmpdir)
+        # Flip payload bytes shortly after the first local file header,
+        # leaving the central directory (at the end) untouched.
+        with open(self.wheelpath, "r+b") as f:
+            f.seek(64)
+            f.write(b"\xff" * 16)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+        assert repr(self.wheelpath) in str(e.value)
+
+    def test_eoferror_during_extraction_names_the_file(
+        self, data: TestData, tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """zipfile raises a bare EOFError when the wheel shrinks while being
+        read (the exact traceback in issue #13147, seen when another process
+        rewrites a shared cache). That race cannot be reproduced determinist-
+        ically here, so the EOFError leg of the handler is exercised directly:
+        it must convert to an InstallationError naming the wheel path."""
+        self.prep(data, tmpdir)
+
+        def raise_eof(*args: object, **kwargs: object) -> None:
+            raise EOFError
+
+        monkeypatch.setattr(wheel, "_install_wheel", raise_eof)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+        assert repr(self.wheelpath) in str(e.value)
+
 
 class TestMessageAboutScriptsNotOnPATH:
     tilde_warning_msg = (
