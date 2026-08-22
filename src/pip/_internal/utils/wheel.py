@@ -72,7 +72,8 @@ def read_wheel_metadata_file(source: ZipFile, path: str) -> bytes:
     except (BadZipFile, KeyError, RuntimeError) as e:
         # Name the wheel file when we know it (issue #13147): a corrupt member
         # is unactionable without knowing which wheel on disk to delete.
-        # source.filename is None for in-memory wheels (e.g. lazy wheels).
+        # source.filename is None only for genuinely in-memory ZipFiles; lazy
+        # wheels expose the path of their backing temporary file.
         location = f" from wheel {source.filename!r}" if source.filename else ""
         raise UnsupportedWheel(f"could not read {path!r} file{location}: {e!r}")
 

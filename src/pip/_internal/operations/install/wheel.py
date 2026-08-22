@@ -27,6 +27,7 @@ from typing import (
     Protocol,
     cast,
 )
+import zlib
 from zipfile import BadZipFile, ZipFile, ZipInfo
 
 from pip._vendor.distlib.scripts import ScriptMaker
@@ -769,11 +770,12 @@ def install_wheel(
                     requested=requested,
                     script_executable=script_executable,
                 )
-    except (BadZipFile, EOFError) as e:
-        # A corrupt (e.g. truncated) wheel surfaces as BadZipFile at open time
-        # or as a bare EOFError from zipfile mid-extraction. Without naming the
-        # file here, the user gets an unactionable traceback and no way to know
-        # which wheel to delete (issue #13147).
+    except (BadZipFile, EOFError, zlib.error) as e:
+        # A corrupt wheel surfaces as BadZipFile at open time or on a CRC
+        # mismatch, as zlib.error when the deflate stream itself is damaged,
+        # or as a bare EOFError from zipfile mid-extraction. Without naming
+        # the file here, the user gets an unactionable traceback and no way
+        # to know which wheel to delete (issue #13147).
         raise InstallationError(
             f"For req: {req_description}. Failed to read from wheel file"
             f" {wheel_path!r} (the file may be corrupt or truncated;"

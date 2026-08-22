@@ -7,6 +7,7 @@ import os
 import pathlib
 import sys
 import textwrap
+import zlib
 from email import message_from_string
 from pathlib import Path
 from typing import cast
@@ -528,6 +529,28 @@ class TestInstallUnpackedWheel:
             raise EOFError
 
         monkeypatch.setattr(wheel, "_install_wheel", raise_eof)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+        assert repr(self.wheelpath) in str(e.value)
+
+    def test_zlib_error_during_extraction_names_the_file(
+        self, data: TestData, tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A damaged deflate stream escapes zipfile as a bare zlib.error
+        ("Error -3 while decompressing data") rather than BadZipFile, so it
+        needs its own leg in the handler: it must convert to an
+        InstallationError naming the wheel path (issue #13147)."""
+        self.prep(data, tmpdir)
+
+        def raise_zlib(*args: object, **kwargs: object) -> None:
+            raise zlib.error("Error -3 while decompressing data")
+
+        monkeypatch.setattr(wheel, "_install_wheel", raise_zlib)
         with pytest.raises(InstallationError) as e:
             wheel.install_wheel(
                 self.name,
