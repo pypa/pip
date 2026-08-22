@@ -122,8 +122,13 @@ class ConfigurationCommand(Command):
         # Determine which configuration files are to be loaded
         #    Depends on whether the command is modifying.
         try:
+            # "get" only reads the configuration, so - like "list" - it
+            # reports the active configuration as a whole unless the user
+            # narrows it down with an explicit file option. Restricting it to
+            # a single variant would hide values coming from the other
+            # configuration files, in particular PIP_CONFIG_FILE.
             load_only = self._determine_file(
-                options, need_value=(action in ["get", "set", "unset", "edit"])
+                options, need_value=(action in ["set", "unset", "edit"])
             )
         except PipError as e:
             logger.error(e.args[0])

@@ -1,0 +1,5 @@
+Make ``pip config get`` report the active configuration, like ``pip config
+list`` already does, instead of looking only in the file that would be modified
+by ``pip config set``. Values coming from the file named by ``PIP_CONFIG_FILE``
+are no longer reported as missing. Passing ``--user``, ``--global`` or
+``--site`` still narrows the lookup to that file.

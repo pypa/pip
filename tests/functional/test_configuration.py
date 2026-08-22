@@ -118,6 +118,24 @@ class TestBasicLoading(ConfigurationMixin):
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"env:\n(  .+\n)+", result.stdout)
 
+    def test_get_reads_the_env_config_file(self, script: PipTestEnvironment) -> None:
+        """``pip config get`` reports the active configuration, so a value
+        that only lives in the PIP_CONFIG_FILE file is still found rather than
+        reported as missing.
+        """
+        config_file = script.scratch_path / "test-pip.cfg"
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+        config_file.write_text(textwrap.dedent("""            [global]
+            timeout = 60
+            """))
+
+        result = script.pip("config", "get", "global.timeout")
+        assert result.stdout.strip() == "60"
+
+        # An explicit file option still narrows the lookup to that one file,
+        # which does not hold the key.
+        script.pip("config", "--user", "get", "global.timeout", expect_error=True)
+
     def test_user_values(self, script: PipTestEnvironment) -> None:
         """Test that the user pip configuration set using --user
         is correctly displayed under "user".  This configuration takes place
