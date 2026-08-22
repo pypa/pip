@@ -34,6 +34,7 @@ from tests.lib import (
     _create_test_package,
     create_basic_wheel_for_package,
     create_test_package_with_setup,
+    make_wheel,
     need_bzr,
     need_mercurial,
     need_svn,
@@ -1317,6 +1318,33 @@ def test_install_package_with_target_merges_pycache(
     install("--upgrade", "pkgb")
     assert pyc("moduleb")
     assert pyc("modulea"), "--upgrade deleted another distribution's bytecode"
+
+
+def test_install_package_with_target_data_files_under_lib(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Data files are skipped when their directory also holds one of the scheme's
+    lib directories: with ``home`` set to the staging directory, purelib is
+    ``<data>/lib/python``, so ``<data>/lib`` cannot simply be moved across.
+    The data files beside it must still be installed.
+    """
+    wheel_path = make_wheel(
+        "datalib",
+        "1.0",
+        extra_data_files={
+            "data/lib/somefile": "data under lib",
+            "data/share/other": "data under share",
+        },
+    ).save_to_dir(script.scratch_path)
+    target_dir = script.scratch_path / "target"
+
+    script.pip("install", "--no-index", "--target", target_dir, wheel_path)
+
+    assert (target_dir / "share" / "other").read_text() == "data under share"
+    assert (target_dir / "lib" / "somefile").read_text() == "data under lib"
+    # The staged lib directory itself must not be reproduced in the target.
+    assert not (target_dir / "lib" / "python").exists()
 
 
 @pytest.mark.parametrize("target_option", ["--target", "-t"])

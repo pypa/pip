@@ -1,0 +1,4 @@
+Install the data files of a wheel that live under ``lib`` when using
+``--target``. The directory was skipped entirely because it also holds the
+staging area's ``purelib`` directory; its data files are now moved across
+individually.

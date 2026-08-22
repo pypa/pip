@@ -55,6 +55,7 @@ from pip._internal.utils.misc import (
     check_externally_managed,
     ensure_dir,
     get_pip_version,
+    normalize_path,
     protect_pip_from_modification_on_windows,
     warn_if_run_as_root,
     write_output,
@@ -138,6 +139,17 @@ def _arg_refers_to_pip(arg: str) -> bool:
     except InvalidRequirement:
         return False
     return canonicalize_name(req.name) == "pip"
+
+
+def _is_same_path(path: str, other: str) -> bool:
+    return normalize_path(path) == normalize_path(other)
+
+
+def _is_within(path: str, directory: str) -> bool:
+    """Whether ``path`` is ``directory`` itself or lives inside it."""
+    path = normalize_path(path)
+    directory = normalize_path(directory)
+    return path == directory or path.startswith(directory + os.sep)
 
 
 class InstallCommand(RequirementCommand):
@@ -626,15 +638,47 @@ class InstallCommand(RequirementCommand):
 
         for lib_dir in lib_dir_list:
             for item in os.listdir(lib_dir):
-                if lib_dir == data_dir:
-                    ddir = os.path.join(data_dir, item)
-                    if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
-                        continue
-                self._move_to_target_dir(
-                    os.path.join(lib_dir, item),
-                    os.path.join(target_dir, item),
-                    upgrade,
-                )
+                source_item = os.path.join(lib_dir, item)
+                target_item = os.path.join(target_dir, item)
+                if lib_dir == data_dir and any(
+                    _is_within(lib, source_item) for lib in lib_dir_list[:-1]
+                ):
+                    # This data entry contains one of the scheme's lib
+                    # directories - <data>/lib also holds <data>/lib/python.
+                    # Moving it as a whole would carry the lib directory into
+                    # the target, but skipping it loses the data files that
+                    # live alongside, so move those individually instead.
+                    self._move_data_tree(
+                        source_item, target_item, lib_dir_list[:-1], upgrade
+                    )
+                    continue
+                self._move_to_target_dir(source_item, target_item, upgrade)
+
+    def _move_data_tree(
+        self, source: str, target: str, lib_dirs: list[str], upgrade: bool
+    ) -> None:
+        """Move the data files inside a directory that also holds a lib dir.
+
+        The lib directories are moved by their own pass over ``lib_dir_list``,
+        so they are stepped over here.
+        """
+        created = False
+        for item in os.listdir(source):
+            source_item = os.path.join(source, item)
+            if any(_is_same_path(source_item, lib) for lib in lib_dirs):
+                continue
+
+            if not created:
+                # Created lazily so that a directory holding nothing but a lib
+                # directory is not reproduced, empty, in the target.
+                ensure_dir(target)
+                created = True
+
+            target_item = os.path.join(target, item)
+            if any(_is_within(lib, source_item) for lib in lib_dirs):
+                self._move_data_tree(source_item, target_item, lib_dirs, upgrade)
+            else:
+                self._move_to_target_dir(source_item, target_item, upgrade)
 
     def _move_to_target_dir(self, source: str, target: str, upgrade: bool) -> None:
         if os.path.exists(target):
