@@ -43,9 +43,12 @@ class SubprocessBuildEnvironmentInstaller:
         self,
         finder: PackageFinder,
         build_constraints: list[str] | None = None,
+        *,
+        cache_dir: str | None = None,
     ) -> None:
         self.finder = finder
         self._build_constraints = build_constraints or []
+        self._cache_dir = cache_dir
 
     def install(
         self,
@@ -137,6 +140,13 @@ class SubprocessBuildEnvironmentInstaller:
 
         if finder.uploaded_prior_to:
             args.extend(["--uploaded-prior-to", finder.uploaded_prior_to.isoformat()])
+
+        # The subprocess would otherwise fall back on the default cache,
+        # ignoring the cache configuration of the command that spawned it.
+        if self._cache_dir:
+            args.extend(["--cache-dir", self._cache_dir])
+        else:
+            args.append("--no-cache-dir")
         args.append("--")
         args.extend(requirements)
 

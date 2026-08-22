@@ -44,6 +44,48 @@ class TestSubprocessBuildEnvironmentInstaller:
         assert kwargs.get("extra_environ") == {"_PIP_IN_BUILD_IGNORE_CONSTRAINTS": "1"}
 
     @mock.patch("pip._internal.build_env.installer.call_subprocess")
+    def test_install_forwards_the_cache_dir(
+        self, mock_call_subprocess: mock.Mock, tmp_path: Path
+    ) -> None:
+        """The build environment uses the cache of the command that spawned
+        it, rather than falling back on the default location."""
+        installer = SubprocessBuildEnvironmentInstaller(
+            make_test_finder(), cache_dir="/some/cache"
+        )
+
+        installer.install(
+            requirements=["setuptools"],
+            prefix=Prefix(str(tmp_path)),
+            kind="build dependencies",
+            for_req=None,
+        )
+
+        args = mock_call_subprocess.call_args.args[0]
+        assert "--no-cache-dir" not in args
+        assert args[args.index("--cache-dir") + 1] == "/some/cache"
+
+    @mock.patch("pip._internal.build_env.installer.call_subprocess")
+    def test_install_forwards_a_disabled_cache(
+        self, mock_call_subprocess: mock.Mock, tmp_path: Path
+    ) -> None:
+        """A disabled cache must stay disabled in the build environment,
+        otherwise --no-cache-dir silently populates the default cache."""
+        installer = SubprocessBuildEnvironmentInstaller(
+            make_test_finder(), cache_dir=None
+        )
+
+        installer.install(
+            requirements=["setuptools"],
+            prefix=Prefix(str(tmp_path)),
+            kind="build dependencies",
+            for_req=None,
+        )
+
+        args = mock_call_subprocess.call_args.args[0]
+        assert "--no-cache-dir" in args
+        assert "--cache-dir" not in args
+
+    @mock.patch("pip._internal.build_env.installer.call_subprocess")
     @mock.patch.dict(os.environ, {"PIP_CONSTRAINT": "constraints.txt"})
     def test_install_passes_build_constraints(
         self, mock_call_subprocess: mock.Mock, tmp_path: Path

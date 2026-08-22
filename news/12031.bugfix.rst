@@ -1,0 +1,4 @@
+Pass the cache configuration to the pip subprocess that installs build
+dependencies, so that ``--no-cache-dir`` and ``--cache-dir`` are also honoured
+while building. Installing a package that has to be built no longer populates the
+default cache after ``--no-cache-dir``.

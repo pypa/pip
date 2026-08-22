@@ -213,6 +213,7 @@ class RequirementCommand(IndexGroupCommand):
             env_installer = SubprocessBuildEnvironmentInstaller(
                 finder,
                 build_constraints=build_constraints,
+                cache_dir=options.cache_dir,
             )
 
         if not options.build_isolation:
