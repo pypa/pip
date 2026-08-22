@@ -170,4 +170,4 @@ class IndexCommand(IndexGroupCommand):
         else:
             write_output(f"{query} ({latest})")
             write_output("Available versions: {}".format(", ".join(formatted_versions)))
-            print_dist_installation_info(latest, dist)
+            print_dist_installation_info(latest, dist, always_show_latest=True)

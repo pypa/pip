@@ -1,0 +1,3 @@
+Always report the ``LATEST`` version in ``pip index versions`` output. It was
+previously printed only when the package happened to be installed, even though
+it does not depend on the installed distribution.

@@ -113,17 +113,28 @@ def transform_hits(hits: list[dict[str, str]]) -> list[TransformedHit]:
     return list(packages.values())
 
 
-def print_dist_installation_info(latest: str, dist: BaseDistribution | None) -> None:
-    if dist is not None:
-        with indent_log():
+def print_dist_installation_info(
+    latest: str,
+    dist: BaseDistribution | None,
+    *,
+    always_show_latest: bool = False,
+) -> None:
+    # "pip search" prints one line per hit, so it only annotates the hits that
+    # are actually installed. Callers reporting on a single package pass
+    # always_show_latest to get the LATEST line unconditionally.
+    if dist is None and not always_show_latest:
+        return
+
+    with indent_log():
+        if dist is not None:
             write_output("INSTALLED: %s", dist.version)
-            if parse_version(latest).pre:
-                write_output(
-                    "LATEST:    %s (pre-release; install with `pip install --pre`)",
-                    latest,
-                )
-            else:
-                write_output("LATEST:    %s", latest)
+        if parse_version(latest).pre:
+            write_output(
+                "LATEST:    %s (pre-release; install with `pip install --pre`)",
+                latest,
+            )
+        else:
+            write_output("LATEST:    %s", latest)
 
 
 def get_installed_distribution(name: str) -> BaseDistribution | None:

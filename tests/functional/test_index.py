@@ -162,3 +162,37 @@ def test_index_versions_only_final_for_package(script: PipTestEnvironment) -> No
     )
     assert "1.0" in result.stdout
     assert "2.0a1" not in result.stdout
+
+
+def test_index_versions_shows_latest_when_not_installed(
+    script: PipTestEnvironment,
+) -> None:
+    """The LATEST line does not depend on the package being installed."""
+    wheelhouse_path = script.scratch_path / "wheelhouse"
+    wheelhouse_path.mkdir()
+    make_wheel("simple", "1.0").save_to_dir(wheelhouse_path)
+    make_wheel("simple", "2.0").save_to_dir(wheelhouse_path)
+
+    result = script.pip(
+        "index",
+        "versions",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "simple",
+    )
+    assert "LATEST:    2.0" in result.stdout
+    assert "INSTALLED:" not in result.stdout
+
+    # Once installed, both lines are reported.
+    script.pip("install", "--no-index", "--find-links", wheelhouse_path, "simple==1.0")
+    result = script.pip(
+        "index",
+        "versions",
+        "--no-index",
+        "--find-links",
+        wheelhouse_path,
+        "simple",
+    )
+    assert "INSTALLED: 1.0" in result.stdout
+    assert "LATEST:    2.0" in result.stdout
