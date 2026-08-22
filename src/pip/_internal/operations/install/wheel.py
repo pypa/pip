@@ -14,6 +14,7 @@ import shutil
 import sys
 import textwrap
 import warnings
+import zlib
 from base64 import urlsafe_b64encode
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from email.message import Message
@@ -27,7 +28,6 @@ from typing import (
     Protocol,
     cast,
 )
-import zlib
 from zipfile import BadZipFile, ZipFile, ZipInfo
 
 from pip._vendor.distlib.scripts import ScriptMaker
