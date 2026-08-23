@@ -50,7 +50,7 @@ def test_save_linked_requirement_copy_failure_leaves_no_partial_file(
         with pytest.raises(OSError):
             RequirementPreparer.save_linked_requirement(preparer, req)
 
-    assert not (download_dir / "simple-1.0.tar.gz").exists()
+    assert not list(download_dir.iterdir())
 
 
 def test_unpack_url_with_urllib_response_without_content_type(data: TestData) -> None:

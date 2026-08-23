@@ -37,7 +37,7 @@ def test_handle_target_dir_move_failure_leaves_no_partial_item(
                 str(target_dir), target_temp_dir, upgrade=False
             )
 
-    assert not (target_dir / "package").exists()
+    assert not list(target_dir.iterdir())
 
 
 class TestDecideUserInstall:
