@@ -396,10 +396,15 @@ class MultiDomainBasicAuth(AuthBase):
 
         # If we don't have a password and keyring is available, use it.
         if allow_keyring:
-            # The index url is more specific than the netloc, so try it first
+            # The index url is more specific than the netloc, so try it first.
+            # For netloc, use pip-specific service name to avoid collisions
+            # with other apps that may use the same domain (see #14269).
+            # Also try the unprefixed netloc for backwards compatibility with
+            # credentials saved before the fix.
             # fmt: off
             kr_auth = (
                 self._get_keyring_auth(index_url, username) or
+                self._get_keyring_auth(f"pip:{netloc}", username) or
                 self._get_keyring_auth(netloc, username)
             )
             # fmt: on
@@ -533,7 +538,7 @@ class MultiDomainBasicAuth(AuthBase):
             # Prompt to save the password to keyring
             if save and self._should_save_password_to_keyring():
                 self._credentials_to_save = Credentials(
-                    url=parsed.netloc,
+                    url=f"pip:{parsed.netloc}",
                     username=username,
                     password=password,
                 )
