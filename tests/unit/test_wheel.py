@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import os
 import pathlib
 import sys
 import textwrap
+import threading
+import warnings
 from email import message_from_string
 from pathlib import Path
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 
@@ -673,6 +676,235 @@ class TestWheelHashCalculators:
         h, length = wheel.rehash(os.fspath(self.test_file))
         assert length == str(self.test_file_len)
         assert h == self.test_file_hash_encoded
+
+
+def set_parallel_cpu_count(monkeypatch: pytest.MonkeyPatch, count: int = 2) -> None:
+    monkeypatch.setattr(wheel.os, "process_cpu_count", lambda: count, raising=False)
+    monkeypatch.setattr(wheel.os, "cpu_count", lambda: count)
+
+
+def test_compile_bytecode_serial(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+    with patch.object(
+        wheel.compileall, "compile_file", side_effect=[True, False]
+    ) as compile_file:
+        results = list(wheel._compile_bytecode(["first.py", "second.py"]))
+
+    assert results == [("first.py", True), ("second.py", False)]
+    assert compile_file.call_args_list == [
+        call("first.py", force=True, quiet=True),
+        call("second.py", force=True, quiet=True),
+    ]
+
+
+def test_compile_bytecode_windows_small_wheel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    paths = [f"{index}.py" for index in range(7)]
+    with patch.object(
+        wheel.compileall, "compile_file", return_value=True
+    ) as compile_file:
+        results = list(wheel._compile_bytecode(paths))
+
+    assert results == [(path, True) for path in paths]
+    assert compile_file.call_args_list == [
+        call(path, force=True, quiet=True) for path in paths
+    ]
+
+
+def test_compile_bytecode_windows_parallel(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
+    sources = [tmp_path / f"source-{index}.py" for index in range(8)]
+    for index, source in enumerate(sources):
+        source.write_text(f"value = {index}", encoding="utf-8")
+    sources[1].write_text("invalid syntax!", encoding="utf-8")
+    sources[5].write_text("also invalid syntax!", encoding="utf-8")
+
+    results = list(wheel._compile_bytecode(map(os.fspath, sources)))
+
+    assert results == [
+        (os.fspath(source), index not in (1, 5)) for index, source in enumerate(sources)
+    ]
+    output = capsys.readouterr().out
+    assert output.count("SyntaxError") == 2
+    assert output.index(os.fspath(sources[1])) < output.index(os.fspath(sources[5]))
+
+
+def test_compile_bytecode_windows_output_collision_is_serial(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
+    paths = [f"{index}.py" for index in range(8)]
+
+    def output_path(path: str) -> str:
+        if path in paths[:2]:
+            return "shared.pyc"
+        return f"{path}.pyc"
+
+    with (
+        patch.object(
+            wheel.importlib.util, "cache_from_source", side_effect=output_path
+        ),
+        patch.object(
+            wheel.compileall, "compile_file", return_value=True
+        ) as compile_file,
+        patch("concurrent.futures.ThreadPoolExecutor") as thread_pool,
+    ):
+        results = list(wheel._compile_bytecode(paths))
+
+    assert results == [(path, True) for path in paths]
+    assert compile_file.call_args_list == [
+        call(path, force=True, quiet=True) for path in paths
+    ]
+    thread_pool.assert_not_called()
+
+
+@pytest.mark.skipif(not WINDOWS, reason="requires case-insensitive Windows paths")
+def test_compile_bytecode_windows_case_alias_is_serial(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    set_parallel_cpu_count(monkeypatch)
+    upper = os.fspath(tmp_path / "CaseAlias.py")
+    lower = os.fspath(tmp_path / "casealias.py")
+    Path(upper).write_text("value = 1", encoding="utf-8")
+    assert os.path.samefile(upper, lower)
+    paths = [upper, lower, *(f"{index}.py" for index in range(6))]
+
+    with (
+        patch.object(wheel.compileall, "compile_file", return_value=True),
+        patch("concurrent.futures.ThreadPoolExecutor") as thread_pool,
+    ):
+        results = list(wheel._compile_bytecode(paths))
+
+    assert results == [(path, True) for path in paths]
+    thread_pool.assert_not_called()
+
+
+def test_compile_bytecode_windows_parallel_exception(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
+    paths = [f"{index}.py" for index in range(8)]
+    warning_filters = list(warnings.filters)
+
+    def compile_file(path: str, *, force: bool, quiet: int) -> bool:
+        print(path)
+        if path == "3.py":
+            raise OSError("access denied")
+        return True
+
+    with (
+        patch.object(wheel.compileall, "compile_file", side_effect=compile_file),
+        pytest.raises(OSError, match="access denied"),
+    ):
+        list(wheel._compile_bytecode(paths))
+
+    assert not any(
+        thread.name.startswith("ThreadPoolExecutor") for thread in threading.enumerate()
+    )
+    assert capsys.readouterr().out.splitlines() == paths[:4]
+    assert warnings.filters == warning_filters
+
+
+def test_compile_bytecode_windows_parallel_compiles_once(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    recwarn: pytest.WarningsRecorder,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
+    paths = [f"{index}.py" for index in range(8)]
+    warning_filters = list(warnings.filters)
+
+    def compile_file(path: str, *, force: bool, quiet: bool) -> bool:
+        warnings.warn("ignored", SyntaxWarning, stacklevel=2)
+        print(path)
+        return path != "3.py"
+
+    with patch.object(
+        wheel.compileall, "compile_file", side_effect=compile_file
+    ) as mocked_compile_file:
+        results = list(wheel._compile_bytecode(paths))
+
+    assert results == [(path, path != "3.py") for path in paths]
+    assert mocked_compile_file.call_count == len(paths)
+    assert capsys.readouterr().out.splitlines() == paths
+    assert not recwarn
+    assert warnings.filters == warning_filters
+
+
+def test_compile_bytecode_windows_parallel_stdout_proxy(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
+    paths = [f"{index}.py" for index in range(8)]
+    compile_started = threading.Event()
+    stdout_inspected = threading.Event()
+    observed: dict[str, object] = {}
+    expected = {
+        "isatty": sys.stdout.isatty(),
+        "errors": sys.stdout.errors,
+    }
+
+    def inspect_stdout() -> None:
+        assert compile_started.wait(timeout=5)
+        try:
+            observed["isatty"] = sys.stdout.isatty()
+            observed["errors"] = sys.stdout.errors
+        except BaseException as error:
+            observed["error"] = error
+        finally:
+            stdout_inspected.set()
+
+    def compile_file(path: str, *, force: bool, quiet: bool) -> bool:
+        compile_started.set()
+        assert stdout_inspected.wait(timeout=5)
+        sys.stdout.writelines([path, "\n"])
+        return True
+
+    observer = threading.Thread(target=inspect_stdout)
+    observer.start()
+    try:
+        with patch.object(wheel.compileall, "compile_file", side_effect=compile_file):
+            results = list(wheel._compile_bytecode(paths))
+    finally:
+        observer.join(timeout=5)
+
+    assert results == [(path, True) for path in paths]
+    assert observed == expected
+    assert capsys.readouterr().out.splitlines() == paths
+
+
+def test_compile_bytecode_windows_parallel_early_close(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
+    warning_filters = list(warnings.filters)
+    results = wheel._compile_bytecode(f"{index}.py" for index in range(8))
+
+    with (
+        patch.object(wheel.compileall, "compile_file", return_value=True),
+        contextlib.closing(results),
+    ):
+        assert next(results) == ("0.py", True)
+
+    assert not any(
+        thread.name.startswith("ThreadPoolExecutor") for thread in threading.enumerate()
+    )
+    assert warnings.filters == warning_filters
 
 
 def test_get_console_script_specs_replaces_python_version(

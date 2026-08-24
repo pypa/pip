@@ -67,6 +67,9 @@ logger = logging.getLogger(__name__)
 RecordPath = NewType("RecordPath", str)
 InstalledCSVRow = tuple[RecordPath, str, int | str]
 
+_WINDOWS_BYTECODE_MIN_FILES = 8
+_WINDOWS_BYTECODE_MAX_WORKERS = 8
+
 
 def rehash(path: str, blocksize: int = 1 << 20) -> tuple[str, str]:
     """Return (encoded_digest, length) for path using hashlib.sha256()"""
@@ -420,6 +423,98 @@ def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
         )
 
 
+def _compile_bytecode(
+    source_paths: Iterable[str],
+) -> Generator[tuple[str, bool], None, None]:
+    """Compile sources, using bounded threads for larger Windows wheels.
+
+    Windows real-time scanners make bytecode compilation substantially I/O-bound.
+    Threads overlap that work without the process startup and self-upgrade hazards
+    of process-based workers. Results and diagnostics remain in source order.
+    """
+    paths = list(source_paths)
+    cpu_count = getattr(os, "process_cpu_count", os.cpu_count)() or 1
+    max_workers = min(_WINDOWS_BYTECODE_MAX_WORKERS, len(paths), cpu_count)
+    use_parallel = (
+        sys.platform == "win32"
+        and len(paths) >= _WINDOWS_BYTECODE_MIN_FILES
+        and max_workers >= 2
+    )
+
+    if use_parallel:
+        # Case-insensitive aliases can target the same pyc on Windows. Preserve
+        # the existing deterministic serial behavior instead of racing writes.
+        output_paths = {
+            os.path.normcase(os.path.abspath(importlib.util.cache_from_source(path)))
+            for path in paths
+        }
+        use_parallel = len(output_paths) == len(paths)
+
+    if not use_parallel:
+        for path in paths:
+            yield path, compileall.compile_file(path, force=True, quiet=True)
+        return
+
+    from concurrent.futures import ThreadPoolExecutor
+    from contextvars import ContextVar, copy_context
+    from io import StringIO
+
+    output_buffer: ContextVar[StringIO | None] = ContextVar(
+        "bytecode_compile_output", default=None
+    )
+    stdout = sys.stdout
+
+    class ThreadLocalOutput:
+        @property
+        def encoding(self) -> str:
+            return stdout.encoding
+
+        def write(self, text: str) -> int:
+            buffer = output_buffer.get()
+            return (buffer if buffer is not None else stdout).write(text)
+
+        def writelines(self, lines: Iterable[str]) -> None:
+            for line in lines:
+                self.write(line)
+
+        def flush(self) -> None:
+            buffer = output_buffer.get()
+            (buffer if buffer is not None else stdout).flush()
+
+        def __getattr__(self, name: str) -> Any:
+            return getattr(stdout, name)
+
+    def compile_file(path: str) -> tuple[bool | None, str, BaseException | None]:
+        buffer = StringIO()
+        token = output_buffer.set(buffer)
+        try:
+            try:
+                success = compileall.compile_file(path, force=True, quiet=True)
+            except BaseException as error:
+                return None, buffer.getvalue(), error
+        finally:
+            output_buffer.reset(token)
+        return success, buffer.getvalue(), None
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        with contextlib.redirect_stdout(ThreadLocalOutput()):
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(copy_context().run, compile_file, path)
+                    for path in paths
+                ]
+                for index, (path, future) in enumerate(zip(paths, futures)):
+                    success, output, error = future.result()
+                    sys.stdout.write(output)
+                    if error is not None:
+                        for pending in futures[index + 1 :]:
+                            pending.cancel()
+                        raise error
+                    assert success is not None
+                    yield path, success
+
+
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
@@ -635,15 +730,17 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         ) as stdout:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                for path in pyc_source_file_paths():
-                    success = compileall.compile_file(path, force=True, quiet=True)
-                    if success:
-                        pyc_path = pyc_output_path(path)
-                        assert os.path.exists(pyc_path)
-                        pyc_record_path = cast(
-                            "RecordPath", pyc_path.replace(os.path.sep, "/")
-                        )
-                        record_installed(pyc_record_path, pyc_path)
+                with contextlib.closing(
+                    _compile_bytecode(pyc_source_file_paths())
+                ) as bytecode_results:
+                    for path, success in bytecode_results:
+                        if success:
+                            pyc_path = pyc_output_path(path)
+                            assert os.path.exists(pyc_path)
+                            pyc_record_path = cast(
+                                "RecordPath", pyc_path.replace(os.path.sep, "/")
+                            )
+                            record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
