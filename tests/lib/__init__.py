@@ -959,7 +959,9 @@ def _vcs_add(
     vcs: str = "git",
 ) -> pathlib.Path:
     if vcs == "git":
-        subprocess.check_call(["git", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            ["git", "init", "-b", "master"], cwd=os.fspath(version_pkg_path)
+        )
         subprocess.check_call(["git", "add", "."], cwd=os.fspath(version_pkg_path))
         subprocess.check_call(
             ["git", "commit", "-m", "initial version"], cwd=os.fspath(version_pkg_path)

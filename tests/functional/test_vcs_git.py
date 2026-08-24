@@ -128,7 +128,7 @@ def test_get_remote_url__no_remote(
 def test_get_current_branch(script: PipTestEnvironment) -> None:
     repo_dir = str(script.scratch_path)
 
-    script.run("git", "init", cwd=repo_dir)
+    script.run("git", "init", "-b", "master", cwd=repo_dir)
     sha = do_commit(script, repo_dir)
 
     assert Git.get_current_branch(repo_dir) == "master"
@@ -269,7 +269,7 @@ def test_resolve_commit_not_on_branch(
     repo_file = repo_path / "file.txt"
     clone_path = repo_path / "clone"
     repo_path.mkdir()
-    script.run("git", "init", cwd=str(repo_path))
+    script.run("git", "init", "-b", "master", cwd=str(repo_path))
 
     repo_file.write_text(".")
     script.run("git", "add", "file.txt", cwd=str(repo_path))
