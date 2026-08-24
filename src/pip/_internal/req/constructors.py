@@ -585,11 +585,18 @@ def install_req_from_pylock_package(
     ),
     pylock_path_or_url: str,
     user_supplied: bool,
+    constraint: bool = False,
 ) -> tuple[InstallRequirement, Link | None]:
     """Construct an InstallRequirement from a pylock package and artifact.
 
     If the artifact is a Sdist or Wheel, also return a locked Link which
     is meant to override candidates from indexes or --find-links.
+
+    ``constraint=True`` is only meaningful for Wheel/Sdist (the only forms
+    that produce a plain ``name==version`` requirement); for VCS/Archive/
+    editable-Directory it still builds the requirement so pip's existing
+    constraint-type validation rejects it with its normal error, same as
+    a classic URL-form ``-c`` constraint already is.
     """
     # TODO: validate file size
     if isinstance(package_dist, pylock.PackageVcs):
@@ -599,6 +606,7 @@ def install_req_from_pylock_package(
                 req=Requirement(f"{package.name} @ {req_url}"),
                 comes_from=pylock_path_or_url,
                 user_supplied=user_supplied,
+                constraint=constraint,
             ),
             None,
         )
@@ -610,6 +618,7 @@ def install_req_from_pylock_package(
                 comes_from=pylock_path_or_url,
                 hash_options=_pylock_hashes_to_hash_options(package_dist.hashes),
                 user_supplied=user_supplied,
+                constraint=constraint,
             ),
             None,
         )
@@ -621,6 +630,7 @@ def install_req_from_pylock_package(
                     req_url,
                     comes_from=pylock_path_or_url,
                     user_supplied=user_supplied,
+                    constraint=constraint,
                 ),
                 None,
             )
@@ -630,6 +640,7 @@ def install_req_from_pylock_package(
                     req_url,
                     comes_from=pylock_path_or_url,
                     user_supplied=user_supplied,
+                    constraint=constraint,
                 ),
                 None,
             )
@@ -648,15 +659,27 @@ def install_req_from_pylock_package(
             requirement_url = package_sdist_requirement_url(
                 pylock_path_or_url, package_dist
             )
+        # hashes= (not just hash_options on the ireq below): needed so
+        # Constraint.from_ireq()/InstallRequirement.hashes() can still find
+        # the hash when this Link is used to build a resolver candidate --
+        # see the factory.py comment in _iter_candidates_from_constraints().
+        locked_link = Link(
+            requirement_url,
+            comes_from=pylock_path_or_url,
+            upload_time=package_dist.upload_time,
+            hashes=dict(package_dist.hashes),
+        )
         ireq = InstallRequirement(
             req=Requirement(f"{package.name}=={version}"),
             comes_from=pylock_path_or_url,
             hash_options=_pylock_hashes_to_hash_options(package_dist.hashes),
             user_supplied=user_supplied,
-        )
-        locked_link = Link(
-            requirement_url,
-            comes_from=pylock_path_or_url,
-            upload_time=package_dist.upload_time,
+            constraint=constraint,
+            # Only for constraints: an already-pinned requirement given
+            # elsewhere (`-c pylock.toml foo==1.0`) resolves via its own
+            # candidate lookup, never consulting the finder's locked links
+            # (registered separately by the caller from the returned Link)
+            # -- it needs the hash on this ireq's own .link to be found.
+            link=locked_link if constraint else None,
         )
         return ireq, locked_link

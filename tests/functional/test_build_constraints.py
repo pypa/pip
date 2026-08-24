@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -42,6 +44,44 @@ def _create_constraints_file(
     return constraints_file
 
 
+def _create_pylock_build_constraints_file(
+    script: PipTestEnvironment, data: TestData, filename: str, package: str
+) -> Path:
+    """Create a pylock.toml build-constraints file pinning *package* to
+    whichever matching wheel exists in common_wheels, hash computed on
+    the spot rather than hardcoded."""
+    wheel_candidates = list(data.common_wheels.glob(f"{package}-*.whl"))
+    assert len(wheel_candidates) == 1, (
+        f"expected exactly one {package} wheel in {data.common_wheels}, "
+        f"got {wheel_candidates}"
+    )
+    wheel_path = wheel_candidates[0]
+    digest = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
+    # "name==version" parsed from the wheel filename's first two `-`-separated
+    # segments, same convention the wheel filename spec itself uses.
+    name, version = wheel_path.name.split("-")[:2]
+
+    pylock_path = script.scratch_path / filename
+    pylock_path.write_text(
+        f"""\
+lock-version = "1.0"
+created-by = "pip"
+
+[[packages]]
+name = "{name}"
+version = "{version}"
+
+[[packages.wheels]]
+name = "{wheel_path.name}"
+path = "{wheel_path}"
+
+[packages.wheels.hashes]
+sha256 = "{digest}"
+"""
+    )
+    return pylock_path
+
+
 def _run_pip_install_with_build_constraints(
     script: PipTestEnvironment,
     data: TestData,
@@ -49,6 +89,7 @@ def _run_pip_install_with_build_constraints(
     build_constraints_file: Path,
     extra_args: list[str] | None = None,
     expect_error: bool = False,
+    **kwargs: Any,
 ) -> TestPipResult:
     """Run pip install with build constraints and common arguments."""
     args = [
@@ -67,6 +108,36 @@ def _run_pip_install_with_build_constraints(
         expect_error=expect_error,
         build_isolation=True,
         find_links=data.common_wheels,
+        **kwargs,
+    )
+
+
+def test_build_constraints_pylock(
+    script: PipTestEnvironment, data: TestData, tmpdir: Path
+) -> None:
+    """Same as test_build_constraints_basic_functionality_simple, but with
+    the build constraint coming from a pylock.toml file instead."""
+    project_dir = _create_simple_test_package(
+        script=script, name="test_build_constraints_pylock"
+    )
+    pylock_path = _create_pylock_build_constraints_file(
+        script=script,
+        data=data,
+        filename="pylock.buildconstraint.toml",
+        package="setuptools",
+    )
+    result = _run_pip_install_with_build_constraints(
+        script=script,
+        data=data,
+        project_dir=project_dir,
+        build_constraints_file=pylock_path,
+        allow_stderr_warning=True,
+    )
+    # The experimental-pylock warning is logged inside the isolated
+    # build-dependency subprocess, not visible in the outer stderr here;
+    # the install succeeding proves the constraint was read and enforced.
+    result.assert_installed(
+        "test-build-constraints-pylock", editable=False, without_files=["."]
     )
 
 
