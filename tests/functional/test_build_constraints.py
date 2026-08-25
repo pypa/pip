@@ -62,8 +62,7 @@ def _create_pylock_build_constraints_file(
     name, version = wheel_path.name.split("-")[:2]
 
     pylock_path = script.scratch_path / filename
-    pylock_path.write_text(
-        f"""\
+    pylock_path.write_text(f"""\
 lock-version = "1.0"
 created-by = "pip"
 
@@ -77,8 +76,7 @@ path = "{wheel_path}"
 
 [packages.wheels.hashes]
 sha256 = "{digest}"
-"""
-    )
+""")
     return pylock_path
 
 
