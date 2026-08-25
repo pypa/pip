@@ -301,9 +301,7 @@ def test_new_resolver_hash_url_constraint_for_transitive_dependency_can_succeed(
     never a direct requirement -- the constraint is the only source of a hash
     for it.
     """
-    base_path = create_basic_wheel_for_package(
-        script, "base", "0.1.0", depends=["dep"]
-    )
+    base_path = create_basic_wheel_for_package(script, "base", "0.1.0", depends=["dep"])
     base_hash = hashlib.sha256(base_path.read_bytes()).hexdigest()
     dep_path = create_basic_wheel_for_package(script, "dep", "0.1.0")
     dep_hash = hashlib.sha256(dep_path.read_bytes()).hexdigest()
@@ -337,9 +335,7 @@ def test_new_resolver_hash_url_constraint_for_transitive_dependency_can_fail(
     rejected, not silently accepted just because the hash came from a
     constraint rather than a direct requirement.
     """
-    base_path = create_basic_wheel_for_package(
-        script, "base", "0.1.0", depends=["dep"]
-    )
+    base_path = create_basic_wheel_for_package(script, "base", "0.1.0", depends=["dep"])
     base_hash = hashlib.sha256(base_path.read_bytes()).hexdigest()
     dep_path = create_basic_wheel_for_package(script, "dep", "0.1.0")
     other_path = create_basic_wheel_for_package(script, "other", "0.1.0")
