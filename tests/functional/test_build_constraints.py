@@ -72,7 +72,7 @@ version = "{version}"
 
 [[packages.wheels]]
 name = "{wheel_path.name}"
-path = "{wheel_path}"
+path = "{wheel_path.as_posix()}"
 
 [packages.wheels.hashes]
 sha256 = "{digest}"
