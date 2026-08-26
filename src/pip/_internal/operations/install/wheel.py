@@ -425,6 +425,8 @@ def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
 
 def _compile_bytecode(
     source_paths: Iterable[str],
+    *,
+    parallel: bool = True,
 ) -> Generator[tuple[str, bool], None, None]:
     """Compile sources, using bounded threads for larger Windows wheels.
 
@@ -436,7 +438,8 @@ def _compile_bytecode(
     cpu_count = getattr(os, "process_cpu_count", os.cpu_count)() or 1
     max_workers = min(_WINDOWS_BYTECODE_MAX_WORKERS, len(paths), cpu_count)
     use_parallel = (
-        sys.platform == "win32"
+        parallel
+        and sys.platform == "win32"
         and len(paths) >= _WINDOWS_BYTECODE_MIN_FILES
         and max_workers >= 2
     )
@@ -456,63 +459,54 @@ def _compile_bytecode(
         return
 
     from concurrent.futures import ThreadPoolExecutor
-    from contextvars import ContextVar, copy_context
-    from io import StringIO
+    from contextvars import copy_context
 
-    output_buffer: ContextVar[StringIO | None] = ContextVar(
-        "bytecode_compile_output", default=None
-    )
-    stdout = sys.stdout
-
-    class ThreadLocalOutput:
-        @property
-        def encoding(self) -> str:
-            return stdout.encoding
-
-        def write(self, text: str) -> int:
-            buffer = output_buffer.get()
-            return (buffer if buffer is not None else stdout).write(text)
-
-        def writelines(self, lines: Iterable[str]) -> None:
-            for line in lines:
-                self.write(line)
-
-        def flush(self) -> None:
-            buffer = output_buffer.get()
-            (buffer if buffer is not None else stdout).flush()
-
-        def __getattr__(self, name: str) -> Any:
-            return getattr(stdout, name)
-
-    def compile_file(path: str) -> tuple[bool | None, str, BaseException | None]:
-        buffer = StringIO()
-        token = output_buffer.set(buffer)
-        try:
-            try:
-                success = compileall.compile_file(path, force=True, quiet=True)
-            except BaseException as error:
-                return None, buffer.getvalue(), error
-        finally:
-            output_buffer.reset(token)
-        return success, buffer.getvalue(), None
+    def compile_file(path: str) -> bool:
+        # Workers suppress diagnostics so they never need to replace process-wide
+        # stdout. Failed files are retried serially to emit ordered diagnostics.
+        return compileall.compile_file(path, force=True, quiet=2)
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        with contextlib.redirect_stdout(ThreadLocalOutput()):
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        try:
+            executor = ThreadPoolExecutor(max_workers=max_workers)
+        except (MemoryError, OSError, RuntimeError):
+            logger.debug(
+                "Falling back to serial bytecode compilation because the "
+                "thread pool could not be created.",
+                exc_info=True,
+            )
+        else:
+            try:
                 futures = [
                     executor.submit(copy_context().run, compile_file, path)
                     for path in paths
                 ]
-                for index, (path, future) in enumerate(zip(paths, futures)):
-                    success, output, error = future.result()
-                    sys.stdout.write(output)
-                    if error is not None:
-                        for pending in futures[index + 1 :]:
-                            pending.cancel()
-                        raise error
-                    assert success is not None
-                    yield path, success
+            except (MemoryError, OSError, RuntimeError):
+                executor.shutdown(wait=True, cancel_futures=True)
+                logger.debug(
+                    "Falling back to serial bytecode compilation because work "
+                    "could not be submitted to the thread pool.",
+                    exc_info=True,
+                )
+            else:
+                with executor:
+                    for index, (path, future) in enumerate(zip(paths, futures)):
+                        try:
+                            success = future.result()
+                        except BaseException:
+                            for pending in futures[index + 1 :]:
+                                pending.cancel()
+                            raise
+                        if not success:
+                            success = compileall.compile_file(
+                                path, force=True, quiet=True
+                            )
+                        yield path, success
+                return
+
+        for path in paths:
+            yield path, compileall.compile_file(path, force=True, quiet=True)
 
 
 class PipScriptMaker(ScriptMaker):
@@ -543,6 +537,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     direct_url: DirectUrl | None = None,
     requested: bool = False,
     script_executable: str | None = None,
+    parallel_pycompile: bool = True,
 ) -> None:
     """Install a wheel.
 
@@ -555,6 +550,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     :param warn_script_location: Whether to check that scripts are installed
         into a directory on PATH
     :param script_executable: Python executable to use for console scripts
+    :param parallel_pycompile: Whether to parallelize byte-compilation
     :raises UnsupportedWheel:
         * when the directory holds an unpacked wheel with incompatible
           Wheel-Version
@@ -731,7 +727,10 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 with contextlib.closing(
-                    _compile_bytecode(pyc_source_file_paths())
+                    _compile_bytecode(
+                        pyc_source_file_paths(),
+                        parallel=parallel_pycompile,
+                    )
                 ) as bytecode_results:
                     for path, success in bytecode_results:
                         if success:
@@ -851,6 +850,7 @@ def install_wheel(
     direct_url: DirectUrl | None = None,
     requested: bool = False,
     script_executable: str | None = None,
+    parallel_pycompile: bool = True,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
@@ -860,6 +860,7 @@ def install_wheel(
                 wheel_path=wheel_path,
                 scheme=scheme,
                 pycompile=pycompile,
+                parallel_pycompile=parallel_pycompile,
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,

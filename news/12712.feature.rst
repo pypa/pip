@@ -1,1 +1,2 @@
-Speed up wheel bytecode compilation for larger wheels on Windows.
+Speed up wheel bytecode compilation for larger wheels on Windows. Use
+``--no-parallel-compile`` to retain serial compilation.

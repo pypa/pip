@@ -309,6 +309,14 @@ class InstallCommand(RequirementCommand):
         )
 
         self.cmd_opts.add_option(
+            "--no-parallel-compile",
+            action="store_false",
+            dest="parallel_compile",
+            default=True,
+            help="Compile Python source files serially",
+        )
+
+        self.cmd_opts.add_option(
             "--no-warn-script-location",
             action="store_false",
             dest="warn_script_location",
@@ -561,6 +569,7 @@ class InstallCommand(RequirementCommand):
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
+                parallel_pycompile=options.parallel_compile,
                 progress_bar=options.progress_bar,
             )
 
