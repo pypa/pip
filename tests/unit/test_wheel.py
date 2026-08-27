@@ -682,6 +682,7 @@ class TestWheelHashCalculators:
 def set_parallel_cpu_count(monkeypatch: pytest.MonkeyPatch, count: int = 2) -> None:
     monkeypatch.setattr(wheel.os, "process_cpu_count", lambda: count, raising=False)
     monkeypatch.setattr(wheel.os, "cpu_count", lambda: count)
+    monkeypatch.setattr(wheel.sysconfig, "get_config_var", lambda _name: 0)
 
 
 def test_compile_bytecode_serial(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -728,6 +729,29 @@ def test_compile_bytecode_windows_parallel_disabled(
         patch("concurrent.futures.ThreadPoolExecutor") as thread_pool,
     ):
         results = list(wheel._compile_bytecode(paths, parallel=False))
+
+    assert results == [(path, True) for path in paths]
+    assert compile_file.call_args_list == [
+        call(path, force=True, quiet=True) for path in paths
+    ]
+    thread_pool.assert_not_called()
+
+
+def test_compile_bytecode_windows_free_threaded_is_serial(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
+    monkeypatch.setattr(wheel.sysconfig, "get_config_var", lambda _name: 1)
+    paths = [f"{index}.py" for index in range(8)]
+
+    with (
+        patch.object(
+            wheel.compileall, "compile_file", return_value=True
+        ) as compile_file,
+        patch("concurrent.futures.ThreadPoolExecutor") as thread_pool,
+    ):
+        results = list(wheel._compile_bytecode(paths))
 
     assert results == [(path, True) for path in paths]
     assert compile_file.call_args_list == [

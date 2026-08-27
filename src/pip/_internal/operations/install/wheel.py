@@ -12,6 +12,7 @@ import os.path
 import re
 import shutil
 import sys
+import sysconfig
 import textwrap
 import warnings
 from base64 import urlsafe_b64encode
@@ -69,6 +70,10 @@ InstalledCSVRow = tuple[RecordPath, str, int | str]
 
 _WINDOWS_BYTECODE_MIN_FILES = 8
 _WINDOWS_BYTECODE_MAX_WORKERS = 8
+
+
+def _is_free_threaded_build() -> bool:
+    return bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
 def rehash(path: str, blocksize: int = 1 << 20) -> tuple[str, str]:
@@ -432,7 +437,8 @@ def _compile_bytecode(
 
     Windows real-time scanners make bytecode compilation substantially I/O-bound.
     Threads overlap that work without the process startup and self-upgrade hazards
-    of process-based workers. Results and diagnostics remain in source order.
+    of process-based workers. Free-threaded builds remain serial to preserve
+    byte-for-byte output. Results and diagnostics remain in source order.
     """
     paths = list(source_paths)
     cpu_count = getattr(os, "process_cpu_count", os.cpu_count)() or 1
@@ -440,6 +446,10 @@ def _compile_bytecode(
     use_parallel = (
         parallel
         and sys.platform == "win32"
+        # Concurrent compilation on free-threaded CPython can produce
+        # semantically equivalent but byte-wise different marshal output even
+        # when that build runs with its GIL enabled.
+        and not _is_free_threaded_build()
         and len(paths) >= _WINDOWS_BYTECODE_MIN_FILES
         and max_workers >= 2
     )

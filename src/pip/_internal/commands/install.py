@@ -9,7 +9,7 @@ import shutil
 import site
 import sys
 from collections.abc import Iterator
-from optparse import SUPPRESS_HELP, Values
+from optparse import SUPPRESS_HELP, Option, OptionParser, Values
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +56,7 @@ from pip._internal.utils.misc import (
     ensure_dir,
     get_pip_version,
     protect_pip_from_modification_on_windows,
+    strtobool,
     warn_if_run_as_root,
     write_output,
 )
@@ -138,6 +139,24 @@ def _arg_refers_to_pip(arg: str) -> bool:
     except InvalidRequirement:
         return False
     return canonicalize_name(req.name) == "pip"
+
+
+def _handle_no_parallel_compile(
+    option: Option,
+    _opt: str,
+    value: str | None,
+    parser: OptionParser,
+) -> None:
+    values = parser.values
+    assert values is not None
+    if value is None:
+        values.parallel_compile = False
+        return
+    try:
+        disabled = strtobool(value)
+    except ValueError as exc:
+        cmdoptions.raise_option_error(parser, option=option, msg=str(exc))
+    values.parallel_compile = not disabled
 
 
 class InstallCommand(RequirementCommand):
@@ -310,7 +329,8 @@ class InstallCommand(RequirementCommand):
 
         self.cmd_opts.add_option(
             "--no-parallel-compile",
-            action="store_false",
+            action="callback",
+            callback=_handle_no_parallel_compile,
             dest="parallel_compile",
             default=True,
             help="Compile Python source files serially",
