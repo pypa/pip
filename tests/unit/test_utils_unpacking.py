@@ -13,7 +13,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import (
@@ -201,12 +200,7 @@ class TestUnpackArchives:
         with pytest.raises(InstallationError) as e:
             untar_file(test_tar, self.tempdir)
 
-        # The error message comes from tarfile.data_filter when it is available,
-        # otherwise from pip's own check.
-        if hasattr(tarfile, "data_filter"):
-            assert "is outside the destination" in str(e.value)
-        else:
-            assert "trying to install outside target directory" in str(e.value)
+        assert "is outside the destination" in str(e.value)
 
     def test_unpack_tar_success(self) -> None:
         """
@@ -222,10 +216,6 @@ class TestUnpackArchives:
         test_tar = self.make_tar_file("test_tar.tar", files)
         untar_file(test_tar, self.tempdir)
 
-    @pytest.mark.skipif(
-        not hasattr(tarfile, "data_filter"),
-        reason="tarfile filters (PEP-721) not available",
-    )
     def test_unpack_tar_filter(self) -> None:
         """
         Test that the tarfile.data_filter is used to disallow dangerous
@@ -282,216 +272,6 @@ class TestUnpackArchives:
 
         with open(os.path.join(unpack_dir, "symlink.txt"), "rb") as f:
             assert f.read() == content
-
-    def test_unpack_normal_tar_link1_no_data_filter(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
-        """
-        Test unpacking a normal tar with file containing soft links, but no data_filter
-        """
-        if hasattr(tarfile, "data_filter"):
-            monkeypatch.delattr("tarfile.data_filter")
-
-        tar_filename = "test_tar_links_no_data_filter.tar"
-        tar_filepath = os.path.join(self.tempdir, tar_filename)
-
-        extract_path = os.path.join(self.tempdir, "extract_path")
-
-        with tarfile.open(tar_filepath, "w") as tar:
-            file_data = io.BytesIO(b"normal\n")
-            normal_file_tarinfo = tarfile.TarInfo(name="normal_file")
-            normal_file_tarinfo.size = len(file_data.getbuffer())
-            tar.addfile(normal_file_tarinfo, fileobj=file_data)
-
-            info = tarfile.TarInfo("normal_symlink")
-            info.type = tarfile.SYMTYPE
-            info.linkpath = "normal_file"
-            tar.addfile(info)
-
-        untar_file(tar_filepath, extract_path)
-
-        assert os.path.islink(os.path.join(extract_path, "normal_symlink"))
-
-        link_path = os.readlink(os.path.join(extract_path, "normal_symlink"))
-        assert link_path == "normal_file"
-
-        with open(os.path.join(extract_path, "normal_symlink"), "rb") as f:
-            assert f.read() == b"normal\n"
-
-    def test_unpack_normal_tar_link2_no_data_filter(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
-        """
-        Test unpacking a normal tar with file containing soft links, but no data_filter
-        """
-        if hasattr(tarfile, "data_filter"):
-            monkeypatch.delattr("tarfile.data_filter")
-
-        tar_filename = "test_tar_links_no_data_filter.tar"
-        tar_filepath = os.path.join(self.tempdir, tar_filename)
-
-        extract_path = os.path.join(self.tempdir, "extract_path")
-
-        with tarfile.open(tar_filepath, "w") as tar:
-            file_data = io.BytesIO(b"normal\n")
-            normal_file_tarinfo = tarfile.TarInfo(name="normal_file")
-            normal_file_tarinfo.size = len(file_data.getbuffer())
-            tar.addfile(normal_file_tarinfo, fileobj=file_data)
-
-            info = tarfile.TarInfo("sub/normal_symlink")
-            info.type = tarfile.SYMTYPE
-            info.linkpath = ".." + os.path.sep + "normal_file"
-            tar.addfile(info)
-
-        untar_file(tar_filepath, extract_path)
-
-        assert os.path.islink(os.path.join(extract_path, "sub", "normal_symlink"))
-
-        link_path = os.readlink(os.path.join(extract_path, "sub", "normal_symlink"))
-        assert link_path == ".." + os.path.sep + "normal_file"
-
-        with open(os.path.join(extract_path, "sub", "normal_symlink"), "rb") as f:
-            assert f.read() == b"normal\n"
-
-    def test_unpack_evil_tar_link1_no_data_filter(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
-        """
-        Test unpacking a evil tar with file containing soft links, but no data_filter
-        """
-        if hasattr(tarfile, "data_filter"):
-            monkeypatch.delattr("tarfile.data_filter")
-
-        tar_filename = "test_tar_links_no_data_filter.tar"
-        tar_filepath = os.path.join(self.tempdir, tar_filename)
-
-        import_filename = "import_file"
-        import_filepath = os.path.join(self.tempdir, import_filename)
-        open(import_filepath, "w").close()
-
-        extract_path = os.path.join(self.tempdir, "extract_path")
-
-        with tarfile.open(tar_filepath, "w") as tar:
-            info = tarfile.TarInfo("evil_symlink")
-            info.type = tarfile.SYMTYPE
-            info.linkpath = import_filepath
-            tar.addfile(info)
-
-        with pytest.raises(InstallationError) as e:
-            untar_file(tar_filepath, extract_path)
-
-        msg = (
-            "The tar file ({}) has a file ({}) trying to install outside "
-            "target directory ({})"
-        )
-        assert msg.format(tar_filepath, "evil_symlink", import_filepath) in str(e.value)
-
-        assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
-
-    def test_unpack_evil_tar_link2_no_data_filter(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
-        """
-        Test unpacking a evil tar with file containing soft links, but no data_filter
-        """
-        if hasattr(tarfile, "data_filter"):
-            monkeypatch.delattr("tarfile.data_filter")
-
-        tar_filename = "test_tar_links_no_data_filter.tar"
-        tar_filepath = os.path.join(self.tempdir, tar_filename)
-
-        import_filename = "import_file"
-        import_filepath = os.path.join(self.tempdir, import_filename)
-        open(import_filepath, "w").close()
-
-        extract_path = os.path.join(self.tempdir, "extract_path")
-
-        link_path = ".." + os.sep + import_filename
-
-        with tarfile.open(tar_filepath, "w") as tar:
-            info = tarfile.TarInfo("evil_symlink")
-            info.type = tarfile.SYMTYPE
-            info.linkpath = link_path
-            tar.addfile(info)
-
-        with pytest.raises(InstallationError) as e:
-            untar_file(tar_filepath, extract_path)
-
-        msg = (
-            "The tar file ({}) has a file ({}) trying to install outside "
-            "target directory ({})"
-        )
-        assert msg.format(tar_filepath, "evil_symlink", link_path) in str(e.value)
-
-        assert not os.path.exists(os.path.join(extract_path, "evil_symlink"))
-
-    def test_unpack_tar_symlink_then_member_no_data_filter(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
-        """Reject a symlink to outside before a member is written through it."""
-        if hasattr(tarfile, "data_filter"):
-            monkeypatch.delattr("tarfile.data_filter")
-
-        tar_filepath = os.path.join(self.tempdir, "symlink_then_member.tar")
-        extract_path = os.path.join(self.tempdir, "extract_path")
-        outside_path = os.path.join(self.tempdir, "outside.txt")
-
-        with tarfile.open(tar_filepath, "w") as tar:
-            info = tarfile.TarInfo("outside_link")
-            info.type = tarfile.SYMTYPE
-            info.linkname = ".."
-            tar.addfile(info)
-
-            data = io.BytesIO(b"data\n")
-            info = tarfile.TarInfo("outside_link/outside.txt")
-            info.size = len(data.getbuffer())
-            tar.addfile(info, fileobj=data)
-
-            info = tarfile.TarInfo("..")
-            info.type = tarfile.DIRTYPE
-            tar.addfile(info)
-
-        with pytest.raises(InstallationError):
-            untar_file(tar_filepath, extract_path)
-
-        assert not os.path.exists(outside_path)
-        assert not os.path.exists(os.path.join(extract_path, "outside_link"))
-
-    def test_unpack_tar_nested_symlink_traversal_no_data_filter(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
-        """Reject a member that escapes through a chain of in-bounds symlinks."""
-        if hasattr(tarfile, "data_filter"):
-            monkeypatch.delattr("tarfile.data_filter")
-
-        tar_filepath = os.path.join(self.tempdir, "nested_traversal.tar")
-        extract_path = os.path.join(self.tempdir, "extract_path")
-        outside_path = os.path.join(self.tempdir, "outside.txt")
-
-        with tarfile.open(tar_filepath, "w") as tar:
-            info = tarfile.TarInfo(".")
-            info.type = tarfile.DIRTYPE
-            tar.addfile(info)
-
-            info = tarfile.TarInfo("redir")
-            info.type = tarfile.SYMTYPE
-            info.linkname = "."
-            tar.addfile(info)
-
-            info = tarfile.TarInfo("redir/up")
-            info.type = tarfile.SYMTYPE
-            info.linkname = ".."
-            tar.addfile(info)
-
-            data = io.BytesIO(b"data\n")
-            info = tarfile.TarInfo("redir/up/outside.txt")
-            info.size = len(data.getbuffer())
-            tar.addfile(info, fileobj=data)
-
-        with pytest.raises(InstallationError):
-            untar_file(tar_filepath, extract_path)
-
-        assert not os.path.exists(outside_path)
 
 
 def test_unpack_tar_unicode(tmpdir: Path) -> None:

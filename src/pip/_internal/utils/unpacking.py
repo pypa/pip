@@ -190,171 +190,61 @@ def untar_file(filename: str, location: str) -> None:
     try:
         leading = has_leading_dir([member.name for member in tar.getmembers()])
 
-        # PEP 706 added `tarfile.data_filter`, and made some other changes to
-        # Python's tarfile module (see below). The features were backported to
-        # security releases.
-        try:
-            data_filter = tarfile.data_filter
-        except AttributeError:
-            _untar_without_filter(filename, location, tar, leading)
-        else:
-            default_mode_plus_executable = _get_default_mode_plus_executable()
+        default_mode_plus_executable = _get_default_mode_plus_executable()
 
-            if leading:
-                # Strip the leading directory from all files in the archive,
-                # including hardlink targets (which are relative to the
-                # unpack location).
-                for member in tar.getmembers():
-                    name_lead, name_rest = split_leading_dir(member.name)
-                    member.name = name_rest
-                    if member.islnk():
-                        lnk_lead, lnk_rest = split_leading_dir(member.linkname)
-                        if lnk_lead == name_lead:
-                            member.linkname = lnk_rest
+        if leading:
+            # Strip the leading directory from all files in the archive,
+            # including hardlink targets (which are relative to the
+            # unpack location).
+            for member in tar.getmembers():
+                name_lead, name_rest = split_leading_dir(member.name)
+                member.name = name_rest
+                if member.islnk():
+                    lnk_lead, lnk_rest = split_leading_dir(member.linkname)
+                    if lnk_lead == name_lead:
+                        member.linkname = lnk_rest
 
-            def pip_filter(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
-                orig_mode = member.mode
+        def pip_filter(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
+            orig_mode = member.mode
+            try:
                 try:
-                    try:
-                        member = data_filter(member, location)
-                    except tarfile.LinkOutsideDestinationError:
-                        if sys.version_info[:3] in {
-                            (3, 9, 17),
-                            (3, 10, 12),
-                            (3, 11, 4),
-                        }:
-                            # The tarfile filter in specific Python versions
-                            # raises LinkOutsideDestinationError on valid input
-                            # (https://github.com/python/cpython/issues/107845)
-                            # Ignore the error there, but do use the
-                            # more lax `tar_filter`
-                            member = tarfile.tar_filter(member, location)
-                        else:
-                            raise
-                except tarfile.TarError as exc:
-                    message = "Invalid member in the tar file {}: {}"
-                    # Filter error messages mention the member name.
-                    # No need to add it here.
-                    raise InstallationError(
-                        message.format(
-                            filename,
-                            exc,
-                        )
+                    member = tarfile.data_filter(member, location)
+                except tarfile.LinkOutsideDestinationError:
+                    if sys.version_info[:3] in {
+                        (3, 10, 12),
+                        (3, 11, 4),
+                    }:
+                        # The tarfile filter in specific Python versions
+                        # raises LinkOutsideDestinationError on valid input
+                        # (https://github.com/python/cpython/issues/107845)
+                        # Ignore the error there, but do use the
+                        # more lax `tar_filter`
+                        member = tarfile.tar_filter(member, location)
+                    else:
+                        raise
+            except tarfile.TarError as exc:
+                message = "Invalid member in the tar file {}: {}"
+                # Filter error messages mention the member name.
+                # No need to add it here.
+                raise InstallationError(
+                    message.format(
+                        filename,
+                        exc,
                     )
-                if member.isfile() and orig_mode & 0o111:
-                    member.mode = default_mode_plus_executable
-                else:
-                    # See PEP 706 note above.
-                    # The PEP changed this from `int` to `Optional[int]`,
-                    # where None means "use the default". Mypy doesn't
-                    # know this yet.
-                    member.mode = None  # type: ignore [assignment]
-                return member
+                )
+            if member.isfile() and orig_mode & 0o111:
+                member.mode = default_mode_plus_executable
+            else:
+                # PEP 706 changed this from `int` to `Optional[int]`,
+                # where None means "use the default". Mypy doesn't
+                # know this yet.
+                member.mode = None  # type: ignore [assignment]
+            return member
 
-            tar.extractall(location, filter=pip_filter)
+        tar.extractall(location, filter=pip_filter)
 
     finally:
         tar.close()
-
-
-def is_symlink_target_in_tar(tar: tarfile.TarFile, tarinfo: tarfile.TarInfo) -> bool:
-    """Check if the file pointed to by the symbolic link is in the tar archive"""
-    linkname = os.path.join(os.path.dirname(tarinfo.name), tarinfo.linkname)
-
-    linkname = os.path.normpath(linkname)
-    linkname = linkname.replace("\\", "/")
-
-    try:
-        tar.getmember(linkname)
-        return True
-    except KeyError:
-        return False
-
-
-def _untar_without_filter(
-    filename: str,
-    location: str,
-    tar: tarfile.TarFile,
-    leading: bool,
-) -> None:
-    """Fallback for Python without tarfile.data_filter"""
-    # NOTE: This function can be removed once pip requires CPython ≥ 3.12.​
-    # PEP 706 added tarfile.data_filter, made tarfile extraction operations more secure.
-    # This feature is fully supported from CPython 3.12 onward.
-    for member in tar.getmembers():
-        fn = member.name
-        if leading:
-            fn = split_leading_dir(fn)[1]
-        path = os.path.join(location, fn)
-
-        # The plain check rejects textual ".." escapes; resolving symlinks also
-        # catches a later member redirected outside by an earlier member's
-        # symlink (e.g. "link/../file").
-        if not is_within_directory(location, path) or not is_within_directory(
-            location, path, resolve_symlinks=True
-        ):
-            message = (
-                "The tar file ({}) has a file ({}) trying to install "
-                "outside target directory ({})"
-            )
-            raise InstallationError(message.format(filename, path, location))
-        if member.isdir():
-            ensure_dir(path)
-        elif member.issym():
-            # Reject symlinks resolving outside the destination, so a later
-            # member cannot be written through them.
-            target = os.path.join(os.path.dirname(path), member.linkname)
-            if not is_within_directory(location, target, resolve_symlinks=True):
-                message = (
-                    "The tar file ({}) has a file ({}) trying to install "
-                    "outside target directory ({})"
-                )
-                raise InstallationError(
-                    message.format(filename, member.name, member.linkname)
-                )
-            if not is_symlink_target_in_tar(tar, member):
-                message = (
-                    "The tar file ({}) has a file ({}) trying to install "
-                    "outside target directory ({})"
-                )
-                raise InstallationError(
-                    message.format(filename, member.name, member.linkname)
-                )
-            try:
-                tar._extract_member(member, path)
-            except Exception as exc:
-                # Some corrupt tar files seem to produce this
-                # (specifically bad symlinks)
-                logger.warning(
-                    "In the tar file %s the member %s is invalid: %s",
-                    filename,
-                    member.name,
-                    exc,
-                )
-                continue
-        else:
-            try:
-                fp = tar.extractfile(member)
-            except (KeyError, AttributeError) as exc:
-                # Some corrupt tar files seem to produce this
-                # (specifically bad symlinks)
-                logger.warning(
-                    "In the tar file %s the member %s is invalid: %s",
-                    filename,
-                    member.name,
-                    exc,
-                )
-                continue
-            ensure_dir(os.path.dirname(path))
-            assert fp is not None
-            with open(path, "wb") as destfp:
-                shutil.copyfileobj(fp, destfp)
-            fp.close()
-            # Update the timestamp (useful for cython compiled files)
-            tar.utime(member, path)
-            # member have any execute permissions for user/group/world?
-            if member.mode & 0o111:
-                set_extracted_file_to_default_mode_plus_executable(path)
 
 
 def unpack_file(
