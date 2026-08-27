@@ -241,7 +241,8 @@ def untar_file(filename: str, location: str) -> None:
                 member.mode = None  # type: ignore [assignment]
             return member
 
-        tar.extractall(location, filter=pip_filter)
+        members = (pip_filter(member, location) for member in tar.getmembers())
+        tar.extractall(location, members=members)
 
     finally:
         tar.close()
