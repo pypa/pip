@@ -496,15 +496,36 @@ class CandidateEvaluator:
         # types. This way we'll use a str as a common data interchange
         # format. If we stop using the pkg_resources provided specifier
         # and start using our own, we can drop the cast to str().
-        applicable_candidates = specifier.filter(
-            candidates,
-            prereleases=allow_prereleases,
-            key=lambda c: (
-                str(c.version)
-                if select_backend().NAME == "pkg_resources"
-                else c.version
-            ),
+        yanked = [c for c in candidates if c.link.is_yanked]
+        if allow_prereleases is None and yanked:
+            # A yanked final release still counts as a matching final
+            # release in SpecifierSet.filter(), which stops the
+            # pre-release fallback from kicking in (#8262).
+            candidates = [c for c in candidates if not c.link.is_yanked]
+        applicable_candidates = list(
+            specifier.filter(
+                candidates,
+                prereleases=allow_prereleases,
+                key=lambda c: (
+                    str(c.version)
+                    if select_backend().NAME == "pkg_resources"
+                    else c.version
+                ),
+            )
         )
+        if yanked and allow_prereleases is None and not applicable_candidates:
+            # Exact pins of yanked releases must keep working (#10625).
+            applicable_candidates = list(
+                specifier.filter(
+                    yanked,
+                    prereleases=None,
+                    key=lambda c: (
+                        str(c.version)
+                        if select_backend().NAME == "pkg_resources"
+                        else c.version
+                    ),
+                )
+            )
         filtered_applicable_candidates = filter_unallowed_hashes(
             candidates=list(applicable_candidates),
             hashes=self._hashes,
