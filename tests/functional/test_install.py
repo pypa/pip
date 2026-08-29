@@ -2475,6 +2475,22 @@ def test_error_all_yanked_files_and_no_pin(
     )
 
 
+def test_install_prerelease_when_final_release_is_yanked(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test installing a pre-release when the only final release is yanked."""
+    result = script.pip(
+        "install",
+        "simple",
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_prerelease"),
+    )
+    assert "Successfully installed simple-3.1rc0\n" in result.stdout, str(result)
+    # The yanked release was ignored, not installed with a warning
+    assert "yanked" not in result.stderr, str(result)
+
+
 @pytest.mark.parametrize(
     "install_args",
     [

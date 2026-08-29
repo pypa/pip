@@ -620,6 +620,40 @@ class TestCandidateEvaluator:
         actual_versions = [str(c.version) for c in actual]
         assert actual_versions == expected_versions
 
+    def test_get_applicable_candidates__yanked_final_with_prerelease(self) -> None:
+        """A yanked final release doesn't suppress the prerelease fallback (#8262)."""
+        candidates = [
+            make_mock_candidate("1.0", yanked_reason="bad metadata"),
+            make_mock_candidate("2.0rc0"),
+        ]
+        evaluator = CandidateEvaluator.create("my-project")
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["2.0rc0"]
+
+    def test_get_applicable_candidates__non_yanked_final_with_prerelease(
+        self,
+    ) -> None:
+        """A non-yanked final release still suppresses the prerelease fallback."""
+        candidates = [
+            make_mock_candidate("1.0"),
+            make_mock_candidate("2.0rc0"),
+        ]
+        evaluator = CandidateEvaluator.create("my-project")
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+
+    def test_get_applicable_candidates__yanked_pinned(self) -> None:
+        """A yanked release matching an exact pin stays applicable."""
+        candidates = [
+            make_mock_candidate("1.0", yanked_reason="bad metadata"),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            specifier=SpecifierSet("==1.0"),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+
     def test_compute_best_candidate(self) -> None:
         specifier = SpecifierSet("<= 1.11")
         versions = ["1.10", "1.11", "1.12"]
