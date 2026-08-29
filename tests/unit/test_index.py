@@ -654,6 +654,24 @@ class TestCandidateEvaluator:
         actual = evaluator.get_applicable_candidates(candidates)
         assert [str(c.version) for c in actual] == ["1.0"]
 
+    def test_get_applicable_candidates__yanked_hash_pinned_with_alternate(
+        self,
+    ) -> None:
+        """A yanked file matching the hash pin stays applicable."""
+        candidates = [
+            make_mock_candidate(
+                "3.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+            ),
+            make_mock_candidate("3.0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            specifier=SpecifierSet("==3.0"),
+            hashes=Hashes({"sha256": [64 * "a"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [c.link.is_yanked for c in actual] == [True]
+
     def test_compute_best_candidate(self) -> None:
         specifier = SpecifierSet("<= 1.11")
         versions = ["1.10", "1.11", "1.12"]

@@ -497,10 +497,11 @@ class CandidateEvaluator:
         # format. If we stop using the pkg_resources provided specifier
         # and start using our own, we can drop the cast to str().
         yanked = [c for c in candidates if c.link.is_yanked]
-        if allow_prereleases is None and yanked:
+        if allow_prereleases is None and yanked and not self._hashes:
             # A yanked final release still counts as a matching final
             # release in SpecifierSet.filter(), which stops the
-            # pre-release fallback from kicking in (#8262).
+            # pre-release fallback from kicking in (#8262). Hash pins
+            # are an explicit request for a specific file (#10625).
             candidates = [c for c in candidates if not c.link.is_yanked]
         applicable_candidates = list(
             specifier.filter(
