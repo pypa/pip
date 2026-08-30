@@ -2514,6 +2514,56 @@ def test_install_yanked_file_with_hash_pin_and_alternate_file(
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
+def test_install_hash_pinned_prerelease_when_final_release_is_yanked(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A hash-pinned pre-release installs despite a yanked final release."""
+    reqs = script.scratch_path / "reqs.txt"
+    prerelease_path = (
+        data.indexes / "yanked_prerelease" / "simple" / "simple-3.1rc0.tar.gz"
+    )
+    tar_hash = hashlib.sha256(prerelease_path.read_bytes()).hexdigest()
+    reqs.write_text(f"simple --hash=sha256:{tar_hash}\n")
+    result = script.pip(
+        "install",
+        "-r",
+        str(reqs),
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_prerelease"),
+    )
+    assert "Successfully installed simple-3.1rc0\n" in result.stdout, str(result)
+
+
+def test_install_yanked_file_with_hash_pin_also_allowing_prerelease(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A yanked file allowed by a hash pin still installs (#10625)."""
+    reqs = script.scratch_path / "reqs.txt"
+    yanked_hash = hashlib.sha256(
+        data.packages.joinpath("simple-3.0.tar.gz").read_bytes()
+    ).hexdigest()
+    prerelease_hash = hashlib.sha256(
+        data.indexes.joinpath(
+            "yanked_prerelease", "simple", "simple-3.1rc0.tar.gz"
+        ).read_bytes()
+    ).hexdigest()
+    reqs.write_text(
+        f"simple==3.0 --hash=sha256:{yanked_hash} --hash=sha256:{prerelease_hash}\n"
+    )
+    result = script.pip(
+        "install",
+        "-r",
+        str(reqs),
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_mixed_prerelease"),
+        expect_stderr=True,
+    )
+    assert "Reason for being yanked: test reason message" in result.stderr, str(result)
+    assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
+
+
 @pytest.mark.parametrize(
     "install_args",
     [

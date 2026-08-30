@@ -630,6 +630,61 @@ class TestCandidateEvaluator:
         actual = evaluator.get_applicable_candidates(candidates)
         assert [str(c.version) for c in actual] == ["2.0rc0"]
 
+    def test_get_applicable_candidates__yanked_final_with_prerelease_hash_pinned(
+        self,
+    ) -> None:
+        """A hash-pinned pre-release wins over a non-matching yanked file."""
+        candidates = [
+            make_mock_candidate(
+                "1.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+            ),
+            make_mock_candidate("2.0rc0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            hashes=Hashes({"sha256": [64 * "b"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["2.0rc0"]
+
+    def test_get_applicable_candidates__yanked_and_prerelease_both_hash_pinned(
+        self,
+    ) -> None:
+        """Yanked files allowed by the pins stay applicable (#10625)."""
+        candidates = [
+            make_mock_candidate(
+                "1.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+            ),
+            make_mock_candidate("2.0rc0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            hashes=Hashes({"sha256": [64 * "a", 64 * "b"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+
+    def test_get_applicable_candidates__same_version_files_prerelease_also_pinned(
+        self,
+    ) -> None:
+        """The hash-allowed yanked file wins for the pinned version."""
+        yanked = make_mock_candidate(
+            "1.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+        )
+        candidates = [
+            yanked,
+            make_mock_candidate("1.0", hex_digest=(64 * "c")),
+            make_mock_candidate("2.0rc0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            specifier=SpecifierSet("==1.0"),
+            hashes=Hashes({"sha256": [64 * "a", 64 * "b"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+        assert [c.link.url for c in actual] == [yanked.link.url]
+
     def test_get_applicable_candidates__non_yanked_final_with_prerelease(
         self,
     ) -> None:
