@@ -71,11 +71,8 @@ class Git(VersionControl):
     )
     # Prevent the user's environment variables from interfering with pip:
     # https://github.com/pypa/pip/issues/1130
-    # GIT_INDEX_FILE is also unset: git sets it when invoking hooks (e.g.
-    # pre-commit), pointing at the index of the repo being committed. If a
-    # hook runs a `git+`-VCS pip install, the inherited GIT_INDEX_FILE
-    # causes pip's own `git checkout` (in its own throwaway clone) to write
-    # into the hook-invoking repo's index instead of its own, corrupting it.
+    # GIT_INDEX_FILE is also unset, since git sets it for hooks and it can
+    # otherwise leak into pip's own git subprocesses:
     # https://github.com/pypa/pip/issues/14290
     unset_environ = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")
     default_arg_rev = "HEAD"
