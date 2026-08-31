@@ -342,10 +342,7 @@ class Factory:
 
             # PackageFinder returns earlier versions first, so we reverse.
             for ican in reversed(icans):
-                if (
-                    not (all_yanked and (pinned or hash_pinned))
-                    and ican.link.is_yanked
-                ):
+                if not (all_yanked and (pinned or hash_pinned)) and ican.link.is_yanked:
                     continue
                 func = functools.partial(
                     self._make_candidate_from_link,
