@@ -1,0 +1,1 @@
+Delay the multiple-versions message until a second candidate is rejected.
