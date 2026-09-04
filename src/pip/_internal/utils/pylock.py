@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Collection, Iterable, Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlsplit
@@ -267,6 +267,8 @@ def _get_pylock_path_or_url_content(path_or_url: str, session: PipSession) -> st
 def select_from_pylock_path_or_url(
     pylock_path_or_url: str,
     session: PipSession,
+    *,
+    extras: Collection[str] | None = None,
 ) -> Iterator[
     tuple[
         Package,
@@ -292,7 +294,7 @@ def select_from_pylock_path_or_url(
     try:
         # TODO: for completeness, pylock.select should support preferring sdist
         # over wheels to support --no-binary
-        yield from lock.select()
+        yield from lock.select(extras=extras)
     except Exception as exc:
         raise InstallationError(
             f"Cannot select requirements from pylock file {pylock_path_or_url!r}: {exc}"
