@@ -157,6 +157,51 @@ def test_user_agent_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "some_string" in get_user_agent()
 
 
+def _spy_rustc_check_output(
+    monkeypatch: pytest.MonkeyPatch, calls: list[list[str]]
+) -> Any:
+    # Record only rustc invocations and return canned output for them; delegate
+    # everything else (e.g. distro's lsb_release probe) to the real
+    # subprocess.check_output so the tests do not depend on call ordering.
+    from pip._internal.network import session
+
+    real_check_output = session.subprocess.check_output
+
+    def spy(cmd: Any, *args: Any, **kwargs: Any) -> bytes:
+        if cmd and os.path.basename(str(cmd[0])) == "rustc":
+            calls.append(list(cmd))
+            return b"rustc 1.52.1 (9bc8c42bb 2021-05-09)\n"
+        return real_check_output(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(session.subprocess, "check_output", spy)
+    return session
+
+
+def test_user_agent_rustc_not_probed_when_unresolved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+    session = _spy_rustc_check_output(monkeypatch, calls)
+    monkeypatch.setattr(session, "which_outside_cwd", lambda cmd: None)
+
+    user_agent = get_user_agent()
+    assert calls == []
+    assert "rustc_version" not in user_agent
+
+
+def test_user_agent_rustc_probed_by_resolved_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    calls: list[list[str]] = []
+    session = _spy_rustc_check_output(monkeypatch, calls)
+    rustc = str(tmp_path / "rustc")
+    monkeypatch.setattr(session, "which_outside_cwd", lambda cmd: rustc)
+
+    user_agent = get_user_agent()
+    assert calls == [[rustc, "--version"]]
+    assert '"rustc_version":"1.52.1"' in user_agent
+
+
 class TestPipSession:
     def test_cache_defaults_off(self) -> None:
         session = PipSession()
