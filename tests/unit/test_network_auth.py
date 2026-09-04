@@ -595,7 +595,11 @@ def test_keyring_cli_get_password(
     expect: tuple[str | None, str | None],
 ) -> None:
     keyring_subprocess = KeyringSubprocessResult()
-    monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
+    monkeypatch.setattr(
+        pip._internal.network.auth,
+        "which_outside_cwd",
+        lambda cmd, path=None: "keyring",
+    )
     monkeypatch.setattr(
         pip._internal.network.auth.subprocess, "run", keyring_subprocess
     )
@@ -615,6 +619,20 @@ def test_keyring_cli_get_password(
     ):
         actual = auth._get_new_credentials(url, allow_netrc=False, allow_keyring=True)
         assert actual == expect
+
+
+def test_keyring_cli_not_taken_from_cwd(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A keyring executable that only resolves inside the current directory must
+    # not become the subprocess provider (pypa/pip#14294).
+    monkeypatch.setattr(
+        pip._internal.network.auth,
+        "which_outside_cwd",
+        lambda cmd, path=None: None,
+    )
+
+    provider = pip._internal.network.auth.get_keyring_provider("subprocess")
+
+    assert isinstance(provider, pip._internal.network.auth.KeyRingNullProvider)
 
 
 @pytest.mark.parametrize(
@@ -640,7 +658,11 @@ def test_keyring_cli_set_password(
     expect_save: bool,
 ) -> None:
     expected_username, expected_password, save = creds
-    monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
+    monkeypatch.setattr(
+        pip._internal.network.auth,
+        "which_outside_cwd",
+        lambda cmd, path=None: "keyring",
+    )
     keyring = KeyringSubprocessResult()
     monkeypatch.setattr(pip._internal.network.auth.subprocess, "run", keyring)
     auth = MultiDomainBasicAuth(prompting=True, keyring_provider="subprocess")
@@ -716,7 +738,11 @@ def test_keyring_cli_outdated_version(
     keyring_subprocess = KeyringSubprocessResult()
     keyring_subprocess.old_version = True
 
-    monkeypatch.setattr(pip._internal.network.auth.shutil, "which", lambda x: "keyring")
+    monkeypatch.setattr(
+        pip._internal.network.auth,
+        "which_outside_cwd",
+        lambda cmd, path=None: "keyring",
+    )
     monkeypatch.setattr(
         pip._internal.network.auth.subprocess, "run", keyring_subprocess
     )

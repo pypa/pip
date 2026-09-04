@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import shutil
 import subprocess
 import sysconfig
 import typing
@@ -30,6 +29,7 @@ from pip._internal.utils.misc import (
     ask_password,
     remove_auth_from_url,
     split_auth_netloc_from_url,
+    which_outside_cwd,
 )
 from pip._internal.vcs.versioncontrol import AuthInfo
 
@@ -199,7 +199,7 @@ def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
                 msg = msg + ", trying to find a keyring executable as a fallback"
             logger.warning(msg, exc, exc_info=logger.isEnabledFor(logging.DEBUG))
     if provider in ["subprocess", "auto"]:
-        cli = shutil.which("keyring")
+        cli = which_outside_cwd("keyring")
         if cli and cli.startswith(sysconfig.get_path("scripts")):
             # all code within this function is stolen from shutil.which implementation
             @typing.no_type_check
@@ -229,7 +229,7 @@ def get_keyring_provider(provider: str) -> KeyRingBaseProvider:
 
             path = os.pathsep.join(paths)
 
-            cli = shutil.which("keyring", path=path)
+            cli = which_outside_cwd("keyring", path=path)
 
         if cli:
             logger.verbose("Keyring provider set: subprocess with executable %s", cli)
