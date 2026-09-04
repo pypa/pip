@@ -1,1 +1,1 @@
-Delay the multiple-versions message until a second candidate is rejected.
+No longer log the "pip is looking at multiple versions of a package" message until pip has looked at at least two versions of that package.
