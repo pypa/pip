@@ -30,7 +30,7 @@ from typing import (
 from zipfile import ZipFile, ZipInfo
 
 from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor.distlib.util import get_export_entry
+from pip._vendor.distlib.util import FileOperator, get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InstallationError
@@ -42,7 +42,12 @@ from pip._internal.metadata import (
 )
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
-from pip._internal.utils.filesystem import adjacent_tmp_file, replace
+from pip._internal.utils.filesystem import (
+    adjacent_tmp_file,
+    replace,
+    unlink_dangling_symlink,
+    unlink_symlink,
+)
 from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
     current_umask,
@@ -361,7 +366,10 @@ class ZipBackedFile:
         # symbol in it will then cause a segfault. Unlinking the file
         # allows writing of new contents while allowing the process to
         # continue to use the old copy.
-        if os.path.exists(self.dest_path):
+        #
+        # lexists() also catches a dangling symlink, which open() would follow
+        # and create the file wherever the link points.
+        if os.path.lexists(self.dest_path):
             os.unlink(self.dest_path)
 
         zipinfo = self._getinfo()
@@ -418,6 +426,18 @@ def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
             f"Invalid script entry point name {entry.name!r}: the script "
             f"would be installed outside the scripts directory ({scripts_dir})."
         )
+
+
+class _ScriptFileOperator(FileOperator):
+    """Remove a dangling symlink before distlib writes a script.
+
+    distlib removes an existing file first, but a dangling symlink does not
+    exist as far as it is concerned and would be followed to its target.
+    """
+
+    def write_binary_file(self, path: str, data: bytes) -> None:
+        unlink_dangling_symlink(path)
+        super().write_binary_file(path, data)
 
 
 class PipScriptMaker(ScriptMaker):
@@ -492,6 +512,9 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     def is_dir_path(path: RecordPath) -> bool:
         return path.endswith("/")
 
+    # (scheme directory, parent directory) pairs already resolved and accepted.
+    verified_parents: set[tuple[str, str]] = set()
+
     def assert_no_path_traversal(dest_dir_path: str, target_path: str) -> None:
         if not is_within_directory(dest_dir_path, target_path):
             message = (
@@ -501,6 +524,25 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
             raise InstallationError(
                 message.format(wheel_path, target_path, dest_dir_path)
             )
+
+        # The path is inside dest_dir_path as written, but writing to it goes
+        # through any symlink among its parent directories, so resolve the
+        # parent and check where the file would really land.
+        parent_dir_path = os.path.dirname(target_path)
+        if (dest_dir_path, parent_dir_path) in verified_parents:
+            return
+
+        if not is_within_directory(
+            dest_dir_path, parent_dir_path, resolve_symlinks=True
+        ):
+            raise InstallationError(
+                f"Cannot install into {parent_dir_path!r}: it resolves to"
+                f" {os.path.realpath(parent_dir_path)!r}, outside the target"
+                f" directory {dest_dir_path!r}."
+                " Remove the symbolic link to install here."
+            )
+
+        verified_parents.add((dest_dir_path, parent_dir_path))
 
     def root_scheme_file_maker(
         zip_file: ZipFile, dest: str
@@ -636,6 +678,16 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 for path in pyc_source_file_paths():
+                    # The .pyc goes into __pycache__, which is not a wheel entry
+                    # and so was never checked for being a symlink.
+                    pyc_dir = os.path.dirname(pyc_output_path(path))
+                    if os.path.islink(pyc_dir):
+                        raise InstallationError(
+                            f"Cannot install into {pyc_dir!r}: it is a symbolic"
+                            f" link to {os.path.realpath(pyc_dir)!r}. Remove the"
+                            " symbolic link to install here."
+                        )
+
                     success = compileall.compile_file(path, force=True, quiet=True)
                     if success:
                         pyc_path = pyc_output_path(path)
@@ -646,7 +698,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
                         record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
-    maker = PipScriptMaker(None, scheme.scripts)
+    maker = PipScriptMaker(None, scheme.scripts, fileop=_ScriptFileOperator())
 
     # Embed the target environment's interpreter in console-script launchers
     # rather than the one running pip, so an in-process install into another
@@ -710,6 +762,8 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     # Record the REQUESTED file
     if requested:
         requested_path = os.path.join(dest_info_dir, "REQUESTED")
+        # open() would follow a symlink here and create the file at its target.
+        unlink_symlink(requested_path)
         with open(requested_path, "wb"):
             pass
         generated.append(requested_path)

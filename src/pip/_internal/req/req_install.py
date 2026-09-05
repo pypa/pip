@@ -37,6 +37,7 @@ from pip._internal.operations.build.metadata_editable import generate_editable_m
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filesystem import unlink_dangling_symlink
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
     ConfiguredBuildBackendHookCaller,
@@ -707,6 +708,10 @@ class InstallRequirement:
         create_archive = True
         archive_name = "{}-{}.zip".format(self.name, self.metadata["version"])
         archive_path = os.path.join(build_dir, archive_name)
+
+        # A dangling symlink is not "existing" to the check below, but zipfile
+        # would follow it and create the archive at its target.
+        unlink_dangling_symlink(archive_path)
 
         if os.path.exists(archive_path):
             response = ask_path_exists(
