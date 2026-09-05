@@ -138,11 +138,13 @@ class Environment(BaseEnvironment):
             yield from finder.find(location)
             yield from finder.find_legacy_editables(location)
 
-    def get_distribution(self, name: str) -> BaseDistribution | None:
+    def get_distribution(
+        self, name: str, skip_invalid: bool = False
+    ) -> BaseDistribution | None:
         canonical_name = canonicalize_name(name)
         matches = (
             distribution
-            for distribution in self.iter_all_distributions()
+            for distribution in self.iter_all_distributions(skip_invalid=skip_invalid)
             if distribution.canonical_name == canonical_name
         )
         return next(matches, None)
