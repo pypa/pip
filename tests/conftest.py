@@ -37,6 +37,8 @@ from installer.destinations import SchemeDictionaryDestination
 from installer.sources import WheelFile
 
 from pip._internal.locations import _USE_SYSCONFIG
+from pip._internal.utils import logging as pip_logging_module
+from pip._internal.utils.logging import PipConsole
 from pip._internal.utils.temp_dir import global_tempdir_manager
 
 from tests.lib import (
@@ -391,6 +393,20 @@ def scoped_global_tempdir_manager(request: pytest.FixtureRequest) -> Iterator[No
         ctx = global_tempdir_manager
 
     with ctx():
+        yield
+
+
+@pytest.fixture(autouse=True)
+def setup_console() -> Iterator[None]:
+    """Set up rich consoles so tests that produce rich output as a side-effect
+    don't crash when trying to print.
+    """
+    stdout_console = PipConsole(file=sys.stdout, no_color=True, soft_wrap=True)
+    stderr_console = PipConsole(file=sys.stderr, no_color=True, soft_wrap=True)
+    with (
+        patch.object(pip_logging_module, "_stdout_console", stdout_console),
+        patch.object(pip_logging_module, "_stderr_console", stderr_console),
+    ):
         yield
 
 

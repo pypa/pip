@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import sys
+import time
 from collections.abc import Callable, Generator, Iterable, Iterator
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -19,7 +20,6 @@ from pip._vendor.rich.progress import (
     TransferSpeedColumn,
 )
 
-from pip._internal.cli.spinners import RateLimiter
 from pip._internal.utils.logging import get_console, get_indentation
 
 if TYPE_CHECKING:
@@ -28,6 +28,20 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 ProgressRenderer = Callable[[Iterable[T]], Iterator[T]]
 BarType = Literal["on", "off", "raw"]
+
+
+class RateLimiter:
+    def __init__(self, min_update_interval_seconds: float) -> None:
+        self._min_update_interval_seconds = min_update_interval_seconds
+        self._last_update: float = 0
+
+    def ready(self) -> bool:
+        now = time.time()
+        delta = now - self._last_update
+        return delta >= self._min_update_interval_seconds
+
+    def reset(self) -> None:
+        self._last_update = time.time()
 
 
 def _rich_download_progress_bar(
