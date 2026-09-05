@@ -1,0 +1,1 @@
+Stop following symlinks that point outside the install or download directory.

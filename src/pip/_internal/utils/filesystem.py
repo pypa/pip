@@ -71,6 +71,18 @@ def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, Non
 replace = retry(stop_after_delay=1, wait=0.25)(os.replace)
 
 
+def unlink_symlink(path: str) -> None:
+    """Remove path if it is a symbolic link."""
+    if os.path.islink(path):
+        os.unlink(path)
+
+
+def unlink_dangling_symlink(path: str) -> None:
+    """Remove path if it is a symbolic link whose target does not exist."""
+    if not os.path.exists(path):
+        unlink_symlink(path)
+
+
 # test_writable_dir and _test_writable_dir_win are copied from Flit,
 # with the author's agreement to also place them under pip's license.
 def test_writable_dir(path: str) -> bool:

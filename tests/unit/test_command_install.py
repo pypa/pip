@@ -1,19 +1,24 @@
 import errno
+import os
 import sys
 import warnings
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
 from pip._vendor.requests.exceptions import InvalidProxyURL
 
-from pip._internal.commands import install
+from pip._internal.commands import create_command, install
 from pip._internal.commands.install import (
+    InstallCommand,
     _prevent_further_imports,
     create_os_error_message,
     decide_user_install,
 )
+from pip._internal.locations import get_scheme
 from pip._internal.utils.deprecation import PipDeprecationWarning
+from pip._internal.utils.temp_dir import TempDirectory
 
 
 class TestDecideUserInstall:
@@ -222,3 +227,32 @@ def test_prevent_further_imports_warns_on_import() -> None:
         audit_hook("import", ("encodings.iso8859_15",))
 
     assert caught == []
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_handle_target_dir_replaces_dangling_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exercise shutil.move's cross-filesystem copy fallback."""
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    outside = tmp_path / "outside"
+    (target_dir / "topmod.py").symlink_to(outside)
+
+    temp_dir = TempDirectory(path=str(tmp_path / "temp"))
+    purelib = Path(get_scheme("", home=temp_dir.path).purelib)
+    purelib.mkdir(parents=True)
+    (purelib / "topmod.py").write_text("installed")
+
+    def no_rename(src: str, dst: str) -> None:
+        raise OSError(errno.EXDEV, "Invalid cross-device link")
+
+    monkeypatch.setattr(os, "rename", no_rename)
+
+    command = create_command("install")
+    assert isinstance(command, InstallCommand)
+    command._handle_target_dir(str(target_dir), temp_dir, upgrade=True)
+
+    assert not outside.exists()
+    assert not (target_dir / "topmod.py").is_symlink()
+    assert (target_dir / "topmod.py").read_text() == "installed"

@@ -12,6 +12,7 @@ from pip._internal.operations.build.build_tracker import get_build_tracker
 from pip._internal.req.req_install import (
     InstallRequirement,
 )
+from pip._internal.utils.filesystem import unlink_symlink
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build
@@ -162,6 +163,13 @@ class WheelCommand(RequirementCommand):
             assert req.local_file_path
             # copy from cache to target directory
             try:
+                # shutil.copy() would follow a symlink at the destination and
+                # write the wheel at its target.
+                unlink_symlink(
+                    os.path.join(
+                        options.wheel_dir, os.path.basename(req.local_file_path)
+                    )
+                )
                 shutil.copy(req.local_file_path, options.wheel_dir)
             except OSError as e:
                 logger.warning(
