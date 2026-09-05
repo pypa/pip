@@ -57,6 +57,90 @@ def test_uninstallation_paths() -> None:
     assert paths2 == paths
 
 
+def test_uninstallation_paths_rejects_path_traversal(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Regression test: malicious RECORD entries with path traversal must not
+    escape the installation location and delete arbitrary files on uninstall.
+    """
+    location = str(tmpdir / "site-packages")
+    os.makedirs(location)
+
+    class dist:
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter(
+                [
+                    "pkg/__init__.py",  # legitimate
+                    "../../../../../../etc/passwd",  # traversal attack
+                    "../../../home/user/.ssh/authorized_keys",  # traversal
+                    "pkg/module.py",  # legitimate
+                ]
+            )
+
+    dist.location = location
+
+    paths = list(uninstallation_paths(dist()))
+
+    # Only legitimate entries (and their .pyc/.pyo siblings) should survive.
+    assert paths == [
+        os.path.join(location, "pkg/__init__.py"),
+        os.path.join(location, "pkg/__init__.pyc"),
+        os.path.join(location, "pkg/__init__.pyo"),
+        os.path.join(location, "pkg/module.py"),
+        os.path.join(location, "pkg/module.pyc"),
+        os.path.join(location, "pkg/module.pyo"),
+    ]
+
+    # All traversal attempts must be logged as warnings.
+    warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 2
+    assert all("resolves outside the installation location" in w for w in warnings)
+
+    # None of the yielded paths resolve outside the install location.
+    for p in paths:
+        assert os.path.abspath(p).startswith(os.path.abspath(location))
+
+
+def test_uninstallation_paths_rejects_sibling_dir_traversal(
+    tmpdir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Regression test: RECORD entries that traverse into a *sibling* directory
+    under the same prefix (e.g., the venv bin/ directory) must be rejected by
+    the containment check in uninstallation_paths.
+
+    This mirrors the PoC's venv scenario where a phantom RECORD entry like
+    "../../../bin/python" targets a path inside sys.prefix — so _permitted()
+    would allow it — but still outside site-packages. The path-containment
+    check in uninstallation_paths is the layer that blocks this.
+    """
+    # Simulate a typical venv layout: prefix/lib/pythonX.Y/site-packages and
+    # prefix/bin are siblings under the same prefix.
+    prefix = str(tmpdir / "venv")
+    location = os.path.join(prefix, "lib", "python3.11", "site-packages")
+    bin_dir = os.path.join(prefix, "bin")
+    os.makedirs(location)
+    os.makedirs(bin_dir)
+
+    victim = os.path.join(bin_dir, "python")
+    rel = os.path.relpath(victim, location).replace(os.path.sep, "/")
+
+    class dist:
+        def iter_declared_entries(self) -> Iterator[str] | None:
+            return iter(["pkg/__init__.py", rel])
+
+    dist.location = location
+
+    paths = list(uninstallation_paths(dist()))
+
+    # The bin/ target must not appear in the uninstall set.
+    assert all(not os.path.abspath(p).startswith(bin_dir) for p in paths)
+    assert all(os.path.abspath(p).startswith(location) for p in paths)
+
+    warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert "resolves outside the installation location" in warnings[0]
+
+
 def test_compressed_listing(tmpdir: Path) -> None:
     def in_tmpdir(paths: list[str]) -> list[str]:
         return [
