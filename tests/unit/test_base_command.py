@@ -26,6 +26,15 @@ from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
 
 
+@pytest.fixture(autouse=True)
+def restore_logging_level() -> Iterator[None]:
+    """Restore the root level after a command configures logging."""
+    logger = logging.getLogger()
+    level = logger.level
+    yield
+    logger.setLevel(level)
+
+
 @pytest.fixture
 def fixed_time() -> Iterator[None]:
     # Patch time so logs contain a constant timestamp. time.time_ns is used by
