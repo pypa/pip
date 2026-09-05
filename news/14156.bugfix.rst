@@ -1,0 +1,1 @@
+Reject tar archive links that resolve outside extraction destinations.
