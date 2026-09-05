@@ -12,6 +12,7 @@ import os.path
 import re
 import shutil
 import sys
+import sysconfig
 import textwrap
 import warnings
 from base64 import urlsafe_b64encode
@@ -66,6 +67,13 @@ logger = logging.getLogger(__name__)
 
 RecordPath = NewType("RecordPath", str)
 InstalledCSVRow = tuple[RecordPath, str, int | str]
+
+_WINDOWS_BYTECODE_MIN_FILES = 8
+_WINDOWS_BYTECODE_MAX_WORKERS = 8
+
+
+def _is_free_threaded_build() -> bool:
+    return bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
 def rehash(path: str, blocksize: int = 1 << 20) -> tuple[str, str]:
@@ -420,6 +428,97 @@ def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
         )
 
 
+def _compile_bytecode(
+    source_paths: Iterable[str],
+    *,
+    parallel: bool = True,
+) -> Generator[tuple[str, bool], None, None]:
+    """Compile sources, using bounded threads for larger Windows wheels.
+
+    Windows real-time scanners make bytecode compilation substantially I/O-bound.
+    Threads overlap that work without the process startup and self-upgrade hazards
+    of process-based workers. Free-threaded builds remain serial to preserve
+    byte-for-byte output. Results and diagnostics remain in source order.
+    """
+    paths = list(source_paths)
+    cpu_count = getattr(os, "process_cpu_count", os.cpu_count)() or 1
+    max_workers = min(_WINDOWS_BYTECODE_MAX_WORKERS, len(paths), cpu_count)
+    use_parallel = (
+        parallel
+        and sys.platform == "win32"
+        # Concurrent compilation on free-threaded CPython can produce
+        # semantically equivalent but byte-wise different marshal output even
+        # when that build runs with its GIL enabled.
+        and not _is_free_threaded_build()
+        and len(paths) >= _WINDOWS_BYTECODE_MIN_FILES
+        and max_workers >= 2
+    )
+
+    if use_parallel:
+        # Case-insensitive aliases can target the same pyc on Windows. Preserve
+        # the existing deterministic serial behavior instead of racing writes.
+        output_paths = {
+            os.path.normcase(os.path.abspath(importlib.util.cache_from_source(path)))
+            for path in paths
+        }
+        use_parallel = len(output_paths) == len(paths)
+
+    if not use_parallel:
+        for path in paths:
+            yield path, compileall.compile_file(path, force=True, quiet=True)
+        return
+
+    from concurrent.futures import ThreadPoolExecutor
+    from contextvars import copy_context
+
+    def compile_file(path: str) -> bool:
+        # Workers suppress diagnostics so they never need to replace process-wide
+        # stdout. Failed files are retried serially to emit ordered diagnostics.
+        return compileall.compile_file(path, force=True, quiet=2)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        try:
+            executor = ThreadPoolExecutor(max_workers=max_workers)
+        except (MemoryError, OSError, RuntimeError):
+            logger.debug(
+                "Falling back to serial bytecode compilation because the "
+                "thread pool could not be created.",
+                exc_info=True,
+            )
+        else:
+            try:
+                futures = [
+                    executor.submit(copy_context().run, compile_file, path)
+                    for path in paths
+                ]
+            except (MemoryError, OSError, RuntimeError):
+                executor.shutdown(wait=True, cancel_futures=True)
+                logger.debug(
+                    "Falling back to serial bytecode compilation because work "
+                    "could not be submitted to the thread pool.",
+                    exc_info=True,
+                )
+            else:
+                with executor:
+                    for index, (path, future) in enumerate(zip(paths, futures)):
+                        try:
+                            success = future.result()
+                        except BaseException:
+                            for pending in futures[index + 1 :]:
+                                pending.cancel()
+                            raise
+                        if not success:
+                            success = compileall.compile_file(
+                                path, force=True, quiet=True
+                            )
+                        yield path, success
+                return
+
+        for path in paths:
+            yield path, compileall.compile_file(path, force=True, quiet=True)
+
+
 class PipScriptMaker(ScriptMaker):
     # Override distlib's default script template with one that
     # doesn't import `re` module, allowing scripts to load faster.
@@ -448,6 +547,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     direct_url: DirectUrl | None = None,
     requested: bool = False,
     script_executable: str | None = None,
+    parallel_pycompile: bool = True,
 ) -> None:
     """Install a wheel.
 
@@ -460,6 +560,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     :param warn_script_location: Whether to check that scripts are installed
         into a directory on PATH
     :param script_executable: Python executable to use for console scripts
+    :param parallel_pycompile: Whether to parallelize byte-compilation
     :raises UnsupportedWheel:
         * when the directory holds an unpacked wheel with incompatible
           Wheel-Version
@@ -635,15 +736,20 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         ) as stdout:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                for path in pyc_source_file_paths():
-                    success = compileall.compile_file(path, force=True, quiet=True)
-                    if success:
-                        pyc_path = pyc_output_path(path)
-                        assert os.path.exists(pyc_path)
-                        pyc_record_path = cast(
-                            "RecordPath", pyc_path.replace(os.path.sep, "/")
-                        )
-                        record_installed(pyc_record_path, pyc_path)
+                with contextlib.closing(
+                    _compile_bytecode(
+                        pyc_source_file_paths(),
+                        parallel=parallel_pycompile,
+                    )
+                ) as bytecode_results:
+                    for path, success in bytecode_results:
+                        if success:
+                            pyc_path = pyc_output_path(path)
+                            assert os.path.exists(pyc_path)
+                            pyc_record_path = cast(
+                                "RecordPath", pyc_path.replace(os.path.sep, "/")
+                            )
+                            record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
@@ -754,6 +860,7 @@ def install_wheel(
     direct_url: DirectUrl | None = None,
     requested: bool = False,
     script_executable: str | None = None,
+    parallel_pycompile: bool = True,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
@@ -763,6 +870,7 @@ def install_wheel(
                 wheel_path=wheel_path,
                 scheme=scheme,
                 pycompile=pycompile,
+                parallel_pycompile=parallel_pycompile,
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,
