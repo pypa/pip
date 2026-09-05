@@ -193,3 +193,32 @@ def test_new_resolver_no_versions_available_hint(script: PipTestEnvironment) -> 
         "matching distributions available for your environment:\n"
         "    incompatible-dep\n" in result.stdout
     ), str(result)
+
+
+def test_new_resolver_hint_not_shown_when_versions_available(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    Test hint is not shown when a package candidate is available,
+    even though ResolutionImpossible occurs.
+    """
+    create_basic_wheel_for_package(script, "base", "1.0")
+    create_basic_wheel_for_package(script, "base", "2.0")
+    create_basic_wheel_for_package(script, "pkga", "1.0", depends=["base==1.0"])
+    create_basic_wheel_for_package(script, "pkgb", "1.0", depends=["base==2.0"])
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkga",
+        "pkgb",
+        expect_error=True,
+    )
+
+    assert "ResolutionImpossible" in result.stderr, str(result)
+    assert "pkga 1.0 depends on base==1.0" in result.stdout, str(result)
+    assert "pkgb 1.0 depends on base==2.0" in result.stdout, str(result)
+    assert "have no matching distributions available" not in result.stdout, str(result)
