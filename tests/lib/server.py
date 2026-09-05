@@ -5,6 +5,7 @@ import threading
 from base64 import b64encode
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
+from http.server import HTTPServer
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock, patch
@@ -120,7 +121,7 @@ def make_mock_server(**kwargs: Any) -> _MockServer:
 
 
 @contextmanager
-def server_running(server: BaseWSGIServer) -> Iterator[None]:
+def server_running(server: BaseWSGIServer | HTTPServer) -> Iterator[None]:
     """Context manager for running the provided server in a separate thread."""
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
