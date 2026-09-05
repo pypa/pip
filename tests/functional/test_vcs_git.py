@@ -93,6 +93,39 @@ def test_git_work_tree_ignored(tmpdir: pathlib.Path) -> None:
     Git.run_command(["status", repo_dir], extra_environ=env, cwd=repo_dir)
 
 
+def test_git_index_file_ignored(tmpdir: pathlib.Path) -> None:
+    """
+    Test that a GIT_INDEX_FILE environment variable is ignored.
+
+    Regression test for https://github.com/pypa/pip/issues/14290: git
+    itself sets GIT_INDEX_FILE when invoking hooks. If pip's git
+    subprocesses inherited it, a `git+` VCS install run from within a hook
+    could end up writing into the hook-invoking repo's index instead of
+    its own, corrupting it.
+    """
+    victim_path = tmpdir / "victim-repo"
+    victim_path.mkdir()
+    victim_dir = str(victim_path)
+    Git.run_command(["init", victim_dir], cwd=victim_dir)
+    victim_index = victim_path / ".git" / "index"
+    (victim_path / "tracked.txt").write_text("original")
+    Git.run_command(["add", "tracked.txt"], cwd=victim_dir)
+    before = victim_index.read_bytes()
+
+    work_path = tmpdir / "work-repo"
+    work_path.mkdir()
+    work_dir = str(work_path)
+    Git.run_command(["init", work_dir], cwd=work_dir)
+    (work_path / "new.txt").write_text("new")
+
+    env = {"GIT_INDEX_FILE": str(victim_index)}
+    # If GIT_INDEX_FILE is not ignored, this staging happens in the victim
+    # repo's index instead of the work repo's own index.
+    Git.run_command(["add", "new.txt"], cwd=work_dir, extra_environ=env)
+
+    assert victim_index.read_bytes() == before
+
+
 def test_get_remote_url(script: PipTestEnvironment, tmpdir: pathlib.Path) -> None:
     source_path = tmpdir / "source"
     source_path.mkdir()
