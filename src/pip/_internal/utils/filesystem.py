@@ -4,6 +4,7 @@ import fnmatch
 import os
 import os.path
 import random
+import shutil
 import sys
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
@@ -12,7 +13,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, BinaryIO, cast
 
 from pip._internal.utils.compat import get_path_uid
-from pip._internal.utils.misc import format_size
+from pip._internal.utils.misc import format_size, rmtree
 from pip._internal.utils.retry import retry
 
 
@@ -69,6 +70,46 @@ def adjacent_tmp_file(path: str, **kwargs: Any) -> Generator[BinaryIO, None, Non
 
 
 replace = retry(stop_after_delay=1, wait=0.25)(os.replace)
+
+
+def atomic_copy(source: str | Path, destination: str | Path) -> None:
+    """Copy a file, replacing ``destination`` only after the copy succeeds."""
+    # Stage directly in the destination directory to inherit its ACL on Windows.
+    with NamedTemporaryFile(
+        delete=False,
+        dir=os.path.dirname(destination),
+        prefix=os.path.basename(destination),
+        suffix=".tmp",
+    ) as f:
+        temp_path = f.name
+
+    try:
+        shutil.copy(source, temp_path)
+        replace(temp_path, destination)
+    finally:
+        if os.path.lexists(temp_path):
+            os.unlink(temp_path)
+
+
+def atomic_move(source: str | Path, destination: str | Path) -> None:
+    """Move an item, replacing ``destination`` only after the move succeeds."""
+    with NamedTemporaryFile(
+        delete=False,
+        dir=os.path.dirname(destination),
+        prefix=os.path.basename(destination),
+        suffix=".tmp",
+    ) as f:
+        temp_path = f.name
+
+    try:
+        os.unlink(temp_path)
+        shutil.move(source, temp_path)
+        replace(temp_path, destination)
+    finally:
+        if os.path.isdir(temp_path) and not os.path.islink(temp_path):
+            rmtree(temp_path)
+        elif os.path.lexists(temp_path):
+            os.unlink(temp_path)
 
 
 # test_writable_dir and _test_writable_dir_win are copied from Flit,
