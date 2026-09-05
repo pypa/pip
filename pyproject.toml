@@ -62,7 +62,7 @@ test = [
     "pytest-subket",
     "scripttest",
     "setuptools",
-    "virtualenv >= 20.0",
+    "virtualenv >= 20.0.28",
     "werkzeug",
     "tomli-w",
     "proxy.py",
