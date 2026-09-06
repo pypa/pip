@@ -175,9 +175,19 @@ def test(session: nox.Session) -> None:
     )
 
 
+@nox.session(python=["3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "3.14t", "pypy3"])
+def benchmark(session: nox.Session) -> None:
+    """Run offline performance benchmarks against the source checkout."""
+    run_with_protected_pip(session, "install", "-e", ".", "--group", "benchmark")
+    # Resolve default testpaths and forwarded file paths from the repository root.
+    session.run(
+        "pytest", "-c", "benchmarks/pytest.ini", "--rootdir=.", *session.posargs
+    )
+
+
 @nox.session
 def typecheck(session: nox.Session) -> None:
-    """Run mypy over the pip source, tests, and tooling.
+    """Run mypy over the pip source, tests, benchmarks, and tooling.
 
     The "typecheck" dependency group installs the runtime and test
     dependencies alongside a few type stub packages (e.g. types-setuptools),
@@ -209,6 +219,7 @@ def typecheck(session: nox.Session) -> None:
             [
                 "src/pip",
                 "tests",
+                "benchmarks",
                 "tools",
                 "noxfile.py",
             ]

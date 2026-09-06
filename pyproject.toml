@@ -49,6 +49,11 @@ requires = ["flit-core >=3.11,<5"]
 build-backend = "flit_core.buildapi"
 
 [dependency-groups]
+benchmark = [
+    "pytest >= 7.0",
+    "pytest-benchmark >= 5",
+    "pytest-subket >= 0.8.1",
+]
 test = [
     "cryptography",
     "flit-core >= 3.11, < 5",
@@ -82,6 +87,7 @@ test-common-wheels = [
 
 typecheck = [
     {include-group = "test"},
+    {include-group = "benchmark"},
     "keyring",  # An optional runtime dependency.
     "nox",
     "packaging",
@@ -389,6 +395,7 @@ exclude_also = [
 
 [tool.check-sdist]
 git-only = [
+  "benchmarks/**",
   "tests/**",
   "tools/**",
   "news/.gitignore",

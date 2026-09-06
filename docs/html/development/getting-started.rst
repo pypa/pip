@@ -127,6 +127,37 @@ explicitly tell pytest to skip those tests:
 .. _pyenv: https://github.com/pyenv/pyenv
 
 
+Running Benchmarks
+==================
+
+Pip's offline performance benchmarks use :pypi:`pytest-benchmark` and a dedicated
+nox session. To run each workload once and check its results:
+
+.. code-block:: console
+
+    $ nox -s benchmark-3.12 -- --benchmark-disable
+
+To collect timings:
+
+.. code-block:: console
+
+    $ nox -s benchmark-3.12
+
+The session installs its dependencies and runs against the source checkout.
+It supports the same Python versions as the test sessions and forwards arguments
+after ``--`` to pytest:
+
+.. code-block:: console
+
+    $ nox -s benchmark-3.12 -- benchmarks/bench_index.py
+    $ nox -s benchmark-3.12 -- -k transitive
+
+Use the same interpreter and machine when comparing revisions. Run benchmarks
+sequentially, without coverage, to avoid distorting timings. The regular test
+sessions do not collect benchmarks. See ``benchmarks/README.md`` for workload
+coverage and measurement boundaries.
+
+
 Running Linters
 ===============
 
