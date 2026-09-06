@@ -395,6 +395,7 @@ exclude_also = [
 
 [tool.check-sdist]
 git-only = [
+  "benchmarks/**",
   "tests/**",
   "tools/**",
   "news/.gitignore",
