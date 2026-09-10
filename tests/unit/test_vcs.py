@@ -453,6 +453,76 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     assert "an empty revision (after @)" in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    "url, expected_unknown",
+    [
+        # Typo in 'subdirectory'.
+        (
+            "git+https://github.com/user/proj.git#subdiretory=src",
+            ["subdiretory"],
+        ),
+        # Typo using 'egg_info' instead of 'egg'.
+        (
+            "git+https://github.com/user/proj.git#egg_info=MyProject",
+            ["egg_info"],
+        ),
+        # Multiple unknown parameters.
+        (
+            "git+https://github.com/user/proj.git#foo=bar&baz=qux",
+            ["baz", "foo"],
+        ),
+        # Mix of valid and unknown parameters.
+        (
+            "svn+https://svn.example.com/MyProject#egg=MyApp&subdir=src",
+            ["subdir"],
+        ),
+    ],
+)
+def test_version_control__get_url_rev_and_auth__unknown_fragments(
+    url: str,
+    expected_unknown: list[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Test that unrecognized URL fragment parameters produce a warning.
+    """
+    with caplog.at_level(logging.WARNING):
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == "WARNING"
+    assert "Unrecognized fragment parameters" in record.message
+    for param in expected_unknown:
+        assert param in record.message
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        # Valid: only 'egg'.
+        "git+https://github.com/user/proj.git@rev#egg=MyProject",
+        # Valid: only 'subdirectory'.
+        "git+https://github.com/user/proj.git@rev#subdirectory=src",
+        # Valid: both 'egg' and 'subdirectory'.
+        "svn+https://svn.example.com/MyProject@rev#egg=MyApp&subdirectory=src",
+        # Valid: no fragment at all.
+        "git+https://github.com/user/proj.git@rev",
+    ],
+)
+def test_version_control__get_url_rev_and_auth__valid_fragments_no_warning(
+    url: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Test that valid fragment parameters do not produce any warning.
+    """
+    with caplog.at_level(logging.WARNING):
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert len(caplog.records) == 0
+
+
 @pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
 @pytest.mark.parametrize(
     "exc_cls, msg_re",
