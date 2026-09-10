@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import NoReturn
@@ -7,6 +8,7 @@ import pytest
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 
 from pip._internal.cache import SimpleWheelCache, WheelCache, _hash_dict
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.urls import path_to_url
@@ -152,3 +154,45 @@ def test_wheel_cache_entry_none_for_existing_directory(tmpdir: Path) -> None:
 
     assert wc.get_cache_entry(link, "example", supported_tags) is None
     assert wc.get(link, "example", supported_tags) is link
+
+
+def test_record_download_origin_does_not_warn_for_authenticated_url(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    download_info = DirectUrl(
+        url="https://user:secret@example.test/pkg.tar.gz",
+        archive_info=ArchiveInfo(),
+    )
+
+    WheelCache.record_download_origin(os.fspath(cache_dir), download_info)
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="pip._internal.cache"):
+        WheelCache.record_download_origin(os.fspath(cache_dir), download_info)
+
+    assert not caplog.records
+
+
+def test_record_download_origin_redacts_authenticated_url_in_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    WheelCache.record_download_origin(
+        os.fspath(cache_dir),
+        DirectUrl(
+            url="https://example.test/pkg.tar.gz",
+            archive_info=ArchiveInfo(),
+        ),
+    )
+    download_info = DirectUrl(
+        url="https://user:secret@other.test/pkg.tar.gz",
+        archive_info=ArchiveInfo(),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.cache"):
+        WheelCache.record_download_origin(os.fspath(cache_dir), download_info)
+
+    assert "https://other.test/pkg.tar.gz" in caplog.text
+    assert "secret" not in caplog.text

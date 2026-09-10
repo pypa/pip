@@ -1,0 +1,2 @@
+Avoid a false cache-origin warning and redact credentials when logging a
+download URL.
