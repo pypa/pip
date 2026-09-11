@@ -6,6 +6,21 @@ This can be achieved by doing the following:
 
 - Enable {ref}`Hash-checking mode`, by passing {any}`--require-hashes`
 - Disallow source distributions, by passing {any}`--only-binary :all: <--only-binary>`
+- Only install from a single package source, to avoid {ref}`dependency confusion <Dependency confusion>`
+
+(Dependency confusion)=
+
+## Dependency confusion
+
+pip has no way of knowing which index a package is *meant* to come from. All the package sources you configure are searched, and the best match for each requirement (in terms of version number) is selected, no matter which source it was found in. When more than one source provides a package with the same name, a package published by someone else can therefore be installed instead of the one you intended. This class of attack is known as *dependency confusion*.
+
+The sources taking part in this search are the index given by `--index-url` (PyPI by default, unless it is disabled with `--no-index`), any additional index given by `--extra-index-url`, and any location given by `--find-links`. Adding `--extra-index-url` does *not* give the primary index priority: the extra indexes are not treated as fallbacks, so a package found in one of them is just as valid a candidate as a package found on the primary index.
+
+To avoid this:
+
+- Use a single package source. If you need packages from both a public index and a private one, use one index that serves both of them -- for instance a private mirror, or a proxy such as a repository manager configured to merge the upstreams -- and point pip at it with `--index-url`.
+
+- If you have to install from multiple sources, pin the exact versions you expect and verify them with {ref}`Hash-checking mode`. A distribution whose hash does not match the one in your requirements file is rejected, so a substituted version coming from another source cannot be installed silently.
 
 (Hash-checking mode)=
 

@@ -1,0 +1,1 @@
+Document how to avoid dependency confusion attacks when installing from more than one package source.
