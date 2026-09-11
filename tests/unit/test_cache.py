@@ -179,20 +179,23 @@ def test_record_download_origin_redacts_authenticated_url_in_warning(
 ) -> None:
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
-    WheelCache.record_download_origin(
-        os.fspath(cache_dir),
-        DirectUrl(
-            url="https://example.test/pkg.tar.gz",
-            archive_info=ArchiveInfo(),
-        ),
+    old_info = DirectUrl(
+        url="https://old-user:old-secret@old.example/pkg.tar.gz",
+        archive_info=ArchiveInfo(),
     )
-    download_info = DirectUrl(
-        url="https://user:secret@other.test/pkg.tar.gz",
+    new_info = DirectUrl(
+        url="https://new-user:new-secret@new.example/pkg.tar.gz",
         archive_info=ArchiveInfo(),
     )
 
     with caplog.at_level(logging.WARNING, logger="pip._internal.cache"):
-        WheelCache.record_download_origin(os.fspath(cache_dir), download_info)
+        WheelCache.record_download_origin(os.fspath(cache_dir), old_info)
+        caplog.clear()
+        WheelCache.record_download_origin(os.fspath(cache_dir), new_info)
 
-    assert "https://other.test/pkg.tar.gz" in caplog.text
-    assert "secret" not in caplog.text
+    assert "https://old.example/pkg.tar.gz" in caplog.text
+    assert "https://new.example/pkg.tar.gz" in caplog.text
+    assert "old-user" not in caplog.text
+    assert "old-secret" not in caplog.text
+    assert "new-user" not in caplog.text
+    assert "new-secret" not in caplog.text
