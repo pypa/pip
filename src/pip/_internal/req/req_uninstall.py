@@ -88,6 +88,20 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
             yield path
 
 
+def _realpath_preserving_case(path: str) -> str:
+    """Like ``normalize_path()``, but keeps the path's real on-disk case
+    instead of case-folding it.
+
+    ``normalize_path()`` case-folds its result (lowercasing on Windows),
+    which is fine for path *comparisons*. But paths tracked for uninstall are
+    also used as literal filesystem paths when stashing files and rolling
+    the stash back on failure, and case-folding them there causes rollback
+    to recreate files/directories under a lowercased name instead of their
+    original one. See https://github.com/pypa/pip/issues/4487.
+    """
+    return os.path.realpath(os.path.expanduser(path))
+
+
 def compact(paths: Iterable[str]) -> set[str]:
     """Compact a path set to contain the minimal number of paths
     necessary to contain all paths in the set. If /a/path/ and
@@ -314,6 +328,8 @@ class UninstallPathSet:
         # can result in hundreds/thousands of redundant calls to normalize_path with
         # the same args, which hurts performance.
         self._normalize_path_cached = functools.lru_cache(normalize_path)
+        # Same, but preserving on-disk case; see _realpath_preserving_case().
+        self._realpath_cached = functools.lru_cache(_realpath_preserving_case)
 
     def _permitted(self, path: str) -> bool:
         """
@@ -324,14 +340,22 @@ class UninstallPathSet:
         # aka is_local, but caching normalized sys.prefix
         if not running_under_virtualenv():
             return True
-        return path.startswith(self._normalize_path_cached(sys.prefix))
+        # path isn't case-folded (see add()), so fold it here for comparison
+        # against the (case-folded) normalized prefix.
+        return os.path.normcase(path).startswith(
+            self._normalize_path_cached(sys.prefix)
+        )
 
     def add(self, path: str) -> None:
         head, tail = os.path.split(path)
 
-        # we normalize the head to resolve parent directory symlinks, but not
-        # the tail, since we only want to uninstall symlinks, not their targets
-        path = os.path.join(self._normalize_path_cached(head), os.path.normcase(tail))
+        # we resolve the head to its real, on-disk path to resolve parent
+        # directory symlinks, but not the tail, since we only want to
+        # uninstall symlinks, not their targets. We preserve the original
+        # case of both head and tail, since this path is also used to
+        # restore files to their original name if the uninstall is rolled
+        # back; see https://github.com/pypa/pip/issues/4487.
+        path = os.path.join(self._realpath_cached(head), tail)
 
         if not os.path.exists(path):
             return
