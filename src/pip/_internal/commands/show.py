@@ -24,6 +24,12 @@ def normalize_project_url_label(label: str) -> str:
     return label.translate(removal_map).lower()
 
 
+def _format_header_value(value: str) -> str:
+    """Fold newlines in a value so it remains a valid mail-style header."""
+    value = value.replace("\r\n", "\n").replace("\r", "\n")
+    return value.replace("\n", "\n ")
+
+
 class ShowCommand(Command):
     """
     Show information about one or more installed packages.
@@ -197,27 +203,35 @@ def print_results(
             tuple(map(int, metadata_version.split("."))) if metadata_version else ()
         )
 
-        write_output("Name: %s", dist.name)
-        write_output("Version: %s", dist.version)
-        write_output("Summary: %s", dist.summary)
-        write_output("Home-page: %s", dist.homepage)
-        write_output("Author: %s", dist.author)
-        write_output("Author-email: %s", dist.author_email)
+        write_output("Name: %s", _format_header_value(dist.name))
+        write_output("Version: %s", _format_header_value(dist.version))
+        write_output("Summary: %s", _format_header_value(dist.summary))
+        write_output("Home-page: %s", _format_header_value(dist.homepage))
+        write_output("Author: %s", _format_header_value(dist.author))
+        write_output("Author-email: %s", _format_header_value(dist.author_email))
         if metadata_version_tuple >= (2, 4) and dist.license_expression:
-            write_output("License-Expression: %s", dist.license_expression)
+            write_output(
+                "License-Expression: %s",
+                _format_header_value(dist.license_expression),
+            )
         else:
-            write_output("License: %s", dist.license)
-        write_output("Location: %s", dist.location)
+            write_output("License: %s", _format_header_value(dist.license))
+        write_output("Location: %s", _format_header_value(dist.location))
         if dist.editable_project_location is not None:
             write_output(
-                "Editable project location: %s", dist.editable_project_location
+                "Editable project location: %s",
+                _format_header_value(dist.editable_project_location),
             )
-        write_output("Requires: %s", ", ".join(dist.requires))
-        write_output("Required-by: %s", ", ".join(dist.required_by))
+        write_output("Requires: %s", _format_header_value(", ".join(dist.requires)))
+        write_output(
+            "Required-by: %s", _format_header_value(", ".join(dist.required_by))
+        )
 
         if verbose:
-            write_output("Metadata-Version: %s", dist.metadata_version)
-            write_output("Installer: %s", dist.installer)
+            write_output(
+                "Metadata-Version: %s", _format_header_value(dist.metadata_version)
+            )
+            write_output("Installer: %s", _format_header_value(dist.installer))
             write_output("Classifiers:")
             for classifier in dist.classifiers:
                 write_output("  %s", classifier)

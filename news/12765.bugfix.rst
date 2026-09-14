@@ -1,0 +1,1 @@
+pip show now folds multiline metadata values into valid mail-style headers.

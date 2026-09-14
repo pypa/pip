@@ -30,6 +30,39 @@ def _package_info(metadata_version: str) -> _PackageInfo:
     )
 
 
+def test_print_results_folds_multiline_metadata(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO)
+    info = _PackageInfo(
+        name="example",
+        version="1.0",
+        location="/loc",
+        editable_project_location=None,
+        requires=[],
+        required_by=[],
+        installer="pip",
+        metadata_version="",
+        classifiers=[],
+        summary="",
+        homepage="",
+        project_urls=[],
+        author="",
+        author_email="",
+        license="Copyright (c) 2005-2023, NumPy Developers.\r\nAll rights reserved.",
+        license_expression="",
+        entry_points=[],
+        files=None,
+    )
+
+    assert print_results([info], list_files=False, verbose=False)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert (
+        "License: Copyright (c) 2005-2023, NumPy Developers.\n All rights reserved."
+    ) in messages
+
+
 @pytest.mark.parametrize(
     "metadata_version, expected, unexpected",
     [
