@@ -99,7 +99,11 @@ class LinkHash:
         # against Hashes when hash-checking is needed. This is easier to debug than
         # proactively discarding an invalid hex digest, as we handle incorrect hashes
         # and malformed hashes in the same place.
-        r"[#&]({choices})=([^&]*)".format(
+        # Only the fragment is searched, and the algorithm name must be the
+        # first fragment parameter or follow a `&`. A query parameter that
+        # happens to be named after a hash algorithm is not a hash; see
+        # find_hash_url_fragment().
+        r"(?:^|&)({choices})=([^&]*)".format(
             choices="|".join(re.escape(hash_name) for hash_name in _SUPPORTED_HASHES)
         ),
     )
@@ -110,8 +114,17 @@ class LinkHash:
     @classmethod
     @functools.cache
     def find_hash_url_fragment(cls, url: str) -> LinkHash | None:
-        """Search a string for a checksum algorithm name and encoded output value."""
-        match = cls._hash_url_fragment_re.search(url)
+        """Search the URL fragment for a checksum algorithm name and encoded value.
+
+        Only the fragment is searched. Hashes live in the fragment
+        (``#sha256=...``), which is also the only place ``_clean_link`` looks
+        when deciding whether two links are equivalent. Searching the whole
+        URL would treat a query parameter named after a hash algorithm
+        (``?token=...&sha256=...``) as a pinned hash; such a URL is direct and
+        user-supplied, so that value would satisfy ``--require-hashes``.
+        """
+        fragment = urllib.parse.urlsplit(url).fragment
+        match = cls._hash_url_fragment_re.search(fragment)
         if match is None:
             return None
         name, value = match.groups()

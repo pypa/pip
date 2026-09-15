@@ -240,6 +240,31 @@ class TestLink:
         assert link.is_hash_allowed(hashes) == expected
 
     @pytest.mark.parametrize(
+        "url",
+        [
+            # A query parameter named after a hash algorithm is not a hash.
+            # Only the fragment carries hashes, which is also the only place
+            # _clean_link looks when comparing links.
+            "https://example.com/wheel.whl?token=x&sha256=" + 64 * "a",
+            "https://example.com/wheel.whl?token=x&md5=" + 32 * "a",
+            # A path segment named after a hash algorithm is not a hash either.
+            "https://example.com/sha256=" + 64 * "a" + "/wheel.whl",
+        ],
+    )
+    def test_hash_is_read_only_from_fragment(self, url: str) -> None:
+        link = Link(url)
+        assert not link.has_hash
+        assert link.hash is None
+        assert link.hash_name is None
+
+    def test_hash_in_fragment_after_other_params(self) -> None:
+        url = "https://example.com/wheel.whl#subdirectory=x&sha256=" + 64 * "a"
+        link = Link(url)
+        assert link.has_hash
+        assert link.hash_name == "sha256"
+        assert link.hash == 64 * "a"
+
+    @pytest.mark.parametrize(
         "url, expected",
         [
             ("git+https://github.com/org/repo", True),
