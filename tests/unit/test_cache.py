@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import NoReturn
@@ -152,3 +153,55 @@ def test_wheel_cache_entry_none_for_existing_directory(tmpdir: Path) -> None:
 
     assert wc.get_cache_entry(link, "example", supported_tags) is None
     assert wc.get(link, "example", supported_tags) is link
+
+
+def test_record_download_origin_same_credentialed_url_no_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    Re-recording the same credentialed URL must not warn: the URL stored in
+    origin.json has credentials stripped, so comparing it against the raw
+    in-memory URL reports a spurious mismatch and leaks credentials.
+    """
+    from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
+
+    info = DirectUrl(
+        url="https://user:secret@example.test/pkg.tar.gz",
+        archive_info=ArchiveInfo(),
+    )
+    with caplog.at_level(logging.WARNING):
+        WheelCache.record_download_origin(os.fspath(tmp_path), info)
+        WheelCache.record_download_origin(os.fspath(tmp_path), info)
+
+    assert caplog.records == []
+
+
+def test_record_download_origin_url_mismatch_hides_credentials(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    A genuine origin URL mismatch must still warn, but without including
+    credentials in the message.
+    """
+    from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
+
+    with caplog.at_level(logging.WARNING):
+        WheelCache.record_download_origin(
+            os.fspath(tmp_path),
+            DirectUrl(
+                url="https://user:secret1@example.test/a.tar.gz",
+                archive_info=ArchiveInfo(),
+            ),
+        )
+        WheelCache.record_download_origin(
+            os.fspath(tmp_path),
+            DirectUrl(
+                url="https://user:secret2@example.test/b.tar.gz",
+                archive_info=ArchiveInfo(),
+            ),
+        )
+
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert "secret1" not in message
+    assert "secret2" not in message
