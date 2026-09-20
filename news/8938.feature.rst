@@ -1,0 +1,1 @@
+Emit an audit hook event before preparing a distribution for installation.

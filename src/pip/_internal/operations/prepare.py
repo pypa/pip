@@ -7,11 +7,13 @@ from __future__ import annotations
 import mimetypes
 import os
 import shutil
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pip import __version__ as pip_version
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -66,6 +68,10 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
+def _audit_install(req: InstallRequirement) -> None:
+    sys.audit("pip.install", pip_version, req)
+
+
 def _get_prepared_distribution(
     req: InstallRequirement,
     build_tracker: BuildTracker,
@@ -75,6 +81,7 @@ def _get_prepared_distribution(
     allow_editables: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
+    _audit_install(req)
     abstract_dist = make_distribution_for_install_requirement(req)
     tracker_id = abstract_dist.build_tracker_id
     if tracker_id is not None:

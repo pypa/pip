@@ -460,6 +460,39 @@ def test_install_warns_on_unexpected_post_install_import(
     assert "run_install.py:7)" in result.stderr
 
 
+def test_install_emits_audit_event(
+    script: PipTestEnvironment,
+) -> None:
+    wheel_path = create_basic_wheel_for_package(script, "mypackage", "1.0")
+    runner = script.scratch_path / "run_install.py"
+    runner.write_text(textwrap.dedent("""\
+            import sys
+
+            def audit_hook(event, args):
+                if event == "pip.install":
+                    version, requirement = args
+                    print(f"AUDIT_EVENT {version} {requirement.name}")
+
+            sys.addaudithook(audit_hook)
+
+            from pip._internal.cli.main import main
+            wheels_dir = sys.argv[1]
+            sys.exit(main([
+                "install",
+                "--no-index",
+                "--find-links",
+                wheels_dir,
+                "mypackage"
+                ])
+            )
+        """))
+
+    result = script.run("python", str(runner), str(wheel_path.parent))
+
+    assert "AUDIT_EVENT " in result.stdout
+    assert " mypackage" in result.stdout
+
+
 def test_install_exit_status_code_when_no_requirements(
     script: PipTestEnvironment,
 ) -> None:
