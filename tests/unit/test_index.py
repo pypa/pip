@@ -620,6 +620,113 @@ class TestCandidateEvaluator:
         actual_versions = [str(c.version) for c in actual]
         assert actual_versions == expected_versions
 
+    def test_get_applicable_candidates__yanked_final_with_prerelease(self) -> None:
+        """A yanked final release doesn't suppress the prerelease fallback (#8262)."""
+        candidates = [
+            make_mock_candidate("1.0", yanked_reason="bad metadata"),
+            make_mock_candidate("2.0rc0"),
+        ]
+        evaluator = CandidateEvaluator.create("my-project")
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["2.0rc0"]
+
+    def test_get_applicable_candidates__yanked_final_with_prerelease_hash_pinned(
+        self,
+    ) -> None:
+        """A hash-pinned pre-release wins over a non-matching yanked file."""
+        candidates = [
+            make_mock_candidate(
+                "1.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+            ),
+            make_mock_candidate("2.0rc0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            hashes=Hashes({"sha256": [64 * "b"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["2.0rc0"]
+
+    def test_get_applicable_candidates__yanked_and_prerelease_both_hash_pinned(
+        self,
+    ) -> None:
+        """Yanked files allowed by the pins stay applicable (#10625)."""
+        candidates = [
+            make_mock_candidate(
+                "1.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+            ),
+            make_mock_candidate("2.0rc0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            hashes=Hashes({"sha256": [64 * "a", 64 * "b"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+
+    def test_get_applicable_candidates__same_version_files_prerelease_also_pinned(
+        self,
+    ) -> None:
+        """The hash-allowed yanked file wins for the pinned version."""
+        yanked = make_mock_candidate(
+            "1.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+        )
+        candidates = [
+            yanked,
+            make_mock_candidate("1.0", hex_digest=(64 * "c")),
+            make_mock_candidate("2.0rc0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            specifier=SpecifierSet("==1.0"),
+            hashes=Hashes({"sha256": [64 * "a", 64 * "b"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+        assert [c.link.url for c in actual] == [yanked.link.url]
+
+    def test_get_applicable_candidates__non_yanked_final_with_prerelease(
+        self,
+    ) -> None:
+        """A non-yanked final release still suppresses the prerelease fallback."""
+        candidates = [
+            make_mock_candidate("1.0"),
+            make_mock_candidate("2.0rc0"),
+        ]
+        evaluator = CandidateEvaluator.create("my-project")
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+
+    def test_get_applicable_candidates__yanked_pinned(self) -> None:
+        """A yanked release matching an exact pin stays applicable."""
+        candidates = [
+            make_mock_candidate("1.0", yanked_reason="bad metadata"),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            specifier=SpecifierSet("==1.0"),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [str(c.version) for c in actual] == ["1.0"]
+
+    def test_get_applicable_candidates__yanked_hash_pinned_with_alternate(
+        self,
+    ) -> None:
+        """A yanked file matching the hash pin stays applicable."""
+        candidates = [
+            make_mock_candidate(
+                "3.0", yanked_reason="bad metadata", hex_digest=(64 * "a")
+            ),
+            make_mock_candidate("3.0", hex_digest=(64 * "b")),
+        ]
+        evaluator = CandidateEvaluator.create(
+            "my-project",
+            specifier=SpecifierSet("==3.0"),
+            hashes=Hashes({"sha256": [64 * "a"]}),
+        )
+        actual = evaluator.get_applicable_candidates(candidates)
+        assert [c.link.is_yanked for c in actual] == [True]
+
     def test_compute_best_candidate(self) -> None:
         specifier = SpecifierSet("<= 1.11")
         versions = ["1.10", "1.11", "1.12"]
