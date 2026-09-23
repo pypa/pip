@@ -10,7 +10,7 @@ import textwrap
 from email import message_from_string
 from pathlib import Path
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 
@@ -472,6 +472,193 @@ class TestInstallUnpackedWheel:
         assert "outside the scripts directory" in str(e.value)
         # Nothing was written outside the install destination.
         assert not os.path.exists(os.path.join(str(tmpdir), "outside"))
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.parametrize(
+        "link_name, scheme_key",
+        [
+            ("sample", "purelib"),
+            ("sample/__pycache__", "purelib"),
+            ("my_data", "data"),
+        ],
+    )
+    def test_wheel_install_rejects_symlink_out_of_scheme(
+        self, data: TestData, tmp_path: Path, link_name: str, scheme_key: str
+    ) -> None:
+        self.prep(data, tmp_path)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "keep").write_text("keep")
+        link = Path(getattr(self.scheme, scheme_key)) / link_name
+        link.parent.mkdir(parents=True)
+        link.symlink_to(outside)
+
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+
+        assert str(outside) in str(e.value)
+        assert [p.name for p in outside.iterdir()] == ["keep"]
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_wheel_install_allows_symlink_within_scheme(
+        self, data: TestData, tmp_path: Path
+    ) -> None:
+        self.prep(data, tmp_path)
+        purelib = Path(self.scheme.purelib)
+        (purelib / "elsewhere").mkdir(parents=True)
+        (purelib / "sample").symlink_to(purelib / "elsewhere")
+
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
+
+        assert (purelib / "elsewhere" / "__init__.py").is_file()
+
+    def test_wheel_install_resolves_scheme_once(
+        self, data: TestData, tmp_path: Path
+    ) -> None:
+        self.prep(data, tmp_path)
+        with patch.object(os.path, "realpath", wraps=os.path.realpath) as realpath:
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+                pycompile=False,
+            )
+
+        for scheme_dir in (self.scheme.purelib, self.scheme.data):
+            assert realpath.call_args_list.count(call(scheme_dir)) == 1
+        assert Path(self.dest_dist_info, "METADATA").is_file()
+        assert Path(self.scheme.data, "my_data", "data_file").is_file()
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_wheel_install_allows_symlink_chain_back_into_scheme(
+        self, data: TestData, tmp_path: Path
+    ) -> None:
+        self.prep(data, tmp_path)
+        self.wheelpath = make_wheel(
+            "sample",
+            "1.2.0",
+            extra_files={"sample/link/module.py": "value = 1"},
+        ).save_to_dir(str(tmp_path))
+        purelib = Path(self.scheme.purelib)
+        destination = purelib / "inside"
+        destination.mkdir(parents=True)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (purelib / "sample").symlink_to(outside)
+        (outside / "link").symlink_to(destination)
+
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
+
+        assert (destination / "module.py").read_text() == "value = 1"
+        assert list(outside.iterdir()) == [outside / "link"]
+
+    def test_wheel_install_checks_each_bytecode_directory_once(
+        self, data: TestData, tmp_path: Path
+    ) -> None:
+        self.prep(data, tmp_path)
+        self.wheelpath = make_wheel(
+            "sample",
+            "1.2.0",
+            extra_files={
+                "sample/one.py": "value = 1",
+                "sample/two.py": "value = 2",
+                "sample/other/three.py": "value = 3",
+            },
+        ).save_to_dir(str(tmp_path))
+
+        with patch.object(os.path, "islink", wraps=os.path.islink) as islink:
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+
+        checked_paths = [Path(check.args[0]) for check in islink.call_args_list]
+        for directory, count in (("sample", 2), ("sample/other", 1)):
+            pyc_dir = Path(self.scheme.purelib, directory, "__pycache__")
+            assert checked_paths.count(pyc_dir) == 1
+            assert len(list(pyc_dir.glob("*.pyc"))) == count
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_wheel_install_resolves_retargeted_scheme(
+        self, data: TestData, tmp_path: Path
+    ) -> None:
+        self.prep(data, tmp_path)
+        purelib = Path(self.scheme.purelib)
+        purelib.parent.mkdir(parents=True)
+        for name in ("first", "second"):
+            destination = tmp_path / name
+            destination.mkdir()
+            purelib.symlink_to(destination)
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+            assert (destination / "sample" / "__init__.py").is_file()
+            purelib.unlink()
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.parametrize(
+        "link_name, scheme_key, target_exists",
+        [
+            # A file from the wheel, an entry point script generated by
+            # distlib, and a file pip generates itself.
+            ("sample/package_data.dat", "purelib", False),
+            ("sample", "scripts", False),
+            ("sample-1.2.0.dist-info/REQUESTED", "purelib", False),
+            ("sample-1.2.0.dist-info/REQUESTED", "purelib", True),
+        ],
+    )
+    def test_wheel_install_replaces_symlink(
+        self,
+        data: TestData,
+        tmp_path: Path,
+        link_name: str,
+        scheme_key: str,
+        target_exists: bool,
+    ) -> None:
+        self.prep(data, tmp_path)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        link = Path(getattr(self.scheme, scheme_key)) / link_name
+        link.parent.mkdir(parents=True)
+        outside_target = outside / "written-through-the-link"
+        if target_exists:
+            outside_target.write_text("outside")
+        link.symlink_to(outside_target)
+
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+            requested=True,
+        )
+
+        assert link.is_file()
+        assert not link.is_symlink()
+        assert outside_target.exists() is target_exists
+        if target_exists:
+            assert outside_target.read_text() == "outside"
 
 
 class TestMessageAboutScriptsNotOnPATH:

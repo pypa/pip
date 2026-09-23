@@ -17,7 +17,9 @@ from tests.lib import (
     ScriptFactory,
     TestData,
     TestPipResult,
+    create_basic_wheel_for_package,
     create_really_basic_wheel,
+    create_test_package_with_setup,
 )
 from tests.lib.server import MockServer, file_response
 
@@ -1211,6 +1213,42 @@ def test_download_editable(
     downloads = os.listdir(download_dir)
     assert len(downloads) == 1
     assert downloads[0].endswith(".zip")
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_download_replaces_dangling_symlinks_in_dest(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    wheel = create_basic_wheel_for_package(script, "simple", "1.0")
+    editable = create_test_package_with_setup(script, name="editable", version="1.0")
+    requirements_path = script.scratch_path / "requirements.txt"
+    requirements_path.write_text(f"simple==1.0\n-e {editable}\n")
+    download_dir = script.scratch_path / "downloads"
+    download_dir.mkdir()
+    wheel_path = download_dir / wheel.name
+    archive_path = download_dir / "editable-1.0.zip"
+    wheel_path.symlink_to(tmp_path / "outside-wheel")
+    archive_path.symlink_to(tmp_path / "outside-archive")
+
+    script.pip(
+        "download",
+        "--no-index",
+        "-f",
+        script.scratch_path,
+        "--no-build-isolation",
+        "--no-deps",
+        "-r",
+        requirements_path,
+        "-d",
+        download_dir,
+    )
+
+    assert not (tmp_path / "outside-wheel").exists()
+    assert not (tmp_path / "outside-archive").exists()
+    assert wheel_path.is_file()
+    assert not wheel_path.is_symlink()
+    assert archive_path.is_file()
+    assert not archive_path.is_symlink()
 
 
 @pytest.fixture

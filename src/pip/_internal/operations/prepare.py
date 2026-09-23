@@ -47,6 +47,7 @@ from pip._internal.utils.direct_url_helpers import (
     direct_url_for_editable,
     direct_url_from_link,
 )
+from pip._internal.utils.filesystem import unlink_dangling_symlink
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -805,6 +806,11 @@ class RequirementPreparer:
             return
 
         download_location = join_within_directory(self.download_dir, link.filename)
+
+        # A dangling symlink is not "existing" to the check below, but
+        # shutil.copy() would follow it and write the file at its target.
+        unlink_dangling_symlink(download_location)
+
         if not os.path.exists(download_location):
             shutil.copy(req.local_file_path, download_location)
             download_path = display_path(download_location)

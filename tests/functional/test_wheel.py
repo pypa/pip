@@ -17,6 +17,7 @@ from pip._internal.utils.urls import path_to_url
 from tests.lib import (
     PipTestEnvironment,
     TestData,
+    create_basic_sdist_for_package,
     create_basic_wheel_for_package,
     pyversion,
 )
@@ -273,6 +274,25 @@ def test_pip_wheel_copy_failure_is_reported_as_copy_failure(
     assert "Successfully built simple" in result.stdout, str(result)
     assert "Failed to copy built wheel" in str(result), str(result)
     assert "Building wheel for simple failed" not in str(result), str(result)
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_pip_wheel_replaces_symlink_in_wheel_dir(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    sdist = create_basic_sdist_for_package(script, "simple", "3.0")
+    wheel_dir = script.scratch_path / "wheels"
+    wheel_dir.mkdir()
+    outside = tmp_path / "outside"
+    outside.write_text("outside")
+    wheel_path = wheel_dir / "simple-3.0-py3-none-any.whl"
+    wheel_path.symlink_to(outside)
+
+    script.pip("wheel", "--no-index", "--no-build-isolation", "-w", wheel_dir, sdist)
+
+    assert outside.read_text() == "outside"
+    assert wheel_path.is_file()
+    assert not wheel_path.is_symlink()
 
 
 def test_pip_wheel_builds_editable_deps(
