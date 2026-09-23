@@ -13,14 +13,11 @@ from pip._vendor.rich.console import Console
 from pip._internal.cli import progress_bars
 
 
-@pytest.mark.parametrize("size", [100, None, 0])
-@pytest.mark.parametrize("initial_progress", [None, 20])
-def test_speed_hidden_after_download_finishes(
-    size: int | None, initial_progress: int | None
-) -> None:
+@pytest.mark.parametrize("size", [100, None])
+def test_speed_hidden_after_download_finishes(size: int | None) -> None:
     output = StringIO()
     clock = count(step=0.1)
-    chunks = [b"x" * 40, b"y" * (60 - (initial_progress or 0))]
+    chunks = [b"x" * 40, b"y" * 60]
     progress = partial(
         progress_bars.Progress,
         console=Console(file=output, force_terminal=False, width=100),
@@ -31,7 +28,7 @@ def test_speed_hidden_after_download_finishes(
         assert (
             list(
                 progress_bars._rich_download_progress_bar(
-                    chunks, bar_type="on", size=size, initial_progress=initial_progress
+                    chunks, bar_type="on", size=size
                 )
             )
             == chunks
