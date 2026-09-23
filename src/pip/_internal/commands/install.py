@@ -48,7 +48,6 @@ from pip._internal.req.req_install import (
     InstallRequirement,
 )
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
@@ -97,13 +96,10 @@ def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
         raise ImportError(f"No module named {module!r}")
     if module.partition(".")[0] in _STDLIB_MODULE_NAMES:
         return
-    deprecated(
-        reason=f"Unexpected import of {module!r} after pip install started.",
-        replacement=None,
-        gone_in="26.3",
-        issue=13842,
-        include_source=True,
-        stacklevel=3,
+    raise ImportError(
+        f"Blocked import of {module!r} after pip install started. Frameworks"
+        " injecting imports into pip must import everything they need before"
+        " installation starts."
     )
 
 
@@ -116,14 +112,13 @@ def _eagerly_import_modules() -> None:
             # Record the module as missing so the hook can raise ImportError
             # instead of trying to import it again.
             _MISSING_MODULES.add(module)
+        except Exception:
+            # Importing executes arbitrary code, which can raise anything.
+            pass
 
 
 def _prevent_further_imports() -> None:
-    """Install an audit hook that warns on unexpected imports after pip install starts.
-
-    Eagerly pre-imports the known lazy imports first so the hook only fires
-    on genuinely unexpected modules.
-    """
+    """Install an audit hook that blocks unexpected imports after pip install starts."""
     global _IMPORT_AUDIT_HOOK_INSTALLED
     if _IMPORT_AUDIT_HOOK_INSTALLED:
         return
@@ -546,7 +541,7 @@ class InstallCommand(RequirementCommand):
             if options.target_dir or options.prefix_path:
                 warn_script_location = False
 
-            # Warn on late imports so we don't silently pick up a module
+            # Block late imports so we don't silently pick up a module
             # from a distribution pip is about to install.
             try:
                 _eagerly_import_modules()
