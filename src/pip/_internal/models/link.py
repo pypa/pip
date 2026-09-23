@@ -208,12 +208,28 @@ def _clean_url_path(path: str, is_local_path: bool) -> str:
     return "".join(cleaned_parts)
 
 
+# An http(s) URL that is already fully quoted, so cleaning it is a no-op:
+# a lowercase scheme, a host (optionally with a port) and a path made only of
+# characters that urllib.parse.quote() never escapes, with an optional
+# non-empty fragment of the same shape (e.g. "#sha256=<hex>"). No userinfo,
+# query, percent-escapes or reserved characters, so none of the special
+# handling in _clean_url_path() applies. Nearly every link on a real index
+# page has this shape.
+_already_quoted_http_url_re = re.compile(
+    r"https?://[A-Za-z0-9._~-]+(?::[0-9]+)?"
+    r"(?:/[A-Za-z0-9._~/-]*)?"
+    r"(?:#[A-Za-z0-9._~=-]+)?"
+)
+
+
 def _ensure_quoted_url(url: str) -> str:
     """
     Make sure a link is fully quoted.
     For example, if ' ' occurs in the URL, it will be replaced with "%20",
     and without double-quoting other characters.
     """
+    if _already_quoted_http_url_re.fullmatch(url):
+        return url
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)

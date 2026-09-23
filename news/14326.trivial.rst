@@ -1,0 +1,2 @@
+Skip re-quoting index file URLs that are already fully quoted, speeding up
+candidate discovery on large projects.

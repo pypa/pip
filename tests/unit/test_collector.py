@@ -337,6 +337,28 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
 @pytest.mark.parametrize(
     "url, clean_url",
     [
+        # Typical index file URL that is already fully quoted and is
+        # returned unchanged.
+        (
+            "https://files.pythonhosted.org/packages/ab/cd/pkg-1.0-py3-none-any.whl",
+            "https://files.pythonhosted.org/packages/ab/cd/pkg-1.0-py3-none-any.whl",
+        ),
+        # Already quoted URL with a port and a hash fragment.
+        (
+            "https://localhost.localdomain:8181/simple/pkg-1.0.tar.gz#sha256=abc123",
+            "https://localhost.localdomain:8181/simple/pkg-1.0.tar.gz#sha256=abc123",
+        ),
+        # The `+` in a local version segment is not URL-safe and must still
+        # be quoted.
+        (
+            "https://localhost.localdomain/pkg-1.0+local-py3-none-any.whl",
+            "https://localhost.localdomain/pkg-1.0%2Blocal-py3-none-any.whl",
+        ),
+        # An upper-case scheme is still normalized.
+        (
+            "HTTPS://localhost.localdomain/pkg-1.0-py3-none-any.whl",
+            "https://localhost.localdomain/pkg-1.0-py3-none-any.whl",
+        ),
         # URL with hostname and port. Port separator should not be quoted.
         (
             "https://localhost.localdomain:8181/path/with space/",
