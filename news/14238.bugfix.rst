@@ -1,0 +1,2 @@
+``inprocess-build-deps`` reports started/finished status when printing to a
+non-interactive terminal properly.
