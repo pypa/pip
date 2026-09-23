@@ -122,6 +122,31 @@ def parse_constraint_files(
 ) -> list[InstallRequirement]:
     requirements = []
     for filename in constraint_files:
+        if is_valid_pylock_filename(filename):
+            logger.warning(
+                "Using pylock.toml as a constraints source "
+                "is an experimental feature. "
+                "It may be removed/changed in a future release "
+                "without prior warning."
+            )
+            for package, package_dist in select_from_pylock_path_or_url(
+                filename, session=session
+            ):
+                req_to_add, locked_link = install_req_from_pylock_package(
+                    package,
+                    package_dist,
+                    filename,
+                    user_supplied=False,
+                    constraint=True,
+                )
+                requirements.append(req_to_add)
+                if locked_link:
+                    # Covers an unpinned/transitive reference to the
+                    # constrained package; req_to_add.link (see
+                    # install_req_from_pylock_package()) covers the
+                    # complementary already-pinned-elsewhere case.
+                    finder.add_locked_link(package.name, locked_link)
+            continue
         for parsed_req in parse_requirements(
             filename,
             constraint=True,

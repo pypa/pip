@@ -1,0 +1,2 @@
+Fix a constraint's hash being ignored for a package that is only needed
+transitively, when the constraint is given in URL form (``name @ url --hash=...``).
