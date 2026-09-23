@@ -45,6 +45,7 @@ def install_given_reqs(
     pycompile: bool,
     progress_bar: BarType,
     script_executable: str | None = None,
+    parallel_pycompile: bool = True,
 ) -> list[InstallationResult]:
     """
     Install everything in the given list.
@@ -89,6 +90,7 @@ def install_given_reqs(
                     warn_script_location=warn_script_location,
                     use_user_site=use_user_site,
                     pycompile=pycompile,
+                    parallel_pycompile=parallel_pycompile,
                     script_executable=script_executable,
                 )
             except Exception:

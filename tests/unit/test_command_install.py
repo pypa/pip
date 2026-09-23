@@ -16,6 +16,35 @@ from pip._internal.commands.install import (
 from pip._internal.utils.deprecation import PipDeprecationWarning
 
 
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        ([], True),
+        (["--no-parallel-compile"], False),
+    ],
+)
+def test_parallel_compile_option(args: list[str], expected: bool) -> None:
+    options, _ = install.InstallCommand("install", "").parse_args(args)
+    assert options.parallel_compile is expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("true", False),
+        ("false", True),
+    ],
+)
+def test_no_parallel_compile_environment_option(
+    value: str,
+    expected: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PIP_NO_PARALLEL_COMPILE", value)
+    options, _ = install.InstallCommand("install", "").parse_args([])
+    assert options.parallel_compile is expected
+
+
 class TestDecideUserInstall:
     @mock.patch("site.ENABLE_USER_SITE", True)
     @mock.patch("pip._internal.commands.install.site_packages_writable")
