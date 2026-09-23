@@ -151,9 +151,8 @@ class TestUninstallPathSet:
             "_permitted",
             mock_permitted,
         )
-        # Fix case for windows tests
-        file_extant = os.path.normcase(os.path.join(tmpdir, "foo"))
-        file_nonexistent = os.path.normcase(os.path.join(tmpdir, "nonexistent"))
+        file_extant = os.path.join(tmpdir, "foo")
+        file_nonexistent = os.path.join(tmpdir, "nonexistent")
         with open(file_extant, "w"):
             pass
 
@@ -164,6 +163,57 @@ class TestUninstallPathSet:
 
         ups.add(file_nonexistent)
         assert ups._paths == {file_extant}
+
+    def test_add_preserves_case(
+        self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Regression test for https://github.com/pypa/pip/issues/4487
+
+        On Windows, add() must not case-fold the tracked path, otherwise a
+        later rollback recreates the file under a different (lowercased)
+        name than it originally had.
+        """
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
+        mixed_case_file = os.path.join(tmpdir, "CamelCase.py")
+        with open(mixed_case_file, "w"):
+            pass
+
+        ups = UninstallPathSet(dist=Mock())
+        ups.add(mixed_case_file)
+        assert ups._paths == {mixed_case_file}
+
+    def test_remove_and_rollback_preserves_case(
+        self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Regression test for https://github.com/pypa/pip/issues/4487
+
+        Rolling back a removal must restore files -- and directories, when
+        compress_for_rename() decides to stash a whole directory as a unit --
+        under their original, mixed-case name.
+        """
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall.UninstallPathSet,
+            "_permitted",
+            mock_permitted,
+        )
+        pkg_dir = os.path.join(tmpdir, "MyPkgDir")
+        os.mkdir(pkg_dir)
+        mixed_case_file = os.path.join(pkg_dir, "CamelCase.py")
+        with open(mixed_case_file, "w"):
+            pass
+
+        ups = UninstallPathSet(dist=Mock())
+        ups.add(mixed_case_file)
+        ups.remove(auto_confirm=True)
+        assert not os.path.exists(pkg_dir)
+
+        ups.rollback()
+        assert "MyPkgDir" in os.listdir(tmpdir)
+        assert os.listdir(pkg_dir) == ["CamelCase.py"]
 
     def test_add_pth(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
@@ -223,9 +273,7 @@ class TestUninstallPathSet:
         )
         monkeypatch.setattr("os.path.exists", lambda p: True)
         # This deals with nt/posix path differences
-        short_path = os.path.normcase(
-            os.path.abspath(os.path.join(os.path.sep, "path"))
-        )
+        short_path = os.path.abspath(os.path.join(os.path.sep, "path"))
         ups = UninstallPathSet(dist=Mock())
         ups.add(short_path)
         ups.add(os.path.join(short_path, "longer"))
