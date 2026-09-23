@@ -1,0 +1,2 @@
+Stop running a ``rustc`` or ``keyring`` executable found in the current
+directory when building the User-Agent or looking for a keyring backend.
