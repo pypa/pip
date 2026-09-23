@@ -1,0 +1,3 @@
+Emit a warning when a VCS URL contains unrecognized fragment parameters
+(e.g. ``#subdiretory=`` instead of ``#subdirectory=``), which are likely
+typos and can lead to confusing errors.
