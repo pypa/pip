@@ -1,0 +1,1 @@
+Fix ``TypeError`` when connecting through SOCKS proxies due to an unexpected ``proxy_ssl_context`` argument in ``urllib3``.

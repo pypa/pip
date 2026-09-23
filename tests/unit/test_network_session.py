@@ -534,6 +534,22 @@ class TestSSLContextAdapterMixinProxy:
 
         assert proxy_manager.proxy_ssl_context is None
 
+    def test_socks_proxy_omits_proxy_ssl_context(self) -> None:
+        pytest.importorskip("socks")
+
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        session = PipSession(ssl_context=ssl_context)
+
+        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        proxy_manager = adapter.proxy_manager_for("socks5h://127.0.0.1:10800")
+
+        # SOCKS proxies do not use proxy_ssl_context
+        assert "proxy_ssl_context" not in proxy_manager.connection_pool_kw
+        # ssl_context for the end-to-end destination tunnel must still be present
+        assert proxy_manager.connection_pool_kw["ssl_context"] is ssl_context
+        # Verifies that pool key generation succeeds without TypeError
+        proxy_manager.connection_from_host("example.com")
+
 
 class TestConnectionErrors:
     @pytest.fixture

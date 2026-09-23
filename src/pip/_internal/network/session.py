@@ -269,7 +269,10 @@ class _SSLContextAdapterMixin:
             # to the proxy itself (before tunnelling to the destination) and
             # uses "proxy_ssl_context" for that handshake.
             # https://github.com/pypa/pip/issues/13465
-            proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
+            # SOCKS proxies never do a TLS handshake with the proxy, and
+            # SOCKSProxyManager does not accept this argument
+            if not proxy.lower().startswith("socks"):
+                proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
         return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
