@@ -23,6 +23,7 @@ from pip._vendor.rich.markup import escape
 from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
+    IncompatibleWheelError,
     InstallationError,
     InvalidInstalledPackage,
     MetadataInconsistent,
@@ -30,6 +31,7 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
+from pip._internal.exceptions.wheel import diagnose_incompatible_wheel
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_default_environment
 from pip._internal.models.link import Link
@@ -135,8 +137,14 @@ class Factory:
         if not link.is_wheel:
             return
         wheel = Wheel(link.filename)
-        if wheel.supported(self._finder.target_python.get_unsorted_tags()):
+        supported_tags = self._finder.target_python.get_unsorted_tags()
+        if wheel.supported(supported_tags):
             return
+        if self._finder.target_python.is_current_interpreter():
+            reason = diagnose_incompatible_wheel(wheel.filename, supported_tags)
+            raise IncompatibleWheelError(wheel.filename, reason)
+        # It's not worth the complexity to attempt to deduce an explanation
+        # when we're targeting a different interpreter.
         msg = f"{link.filename} is not a supported wheel on this platform."
         raise UnsupportedWheel(msg)
 
