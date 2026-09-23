@@ -69,6 +69,9 @@ def _rich_download_progress_bar(
         for chunk in iterable:
             yield chunk
             progress.update(task_id, advance=len(chunk))
+        progress.columns = tuple(
+            column for column in columns if not isinstance(column, TransferSpeedColumn)
+        )
         progress.update(task_id, time_description="")
 
 

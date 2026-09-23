@@ -1,0 +1,1 @@
+Hide the last reported download speed after a download completes.
