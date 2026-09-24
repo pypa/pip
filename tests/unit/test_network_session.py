@@ -38,6 +38,7 @@ from pip._internal.network.session import (
     PipSession,
     user_agent,
 )
+from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import CI_ENVIRONMENT_VARIABLES
 from pip._internal.utils.urls import path_to_url
 
@@ -57,14 +58,21 @@ class Address:
     host: str
     port: int
 
-    @property
-    def url(self) -> str:
-        return f"http://{self.host}:{self.port}/"
+    def url(self, *, https: bool = False) -> str:
+        if https:
+            return f"https://{self.host}:{self.port}/"
+        else:
+            return f"http://{self.host}:{self.port}/"
 
 
 class InstantCloseHTTPHandler(BaseHTTPRequestHandler):
+    """A HTTP request handler that closes the underlying request TCP
+    socket immediately. Used for testing "connection reset by peer" and
+    similar errors.
+    """
+
     def handle(self) -> None:
-        self.connection.close()
+        self.request.close()
 
 
 class DelayedHTTPHandler(BaseHTTPRequestHandler):
@@ -558,20 +566,19 @@ class TestConnectionErrors:
         self, session: PipSession, instant_close_server: Address
     ) -> None:
         with pytest.raises(ConnectionFailedError) as e:
-            session.get(instant_close_server.url)
+            session.get(instant_close_server.url())
         message, context = render_diagnostic_error(e.value)
         assert message == (
             f"Failed to connect to {instant_close_server.host} "
-            f"while fetching {instant_close_server.url}"
+            f"while fetching {instant_close_server.url()}"
         )
         assert context == "the connection was closed without a reply from the server."
 
     def test_timeout(self, session: PipSession, delayed_server: Address) -> None:
-        url = delayed_server.url
         with pytest.raises(ConnectionTimeoutError) as e:
-            session.get(url, timeout=0.2)
+            session.get(delayed_server.url(), timeout=0.2)
         message, context = render_diagnostic_error(e.value)
-        assert message == f"Unable to fetch {url}"
+        assert message == f"Unable to fetch {delayed_server.url()}"
         assert context is not None
         assert context.startswith(
             f"{delayed_server.host} didn't respond within 0.2 seconds"
@@ -581,14 +588,13 @@ class TestConnectionErrors:
         self, session: PipSession, self_signed_server: Address
     ) -> None:
         """A self-signed certificate should produce a TLS verification diagnostic."""
-        url = f"https://{self_signed_server.host}:{self_signed_server.port}/"
         with pytest.raises(SSLVerificationError) as e:
-            session.get(url)
+            session.get(self_signed_server.url(https=True))
         message, _ = render_diagnostic_error(e.value)
         expected_host = self_signed_server.host
-        assert message == (
+        assert message.startswith(
             f"Failed to establish a secure connection to {expected_host} while "
-            f"fetching {url}"
+            "fetching https://"
         )
 
     def test_missing_python_ssl_support(
@@ -645,3 +651,64 @@ class TestConnectionErrors:
             session.get(url)
         message, _ = render_diagnostic_error(e.value)
         assert message == f"Failed to connect to proxy {proxy}:443 while fetching {url}"
+
+
+@pytest.mark.network
+class TestRetryWarningRewriting:
+    @pytest.fixture(autouse=True)
+    def setup_caplog_level(self, caplog: pytest.LogCaptureFixture) -> Iterator[None]:
+        with caplog.at_level(logging.WARNING):
+            yield
+
+    @pytest.mark.parametrize(
+        "url, expected_message",
+        [
+            ("https://404.example.invalid", "failed to connect to 404.example.invalid"),
+            ("http://404.example.invalid", "failed to connect to 404.example.invalid"),
+        ],
+    )
+    def test_simple_urls(
+        self, caplog: pytest.LogCaptureFixture, url: str, expected_message: str
+    ) -> None:
+        with PipSession(retries=2) as session, pytest.raises(DiagnosticPipError):
+            session.get(url)
+        assert caplog.messages == [
+            f"{expected_message}, retrying 2 more times",
+            f"{expected_message}, retrying 1 last time",
+        ]
+
+    def test_timeout(
+        self, caplog: pytest.LogCaptureFixture, delayed_server: Address
+    ) -> None:
+        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+            session.get(delayed_server.url(), timeout=0.1)
+        assert caplog.messages == [
+            "127.0.0.1 took too long to respond, retrying 1 last time"
+        ]
+
+    def test_connection_aborted(self, caplog: pytest.LogCaptureFixture) -> None:
+        with HTTPServer(("localhost", 0), InstantCloseHTTPHandler) as server:
+            with server_running(server), PipSession(retries=1) as session:
+                with pytest.raises(DiagnosticPipError):
+                    session.get(f"http://{server.server_name}:{server.server_port}/")
+            assert caplog.messages == [
+                f"failed to connect to {server.server_name}, retrying 1 last time"
+            ]
+
+    def test_selfsigned_cert(
+        self, caplog: pytest.LogCaptureFixture, self_signed_server: Address
+    ) -> None:
+        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+            session.get(self_signed_server.url(https=True))
+        assert caplog.messages == [
+            "SSL verification failed while connecting to localhost, "
+            "retrying 1 last time"
+        ]
+
+    def test_verbose(self, caplog: pytest.LogCaptureFixture) -> None:
+        caplog.set_level(VERBOSE)
+        with PipSession(retries=1) as session, pytest.raises(DiagnosticPipError):
+            session.get("https://404.example.invalid")
+        warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert not warnings[0].endswith("retrying 1 last time")

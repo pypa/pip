@@ -256,6 +256,17 @@ class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
         return super()._open()
 
 
+class FilterOnlyHandler(logging.Handler):
+    """Passthrough logging handler used to apply filters.
+
+    A NullHandler cannot be used instead because it disables the normal handler
+    filtering process (it also provides a no-op handle() method).
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        pass
+
+
 class MaxLevelFilter(Filter):
     def __init__(self, level: int) -> None:
         self.level = level
