@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import ntpath
 import os
 import pathlib
 import sys
@@ -119,6 +120,23 @@ def test_normalized_outrows(
 ) -> None:
     actual = wheel._normalized_outrows(outrows)
     assert actual == expected
+
+
+def test_fs_to_record_path_preserves_path_on_different_windows_drives(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # CI does not reliably provide multiple Windows drives. Emulate the drive
+    # split at this helper boundary and ensure relpath is never attempted.
+    def fail_relpath(path: str, start: str) -> str:
+        raise AssertionError("os.path.relpath() must not be used across drives")
+
+    monkeypatch.setattr(wheel.os.path, "splitdrive", ntpath.splitdrive)
+    monkeypatch.setattr(wheel.os.path, "relpath", fail_relpath)
+
+    path = "D:/scripts/example.exe"
+    lib_dir = "C:/site-packages"
+
+    assert wheel._fs_to_record_path(path, lib_dir) == path
 
 
 def call_get_csv_rows_for_installed(tmpdir: Path, text: str) -> list[InstalledCSVRow]:

@@ -50,7 +50,7 @@ from pip._internal.utils.unpacking import (
     set_extracted_file_to_default_mode_plus_executable,
     zip_item_is_executable,
 )
-from pip._internal.utils.wheel import parse_wheel
+from pip._internal.utils.wheel import parse_wheel, record_path_resolves_to_base
 
 
 class File(Protocol):
@@ -80,6 +80,32 @@ def csv_io_kwargs(mode: str) -> dict[str, Any]:
     in the given mode.
     """
     return {"mode": mode, "newline": "", "encoding": "utf-8"}
+
+
+def _validate_record_path(
+    record_row: Sequence[str], lib_dir: str, wheel_path: str
+) -> None:
+    """Validate a RECORD path before installing the wheel.
+
+    RECORD paths are relative to the installation root.  In particular, a
+    path that normalizes to the installation root is never a file owned by the
+    distribution, and must not be allowed to make the root appear in RECORD.
+    """
+    record_path = record_row[0] if record_row else ""
+    if not record_path:
+        raise InstallationError(
+            f"The wheel {wheel_path!r} has an invalid empty RECORD entry."
+        )
+    if os.path.isabs(record_path):
+        raise InstallationError(
+            f"The wheel {wheel_path!r} has an invalid RECORD entry {record_path!r}."
+        )
+
+    if record_path_resolves_to_base(record_path, lib_dir):
+        raise InstallationError(
+            f"The wheel {wheel_path!r} has an invalid RECORD entry "
+            f"{record_path!r} that refers to the installation root."
+        )
 
 
 def fix_script(path: str) -> bool:
@@ -472,6 +498,15 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     else:
         lib_dir = scheme.platlib
 
+    distribution = get_wheel_distribution(
+        FilesystemWheel(wheel_path),
+        canonicalize_name(name),
+    )
+    record_text = distribution.read_text("RECORD")
+    record_rows = list(csv.reader(record_text.splitlines()))
+    for row in record_rows:
+        _validate_record_path(row, lib_dir, wheel_path)
+
     # Record details of the files moved
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
@@ -570,10 +605,6 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     files = chain(files, other_scheme_files)
 
     # Get the defined entry points
-    distribution = get_wheel_distribution(
-        FilesystemWheel(wheel_path),
-        canonicalize_name(name),
-    )
     console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(file: File) -> bool:
@@ -713,9 +744,6 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         with open(requested_path, "wb"):
             pass
         generated.append(requested_path)
-
-    record_text = distribution.read_text("RECORD")
-    record_rows = list(csv.reader(record_text.splitlines()))
 
     rows = get_csv_rows_for_installed(
         record_rows,
