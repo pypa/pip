@@ -173,6 +173,15 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
     for pkgname in valid_pkgnames + invalid_pkgnames:
         fake_install(pkgname, os.fspath(script.site_packages_path))
 
+    # Simulate a leftover of an interrupted uninstallation or upgrade, renamed
+    # to a tilde-prefixed name by pip's AdjacentTempDirectory.
+    leftover_dir = os.path.join(
+        os.fspath(script.site_packages_path), "~eftover-1.0.dist-info"
+    )
+    os.mkdir(leftover_dir)
+    with open(os.path.join(leftover_dir, "METADATA"), "w") as metadata_file:
+        metadata_file.write("Metadata-Version: 1.0\nName: leftover\nVersion: 1.0\n")
+
     result = script.pip("freeze", expect_stderr=True)
 
     # Check all valid names are in the output.
@@ -185,10 +194,17 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
     for line in output_lines:
         output_name, _, _ = line.partition("=")
         assert canonicalize_name(output_name) not in canonical_invalid_names
+    assert "eftover" not in result.stdout
 
     # The invalid names should be logged.
     for name in canonical_invalid_names:
         assert f"Ignoring invalid distribution {name} (" in result.stderr
+
+    # The tilde-prefixed leftover should be reported as incompletely removed.
+    assert (
+        "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
+        in result.stderr
+    )
 
 
 @pytest.mark.git
