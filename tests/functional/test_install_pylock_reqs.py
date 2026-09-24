@@ -208,6 +208,35 @@ def test_install_pylock_select_error(
     assert "Cannot select requirements from pylock file" in result.stderr
 
 
+def test_install_pylock_no_binary_selects_sdist(
+    script: PipTestEnvironment,
+    data: TestData,
+    tmp_path: Path,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.onepackage.toml")
+    report = tmp_path / "report.json"
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        data.common_wheels,  # to obtain build backend to build sdist
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--no-binary=simplewheel",
+        "--report",
+        report,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install simplewheel-2.0" in result.stdout
+    # check that the sdist was selected
+    report_json = json.loads(report.read_text())
+    installed = report_json["install"]
+    assert installed[0]["metadata"]["name"] == "simplewheel"
+    assert installed[0]["download_info"]["url"].endswith(".tar.gz")
+
+
 def test_install_pylock_no_binary(
     script: PipTestEnvironment,
     data: TestData,
