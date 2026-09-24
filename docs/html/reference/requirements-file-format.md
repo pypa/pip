@@ -83,8 +83,7 @@ below.
 The following options have an effect on the _entire_ `pip install` run, and
 must be specified on their individual lines.
 
-```{eval-rst}
-.. pip-requirements-file-options-ref-list::
+```{pip-requirements-file-options-ref-list}
 ```
 
 ````{admonition} Example
