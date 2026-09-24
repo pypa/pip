@@ -47,6 +47,7 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
+from tests.lib.wheel import make_wheel
 
 
 def test_refresh_package_sends_cache_control_header(
@@ -1268,6 +1269,154 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
         "-t", target_dir, "singlemodule==0.0.1", "--upgrade"
     )
     result.did_update(singlemodule_py)
+
+
+@pytest.mark.parametrize("upgrade", [False, True])
+def test_install_package_with_target_merges_data_dir(
+    script: PipTestEnvironment, upgrade: bool
+) -> None:
+    """Merge overlapping package and .data directory trees."""
+    package = make_wheel(
+        "mypackage",
+        "0.0.1",
+        extra_files={
+            "mypackage/__init__.py": "",
+            "mypackage/sub/module.py": "",
+        },
+        extra_data_files={
+            "data/mypackage/data.txt": "hello",
+            "data/mypackage/sub/data.txt": "nested",
+        },
+    ).save_to_dir(script.scratch_path)
+
+    target_dir = script.scratch_path / "target"
+    args = ["--upgrade"] if upgrade else []
+    result = script.pip("install", "--no-index", "-t", target_dir, *args, package)
+    assert "already exists" not in result.stderr
+    result.did_create(Path("scratch") / "target" / "mypackage" / "__init__.py")
+    result.did_create(Path("scratch") / "target" / "mypackage" / "data.txt")
+    result.did_create(Path("scratch") / "target" / "mypackage" / "sub" / "module.py")
+    result.did_create(Path("scratch") / "target" / "mypackage" / "sub" / "data.txt")
+
+
+def test_install_package_with_target_duplicate_file_warns(
+    script: PipTestEnvironment,
+) -> None:
+    """Warn and use .data when package and .data contain the same file."""
+    package = make_wheel(
+        "mypackage",
+        "0.0.1",
+        extra_files={"mypackage/duplicate.txt": "from purelib"},
+        extra_data_files={"data/mypackage/duplicate.txt": "from data"},
+    ).save_to_dir(script.scratch_path)
+
+    target_dir = script.scratch_path / "target"
+    result = script.pip(
+        "install", "--no-index", "-t", target_dir, package, allow_stderr_warning=True
+    )
+    duplicate = Path("scratch") / "target" / "mypackage" / "duplicate.txt"
+    warning = f"Target {script.base_path / duplicate} is provided more than once."
+    assert result.stderr.count(warning) == 1
+    result.did_create(duplicate)
+    assert (script.base_path / duplicate).read_text() == "from data"
+
+
+@pytest.mark.parametrize(
+    "package_files, data_files",
+    [
+        (
+            {"mypackage/thing": "a file"},
+            {"data/mypackage/thing/inner.txt": "in a directory"},
+        ),
+        (
+            {"mypackage/thing/inner.txt": "in a directory"},
+            {"data/mypackage/thing": "a file"},
+        ),
+    ],
+)
+def test_install_package_with_target_file_dir_collision_fails(
+    script: PipTestEnvironment,
+    package_files: dict[str, bytes | str],
+    data_files: dict[str, str],
+) -> None:
+    """Reject conflicts between files and directories."""
+    package = make_wheel(
+        "mypackage",
+        "0.0.1",
+        extra_files=package_files,
+        extra_data_files=data_files,
+    ).save_to_dir(script.scratch_path)
+
+    target_dir = script.scratch_path / "target"
+    result = script.pip(
+        "install", "--no-index", "-t", target_dir, package, expect_error=True
+    )
+    conflict = target_dir / "mypackage" / "thing"
+    assert (
+        f"Cannot merge target path {conflict}: file and directory conflict."
+        in result.stderr
+    )
+    assert list(target_dir.iterdir()) == []
+
+
+def test_install_package_with_target_merge_and_existing_target(
+    script: PipTestEnvironment,
+) -> None:
+    """Preserve existing-target behavior when scheme trees overlap."""
+
+    def combined_wheel(version: str) -> str:
+        return make_wheel(
+            "mypackage",
+            version,
+            extra_files={"mypackage/__init__.py": f"# {version}"},
+            extra_data_files={
+                "data/mypackage/__init__.py": f"# data {version}",
+                "data/mypackage/data.txt": version,
+            },
+        ).save_to_dir(script.scratch_path)
+
+    target_dir = script.scratch_path / "target"
+    init_py = Path("scratch") / "target" / "mypackage" / "__init__.py"
+    data_txt = Path("scratch") / "target" / "mypackage" / "data.txt"
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-t",
+        target_dir,
+        combined_wheel("1.0"),
+        allow_stderr_warning=True,
+    )
+    result.did_create(init_py)
+    result.did_create(data_txt)
+    assert (script.base_path / init_py).read_text() == "# data 1.0"
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-t",
+        target_dir,
+        combined_wheel("2.0"),
+        allow_stderr_warning=True,
+    )
+    assert "already exists. Specify --upgrade" in result.stderr
+    assert "provided more than once" in result.stderr
+    result.did_not_update(init_py)
+    result.did_not_update(data_txt)
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        "-t",
+        target_dir,
+        "--upgrade",
+        combined_wheel("2.0"),
+        allow_stderr_warning=True,
+    )
+    result.did_update(init_py)
+    result.did_update(data_txt)
+    assert (script.base_path / init_py).read_text() == "# data 2.0"
+    assert (script.base_path / data_txt).read_text() == "2.0"
 
 
 @pytest.mark.parametrize("target_option", ["--target", "-t"])

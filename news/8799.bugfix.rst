@@ -1,0 +1,1 @@
+Merge overlapping package and ``.data`` directories for ``--target`` installs.

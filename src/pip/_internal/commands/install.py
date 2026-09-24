@@ -624,12 +624,22 @@ class InstallCommand(RequirementCommand):
         if os.path.exists(data_dir):
             lib_dir_list.append(data_dir)
 
-        for lib_dir in lib_dir_list:
-            for item in os.listdir(lib_dir):
-                if lib_dir == data_dir:
-                    ddir = os.path.join(data_dir, item)
-                    if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
-                        continue
+        # Merge scheme directories before applying target replacement behavior.
+        with TempDirectory(kind="target-staging") as staging:
+            for lib_dir in lib_dir_list:
+                for item in os.listdir(lib_dir):
+                    if lib_dir == data_dir:
+                        ddir = os.path.join(data_dir, item)
+                        if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
+                            continue
+                    self._merge_into_staging(
+                        os.path.join(lib_dir, item),
+                        os.path.join(staging.path, item),
+                        staging.path,
+                        target_dir,
+                    )
+
+            for item in os.listdir(staging.path):
                 target_item_dir = os.path.join(target_dir, item)
                 if os.path.exists(target_item_dir):
                     if not upgrade:
@@ -653,7 +663,38 @@ class InstallCommand(RequirementCommand):
                     else:
                         os.remove(target_item_dir)
 
-                shutil.move(os.path.join(lib_dir, item), target_item_dir)
+                shutil.move(os.path.join(staging.path, item), target_item_dir)
+
+    def _merge_into_staging(
+        self, source: str, dest: str, staging_root: str, target_dir: str
+    ) -> None:
+        """Merge source into dest, warning on duplicate files."""
+        if not os.path.lexists(dest):
+            shutil.move(source, dest)
+            return
+        source_is_dir = os.path.isdir(source) and not os.path.islink(source)
+        dest_is_dir = os.path.isdir(dest) and not os.path.islink(dest)
+        if source_is_dir and dest_is_dir:
+            for child in os.listdir(source):
+                self._merge_into_staging(
+                    os.path.join(source, child),
+                    os.path.join(dest, child),
+                    staging_root,
+                    target_dir,
+                )
+            return
+        target_path = os.path.join(target_dir, os.path.relpath(dest, staging_root))
+        if source_is_dir != dest_is_dir:
+            raise InstallationError(
+                f"Cannot merge target path {target_path}: "
+                "file and directory conflict."
+            )
+        logger.warning(
+            "Target %s is provided more than once.",
+            target_path,
+        )
+        os.remove(dest)
+        shutil.move(source, dest)
 
     def _determine_conflicts(
         self, to_install: list[InstallRequirement]
