@@ -1,0 +1,1 @@
+Fix crash when installing from a Git repository with an unborn ``HEAD`` reference (such as a repository with tags but no default branch).

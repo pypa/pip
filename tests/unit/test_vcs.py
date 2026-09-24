@@ -1089,6 +1089,17 @@ class TestGitArgs(_TestVcsArgs):
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=0)
 
+    def test_get_revision_unborn_head(self) -> None:
+        # Simulate git rev-parse HEAD failing with exit code 128 / InstallationError
+
+        with mock.patch.object(
+            Git,
+            "run_command",
+            side_effect=InstallationError("Command failed"),
+        ):
+            revision = self.svn.get_revision("/dummy/path")
+            assert revision == ""
+
 
 class TestMercurialArgs(_TestVcsArgs):
     def setup_method(self) -> None:

@@ -267,7 +267,12 @@ class Git(VersionControl):
             # Then avoid an unnecessary subprocess call.
             return False
 
-        return cls.get_revision(dest) == name
+        try:
+            return cls.get_revision(dest) == name
+        except BadCommand:
+            # If HEAD cannot be resolved (e.g. an unborn HEAD in a branchless repo),
+            # the current commit ID is not equal to name.
+            return False
 
     def fetch_new(
         self, dest: str, url: HiddenText, rev_options: RevOptions, verbosity: int
@@ -467,13 +472,18 @@ class Git(VersionControl):
     def get_revision(cls, location: str, rev: str | None = None) -> str:
         if rev is None:
             rev = "HEAD"
-        current_rev = cls.run_command(
-            ["rev-parse", rev],
-            show_stdout=False,
-            stdout_only=True,
-            cwd=location,
-        )
-        return current_rev.strip()
+        try:
+            current_rev = cls.run_command(
+                ["rev-parse", rev],
+                show_stdout=False,
+                stdout_only=True,
+                cwd=location,
+                extra_ok_returncodes=(128,),
+                on_returncode="ignore",
+            )
+            return current_rev.strip()
+        except (BadCommand, InstallationError):
+            return ""
 
     @classmethod
     def get_subdirectory(cls, location: str) -> str | None:
