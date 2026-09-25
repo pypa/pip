@@ -494,9 +494,11 @@ def test_new_resolver_ignore_installed(script: PipTestEnvironment) -> None:
         "base",
     )
     assert satisfied_output not in result.stdout, str(result)
-    result.did_update(
-        script.site_packages / "base", message="base 0.1.0 not reinstalled"
-    )
+    # The reinstall itself is not observable on the filesystem: pip preserves
+    # file and directory mtimes from the wheel, so reinstalling the same
+    # wheel leaves the installed files bit-identical. Assert on pip's output
+    # instead.
+    assert "Successfully installed base-0.1.0" in result.stdout, str(result)
 
 
 def test_new_resolver_only_builds_sdists_when_needed(
@@ -570,7 +572,11 @@ def test_new_resolver_install_different_version(script: PipTestEnvironment) -> N
 
     assert "Uninstalling base-0.1.0" in result.stdout, str(result)
     assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
-    result.did_update(script.site_packages / "base", message="base not upgraded")
+    # The package's files can be bit-identical across versions (identical
+    # content and pip-preserved mtimes from wheels built in the same second),
+    # so the package directory's mtime may not change. Assert on the new
+    # dist-info directory instead.
+    result.did_create(script.site_packages / "base-0.2.0.dist-info")
     script.assert_installed(base="0.2.0")
 
 
@@ -600,7 +606,11 @@ def test_new_resolver_force_reinstall(script: PipTestEnvironment) -> None:
 
     assert "Uninstalling base-0.1.0" in result.stdout, str(result)
     assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
-    result.did_update(script.site_packages / "base", message="base not reinstalled")
+    # Nothing on the filesystem distinguishes this forced reinstall from the
+    # previous install: pip preserves file and directory mtimes from the
+    # wheel, so reinstalling the same wheel is bit-identical. The uninstall
+    # and reinstall are asserted through pip's output above and the version
+    # check below instead.
     script.assert_installed(base="0.1.0")
 
 
@@ -878,7 +888,11 @@ def test_new_resolver_upgrade_needs_option(script: PipTestEnvironment) -> None:
 
     assert "Uninstalling pkg-1.0.0" in result.stdout, str(result)
     assert "Successfully uninstalled pkg-1.0.0" in result.stdout, str(result)
-    result.did_update(script.site_packages / "pkg", message="pkg not upgraded")
+    # The package's files can be bit-identical across versions (identical
+    # content and pip-preserved mtimes from wheels built in the same second),
+    # so the package directory's mtime may not change. Assert on the new
+    # dist-info directory instead.
+    result.did_create(script.site_packages / "pkg-2.0.0.dist-info")
     script.assert_installed(pkg="2.0.0")
 
 
