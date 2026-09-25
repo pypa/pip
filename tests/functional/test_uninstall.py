@@ -720,6 +720,30 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(
     script.assert_not_installed("FSPkg")
 
 
+def test_uninstall_removes_malformed_dist(script: PipTestEnvironment) -> None:
+    """
+    Test that uninstall can still find and remove a malformed distribution.
+    """
+    dist_info_path = os.path.join(
+        os.fspath(script.site_packages_path),
+        "foo-1.0.dist-info",
+    )
+    os.makedirs(dist_info_path)
+    with open(os.path.join(dist_info_path, "METADATA"), "w") as f:
+        f.write(textwrap.dedent("""\
+            Metadata-Version: 1.0
+            Name: foo
+            Version: 2.0
+            """))
+    with open(os.path.join(dist_info_path, "RECORD"), "w") as f:
+        f.write("foo-1.0.dist-info/METADATA,,\n")
+        f.write("foo-1.0.dist-info/")
+
+    result = script.pip("uninstall", "foo", "-y", allow_stderr_warning=True)
+    assert not os.path.exists(dist_info_path)
+    assert len(result.stderr) == 0
+
+
 def test_uninstall_ignores_missing_packages(
     script: PipTestEnvironment, data: TestData
 ) -> None:

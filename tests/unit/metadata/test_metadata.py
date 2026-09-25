@@ -10,6 +10,7 @@ from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.metadata import (
     BaseDistribution,
+    BaseEnvironment,
     get_directory_distribution,
     get_environment,
     get_wheel_distribution,
@@ -147,3 +148,229 @@ def test_trailing_slash_directory_metadata(
     dist = get_directory_distribution(path)
     assert dist.raw_name == dist.canonical_name == "foo"
     assert dist.location == str(tmp_path)
+
+
+def test_invalid_package_with_invalid_dir_name_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "~foo-1.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: foo\nVersion:1.0\n"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+
+    assert len(list(result)) == 0
+    assert "This may be a partial or interrupted installation" in caplog.text
+
+
+def test_invalid_package_warning_is_only_emitted_once(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "~foo-1.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: foo\nVersion:1.0\n"
+    )
+
+    env = get_environment([str(tmp_path)])
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        assert len(list(env.iter_all_distributions())) == 0
+        assert len(list(env.iter_all_distributions())) == 0
+
+    assert caplog.text.count("is not a valid package name") == 1
+
+
+def test_valid_package_is_only_validated_once(
+    tmp_path: Path,
+) -> None:
+    valid_package_directory = tmp_path / "bar-1.0.0.dist-info"
+    valid_package_directory.mkdir()
+    (valid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: bar\nVersion:1.0.0\n"
+    )
+
+    env = get_environment([str(tmp_path)])
+    real_validate = BaseEnvironment._validate_distribution
+    calls: list[BaseDistribution] = []
+
+    def spy(self: BaseEnvironment, dist: BaseDistribution) -> bool:
+        calls.append(dist)
+        return real_validate(self, dist)
+
+    with mock.patch.object(BaseEnvironment, "_validate_distribution", spy):
+        assert len(list(env.iter_all_distributions())) == 1
+        assert len(list(env.iter_all_distributions())) == 1
+
+    # Each distribution should only be validated once, even though the
+    # environment was scanned twice.
+    assert len(calls) == 1
+
+
+def test_invalid_package_with_invalid_metadata_name_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "foo-1.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: ~foo\nVersion:1.0\n"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+
+    assert len(list(result)) == 0
+    assert "This may be a partial or interrupted installation" in caplog.text
+
+
+def test_invalid_package_missing_metadata_name_entry_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "foo-1.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nVersion:1.0\n"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+
+    assert len(list(result)) == 0
+    assert "METADATA is missing the required Name field." in caplog.text
+
+
+def test_invalid_package_with_name_mismatch_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "foo-1.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName:bar\nVersion:1.0\n"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+    assert len(list(result)) == 0
+    assert (
+        "METADATA ('bar') does not match the installation directory name ('foo')."
+        in caplog.text
+    )
+
+
+def test_invalid_package_with_missing_dir_version_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "foo.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName:foo\nVersion:1.0\n"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+    assert len(list(result)) == 0
+    assert "could not determine package name and/or version" in caplog.text
+
+
+def test_invalid_package_with_missing_metadata_version_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "foo-1.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName:foo\n"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+    assert len(list(result)) == 0
+    assert "METADATA is missing the required Version field" in caplog.text
+
+
+def test_invalid_package_with_version_mismatch_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / "foo-2.0.dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName:foo\nVersion:1.0\n"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+
+    assert len(list(result)) == 0
+    assert (
+        "METADATA ('1.0') does not match the installation directory version ('2.0')."
+        in caplog.text
+    )
+
+
+def test_invalid_package_is_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    invalid_package_directory = tmp_path / ".dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: foo\nVersion: 1.0\n"
+    )
+
+    valid_package_directory = tmp_path / "bar-1.0.0.dist-info"
+    valid_package_directory.mkdir()
+    (valid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: bar\nVersion:1.0.0\n"
+    )
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+
+    assert len(list(result)) == 1
+    # The exact reason the distribution is rejected differs between the
+    # metadata backends (e.g. the pkg_resources backend cannot read the
+    # METADATA file for a name-less directory), so only check that a warning
+    # was emitted and the distribution was skipped.
+    # TODO: Change this once pkg_resources support is dropped.
+    assert "Ignoring distribution" in caplog.text
+
+
+def test_invalid_package_is_not_skipped_with_skip_invalid(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    Test if iter_all_distributions returns invalid distributions
+    if skip_invalid is set to False.
+    """
+    invalid_package_directory = tmp_path / ".dist-info"
+    invalid_package_directory.mkdir()
+    (invalid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: foo\n"
+    )
+
+    valid_package_directory = tmp_path / "bar-1.0.0.dist-info"
+    valid_package_directory.mkdir()
+    (valid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: bar\nVersion:1.0.0\n"
+    )
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions(
+            skip_invalid=False
+        )
+
+    assert len(list(result)) == 2
+    assert len(caplog.text) == 0
+
+
+def test_valid_package_is_not_skipped(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    valid_package_directory = tmp_path / "bar-1.0.0.dist-info"
+    valid_package_directory.mkdir()
+    (valid_package_directory / "METADATA").write_text(
+        "Metadata-Version: 1.0\nName: bar\nVersion:1.0.0\n"
+    )
+    with caplog.at_level(logging.WARNING, logger="pip._internal.metadata.base"):
+        result = get_environment([str(tmp_path)]).iter_all_distributions()
+
+    assert len(list(result)) == 1
+    assert len(caplog.text) == 0

@@ -274,21 +274,25 @@ class Environment(BaseEnvironment):
         for dist in self._ws:
             yield Distribution(dist)
 
-    def _search_distribution(self, name: str) -> BaseDistribution | None:
+    def _search_distribution(
+        self, name: str, skip_invalid: bool = False
+    ) -> BaseDistribution | None:
         """Find a distribution matching the ``name`` in the environment.
 
         This searches from *all* distributions available in the environment, to
         match the behavior of ``pkg_resources.get_distribution()``.
         """
         canonical_name = canonicalize_name(name)
-        for dist in self.iter_all_distributions():
+        for dist in self.iter_all_distributions(skip_invalid=skip_invalid):
             if dist.canonical_name == canonical_name:
                 return dist
         return None
 
-    def get_distribution(self, name: str) -> BaseDistribution | None:
+    def get_distribution(
+        self, name: str, skip_invalid: bool = False
+    ) -> BaseDistribution | None:
         # Search the distribution by looking through the working set.
-        dist = self._search_distribution(name)
+        dist = self._search_distribution(name, skip_invalid=skip_invalid)
         if dist:
             return dist
 
@@ -306,4 +310,4 @@ class Environment(BaseEnvironment):
             self._ws.require(name)
         except pkg_resources.DistributionNotFound:
             return None
-        return self._search_distribution(name)
+        return self._search_distribution(name, skip_invalid=skip_invalid)
