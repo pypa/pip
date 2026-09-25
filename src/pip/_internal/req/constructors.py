@@ -261,9 +261,6 @@ def install_req_from_editable(
     user_supplied: bool = False,
     config_settings: dict[str, str | list[str]] | None = None,
 ) -> InstallRequirement:
-    if constraint:
-        raise InstallationError("Editable requirements are not allowed as constraints")
-
     parts = parse_req_from_editable(editable_req)
     return InstallRequirement(
         parts.requirement,
@@ -450,6 +447,7 @@ def install_req_from_req_string(
     comes_from: InstallRequirement | None = None,
     isolated: bool = False,
     user_supplied: bool = False,
+    permit_editable_wheels: bool = False,
 ) -> InstallRequirement:
     try:
         req = get_requirement(req_string)
@@ -478,6 +476,7 @@ def install_req_from_req_string(
         comes_from,
         isolated=isolated,
         user_supplied=user_supplied,
+        permit_editable_wheels=permit_editable_wheels,
     )
 
 
@@ -520,6 +519,7 @@ def install_req_from_link_and_ireq(
         req=ireq.req,
         comes_from=ireq.comes_from,
         editable=ireq.editable,
+        permit_editable_wheels=ireq.permit_editable_wheels,
         link=link,
         markers=ireq.markers,
         isolated=ireq.isolated,
