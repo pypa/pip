@@ -2771,6 +2771,32 @@ def test_install_dist_restriction_without_target(script: PipTestEnvironment) -> 
     ), str(result)
 
 
+def test_install_package_with_conflicting_files_shows_warning(
+    script: PipTestEnvironment,
+) -> None:
+    pkga = create_basic_wheel_for_package(
+        script,
+        name="pkga",
+        version="1.0",
+        extra_files={"shared_module/__init__.py": "# pkga version"},
+    )
+    pkgb = create_basic_wheel_for_package(
+        script,
+        name="pkgb",
+        version="1.0",
+        extra_files={"shared_module/__init__.py": "# pkgb version"},
+    )
+    script.pip("install", "--no-index", pkga)
+    result = script.pip(
+        "install",
+        "--no-index",
+        pkgb,
+        allow_stderr_warning=True,
+    )
+    assert "pkga" in result.stderr
+    assert "shared_module" in result.stderr
+
+
 def test_install_dist_restriction_dry_run_doesnt_require_target(
     script: PipTestEnvironment,
 ) -> None:
