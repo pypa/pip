@@ -1,0 +1,5 @@
+Make ``PIP_ONLY_BINARY`` / ``PIP_NO_BINARY`` (and config equivalents) honor
+package exceptions regardless of environment or config key order.
+Previously, applying ``:all:`` after a package-specific value cleared the
+exception, so ``PIP_ONLY_BINARY=:all:`` combined with ``PIP_NO_BINARY=pkg``
+could fail depending on insertion order.
