@@ -85,6 +85,13 @@ def get_configuration_files() -> dict[Kind, list[str]]:
     }
 
 
+class _RawConfigParser(configparser.RawConfigParser):
+    """RawConfigParser with normalized key names."""
+
+    def optionxform(self, optionstr: str) -> str:
+        return _normalize_name(optionstr)
+
+
 class Configuration:
     """Handles management of configuration.
 
@@ -119,6 +126,7 @@ class Configuration:
             variant: {} for variant in OVERRIDE_ORDER
         }
         self._modified_parsers: list[tuple[str, RawConfigParser]] = []
+        self._use_env = False
 
     def load(self) -> None:
         """Loads configuration from configuration files and environment"""
@@ -132,7 +140,7 @@ class Configuration:
 
         try:
             return self._get_parser_to_modify()[0]
-        except IndexError:
+        except ConfigurationError:
             return None
 
     def items(self) -> Iterable[tuple[str, Any]]:
@@ -183,12 +191,10 @@ class Configuration:
         self._ensure_have_load_only()
 
         assert self.load_only
-        fname, parser = self._get_parser_to_modify()
-
-        if (
-            key not in self._config[self.load_only][fname]
-            and key not in self._config[self.load_only]
-        ):
+        fname, parser = self._get_parser_to_modify(key)
+        load_config = kinds.ENV if self._use_env else self.load_only
+        file_config = self._config[load_config].get(fname, {})
+        if key not in file_config:
             raise ConfigurationError(f"No such key - {orig_key}")
 
         if parser is not None:
@@ -206,9 +212,9 @@ class Configuration:
                 parser.remove_section(section)
             self._mark_as_modified(fname, parser)
         try:
-            del self._config[self.load_only][fname][key]
+            del self._config[load_config][fname][key]
         except KeyError:
-            del self._config[self.load_only][key]
+            del self._config[load_config][key]
 
     def save(self) -> None:
         """Save the current in-memory state."""
@@ -261,13 +267,20 @@ class Configuration:
             )
             return
 
+        env_config_file = os.environ.get("PIP_CONFIG_FILE")
         for variant, files in config_files.items():
             for fname in files:
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
-                    logger.debug("Skipping file '%s' (variant: %s)", fname, variant)
-                    continue
+                    is_env_redirect = (
+                        variant == kinds.ENV
+                        and fname == env_config_file
+                        and self.load_only in (kinds.USER, kinds.GLOBAL)
+                    )
+                    if not is_env_redirect:
+                        logger.debug("Skipping file '%s' (variant: %s)", fname, variant)
+                        continue
 
                 parser = self._load_file(variant, fname)
 
@@ -278,15 +291,15 @@ class Configuration:
         logger.verbose("For variant '%s', will try loading '%s'", variant, fname)
         parser = self._construct_parser(fname)
 
+        self._config[variant].setdefault(fname, {})
         for section in parser.sections():
             items = parser.items(section)
-            self._config[variant].setdefault(fname, {})
             self._config[variant][fname].update(self._normalized_keys(section, items))
 
         return parser
 
     def _construct_parser(self, fname: str) -> RawConfigParser:
-        parser = configparser.RawConfigParser()
+        parser = _RawConfigParser()
         # If there is no such file, don't bother reading it but create the
         # parser anyway, to hold the data.
         # Doing this is useful when modifying and saving files, where we don't
@@ -372,15 +385,43 @@ class Configuration:
         """Get values present in a config file"""
         return self._config[variant]
 
-    def _get_parser_to_modify(self) -> tuple[str, RawConfigParser]:
+    def _get_parser_to_modify(
+        self, key: str | None = None
+    ) -> tuple[str, RawConfigParser]:
         # Determine which parser to modify
         assert self.load_only
         parsers = self._parsers[self.load_only]
         if not parsers:
-            # This should not happen if everything works correctly.
+            env_config_file = os.environ.get("PIP_CONFIG_FILE")
+            if env_config_file == os.devnull:
+                raise ConfigurationError(
+                    "Cannot write to PIP_CONFIG_VALUE when it is set to "
+                    f"{env_config_file}"
+                )
+            if env_config_file and self.load_only in (kinds.USER, kinds.GLOBAL):
+                parser = self._construct_parser(env_config_file)
+                self._parsers[self.load_only].append((env_config_file, parser))
+                self._use_env = True
+                logger.warning(
+                    "Because PIP_CONFIG_FILE is set, changes will be applied to "
+                    "'%s', not to '%s'. To restore normal behavior, "
+                    "unset PIP_CONFIG_FILE.",
+                    env_config_file,
+                    self.load_only,
+                )
+                return env_config_file, parser
+
             raise ConfigurationError(
                 "Fatal Internal error [id=2]. Please report as a bug."
             )
+
+        if key is None:
+            return parsers[-1]
+
+        section, name = _disassemble_key(key)
+        for fname, parser in reversed(parsers):
+            if parser.has_section(section) and parser.has_option(section, name):
+                return fname, parser
 
         # Use the highest priority parser.
         return parsers[-1]
