@@ -599,6 +599,33 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         assert expected_err == result.stderr
 
 
+@pytest.mark.parametrize("use_file_url", [False, True])
+def test_freeze_with_unnamed_archive(
+    script: PipTestEnvironment, shared_data: TestData, use_file_url: bool
+) -> None:
+    """The hint for an unnamed archive must describe an installable requirement."""
+    archive = script.scratch_path / "simple-2.0.tar.gz"
+    archive.write_bytes(shared_data.packages.joinpath(archive.name).read_bytes())
+    requirement = archive.as_uri() if use_file_url else "./" + archive.name
+    requirements_path = script.scratch_path / "requirements.txt"
+    requirements_path.write_text(requirement + "\n")
+    script.pip_install_local("-r", requirements_path)
+
+    result = script.pip("freeze", "-r", requirements_path)
+    assert "Skipping line in requirement file" in result.stdout
+    assert "use 'PackageName @ URL'" in result.stdout
+    assert "an absolute file:// URL for local paths" in result.stdout
+    assert "#egg=" not in result.stdout
+
+    # Follow the hint, then ensure freeze can match the requirement by name.
+    named_requirement = "simple @ " + archive.as_uri()
+    requirements_path.write_text(named_requirement + "\n")
+    script.pip_install_local("--force-reinstall", "-r", requirements_path)
+    result = script.pip("freeze", "-r", requirements_path)
+    assert result.stdout.startswith(named_requirement + "#sha256=")
+    assert "Skipping line in requirement file" not in result.stdout
+
+
 def test_freeze_with_requirement_option(script: PipTestEnvironment) -> None:
     """
     Test that new requirements are created correctly with --requirement hints

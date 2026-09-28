@@ -1,0 +1,1 @@
+Suggest a named direct URL reference for unnamed requirements in ``pip freeze``.
