@@ -684,7 +684,7 @@ def _handle_only_binary(
 
 def no_binary() -> Option:
     format_control = FormatControl(set(), set())
-    return Option(
+    option = Option(
         "--no-binary",
         dest="format_control",
         action="callback",
@@ -699,11 +699,14 @@ def no_binary() -> Option:
         "Note that some packages are tricky to compile and may fail to "
         "install when this option is used on them.",
     )
+    # Used by ConfigOptionParser when applying config/env values.
+    option.config_priority = FormatControl.config_value_priority  # type: ignore[attr-defined]
+    return option
 
 
 def only_binary() -> Option:
     format_control = FormatControl(set(), set())
-    return Option(
+    option = Option(
         "--only-binary",
         dest="format_control",
         action="callback",
@@ -717,6 +720,9 @@ def only_binary() -> Option:
         "without binary distributions will fail to install when this "
         "option is used on them.",
     )
+    # Used by ConfigOptionParser when applying config/env values.
+    option.config_priority = FormatControl.config_value_priority  # type: ignore[attr-defined]
+    return option
 
 
 def _get_release_control(values: Values, option: Option) -> Any:
