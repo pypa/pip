@@ -24,6 +24,7 @@ from pip._internal.utils.misc import (
     hide_url,
     hide_value,
     is_installable_dir,
+    redact_auth_from_url,
     rmtree,
 )
 from pip._internal.utils.subprocess import (
@@ -381,7 +382,7 @@ class VersionControl:
         scheme, netloc, path, query, frag = urllib.parse.urlsplit(url)
         if "+" not in scheme:
             raise ValueError(
-                f"Sorry, {url!r} is a malformed VCS url. "
+                f"Sorry, {redact_auth_from_url(url)!r} is a malformed VCS url. "
                 "The format is <vcs>+<protocol>://<url>, "
                 "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
             )
@@ -392,8 +393,9 @@ class VersionControl:
         if "@" in path:
             path, rev = path.rsplit("@", 1)
             if not rev:
+                redacted_url = redact_auth_from_url(url)
                 raise InstallationError(
-                    f"The URL {url!r} has an empty revision (after @) "
+                    f"The URL {redacted_url!r} has an empty revision (after @) "
                     "which is not supported. Include a revision after @ "
                     "or remove @ from the URL."
                 )
