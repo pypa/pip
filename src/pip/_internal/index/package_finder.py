@@ -777,9 +777,12 @@ class PackageFinder:
     def requires_python_skipped_reasons(self) -> list[str]:
         return sorted(self._requires_python_skipped)
 
-    def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
+    def make_link_evaluator(
+        self, project_name: str, *, formats: frozenset[str] | None = None
+    ) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
-        formats = self.format_control.get_allowed_formats(canonical_name)
+        if formats is None:
+            formats = self.format_control.get_allowed_formats(canonical_name)
 
         return LinkEvaluator(
             project_name=project_name,
@@ -908,6 +911,32 @@ class PackageFinder:
             ]
             return self._all_candidates[project_name]
 
+        self._all_candidates[project_name] = self._collect_uncached_candidates(
+            project_name, link_evaluator
+        )
+        return self._all_candidates[project_name]
+
+    def find_all_candidates_ignoring_formats(
+        self, project_name: str
+    ) -> list[InstallationCandidate]:
+        """Find all candidates for project_name, ignoring --only-binary/--no-binary.
+
+        Error reporting uses this view to tell "the project has no
+        distributions at all" apart from "distributions exist, but the
+        format settings exclude them" (issue #12999). Not cached. Locked
+        links bypass format control, so those projects use the regular
+        view.
+        """
+        if self._locked_links.get(canonicalize_name(project_name)):
+            return self.find_all_candidates(project_name)
+        link_evaluator = self.make_link_evaluator(
+            project_name, formats=frozenset({"binary", "source"})
+        )
+        return self._collect_uncached_candidates(project_name, link_evaluator)
+
+    def _collect_uncached_candidates(
+        self, project_name: str, link_evaluator: LinkEvaluator
+    ) -> list[InstallationCandidate]:
         collected_sources = self._link_collector.collect_sources(
             project_name=project_name,
             candidates_from_page=functools.partial(
@@ -947,9 +976,7 @@ class PackageFinder:
             logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
-        self._all_candidates[project_name] = file_candidates + page_candidates
-
-        return self._all_candidates[project_name]
+        return file_candidates + page_candidates
 
     def make_candidate_evaluator(
         self,

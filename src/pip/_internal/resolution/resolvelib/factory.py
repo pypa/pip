@@ -757,6 +757,16 @@ class Factory:
                 req_disp,
                 ", ".join(versions) or "none",
             )
+            if not cands:
+                # Distributions may exist but be hidden by the format
+                # settings; name that instead of a bare "versions: none".
+                reason = self._format_exclusion_reason(req.project_name)
+                if reason is not None:
+                    logger.critical(
+                        "The available distributions do not match the "
+                        "binary/source format settings: %s",
+                        reason,
+                    )
         if str(req) == "requirements.txt":
             logger.info(
                 "HINT: You are attempting to install a package literally "
@@ -780,6 +790,34 @@ class Factory:
                 prefers_installed=True,
                 is_satisfied_by=lambda r, c: True,
             )
+        )
+
+    def _format_exclusion_reason(self, project_name: str) -> str | None:
+        """
+        If the format settings (--only-binary/--no-binary) are what keep
+        project_name from having any candidates, return an explanation.
+        Return None when the format settings are not the eliminating factor.
+        """
+        # Candidates that pass every link-level check except the format
+        # restriction would show up in this many:
+        restricted = self._finder.find_all_candidates(project_name)
+        if restricted:
+            # Distributions exist at link level; something else (specifier,
+            # python version, ...) is the eliminating factor.
+            return None
+        hidden = self._finder.find_all_candidates_ignoring_formats(project_name)
+        if not hidden:
+            return None
+        if all(not c.link.is_wheel for c in hidden):
+            return (
+                "no compatible binary packages are available; only source "
+                "distributions were found, which the current binary-only "
+                "setting (--only-binary) excludes"
+            )
+        return (
+            "no source distributions are available; compatible binary "
+            "packages were found, which the current source-only setting "
+            "(--no-binary) excludes"
         )
 
     def get_installation_error(
@@ -882,6 +920,12 @@ class Factory:
                 + "\n    "
                 + "\n    ".join(sorted(no_candidates))
             )
+            # When the format settings are the eliminating factor, say so
+            # instead of letting the failure read as a pure conflict.
+            for name in sorted(no_candidates):
+                reason = self._format_exclusion_reason(name)
+                if reason is not None:
+                    msg = msg + f"\n    {name}: {reason}"
 
         msg = (
             msg
