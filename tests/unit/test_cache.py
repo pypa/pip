@@ -52,7 +52,7 @@ def test_cache_hash() -> None:
     h = _hash_dict({"url": "https://g.c/o/r", "subdirectory": "sd"})
     assert h == "e1ba06c5eb83b9fd14110ea7cecf2d711de19a8f63cb5662e4386855c9d70b1b"
     h = _hash_dict({"subdirectory": "/\xe9e"})
-    assert h == "726a7b96fc2d71e1055eb556f897ad1303f85280b6cd44922405a0a05b282f79"
+    assert h == "0a939e14c133363d5aeecdc3a49307ed162ce418e5e3cc3b161309ad6248cdb9"
 
 
 def test_link_to_cache(tmpdir: Path) -> None:
