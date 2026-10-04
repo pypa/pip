@@ -1,0 +1,3 @@
+Fix a crash when using pip on systems without ``sha224`` support in
+``hashlib`` (e.g. minimal builds). The cache now uses ``sha256`` for
+cache keys instead.
