@@ -1,0 +1,1 @@
+Use sha256 instead of sha224 when computing cache keys, for availability on systems with reduced cryptographic support.
