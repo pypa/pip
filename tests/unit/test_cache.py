@@ -48,11 +48,11 @@ def test_wheel_name_filter(tmpdir: Path) -> None:
 
 def test_cache_hash() -> None:
     h = _hash_dict({"url": "https://g.c/o/r"})
-    assert h == "3a017c584a47e60f1ded18c0ec817f38f65271905ca36a33fcb304f69f8731c1"
+    assert h == "72aa79d3315c181d2cc23239d7109a782de663b6f89982624d8c1e86"
     h = _hash_dict({"url": "https://g.c/o/r", "subdirectory": "sd"})
-    assert h == "e1ba06c5eb83b9fd14110ea7cecf2d711de19a8f63cb5662e4386855c9d70b1b"
+    assert h == "8b13391b6791bf7f3edeabb41ea4698d21bcbdbba7f9c7dc9339750d"
     h = _hash_dict({"subdirectory": "/\xe9e"})
-    assert h == "0a939e14c133363d5aeecdc3a49307ed162ce418e5e3cc3b161309ad6248cdb9"
+    assert h == "f83b32dfa27a426dec08c21bf006065dd003d0aac78e7fc493d9014d"
 
 
 def test_link_to_cache(tmpdir: Path) -> None:

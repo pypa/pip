@@ -25,9 +25,14 @@ ORIGIN_JSON_NAME = "origin.json"
 
 
 def _hash_dict(d: dict[str, str]) -> str:
-    """Return a stable sha256 of a dictionary."""
+    """Return a stable hash of a dictionary."""
     s = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return hashlib.sha256(s.encode("ascii")).hexdigest()
+    try:
+        return hashlib.sha224(s.encode("ascii")).hexdigest()
+    except AttributeError:
+        # sha224 may be unavailable on minimal systems (see #14334),
+        # fall back to sha256 which is universally available.
+        return hashlib.sha256(s.encode("ascii")).hexdigest()
 
 
 class Cache:
@@ -61,9 +66,10 @@ class Cache:
         key_parts["interpreter_name"] = interpreter_name()
         key_parts["interpreter_version"] = interpreter_version()
 
-        # Encode our key url with sha256. We use sha256 because it is
-        # widely available, including on minimal systems that may not
-        # implement sha224 (see https://github.com/pypa/pip/issues/14334).
+        # Encode our key url with sha224, we'll use this because it has similar
+        # security properties to sha256, but with a shorter total output (and
+        # thus less secure). However the differences don't make a lot of
+        # difference for our use case here.
         hashed = _hash_dict(key_parts)
 
         # We want to nest the directories some to prevent having a ton of top

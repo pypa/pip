@@ -1,3 +1,3 @@
 Fix a crash when using pip on systems without ``sha224`` support in
-``hashlib`` (e.g. minimal builds). The cache now uses ``sha256`` for
-cache keys instead.
+``hashlib`` (e.g. minimal builds). The cache now falls back to ``sha256``
+when ``sha224`` is unavailable.
