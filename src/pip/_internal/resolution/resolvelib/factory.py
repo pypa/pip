@@ -805,7 +805,7 @@ class Factory:
             # Distributions exist at link level; something else (specifier,
             # python version, ...) is the eliminating factor.
             return None
-        hidden = self._finder.find_all_candidates_ignoring_formats(project_name)
+        hidden = self._finder.find_candidates_excluded_by_formats(project_name)
         if not hidden:
             return None
         if all(not c.link.is_wheel for c in hidden):

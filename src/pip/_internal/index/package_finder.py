@@ -165,6 +165,11 @@ class LinkEvaluator:
         self._target_python = target_python
         self._uploaded_prior_to = uploaded_prior_to
 
+        # Links rejected only because of the format settings, kept so
+        # error reporting can tell format exclusions apart from a project
+        # having no distributions at all (issue #12999).
+        self.format_rejected_links: list[Link] = []
+
         self.project_name = project_name
 
     def evaluate_link(self, link: Link) -> tuple[LinkType, str]:
@@ -196,6 +201,7 @@ class LinkEvaluator:
                 )
             if "binary" not in self._formats and ext == WHEEL_EXTENSION:
                 reason = f"No binaries permitted for {self.project_name}"
+                self.format_rejected_links.append(link)
                 return (LinkType.format_unsupported, reason)
             if "macosx10" in link.path and ext == ".zip":
                 return (LinkType.format_unsupported, "macosx10 one")
@@ -248,6 +254,7 @@ class LinkEvaluator:
         # This should be up by the self.ok_binary check, but see issue 2700.
         if "source" not in self._formats and ext != WHEEL_EXTENSION:
             reason = f"No sources permitted for {self.project_name}"
+            self.format_rejected_links.append(link)
             return (LinkType.format_unsupported, reason)
 
         if not version:
@@ -657,6 +664,10 @@ class PackageFinder:
 
         # Cache of the result of finding candidates
         self._all_candidates: dict[str, list[InstallationCandidate]] = {}
+        # Links rejected only by the format settings during candidate
+        # collection, keyed by canonical project name. Used by
+        # find_candidates_excluded_by_formats() for error reporting.
+        self._format_rejected_links: dict[str, list[Link]] = {}
         self._best_candidates: dict[
             tuple[str, specifiers.BaseSpecifier | None, Hashes | None],
             BestCandidateResult,
@@ -914,25 +925,31 @@ class PackageFinder:
         self._all_candidates[project_name] = self._collect_uncached_candidates(
             project_name, link_evaluator
         )
+        self._format_rejected_links[canonicalize_name(project_name)] = (
+            link_evaluator.format_rejected_links
+        )
         return self._all_candidates[project_name]
 
-    def find_all_candidates_ignoring_formats(
+    def find_candidates_excluded_by_formats(
         self, project_name: str
     ) -> list[InstallationCandidate]:
-        """Find all candidates for project_name, ignoring --only-binary/--no-binary.
+        """Find candidates for project_name among the links the format
+        settings (--only-binary/--no-binary) rejected during collection.
 
         Error reporting uses this view to tell "the project has no
         distributions at all" apart from "distributions exist, but the
-        format settings exclude them" (issue #12999). Not cached. Locked
-        links bypass format control, so those projects use the regular
-        view.
+        format settings exclude them" (issue #12999). Only links already
+        seen during collection are re-evaluated here, so this makes no
+        additional network requests. Locked links bypass format control,
+        so they never enter the rejected set.
         """
-        if self._locked_links.get(canonicalize_name(project_name)):
-            return self.find_all_candidates(project_name)
+        rejected = self._format_rejected_links.get(canonicalize_name(project_name))
+        if not rejected:
+            return []
         link_evaluator = self.make_link_evaluator(
             project_name, formats=frozenset({"binary", "source"})
         )
-        return self._collect_uncached_candidates(project_name, link_evaluator)
+        return self.evaluate_links(link_evaluator, rejected)
 
     def _collect_uncached_candidates(
         self, project_name: str, link_evaluator: LinkEvaluator
