@@ -1,0 +1,4 @@
+Strip credentials embedded in the remote URL of an editable VCS install from
+``pip freeze`` output, following the same rules as the ``url`` field of
+``direct_url.json`` (PEP 610): ``${VAR}`` references and the ``git`` user of
+ssh remotes are kept.
