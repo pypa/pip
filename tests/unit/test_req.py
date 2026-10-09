@@ -856,12 +856,23 @@ class TestInstallRequirement:
 
         # all else should be the same
         assert without_extras.link == req.link
+        assert without_extras.source_link == req.source_link
         assert without_extras.markers == req.markers
         assert without_extras.isolated == req.isolated
         assert without_extras.hash_options == req.hash_options
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
         assert without_extras.user_supplied == req.user_supplied
+
+    def test_install_req_drop_extras_keeps_distinct_source_link(self) -> None:
+        req = install_req_from_line("pkg[extra]")
+        req.link = Link("file:///tmp/cache/pkg-1.0-py3-none-any.whl")
+        req.set_source_link(Link("https://files.pythonhosted.org/pkg-1.0.tar.gz"))
+
+        without_extras = install_req_drop_extras(req)
+
+        assert without_extras.link == req.link
+        assert without_extras.source_link == req.source_link
 
     @pytest.mark.parametrize(
         "inp, extras, out",
@@ -902,6 +913,7 @@ class TestInstallRequirement:
 
         # all else should be the same
         assert extended.link == req.link
+        assert extended.source_link == req.source_link
         assert extended.markers == req.markers
         assert extended.isolated == req.isolated
         assert extended.hash_options == req.hash_options
