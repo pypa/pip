@@ -6,9 +6,10 @@ from __future__ import annotations
 
 import importlib
 from collections import namedtuple
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pip._internal.cli.base_command import Command
+if TYPE_CHECKING:
+    from pip._internal.cli.base_command import Command
 
 CommandInfo = namedtuple("CommandInfo", "module_path, class_name, summary")
 

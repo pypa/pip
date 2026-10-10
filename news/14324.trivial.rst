@@ -1,0 +1,1 @@
+Speed up ``pip --version`` by deferring imports of the rich logging stack.

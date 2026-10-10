@@ -11,15 +11,17 @@ import sys
 import textwrap
 from collections.abc import Generator
 from contextlib import suppress
-from typing import Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.theme import Theme
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
-from pip._internal.utils.logging import PipConsole
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
+
+if TYPE_CHECKING:
+    from pip._internal.utils.logging import PipConsole
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +354,10 @@ class ConfigOptionParser(CustomOptionParser):
             or bool(strtobool(os.environ.get("PIP_NO_COLOR", "no") or "no"))
             or "NO_COLOR" in os.environ
         )
+        # Imported lazily: rich's console stack is only needed when help is
+        # actually rendered, not when this module is imported for `--version`.
+        from pip._internal.utils.logging import PipConsole
+
         return PipConsole(
             theme=Theme(PrettyHelpFormatter.styles), no_color=no_color, file=file
         )
