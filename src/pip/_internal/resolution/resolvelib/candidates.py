@@ -61,6 +61,8 @@ def make_install_req_from_link(
     link: Link,
     template: InstallRequirement,
     version: Version | None = None,
+    *,
+    source_link: Link,
 ) -> InstallRequirement:
     assert not template.editable, "template is editable"
     if version is not None and template.req and template.hash_options:
@@ -83,6 +85,7 @@ def make_install_req_from_link(
     )
     ireq.original_link = template.original_link
     ireq.link = link
+    ireq.set_source_link(source_link)
     ireq.extras = template.extras
     return ireq
 
@@ -140,10 +143,6 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     :param link: The link passed to the ``InstallRequirement``. The backing
         ``InstallRequirement`` will use this link to fetch the distribution.
-    :param source_link: The link this candidate "originates" from. This is
-        different from ``link`` when the link is found in the wheel cache.
-        ``link`` would point to the wheel cache, while this points to the
-        found remote link (e.g. from pypi.org).
     """
 
     dist: BaseDistribution
@@ -152,14 +151,12 @@ class _InstallRequirementBackedCandidate(Candidate):
     def __init__(
         self,
         link: Link,
-        source_link: Link,
         ireq: InstallRequirement,
         factory: Factory,
         name: NormalizedName | None = None,
         version: Version | None = None,
     ) -> None:
         self._link = link
-        self._source_link = source_link
         self._factory = factory
         self._ireq = ireq
         self._name = name
@@ -187,7 +184,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     @property
     def source_link(self) -> Link | None:
-        return self._source_link
+        return self._ireq.source_link
 
     @property
     def project_name(self) -> NormalizedName:
@@ -295,7 +292,12 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
-        ireq = make_install_req_from_link(link, template, version=version)
+        ireq = make_install_req_from_link(
+            link,
+            template,
+            version=version,
+            source_link=source_link,
+        )
         assert ireq.link == link
         if ireq.link.is_wheel and not ireq.link.is_file:
             wheel = Wheel(ireq.link.filename)
@@ -324,7 +326,6 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
         super().__init__(
             link=link,
-            source_link=source_link,
             ireq=ireq,
             factory=factory,
             name=name,
@@ -349,7 +350,6 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
     ) -> None:
         super().__init__(
             link=link,
-            source_link=link,
             ireq=make_install_req_from_editable(link, template),
             factory=factory,
             name=name,
