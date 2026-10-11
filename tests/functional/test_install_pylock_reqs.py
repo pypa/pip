@@ -244,11 +244,10 @@ def test_install_pylock_only_binary(
     assert "No sources permitted for simple" in result.stderr
 
 
-def test_install_pylock_only_binary_ignored_for_archives(
+def test_install_pylock_only_binary_rejects_source_archive(
     script: PipTestEnvironment,
     data: TestData,
 ) -> None:
-    """--only-binary is ignored for direct URL"""
     pylock_path = data.lockfiles.joinpath("pylock.onearchive.toml")
     result = script.pip(
         "install",
@@ -259,10 +258,9 @@ def test_install_pylock_only_binary_ignored_for_archives(
         "-r",
         pylock_path,
         "--only-binary=simple2,simplewheel",
-        allow_stderr_warning=True,
+        expect_error=True,
     )
-    assert "experimental" in result.stderr
-    assert "Would install simple2-3.0" in result.stdout
+    assert "No sources permitted for simple2" in result.stderr
 
 
 def test_install_pylock_default_prerelease(
@@ -304,11 +302,10 @@ def test_install_pylock_reject_prerelease(
     )
 
 
-def test_install_pylock_allow_archive_prerelease(
+def test_install_pylock_wheel_archive_filters(
     script: PipTestEnvironment,
     shared_data: TestData,
 ) -> None:
-    """--only-final does not influence direct URL requirements."""
     pylock_path = shared_data.lockfiles.joinpath("pylock.prerelease-archive.toml")
     result = script.pip(
         "install",
@@ -317,10 +314,20 @@ def test_install_pylock_allow_archive_prerelease(
         "-r",
         pylock_path,
         "--only-final=pkg-prerelease",
-        allow_stderr_warning=True,
+        expect_error=True,
     )
-    assert "experimental" in result.stderr
-    assert "Would install pkg-prerelease-1.0a1" in result.stdout
+    assert "Only final releases are permitted for pkg-prerelease" in result.stderr
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        "--no-binary=pkg-prerelease",
+        expect_error=True,
+    )
+    assert "No binaries permitted for pkg-prerelease" in result.stderr
 
 
 def test_install_pylock_conflict(

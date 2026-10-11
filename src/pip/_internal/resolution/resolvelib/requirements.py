@@ -214,16 +214,17 @@ class RequiresPythonRequirement(Requirement):
 
 
 class UnsatisfiableRequirement(Requirement):
-    """A requirement that cannot be satisfied."""
+    """A requirement that cannot be satisfied, with an optional reason."""
 
-    def __init__(self, name: NormalizedName) -> None:
+    def __init__(self, name: NormalizedName, reason: str = "unavailable") -> None:
         self._name = name
+        self._reason = reason
 
     def __str__(self) -> str:
-        return f"{self._name} (unavailable)"
+        return f"{self._name} ({self._reason})"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({str(self._name)!r})"
+        return f"{self.__class__.__name__}({str(self._name)!r}, {self._reason!r})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, UnsatisfiableRequirement):
