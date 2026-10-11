@@ -815,7 +815,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         metadata_directory: str,
         config_settings: Mapping[str, Any] | None = None,
         _allow_fallback: bool = True,
-    ) -> str | None:
+    ) -> str:
         cs = self.config_holder.config_settings
         return super().prepare_metadata_for_build_editable(
             metadata_directory=metadata_directory,
