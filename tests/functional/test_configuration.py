@@ -24,21 +24,39 @@ from tests.lib.venv import VirtualEnvironment
 
 def get_configuration_files() -> dict[Kind, list[str]]:
     """Wrapper over pip._internal.configuration.get_configuration_files()."""
-    if WINDOWS:
-        # The user configuration directory is updated in the isolate fixture using the
-        # APPDATA environment variable. This will only take effect in new subprocesses,
-        # however. To ensure that get_configuration_files() never returns stale data,
-        # call it in a subprocess on Windows.
-        code = (
-            "from pip._internal.configuration import get_configuration_files; "
-            "print(get_configuration_files())"
-        )
-        proc = subprocess.run(
-            [sys.executable, "-c", code], capture_output=True, encoding="utf-8"
-        )
-        return ast.literal_eval(proc.stdout)
-    else:
+    if not WINDOWS:
         return _get_config_files()
+
+    # The user configuration directory is updated in the isolate fixture using the
+    # APPDATA environment variable. This will only take effect in new subprocesses,
+    # however. To ensure that get_configuration_files() never returns stale data,
+    # call it in a subprocess on Windows.
+    code = (
+        "from pip._internal.configuration import get_configuration_files; "
+        "print(get_configuration_files())"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, encoding="utf-8"
+    )
+
+    # Validate the serialized result before rebuilding the typed mapping. Kind
+    # keys arrive as plain strings, since Kind is a NewType over str.
+    files = ast.literal_eval(proc.stdout)
+    assert isinstance(files, dict)
+
+    configuration_files: dict[Kind, list[str]] = {}
+    for kind, paths in files.items():
+        assert isinstance(kind, str)
+        assert isinstance(paths, list)
+
+        validated_paths: list[str] = []
+        for path in paths:
+            assert isinstance(path, str)
+            validated_paths.append(path)
+
+        configuration_files[Kind(kind)] = validated_paths
+
+    return configuration_files
 
 
 def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
