@@ -1236,6 +1236,17 @@ def test_link_collector_create_find_links_expansion(
         ("https://pypi.org/pip-18.0.tar.gz", None),
         # We don't recognize the "sha500" algorithm, so we discard it.
         ("https://pypi.org/pip-18.0.tar.gz#sha500=aa113592bbe", None),
+        # A query string parameter named like a hash algorithm is not a hash.
+        ("https://pypi.org/pip-18.0.tar.gz?sha256=aa113592bbe", None),
+        (
+            "https://pypi.org/pip-18.0.tar.gz?token=x&sha256=aa113592bbe",
+            None,
+        ),
+        # A hash in the fragment still wins when the query has one too.
+        (
+            "https://pypi.org/pip-18.0.tar.gz?sha256=bb113592bbe#md5=aa113592bbe",
+            LinkHash("md5", "aa113592bbe"),
+        ),
     ],
 )
 def test_link_hash_parsing(url: str, result: LinkHash | None) -> None:

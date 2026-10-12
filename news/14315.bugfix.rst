@@ -1,0 +1,3 @@
+Fix ``Link`` treating hash parameters in the URL query string (e.g.
+``?token=x&sha256=...``) as link hashes; only the URL fragment is now
+considered.
