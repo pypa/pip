@@ -24,8 +24,8 @@ from pip._internal.exceptions import (
     ConfigurationFileCouldNotBeLoaded,
 )
 from pip._internal.utils import appdirs
+from pip._internal.utils._log import getLogger
 from pip._internal.utils.compat import WINDOWS, get_locale_encoding
-from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import ensure_dir, enum
 
 RawConfigParser = configparser.RawConfigParser  # Shorthand
