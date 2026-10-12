@@ -430,14 +430,6 @@ class StreamWrapper(StringIO):
         return self.orig_stream.encoding
 
 
-# Simulates an enum
-def enum(*sequential: Any, **named: Any) -> type[Any]:
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = {value: key for key, value in enums.items()}
-    enums["reverse_mapping"] = reverse
-    return type("Enum", (), enums)
-
-
 def build_netloc(host: str, port: int | None) -> str:
     """
     Build a netloc from a host-port pair
