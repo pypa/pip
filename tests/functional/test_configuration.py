@@ -18,7 +18,7 @@ from pip._internal.configuration import get_configuration_files as _get_config_f
 from pip._internal.utils.compat import WINDOWS
 
 from tests.lib import PipTestEnvironment, TestData
-from tests.lib.configuration_helpers import ConfigurationMixin, kinds
+from tests.lib.configuration_helpers import ConfigurationMixin
 from tests.lib.venv import VirtualEnvironment
 
 
@@ -40,7 +40,7 @@ def get_configuration_files() -> dict[Kind, list[str]]:
     )
 
     # Validate the serialized result before rebuilding the typed mapping. Kind
-    # keys arrive as plain strings, since Kind is a NewType over str.
+    # keys arrive as plain strings because Kind.__repr__ uses str.__repr__.
     files = ast.literal_eval(proc.stdout)
     assert isinstance(files, dict)
 
@@ -57,6 +57,16 @@ def get_configuration_files() -> dict[Kind, list[str]]:
         configuration_files[Kind(kind)] = validated_paths
 
     return configuration_files
+
+
+def test_configuration_files_from_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys.modules[__name__], "WINDOWS", True)
+
+    files = get_configuration_files()
+
+    assert set(files) == {Kind.GLOBAL, Kind.SITE, Kind.USER}
+    assert all(isinstance(kind, Kind) for kind in files)
+    assert all(paths for paths in files.values())
 
 
 def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
@@ -144,7 +154,7 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         # Use new config file
-        new_config_file = get_configuration_files()[kinds.USER][1]
+        new_config_file = get_configuration_files()[Kind.USER][1]
 
         script.pip("config", "--user", "set", "global.timeout", "60")
         script.pip("config", "--user", "set", "freeze.timeout", "10")
@@ -182,7 +192,7 @@ class TestBasicLoading(ConfigurationMixin):
         # locations. Additionally we cannot patch those paths since pip config
         # commands runs inside a subprocess.
         # So we just check if the file can be identified
-        global_config_file = get_configuration_files()[kinds.GLOBAL][0]
+        global_config_file = get_configuration_files()[Kind.GLOBAL][0]
         result = script.pip("config", "debug")
         assert f"{global_config_file}, exists:" in result.stdout
 
@@ -201,10 +211,10 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         # Use new config file
-        new_config_file = get_configuration_files()[kinds.USER][1]
+        new_config_file = get_configuration_files()[Kind.USER][1]
 
         # Get legacy config file and touch it for testing purposes
-        legacy_config_file = get_configuration_files()[kinds.USER][0]
+        legacy_config_file = get_configuration_files()[Kind.USER][0]
         os.makedirs(os.path.dirname(legacy_config_file))
         open(legacy_config_file, "a").close()
 
