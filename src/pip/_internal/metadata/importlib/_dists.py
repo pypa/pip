@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import email.message
+import functools
 import importlib.metadata
 import pathlib
 import zipfile
@@ -160,8 +161,10 @@ class Distribution(BaseDistribution):
             return None
         return normalize_path(str(self._installed_location))
 
-    @property
+    @functools.cached_property
     def canonical_name(self) -> NormalizedName:
+        # Cached because the resolver hashes installed candidates by name, which
+        # makes this very hot.
         return get_dist_canonical_name(self._dist)
 
     @property
