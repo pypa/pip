@@ -12,7 +12,7 @@ import json
 import logging
 import os
 import urllib.parse
-from collections.abc import Callable, Iterable, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, MutableMapping, Sequence
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
@@ -217,17 +217,14 @@ def with_cached_index_content(fn: ParseLinks) -> ParseLinks:
     return wrapper_wrapper
 
 
-@with_cached_index_content
-def parse_links(page: IndexContent) -> Iterable[Link]:
-    """
-    Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
-    """
-
+def _parse_links(
+    page: IndexContent, url_filter: Callable[[str], bool] | None
+) -> Iterator[Link]:
     content_type_l = page.content_type.lower()
     if content_type_l.startswith("application/vnd.pypi.simple.v1+json"):
         data = json.loads(page.content)
         for file in data.get("files", []):
-            link = Link.from_json(file, page.url)
+            link = Link.from_json(file, page.url, url_filter=url_filter)
             if link is None:
                 continue
             yield link
@@ -240,10 +237,33 @@ def parse_links(page: IndexContent) -> Iterable[Link]:
     url = page.url
     base_url = parser.base_url or url
     for anchor in parser.anchors:
-        link = Link.from_element(anchor, page_url=url, base_url=base_url)
+        link = Link.from_element(
+            anchor, page_url=url, base_url=base_url, url_filter=url_filter
+        )
         if link is None:
             continue
         yield link
+
+
+@with_cached_index_content
+def parse_links(page: IndexContent) -> Iterable[Link]:
+    """
+    Parse a Simple API's Index Content, and yield its anchor elements as Link objects.
+    """
+    return _parse_links(page, url_filter=None)
+
+
+def parse_links_matching(
+    page: IndexContent, url_filter: Callable[[str], bool]
+) -> list[Link]:
+    """Like parse_links(), but only return the links whose URL passes ``url_filter``.
+
+    Links that are filtered out are never built, unless the page's links are cached
+    anyway.
+    """
+    if page.cache_link_parsing:
+        return [link for link in parse_links(page) if url_filter(link.url)]
+    return list(_parse_links(page, url_filter))
 
 
 @dataclass(frozen=True)

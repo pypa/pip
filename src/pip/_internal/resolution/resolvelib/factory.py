@@ -309,7 +309,7 @@ class Factory:
             return candidate
 
         def iter_index_candidate_infos() -> Iterator[IndexCandidateInfo]:
-            result = self._finder.find_best_candidate(
+            result = self._finder.find_matching_candidates(
                 project_name=name,
                 specifier=specifier,
                 hashes=hashes,

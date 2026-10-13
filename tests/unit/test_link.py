@@ -11,6 +11,7 @@ from pip._internal.models.link import (
     as_path_component,
     join_within_directory,
     links_equivalent,
+    simple_url_filename,
 )
 from pip._internal.utils.hashes import Hashes
 
@@ -355,3 +356,71 @@ def test_join_within_directory_stays_inside(name: str) -> None:
     joined = join_within_directory(directory, as_path_component(name))
     assert joined == os.path.join(directory, name)
     assert os.path.basename(joined) == name
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://files.example.com/packages/ab/cd/pkg-1.0-py3-none-any.whl",
+        "https://example.com/pkg-1.0.tar.gz#sha256=abc123",
+        "http://example.com:8080/a/b/pkg_name-2.0.zip",
+        "https://example.com/simple/pkg/",
+        "https://example.com",
+        "https://example.com/",
+        "https://example.com/..",
+        "https://example.com/pkg-1.0+local.tar.gz",
+        "https://example.com/pkg%2D1.0.tar.gz",
+        "https://example.com/pkg-1.0.tar.gz?download=1",
+        "https://user@example.com/pkg-1.0.tar.gz",
+        "file:///tmp/pkg-1.0.tar.gz",
+    ],
+)
+def test_simple_url_filename(url: str) -> None:
+    filename = simple_url_filename(url)
+    # It is either exactly what a Link would compute, or None.
+    assert filename is None or filename == Link(url).filename
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        ("https://example.com/pkg-1.0-py3-none-any.whl", "pkg-1.0-py3-none-any.whl"),
+        ("https://example.com/p/pkg-1.0.tar.gz#sha256=ab", "pkg-1.0.tar.gz"),
+        ("https://example.com/pkg-1.0.tar.gz?download=1", None),
+        ("https://example.com/pkg%2D1.0.tar.gz", None),
+        ("file:///tmp/pkg-1.0.tar.gz", None),
+        ("https://example.com/simple/pkg/", None),
+    ],
+)
+def test_simple_url_filename_values(url: str, expected: str | None) -> None:
+    assert simple_url_filename(url) == expected
+
+
+def test_from_json_url_filter() -> None:
+    file_data = {"url": "https://example.com/pkg-1.0.tar.gz", "hashes": {}}
+    page_url = "https://example.com/simple/pkg/"
+    seen = []
+
+    def reject(url: str) -> bool:
+        seen.append(url)
+        return False
+
+    assert Link.from_json(file_data, page_url, url_filter=reject) is None
+    assert seen == ["https://example.com/pkg-1.0.tar.gz"]
+    link = Link.from_json(file_data, page_url, url_filter=lambda url: True)
+    assert link is not None
+    assert link.url == "https://example.com/pkg-1.0.tar.gz"
+
+
+def test_from_element_url_filter() -> None:
+    attribs: dict[str, str | None] = {"href": "../../pkg-1.0.tar.gz"}
+    page_url = "https://example.com/simple/pkg/"
+    seen = []
+
+    def reject(url: str) -> bool:
+        seen.append(url)
+        return False
+
+    assert Link.from_element(attribs, page_url, page_url, url_filter=reject) is None
+    # The filter sees the absolute URL.
+    assert seen == ["https://example.com/pkg-1.0.tar.gz"]

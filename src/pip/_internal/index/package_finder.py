@@ -8,7 +8,7 @@ import functools
 import itertools
 import logging
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -27,11 +27,15 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.index.collector import (
+    LinkCollector,
+    parse_links,
+    parse_links_matching,
+)
 from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
-from pip._internal.models.link import Link
+from pip._internal.models.link import Link, simple_url_filename
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -42,7 +46,7 @@ from pip._internal.utils._log import getLogger
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import build_netloc
+from pip._internal.utils.misc import build_netloc, splitext
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 
@@ -661,6 +665,12 @@ class PackageFinder:
             tuple[str, specifiers.BaseSpecifier | None, Hashes | None],
             BestCandidateResult,
         ] = {}
+        # Caches for find_matching_candidates()
+        self._pinned_candidates: dict[tuple[str, str], list[InstallationCandidate]] = {}
+        self._matching_candidates: dict[
+            tuple[str, specifiers.BaseSpecifier, Hashes | None],
+            BestCandidateResult,
+        ] = {}
 
         # projects for which a link is locked from a pylock
         self._locked_links: dict[NormalizedName, Link] = {}
@@ -854,7 +864,10 @@ class PackageFinder:
         return candidates
 
     def process_project_url(
-        self, project_url: Link, link_evaluator: LinkEvaluator
+        self,
+        project_url: Link,
+        link_evaluator: LinkEvaluator,
+        url_filter: Callable[[str], bool] | None = None,
     ) -> list[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
@@ -866,7 +879,10 @@ class PackageFinder:
         if index_response is None:
             return []
 
-        page_links = list(parse_links(index_response))
+        if url_filter is None:
+            page_links = list(parse_links(index_response))
+        else:
+            page_links = parse_links_matching(index_response, url_filter)
 
         with indent_log():
             package_links = self.evaluate_links(
@@ -908,11 +924,27 @@ class PackageFinder:
             ]
             return self._all_candidates[project_name]
 
+        self._all_candidates[project_name] = self._collect_candidates(
+            project_name, link_evaluator
+        )
+        return self._all_candidates[project_name]
+
+    def _collect_candidates(
+        self,
+        project_name: str,
+        link_evaluator: LinkEvaluator,
+        url_filter: Callable[[str], bool] | None = None,
+    ) -> list[InstallationCandidate]:
+        """Find the candidates for project_name from index_urls and find_links.
+
+        ``url_filter`` can skip index page links up front, by their URL.
+        """
         collected_sources = self._link_collector.collect_sources(
             project_name=project_name,
             candidates_from_page=functools.partial(
                 self.process_project_url,
                 link_evaluator=link_evaluator,
+                url_filter=url_filter,
             ),
         )
 
@@ -947,9 +979,7 @@ class PackageFinder:
             logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
-        self._all_candidates[project_name] = file_candidates + page_candidates
-
-        return self._all_candidates[project_name]
+        return file_candidates + page_candidates
 
     def make_candidate_evaluator(
         self,
@@ -996,6 +1026,49 @@ class PackageFinder:
         )
 
         return self._best_candidates[project_name, specifier, hashes]
+
+    def find_matching_candidates(
+        self,
+        project_name: str,
+        specifier: specifiers.BaseSpecifier,
+        hashes: Hashes | None = None,
+    ) -> BestCandidateResult:
+        """Like find_best_candidate(), but faster if ``specifier`` pins a version.
+
+        With an exact ``==`` pin, only the index files that could hold that
+        version are looked at, instead of every file of every release. The
+        result's ``all_candidates`` is then limited to those, but its applicable
+        and best candidates are the same as find_best_candidate()'s.
+        """
+        pin = _get_exact_pin(specifier)
+        if (
+            pin is None
+            or project_name in self._all_candidates
+            or canonicalize_name(project_name) in self._locked_links
+        ):
+            return self.find_best_candidate(project_name, specifier, hashes)
+
+        key = (project_name, specifier, hashes)
+        if key in self._matching_candidates:
+            return self._matching_candidates[key]
+
+        pin_key = (project_name, str(pin))
+        if pin_key not in self._pinned_candidates:
+            link_evaluator = self.make_link_evaluator(project_name)
+            self._pinned_candidates[pin_key] = self._collect_candidates(
+                project_name,
+                link_evaluator,
+                url_filter=_PinnedVersionFilter(pin, canonicalize_name(project_name)),
+            )
+        candidate_evaluator = self.make_candidate_evaluator(
+            project_name=project_name,
+            specifier=specifier,
+            hashes=hashes,
+        )
+        self._matching_candidates[key] = candidate_evaluator.compute_best_candidate(
+            self._pinned_candidates[pin_key]
+        )
+        return self._matching_candidates[key]
 
     def find_requirement(
         self, req: InstallRequirement, upgrade: bool
@@ -1106,6 +1179,69 @@ class PackageFinder:
             )
 
         self._locked_links[project_name] = locked_link
+
+
+def _get_exact_pin(specifier: specifiers.BaseSpecifier) -> specifiers.Specifier | None:
+    """Return an exact ``==`` specifier (no wildcard) that ``specifier`` requires."""
+    if isinstance(specifier, specifiers.Specifier):
+        specs = [specifier]
+    elif isinstance(specifier, specifiers.SpecifierSet):
+        specs = list(specifier)
+    else:
+        return None
+    pins = [s for s in specs if s.operator == "==" and not s.version.endswith(".*")]
+    # Any of them will do, as a matching version must satisfy all of them.
+    return min(pins, key=str, default=None)
+
+
+class _PinnedVersionFilter:
+    """Rule out index file URLs that can't hold a version matching an exact pin.
+
+    The version is taken from the file name the same way LinkEvaluator does it.
+    URLs it can't do that for cheaply and reliably are kept, to be evaluated as
+    usual.
+    """
+
+    def __init__(self, pin: specifiers.Specifier, canonical_name: str) -> None:
+        self._pin = pin
+        self._canonical_name = canonical_name
+        self._version_matches: dict[str, bool] = {}
+
+    def __call__(self, url: str) -> bool:
+        filename = simple_url_filename(url)
+        # Links with an egg fragment get their version from it instead.
+        if filename is None or "egg=" in url:
+            return True
+        stem, ext = splitext(filename)
+        if ext == WHEEL_EXTENSION:
+            # name-version[-build]-pyver-abi-platform
+            parts = stem.split("-")
+            if len(parts) not in (5, 6):
+                return True
+            version = parts[1]
+        else:
+            fragment_version = _extract_version_from_fragment(
+                stem, self._canonical_name
+            )
+            if fragment_version is None:
+                return True
+            version = fragment_version
+            match = LinkEvaluator._py_version_re.search(version)
+            if match:
+                version = version[: match.start()]
+        return self._matches(version)
+
+    def _matches(self, version: str) -> bool:
+        try:
+            return self._version_matches[version]
+        except KeyError:
+            pass
+        try:
+            matches = self._pin.contains(parse_version(version), prereleases=True)
+        except InvalidVersion:
+            matches = True
+        self._version_matches[version] = matches
+        return matches
 
 
 def _find_name_version_sep(fragment: str, canonical_name: str) -> int:

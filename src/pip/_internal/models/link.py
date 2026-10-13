@@ -8,7 +8,7 @@ import os
 import posixpath
 import re
 import urllib.parse
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -240,6 +240,20 @@ def _ensure_quoted_url(url: str) -> str:
     return ret
 
 
+def simple_url_filename(url: str) -> str | None:
+    """Return ``Link(url).filename`` without building a Link, if that's cheap.
+
+    That is the case for an already-quoted http(s) URL that ends in a file name
+    and has no query string. Returns None for any other URL.
+    """
+    if not _already_quoted_url_re.fullmatch(url):
+        return None
+    name = url.partition("#")[0].rpartition("/")[2]
+    if name in ("", os.curdir, os.pardir):
+        return None
+    return name
+
+
 def _absolute_link_url(base_url: str, url: str) -> str:
     """
     A faster implementation of urllib.parse.urljoin with a shortcut
@@ -349,15 +363,20 @@ class Link:
         cls,
         file_data: dict[str, Any],
         page_url: str,
+        url_filter: Callable[[str], bool] | None = None,
     ) -> Link | None:
         """
         Convert an pypi json document from a simple repository page into a Link.
+
+        Returns None if the file has no URL, or ``url_filter`` rejects its URL.
         """
         file_url = file_data.get("url")
         if file_url is None:
             return None
 
         url = _ensure_quoted_url(_absolute_link_url(page_url, file_url))
+        if url_filter is not None and not url_filter(url):
+            return None
         pyrequire = file_data.get("requires-python")
         yanked_reason = file_data.get("yanked")
         hashes = file_data.get("hashes", {})
@@ -407,15 +426,20 @@ class Link:
         anchor_attribs: dict[str, str | None],
         page_url: str,
         base_url: str,
+        url_filter: Callable[[str], bool] | None = None,
     ) -> Link | None:
         """
         Convert an anchor element's attributes in a simple repository page to a Link.
+
+        Returns None if the anchor has no href, or ``url_filter`` rejects its URL.
         """
         href = anchor_attribs.get("href")
         if not href:
             return None
 
         url = _ensure_quoted_url(_absolute_link_url(base_url, href))
+        if url_filter is not None and not url_filter(url):
+            return None
         pyrequire = anchor_attribs.get("data-requires-python")
         yanked_reason = anchor_attribs.get("data-yanked")
 

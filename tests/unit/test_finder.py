@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 from collections.abc import Iterable
 from unittest.mock import Mock, patch
@@ -12,12 +13,14 @@ from pip._vendor.packaging.version import parse as parse_version
 
 import pip._internal.utils.compatibility_tags
 from pip._internal.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
+from pip._internal.index.collector import IndexContent
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
     Link,
     LinkEvaluator,
     LinkType,
+    PackageFinder,
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
@@ -627,3 +630,112 @@ class TestPackageFinderUploadedPriorTo:
 
         link_evaluator = finder.make_link_evaluator("test-package")
         assert link_evaluator._uploaded_prior_to is None
+
+
+_PINNED_TEST_FILES = [
+    "pkg-1.0.tar.gz",
+    "pkg-1.0-py3-none-any.whl",
+    "pkg-1.0.0-py3-none-any.whl",
+    "pkg-1.0+local-py3-none-any.whl",
+    "pkg-1.0-py3.8.tar.gz",
+    "PKG-1.0.zip",
+    "pkg-2.0rc1.tar.gz",
+    "pkg-2.0.tar.gz",
+    "pkg-2.0-1-py3-none-any.whl",
+    "pkg-2.0-py3-none-any.whl",
+    "pkg-3.0-py2.py3-none-any.whl",
+    "pkg-notaversion.tar.gz",
+    "pkg-bad-name-1.0-py3-none-any.whl",
+    "other-1.0.tar.gz",
+    "download?id=1",
+    "archive#egg=pkg-1.0",
+]
+
+
+def _make_json_page_finder(files: list[str]) -> PackageFinder:
+    finder = make_test_finder(index_urls=["https://example.com/simple"])
+    data = {
+        "meta": {"api-version": "1.0"},
+        "name": "pkg",
+        "files": [
+            {"filename": f, "url": f"https://files.example.com/{f}", "hashes": {}}
+            for f in files
+        ],
+    }
+    page = IndexContent(
+        json.dumps(data).encode(),
+        "application/vnd.pypi.simple.v1+json",
+        encoding=None,
+        url="https://example.com/simple/pkg/",
+        cache_link_parsing=False,
+    )
+    finder._link_collector.fetch_response = Mock(  # type: ignore[method-assign]
+        return_value=page
+    )
+    return finder
+
+
+def _candidates_key(
+    candidates: Iterable[InstallationCandidate],
+) -> list[tuple[str, str]]:
+    return [(str(c.version), c.link.url) for c in candidates]
+
+
+@pytest.mark.parametrize(
+    "specifier",
+    [
+        "==1.0",
+        "==1.0.0",
+        "==1",
+        "==1.0+local",
+        "==2.0",
+        "==2.0rc1",
+        "==2.0,>=1",
+        "==3.0,!=3.0",
+        "==9",
+        ">=1",
+        "==1.*",
+        "===1.0",
+    ],
+)
+def test_find_matching_candidates_matches_find_best_candidate(specifier: str) -> None:
+    spec = SpecifierSet(specifier)
+    expected = _make_json_page_finder(_PINNED_TEST_FILES).find_best_candidate(
+        "pkg", spec
+    )
+    result = _make_json_page_finder(_PINNED_TEST_FILES).find_matching_candidates(
+        "pkg", spec
+    )
+    assert _candidates_key(result.applicable_candidates) == _candidates_key(
+        expected.applicable_candidates
+    )
+    if expected.best_candidate is None:
+        assert result.best_candidate is None
+    else:
+        assert result.best_candidate is not None
+        assert result.best_candidate.link == expected.best_candidate.link
+
+
+def test_find_matching_candidates_skips_other_versions() -> None:
+    finder = _make_json_page_finder(_PINNED_TEST_FILES)
+    result = finder.find_matching_candidates("pkg", SpecifierSet("==2.0"))
+    # Files of other releases are skipped, except those the filter can't
+    # reliably read a version from: a URL that needs quoting ("+" here), and an
+    # egg fragment.
+    assert {c.link.filename for c in result.all_candidates} == {
+        "pkg-2.0.tar.gz",
+        "pkg-2.0-1-py3-none-any.whl",
+        "pkg-2.0-py3-none-any.whl",
+        "pkg-1.0+local-py3-none-any.whl",
+        "archive",
+    }
+    # The page is fetched once per pin, however the rest of the specifier varies.
+    finder.find_matching_candidates("pkg", SpecifierSet("==2.0,>=1"))
+    assert finder._link_collector.fetch_response.call_count == 1  # type: ignore[attr-defined]
+
+
+def test_find_matching_candidates_uses_all_candidates_once_known() -> None:
+    finder = _make_json_page_finder(_PINNED_TEST_FILES)
+    all_candidates = finder.find_all_candidates("pkg")
+    result = finder.find_matching_candidates("pkg", SpecifierSet("==2.0"))
+    assert result.all_candidates == all_candidates
