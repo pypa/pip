@@ -10,7 +10,7 @@ import zipfile
 from collections.abc import Collection, Iterable
 from optparse import Values
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -54,6 +54,9 @@ from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
+
+if TYPE_CHECKING:
+    from pip._internal.operations.install.bytecode import BytecodeCompiler
 
 logger = logging.getLogger(__name__)
 
@@ -771,6 +774,7 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
         script_executable: str | None = None,
+        bytecode_compiler: BytecodeCompiler | None = None,
     ) -> None:
         # Lazy import to avoid transitively importing `_vendor.distlib.compat`
         # which in turn imports `urllib.request` which is slow.
@@ -802,6 +806,7 @@ class InstallRequirement:
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
             script_executable=script_executable,
+            bytecode_compiler=bytecode_compiler,
         )
         self.install_succeeded = True
 

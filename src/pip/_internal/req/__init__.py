@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import contextlib
 import logging
 from collections.abc import Generator
 from dataclasses import dataclass
@@ -70,7 +71,16 @@ def install_given_reqs(
         )
         items = renderer(items)
 
-    with indent_log():
+    with contextlib.ExitStack() as stack:
+        if pycompile:
+            # Imported lazily as most commands that import this module don't
+            # install anything.
+            from pip._internal.operations.install.bytecode import bytecode_compiler
+
+            compiler = stack.enter_context(bytecode_compiler())
+        else:
+            compiler = None
+        stack.enter_context(indent_log())
         for requirement in items:
             req_name = requirement.name
             assert req_name is not None
@@ -90,6 +100,7 @@ def install_given_reqs(
                     use_user_site=use_user_site,
                     pycompile=pycompile,
                     script_executable=script_executable,
+                    bytecode_compiler=compiler,
                 )
             except Exception:
                 # if install did not succeed, rollback previous uninstall

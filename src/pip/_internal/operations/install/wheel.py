@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import collections
-import compileall
 import contextlib
 import csv
 import importlib
@@ -13,7 +12,6 @@ import re
 import shutil
 import sys
 import textwrap
-import warnings
 from base64 import urlsafe_b64encode
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from email.message import Message
@@ -42,8 +40,9 @@ from pip._internal.metadata import (
 )
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
+from pip._internal.operations.install.bytecode import BytecodeCompiler
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
+from pip._internal.utils.misc import ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -448,6 +447,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     direct_url: DirectUrl | None = None,
     requested: bool = False,
     script_executable: str | None = None,
+    bytecode_compiler: BytecodeCompiler | None = None,
 ) -> None:
     """Install a wheel.
 
@@ -460,6 +460,8 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     :param warn_script_location: Whether to check that scripts are installed
         into a directory on PATH
     :param script_executable: Python executable to use for console scripts
+    :param bytecode_compiler: Compiler to byte-compile with, shared between
+        wheels so its worker processes are reused; compiles in-process if None
     :raises UnsupportedWheel:
         * when the directory holds an unpacked wheel with incompatible
           Wheel-Version
@@ -630,21 +632,17 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
     # Compile all of the pyc files for the installed files
     if pycompile:
-        with contextlib.redirect_stdout(
-            StreamWrapper.from_stream(sys.stdout)
-        ) as stdout:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                for path in pyc_source_file_paths():
-                    success = compileall.compile_file(path, force=True, quiet=True)
-                    if success:
-                        pyc_path = pyc_output_path(path)
-                        assert os.path.exists(pyc_path)
-                        pyc_record_path = cast(
-                            "RecordPath", pyc_path.replace(os.path.sep, "/")
-                        )
-                        record_installed(pyc_record_path, pyc_path)
-        logger.debug(stdout.getvalue())
+        if bytecode_compiler is None:
+            bytecode_compiler = BytecodeCompiler(max_workers=1)
+        compile_output = []
+        for result in bytecode_compiler.compile(list(pyc_source_file_paths())):
+            compile_output.append(result.output)
+            if result.success:
+                pyc_path = pyc_output_path(result.py_path)
+                assert os.path.exists(pyc_path)
+                pyc_record_path = cast("RecordPath", pyc_path.replace(os.path.sep, "/"))
+                record_installed(pyc_record_path, pyc_path)
+        logger.debug("".join(compile_output))
 
     maker = PipScriptMaker(None, scheme.scripts)
 
@@ -754,6 +752,7 @@ def install_wheel(
     direct_url: DirectUrl | None = None,
     requested: bool = False,
     script_executable: str | None = None,
+    bytecode_compiler: BytecodeCompiler | None = None,
 ) -> None:
     with ZipFile(wheel_path, allowZip64=True) as z:
         with req_error_context(req_description):
@@ -767,4 +766,5 @@ def install_wheel(
                 direct_url=direct_url,
                 requested=requested,
                 script_executable=script_executable,
+                bytecode_compiler=bytecode_compiler,
             )
