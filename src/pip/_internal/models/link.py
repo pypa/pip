@@ -208,12 +208,25 @@ def _clean_url_path(path: str, is_local_path: bool) -> str:
     return "".join(cleaned_parts)
 
 
+# An http(s) URL whose path contains only characters that quoting leaves alone,
+# so _ensure_quoted_url() would return it unchanged. Nearly every URL on an
+# index page looks like this, and matching it is much cheaper than the
+# split/quote/unsplit round trip.
+_already_quoted_url_re = re.compile(
+    r"https?://[A-Za-z0-9.-]+(?::[0-9]+)?"
+    r"(?:/[A-Za-z0-9_.~/-]*)?"
+    r"(?:#[A-Za-z0-9_.=&-]+)?"
+)
+
+
 def _ensure_quoted_url(url: str) -> str:
     """
     Make sure a link is fully quoted.
     For example, if ' ' occurs in the URL, it will be replaced with "%20",
     and without double-quoting other characters.
     """
+    if _already_quoted_url_re.fullmatch(url):
+        return url
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)
@@ -254,6 +267,7 @@ class Link:
         "upload_time",
         "cache_link_parsing",
         "egg_fragment",
+        "_has_fragment_params",
     ]
 
     def __init__(
@@ -308,7 +322,13 @@ class Link:
         # The .path property is hot, so calculate its value ahead of time.
         self._path = urllib.parse.unquote(self._parsed_url.path)
 
-        link_hash = LinkHash.find_hash_url_fragment(url)
+        # Hash and egg fragments both start with "#" or "&". Most index URLs
+        # have neither, so skip the regex searches for them.
+        self._has_fragment_params = "#" in url or "&" in url
+        if self._has_fragment_params:
+            link_hash = LinkHash.find_hash_url_fragment(url)
+        else:
+            link_hash = None
         hashes_from_link = {} if link_hash is None else link_hash.as_dict()
         if hashes is None:
             self._hashes = hashes_from_link
@@ -515,6 +535,8 @@ class Link:
     )
 
     def _egg_fragment(self) -> str | None:
+        if not self._has_fragment_params:
+            return None
         match = self._egg_fragment_re.search(self._url)
         if not match:
             return None
