@@ -56,8 +56,8 @@ from pip._internal.utils.pylock import (
 )
 from pip._internal.utils.temp_dir import (
     TempDirectory,
+    TempDirectoryKind,
     TempDirectoryTypeRegistry,
-    tempdir_kinds,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,9 +77,9 @@ def should_ignore_regular_constraints() -> bool:
 
 
 KEEPABLE_TEMPDIR_TYPES = [
-    tempdir_kinds.BUILD_ENV,
-    tempdir_kinds.EPHEM_WHEEL_CACHE,
-    tempdir_kinds.REQ_BUILD,
+    TempDirectoryKind.BUILD_ENV,
+    TempDirectoryKind.EPHEM_WHEEL_CACHE,
+    TempDirectoryKind.REQ_BUILD,
 ]
 
 
