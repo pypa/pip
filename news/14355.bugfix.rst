@@ -1,0 +1,1 @@
+Honor supplied hashes when using ``--no-require-hashes``.
