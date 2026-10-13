@@ -332,8 +332,10 @@ class PipSession(requests.Session):
         self.pip_no_proxy_env = False
         self.refresh_package: set[str] = refresh_package or set()
 
-        # Attach our User Agent to the request
-        self.headers["User-Agent"] = user_agent()
+        # Our User Agent is attached when the first request is prepared, since
+        # computing it can spawn subprocesses and many sessions never send a
+        # request (e.g. when every requirement is already installed).
+        self._pip_user_agent_set = False
 
         # Pin Accept-Encoding so it doesn't vary with zstd availability (Python
         # 3.14+ or backports.zstd); a varying value misses the cache for "Vary:
@@ -527,6 +529,12 @@ class PipSession(requests.Session):
             )
             return None
         return target
+
+    def prepare_request(self, request: requests.Request) -> PreparedRequest:
+        if not self._pip_user_agent_set:
+            self.headers["User-Agent"] = user_agent()
+            self._pip_user_agent_set = True
+        return super().prepare_request(request)
 
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:  # type: ignore[override]
         # Allow setting a default timeout on a session

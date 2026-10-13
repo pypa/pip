@@ -104,7 +104,10 @@ def get_user_agent() -> str:
     # These tests are testing the computation of the user agent, so we want to
     # avoid reusing cached values.
     user_agent.cache_clear()
-    return PipSession().headers["User-Agent"]
+    request = requests.Request("GET", "https://example.com/")
+    header = PipSession().prepare_request(request).headers["User-Agent"]
+    assert isinstance(header, str)
+    return header
 
 
 def test_user_agent() -> None:
