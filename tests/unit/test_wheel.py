@@ -311,6 +311,27 @@ class TestInstallUnpackedWheel:
         )
         self.assert_installed(0o644)
 
+    def test_data_install_with_root_scheme(self, tmp_path: Path) -> None:
+        # Keep every write inside tmp_path even though the data scheme is a root.
+        target = tmp_path / "share" / "data_file"
+        relative_target = target.relative_to(tmp_path.anchor).as_posix()
+        wheel_path = make_wheel(
+            "sample",
+            "1.0",
+            extra_data_files={f"data/{relative_target}": "some data"},
+        ).save_to_dir(str(tmp_path))
+        scheme = Scheme(
+            purelib=str(tmp_path / "lib"),
+            platlib=str(tmp_path / "lib"),
+            headers=str(tmp_path / "headers"),
+            scripts=str(tmp_path / "bin"),
+            data=tmp_path.anchor,
+        )
+        wheel.install_wheel(
+            "sample", wheel_path, scheme=scheme, req_description="sample"
+        )
+        assert target.read_text() == "some data"
+
     @pytest.mark.parametrize("user_mask, expected_permission", [(0o27, 0o640)])
     def test_std_install_with_custom_umask(
         self, data: TestData, tmpdir: Path, user_mask: int, expected_permission: int
