@@ -185,6 +185,11 @@ def test_sanitize_content_filename__platform_dependent(
     "content_disposition, default_filename, expected",
     [
         ('attachment;filename="../file"', "df", "file"),
+        # RFC 2231 extended value (filename*=): decode rather than returning
+        # the raw (charset, language, value) tuple as a string.
+        ("attachment; filename*=UTF-8''pip%2D25.0.whl", "df", "pip-25.0.whl"),
+        # A traversal attempt in an extended value is still reduced to a basename.
+        ("attachment; filename*=UTF-8''%2E%2E%2Fevil", "df", "evil"),
     ],
 )
 def test_parse_content_disposition(

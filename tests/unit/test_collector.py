@@ -820,6 +820,20 @@ def test_make_index_content() -> None:
     assert actual.url == "https://example.com/index.html"
 
 
+def test_make_index_content_rfc2231_charset() -> None:
+    # An RFC 2231 extended value (charset*=) must be decoded to the charset
+    # name, not left as the raw (charset, language, value) tuple.
+    headers = {"Content-Type": "text/html; charset*=UTF-8''utf-8"}
+    response = mock.Mock(
+        content=b"<content>",
+        url="https://example.com/index.html",
+        headers=headers,
+    )
+
+    actual = _make_index_content(response)
+    assert actual.encoding == "utf-8"
+
+
 @pytest.mark.parametrize(
     "url, vcs_scheme",
     [

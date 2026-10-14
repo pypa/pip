@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import email.message
+import email.utils
 import logging
 import mimetypes
 import os
@@ -128,9 +129,11 @@ def parse_content_disposition(content_disposition: str, default_filename: str) -
     m["content-type"] = content_disposition
     filename = m.get_param("filename")
     if filename:
-        # We need to sanitize the filename to prevent directory traversal
-        # in case the filename contains ".." path parts.
-        filename = sanitize_content_filename(str(filename))
+        # get_param returns a (charset, language, value) tuple for an RFC 2231
+        # extended value (filename*=); collapse it to the decoded string.
+        filename = email.utils.collapse_rfc2231_value(filename)
+        # Sanitize to prevent directory traversal if the name has ".." parts.
+        filename = sanitize_content_filename(filename)
     return filename or default_filename
 
 

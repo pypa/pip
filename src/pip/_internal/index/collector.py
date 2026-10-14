@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import collections
 import email.message
+import email.utils
 import functools
 import itertools
 import json
@@ -177,7 +178,9 @@ def _get_encoding_from_headers(headers: ResponseHeaders) -> str | None:
         m["content-type"] = headers["Content-Type"]
         charset = m.get_param("charset")
         if charset:
-            return str(charset)
+            # get_param returns a tuple for an RFC 2231 extended value
+            # (charset*=); collapse it to the decoded charset name.
+            return email.utils.collapse_rfc2231_value(charset)
     return None
 
 

@@ -1,0 +1,4 @@
+Decode RFC 2231 extended values (``filename*=`` in ``Content-Disposition`` and
+``charset*=`` in ``Content-Type``) when parsing response headers, instead of
+using the raw ``(charset, language, value)`` tuple returned by the standard
+library.
