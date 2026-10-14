@@ -49,7 +49,7 @@ from pip._internal.req.req_install import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.filesystem import test_writable_dir
+from pip._internal.utils.filesystem import test_writable_dir, unlink_dangling_symlink
 from pip._internal.utils.logging import getLogger
 from pip._internal.utils.misc import (
     check_externally_managed,
@@ -631,6 +631,10 @@ class InstallCommand(RequirementCommand):
                     if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
                         continue
                 target_item_dir = os.path.join(target_dir, item)
+
+                # shutil.move() follows dangling links in its cross-device fallback.
+                unlink_dangling_symlink(target_item_dir)
+
                 if os.path.exists(target_item_dir):
                     if not upgrade:
                         logger.warning(
