@@ -1,3 +1,4 @@
-Speed up wheel bytecode compilation for larger wheels on Windows. Use
-``--no-parallel-compile`` to retain serial compilation. Free-threaded builds
-also remain serial to preserve byte-for-byte reproducibility.
+Speed up bytecode compilation for larger wheels on Windows with CPython
+3.16.0a1 and later, including free-threaded builds. Earlier CPython releases
+and other Python implementations retain serial compilation.
+Use ``--no-parallel-compile`` to retain serial compilation on supported runtimes.

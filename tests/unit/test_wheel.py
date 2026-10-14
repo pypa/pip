@@ -13,6 +13,7 @@ import threading
 import warnings
 from email import message_from_string
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 from unittest.mock import call, patch
 
@@ -682,7 +683,43 @@ class TestWheelHashCalculators:
 def set_parallel_cpu_count(monkeypatch: pytest.MonkeyPatch, count: int = 2) -> None:
     monkeypatch.setattr(wheel.os, "process_cpu_count", lambda: count, raising=False)
     monkeypatch.setattr(wheel.os, "cpu_count", lambda: count)
-    monkeypatch.setattr(wheel.sysconfig, "get_config_var", lambda _name: 0)
+    monkeypatch.setattr(wheel, "_supports_parallel_compile", lambda: True)
+
+
+@pytest.mark.parametrize(
+    "implementation, version, expected",
+    [
+        ("cpython", (3, 10, 0, "final", 0), False),
+        ("cpython", (3, 14, 7, "final", 0), False),
+        ("cpython", (3, 15, 0, "final", 0), False),
+        ("cpython", (3, 16, 0, "alpha", 0), False),
+        ("cpython", (3, 16, 0, "alpha", 1), True),
+        ("cpython", (3, 16, 0, "alpha", 2), True),
+        ("cpython", (3, 16, 0, "beta", 1), True),
+        ("cpython", (3, 16, 0, "candidate", 1), True),
+        ("cpython", (3, 16, 0, "final", 0), True),
+        ("cpython", (3, 16, 1, "final", 0), True),
+        ("cpython", (3, 17, 0, "alpha", 0), True),
+        ("pypy", (3, 16, 0, "alpha", 1), False),
+        ("graalpy", (3, 17, 0, "final", 0), False),
+    ],
+)
+def test_supports_parallel_compile(
+    monkeypatch: pytest.MonkeyPatch,
+    implementation: str,
+    version: tuple[int, int, int, str, int],
+    expected: bool,
+) -> None:
+    monkeypatch.setattr(
+        wheel,
+        "sys",
+        SimpleNamespace(
+            implementation=SimpleNamespace(name=implementation),
+            version_info=version,
+        ),
+    )
+
+    assert wheel._supports_parallel_compile() is expected
 
 
 def test_compile_bytecode_serial(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -703,6 +740,7 @@ def test_compile_bytecode_windows_small_wheel(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(sys, "platform", "win32")
+    set_parallel_cpu_count(monkeypatch)
     paths = [f"{index}.py" for index in range(7)]
     with patch.object(
         wheel.compileall, "compile_file", return_value=True
@@ -737,12 +775,12 @@ def test_compile_bytecode_windows_parallel_disabled(
     thread_pool.assert_not_called()
 
 
-def test_compile_bytecode_windows_free_threaded_is_serial(
+def test_compile_bytecode_windows_unsupported_runtime_is_serial(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(sys, "platform", "win32")
     set_parallel_cpu_count(monkeypatch)
-    monkeypatch.setattr(wheel.sysconfig, "get_config_var", lambda _name: 1)
+    monkeypatch.setattr(wheel, "_supports_parallel_compile", lambda: False)
     paths = [f"{index}.py" for index in range(8)]
 
     with (
