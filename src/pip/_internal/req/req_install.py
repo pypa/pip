@@ -50,7 +50,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import runner_with_spinner_message
-from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
+from pip._internal.utils.temp_dir import TempDirectory, TempDirectoryKind
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
@@ -332,7 +332,7 @@ class InstallRequirement:
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
             self._temp_build_dir = TempDirectory(
-                kind=tempdir_kinds.REQ_BUILD, globally_managed=True
+                kind=TempDirectoryKind.REQ_BUILD, globally_managed=True
             )
 
             return self._temp_build_dir.path
@@ -359,7 +359,7 @@ class InstallRequirement:
         return TempDirectory(
             path=actual_build_dir,
             delete=delete_arg,
-            kind=tempdir_kinds.REQ_BUILD,
+            kind=TempDirectoryKind.REQ_BUILD,
             globally_managed=True,
         ).path
 

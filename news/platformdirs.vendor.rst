@@ -1,1 +1,1 @@
-Upgrade platformdirs to 4.11.0
+Upgrade platformdirs to 4.11.12

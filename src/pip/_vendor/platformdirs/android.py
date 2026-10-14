@@ -26,7 +26,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_data_dir(self) -> str:
         """Data directory tied to the user, e.g. ``/data/user/<userid>/<packagename>/files/<AppName>``."""
-        return self._append_app_name_and_version(cast("str", _android_folder()), "files")
+        return self._append_app_name_and_version(_require_android_folder(), "files")
 
     @property
     def site_data_dir(self) -> str:
@@ -36,7 +36,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_config_dir(self) -> str:
         """Config directory tied to the user, e.g. ``/data/user/<userid>/<packagename>/shared_prefs/<AppName>``."""
-        return self._append_app_name_and_version(cast("str", _android_folder()), "shared_prefs")
+        return self._append_app_name_and_version(_require_android_folder(), "shared_prefs")
 
     @property
     def site_config_dir(self) -> str:
@@ -46,7 +46,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_cache_dir(self) -> str:
         """Cache directory tied to the user, e.g.,``/data/user/<userid>/<packagename>/cache/<AppName>``."""
-        return self._append_app_name_and_version(cast("str", _android_folder()), "cache")
+        return self._append_app_name_and_version(_require_android_folder(), "cache")
 
     @property
     def site_cache_dir(self) -> str:
@@ -135,7 +135,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_bin_dir(self) -> str:
         """Bin directory tied to the user, e.g. ``/data/user/<userid>/<packagename>/files/bin``."""
-        return os.path.join(cast("str", _android_folder()), "files", "bin")  # ruff:ignore[os-path-join]
+        return os.path.join(_require_android_folder(), "files", "bin")  # ruff:ignore[os-path-join]
 
     @property
     def site_bin_dir(self) -> str:
@@ -165,6 +165,13 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     def site_runtime_dir(self) -> str:
         """Runtime directory shared by users, same as `user_runtime_dir`."""
         return self.user_runtime_dir
+
+
+def _require_android_folder() -> str:
+    if (folder := _android_folder()) is None:
+        msg = "cannot find the Android app folder: python4android and pyjnius failed and no app folder is on sys.path"
+        raise RuntimeError(msg)
+    return folder
 
 
 @lru_cache(maxsize=1)

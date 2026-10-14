@@ -29,10 +29,10 @@ class _MacOSDefaults(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
         return self._append_app_name_and_version(os.path.expanduser("~/Library/Application Support"))  # ruff:ignore[os-path-expanduser]
 
     def _base_site_dirs(self) -> list[str]:
-        is_homebrew = "/opt/python" in sys.prefix
-        homebrew_prefix = sys.prefix.split("/opt/python")[0] if is_homebrew else ""
-        path_list = [self._append_app_name_and_version(f"{homebrew_prefix}/share")] if is_homebrew else []
-        path_list.append(self._append_app_name_and_version("/Library/Application Support"))
+        is_homebrew = "/opt/python" in sys.base_prefix
+        homebrew_prefix = sys.base_prefix.split("/opt/python")[0] if is_homebrew else ""
+        path_list = [self._join_app_name_and_version(f"{homebrew_prefix}/share")] if is_homebrew else []
+        path_list.append(self._join_app_name_and_version("/Library/Application Support"))
         return path_list
 
     @property
@@ -47,12 +47,12 @@ class _MacOSDefaults(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def site_data_path(self) -> Path:
         """Data path shared by users. Only return the first item, even if ``multipath`` is set to ``True``."""
-        return self._first_item_as_path_if_multipath(self.site_data_dir)
+        return self._first_site_dir_as_path(self._site_data_dirs)
 
     @property
     def site_config_path(self) -> Path:
         """Config path shared by users. Only return the first item, even if ``multipath`` is set to ``True``."""
-        return self._first_item_as_path_if_multipath(self.site_config_dir)
+        return self._first_site_dir_as_path(self._site_config_dirs)
 
     @property
     def user_config_dir(self) -> str:
@@ -69,20 +69,22 @@ class _MacOSDefaults(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
         return self._append_app_name_and_version(os.path.expanduser("~/Library/Caches"))  # ruff:ignore[os-path-expanduser]
 
     @property
+    def _site_cache_dirs(self) -> list[str]:
+        is_homebrew = "/opt/python" in sys.base_prefix
+        homebrew_prefix = sys.base_prefix.split("/opt/python")[0] if is_homebrew else ""
+        path_list = [self._join_app_name_and_version(f"{homebrew_prefix}/var/cache")] if is_homebrew else []
+        path_list.append(self._join_app_name_and_version("/Library/Caches"))
+        return path_list
+
+    @property
     def site_cache_dir(self) -> str:
         """Cache directory shared by users, e.g. ``/Library/Caches/$appname/$version``. If we're using a Python binary managed by `Homebrew <https://brew.sh>`_, the directory will be under the Homebrew prefix, e.g. ``$homebrew_prefix/var/cache/$appname/$version``. If `multipath <platformdirs.api.PlatformDirsABC.multipath>` is enabled, and we're in Homebrew, the response is a multi-path string separated by ":", e.g. ``$homebrew_prefix/var/cache/$appname/$version:/Library/Caches/$appname/$version``."""
-        is_homebrew = "/opt/python" in sys.prefix
-        homebrew_prefix = sys.prefix.split("/opt/python")[0] if is_homebrew else ""
-        path_list = [self._append_app_name_and_version(f"{homebrew_prefix}/var/cache")] if is_homebrew else []
-        path_list.append(self._append_app_name_and_version("/Library/Caches"))
-        if self.multipath:
-            return os.pathsep.join(path_list)
-        return path_list[0]
+        return self._select_site_dirs(self._site_cache_dirs)
 
     @property
     def site_cache_path(self) -> Path:
         """Cache path shared by users. Only return the first item, even if ``multipath`` is set to ``True``."""
-        return self._first_item_as_path_if_multipath(self.site_cache_dir)
+        return self._first_site_dir_as_path(self._site_cache_dirs)
 
     @property
     def user_state_dir(self) -> str:
@@ -91,8 +93,10 @@ class _MacOSDefaults(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
 
     @property
     def site_state_dir(self) -> str:
-        """State directory shared by users, same as `site_data_dir`."""
-        return self._base_site_dirs()[0]
+        """State directory shared by users, same as `site_data_dir`, but ignoring `multipath <platformdirs.api.PlatformDirsABC.multipath>`."""
+        path = self._base_site_dirs()[0]
+        self._optionally_create_directory(path)
+        return path
 
     @property
     def user_log_dir(self) -> str:
@@ -194,15 +198,17 @@ class _MacOSDefaults(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
         """Runtime directory shared by users, same as `user_runtime_dir`."""
         return self.user_runtime_dir
 
-    def iter_config_dirs(self) -> Iterator[str]:
-        """:yield: all user and site configuration directories."""
+    def _iter_config_dirs(self) -> Iterator[str]:
         yield self.user_config_dir
-        yield from self._site_config_dirs
+        yield from self._create_as_yielded(self._site_config_dirs)
 
-    def iter_data_dirs(self) -> Iterator[str]:
-        """:yield: all user and site data directories."""
+    def _iter_data_dirs(self) -> Iterator[str]:
         yield self.user_data_dir
-        yield from self._site_data_dirs
+        yield from self._create_as_yielded(self._site_data_dirs)
+
+    def _iter_cache_dirs(self) -> Iterator[str]:
+        yield self.user_cache_dir
+        yield from self._create_as_yielded(self._site_cache_dirs)
 
 
 class MacOS(XDGMixin, _MacOSDefaults):

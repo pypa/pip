@@ -143,7 +143,9 @@ class Windows(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_publicshare_dir(self) -> str:
         r"""Public share directory e.g. ``C:\Users\Public``."""
-        return os.path.normpath(os.environ.get("PUBLIC", str(Path("~").expanduser().parent / "Public")))
+        if (path := os.environ.get("PUBLIC")) is None:
+            path = str(Path("~").expanduser().parent / "Public")
+        return os.path.normpath(path)
 
     @property
     def user_templates_dir(self) -> str:
@@ -230,6 +232,9 @@ def get_win_folder_if_csidl_name_not_env_var(csidl_name: str) -> str | None:  # 
     if csidl_name == "CSIDL_MYMUSIC":
         return os.path.join(os.path.normpath(os.environ["USERPROFILE"]), "Music")  # ruff:ignore[os-path-join]
 
+    if csidl_name == "CSIDL_DESKTOPDIRECTORY":
+        return os.path.join(os.path.normpath(os.environ["USERPROFILE"]), "Desktop")  # ruff:ignore[os-path-join]
+
     if csidl_name == "CSIDL_PROGRAMS":
         return os.path.join(  # ruff:ignore[os-path-join]
             os.path.normpath(os.environ["APPDATA"]),
@@ -270,6 +275,7 @@ def get_win_folder_from_registry(csidl_name: str) -> str:
         "CSIDL_MYPICTURES": "My Pictures",
         "CSIDL_MYVIDEO": "My Video",
         "CSIDL_MYMUSIC": "My Music",
+        "CSIDL_DESKTOPDIRECTORY": "Desktop",
         "CSIDL_PROGRAMS": "Programs",
         "CSIDL_COMMON_PROGRAMS": "Common Programs",
     }.get(csidl_name)
