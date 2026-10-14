@@ -8,6 +8,7 @@ import pytest
 from pip._internal.exceptions import InvalidEggFragment, PipError
 from pip._internal.models.link import (
     Link,
+    MetadataFile,
     as_path_component,
     join_within_directory,
     links_equivalent,
@@ -252,6 +253,42 @@ class TestLink:
     def test_is_vcs(self, url: str, expected: bool) -> None:
         link = Link(url)
         assert link.is_vcs is expected
+
+    @pytest.mark.parametrize(
+        "url, expected",
+        [
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata",
+            ),
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl#sha256=123",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata",
+            ),
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl?token=abc",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata?token=abc",
+            ),
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl?sig=xyz&token=abc#sha256=123",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata?sig=xyz&token=abc",
+            ),
+            (
+                "file:///tmp/demo-1.0-py3-none-any.whl?token=abc",
+                "file:///tmp/demo-1.0-py3-none-any.whl.metadata?token=abc",
+            ),
+        ],
+    )
+    def test_metadata_link(self, url: str, expected: str) -> None:
+        link = Link(url, metadata_file_data=MetadataFile({"sha256": "abcdef"}))
+        metadata_link = link.metadata_link()
+        assert metadata_link is not None
+        assert metadata_link.url == expected
+        assert metadata_link._hashes == {"sha256": "abcdef"}
+
+    def test_metadata_link_none(self) -> None:
+        link = Link("https://example.com/files/demo-1.0-py3-none-any.whl")
+        assert link.metadata_link() is None
 
 
 @pytest.mark.parametrize(

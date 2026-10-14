@@ -1,0 +1,1 @@
+Append ``.metadata`` to the URL path instead of the query string when constructing PEP 658 metadata links.
