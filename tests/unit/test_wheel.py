@@ -5,12 +5,14 @@ from __future__ import annotations
 import csv
 import os
 import pathlib
+import stat
 import sys
 import textwrap
 from email import message_from_string
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
+from zipfile import ZipFile, ZipInfo
 
 import pytest
 
@@ -37,6 +39,27 @@ from pip._internal.utils.unpacking import unpack_file
 
 from tests.lib import DATA_DIR, TestData
 from tests.lib.wheel import make_wheel
+
+
+def test_zip_backed_file_does_not_create_symlink(tmp_path: Path) -> None:
+    """Install a wheel symlink entry as a regular file."""
+    archive_path = tmp_path / "archive.zip"
+    zip_info = ZipInfo("link")
+    zip_info.create_system = 3
+    zip_info.external_attr = (stat.S_IFLNK | 0o777) << 16
+    with ZipFile(archive_path, "w") as archive:
+        archive.writestr(zip_info, "outside")
+
+    destination = tmp_path / "installed"
+    with ZipFile(archive_path) as archive:
+        archive_file = wheel.ZipBackedFile(
+            cast("RecordPath", "link"), str(destination), archive
+        )
+        archive_file.save()
+
+    assert destination.is_file()
+    assert not destination.is_symlink()
+    assert destination.read_text() == "outside"
 
 
 @pytest.mark.parametrize(
@@ -472,6 +495,84 @@ class TestInstallUnpackedWheel:
         assert "outside the scripts directory" in str(e.value)
         # Nothing was written outside the install destination.
         assert not os.path.exists(os.path.join(str(tmpdir), "outside"))
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.parametrize(
+        "link_name, scheme_key, installed_name",
+        [
+            ("sample", "purelib", "__init__.py"),
+            ("sample/__pycache__", "purelib", "__init__.*.pyc"),
+            ("my_data", "data", "data_file"),
+        ],
+    )
+    def test_wheel_install_follows_directory_symlink(
+        self,
+        data: TestData,
+        tmp_path: Path,
+        link_name: str,
+        scheme_key: str,
+        installed_name: str,
+    ) -> None:
+        """Install wheel content through existing directory symlinks."""
+        self.prep(data, tmp_path)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        link = Path(getattr(self.scheme, scheme_key)) / link_name
+        link.parent.mkdir(parents=True)
+        link.symlink_to(outside, target_is_directory=True)
+
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
+
+        assert list(outside.glob(installed_name))
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    @pytest.mark.parametrize("target_exists", [False, True])
+    @pytest.mark.parametrize(
+        "link_name, scheme_key",
+        [
+            # Wheel content, a generated script, and pip-generated metadata.
+            ("sample/package_data.dat", "purelib"),
+            ("sample", "scripts"),
+            ("sample-1.2.0.dist-info/REQUESTED", "purelib"),
+        ],
+    )
+    def test_wheel_install_replaces_symlink(
+        self,
+        data: TestData,
+        tmp_path: Path,
+        link_name: str,
+        scheme_key: str,
+        target_exists: bool,
+    ) -> None:
+        """Replace file links for each kind of wheel-generated file."""
+        self.prep(data, tmp_path)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        link = Path(getattr(self.scheme, scheme_key)) / link_name
+        link.parent.mkdir(parents=True)
+        outside_target = outside / "written-through-the-link"
+        if target_exists:
+            outside_target.write_text("outside")
+        link.symlink_to(outside_target)
+
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+            requested=True,
+        )
+
+        assert link.is_file()
+        assert not link.is_symlink()
+        assert outside_target.exists() is target_exists
+        if target_exists:
+            assert outside_target.read_text() == "outside"
 
 
 class TestMessageAboutScriptsNotOnPATH:

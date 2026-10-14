@@ -112,15 +112,19 @@ def compact(paths: Iterable[str]) -> set[str]:
     return short_paths
 
 
-def compress_for_rename(paths: Iterable[str]) -> set[str]:
+def compress_for_rename(
+    paths: Iterable[str], *, preserve_directories: Iterable[str] = ()
+) -> set[str]:
     """Returns a set containing the paths that need to be renamed.
 
     This set may include directories when the original sequence of paths
-    included every file on disk.
+    included every file on disk. Directories in ``preserve_directories`` are
+    kept in place while their selected contents are renamed individually.
     """
     case_map = {os.path.normcase(p): p for p in paths}
     remaining = set(case_map)
     unchecked = sorted({os.path.split(p)[0] for p in case_map.values()}, key=len)
+    preserve = {os.path.normcase(p.rstrip(os.path.sep)) for p in preserve_directories}
     wildcards: set[str] = set()
 
     def norm_join(*a: str) -> str:
@@ -130,11 +134,11 @@ def compress_for_rename(paths: Iterable[str]) -> set[str]:
         if any(os.path.normcase(root).startswith(w) for w in wildcards):
             # This directory has already been handled.
             continue
+        if os.path.normcase(root.rstrip(os.path.sep)) in preserve:
+            continue
 
         all_files: set[str] = set()
-        all_subdirs: set[str] = set()
-        for dirname, subdirs, files in os.walk(root):
-            all_subdirs.update(norm_join(root, dirname, d) for d in subdirs)
+        for dirname, _, files in os.walk(root):
             all_files.update(norm_join(root, dirname, f) for f in files)
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
@@ -248,7 +252,7 @@ class StashedUninstallPathSet:
             return os.path.join(save_dir.path, relpath)
         return save_dir.path
 
-    def stash(self, path: str) -> str:
+    def stash(self, path: str, *, preserve_parent: str | None = None) -> str:
         """Stashes the directory or file and returns its new location.
         Handle symlinks as files to avoid modifying the symlink targets.
         """
@@ -266,7 +270,7 @@ class StashedUninstallPathSet:
             # We just created new_path ourselves, so it will
             # be removable.
             os.rmdir(new_path)
-        renames(path, new_path)
+        renames(path, new_path, preserve_parent=preserve_parent)
         return new_path
 
     def commit(self) -> None:
@@ -310,10 +314,53 @@ class UninstallPathSet:
         self._pth: dict[str, UninstallPthEntries] = {}
         self._dist = dist
         self._moved_paths = StashedUninstallPathSet()
+        self._linked_directory_targets: set[str] = set()
+        self._linked_directory_cache: dict[str, str | None] = {}
         # Create local cache of normalize_path results. Creating an UninstallPathSet
         # can result in hundreds/thousands of redundant calls to normalize_path with
         # the same args, which hurts performance.
         self._normalize_path_cached = functools.lru_cache(normalize_path)
+
+    def _linked_directory_target(self, path: str) -> str | None:
+        """Return the target of the nearest linked directory ancestor."""
+        path = self._normalize_path_cached(path, resolve_symlinks=False)
+        inspected: list[str] = []
+
+        # A component is a link when resolving it differs from resolving its
+        # parent and appending the component name.
+        while path not in self._linked_directory_cache:
+            inspected.append(path)
+            parent = os.path.dirname(path)
+            if parent == path:
+                target = None
+                break
+            target = self._normalize_path_cached(path)
+            resolved_from_parent = os.path.normcase(
+                os.path.join(
+                    self._normalize_path_cached(parent), os.path.basename(path)
+                )
+            )
+            if target != resolved_from_parent:
+                break
+            path = parent
+        else:
+            target = self._linked_directory_cache[path]
+
+        # Each inspected descendant has the same nearest linked ancestor.
+        for inspected_path in inspected:
+            self._linked_directory_cache[inspected_path] = target
+        return target
+
+    def _preserve_parent(self, path: str) -> str | None:
+        """Return the deepest linked directory target containing ``path``."""
+        normalized_path = os.path.normcase(path.rstrip(os.path.sep))
+        candidates = (
+            directory
+            for directory in self._linked_directory_targets
+            if normalized_path == directory
+            or normalized_path.startswith(directory + os.path.sep)
+        )
+        return max(candidates, key=len, default=None)
 
     def _permitted(self, path: str) -> bool:
         """
@@ -331,7 +378,14 @@ class UninstallPathSet:
 
         # we normalize the head to resolve parent directory symlinks, but not
         # the tail, since we only want to uninstall symlinks, not their targets
-        path = os.path.join(self._normalize_path_cached(head), os.path.normcase(tail))
+        normalized_head = self._normalize_path_cached(head)
+        if normalized_head != self._normalize_path_cached(head, resolve_symlinks=False):
+            # Preserve linked installation directories while removing their files.
+            linked_directory = self._linked_directory_target(head)
+            if linked_directory is not None:
+                self._linked_directory_targets.add(linked_directory)
+
+        path = os.path.join(normalized_head, os.path.normcase(tail))
 
         if not os.path.exists(path):
             return
@@ -372,10 +426,16 @@ class UninstallPathSet:
             if auto_confirm or self._allowed_to_proceed(verbose):
                 moved = self._moved_paths
 
-                for_rename = compress_for_rename(self._paths)
+                for_rename = compress_for_rename(
+                    self._paths,
+                    preserve_directories=self._linked_directory_targets,
+                )
 
                 for path in sorted(compact(for_rename)):
-                    moved.stash(path)
+                    moved.stash(
+                        path,
+                        preserve_parent=self._preserve_parent(path),
+                    )
                     logger.verbose("Removing file or directory %s", path)
 
                 for pth in self._pth.values():
@@ -407,7 +467,13 @@ class UninstallPathSet:
         _display("Would not remove (might be manually added):", will_skip)
         _display("Would not remove (outside of prefix):", self._refuse)
         if verbose:
-            _display("Will actually move:", compress_for_rename(self._paths))
+            _display(
+                "Will actually move:",
+                compress_for_rename(
+                    self._paths,
+                    preserve_directories=self._linked_directory_targets,
+                ),
+            )
 
         return ask("Proceed (Y/n)? ", ("y", "n", "")) != "n"
 
