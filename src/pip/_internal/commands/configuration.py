@@ -27,14 +27,14 @@ def _config_handler(
 ) -> Callable[[Values, list[str]], None]:
     """Adapt a configuration action's positional parameters to CLI arguments."""
     signature = inspect.signature(handler)
-    # These are bound methods: only the options parameter precedes CLI arguments.
-    arguments = list(signature.parameters)[1:]
-    example = " ".join([name, *(f"[{argument}]" for argument in arguments)])
 
     def invoke(options: Values, args: list[str]) -> None:
         try:
             signature.bind(options, *args)
         except TypeError:
+            # Skip options; these action handlers are bound methods.
+            arguments = list(signature.parameters)[1:]
+            example = " ".join([name, *(f"[{argument}]" for argument in arguments)])
             raise PipError(
                 f"Got unexpected number of arguments, expected {len(arguments)}. "
                 f'(example: "{get_prog()} config {example}")'
