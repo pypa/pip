@@ -534,6 +534,10 @@ def test_unpack_tar_unicode(tmpdir: Path) -> None:
         (("//srv/env/bin", "//srv/env/outside"), False),
         # Test target on a different drive
         (("C:\\env\\bin", "D:\\outside"), False),
+        # Test target within the filesystem root (e.g. `--prefix /`)
+        (("/", "/share/x"), True),
+        # Test target within a Windows drive root (e.g. `--prefix C:\\`)
+        (("C:\\", "C:\\share\\x"), True),
     ],
 )
 def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:
