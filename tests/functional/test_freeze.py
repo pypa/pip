@@ -605,7 +605,8 @@ def test_freeze_with_unnamed_archive(
 ) -> None:
     """The hint for an unnamed archive must describe an installable requirement."""
     archive = script.scratch_path / "simple-2.0.tar.gz"
-    archive.write_bytes(shared_data.packages.joinpath(archive.name).read_bytes())
+    source_archive = shared_data.packages / archive.name
+    archive.write_bytes(source_archive.read_bytes())
     requirement = archive.as_uri() if use_file_url else "./" + archive.name
     requirements_path = script.scratch_path / "requirements.txt"
     requirements_path.write_text(requirement + "\n")
