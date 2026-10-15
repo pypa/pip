@@ -1,0 +1,3 @@
+Fix installing a wheel whose data files target the filesystem root (e.g. ``--prefix /``)
+raising "trying to install outside the target directory" by normalising the
+path separator in ``is_within_directory``.
