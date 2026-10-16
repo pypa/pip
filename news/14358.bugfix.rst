@@ -1,0 +1,2 @@
+Fix installing a wheel with ``.data`` files when the target directory is the filesystem root
+(e.g. ``--prefix /``), a regression in pip 26.1.2.

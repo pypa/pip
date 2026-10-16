@@ -93,7 +93,11 @@ def is_within_directory(
         abs_directory = os.path.abspath(directory)
         abs_target = os.path.abspath(target)
 
-    return abs_target == abs_directory or abs_target.startswith(abs_directory + os.sep)
+    # os.path.join adds a separator only when the directory doesn't already end
+    # with one, as a root ("/" or "C:\\") does.
+    return abs_target == abs_directory or abs_target.startswith(
+        os.path.join(abs_directory, "")
+    )
 
 
 def _get_default_mode_plus_executable() -> int:
