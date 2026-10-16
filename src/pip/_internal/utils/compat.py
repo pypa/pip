@@ -30,10 +30,15 @@ def has_tls() -> bool:
 def get_locale_encoding() -> str:
     """Return the locale encoding.
 
+    Respects UTF-8 Mode: the locale encoding is UTF-8 when it is enabled,
+    matching the behavior of ``locale.getpreferredencoding(False)``.
+
     Uses ``locale.getencoding()`` when available (Python 3.11+) to avoid the
     ``EncodingWarning`` that ``locale.getpreferredencoding(False)`` raises
     under UTF-8 Mode.
     """
+    if sys.flags.utf8_mode:
+        return "utf-8"
     # TODO: Remove the 3.10 fallback once pip drops Python 3.10 support.
     if sys.version_info >= (3, 11):
         return locale.getencoding()
