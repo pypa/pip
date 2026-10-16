@@ -300,13 +300,13 @@ class Configuration:
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
         if os.path.exists(fname):
-            locale_encoding = get_locale_encoding()
+            encoding = "utf-8" if sys.flags.utf8_mode else get_locale_encoding()
             try:
-                parser.read(fname, encoding=locale_encoding)
+                parser.read(fname, encoding=encoding)
             except UnicodeDecodeError:
                 # See https://github.com/pypa/pip/issues/4963
                 raise ConfigurationFileCouldNotBeLoaded(
-                    reason=f"contains invalid {locale_encoding} characters",
+                    reason=f"contains invalid {encoding} characters",
                     fname=fname,
                 )
             except configparser.Error as error:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import codecs
 import os
 import re
 import subprocess
@@ -75,6 +76,32 @@ def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
 
 
 class TestBasicLoading(ConfigurationMixin):
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="locale.getencoding requires 3.11+"
+    )
+    def test_utf8_save_reload(self, script: PipTestEnvironment) -> None:
+        script.environ["LC_ALL"] = "C"
+        script.environ["PYTHONCOERCECLOCALE"] = "0"
+        script.environ["PYTHONUTF8"] = "0"
+        result = script.run(
+            "python",
+            "-c",
+            "from pip._internal.utils.compat import get_locale_encoding; "
+            "print(get_locale_encoding())",
+        )
+        if codecs.lookup(result.stdout.strip()).name == "utf-8":
+            pytest.skip("Requires a non-UTF-8 locale")
+
+        script.environ["PYTHONUTF8"] = "1"
+        value = "C:/丁/中文/cert.pem"
+
+        script.pip("config", "--site", "set", "global.cert", value)
+        script.environ["PYTHONWARNDEFAULTENCODING"] = "1"
+        script.environ["PYTHONWARNINGS"] = "error::EncodingWarning"
+        result = script.pip("config", "--site", "get", "global.cert")
+
+        assert result.stdout.strip() == value
+
     def test_basic_modification_pipeline(self, script: PipTestEnvironment) -> None:
         script.pip("config", "get", "test.blah", expect_error=True)
         script.pip("config", "set", "test.blah", "1")
