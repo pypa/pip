@@ -385,6 +385,23 @@ class VersionControl:
                 "The format is <vcs>+<protocol>://<url>, "
                 "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
             )
+
+        # Warn about unrecognized fragment parameters, which are likely
+        # typos (e.g. #subdiretory=... instead of #subdirectory=...).
+        if frag:
+            known_params = {"egg", "subdirectory"}
+            fragment_params = urllib.parse.parse_qs(frag)
+            unknown_params = set(fragment_params) - known_params
+            if unknown_params:
+                unknown_str = ", ".join(sorted(unknown_params))
+                logger.warning(
+                    "Unrecognized fragment parameters in %s: %s. "
+                    "Only 'egg' and 'subdirectory' are recognized. "
+                    "Did you mean one of those?",
+                    url,
+                    unknown_str,
+                )
+
         # Remove the vcs prefix.
         scheme = scheme.split("+", 1)[1]
         netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)
