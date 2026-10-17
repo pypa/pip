@@ -111,7 +111,8 @@ class LinkHash:
     @functools.cache
     def find_hash_url_fragment(cls, url: str) -> LinkHash | None:
         """Search a string for a checksum algorithm name and encoded output value."""
-        match = cls._hash_url_fragment_re.search(url)
+        fragment = urllib.parse.urlsplit(url).fragment
+        match = cls._hash_url_fragment_re.search(f"#{fragment}")
         if match is None:
             return None
         name, value = match.groups()
