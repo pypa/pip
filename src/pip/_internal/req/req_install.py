@@ -771,6 +771,7 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
         script_executable: str | None = None,
+        parallel_pycompile: bool = True,
     ) -> None:
         # Lazy import to avoid transitively importing `_vendor.distlib.compat`
         # which in turn imports `urllib.request` which is slow.
@@ -798,6 +799,7 @@ class InstallRequirement:
             scheme=scheme,
             req_description=str(self.req),
             pycompile=pycompile,
+            parallel_pycompile=parallel_pycompile,
             warn_script_location=warn_script_location,
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
