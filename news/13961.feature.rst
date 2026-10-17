@@ -1,0 +1,3 @@
+Support reading constraints (``-c``/``--constraint``, ``PIP_CONSTRAINT``,
+and ``--build-constraint``) from a ``pylock.toml`` file, mirroring the
+existing experimental support for ``-r``/``--requirement``.

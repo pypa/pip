@@ -290,6 +290,85 @@ def test_new_resolver_hash_requirement_and_url_constraint_can_fail(
     script.assert_not_installed("base", "other")
 
 
+def test_new_resolver_hash_url_constraint_for_transitive_dependency_can_succeed(
+    script: PipTestEnvironment,
+) -> None:
+    """Regression test: a package that is only pulled in transitively (never
+    required directly) must still have its hash enforced when constrained in
+    URL form. Unlike test_new_resolver_hash_requirement_and_url_constraint_*
+    above (where the constrained package is also a direct requirement, so the
+    resolver has an already-hashed template to fall back on), "dep" here is
+    never a direct requirement -- the constraint is the only source of a hash
+    for it.
+    """
+    base_path = create_basic_wheel_for_package(script, "base", "0.1.0", depends=["dep"])
+    base_hash = hashlib.sha256(base_path.read_bytes()).hexdigest()
+    dep_path = create_basic_wheel_for_package(script, "dep", "0.1.0")
+    dep_hash = hashlib.sha256(dep_path.read_bytes()).hexdigest()
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(f"base==0.1.0 --hash=sha256:{base_hash}\n")
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(f"dep @ {dep_path.as_uri()} --hash=sha256:{dep_hash}\n")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--constraint",
+        constraints_txt,
+        "--requirement",
+        requirements_txt,
+    )
+
+    script.assert_installed(base="0.1.0", dep="0.1.0")
+
+
+def test_new_resolver_hash_url_constraint_for_transitive_dependency_can_fail(
+    script: PipTestEnvironment,
+) -> None:
+    """Same as the "can_succeed" case above, but with a tampered hash on the
+    URL-form constraint for the transitively-needed package -- must still be
+    rejected, not silently accepted just because the hash came from a
+    constraint rather than a direct requirement.
+    """
+    base_path = create_basic_wheel_for_package(script, "base", "0.1.0", depends=["dep"])
+    base_hash = hashlib.sha256(base_path.read_bytes()).hexdigest()
+    dep_path = create_basic_wheel_for_package(script, "dep", "0.1.0")
+    other_path = create_basic_wheel_for_package(script, "other", "0.1.0")
+    other_hash = hashlib.sha256(other_path.read_bytes()).hexdigest()
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(f"base==0.1.0 --hash=sha256:{base_hash}\n")
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(
+        f"dep @ {dep_path.as_uri()} --hash=sha256:{other_hash}\n"
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--constraint",
+        constraints_txt,
+        "--requirement",
+        requirements_txt,
+        expect_error=True,
+    )
+
+    assert (
+        "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE."
+    ) in result.stderr, str(result)
+
+    script.assert_not_installed("base", "dep")
+
+
 def test_new_resolver_unpinned_requirement_with_pinned_hash_constraint(
     script: PipTestEnvironment,
 ) -> None:
