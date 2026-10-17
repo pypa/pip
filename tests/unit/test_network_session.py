@@ -520,7 +520,8 @@ class TestSSLContextAdapterMixinProxy:
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         session = PipSession(ssl_context=ssl_context)
 
-        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        adapter = session.adapters["https://"]
+        assert isinstance(adapter, HTTPAdapter)
         proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
 
         assert proxy_manager.proxy_ssl_context is ssl_context
@@ -529,7 +530,8 @@ class TestSSLContextAdapterMixinProxy:
     def test_no_ssl_context_leaves_proxy_ssl_context_unset(self) -> None:
         session = PipSession()
 
-        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        adapter = session.adapters["https://"]
+        assert isinstance(adapter, HTTPAdapter)
         proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
 
         assert proxy_manager.proxy_ssl_context is None
