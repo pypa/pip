@@ -1,0 +1,2 @@
+Prevent a malformed ``RECORD`` file from causing pip to remove unrelated files
+during installation or uninstallation.
