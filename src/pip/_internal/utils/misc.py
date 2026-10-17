@@ -52,6 +52,7 @@ __all__ = [
     "format_size",
     "is_installable_dir",
     "normalize_path",
+    "which_outside_cwd",
     "renames",
     "get_prog",
     "ensure_dir",
@@ -368,6 +369,30 @@ def normalize_path(path: str, resolve_symlinks: bool = True) -> str:
     else:
         path = os.path.abspath(path)
     return os.path.normcase(path)
+
+
+def which_outside_cwd(cmd: str, path: str | None = None) -> str | None:
+    """Like ``shutil.which()``, but skips the implicit cwd search Windows does.
+
+    The result is absolute, so running it does not look it up a second time.
+    """
+    found = shutil.which(cmd, path=path)
+    if found is None:
+        return None
+    try:
+        found = os.path.abspath(found)
+        cwd = os.getcwd()
+        if os.path.normcase(os.path.dirname(found)) != os.path.normcase(cwd):
+            return found
+        search_path = os.environ.get("PATH", os.defpath) if path is None else path
+        on_path = any(
+            os.path.normcase(os.path.abspath(entry)) == os.path.normcase(cwd)
+            for entry in search_path.split(os.pathsep)
+        )
+    except OSError:
+        # The current directory is gone, so nothing can have been found in it.
+        return found
+    return found if on_path else None
 
 
 def splitext(path: str) -> tuple[str, str]:
