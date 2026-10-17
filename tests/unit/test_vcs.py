@@ -253,6 +253,62 @@ def test_git_get_src_requirements(
     assert ret == target
 
 
+@mock.patch("pip._internal.vcs.git.Git.get_remote_url")
+@mock.patch("pip._internal.vcs.git.Git.get_revision")
+@mock.patch("pip._internal.vcs.git.Git.get_subdirectory")
+@pytest.mark.parametrize(
+    "remote_url, expected_url",
+    [
+        # user:password credentials are dropped.
+        (
+            "https://user:s3cret@github.com/pypa/pip-test-package",
+            "git+https://github.com/pypa/pip-test-package",
+        ),
+        # A token used as the user name is dropped too.
+        (
+            "https://ghp_s3cret@github.com/pypa/pip-test-package",
+            "git+https://github.com/pypa/pip-test-package",
+        ),
+        # The "git" user of ssh remotes is not a credential.
+        (
+            "ssh://git@github.com/pypa/pip-test-package",
+            "git+ssh://git@github.com/pypa/pip-test-package",
+        ),
+        # Environment variable references, as allowed by PEP 610, are kept.
+        (
+            "https://${USER}:${TOKEN}@github.com/pypa/pip-test-package",
+            "git+https://${USER}:${TOKEN}@github.com/pypa/pip-test-package",
+        ),
+        (
+            "https://${TOKEN}@github.com/pypa/pip-test-package",
+            "git+https://${TOKEN}@github.com/pypa/pip-test-package",
+        ),
+        # No user info: unchanged.
+        (
+            "https://github.com/pypa/pip-test-package",
+            "git+https://github.com/pypa/pip-test-package",
+        ),
+    ],
+)
+def test_git_get_src_requirement_strips_credentials(
+    mock_get_subdirectory: mock.Mock,
+    mock_get_revision: mock.Mock,
+    mock_get_remote_url: mock.Mock,
+    remote_url: str,
+    expected_url: str,
+) -> None:
+    sha = "5547fa909e83df8bd743d3978d6667497983a4b7"
+
+    mock_get_remote_url.return_value = remote_url
+    mock_get_revision.return_value = sha
+    mock_get_subdirectory.return_value = None
+
+    ret = Git.get_src_requirement(".", "pip-test-package")
+
+    assert ret == f"{expected_url}@{sha}#egg=pip_test_package"
+    assert "s3cret" not in ret
+
+
 @mock.patch("pip._internal.vcs.git.Git.get_revision_sha")
 def test_git_resolve_revision_rev_exists(get_sha_mock: mock.Mock) -> None:
     get_sha_mock.return_value = ("123456", False)

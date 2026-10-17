@@ -235,6 +235,31 @@ def test_freeze_editable_git_with_no_remote(
     _check_output(result.stdout, expected)
 
 
+@pytest.mark.git
+def test_freeze_editable_git_strips_credentials(script: PipTestEnvironment) -> None:
+    """
+    Test that credentials in the remote url of an editable Git install
+    are not written to the freeze output.
+    """
+    pkg_path = _create_test_package(script.scratch_path)
+    script.run(
+        "git",
+        "remote",
+        "add",
+        "origin",
+        "https://user:s3cret@example.com/version_pkg.git",
+        cwd=pkg_path,
+    )
+    script.pip("install", "--no-build-isolation", "-e", pkg_path)
+    result = script.pip("freeze")
+
+    assert "s3cret" not in result.stdout
+    expected = textwrap.dedent("""\
+    ...-e git+https://example.com/version_pkg.git@...#egg=version_pkg
+    ...""")
+    _check_output(result.stdout, expected)
+
+
 @need_svn
 def test_freeze_svn(script: PipTestEnvironment) -> None:
     """Test freezing a svn checkout"""

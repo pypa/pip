@@ -16,6 +16,7 @@ from typing import (
 
 from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.models.direct_url import DirectUrl, VcsInfo
 from pip._internal.utils.misc import (
     HiddenText,
     ask_path_exists,
@@ -294,11 +295,22 @@ class VersionControl:
             {repository_url}@{revision}#egg={project_name}
         """
         repo_url = cls.get_remote_url(repo_dir)
+        revision = cls.get_requirement_revision(repo_dir)
+
+        # The remote URL comes from the checkout's own configuration and may
+        # embed credentials (e.g. after "git clone https://user:token@host/x").
+        # Those must not be written into the requirement. Apply the same rule
+        # as the "url" field of direct_url.json (PEP 610), which is what
+        # freeze already emits for non-editable VCS installs: drop the
+        # user:password part unless it consists of ${VAR} references or is a
+        # safe username such as "git".
+        repo_url = DirectUrl(
+            url=repo_url, vcs_info=VcsInfo(vcs=cls.name, commit_id=revision)
+        ).to_dict()["url"]
 
         if cls.should_add_vcs_url_prefix(repo_url):
             repo_url = f"{cls.name}+{repo_url}"
 
-        revision = cls.get_requirement_revision(repo_dir)
         subdir = cls.get_subdirectory(repo_dir)
         req = make_vcs_requirement_url(repo_url, revision, project_name, subdir=subdir)
 
