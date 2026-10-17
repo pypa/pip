@@ -74,6 +74,7 @@ class InstallRequirement:
         markers: Marker | None = None,
         isolated: bool = False,
         *,
+        source_link: Link | None = None,
         hash_options: dict[str, list[str]] | None = None,
         config_settings: dict[str, str | list[str]] | None = None,
         constraint: bool = False,
@@ -103,6 +104,10 @@ class InstallRequirement:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
+
+        # The link selected before wheel-cache substitution. Unlike ``link``, this
+        # does not change when pip substitutes a locally built cached wheel.
+        self._source_link = source_link if source_link is not None else link
 
         # When this InstallRequirement is a wheel obtained from the cache of locally
         # built wheels, this is the source link corresponding to the cache entry, which
@@ -245,6 +250,19 @@ class InstallRequirement:
     def is_direct(self) -> bool:
         """Whether this requirement was specified as a direct URL."""
         return self.original_link is not None
+
+    @property
+    def source_link(self) -> Link | None:
+        """The link selected before wheel-cache substitution."""
+        return self._source_link
+
+    def set_source_link(self, link: Link) -> None:
+        """Record the selected source link, rejecting later changes."""
+        if self._source_link is None:
+            self._source_link = link
+            return
+        if self._source_link != link:
+            raise InstallationError(f"Cannot change the source link for {self}.")
 
     @property
     def is_pinned(self) -> bool:

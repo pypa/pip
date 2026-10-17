@@ -3,6 +3,7 @@ from __future__ import annotations
 import email.message
 import logging
 import os
+from pathlib import Path
 from typing import TypeVar, cast
 from unittest import mock
 
@@ -11,6 +12,7 @@ import pytest
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName
 
+from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
     InstallationError,
     NoneMetadataError,
@@ -25,7 +27,7 @@ from pip._internal.resolution.legacy.resolver import (
     _check_dist_requires_python,
 )
 
-from tests.lib import TestData, make_test_finder
+from tests.lib import TestData, make_test_finder, wheel
 from tests.lib.index import make_mock_candidate
 
 T = TypeVar("T")
@@ -63,6 +65,7 @@ def make_fake_dist(
 def make_test_resolver(
     monkeypatch: pytest.MonkeyPatch,
     mock_candidates: list[InstallationCandidate],
+    wheel_cache: WheelCache | None = None,
 ) -> Resolver:
     def _find_candidates(project_name: str) -> list[InstallationCandidate]:
         return mock_candidates
@@ -74,7 +77,7 @@ def make_test_resolver(
         finder=finder,
         preparer=mock.Mock(),  # Not used.
         make_install_req=install_req_from_line,
-        wheel_cache=None,
+        wheel_cache=wheel_cache,
         use_user_site=False,
         force_reinstall=False,
         ignore_dependencies=False,
@@ -269,6 +272,27 @@ class TestCheckDistRequiresPython:
             f"None {metadata_name} metadata found for distribution: "
             "<distribution 'my-project'>"
         )
+
+
+class TestPopulateLink:
+    def test_cached_candidate_keeps_source_link(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        candidate = make_mock_candidate("1.0")
+        source = candidate.link
+        wheel_cache = WheelCache(str(tmp_path / "cache"))
+        cache_dir = Path(wheel_cache.get_path_for_link(source))
+        cache_dir.mkdir(parents=True)
+        wheel.make_wheel(name="mypackage", version="1.0").save_to_dir(cache_dir)
+        ireq = install_req_from_line("mypackage")
+
+        resolver = make_test_resolver(monkeypatch, [candidate], wheel_cache)
+        resolver.preparer.require_hashes = False
+        resolver._populate_link(ireq)
+
+        assert ireq.link is not None
+        assert ireq.link.is_file
+        assert ireq.source_link == source
 
 
 class TestYankedWarning:
