@@ -16,6 +16,7 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.temp_dir import (
     AdjacentTempDirectory,
     TempDirectory,
+    TempDirectoryKind,
     _Default,
     _default,
     global_tempdir_manager,
@@ -245,6 +246,33 @@ def test_tempdir_registry(delete: bool | _Default, kind: str, exists: bool) -> N
             path = d.path
             assert os.path.exists(path)
         assert os.path.exists(path) == exists
+
+
+@pytest.mark.parametrize("kind", list(TempDirectoryKind))
+@pytest.mark.parametrize("registry_uses_enum", [True, False])
+def test_tempdir_enum_kind(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    kind: TempDirectoryKind,
+    registry_uses_enum: bool,
+) -> None:
+    """Check string and enum kinds share cleanup rules and directory prefixes.
+
+    Register one form with cleanup disabled, then create a directory using the
+    other. It must survive context exit and use a pip-<value>- name prefix.
+    """
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    with tempdir_registry() as registry:
+        registry_kind = kind if registry_uses_enum else kind.value
+        directory_kind = kind.value if registry_uses_enum else kind
+        registry.set_delete(registry_kind, False)
+
+        with TempDirectory(kind=directory_kind) as directory:
+            path = Path(directory.path)
+            assert path.name.startswith(f"pip-{kind.value}-")
+
+        assert path.exists()
+        directory.cleanup()
 
 
 @pytest.mark.parametrize("delete,exists", [(_default, True), (None, False)])

@@ -1,0 +1,1 @@
+Reject extra arguments to ``pip config edit`` instead of silently ignoring them.

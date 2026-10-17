@@ -30,6 +30,7 @@ def create_main_parser() -> ConfigOptionParser:
     parser.disable_interspersed_args()
 
     parser.version = get_pip_version()
+    parser.add_option(cmdoptions.version())
 
     # add the general options
     gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)

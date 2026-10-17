@@ -511,6 +511,23 @@ class PipSession(requests.Session):
 
         return False
 
+    def get_redirect_target(self, resp: Response) -> str | None:
+        target = super().get_redirect_target(resp)
+        if target is None:
+            return None
+        # Redirecting to a file:// URL doesn't make much sense and
+        # shouldn't be allowed.
+        scheme = urllib.parse.urlparse(target).scheme
+        if scheme and scheme.lower() not in ("http", "https"):
+            logger.warning(
+                "Not following redirect from %s to %s: a redirect to a non-http(s)"
+                " location is not allowed.",
+                redact_auth_from_url(resp.url),
+                redact_auth_from_url(target),
+            )
+            return None
+        return target
+
     def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> Response:  # type: ignore[override]
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)

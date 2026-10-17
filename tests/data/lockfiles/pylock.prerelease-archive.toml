@@ -1,0 +1,11 @@
+lock-version = "1.0"
+created-by = "pip"
+
+[[packages]]
+name = "pkg-prerelease"
+
+[packages.archive]
+path = "../packages/pkg_prerelease-1.0a1-py3-none-any.whl"
+
+[packages.archive.hashes]
+sha256 = "5b170526e52d17d1b2e0162c006142e792293a7975a1f51df39035f1b14768d5"

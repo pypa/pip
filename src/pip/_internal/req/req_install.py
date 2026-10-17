@@ -50,7 +50,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.subprocess import runner_with_spinner_message
-from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
+from pip._internal.utils.temp_dir import TempDirectory, TempDirectoryKind
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
@@ -79,8 +79,6 @@ class InstallRequirement:
         constraint: bool = False,
         extras: Collection[str] = (),
         user_supplied: bool = False,
-        locked_link: Link | None = None,
-        locked_version: Version | None = None,
     ) -> None:
         assert req is None or isinstance(req, Requirement), req
         self.req = req
@@ -105,14 +103,6 @@ class InstallRequirement:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
-
-        # locked_link is the link from the lock file that must be used.
-        # A locked link InstallRequirement behaves similarly as a regular requirement
-        # that would be searched in indexes, except its artifact URL is known
-        # in advance. Notably, and contrarily to direct URL requirements and direct URL
-        # constraints, they do not cause the recording of direct_url.json.
-        self.locked_link = locked_link
-        self.locked_version = locked_version
 
         # When this InstallRequirement is a wheel obtained from the cache of locally
         # built wheels, this is the source link corresponding to the cache entry, which
@@ -238,12 +228,13 @@ class InstallRequirement:
     @functools.cached_property
     def supports_pyproject_editable(self) -> bool:
         assert self.pep517_backend
+        assert isinstance(self.pep517_backend, ConfiguredBuildBackendHookCaller)
         with self.build_env:
             runner = runner_with_spinner_message(
                 "Checking if build backend supports build_editable"
             )
             with self.pep517_backend.subprocess_runner(runner):
-                return "build_editable" in self.pep517_backend._supported_features()
+                return self.pep517_backend.supports_feature("build_editable")
 
     @property
     def specifier(self) -> SpecifierSet:
@@ -341,7 +332,7 @@ class InstallRequirement:
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
             self._temp_build_dir = TempDirectory(
-                kind=tempdir_kinds.REQ_BUILD, globally_managed=True
+                kind=TempDirectoryKind.REQ_BUILD, globally_managed=True
             )
 
             return self._temp_build_dir.path
@@ -368,7 +359,7 @@ class InstallRequirement:
         return TempDirectory(
             path=actual_build_dir,
             delete=delete_arg,
-            kind=tempdir_kinds.REQ_BUILD,
+            kind=TempDirectoryKind.REQ_BUILD,
             globally_managed=True,
         ).path
 

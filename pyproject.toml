@@ -22,6 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -44,13 +45,13 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-requires = ["flit-core >=3.11,<4"]
+requires = ["flit-core >=3.11,<5"]
 build-backend = "flit_core.buildapi"
 
 [dependency-groups]
 test = [
     "cryptography",
-    "flit-core >= 3.11, < 4",
+    "flit-core >= 3.11, < 5",
     "freezegun",
     "installer",
     # pytest-subket requires 7.0+
@@ -61,14 +62,14 @@ test = [
     "pytest-subket",
     "scripttest",
     "setuptools",
-    "virtualenv >= 20.0",
+    "virtualenv >= 20.0.28",
     "werkzeug",
     "tomli-w",
     "proxy.py",
 ]
 
 test-common-wheels = [
-    "flit-core >= 3.11, < 4",
+    "flit-core >= 3.11, < 5",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
     "setuptools >= 70.1.0, <80",
@@ -228,6 +229,7 @@ ignore = [
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
     "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
+    "ISC004" # implicit-string-concatenation-in-collection-literal
 ]
 select = [
     "ASYNC",

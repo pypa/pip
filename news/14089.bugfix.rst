@@ -1,2 +1,0 @@
-Avoid reparsing distribution metadata when formatting the default ``pip list``
-columns output with the importlib backend.

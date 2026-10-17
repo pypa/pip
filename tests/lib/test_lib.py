@@ -1,6 +1,7 @@
 """Test the test support."""
 
 import filecmp
+import logging
 import pathlib
 import re
 import sys
@@ -18,6 +19,7 @@ from tests.lib import (
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
+from tests.lib.venv import VirtualEnvironment
 
 
 @contextmanager
@@ -31,6 +33,19 @@ def assert_error_startswith(
         yield
 
     assert str(err.value).startswith(expected_start), f"full message: {err.value}"
+
+
+def test_virtualenv_creation_preserves_logging(tmp_path: pathlib.Path) -> None:
+    logger = logging.getLogger()
+    level = logger.level
+    handlers = logger.handlers[:]
+    try:
+        VirtualEnvironment(tmp_path / "venv")
+        assert logger.level == level
+        assert logger.handlers == handlers
+    finally:
+        logger.setLevel(level)
+        logger.handlers[:] = handlers
 
 
 def test_tmp_dir_exists_in_env(script: PipTestEnvironment) -> None:

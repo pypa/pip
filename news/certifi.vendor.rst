@@ -1,1 +1,1 @@
-Upgrade certifi to 2026.6.17
+Upgrade certifi to 2026.7.22
