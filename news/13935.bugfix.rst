@@ -1,0 +1,1 @@
+Support installation from a git repository without branches.
