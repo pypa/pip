@@ -854,10 +854,8 @@ def test_install_unsupported_wheel_file(
         expect_error=True,
         expect_stderr=True,
     )
-    assert (
-        "simple.dist-0.1-py1-none-invalid.whl is not a supported wheel on this platform"
-        in result.stderr
-    )
+    assert "simple.dist-0.1-py1-none-invalid.whl is incompatible" in result.stderr
+    assert "Wheel requires a different platform: invalid" in result.stderr
     assert len(result.files_created) == 0
 
 
