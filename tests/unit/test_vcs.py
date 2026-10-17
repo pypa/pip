@@ -453,6 +453,33 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     assert "an empty revision (after @)" in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    "url, expected_in_message",
+    [
+        (
+            "git+https://user:secret@github.com/MyUser/myProject.git@",
+            "git+https://user:****@github.com/MyUser/myProject.git@",
+        ),
+        (
+            "git+https://token-secret@github.com/MyUser/myProject.git@",
+            "git+https://****@github.com/MyUser/myProject.git@",
+        ),
+    ],
+)
+def test_version_control__get_url_rev_and_auth__no_revision_redacts_auth(
+    url: str, expected_in_message: str
+) -> None:
+    """
+    The empty revision error must not include credentials from the URL.
+    """
+    with pytest.raises(InstallationError) as excinfo:
+        Git.get_url_rev_and_auth(url)
+
+    message = str(excinfo.value)
+    assert "secret" not in message
+    assert expected_in_message in message
+
+
 @pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
 @pytest.mark.parametrize(
     "exc_cls, msg_re",
