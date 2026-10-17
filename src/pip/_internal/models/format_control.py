@@ -36,6 +36,22 @@ class FormatControl:
         return f"{self.__class__.__name__}({self.no_binary}, {self.only_binary})"
 
     @staticmethod
+    def config_value_priority(value: object) -> int:
+        """Sort key for applying format-control values from config/env.
+
+        Environment and config key order is insertion-dependent. Applying
+        ``:all:`` after a package-specific value on the other option clears
+        the exception via ``handle_mutual_excludes``. Prefer ``:all:`` first,
+        then ``:none:``, then package names — matching usual CLI order.
+        """
+        val_s = str(value)
+        if ":all:" in val_s:
+            return 0
+        if ":none:" in val_s:
+            return 1
+        return 2
+
+    @staticmethod
     def handle_mutual_excludes(value: str, target: set[str], other: set[str]) -> None:
         if value.startswith("-"):
             raise CommandError(

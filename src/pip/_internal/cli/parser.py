@@ -9,7 +9,7 @@ import re
 import shutil
 import sys
 import textwrap
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import suppress
 from typing import Any, NoReturn
 
@@ -252,7 +252,44 @@ class ConfigOptionParser(CustomOptionParser):
 
         # Yield each group in their override order
         for section in override_order:
-            yield from section_items[section]
+            yield from self._reorder_by_config_priority(section_items[section])
+
+    def _reorder_by_config_priority(
+        self,
+        items: list[tuple[str, Any]],
+    ) -> list[tuple[str, Any]]:
+        """Reorder items that declare Option.config_priority; keep other slots.
+
+        The parser stays option-agnostic: individual options (see cmdoptions)
+        may set a ``config_priority`` callable on the Option. That callable maps
+        a raw config/env value to a sort key (lower = applied earlier). Items
+        without a priority keep their relative positions unchanged.
+        """
+        priority_for_key: dict[str, Callable[[Any], Any]] = {}
+        for key, _val in items:
+            option = self.get_option("--" + key)
+            if option is None:
+                continue
+            pri = getattr(option, "config_priority", None)
+            if callable(pri):
+                priority_for_key[key] = pri
+
+        prioritized = [(k, v) for k, v in items if k in priority_for_key]
+        if len(prioritized) <= 1:
+            return items
+
+        def sort_key(item: tuple[str, Any]) -> tuple[Any, str]:
+            key, val = item
+            return (priority_for_key[key](val), key)
+
+        ordered_iter = iter(sorted(prioritized, key=sort_key))
+        reordered: list[tuple[str, Any]] = []
+        for key, val in items:
+            if key in priority_for_key:
+                reordered.append(next(ordered_iter))
+            else:
+                reordered.append((key, val))
+        return reordered
 
     def _update_defaults(self, defaults: dict[str, Any]) -> dict[str, Any]:
         """Updates the given defaults with values from the config files and
