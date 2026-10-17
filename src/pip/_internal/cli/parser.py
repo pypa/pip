@@ -212,7 +212,6 @@ class ConfigOptionParser(CustomOptionParser):
     ) -> None:
         self.name = name
         self.config = Configuration(isolated)
-
         assert self.name
         super().__init__(*args, **kwargs)
 
@@ -220,7 +219,14 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            print(f"An error occurred during configuration: {exc}")
+            logger.error(
+                "An error occurred during configuration: %s. "
+                "Check your pip configuration files or "
+                "environment variables for this value. "
+                "See https://pip.pypa.io/en/stable/topics/configuration/ "
+                "for more information.",
+                exc,
+            )
             sys.exit(3)
 
     def _get_ordered_configuration_items(
