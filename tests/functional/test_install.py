@@ -2475,6 +2475,129 @@ def test_error_all_yanked_files_and_no_pin(
     )
 
 
+def test_install_prerelease_when_final_release_is_yanked(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test installing a pre-release when the only final release is yanked."""
+    result = script.pip(
+        "install",
+        "simple",
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_prerelease"),
+    )
+    assert "Successfully installed simple-3.1rc0\n" in result.stdout, str(result)
+    # The yanked release was ignored, not installed with a warning
+    assert "yanked" not in result.stderr, str(result)
+
+
+def test_install_yanked_file_with_hash_pin_and_alternate_file(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """Test installing a hash-pinned yanked file when a non-yanked file
+    of the same release also exists."""
+    reqs = script.scratch_path / "reqs.txt"
+    tar_hash = hashlib.sha256(
+        data.packages.joinpath("simple-3.0.tar.gz").read_bytes()
+    ).hexdigest()
+    reqs.write_text(f"simple==3.0 --hash=sha256:{tar_hash}\n")
+    result = script.pip(
+        "install",
+        "-r",
+        str(reqs),
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_mixed"),
+        expect_stderr=True,
+    )
+    assert "Reason for being yanked: test reason message" in result.stderr, str(result)
+    assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
+
+
+def test_install_hash_pinned_prerelease_when_final_release_is_yanked(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A hash-pinned pre-release installs despite a yanked final release."""
+    reqs = script.scratch_path / "reqs.txt"
+    prerelease_path = (
+        data.indexes / "yanked_prerelease" / "simple" / "simple-3.1rc0.tar.gz"
+    )
+    tar_hash = hashlib.sha256(prerelease_path.read_bytes()).hexdigest()
+    reqs.write_text(f"simple --hash=sha256:{tar_hash}\n")
+    result = script.pip(
+        "install",
+        "-r",
+        str(reqs),
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_prerelease"),
+    )
+    assert "Successfully installed simple-3.1rc0\n" in result.stdout, str(result)
+
+
+def test_install_yanked_file_with_hash_pin_without_version_pin(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A yanked file named by a hash pin installs without a version pin.
+
+    Hash pins are an explicit request for a specific file (#10625): the
+    yanked file installs (with the usual warning) instead of erroring
+    out or falling back to a pre-release.
+    """
+    reqs = script.scratch_path / "reqs.txt"
+    yanked_hash = hashlib.sha256(
+        data.packages.joinpath("simple-3.0.tar.gz").read_bytes()
+    ).hexdigest()
+    prerelease_hash = hashlib.sha256(
+        data.indexes.joinpath(
+            "yanked_mixed_prerelease", "simple", "simple-3.1rc0.tar.gz"
+        ).read_bytes()
+    ).hexdigest()
+    reqs.write_text(
+        f"simple --hash=sha256:{yanked_hash} --hash=sha256:{prerelease_hash}\n"
+    )
+    result = script.pip(
+        "install",
+        "-r",
+        str(reqs),
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_mixed_prerelease"),
+        expect_stderr=True,
+    )
+    assert "Reason for being yanked: test reason message" in result.stderr, str(result)
+    assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
+
+
+def test_install_yanked_file_with_hash_pin_also_allowing_prerelease(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A yanked file allowed by a hash pin still installs (#10625)."""
+    reqs = script.scratch_path / "reqs.txt"
+    yanked_hash = hashlib.sha256(
+        data.packages.joinpath("simple-3.0.tar.gz").read_bytes()
+    ).hexdigest()
+    prerelease_hash = hashlib.sha256(
+        data.indexes.joinpath(
+            "yanked_prerelease", "simple", "simple-3.1rc0.tar.gz"
+        ).read_bytes()
+    ).hexdigest()
+    reqs.write_text(
+        f"simple==3.0 --hash=sha256:{yanked_hash} --hash=sha256:{prerelease_hash}\n"
+    )
+    result = script.pip(
+        "install",
+        "-r",
+        str(reqs),
+        "--no-build-isolation",
+        "--index-url",
+        data.index_url("yanked_mixed_prerelease"),
+        expect_stderr=True,
+    )
+    assert "Reason for being yanked: test reason message" in result.stderr, str(result)
+    assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
+
+
 @pytest.mark.parametrize(
     "install_args",
     [
