@@ -411,14 +411,14 @@ def test_pip_second_command_line_interface_works(
     result.did_create(initools_folder)
 
 
-def test_install_warns_on_unexpected_post_install_import(
+def test_install_blocks_unexpected_post_install_import(
     script: PipTestEnvironment,
 ) -> None:
     """
-    Verify that pip warns when an unexpected import happens after the
-    install audit hook has been registered. The hook is installed before
+    Verify that pip blocks an unexpected import issued after the install
+    audit hook has been registered. The hook is installed before
     ``install_given_reqs`` runs, so imports issued from code running after
-    that point must trigger the deprecation warning.
+    that point must raise ImportError.
     """
     wheel_path = create_basic_wheel_for_package(script, "mypackage", "1.0")
     runner = script.scratch_path / "run_install.py"
@@ -428,10 +428,7 @@ def test_install_warns_on_unexpected_post_install_import(
             _orig_get_environment = _install_mod.get_environment
 
             def _patched_get_environment(lib_locations):
-                try:
-                    import pip_unexpected_module_xyz
-                except ModuleNotFoundError:
-                    pass
+                import pip_unexpected_module_xyz
                 return _orig_get_environment(lib_locations)
 
             _install_mod.get_environment = _patched_get_environment
@@ -448,16 +445,16 @@ def test_install_warns_on_unexpected_post_install_import(
             )
         """))
 
-    # Make sure PipDeprecationWarnings don't turn into errors
-    script.environ["_PIP_TEST_ENV"] = ""
     result = script.run(
-        "python", str(runner), str(wheel_path.parent), expect_stderr=True
+        "python", str(runner), str(wheel_path.parent), expect_error=True
     )
+    assert result.returncode != 0
     assert (
-        "Unexpected import of 'pip_unexpected_module_xyz' "
+        "Blocked import of 'pip_unexpected_module_xyz' "
         "after pip install started" in result.stderr
     )
-    assert "run_install.py:7)" in result.stderr
+    # The traceback points at the import that was blocked.
+    assert 'run_install.py", line 6, in _patched_get_environment' in result.stderr
 
 
 def test_install_exit_status_code_when_no_requirements(
