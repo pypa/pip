@@ -304,6 +304,28 @@ class TestStashedUninstallPathSet:
         actual_paths = compress_for_rename(paths)
         assert set(expected_paths) == set(actual_paths)
 
+    def test_compress_for_rename_preserves_link_target(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Keep a preserved directory while compressing removable children."""
+        paths = [
+            os.path.sep.join(p.split("/"))
+            for p in [
+                "A/B/b.py",
+                "A/B/D/c.py",
+            ]
+        ]
+        preserve = os.path.sep.join("A/B".split("/"))
+        expected = {
+            os.path.sep.join("A/B/b.py".split("/")),
+            os.path.sep.join("A/B/D/".split("/")),
+        }
+        monkeypatch.setattr("os.walk", self.mock_walk)
+
+        actual = compress_for_rename(paths, preserve_directories=[preserve])
+
+        assert actual == expected
+
     @classmethod
     def make_stash(
         cls, tmpdir: Path, paths: list[str]
