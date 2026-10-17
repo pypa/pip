@@ -271,24 +271,29 @@ class TestPipResult:
     def __getattr__(self, attr: str) -> Any:
         return getattr(self._impl, attr)
 
-    if sys.platform == "win32":
+    @property
+    def stdout(self) -> str:
+        stdout = self._impl.stdout
+        assert isinstance(stdout, str)
 
-        @property
-        def stdout(self) -> str:
-            return self._impl.stdout.replace("\r\n", "\n")
+        if sys.platform == "win32":
+            return stdout.replace("\r\n", "\n")
+        return stdout
 
-        @property
-        def stderr(self) -> str:
-            return self._impl.stderr.replace("\r\n", "\n")
+    @property
+    def stderr(self) -> str:
+        stderr = self._impl.stderr
+        assert isinstance(stderr, str)
 
-        def __str__(self) -> str:
-            return str(self._impl).replace("\r\n", "\n")
+        if sys.platform == "win32":
+            return stderr.replace("\r\n", "\n")
+        return stderr
 
-    else:
-        # Python doesn't automatically forward __str__ through __getattr__
-
-        def __str__(self) -> str:
-            return str(self._impl)
+    def __str__(self) -> str:
+        output = str(self._impl)
+        if sys.platform == "win32":
+            return output.replace("\r\n", "\n")
+        return output
 
     @property
     def files_created(self) -> FoundFiles:
@@ -310,7 +315,7 @@ class TestPipResult:
                 and filename.parent.name.endswith(".dist-info")
                 and filename.parent.name.startswith(dist_info_prefix)
             ):
-                return self.test_env.base_path / filename
+                return pathlib.Path(self.test_env.base_path) / filename
         return None
 
     def get_created_direct_url(self, pkg: str) -> DirectUrl | None:
@@ -761,7 +766,8 @@ class PipTestEnvironment(TestFileEnvironment):
             find_links=find_links,
             **kwargs,
         )
-        return json.loads(result.stdout)
+        report: dict[str, Any] = json.loads(result.stdout)
+        return report
 
     def easy_install(self, *args: str, **kwargs: Any) -> TestPipResult:
         args = ("-m", "easy_install") + args
@@ -959,7 +965,9 @@ def _vcs_add(
     vcs: str = "git",
 ) -> pathlib.Path:
     if vcs == "git":
-        subprocess.check_call(["git", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            ["git", "init", "-b", "master"], cwd=os.fspath(version_pkg_path)
+        )
         subprocess.check_call(["git", "add", "."], cwd=os.fspath(version_pkg_path))
         subprocess.check_call(
             ["git", "commit", "-m", "initial version"], cwd=os.fspath(version_pkg_path)
@@ -1140,11 +1148,12 @@ def requirements_file(contents: str, tmpdir: pathlib.Path) -> Iterator[pathlib.P
 
 
 def create_test_package_with_setup(
-    script: PipTestEnvironment, **setup_kwargs: Any
+    script: PipTestEnvironment, *, name: str, **setup_kwargs: Any
 ) -> pathlib.Path:
-    assert "name" in setup_kwargs, setup_kwargs
-    pkg_path = script.scratch_path / setup_kwargs["name"]
+    pkg_path = script.scratch_path / name
     pkg_path.mkdir()
+
+    setup_kwargs["name"] = name
     pkg_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
                 from setuptools import setup
                 kwargs = {setup_kwargs!r}

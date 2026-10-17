@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
@@ -227,48 +227,21 @@ def _check_download_dir(
     return download_path
 
 
-def _canonicalize_requirement(raw: str) -> str:
-    """Return a normalized form of a PEP 508 requirement string.
-
-    Used to compare ``Requires-Dist`` entries from two sources of metadata
-    for the same distribution without being confused by superficial
-    differences in name casing, extra casing, or extras ordering. May raise
-    ``InvalidRequirement`` if ``raw`` is not a valid PEP 508 string.
-
-    TODO: once https://github.com/pypa/packaging/pull/1278 is released and
-    vendored, ``Requirement.__eq__`` will canonicalize requested extras and
-    this manual normalization can be dropped in favour of comparing
-    ``Requirement`` objects directly.
-    """
-    parsed = get_requirement(raw)
-    parts: list[str] = [canonicalize_name(parsed.name)]
-    if parsed.extras:
-        normalized_extras = sorted(canonicalize_name(e) for e in parsed.extras)
-        parts.append(f"[{','.join(normalized_extras)}]")
-    if parsed.specifier:
-        parts.append(str(parsed.specifier))
-    if parsed.url:
-        parts.append(f" @ {parsed.url}")
-    if parsed.marker:
-        parts.append(f"; {parsed.marker}")
-    return "".join(parts)
-
-
 def _canonical_requires(
     req: InstallRequirement, dist: BaseDistribution, source: str
-) -> frozenset[str]:
+) -> frozenset[Requirement]:
     """Return the canonicalized ``Requires-Dist`` entries of ``dist``.
 
     ``source`` describes which metadata file ``dist`` was parsed from, for
     use in error messages.
     """
-    canonical: set[str] = set()
+    canonical = set()
     for raw in dist.iter_raw_dependencies():
         try:
             # strip() because a folded metadata header may be returned
             # with a leading newline; iter_dependencies() strips for the
             # same reason.
-            canonical.add(_canonicalize_requirement(raw.strip()))
+            canonical.add(get_requirement(raw.strip()))
         except InvalidRequirement as e:
             raise MetadataInvalid(req, f"Requires-Dist in {source}: {e}")
     return frozenset(canonical)
@@ -316,8 +289,8 @@ def _check_sidecar_matches_wheel(
         raise SidecarMetadataInconsistent(
             req,
             "Requires-Dist",
-            ", ".join(sorted(sidecar_requires - wheel_requires)),
-            ", ".join(sorted(wheel_requires - sidecar_requires)),
+            ", ".join(sorted(map(str, sidecar_requires - wheel_requires))),
+            ", ".join(sorted(map(str, wheel_requires - sidecar_requires))),
         )
 
     if sidecar_dist.requires_python != wheel_dist.requires_python:

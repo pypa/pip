@@ -134,8 +134,8 @@ the methods used would be:
 
 .. _config-kinds:
 
-kinds
-=====
+Kind
+====
 
 This is an enumeration that provides values to represent a "source" for
 configuration. This includes environment variables and various types of

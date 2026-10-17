@@ -52,7 +52,7 @@ TYPE_RAW = 3
 TYPE_BIN = 4
 TYPE_EXT = 5
 
-DEFAULT_RECURSE_LIMIT = 511
+DEFAULT_RECURSE_LIMIT = 1024
 
 
 def _check_type_strict(obj, t, type=type, tuple=tuple):
@@ -328,7 +328,7 @@ class Unpacker:
             self._buf_checkpoint = 0
 
         # Use extend here: INPLACE_ADD += doesn't reliably typecast memoryview in jython
-        self._buffer.extend(view)
+        self._buffer.extend(view if view.contiguous else view.tobytes())
         view.release()
 
     def _consume(self):
@@ -518,9 +518,15 @@ class Unpacker:
                     self._unpack(EX_SKIP)
                 return
             if self._object_pairs_hook is not None:
-                ret = self._object_pairs_hook(
-                    (self._unpack(EX_CONSTRUCT), self._unpack(EX_CONSTRUCT)) for _ in range(n)
-                )
+
+                def _gen():
+                    for _ in range(n):
+                        key = self._unpack(EX_CONSTRUCT)
+                        if self._strict_map_key and type(key) not in (str, bytes):
+                            raise ValueError("%s is not allowed for map key" % str(type(key)))
+                        yield key, self._unpack(EX_CONSTRUCT)
+
+                ret = self._object_pairs_hook(_gen())
             else:
                 ret = {}
                 for _ in range(n):
@@ -861,6 +867,10 @@ class Packer:
             self._buffer.write(b"\xc9" + struct.pack(">I", L))
         self._buffer.write(struct.pack("B", typecode))
         self._buffer.write(data)
+        if self._autoreset:
+            ret = self._buffer.getvalue()
+            self._buffer = BytesIO()
+            return ret
 
     def _pack_array_header(self, n):
         if n <= 0x0F:

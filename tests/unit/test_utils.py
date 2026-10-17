@@ -286,11 +286,11 @@ def test_rmtree_skips_nonexistent_directory() -> None:
 
 class Failer:
     def __init__(self, duration: int = 1) -> None:
-        self.succeed_after = time.time() + duration
+        self.succeed_after = time.perf_counter() + duration
 
     def call(self, *args: Any, **kw: Any) -> None:
-        """Fail with OSError self.max_fails times"""
-        if time.time() < self.succeed_after:
+        """Fail until the retry fixture's deadline."""
+        if time.perf_counter() < self.succeed_after:
             raise OSError("Failed")
 
 
