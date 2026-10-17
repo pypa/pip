@@ -1,0 +1,1 @@
+Show a clearer error message when pip commands that require a network connection fail due to network errors.

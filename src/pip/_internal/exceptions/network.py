@@ -189,3 +189,51 @@ class IncompleteDownloadError(DiagnosticPipError):
             hint_stmt=hint,
             note_stmt="This is an issue with network connectivity, not pip.",
         )
+
+
+class IndexUnavailableError(DiagnosticPipError):
+    """Raised when index is not reachable or unavailable to retrieve packages."""
+
+    reference = "index-unavailable"
+
+    def __init__(
+        self,
+        *,
+        project_name: str,
+        missing_sources: list[tuple[str, Exception]] | None = None,
+        unavailable_sources: list[tuple[str, Exception]] | None = None,
+    ) -> None:
+        max_errors = 5
+        missing = missing_sources or []
+        unavailable = unavailable_sources or []
+
+        parts: list[str] = []
+
+        for url, exc in unavailable[:max_errors]:
+            if isinstance(exc, NetworkConnectionError):
+                parts.append(f"Failed to fetch {url} : {exc.error_msg}\n")
+            elif isinstance(exc, DiagnosticPipError):
+                parts.append(
+                    f"Failed to fetch {url} : {exc.message}.\n{exc.hint_stmt}\n"
+                )
+            else:
+                parts.append(f"Failed to fetch {url} : {exc}\n")
+
+        if len(unavailable) > max_errors:
+            parts.append(f"... and {len(unavailable) - max_errors} more\n")
+
+        for url, _ in missing[:max_errors]:
+            parts.append(f"Package {project_name} not found at {url}\n")
+
+        if len(missing) > max_errors:
+            parts.append(f"... and {len(unavailable) - max_errors} more\n")
+
+        context = "\n".join(parts) if parts else None
+
+        super().__init__(
+            message=f"Could not find a version of {project_name}",
+            context=context,
+            hint_stmt=(
+                "Check your network connection and package index configuration."
+            ),
+        )
