@@ -790,6 +790,7 @@ class BaseEnvironment:
         include_editables: bool = True,
         editables_only: bool = False,
         user_only: bool = False,
+        skip_invalid: bool = True,
     ) -> Iterator[BaseDistribution]:
         """Return a list of installed distributions.
 
@@ -807,7 +808,7 @@ class BaseEnvironment:
         :param user_only: If True, only report installations in the user
         site directory.
         """
-        it = self.iter_all_distributions()
+        it = self.iter_all_distributions(skip_invalid=skip_invalid)
         if local_only:
             it = (d for d in it if d.local)
         if not include_editables:
