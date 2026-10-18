@@ -226,7 +226,7 @@ class IndexUnavailableError(DiagnosticPipError):
             parts.append(f"Package {project_name} not found at {url}\n")
 
         if len(missing) > max_errors:
-            parts.append(f"... and {len(unavailable) - max_errors} more\n")
+            parts.append(f"... and {len(missing) - max_errors} more\n")
 
         context = "\n".join(parts) if parts else None
 

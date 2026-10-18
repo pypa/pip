@@ -913,8 +913,13 @@ class PackageFinder:
             if isinstance(exc, NetworkConnectionError):
                 logger.warning("Failed to fetch %s: %s", url, exc.error_msg)
             elif isinstance(exc, DiagnosticPipError):
+                from pip._vendor.rich.text import Text
+
                 logger.warning(
-                    "Failed to fetch %s: %s. %s", url, exc.message, exc.hint_stmt
+                    "Failed to fetch %s: %s. %s",
+                    url,
+                    Text.from_markup(str(exc.message)).plain,
+                    Text.from_markup(str(exc.hint_stmt)).plain if exc.hint_stmt else "",
                 )
             else:
                 # retry error
@@ -937,9 +942,6 @@ class PackageFinder:
         if warn_only:
             if has_unavailable:
                 self._log_errors(project_name, error_context)
-            if has_missing:
-                self._log_missing(project_name, error_context)
-            if has_unavailable:
                 logger.warning(
                     "Some indexes could not be queried, "
                     "this might be a problem with your network connection "
