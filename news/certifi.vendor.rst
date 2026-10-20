@@ -1,1 +1,1 @@
-Upgrade certifi to 2026.10.18
+Upgrade certifi to 2026.10.19
