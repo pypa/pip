@@ -127,7 +127,7 @@ class TestSiteConfigDirs:
         python_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
         monkeypatch.setattr(
             sys,
-            "prefix",
+            "base_prefix",
             f"/opt/homebrew/opt/python@{python_version}/Frameworks/Python.framework/Versions/{python_version}",
         )
 
