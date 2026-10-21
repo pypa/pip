@@ -138,9 +138,8 @@ class SSLVerificationError(DiagnosticPipError):
             f"[magenta]{escape(host)}[/] while fetching {escape(url)}"
         )
         hint = (
-            "You may need to use --cert or check your proxy/firewall configuration. "
-            "If the system certificate store is incomplete, try "
-            "--use-deprecated=legacy-mixed-certs."
+            "You may need to use --cert, check your proxy/firewall configuration, "
+            "or update your system certificate store."
         )
         super().__init__(message=message, context=Text(str(error)), hint_stmt=hint)
 
