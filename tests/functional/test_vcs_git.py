@@ -226,14 +226,43 @@ def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
     """
     version_pkg_path = os.fspath(_create_test_package(script.scratch_path))
     script.run("git", "branch", "branch0.1", cwd=version_pkg_path)
+    script.run("git", "tag", "-a", "v0.1.2", "-m", "description", cwd=version_pkg_path)
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
+
+    # Create a repo that has no branches and therefore does not have a valid
+    # HEAD ref. This is a valid (if not unusual repository) that pip should be
+    # able to clone.
+    repo_without_head_path = os.fspath(script.scratch_path / "repo_without_head")
+    pathlib.Path(repo_without_head_path).mkdir()
+
+    script.run("git", "init", cwd=repo_without_head_path)
+    script.run(
+        "git",
+        "push",
+        os.fspath(version_pkg_path),
+        "v0.1.2",
+        cwd=os.fspath(version_pkg_path),
+    )
 
     assert Git.is_commit_id_equal(version_pkg_path, commit)
     assert not Git.is_commit_id_equal(version_pkg_path, commit[:7])
     assert not Git.is_commit_id_equal(version_pkg_path, "branch0.1")
     assert not Git.is_commit_id_equal(version_pkg_path, "abc123")
+    assert not Git.is_commit_id_equal(version_pkg_path, "v0.1.2")
     # Also check passing a None value.
     assert not Git.is_commit_id_equal(version_pkg_path, None)
+
+    # Confirm that HEAD does not point at anything in repo_without_head_path
+    script.run(
+        "git",
+        "rev-parse",
+        "HEAD",
+        cwd=repo_without_head_path,
+        expect_error=True,
+    )
+
+    assert not Git.is_commit_id_equal(repo_without_head_path, commit)
+    assert not Git.is_commit_id_equal(repo_without_head_path, "v0.1.2")
 
 
 def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
