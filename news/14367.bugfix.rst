@@ -1,0 +1,7 @@
+Read pip INI configuration files as UTF-8 unconditionally. This fixes a
+regression introduced in 26.2 (in #13960) where ``locale.getencoding()``
+replaced ``locale.getpreferredencoding(False)``: on Windows hosts with a
+non-UTF-8 ANSI codepage (e.g. cp936), a UTF-8-encoded ``pip.ini``
+containing non-ASCII characters such as comments in the user's language
+would raise ``UnicodeDecodeError`` whenever Python was running in UTF-8
+Mode (``python -X utf8`` or the default starting from Python 3.15).

@@ -40,6 +40,22 @@ def get_locale_encoding() -> str:
     return locale.getpreferredencoding(False)
 
 
+def get_config_encoding() -> str:
+    """Return the encoding used to read pip INI configuration files.
+
+    pip's INI files are always interpreted as UTF-8. This is intentionally
+    NOT the locale encoding: on Windows the ANSI codepage reported by
+    ``locale.getencoding()`` ignores Python UTF-8 Mode (PEP 540), so a user
+    running ``python -X utf8`` or Python 3.15+ (UTF-8 by default) with a
+    non-UTF-8 locale (e.g. cp936 on Simplified Chinese Windows) would
+    otherwise see ``UnicodeDecodeError`` on any UTF-8 ``pip.ini`` containing
+    non-ASCII characters such as comments in the user's language.
+
+    See https://github.com/pypa/pip/issues/14367
+    """
+    return "utf-8"
+
+
 def get_path_uid(path: str) -> int:
     """
     Return path's uid.

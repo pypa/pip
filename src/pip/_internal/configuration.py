@@ -26,7 +26,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils import appdirs
 from pip._internal.utils._log import getLogger
-from pip._internal.utils.compat import WINDOWS, get_locale_encoding
+from pip._internal.utils.compat import WINDOWS, get_config_encoding
 from pip._internal.utils.misc import ensure_dir
 
 RawConfigParser = configparser.RawConfigParser  # Shorthand
@@ -300,13 +300,13 @@ class Configuration:
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
         if os.path.exists(fname):
-            locale_encoding = get_locale_encoding()
+            config_encoding = get_config_encoding()
             try:
-                parser.read(fname, encoding=locale_encoding)
+                parser.read(fname, encoding=config_encoding)
             except UnicodeDecodeError:
                 # See https://github.com/pypa/pip/issues/4963
                 raise ConfigurationFileCouldNotBeLoaded(
-                    reason=f"contains invalid {locale_encoding} characters",
+                    reason=f"contains invalid {config_encoding} characters",
                     fname=fname,
                 )
             except configparser.Error as error:

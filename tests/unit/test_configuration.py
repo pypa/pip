@@ -1,6 +1,9 @@
 """Tests for all things related to the configuration"""
 
+import locale
 import re
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -279,3 +282,27 @@ class TestConfigurationModification(ConfigurationMixin):
         pat = r"^No such key - global\.index-url$"
         with pytest.raises(ConfigurationError, match=pat):
             self.configuration.get_value("global.index-url")
+
+
+@pytest.mark.skipif(sys.version_info < (3, 11), reason="locale.getencoding is 3.11+")
+def test_config_utf8_file_with_non_utf8_locale(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression test for #14367: UTF-8 pip.ini must be readable when
+    Python is in UTF-8 mode but the ANSI codepage is a non-UTF-8 locale
+    (e.g. cp936 on Simplified Chinese Windows)."""
+    # Simulate the scenario from the issue:
+    # - ANSI codepage is cp936 (so locale.getencoding() returns "cp936")
+    # - Python is running with UTF-8 mode enabled (sys.flags.utf8_mode == 1)
+    # On unpatched pip 26.2+, Configuration reads the INI via
+    # get_locale_encoding() -> "cp936", so a UTF-8 Chinese comment raises
+    # ConfigurationFileCouldNotBeLoaded.
+    monkeypatch.setattr(locale, "getencoding", lambda: "cp936")
+
+    cfg_file = tmp_path / "pip.ini"
+    cfg_file.write_bytes("[global]\n# 中文注释\ntimeout = 15\n".encode())
+
+    config = Configuration(isolated=False)
+    parser = config._construct_parser(str(cfg_file))
+
+    assert parser.get("global", "timeout") == "15"
