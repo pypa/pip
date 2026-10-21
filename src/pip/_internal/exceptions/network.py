@@ -137,7 +137,11 @@ class SSLVerificationError(DiagnosticPipError):
             "Failed to establish a secure connection to "
             f"[magenta]{escape(host)}[/] while fetching {escape(url)}"
         )
-        hint = "You may need to use --cert or check your proxy/firewall configuration"
+        hint = (
+            "You may need to use --cert or check your proxy/firewall configuration. "
+            "If the system certificate store is incomplete, try "
+            "--use-deprecated=legacy-mixed-certs."
+        )
         super().__init__(message=message, context=Text(str(error)), hint_stmt=hint)
 
 
