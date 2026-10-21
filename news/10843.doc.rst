@@ -1,0 +1,1 @@
+Explain why releases are yanked and link to PyPI's yanking guide.
