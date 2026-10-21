@@ -32,8 +32,12 @@ def get_locale_encoding() -> str:
 
     Uses ``locale.getencoding()`` when available (Python 3.11+) to avoid the
     ``EncodingWarning`` that ``locale.getpreferredencoding(False)`` raises
-    under UTF-8 Mode.
+    under UTF-8 Mode. When Python UTF-8 Mode is active, sys.flags.utf8_mode is 1,
+    so the locale encoding is UTF-8.
     """
+    if getattr(sys.flags, "utf8_mode", 0):
+        return "utf-8"
+
     # TODO: Remove the 3.10 fallback once pip drops Python 3.10 support.
     if sys.version_info >= (3, 11):
         return locale.getencoding()

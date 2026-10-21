@@ -1,9 +1,11 @@
+import locale
 import os
+import sys
 from pathlib import Path
 
 import pytest
 
-from pip._internal.utils.compat import get_path_uid
+from pip._internal.utils.compat import get_locale_encoding, get_path_uid
 
 
 def test_get_path_uid() -> None:
@@ -44,3 +46,31 @@ def test_get_path_uid_symlink_without_NOFOLLOW(
     os.symlink(f, fs)
     with pytest.raises(OSError):
         get_path_uid(fs)
+
+
+def test_get_locale_encoding_utf8_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeFlags:
+        utf8_mode = 1
+
+    monkeypatch.setattr(sys, "flags", FakeFlags())
+    if hasattr(locale, "getencoding"):
+        monkeypatch.setattr(locale, "getencoding", lambda: "cp936")
+    monkeypatch.setattr(
+        locale, "getpreferredencoding", lambda do_setlocale=True: "cp936"
+    )
+
+    assert get_locale_encoding() == "utf-8"
+
+
+def test_get_locale_encoding_non_utf8_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeFlags:
+        utf8_mode = 0
+
+    monkeypatch.setattr(sys, "flags", FakeFlags())
+    if hasattr(locale, "getencoding"):
+        monkeypatch.setattr(locale, "getencoding", lambda: "cp936")
+    monkeypatch.setattr(
+        locale, "getpreferredencoding", lambda do_setlocale=True: "cp936"
+    )
+
+    assert get_locale_encoding() == "cp936"

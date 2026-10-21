@@ -1,6 +1,8 @@
 """Tests for all things related to the configuration"""
 
+import locale
 import re
+import sys
 from unittest.mock import MagicMock
 
 import pytest
@@ -52,6 +54,26 @@ class TestConfigurationLoading(ConfigurationMixin):
             assert (
                 self.configuration.get_value("test.hello") == "4"
             ), self.configuration._config
+
+    def test_utf8_configuration_in_utf8_mode(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class FakeFlags:
+            utf8_mode = 1
+
+        monkeypatch.setattr(sys, "flags", FakeFlags())
+        if hasattr(locale, "getencoding"):
+            monkeypatch.setattr(locale, "getencoding", lambda: "cp936")
+
+        contents = """
+            [global]
+            # \u4e2d\u6587\u6ce8\u91ca
+            timeout = 15
+        """
+        with self.tmpfile(contents) as config_file:
+            monkeypatch.setenv("PIP_CONFIG_FILE", config_file)
+            self.configuration.load()
+            assert self.configuration.get_value("global.timeout") == "15"
 
     def test_environment_var_loading(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PIP_HELLO", "5")

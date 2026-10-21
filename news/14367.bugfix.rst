@@ -1,0 +1,1 @@
+Respect Python UTF-8 Mode when determining the locale encoding for configuration files.
