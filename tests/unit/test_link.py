@@ -8,6 +8,7 @@ import pytest
 from pip._internal.exceptions import InvalidEggFragment, PipError
 from pip._internal.models.link import (
     Link,
+    MetadataFile,
     as_path_component,
     join_within_directory,
     links_equivalent,
@@ -355,3 +356,32 @@ def test_join_within_directory_stays_inside(name: str) -> None:
     joined = join_within_directory(directory, as_path_component(name))
     assert joined == os.path.join(directory, name)
     assert os.path.basename(joined) == name
+
+
+@pytest.mark.parametrize(
+    "url, expected_metadata_url",
+    [
+        (
+            "https://example.com/foo-1.0-py3-none-any.whl",
+            "https://example.com/foo-1.0-py3-none-any.whl.metadata",
+        ),
+        (
+            "https://example.com/foo-1.0-py3-none-any.whl?direct=true",
+            "https://example.com/foo-1.0-py3-none-any.whl.metadata?direct=true",
+        ),
+        (
+            "https://example.com/foo-1.0-py3-none-any.whl?token=secret&direct=true#sha256=abc",
+            "https://example.com/foo-1.0-py3-none-any.whl.metadata?token=secret&direct=true",
+        ),
+    ],
+)
+def test_metadata_link_url(url: str, expected_metadata_url: str) -> None:
+    link = Link(url, metadata_file_data=MetadataFile(None))
+    metadata_link = link.metadata_link()
+    assert metadata_link is not None
+    assert metadata_link.url == expected_metadata_url
+
+
+def test_metadata_link_none_when_no_metadata() -> None:
+    link = Link("https://example.com/foo-1.0-py3-none-any.whl")
+    assert link.metadata_link() is None

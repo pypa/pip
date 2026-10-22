@@ -1,0 +1,1 @@
+Fix PEP 658 metadata URL construction when the distribution URL contains query parameters.

@@ -540,7 +540,10 @@ class Link:
         """Return a link to the associated core metadata file (if any)."""
         if self.metadata_file_data is None:
             return None
-        metadata_url = f"{self.url_without_fragment}.metadata"
+        parsed = self._parsed_url
+        metadata_url = urllib.parse.urlunsplit(
+            (parsed.scheme, parsed.netloc, f"{parsed.path}.metadata", parsed.query, "")
+        )
         if self.metadata_file_data.hashes is None:
             return Link(metadata_url)
         return Link(metadata_url, hashes=self.metadata_file_data.hashes)
