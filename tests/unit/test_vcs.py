@@ -456,29 +456,33 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
 @pytest.mark.parametrize(
     "url, expected_unknown",
     [
-        # Typo in 'subdirectory'.
         (
             "git+https://github.com/user/proj.git#subdiretory=src",
             ["subdiretory"],
         ),
-        # Typo using 'egg_info' instead of 'egg'.
         (
             "git+https://github.com/user/proj.git#egg_info=MyProject",
             ["egg_info"],
         ),
-        # Multiple unknown parameters.
         (
             "git+https://github.com/user/proj.git#foo=bar&baz=qux",
             ["baz", "foo"],
         ),
-        # Mix of valid and unknown parameters.
         (
             "svn+https://svn.example.com/MyProject#egg=MyApp&subdir=src",
             ["subdir"],
         ),
+        (
+            "git+https://github.com/user/proj.git#subdiretory=",
+            ["subdiretory"],
+        ),
+        (
+            "git+https://user:secret@github.com/user/proj.git#subdiretory=src",
+            ["subdiretory"],
+        ),
     ],
 )
-def test_version_control__get_url_rev_and_auth__unknown_fragments(
+def test_unknown_vcs_url_fragments(
     url: str,
     expected_unknown: list[str],
     caplog: pytest.LogCaptureFixture,
@@ -495,22 +499,19 @@ def test_version_control__get_url_rev_and_auth__unknown_fragments(
     assert "Unrecognized fragment parameters" in record.message
     for param in expected_unknown:
         assert param in record.message
+    assert "secret" not in record.message
+    if "user:secret" in url:
+        assert "user:****@github.com" in record.message
 
 
 @pytest.mark.parametrize(
     "url",
     [
-        # Valid: only 'egg'.
-        "git+https://github.com/user/proj.git@rev#egg=MyProject",
-        # Valid: only 'subdirectory'.
-        "git+https://github.com/user/proj.git@rev#subdirectory=src",
-        # Valid: both 'egg' and 'subdirectory'.
         "svn+https://svn.example.com/MyProject@rev#egg=MyApp&subdirectory=src",
-        # Valid: no fragment at all.
         "git+https://github.com/user/proj.git@rev",
     ],
 )
-def test_version_control__get_url_rev_and_auth__valid_fragments_no_warning(
+def test_valid_vcs_url_fragments_no_warning(
     url: str,
     caplog: pytest.LogCaptureFixture,
 ) -> None:

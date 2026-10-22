@@ -24,6 +24,7 @@ from pip._internal.utils.misc import (
     hide_url,
     hide_value,
     is_installable_dir,
+    redact_auth_from_url,
     rmtree,
 )
 from pip._internal.utils.subprocess import (
@@ -390,16 +391,18 @@ class VersionControl:
         # typos (e.g. #subdiretory=... instead of #subdirectory=...).
         if frag:
             known_params = {"egg", "subdirectory"}
-            fragment_params = urllib.parse.parse_qs(frag)
+            fragment_params = urllib.parse.parse_qs(frag, keep_blank_values=True)
             unknown_params = set(fragment_params) - known_params
             if unknown_params:
                 unknown_str = ", ".join(sorted(unknown_params))
+                known_str = ", ".join(f"'{p}'" for p in sorted(known_params))
                 logger.warning(
                     "Unrecognized fragment parameters in %s: %s. "
-                    "Only 'egg' and 'subdirectory' are recognized. "
+                    "Only %s are recognized. "
                     "Did you mean one of those?",
-                    url,
+                    redact_auth_from_url(url),
                     unknown_str,
+                    known_str,
                 )
 
         # Remove the vcs prefix.
