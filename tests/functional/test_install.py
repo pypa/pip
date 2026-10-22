@@ -4,6 +4,7 @@ import hashlib
 import io
 import os
 import re
+import shutil
 import ssl
 import sys
 import sysconfig
@@ -15,9 +16,11 @@ from pathlib import Path
 
 import pytest
 
+from pip._internal.cache import SimpleWheelCache
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.index import PyPI, TestPyPI
+from pip._internal.models.link import Link
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
 
@@ -28,8 +31,8 @@ from tests.lib import (
     TestData,
     TestPipResult,
     _create_svn_repo,
-    _create_test_package,
     create_basic_wheel_for_package,
+    create_test_package,
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
@@ -44,6 +47,104 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
+
+
+def test_refresh_package_sends_cache_control_header(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check if --refresh-package=:all: adds max-age=0 to all request headers.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page(
+            {
+                "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+            }
+        ),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--refresh-package=:all:",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+        )
+    call_args = server.mock.call_args_list[0].args
+    environ = call_args[0]
+    assert "HTTP_CACHE_CONTROL" in environ
+    assert environ["HTTP_CACHE_CONTROL"] == "max-age=0"
+
+
+def test_refresh_package_per_package(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check that --refresh-package=<name> only adds max-age=0
+    for the specified package, not others.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+        package_page(
+            {
+                "simplewheel-2.0-py2.py3-none-any.whl": (
+                    "/files/simplewheel-2.0-py2.py3-none-any.whl"
+                )
+            }
+        ),
+        file_response(data.packages / "simplewheel-2.0-py2.py3-none-any.whl"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--refresh-package=simple",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+            "simplewheel",
+        )
+
+    environ_simple = server.mock.call_args_list[0].args[0]
+    assert "HTTP_CACHE_CONTROL" in environ_simple
+    assert environ_simple["HTTP_CACHE_CONTROL"] == "max-age=0"
+
+    environ_simplewheel = server.mock.call_args_list[2].args[0]
+    assert "HTTP_CACHE_CONTROL" not in environ_simplewheel
+
+
+def test_refresh_package_not_set_by_default(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check that without --refresh-package, no max-age=0 is sent.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+        )
+    environ = server.mock.call_args_list[0].args[0]
+    assert "HTTP_CACHE_CONTROL" not in environ
 
 
 @pytest.mark.parametrize("command", ["install", "wheel"])
@@ -321,9 +422,7 @@ def test_install_warns_on_unexpected_post_install_import(
     """
     wheel_path = create_basic_wheel_for_package(script, "mypackage", "1.0")
     runner = script.scratch_path / "run_install.py"
-    runner.write_text(
-        textwrap.dedent(
-            """\
+    runner.write_text(textwrap.dedent("""\
             import sys
             import pip._internal.commands.install as _install_mod
             _orig_get_environment = _install_mod.get_environment
@@ -347,10 +446,10 @@ def test_install_warns_on_unexpected_post_install_import(
                 "mypackage"
                 ])
             )
-        """
-        )
-    )
+        """))
 
+    # Make sure PipDeprecationWarnings don't turn into errors
+    script.environ["_PIP_TEST_ENV"] = ""
     result = script.run(
         "python", str(runner), str(wheel_path.parent), expect_stderr=True
     )
@@ -388,12 +487,10 @@ def test_install_exit_status_code_when_empty_dependency_group(
     """
     Test install exit status code is 0 when empty dependency group specified
     """
-    script.scratch_path.joinpath("pyproject.toml").write_text(
-        """\
+    script.scratch_path.joinpath("pyproject.toml").write_text("""\
 [dependency-groups]
 empty = []
-"""
-    )
+""")
     script.pip("install", "--group", "empty")
 
 
@@ -407,12 +504,10 @@ def test_install_dependency_group_bad_filename_error(
     """
     if file_exists:
         script.scratch_path.joinpath("not-pyproject.toml").write_text(
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                 [dependency-groups]
                 publish = ["twine"]
-                """
-            )
+                """)
         )
     result = script.pip(
         "install", "--group", "not-pyproject.toml:publish", expect_error=True
@@ -458,7 +553,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
     """
     Test checking out from svn.
     """
-    checkout_path = _create_test_package(script.scratch_path)
+    checkout_path = create_test_package(script.scratch_path)
     repo_url = _create_svn_repo(script.scratch_path, checkout_path)
     result = script.pip(
         "install", "--no-build-isolation", "-e", "svn+" + repo_url + "#egg=version-pkg"
@@ -468,7 +563,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
 
 def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
     """Test cloning from Git."""
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="git")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="git")
     args = [
         "install",
         "--no-build-isolation",
@@ -547,7 +642,7 @@ def test_install_editable_uninstalls_existing_from_path(
 @need_mercurial
 def test_basic_install_editable_from_hg(script: PipTestEnvironment) -> None:
     """Test cloning and hg+file install from Mercurial."""
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="hg")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="hg")
     url = f"hg+{pkg_path.as_uri()}#egg=testpackage"
     assert url.startswith("hg+file")
     args = ["install", "--no-build-isolation", "-e", url]
@@ -560,7 +655,7 @@ def test_vcs_url_final_slash_normalization(script: PipTestEnvironment) -> None:
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="hg")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="hg")
     args = [
         "install",
         "--no-build-isolation",
@@ -574,7 +669,7 @@ def test_vcs_url_final_slash_normalization(script: PipTestEnvironment) -> None:
 @need_bzr
 def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
     """Test checking out from Bazaar."""
-    pkg_path = _create_test_package(
+    pkg_path = create_test_package(
         script.scratch_path, name="testpackage", vcs="bazaar"
     )
     args = [
@@ -591,7 +686,7 @@ def test_vcs_url_urlquote_normalization(script: PipTestEnvironment) -> None:
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
-    pkg_path = _create_test_package(
+    pkg_path = create_test_package(
         script.scratch_path, name="django_wikiapp", vcs="git"
     )
     url = f"git+{pkg_path.as_uri().replace('django_', 'django%5F')}/#egg=django_wikiapp"
@@ -811,16 +906,12 @@ def test_link_hash_in_dep_fails_require_hashes(
     )
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            f"""\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent(f"""\
             [project]
             name = "pkga"
             version = "1.0"
             dependencies = ["simple @ {simple_url_with_hash}"]
-            """
-        )
-    )
+            """))
     # Build a wheel for pkga and compute its hash.
     wheelhouse = tmp_path / "wheehouse"
     wheelhouse.mkdir()
@@ -855,16 +946,12 @@ def test_bad_link_hash_in_dep_install_failure(
     url = f"{url}#sha256=invalidhash"
     project_path = tmp_path / "pkga"
     project_path.mkdir()
-    project_path.joinpath("pyproject.toml").write_text(
-        textwrap.dedent(
-            f"""\
+    project_path.joinpath("pyproject.toml").write_text(textwrap.dedent(f"""\
             [project]
             name = "pkga"
             version = "1.0"
             dependencies = ["simple @ {url}"]
-            """
-        )
-    )
+            """))
     result = script.pip_install_local(
         "--no-build-isolation", project_path, expect_error=True
     )
@@ -1117,12 +1204,10 @@ def test_install_package_with_same_name_in_curdir(
     result.did_create(dist_info_folder)
 
 
-mock100_setup_py = textwrap.dedent(
-    """\
+mock100_setup_py = textwrap.dedent("""\
                         from setuptools import setup
                         setup(name='mock',
-                              version='100.1')"""
-)
+                              version='100.1')""")
 
 
 def test_install_folder_using_dot_slash(script: PipTestEnvironment) -> None:
@@ -1319,9 +1404,7 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(
     target_dir = script.scratch_path / "target"
     pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
@@ -1330,16 +1413,10 @@ def test_install_with_target_or_prefix_and_scripts_no_warning(
                   'console_scripts': ['pkga=pkga:main']
               }
         )
-    """
-        )
-    )
-    pkga_path.joinpath("pkga.py").write_text(
-        textwrap.dedent(
-            """
+    """))
+    pkga_path.joinpath("pkga.py").write_text(textwrap.dedent("""
         def main(): pass
-    """
-        )
-    )
+    """))
     result = script.pip("install", "--no-build-isolation", opt, target_dir, pkga_path)
     # This assertion isn't actually needed, if we get the script warning
     # the script.pip() call will fail with "stderr not expected". But we
@@ -1450,17 +1527,13 @@ def _test_install_editable_with_prefix(
 def test_install_editable_with_target(script: PipTestEnvironment) -> None:
     pkg_path = script.scratch_path / "pkg"
     pkg_path.mkdir()
-    pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(
             name='pkg',
             install_requires=['simplewheel==2.0']
         )
-    """
-        )
-    )
+    """))
 
     target = script.scratch_path / "target"
     target.mkdir()
@@ -1702,31 +1775,23 @@ def test_install_upgrade_editable_depending_on_other_editable(
 ) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1')
-    """
-        )
-    )
+    """))
     script.pip("install", "--no-build-isolation", "--editable", pkga_path)
     result = script.pip("list", "--format=freeze")
     assert "pkga==0.1" in result.stdout
 
     script.scratch_path.joinpath("pkgb").mkdir()
     pkgb_path = script.scratch_path / "pkgb"
-    pkgb_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkgb_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkgb',
               version='0.1',
               install_requires=['pkga'])
-    """
-        )
-    )
+    """))
     script.pip(
         "install",
         "--no-build-isolation",
@@ -1924,20 +1989,42 @@ def test_install_no_binary_uses_cached_wheels(
     assert "Building wheel for upper" not in str(res), str(res)
 
 
+def test_install_local_directory_ignores_cached_wheel(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    """A cached wheel is not reused for a local directory (#14044)."""
+    cache_dir = script.scratch_path / "cache"
+    link_url = path_to_url(os.fspath(data.packages.joinpath("FSPkg")))
+    cache = SimpleWheelCache(os.fspath(cache_dir))
+    cache_path = cache.get_path_for_link(Link(link_url))
+    os.makedirs(cache_path)
+    stale_wheel = create_basic_wheel_for_package(script, "FSPkg", "9.9")
+    shutil.copy(stale_wheel, os.path.join(cache_path, stale_wheel.name))
+
+    result = script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "--no-deps",
+        "--cache-dir",
+        os.fspath(cache_dir),
+        f"FSPkg @ {link_url}",
+    )
+    # Built from source (0.1.dev0), not served from the stale cache (9.9).
+    result.did_create(script.site_packages / "fspkg-0.1.dev0.dist-info")
+    result.did_not_create(script.site_packages / "fspkg-9.9.dist-info")
+
+
 def test_install_editable_with_wrong_egg_name(
     script: PipTestEnvironment, resolver_variant: ResolverVariant
 ) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1')
-    """
-        )
-    )
+    """))
     result = script.pip(
         "install",
         "--no-build-isolation",
@@ -2015,16 +2102,12 @@ def _get_expected_error_text() -> str:
 def test_install_incompatible_python_requires(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='<1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     result = script.pip("install", "--no-build-isolation", pkga_path, expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
 
@@ -2034,16 +2117,12 @@ def test_install_incompatible_python_requires_editable(
 ) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='<1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     result = script.pip(
         "install", "--no-build-isolation", f"--editable={pkga_path}", expect_error=True
     )
@@ -2053,16 +2132,12 @@ def test_install_incompatible_python_requires_editable(
 def test_install_incompatible_python_requires_wheel(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='<1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     script.run(
         "python",
         "setup.py",
@@ -2079,16 +2154,12 @@ def test_install_incompatible_python_requires_wheel(script: PipTestEnvironment) 
 def test_install_compatible_python_requires(script: PipTestEnvironment) -> None:
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / "pkga"
-    pkga_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               python_requires='>1.0',
               version='0.1')
-    """
-        )
-    )
+    """))
     res = script.pip("install", "--no-build-isolation", pkga_path)
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
@@ -2252,14 +2323,10 @@ def test_target_install_ignores_distutils_config_install_prefix(
     distutils_config = Path.home().joinpath(
         "pydistutils.cfg" if sys.platform == "win32" else ".pydistutils.cfg",
     )
-    distutils_config.write_text(
-        textwrap.dedent(
-            f"""
+    distutils_config.write_text(textwrap.dedent(f"""
         [install]
         prefix={prefix}
-        """
-        )
-    )
+        """))
     target = script.scratch_path / "target"
     result = script.pip_install_local("simplewheel", "-t", target)
 
@@ -2648,8 +2715,7 @@ def test_install_dry_run_nothing_installed(
     reason="3.11 required to find distributions via importlib metadata",
 )
 def test_install_existing_memory_distribution(script: PipTestEnvironment) -> None:
-    sitecustomize_text = textwrap.dedent(
-        """
+    sitecustomize_text = textwrap.dedent("""
         import sys
         from importlib.metadata import Distribution, DistributionFinder
 
@@ -2675,8 +2741,7 @@ def test_install_existing_memory_distribution(script: PipTestEnvironment) -> Non
 
 
         sys.meta_path.append(CustomFinder())
-        """
-    )
+        """)
     with open(script.site_packages_path / "sitecustomize.py", "w") as sitecustomize:
         sitecustomize.write(sitecustomize_text)
 
@@ -2812,13 +2877,11 @@ def test_install_sdist_links(
         add_file(
             sdist_tar,
             "PKG-INFO",
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                     Metadata-Version: 2.1
                     Name: linktest
                     Version: 1.0
-                """
-            ),
+                """),
         )
 
         add_file(sdist_tar, "src/linktest/__init__.py", "")
@@ -2851,8 +2914,7 @@ def test_install_sdist_links(
         add_file(
             sdist_tar,
             "pyproject.toml",
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                     [build-system]
                     requires = ["setuptools"]
                     build-backend = "setuptools.build_meta"
@@ -2865,15 +2927,13 @@ def test_install_sdist_links(
                     where = ["src"]
                     [tool.setuptools.package-data]
                     "*" = ["*.dat"]
-                """
-            ),
+                """),
         )
 
         add_file(
             sdist_tar,
             "src/linktest/__main__.py",
-            textwrap.dedent(
-                f"""
+            textwrap.dedent(f"""
                     from pathlib import Path
                     linknames = {linknames!r}
 
@@ -2885,8 +2945,7 @@ def test_install_sdist_links(
                         data_text = res_path.joinpath(name).read_text()
                         assert data_text == "Data"
                     print(str(len(linknames)) + ' files checked')
-                """
-            ),
+                """),
         )
 
     # Show sdist content, for debugging the test

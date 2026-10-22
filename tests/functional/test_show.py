@@ -6,7 +6,9 @@ import textwrap
 import pytest
 
 from pip import __version__
+from pip._internal.commands import create_command
 from pip._internal.commands.show import search_packages_info
+from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.unpacking import untar_file
 
 from tests.lib import (
@@ -28,6 +30,28 @@ def test_basic_show(script: PipTestEnvironment) -> None:
     assert f"Version: {__version__}" in lines
     assert any(line.startswith("Location: ") for line in lines)
     assert "Requires: " in lines
+
+
+def test_show_without_files_does_not_read_installed_files(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Test that show does not read installed files without --files.
+    """
+    calls: list[str] = []
+
+    def iter_declared_entries(self: BaseDistribution) -> None:
+        calls.append(self.raw_name)
+
+    monkeypatch.setattr(
+        BaseDistribution, "iter_declared_entries", iter_declared_entries
+    )
+
+    command = create_command("show")
+    options, args = command.parse_args(["pip"])
+
+    assert command.run(options, args) == 0
+    assert calls == []
 
 
 def test_show_with_files_not_found(script: PipTestEnvironment, data: TestData) -> None:
@@ -85,17 +109,13 @@ def test_show_with_files_from_legacy(
     # Emulate the installed-files.txt generation which previous pip version did
     # after running setup.py install (write_installed_files_from_setuptools_record).
     egg_info_dir = script.site_packages_path / f"simple-1.0-py{pyversion}.egg-info"
-    egg_info_dir.joinpath("installed-files.txt").write_text(
-        textwrap.dedent(
-            """\
+    egg_info_dir.joinpath("installed-files.txt").write_text(textwrap.dedent("""\
                 ../simple/__init__.py
                 PKG-INFO
                 SOURCES.txt
                 dependency_links.txt
                 top_level.txt
-            """
-        )
-    )
+            """))
 
     result = script.pip("show", "--files", "simple")
     lines = result.stdout.splitlines()
@@ -116,7 +136,7 @@ def test_find_package_not_found() -> None:
     """
     Test trying to get info about a nonexistent package.
     """
-    result = search_packages_info(["abcd3"])
+    result = search_packages_info(["abcd3"], include_files=False)
     assert len(list(result)) == 0
 
 
@@ -151,7 +171,7 @@ def test_search_any_case() -> None:
     Search for a package in any case.
 
     """
-    result = list(search_packages_info(["PIP"]))
+    result = list(search_packages_info(["PIP"], include_files=False))
     assert len(result) == 1
     assert result[0].name == "pip"
 
@@ -161,7 +181,9 @@ def test_more_than_one_package() -> None:
     Search for more than one package.
 
     """
-    result = list(search_packages_info(["pIp", "pytest", "Virtualenv"]))
+    result = list(
+        search_packages_info(["pIp", "pytest", "Virtualenv"], include_files=False)
+    )
     assert len(result) == 3
 
 

@@ -87,6 +87,24 @@ def test_package_dist_url_abs_path_remote_lock_file() -> None:
 
 
 @pytest.mark.parametrize(
+    "path",
+    [
+        "file:///etc/passwd",
+        "file://attacker/share/pkg.tgz",
+        "https://attacker.example/pkg.tgz",
+    ],
+)
+def test_package_dist_url_scheme_path_remote_lock_file(path: str) -> None:
+    """A path in a remote lock file cannot escape the lock file's location."""
+    with pytest.raises(InstallationError, match="resolves outside its location"):
+        _package_dist_url(
+            "https://example.com/pylock.toml",
+            path=path,
+            url=None,
+        )
+
+
+@pytest.mark.parametrize(
     "pylock_path_or_url,package_vcs,expected",
     [
         (

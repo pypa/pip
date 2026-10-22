@@ -15,7 +15,7 @@ pip - The Python Package Installer
 
 |pypi-version| |python-versions| |docs-badge|
 
-pip is the `package installer`_ for Python. You can use pip to install packages from the `Python Package Index`_ and other indexes.
+Pip is the `package installer`_ for Python. You can use pip to install packages from the `Python Package Index`_ and other indexes.
 
 Please take a look at our documentation for how to install and use pip:
 

@@ -1,15 +1,16 @@
+import json
 import pathlib
 import ssl
 import threading
 from base64 import b64encode
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
+from http.server import HTTPServer
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock, patch
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
-from werkzeug.serving import make_server as _make_server
 
 from .compat import blocked_signals
 
@@ -33,7 +34,9 @@ def patch_getfqdn() -> Iterator[None]:
 
 
 class _MockServer(BaseWSGIServer):
-    mock: Mock = Mock()
+    def __init__(self, **kwargs: Any) -> None:
+        self.mock = Mock()
+        super().__init__("localhost", 0, app=_mock_wsgi_adapter(self.mock), **kwargs)
 
 
 class _RequestHandler(WSGIRequestHandler):
@@ -108,18 +111,14 @@ def make_mock_server(**kwargs: Any) -> _MockServer:
     Note also for pip interactions that "localhost" is a "secure origin", so
     be careful using this for failure tests of `--trusted-host`.
     """
-    kwargs.setdefault("request_handler", _RequestHandler)
+    kwargs["handler"] = kwargs.pop("request_handler", _RequestHandler)
 
-    mock = Mock()
-    app = _mock_wsgi_adapter(mock)
     with patch_getfqdn():
-        server = _make_server("localhost", 0, app=app, **kwargs)
-    server.mock = mock
-    return server
+        return _MockServer(**kwargs)
 
 
 @contextmanager
-def server_running(server: BaseWSGIServer) -> Iterator[None]:
+def server_running(server: HTTPServer) -> Iterator[None]:
     """Context manager for running the provided server in a separate thread."""
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
@@ -149,20 +148,14 @@ def text_html_response(text: str) -> "WSGIApplication":
 
 
 def html5_page(text: str) -> str:
-    return (
-        dedent(
-            """
+    return dedent("""
     <!DOCTYPE html>
     <html>
       <body>
         {}
       </body>
     </html>
-    """
-        )
-        .strip()
-        .format(text)
-    )
+    """).strip().format(text)
 
 
 def package_page(spec: dict[str, str]) -> "WSGIApplication":
@@ -171,6 +164,25 @@ def package_page(spec: dict[str, str]) -> "WSGIApplication":
 
     links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
+
+
+def json_index_page(name: str, files: Iterable[dict[str, Any]]) -> "WSGIApplication":
+    page = {
+        "meta": {"api-version": "1.0"},
+        "name": name,
+        "files": list(files),
+    }
+
+    def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
+        start_response(
+            "200 OK",
+            [
+                ("Content-Type", "application/vnd.pypi.simple.v1+json"),
+            ],
+        )
+        return [json.dumps(page).encode("utf-8")]
+
+    return responder
 
 
 def file_response(path: pathlib.Path) -> "WSGIApplication":

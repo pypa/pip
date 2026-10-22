@@ -1,6 +1,26 @@
 import optparse
 
+import pytest
+
 import pip._internal.cli.parser
+
+
+def test_option_error_usage_is_rendered(capsys: pytest.CaptureFixture[str]) -> None:
+    formatter = pip._internal.cli.parser.PrettyHelpFormatter()
+    parser = pip._internal.cli.parser.ConfigOptionParser(
+        usage="\n%prog [options]",
+        name="test",
+        formatter=formatter,
+    )
+
+    with pytest.raises(SystemExit):
+        parser.error("no such option: --updgrade")
+
+    stderr = capsys.readouterr().err
+    assert "no such option: --updgrade" in stderr
+    assert "Usage:" in stderr
+    assert "[optparse." not in stderr
+    assert "\\[options]" not in stderr
 
 
 def test_color_formatter_option_strings() -> None:

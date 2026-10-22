@@ -5,10 +5,16 @@ A module that implements tooling to enable easy warnings about deprecations.
 from __future__ import annotations
 
 import logging
+import os
 import warnings
+from collections.abc import Generator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any, TextIO
 
 from pip._vendor.packaging.version import parse
+from pip._vendor.pyproject_hooks import BuildBackendWarning
+from pip._vendor.rich.text import Text
 
 from pip import __version__ as current_version  # NOTE: tests patch this name.
 
@@ -20,6 +26,19 @@ class PipDeprecationWarning(Warning):
 
 
 _original_showwarning: Any = None
+_build_backend_warning_level = ContextVar(
+    "build_backend_warning_level", default=logging.DEBUG
+)
+
+
+@contextmanager
+def build_backend_warnings(level: int) -> Generator[None, None, None]:
+    """Set the logging level for warnings from this build backend call."""
+    token = _build_backend_warning_level.set(level)
+    try:
+        yield
+    finally:
+        _build_backend_warning_level.reset(token)
 
 
 # Warnings <-> Logging Integration
@@ -42,13 +61,26 @@ def _showwarning(
             logger.warning("%s (%s:%s)", message, filename, lineno)
         else:
             logger.warning(message)
+    elif issubclass(category, BuildBackendWarning):
+        logger = logging.getLogger("pip._internal.build_backend")
+        formatted = warnings.formatwarning(message, category, filename, lineno, line)
+        logger.log(
+            _build_backend_warning_level.get(),
+            "%s",
+            Text(formatted.rstrip()),
+            extra={"rich": True},
+        )
     else:
         _original_showwarning(message, category, filename, lineno, file, line)
 
 
 def install_warning_logger() -> None:
     # Enable our Deprecation Warnings
-    warnings.simplefilter("default", PipDeprecationWarning, append=True)
+    # If we're running pip test suite, promote the PipDeprecationWarning into errors.
+    if os.environ.get("_PIP_TEST_ENV", None):
+        warnings.simplefilter("error", PipDeprecationWarning)
+    else:
+        warnings.simplefilter("default", PipDeprecationWarning, append=True)
 
     global _original_showwarning
 

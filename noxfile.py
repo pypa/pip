@@ -176,6 +176,47 @@ def test(session: nox.Session) -> None:
 
 
 @nox.session
+def typecheck(session: nox.Session) -> None:
+    """Run mypy over the pip source, tests, and tooling.
+
+    The "typecheck" dependency group installs the runtime and test
+    dependencies alongside a few type stub packages (e.g. types-setuptools),
+    so mypy can import and resolve their types directly.
+
+    Vendored dependencies such as requests and urllib3 now ship inline types in
+    their vendored source, so mypy resolves them straight from src/pip/_vendor.
+    Type errors within the vendored packages themselves are an upstream concern
+    and are ignored via tests/typing/pyproject.toml.
+    """
+    run_with_protected_pip(
+        session,
+        "install",
+        "mypy",
+        "--group",
+        "typecheck",
+    )
+
+    mypy_cmd = [
+        "mypy",
+        "--config-file=tests/typing/pyproject.toml",
+    ]
+    if session.posargs:
+        # Allow passing specific files/directories to be checked.
+        mypy_cmd.extend(session.posargs)
+    else:
+        # Otherwise, run against all important files.
+        mypy_cmd.extend(
+            [
+                "src/pip",
+                "tests",
+                "tools",
+                "noxfile.py",
+            ]
+        )
+    session.run(*mypy_cmd)
+
+
+@nox.session
 def docs(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("--group", "docs")
@@ -248,7 +289,7 @@ def vendoring(session: nox.Session) -> None:
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
 
-    session.install("vendoring~=1.2.0")
+    session.install("vendoring~=1.4.0")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
@@ -272,7 +313,7 @@ def vendoring(session: nox.Session) -> None:
             continue
 
         # update requirements.txt
-        session.run("vendoring", "update", ".", name)
+        session.run("vendoring", "update", name)
 
         # get the updated version
         new_version = old_version
@@ -289,7 +330,7 @@ def vendoring(session: nox.Session) -> None:
             continue  # no change, nothing more to do here.
 
         # synchronize the contents
-        session.run("vendoring", "sync", ".")
+        session.run("vendoring", "sync")
 
         # Determine the correct message
         message = f"Upgrade {name} to {new_version}"

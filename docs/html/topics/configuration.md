@@ -2,7 +2,7 @@
 
 # Configuration
 
-pip allows a user to change its behaviour via 3 mechanisms:
+Pip allows a user to change its behaviour via 3 mechanisms:
 
 - command line options
 - environment variables
@@ -22,17 +22,17 @@ and how they are related to pip's various command line options.
 Configuration files can change the default values for command line options.
 The files are written using standard INI format.
 
-pip has 3 "levels" of configuration files:
+Pip has 3 "levels" of configuration files:
 
 - `global`: system-wide configuration file, shared across users.
 - `user`: per-user configuration file.
-- `site`: per-environment configuration file; i.e. per-virtualenv.
+- `site`: per-environment configuration file; i.e. per-virtualenv or python installation.
 
 Additionally, environment variables can be specified which will override any of the above.
 
 ### Location
 
-pip's configuration files are located in fairly standard locations. This
+Pip's configuration files are located in fairly standard locations. This
 location is different on different operating systems, and has some additional
 complexity for backwards compatibility reasons. Note that if user config files
 exist in both the legacy and current locations, values in the current file
@@ -52,23 +52,36 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`. If no virtual environment is activated, `pip.conf` is loaded from the
+  Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ```{tab} MacOS
 
 Global
-: {file}`/Library/Application Support/pip/pip.conf`
+: In a "pip" subdirectory of each path listed in the environment
+  variable `XDG_DATA_DIRS` (if it is non-empty).
+
+  If `XDG_DATA_DIRS` is unset or empty,
+  {file}`/Library/Application Support/pip/pip.conf` is loaded instead
+  (run `pip config debug` to identify the exact paths).
 
 User
-: {file}`$HOME/Library/Application Support/pip/pip.conf`
-  if directory `$HOME/Library/Application Support/pip` exists
-  else {file}`$HOME/.config/pip/pip.conf`
+: The user configuration file is loaded from one of the following
+  locations:
+
+  * {file}`$XDG_DATA_HOME/pip/pip.conf`, if `XDG_DATA_HOME` is
+    non-empty and {file}`$XDG_DATA_HOME/pip` exists.
+  * {file}`$HOME/Library/Application Support/pip/pip.conf`, if
+    `XDG_DATA_HOME` is unset or empty and
+    {file}`$HOME/Library/Application Support/pip` exists.
+  * {file}`$HOME/.config/pip/pip.conf`, otherwise.
 
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`$HOME/.pip/pip.conf`.
 
 Site
-: {file}`$VIRTUAL_ENV/pip.conf`
+: {file}`$VIRTUAL_ENV/pip.conf`. If no virtual environment is activated, `pip.conf` is loaded from the
+  Python installation root (run `pip config debug` to identify the exact path).
 ```
 
 ```{tab} Windows
@@ -86,7 +99,12 @@ User
   The legacy "per-user" configuration file is also loaded, if it exists: {file}`%HOME%\\pip\\pip.ini`
 
 Site
-: {file}`%VIRTUAL_ENV%\\pip.ini`
+: {file}`%VIRTUAL_ENV%\\pip.ini`, If no virtual environment is activated, `pip.ini` is loaded from
+  the Python installation root (run `pip config debug` to identify the exact path).
+```
+
+```{versionchanged} 26.2
+Pip will also respect `XDG_DATA_DIRS` and `XDG_DATA_HOME` on macOS.
 ```
 
 ### `PIP_CONFIG_FILE`
@@ -201,7 +219,7 @@ command line arguments.
 
 ## Environment Variables
 
-pip's command line options can be set with environment variables using the
+Pip's command line options can be set with environment variables using the
 format `PIP_<UPPER_LONG_NAME>` . Dashes (`-`) have to be replaced with
 underscores (`_`).
 

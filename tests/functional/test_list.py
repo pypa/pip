@@ -8,7 +8,9 @@ from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
     TestData,
-    _create_test_package,
+    create_basic_sdist_for_package,
+    create_basic_wheel_for_package,
+    create_test_package,
     create_test_package_with_setup,
     make_wheel,
     wheel,
@@ -326,6 +328,83 @@ def test_outdated_columns_flag(script: PipTestEnvironment, data: TestData) -> No
     assert "simple           1.0     3.0    sdist" in result.stdout, str(result)
     assert "simplewheel      1.0     2.0    wheel" in result.stdout, str(result)
     assert "simple2" not in result.stdout, str(result)  # 3.0 is latest
+
+
+@pytest.mark.parametrize(
+    "binary_option, expected_version, expected_filetype",
+    [
+        ("--no-binary=:all:", "1.5", "sdist"),
+        ("--only-binary=:all:", "1.5", "wheel"),
+        ("--prefer-binary", "1.5", "wheel"),
+    ],
+)
+def test_outdated_respects_binary_options(
+    script: PipTestEnvironment,
+    binary_option: str,
+    expected_version: str,
+    expected_filetype: str,
+) -> None:
+    """Test --outdated reports the best candidate allowed by binary options."""
+    script.pip_install_local("simple==1.0")
+
+    create_basic_wheel_for_package(script, "simple", "1.5")
+    if binary_option == "--no-binary=:all:":
+        create_basic_sdist_for_package(script, "simple", "1.5")
+        create_basic_wheel_for_package(script, "simple", "2.0")
+    else:
+        create_basic_sdist_for_package(script, "simple", "2.0")
+
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        binary_option,
+        "--outdated",
+        "--format=json",
+    )
+    assert json.loads(result.stdout) == [
+        {
+            "name": "simple",
+            "version": "1.0",
+            "latest_version": expected_version,
+            "latest_filetype": expected_filetype,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "binary_option",
+    [
+        "--no-binary=:all:",
+        "--only-binary=:all:",
+        "--prefer-binary",
+    ],
+)
+def test_uptodate_respects_binary_options(
+    script: PipTestEnvironment,
+    binary_option: str,
+) -> None:
+    """Test --uptodate uses binary options when checking for newer releases."""
+    wheel_path = create_basic_wheel_for_package(script, "simple", "1.5")
+    script.pip("install", "--no-index", wheel_path)
+
+    if binary_option == "--no-binary=:all:":
+        create_basic_sdist_for_package(script, "simple", "1.5")
+        create_basic_wheel_for_package(script, "simple", "2.0")
+    else:
+        create_basic_sdist_for_package(script, "simple", "2.0")
+
+    result = script.pip(
+        "list",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        binary_option,
+        "--uptodate",
+        "--format=json",
+    )
+    assert {"name": "simple", "version": "1.5"} in json.loads(result.stdout)
 
 
 @pytest.fixture(scope="session")
@@ -660,6 +739,32 @@ def test_not_required_flag(script: PipTestEnvironment, data: TestData) -> None:
     assert "TopoRequires3 " not in result.stdout
 
 
+def test_not_required_with_exclude_does_not_list_dependencies(
+    script: PipTestEnvironment, data: TestData
+) -> None:
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "-f",
+        data.find_links,
+        "--no-index",
+        "TopoRequires4",
+    )
+
+    result = script.pip(
+        "list",
+        "--not-required",
+        "--exclude",
+        "TopoRequires4",
+        "--format=json",
+    )
+    names = {item["name"] for item in json.loads(result.stdout)}
+    listed_dependencies = names & {"TopoRequires", "TopoRequires2", "TopoRequires3"}
+
+    assert "TopoRequires4" not in names
+    assert not listed_dependencies
+
+
 def test_list_freeze(simple_script: PipTestEnvironment) -> None:
     """
     Test freeze formatting of list command
@@ -778,7 +883,7 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     Test that a package installed with a direct_url.json with editable=true
     is correctly listed as editable.
     """
-    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    pkg_path = create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", "--no-build-isolation", pkg_path)
     direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path

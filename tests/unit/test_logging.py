@@ -1,12 +1,16 @@
 import logging
 import time
-from contextlib import redirect_stderr, redirect_stdout
+from collections.abc import Iterator
+from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from io import StringIO
 from threading import Thread
 from unittest.mock import patch
 
 import pytest
 
+from pip._vendor.pyproject_hooks import BuildBackendWarning
+
+from pip._internal.utils import deprecation
 from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
     IndentingFormatter,
@@ -18,14 +22,50 @@ from pip._internal.utils.logging import (
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.parametrize("fail", [False, True], ids=["return", "exception"])
+def test_build_backend_warning_level_is_scoped(
+    caplog: pytest.LogCaptureFixture, fail: bool
+) -> None:
+    caplog.set_level(logging.DEBUG, logger="pip._internal.build_backend")
+
+    def emit_warning() -> None:
+        deprecation._showwarning(
+            "backend warning", BuildBackendWarning, "backend.py", 1
+        )
+
+    emit_warning()
+    with pytest.raises(ValueError, match="backend failed") if fail else nullcontext():
+        with deprecation.build_backend_warnings(logging.WARNING):
+            emit_warning()
+            with deprecation.build_backend_warnings(logging.DEBUG):
+                emit_warning()
+            emit_warning()
+            if fail:
+                raise ValueError("backend failed")
+    emit_warning()
+
+    assert [record.levelno for record in caplog.records] == [
+        logging.DEBUG,
+        logging.WARNING,
+        logging.DEBUG,
+        logging.WARNING,
+        logging.DEBUG,
+    ]
+
+
 class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
+
+    @pytest.fixture(autouse=True)
+    def utc_logging_formatter(self) -> Iterator[None]:
+        with patch.object(logging.Formatter, "converter", time.gmtime):
+            yield
 
     def make_record(self, msg: str, level_name: str) -> logging.LogRecord:
         level_number = getattr(logging, level_name)
         attrs = {
             "msg": msg,
-            "created": 1547704837.040001 + time.timezone,
+            "created": 1547704837.040001,
             "msecs": 40,
             "levelname": level_name,
             "levelno": level_number,

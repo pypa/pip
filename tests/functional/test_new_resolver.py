@@ -2,7 +2,8 @@ import os
 import pathlib
 import sys
 import textwrap
-from typing import TYPE_CHECKING, Callable, Protocol
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Protocol
 
 import pytest
 
@@ -732,6 +733,8 @@ def test_new_resolver_constraint_no_specifier(script: PipTestEnvironment) -> Non
 def test_new_resolver_constraint_reject_invalid(
     script: PipTestEnvironment, constraint: str, error: str
 ) -> None:
+    # Make sure PipDeprecationWarnings don't turn into errors
+    script.environ["_PIP_TEST_ENV"] = ""
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(constraint)
@@ -814,12 +817,10 @@ def test_new_resolver_constraint_only_marker_match(script: PipTestEnvironment) -
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "3.0")
 
-    constraints_content = textwrap.dedent(
-        """
+    constraints_content = textwrap.dedent("""
         pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
         pkg==2.0; python_version < "0"  # Never satisfies.
-        """
-    ).format(ver=sys.version_info)
+        """).format(ver=sys.version_info)
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text(constraints_content)
 
@@ -1389,6 +1390,29 @@ def test_new_resolver_skip_inconsistent_metadata(script: PipTestEnvironment) -> 
     assert (
         " inconsistent version: expected '3', but metadata has '2'"
     ) in result.stdout, str(result)
+    script.assert_installed(a="1")
+
+
+def test_new_resolver_inconsistent_metadata_keeps_extras(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "A", "1", extras={"foo": []})
+
+    a_2 = create_basic_wheel_for_package(script, "A", "2", extras={"foo": []})
+    a_2.rename(a_2.parent.joinpath("a-3-py2.py3-none-any.whl"))
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "--verbose",
+        "A[foo]",
+        allow_stderr_warning=True,
+    )
+
+    assert "Requested A[foo]" in result.stdout, str(result)
     script.assert_installed(a="1")
 
 

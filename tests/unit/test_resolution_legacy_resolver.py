@@ -78,6 +78,7 @@ def make_test_resolver(
         use_user_site=False,
         force_reinstall=False,
         ignore_dependencies=False,
+        only_dependencies=False,
         ignore_installed=False,
         ignore_requires_python=False,
         upgrade_strategy="to-satisfy-only",

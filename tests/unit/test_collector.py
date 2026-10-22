@@ -14,8 +14,15 @@ import pytest
 
 from pip._vendor import requests
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.urllib3.exceptions import ProxyError, SSLError
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    ConnectionFailedError,
+    ConnectionTimeoutError,
+    NetworkConnectionError,
+    ProxyConnectionError,
+    SSLVerificationError,
+)
 from pip._internal.index.collector import (
     IndexContent,
     LinkCollector,
@@ -86,6 +93,7 @@ def test_get_simple_response_archive_to_http_scheme(
     if the scheme supports it, and raise `_NotAPIContent` if the response isn't HTML.
     """
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
     session.head.return_value = mock.Mock(
         **{
             "request.method": "HEAD",
@@ -122,6 +130,7 @@ def test_get_index_content_invalid_content_type_archive(
     link = Link(url)
 
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
 
     assert _get_index_content(link, session=session) is None
     assert (
@@ -148,6 +157,7 @@ def test_get_simple_response_archive_to_http_scheme_is_html(
     request is responded with text/html.
     """
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
     session.head.return_value = mock.Mock(
         **{
             "request.method": "HEAD",
@@ -165,7 +175,6 @@ def test_get_simple_response_archive_to_http_scheme_is_html(
             url,
             headers={
                 "Accept": ACCEPT,
-                "Cache-Control": "max-age=0",
             },
         ),
     ]
@@ -192,6 +201,7 @@ def test_get_simple_response_no_head(
     look like an archive, only the GET request that retrieves data.
     """
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
 
     # Mock the headers dict to ensure it is accessed.
     session.get.return_value = mock.Mock(
@@ -211,7 +221,6 @@ def test_get_simple_response_no_head(
             url,
             headers={
                 "Accept": ACCEPT,
-                "Cache-Control": "max-age=0",
             },
         ),
         mock.call().headers.get("Content-Type", "Unknown"),
@@ -229,6 +238,7 @@ def test_get_simple_response_dont_log_clear_text_password(
     in its DEBUG log message.
     """
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
 
     # Mock the headers dict to ensure it is accessed.
     session.get.return_value = mock.Mock(
@@ -724,6 +734,7 @@ def test_request_http_error(
     caplog.set_level(logging.DEBUG)
     link = Link("http://localhost")
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
     session.get.return_value = mock.Mock()
     mock_raise_for_status.side_effect = NetworkConnectionError("Http error")
     assert _get_index_content(link, session=session) is None
@@ -734,9 +745,65 @@ def test_request_retries(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG)
     link = Link("http://localhost")
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
     session.get.side_effect = requests.exceptions.RetryError("Retry error")
     assert _get_index_content(link, session=session) is None
     assert "Could not fetch URL http://localhost: Retry error - skipping" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "error, expected",
+    [
+        (
+            SSLVerificationError(
+                "https://localhost",
+                "localhost",
+                SSLError("bad certificate"),
+            ),
+            "There was a problem confirming the ssl certificate: bad certificate",
+        ),
+        (
+            ConnectionFailedError(
+                "http://localhost",
+                "localhost",
+                ConnectionError("Network error"),
+            ),
+            "connection error: Network error",
+        ),
+        (
+            ProxyConnectionError(
+                "http://localhost",
+                "http://proxy.example.com",
+                ProxyError("Cannot connect to proxy", OSError("Network error")),
+            ),
+            "proxy connection error:",
+        ),
+        (
+            ConnectionTimeoutError(
+                "http://localhost",
+                "localhost",
+                kind="read",
+                timeout=2,
+            ),
+            "localhost didn't respond within 2 seconds",
+        ),
+    ],
+)
+@mock.patch("pip._internal.index.collector._get_simple_response")
+def test_get_index_content_handles_diagnostic_connection_errors(
+    mock_get_simple_response: mock.Mock,
+    caplog: pytest.LogCaptureFixture,
+    error: Exception,
+    expected: str,
+) -> None:
+    """Diagnostic connection errors should be logged and skipped by the collector."""
+    caplog.set_level(logging.DEBUG)
+    link = Link("http://localhost")
+    session = mock.Mock(PipSession)
+    mock_get_simple_response.side_effect = error
+
+    assert _get_index_content(link, session=session) is None
+    assert expected in caplog.text
 
 
 def test_make_index_content() -> None:
@@ -802,6 +869,7 @@ def test_get_index_content_invalid_content_type(
     link = Link(url)
 
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
     session.get.return_value = mock.Mock(
         **{
             "request.method": "GET",
@@ -823,14 +891,12 @@ def make_fake_html_response(url: str) -> mock.Mock:
     """
     Create a fake requests.Response object.
     """
-    html = dedent(
-        """\
+    html = dedent("""\
     <html><head><meta name="api-version" value="2" /></head>
     <body>
     <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
     </body></html>
-    """
-    )
+    """)
     content = html.encode("utf-8")
     return mock.Mock(content=content, url=url, headers={"Content-Type": "text/html"})
 
@@ -843,13 +909,14 @@ def test_get_index_content_directory_append_index(tmpdir: Path) -> None:
     expected_url = "{}/index.html".format(dir_url.rstrip("/"))
 
     session = mock.Mock(PipSession)
+    session.refresh_package = set()
     fake_response = make_fake_html_response(expected_url)
     mock_func = mock.patch("pip._internal.index.collector._get_simple_response")
     with mock_func as mock_func:
         mock_func.return_value = fake_response
         actual = _get_index_content(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
-            mock.call(expected_url, session=session),
+            mock.call(expected_url, session=session, force_revalidate=False),
         ], f"actual calls: {mock_func.mock_calls}"
 
         assert actual is not None
@@ -966,6 +1033,7 @@ class TestLinkCollector:
         mock_get_simple_response.assert_called_once_with(
             url,
             session=link_collector.session,
+            force_revalidate=False,
         )
 
     def test_collect_page_sources(
@@ -1008,11 +1076,9 @@ class TestLinkCollector:
         # Check that index URLs are marked as *un*cacheable.
         assert not pages[0].link.cache_link_parsing
 
-        expected_message = dedent(
-            """\
+        expected_message = dedent("""\
         1 location(s) to search for versions of twine:
-        * https://pypi.org/simple/twine/"""
-        )
+        * https://pypi.org/simple/twine/""")
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]
@@ -1054,11 +1120,9 @@ class TestLinkCollector:
         assert len(files) > 0
         check_links_include(files, names=["singlemodule-0.0.1.tar.gz"])
 
-        expected_message = dedent(
-            """\
+        expected_message = dedent("""\
         1 location(s) to search for versions of singlemodule:
-        * https://pypi.org/simple/singlemodule/"""
-        )
+        * https://pypi.org/simple/singlemodule/""")
         assert caplog.record_tuples == [
             ("pip._internal.index.collector", logging.DEBUG, expected_message),
         ]

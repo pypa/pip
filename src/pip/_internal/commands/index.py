@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from optparse import Values
-from typing import Any, Callable
+from typing import Any
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
@@ -16,7 +16,12 @@ from pip._internal.commands.search import (
     get_installed_distribution,
     print_dist_installation_info,
 )
-from pip._internal.exceptions import CommandError, DistributionNotFound, PipError
+from pip._internal.exceptions import (
+    CommandError,
+    DiagnosticPipError,
+    DistributionNotFound,
+    PipError,
+)
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -80,6 +85,8 @@ class IndexCommand(IndexGroupCommand):
         # Error handling happens here, not in the action-handlers.
         try:
             handler_map[action](options, args[1:])
+        except DiagnosticPipError:
+            raise
         except PipError as e:
             logger.error(e.args[0])
             return ERROR

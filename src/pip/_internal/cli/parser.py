@@ -11,15 +11,17 @@ import sys
 import textwrap
 from collections.abc import Generator
 from contextlib import suppress
-from typing import Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from pip._vendor.rich.markup import escape
 from pip._vendor.rich.theme import Theme
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
-from pip._internal.utils.logging import PipConsole
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
+
+if TYPE_CHECKING:
+    from pip._internal.utils.logging import PipConsole
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +214,6 @@ class ConfigOptionParser(CustomOptionParser):
     ) -> None:
         self.name = name
         self.config = Configuration(isolated)
-
         assert self.name
         super().__init__(*args, **kwargs)
 
@@ -220,7 +221,14 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            print(f"An error occurred during configuration: {exc}")
+            logger.error(
+                "An error occurred during configuration: %s. "
+                "Check your pip configuration files or "
+                "environment variables for this value. "
+                "See https://pip.pypa.io/en/stable/topics/configuration/ "
+                "for more information.",
+                exc,
+            )
             sys.exit(3)
 
     def _get_ordered_configuration_items(
@@ -344,7 +352,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.print_usage(sys.stderr)
         self.exit(UNKNOWN_ERROR, f"{msg}\n")
 
-    def print_help(self, file: Any = None) -> None:
+    def _create_console_for_help(self, file: Any = None) -> PipConsole:
         # This is unfortunate but necessary since arguments may have not been
         # parsed yet at this point, so detect --no-color manually.
         no_color = (
@@ -352,7 +360,19 @@ class ConfigOptionParser(CustomOptionParser):
             or bool(strtobool(os.environ.get("PIP_NO_COLOR", "no") or "no"))
             or "NO_COLOR" in os.environ
         )
-        console = PipConsole(
+        # Imported lazily: rich's console stack is only needed when help is
+        # actually rendered, not when this module is imported for `--version`.
+        from pip._internal.utils.logging import PipConsole
+
+        return PipConsole(
             theme=Theme(PrettyHelpFormatter.styles), no_color=no_color, file=file
         )
+
+    def print_usage(self, file: Any = None) -> None:
+        if self.usage:
+            console = self._create_console_for_help(file)
+            console.print(self.get_usage(), highlight=False)
+
+    def print_help(self, file: Any = None) -> None:
+        console = self._create_console_for_help(file)
         console.print(self.format_help().rstrip(), highlight=False)

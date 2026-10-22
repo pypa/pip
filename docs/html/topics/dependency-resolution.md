@@ -1,6 +1,6 @@
 # Dependency Resolution
 
-pip is capable of determining and installing the dependencies of packages. The
+Pip is capable of determining and installing the dependencies of packages. The
 process of determining which version of a dependency to install is known as
 dependency resolution. This behaviour can be disabled by passing
 {any}`--no-deps` to {any}`pip install`.
@@ -21,7 +21,7 @@ package.
 ## Backtracking
 
 ```{versionchanged} 20.3
-pip's dependency resolver is now capable of backtracking.
+Pip's dependency resolver is now capable of backtracking.
 ```
 
 During dependency resolution, pip needs to make assumptions about the package
@@ -39,7 +39,7 @@ of how dependency resolution for Python packages works.
 The user requests `pip install tea`. The package `tea` declares a dependency on
 `hot-water`, `spoon`, `cup`, amongst others.
 
-pip starts by picking the most recent version of `tea` and gets the list of
+Pip starts by picking the most recent version of `tea` and gets the list of
 dependencies of that version of `tea`. It will then repeat the process for
 those packages, picking the most recent version of `spoon` and then `cup`. Now,
 pip notices that the version of `cup` it has chosen is not compatible with the

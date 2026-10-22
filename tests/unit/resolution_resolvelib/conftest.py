@@ -48,6 +48,7 @@ def preparer(finder: PackageFinder) -> Iterator[RequirementPreparer]:
                     finder=finder,
                     use_user_site=False,
                     verbosity=0,
+                    allow_editables=True,
                 )
 
                 yield preparer
@@ -74,6 +75,7 @@ def provider(factory: Factory) -> PipProvider:
         factory=factory,
         constraints={},
         ignore_dependencies=False,
+        only_dependencies=False,
         upgrade_strategy="to-satisfy-only",
         user_requested={},
     )

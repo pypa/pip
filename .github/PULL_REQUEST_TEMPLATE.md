@@ -1,10 +1,17 @@
 <!---
-Thank you for your soon to be pull request. Before you submit this, please
-double check to make sure that you've added a news file fragment. In pip we
-generate our NEWS.rst from multiple news fragment files, and all pull requests
-require either a news file fragment or a marker to indicate they don't require
-one.
-
-To read more about adding a news file fragment for your PR, please check out
-our documentation at: https://pip.pypa.io/en/latest/development/contributing/#news-entries
+Thank you for your pull request! Before submitting, please make sure you've:
+- Read the CONTRIBUTING.md file carefully
+- Added a news file fragment (see https://pip.pypa.io/en/latest/development/contributing/#news-entries)
 -->
+
+## What does this PR do?
+
+<!-- What problem does this solve? Include the issue number if applicable. -->
+
+## PR Checklist:
+<!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
+- [ ] I agree to follow the [PSF Code of Conduct](https://www.python.org/psf/conduct/).
+- [ ] I have read and have followed the [CONTRIBUTING.md](https://github.com/pypa/pip/blob/main/.github/CONTRIBUTING.md) file.
+- [ ] I have added a news file fragment (or this PR does not need one).
+- [ ] I have read and followed the [AI_POLICY.md](https://github.com/pypa/pip/blob/main/AI_POLICY.md) file, and if any AI tools were used, I have disclosed it below.
+<!-- If checked and you have used AI tools, add a line below: Assisted-by: <tool name, e.g. Claude> -->

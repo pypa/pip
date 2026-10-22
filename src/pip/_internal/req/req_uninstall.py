@@ -4,8 +4,9 @@ import functools
 import os
 import sys
 import sysconfig
-from collections.abc import Generator, Iterable
-from typing import Any, Callable
+from collections.abc import Callable, Generator, Iterable
+from importlib.util import cache_from_source
+from typing import Any
 
 from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
 from pip._internal.locations import get_bin_prefix, get_bin_user
@@ -95,14 +96,19 @@ def compact(paths: Iterable[str]) -> set[str]:
 
     sep = os.path.sep
     short_paths: set[str] = set()
+    prefixes: set[str] = set()
+
     for path in sorted(paths, key=len):
-        should_skip = any(
-            path.startswith(shortpath.rstrip("*"))
-            and path[len(shortpath.rstrip("*").rstrip(sep))] == sep
-            for shortpath in short_paths
-        )
-        if not should_skip:
+        current = path[:-1] if path.endswith(sep + "*") else path
+        parent = current.rstrip(sep)
+        while parent:
+            if parent in prefixes:
+                break
+            next_parent = os.path.dirname(parent).rstrip(sep)
+            parent = "" if next_parent == parent else next_parent
+        else:
             short_paths.add(path)
+            prefixes.add(current.rstrip(sep))
     return short_paths
 
 
@@ -336,14 +342,8 @@ class UninstallPathSet:
 
         # __pycache__ files can show up after 'installed-files.txt' is created,
         # due to imports
-        # Add the adjacent __pycache__ directory to the UninstallPathSet when a
-        # .py file is removed. We do this to avoid the risk of orphaned .pyc
-        # files created by a different interpreter version than the one running
-        # pip at the time of package installation and uninstallation or an
-        # interpreter run at a different optimization level (PYTHONOPTIMIZE).
         if os.path.splitext(path)[1] == ".py":
-            pycache = os.path.join(os.path.dirname(path), "__pycache__")
-            self.add(pycache)
+            self.add(cache_from_source(path))
 
     def add_pth(self, pth_file: str, entry: str) -> None:
         pth_file = self._normalize_path_cached(pth_file)

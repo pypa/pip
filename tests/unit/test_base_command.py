@@ -1,31 +1,51 @@
 from __future__ import annotations
 
+import importlib
 import logging
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from optparse import Values
 from pathlib import Path
-from typing import Callable, NoReturn
+from typing import NoReturn
 from unittest.mock import Mock, patch
 
 import pytest
 
+from pip._internal.cli import base_command
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.cli.status_codes import (
+    BROKEN_STDOUT,
+    SUCCESS,
+    UNKNOWN_ERROR,
+    VIRTUALENV_NOT_FOUND,
+)
+from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
+
+
+@pytest.fixture(autouse=True)
+def restore_logging_level() -> Iterator[None]:
+    """Restore the root level after a command configures logging."""
+    logger = logging.getLogger()
+    level = logger.level
+    yield
+    logger.setLevel(level)
 
 
 @pytest.fixture
 def fixed_time() -> Iterator[None]:
     # Patch time so logs contain a constant timestamp. time.time_ns is used by
     # logging starting with Python 3.13.
-    year2019 = 1547704837.040001 + time.timezone
-    with patch("time.time", lambda: year2019):
-        with patch("time.time_ns", lambda: int(year2019 * 1e9)):
-            yield
+    year2019 = 1547704837.040001
+    with (
+        patch("time.time", lambda: year2019),
+        patch("time.time_ns", lambda: int(year2019 * 1e9)),
+        patch.object(logging.Formatter, "converter", time.gmtime),
+    ):
+        yield
 
 
 class FakeCommand(Command):
@@ -75,7 +95,7 @@ class TestCommand:
 
         cmd = FakeCommand(run_func=raise_broken_stdout)
         status = cmd.main(args)
-        assert status == 1
+        assert status == BROKEN_STDOUT
         stderr = capfd.readouterr().err
 
         return stderr
@@ -87,6 +107,7 @@ class TestCommand:
         stderr = self.call_main(capfd, [])
 
         assert stderr.rstrip() == "ERROR: Pipe to stdout was broken"
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
     def test_raise_broken_stdout__debug_logging(
         self, capfd: pytest.CaptureFixture[str]
@@ -98,6 +119,7 @@ class TestCommand:
 
         assert "ERROR: Pipe to stdout was broken" in stderr
         assert "Traceback (most recent call last):" in stderr
+        assert "Exception ignored on flushing sys.stdout:" not in stderr
 
 
 @patch("pip._internal.cli.index_command.Command.pip_version_check")
@@ -216,3 +238,50 @@ def test_base_command_local_tempdir_cleanup(kind: str, exists: bool) -> None:
     c.run = Mock(side_effect=create_temp_dirs)  # type: ignore[method-assign]
     assert c.main(["fake"]) == SUCCESS
     c.run.assert_called_once()
+
+
+def test_require_virtualenv_exits_when_not_in_venv(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(base_command, "running_under_virtualenv", lambda: False)
+
+    cmd = create_command("install")
+    with pytest.raises(SystemExit) as excinfo:
+        cmd.main(["--require-virtualenv", "pip"])
+
+    assert excinfo.value.code == VIRTUALENV_NOT_FOUND
+
+
+def test_require_virtualenv_is_ignored_by_opt_out_commands(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(base_command, "running_under_virtualenv", lambda: False)
+
+    cmd = create_command("help")
+    assert cmd.main(["--require-virtualenv"]) == SUCCESS
+
+
+def test_commands_ignore_require_virtualenv_is_explicit() -> None:
+    commands_that_require_venv = ["download", "install", "lock", "uninstall", "wheel"]
+
+    for name, info in commands_dict.items():
+        module = importlib.import_module(info.module_path)
+        command_class = getattr(module, info.class_name)
+        assert not command_class.ignore_require_venv == (
+            name in commands_that_require_venv
+        )
+
+
+@pytest.mark.parametrize("command_name", commands_dict)
+def test_commands_reject_version_option(
+    command_name: str,
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    cmd = create_command(command_name)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cmd.main(["--version"])
+    stderr = capfd.readouterr().err
+
+    assert excinfo.value.code == UNKNOWN_ERROR
+    assert "no such option: --version" in stderr

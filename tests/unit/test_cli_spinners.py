@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from io import StringIO
-from typing import Callable
 from unittest.mock import Mock
 
 import pytest

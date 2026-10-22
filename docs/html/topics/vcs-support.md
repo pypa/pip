@@ -1,7 +1,7 @@
 (vcs support)=
 # VCS Support
 
-pip supports installing from various version control systems (VCS).
+Pip supports installing from various version control systems (VCS).
 This support requires a working executable to be available (for the version
 control system being used). It is used through URL prefixes:
 
@@ -64,6 +64,12 @@ MyProject @ git+https://git.example.com/MyProject.git@refs/pull/123/head
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
+
+Pip requests partial clones by default when using Git 2.17 or later, and will
+detect when git advertises support for partial clones. If a Git server or
+network configuration incorrectly claims to support partial clones, but does
+not do so in practice, setting `PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER=1`
+will force pip to ignore the claim and use a full clone.
 
 ### Mercurial
 
@@ -155,11 +161,11 @@ take on the VCS requirement (not the commit itself).
 
 ## URL fragments
 
-pip looks at the `subdirectory` fragments of VCS URLs for specifying the path to the
+Pip looks at the `subdirectory` fragments of VCS URLs for specifying the path to the
 Python package, when it is not in the root of the VCS directory.
 
 ```{note}
-pip also supports an `egg` fragment to specify the "project name". This is a legacy
+Pip also supports an `egg` fragment to specify the "project name". This is a legacy
 feature and its use is discouraged in favour of the
 {ref}`Direct URL <pypug:dependency-specifiers>` form.
 

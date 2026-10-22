@@ -48,17 +48,13 @@ def test_basic_uninstall_distutils(script: PipTestEnvironment) -> None:
     """
     script.scratch_path.joinpath("distutils_install").mkdir()
     pkg_path = script.scratch_path / "distutils_install"
-    pkg_path.joinpath("setup.py").write_text(
-        textwrap.dedent(
-            """
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from distutils.core import setup
         setup(
             name='distutils-install',
             version='0.1',
         )
-    """
-        )
-    )
+    """))
     result = script.run("python", os.fspath(pkg_path / "setup.py"), "install")
     result = script.pip("list", "--format=json")
     script.assert_installed(distutils_install="0.1")
@@ -457,19 +453,13 @@ def test_uninstall_from_reqs_file(script: PipTestEnvironment, tmpdir: Path) -> N
         "svn+http://svn.colorstudy.com/INITools",
         tmpdir,
     )
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
             -e {url}#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """
-        ).format(url=local_svn_url)
-    )
+        """).format(url=local_svn_url))
     result = script.pip("install", "-r", "test-req.txt")
-    script.scratch_path.joinpath("test-req.txt").write_text(
-        textwrap.dedent(
-            """
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
             # -f, -i, and --extra-index-url should all be ignored by uninstall
             -f http://www.example.com
             -i http://www.example.com
@@ -478,9 +468,7 @@ def test_uninstall_from_reqs_file(script: PipTestEnvironment, tmpdir: Path) -> N
             -e {url}#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """
-        ).format(url=local_svn_url)
-    )
+        """).format(url=local_svn_url))
     result2 = script.pip("uninstall", "-r", "test-req.txt", "-y")
     assert_all_changes(
         result,

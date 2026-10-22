@@ -2,7 +2,7 @@
 Development
 ===========
 
-pip is a volunteer maintained open source project and we welcome contributions
+Pip is a volunteer maintained open source project and we welcome contributions
 of all forms. The sections below will help you get started with development,
 testing, and documentation.
 

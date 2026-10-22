@@ -15,8 +15,7 @@ def patch_check_externally_managed(
     # Since the tests are run from a virtual environment, and we can't
     # guarantee access to the actual stdlib location (where EXTERNALLY-MANAGED
     # needs to go into), we patch the check to always raise a simple message.
-    virtualenv.sitecustomize = textwrap.dedent(
-        """\
+    virtualenv.sitecustomize = textwrap.dedent("""\
         from pip._internal.exceptions import ExternallyManagedEnvironment
         from pip._internal.utils import misc
 
@@ -24,8 +23,7 @@ def patch_check_externally_managed(
             raise ExternallyManagedEnvironment("I am externally managed")
 
         misc.check_externally_managed = check_externally_managed
-        """
-    )
+        """)
     # The ubuntu-24.04 GitHub Actions runner has /etc/pip.conf that sets
     # break-system-packages = true, which causes pip to skip the
     # externally-managed check entirely. Override it here so the
