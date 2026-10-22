@@ -8,6 +8,7 @@ import pytest
 from pip._internal.exceptions import InvalidEggFragment, PipError
 from pip._internal.models.link import (
     Link,
+    MetadataFile,
     as_path_component,
     join_within_directory,
     links_equivalent,
@@ -252,6 +253,43 @@ class TestLink:
     def test_is_vcs(self, url: str, expected: bool) -> None:
         link = Link(url)
         assert link.is_vcs is expected
+
+    @pytest.mark.parametrize(
+        "url, expected",
+        [
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata",
+            ),
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl#sha256=123",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata",
+            ),
+            # The .metadata suffix goes on the path, not after the query (#14357).
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl?token=<redacted>",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata?token=<redacted>",
+            ),
+            (
+                "https://example.com/files/demo-1.0-py3-none-any.whl?sig=xyz&token=<redacted>#sha256=123",
+                "https://example.com/files/demo-1.0-py3-none-any.whl.metadata?sig=xyz&token=<redacted>",
+            ),
+            (
+                "file:///tmp/demo-1.0-py3-none-any.whl?token=<redacted>",
+                "file:///tmp/demo-1.0-py3-none-any.whl.metadata?token=<redacted>",
+            ),
+        ],
+    )
+    def test_metadata_link(self, url: str, expected: str) -> None:
+        link = Link(url, metadata_file_data=MetadataFile({"sha256": "abcdef"}))
+        metadata_link = link.metadata_link()
+        assert metadata_link is not None
+        assert metadata_link.url == expected
+        assert metadata_link._hashes == {"sha256": "abcdef"}
+
+    def test_metadata_link_none(self) -> None:
+        link = Link("https://example.com/files/demo-1.0-py3-none-any.whl")
+        assert link.metadata_link() is None
 
 
 @pytest.mark.parametrize(
