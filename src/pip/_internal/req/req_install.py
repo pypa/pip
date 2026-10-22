@@ -501,6 +501,11 @@ class InstallRequirement:
             self._pep517_backend_spec,
             backend_path=self._pep517_backend_path,
             python_executable=python_executable,
+            backend_warning_level=(
+                logging.WARNING
+                if self.link and self.link.is_existing_dir()
+                else logging.DEBUG
+            ),
         )
 
     def editable_sanity_check(self) -> None:
