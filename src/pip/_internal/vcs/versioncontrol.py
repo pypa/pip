@@ -16,7 +16,7 @@ from typing import (
 
 from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
-from pip._internal.models.direct_url import DirectUrl, VcsInfo
+from pip._internal.models.direct_url import DirectUrl
 from pip._internal.utils.misc import (
     HiddenText,
     ask_path_exists,
@@ -98,6 +98,26 @@ def find_path_to_project_root_from_repo_root(
         return None
 
     return os.path.relpath(location, repo_root)
+
+
+def redact_remote_url(url: str) -> str:
+    """
+    Remove credentials from a repository remote URL, using the same rule as
+    the "url" field of direct_url.json (PEP 610): user:password is dropped
+    unless it consists of ${VAR} references or is the "git" user. In addition,
+    a user name without a password is kept on ssh URLs, where it selects the
+    remote account (e.g. "ssh://hg@host/repo") and is not a secret.
+
+    Raises ValueError if the URL cannot be parsed.
+    """
+    parsed = urllib.parse.urlsplit(url)
+    safe_user_passwords = ["git"]
+    user_info = parsed.netloc.rpartition("@")[0]
+    is_ssh = parsed.scheme == "ssh" or parsed.scheme.endswith("+ssh")
+    if is_ssh and user_info and ":" not in user_info:
+        safe_user_passwords.append(user_info)
+    direct_url = DirectUrl(url=url)
+    return direct_url.to_dict(safe_user_passwords=safe_user_passwords)["url"]
 
 
 class RemoteNotFoundError(Exception):
@@ -295,22 +315,22 @@ class VersionControl:
             {repository_url}@{revision}#egg={project_name}
         """
         repo_url = cls.get_remote_url(repo_dir)
-        revision = cls.get_requirement_revision(repo_dir)
 
         # The remote URL comes from the checkout's own configuration and may
         # embed credentials (e.g. after "git clone https://user:token@host/x").
-        # Those must not be written into the requirement. Apply the same rule
-        # as the "url" field of direct_url.json (PEP 610), which is what
-        # freeze already emits for non-editable VCS installs: drop the
-        # user:password part unless it consists of ${VAR} references or is a
-        # safe username such as "git".
-        repo_url = DirectUrl(
-            url=repo_url, vcs_info=VcsInfo(vcs=cls.name, commit_id=revision)
-        ).to_dict()["url"]
+        # Those must not be written into the requirement.
+        try:
+            repo_url = redact_remote_url(repo_url)
+        except ValueError:
+            # Don't include the URL, as it may contain the credentials.
+            raise InstallationError(
+                "Could not parse the remote URL of the repository"
+            ) from None
 
         if cls.should_add_vcs_url_prefix(repo_url):
             repo_url = f"{cls.name}+{repo_url}"
 
+        revision = cls.get_requirement_revision(repo_dir)
         subdir = cls.get_subdirectory(repo_dir)
         req = make_vcs_requirement_url(repo_url, revision, project_name, subdir=subdir)
 
