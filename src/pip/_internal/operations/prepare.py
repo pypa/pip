@@ -437,7 +437,8 @@ class RequirementPreparer:
         # (For example, we can raise VcsHashUnsupported for a VCS URL
         # rather than HashMissing.)
         if not self.require_hashes:
-            return req.hashes(trust_internet=True)
+            # An index-provided hash must not override one supplied by the user.
+            return req.hashes(trust_internet=not req.has_hash_options)
 
         # We could check these first 2 conditions inside unpack_url
         # and save repetition of conditions, but then we would
