@@ -1,0 +1,1 @@
+Reject extra arguments to ``pip debug`` instead of silently ignoring them.
