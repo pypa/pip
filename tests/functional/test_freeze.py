@@ -241,7 +241,7 @@ def test_freeze_editable_git_strips_credentials(script: PipTestEnvironment) -> N
     Test that credentials in the remote url of an editable Git install
     are not written to the freeze output.
     """
-    pkg_path = _create_test_package(script.scratch_path)
+    pkg_path = create_test_package(script.scratch_path)
     script.run(
         "git",
         "remote",
