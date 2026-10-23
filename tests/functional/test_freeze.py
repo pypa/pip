@@ -920,3 +920,9 @@ def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
         json.dump(direct_url_dict, f)
     result = script.pip("freeze")
     assert "# Editable Git install with no remote (testpkg==0.1)" in result.stdout
+
+
+def test_freeze_rejects_extra_argument(script: PipTestEnvironment) -> None:
+    result = script.pip("freeze", "unexpected_arg", expect_error=True)
+    assert "ERROR: Too many arguments" in result.stderr
+    assert result.returncode != 0
