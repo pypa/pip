@@ -11,8 +11,50 @@ import pytest
 from pip._internal.cli.cmdoptions import (
     _convert_python_version,
     _handle_uploaded_prior_to,
+    check_dist_restriction,
 )
 from pip._internal.cli.main_parser import identify_python_interpreter
+from pip._internal.commands.download import DownloadCommand
+from pip._internal.exceptions import CommandError
+
+
+@pytest.mark.parametrize(
+    "restriction",
+    [
+        ("--python-version", "3.10"),
+        ("--platform", "win_amd64"),
+        ("--abi", "cp310"),
+        ("--implementation", "cp"),
+    ],
+)
+@pytest.mark.parametrize("source_option", ["-r", "--group"])
+def test_pylock_rejects_target_restrictions(
+    restriction: tuple[str, str], source_option: str
+) -> None:
+    command = DownloadCommand(name="download", summary="")
+    command.parser.set_defaults(dependency_groups=[])
+    source = "pylock.toml:dev" if source_option == "--group" else "pylock.toml"
+    options, _ = command.parse_args(
+        ["--only-binary=:all:", *restriction, source_option, source]
+    )
+
+    with pytest.raises(CommandError, match="not supported when selecting requirements"):
+        check_dist_restriction(options)
+
+
+@pytest.mark.parametrize("source", ["pyproject.toml", "http://[local/pyproject.toml"])
+def test_project_groups_allow_target_restrictions(source: str) -> None:
+    command = DownloadCommand(name="download", summary="")
+    command.parser.set_defaults(dependency_groups=[])
+    options, _ = command.parse_args(
+        [
+            "--only-binary=:all:",
+            "--python-version=3.10",
+            f"--group={source}:dev",
+        ]
+    )
+
+    check_dist_restriction(options)
 
 
 @pytest.mark.parametrize(

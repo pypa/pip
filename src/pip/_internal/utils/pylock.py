@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import re
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -17,6 +16,7 @@ from pip._vendor.packaging.pylock import (
     Pylock,
     is_valid_pylock_path,
 )
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import DiagnosticPipError, InstallationError
@@ -129,16 +129,19 @@ def pylock_from_install_requirements(
     )
 
 
-_SCHEME_RE = re.compile("^(http|https|file)://", re.IGNORECASE)
-
-
 def _is_url(s: str) -> bool:
-    return bool(_SCHEME_RE.match(s))
+    return s.lower().startswith(("http:", "https:", "file:"))
 
 
-def is_valid_pylock_filename(filename: str) -> bool:
+def is_valid_pylock_filename(filename: str, *, allow_urls: bool = True) -> bool:
+    """Check a lock source's filename, optionally restricting it to local paths."""
     if _is_url(filename):
-        path = Path(urlsplit(filename).path.rpartition("/")[-1])
+        if not allow_urls:
+            return False
+        try:
+            path = Path(urlsplit(filename).path.rpartition("/")[-1])
+        except ValueError:
+            return False
     else:
         path = Path(filename)
     return is_valid_pylock_path(path)
@@ -156,12 +159,12 @@ def _package_dist_url(
         if not os.path.isabs(path):
             # relative path, join to pylock location
             if _is_url(pylock_path_or_url):
-                dist_url = urljoin(pylock_path_or_url, path)
+                base = urlsplit(pylock_path_or_url)
+                dist_url = urljoin(base.geturl(), path)
                 # os.path.isabs does not treat a scheme-carrying value like
                 # "file:..." as absolute, so it reaches here and urljoin honors
                 # its scheme, discarding the pylock base. Only keep the result
                 # if its scheme and host still match the lock's own.
-                base = urlsplit(pylock_path_or_url)
                 target = urlsplit(dist_url)
                 if (target.scheme, target.netloc) != (base.scheme, base.netloc):
                     raise InstallationError(
@@ -220,7 +223,9 @@ def package_archive_requirement_url(
 def package_directory_requirement_url(
     pylock_path_or_url: str, package_directory: PackageDirectory
 ) -> str:
-    if _is_url(pylock_path_or_url) and not pylock_path_or_url.startswith("file://"):
+    if _is_url(pylock_path_or_url) and not pylock_path_or_url.lower().startswith(
+        "file:"
+    ):
         raise InstallationError(
             f"Directory entries are not supported in remote pylock.toml "
             f"{pylock_path_or_url!r}"
@@ -250,9 +255,8 @@ def package_wheel_requirement_url(
 
 def _get_pylock_path_or_url_content(path_or_url: str, session: PipSession) -> str:
     # TODO: refactor - this is similar to req_file.get_file_content
-    scheme = urlsplit(path_or_url).scheme
     # Pip has special support for file:// URLs (LocalFSAdapter).
-    if scheme in ["http", "https", "file"]:
+    if _is_url(path_or_url):
         # Delay importing heavy network modules until absolutely necessary.
         from pip._internal.network.utils import raise_for_status
 
@@ -267,6 +271,9 @@ def _get_pylock_path_or_url_content(path_or_url: str, session: PipSession) -> st
 def select_from_pylock_path_or_url(
     pylock_path_or_url: str,
     session: PipSession,
+    *,
+    dependency_groups: Iterable[str] = (),
+    include_default_groups: bool = True,
 ) -> Iterator[
     tuple[
         Package,
@@ -289,10 +296,26 @@ def select_from_pylock_path_or_url(
             f"Invalid pylock file {pylock_path_or_url!r}: {exc}"
         ) from exc
 
+    available_groups = {
+        canonicalize_name(name) for name in lock.dependency_groups or ()
+    }
+    selected_groups: set[str] = {canonicalize_name(name) for name in dependency_groups}
+    unknown_groups = selected_groups - available_groups
+    if unknown_groups:
+        requested = ", ".join(repr(name) for name in sorted(unknown_groups))
+        choices = ", ".join(repr(name) for name in sorted(available_groups)) or "none"
+        raise InstallationError(
+            f"Unknown dependency group(s) {requested} "
+            f"in pylock file {pylock_path_or_url!r}. "
+            f"Available dependency group(s): {choices}."
+        )
+    if include_default_groups:
+        selected_groups.update(lock.default_groups or ())
+
     try:
         # TODO: for completeness, pylock.select should support preferring sdist
         # over wheels to support --no-binary
-        yield from lock.select()
+        yield from lock.select(dependency_groups=selected_groups)
     except Exception as exc:
         raise InstallationError(
             f"Cannot select requirements from pylock file {pylock_path_or_url!r}: {exc}"
