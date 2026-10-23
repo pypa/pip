@@ -42,3 +42,11 @@ def test_inspect_basic(simple_script: PipTestEnvironment) -> None:
     assert installed_by_name["simplewheel"]["requested"] is True
     assert installed_by_name["simplewheel"]["installer"] == "pip"
     assert "environment" in report
+
+
+def test_inspect_rejects_extra_argument(
+    simple_script: PipTestEnvironment,
+) -> None:
+    result = simple_script.pip("inspect", "unexpected_arg", expect_error=True)
+    assert "ERROR: Too many arguments" in result.stderr
+    assert result.returncode != 0
