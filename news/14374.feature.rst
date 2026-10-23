@@ -1,0 +1,1 @@
+Use truststore by default and add ``legacy-mixed-certs`` to ``--use-deprecated`` if a user wants to use the old mixed behavior
