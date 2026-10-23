@@ -13,7 +13,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.git import Git
 
-from tests.lib import _create_test_package
+from tests.lib import create_test_package
 
 
 @pytest.mark.parametrize(
@@ -60,7 +60,7 @@ def test_should_cache(req: ReqMock, expected: bool) -> None:
 
 
 def test_should_cache_git_sha(tmpdir: Path) -> None:
-    repo_path = os.fspath(_create_test_package(tmpdir, name="mypkg"))
+    repo_path = os.fspath(create_test_package(tmpdir, name="mypkg"))
     commit = Git.get_revision(repo_path)
 
     # a link referencing a sha should be cached
