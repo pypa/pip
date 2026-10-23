@@ -1,0 +1,2 @@
+Allow ``--group`` to select non-default groups from local pylock files,
+e.g. ``--group pylock.toml:docs``.

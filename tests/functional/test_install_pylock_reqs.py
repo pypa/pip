@@ -1,7 +1,198 @@
 import json
+from hashlib import sha256
 from pathlib import Path
 
-from tests.lib import PipTestEnvironment, TestData
+import pytest
+import tomli_w
+
+from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.pylock import Package, PackageWheel, Pylock
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import Version
+
+from tests.lib import PipTestEnvironment, TestData, make_wheel
+
+
+@pytest.fixture
+def selection_lock(script: PipTestEnvironment) -> Path:
+    """Create wheels for defaults and selected groups, including a version switch."""
+    records = [
+        ("always", "1", None),
+        ("runtime", "1", "'runtime' in dependency_groups"),
+        ("switch", "1", "'dev' not in dependency_groups"),
+        ("switch", "2", "'dev' in dependency_groups"),
+        ("extra", "1", "'dev' in extras"),
+        ("combined", "1", "'dev' in extras and 'docs' in dependency_groups"),
+        (
+            "intersection",
+            "1",
+            "'dev' in dependency_groups and 'docs' in dependency_groups",
+        ),
+    ]
+    packages = []
+    for name, version, marker in records:
+        wheel_path = Path(make_wheel(name, version).save_to_dir(script.scratch_path))
+        packages.append(
+            Package(
+                name=canonicalize_name(name),
+                version=Version(version),
+                marker=Marker(marker) if marker is not None else None,
+                wheels=[
+                    PackageWheel(
+                        path=wheel_path.name,
+                        hashes={"sha256": sha256(wheel_path.read_bytes()).hexdigest()},
+                    )
+                ],
+            )
+        )
+    lock = Pylock(
+        lock_version=Version("1.0"),
+        created_by="pip",
+        packages=packages,
+        extras=[canonicalize_name("dev")],
+        dependency_groups=["dev", "docs"],
+        default_groups=["runtime"],
+    )
+    path = script.scratch_path / "pylock.groups.toml"
+    path.write_text(tomli_w.dumps(lock.to_dict()), encoding="utf-8")
+    return path
+
+
+def test_install_pylock_group_without_defaults(
+    script: PipTestEnvironment, selection_lock: Path
+) -> None:
+    script.pip(
+        "install",
+        "--no-index",
+        "--group",
+        f"{selection_lock}:dev",
+        allow_stderr_warning=True,
+    )
+
+    script.assert_installed(always="1", switch="2")
+    script.assert_not_installed("runtime", "extra", "intersection")
+
+
+@pytest.mark.parametrize("lock_option", ["-r", "--group"])
+def test_install_pylock_with_implicit_project_group(
+    script: PipTestEnvironment, selection_lock: Path, lock_option: str
+) -> None:
+    script.scratch_path.joinpath("pyproject.toml").write_text(
+        '[dependency-groups]\ndev = ["extra==1"]\n'
+    )
+    source = str(selection_lock)
+    if lock_option == "--group":
+        source += ":dev"
+
+    script.pip_install_local(
+        lock_option,
+        source,
+        "--group",
+        "dev",
+        "--no-require-hashes",
+        find_links=script.scratch_path,
+        allow_stderr_warning=True,
+    )
+
+    script.assert_installed(
+        always="1", extra="1", switch="1" if lock_option == "-r" else "2"
+    )
+    if lock_option == "-r":
+        script.assert_installed(runtime="1")
+    else:
+        script.assert_not_installed("runtime")
+    script.assert_not_installed("intersection")
+
+
+@pytest.mark.parametrize("command", ["install", "download"])
+def test_pylock_group_rejects_target_interpreter(
+    script: PipTestEnvironment, command: str
+) -> None:
+    arguments = ["--dry-run"] if command == "install" else []
+    result = script.pip(
+        command,
+        "--only-binary=:all:",
+        "--python-version=3.10",
+        "--group=pylock.toml:dev",
+        *arguments,
+        expect_error=True,
+    )
+
+    assert (
+        "not supported when selecting requirements from 'pylock.toml'" in result.stderr
+    )
+
+
+def test_pylock_groups_share_one_selection(
+    script: PipTestEnvironment,
+    selection_lock: Path,
+) -> None:
+    destination = script.scratch_path / "output"
+    script.pip(
+        "download",
+        "--no-index",
+        "-d",
+        destination,
+        "--group",
+        f"{selection_lock}:dev",
+        "-r",
+        selection_lock,
+        "--group",
+        "./pylock.groups.toml:docs",
+        "-r",
+        "pylock.groups.toml",
+        allow_stderr_warning=True,
+    )
+
+    assert sorted(wheel.name for wheel in destination.glob("*.whl")) == [
+        "always-1-py2.py3-none-any.whl",
+        "intersection-1-py2.py3-none-any.whl",
+        "runtime-1-py2.py3-none-any.whl",
+        "switch-2-py2.py3-none-any.whl",
+    ]
+
+
+@pytest.mark.parametrize(
+    "selectors,expected",
+    [
+        (
+            ["-r", "pylock.groups.toml[dev]", "--group", "./pylock.groups.toml:docs"],
+            {"always", "combined", "extra", "runtime", "switch"},
+        ),
+        (
+            ["--group", "pylock.groups.toml[dev]:docs"],
+            {"always", "combined", "extra", "switch"},
+        ),
+        (
+            [
+                "--group",
+                "pylock.groups.toml[dev]:dev",
+                "--group",
+                "./pylock.groups.toml:docs",
+                "-r",
+                "pylock.groups.toml",
+            ],
+            {"always", "combined", "extra", "intersection", "runtime", "switch"},
+        ),
+    ],
+)
+def test_pylock_extras_and_groups_download(
+    script: PipTestEnvironment,
+    selection_lock: Path,
+    selectors: list[str],
+    expected: set[str],
+) -> None:
+    destination = script.scratch_path / "output"
+    script.pip(
+        "download",
+        "--no-index",
+        "-d",
+        destination,
+        *selectors,
+        allow_stderr_warning=True,
+    )
+
+    assert {wheel.name.split("-")[0] for wheel in destination.glob("*.whl")} == expected
 
 
 def test_install_pylock(
