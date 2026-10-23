@@ -1,0 +1,3 @@
+Bound the number of nested requirements files a single ``-r``/``-c`` file can
+pull in, so that deeply nested files that include the same file more than once
+cannot expand into an unbounded amount of work.

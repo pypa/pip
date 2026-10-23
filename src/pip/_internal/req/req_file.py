@@ -46,6 +46,12 @@ COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 # 2013 Edition.
 ENV_VAR_RE = re.compile(r"(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})")
 
+# Upper bound on the number of nested requirements files a single top level
+# file may pull in, counted per inclusion rather than per distinct path.
+# Far above anything a real project needs, and small enough that the work
+# stays bounded. See _parse_and_recurse for why a bound is needed.
+MAX_NESTED_REQUIREMENTS_FILES = 10000
+
 SUPPORTED_OPTIONS: list[Callable[..., optparse.Option]] = [
     cmdoptions.index_url,
     cmdoptions.extra_index_url,
@@ -344,7 +350,7 @@ class RequirementsFileParser:
     ) -> Generator[ParsedLine, None, None]:
         """Parse a given file, yielding parsed lines."""
         yield from self._parse_and_recurse(
-            filename, constraint, [{os.path.abspath(filename): None}]
+            filename, constraint, [{os.path.abspath(filename): None}], [0]
         )
 
     def _parse_and_recurse(
@@ -352,6 +358,7 @@ class RequirementsFileParser:
         filename: str,
         constraint: bool,
         parsed_files_stack: list[dict[str, str | None]],
+        nested_files_parsed: list[int],
     ) -> Generator[ParsedLine, None, None]:
         for line in self._parse_file(filename, constraint):
             if line.requirement is None and (
@@ -390,11 +397,29 @@ class RequirementsFileParser:
                     raise RequirementsFileParseError(
                         f"{req_path} recursively references itself in {filename}{tail}"
                     )
+                # parsed_files_stack only records the current chain of
+                # includes, so a file reached through several chains is parsed
+                # once per chain. That is intentional, as a requirements file
+                # may legitimately be included more than once, but it means the
+                # number of files parsed grows with the number of paths through
+                # the include graph rather than its size: a file that includes
+                # the same child twice at every level doubles the work for each
+                # level of nesting. Bound the total instead of the shape of the
+                # graph, so that files reachable more than once keep working.
+                nested_files_parsed[0] += 1
+                if nested_files_parsed[0] > MAX_NESTED_REQUIREMENTS_FILES:
+                    raise RequirementsFileParseError(
+                        f"{filename} nests more than "
+                        f"{MAX_NESTED_REQUIREMENTS_FILES} requirements files"
+                    )
                 # Keeping a track where was each file first included in
                 new_parsed_files = parsed_files.copy()
                 new_parsed_files[req_path] = filename
                 yield from self._parse_and_recurse(
-                    req_path, nested_constraint, [new_parsed_files, *parsed_files_stack]
+                    req_path,
+                    nested_constraint,
+                    [new_parsed_files, *parsed_files_stack],
+                    nested_files_parsed,
                 )
             else:
                 yield line

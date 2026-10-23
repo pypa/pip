@@ -359,6 +359,30 @@ class TestProcessLine:
         )
         assert [r.requirement for r in parsed] == ["requests", "requests"]
 
+    def test_nested_requirement_files_are_bounded(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, session: PipSession
+    ) -> None:
+        # Including the same file twice at every level doubles the number of
+        # files parsed for each level of nesting, so the total is bounded.
+        monkeypatch.setattr(
+            pip._internal.req.req_file, "MAX_NESTED_REQUIREMENTS_FILES", 20
+        )
+        depth = 20
+        for i in range(depth):
+            tmp_path.joinpath(f"{i}.txt").write_text(
+                f"-r {i + 1}.txt\n-r {i + 1}.txt\n"
+            )
+        tmp_path.joinpath(f"{depth}.txt").write_text("requests")
+        with pytest.raises(
+            RequirementsFileParseError,
+            match="nests more than 20 requirements files",
+        ):
+            list(
+                parse_requirements(
+                    filename=os.fspath(tmp_path.joinpath("0.txt")), session=session
+                )
+            )
+
     def test_recursive_requirements_file(
         self, tmpdir: Path, session: PipSession
     ) -> None:
