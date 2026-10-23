@@ -171,6 +171,8 @@ class ListCommand(IndexGroupCommand):
         )
 
     def run(self, options: Values, args: list[str]) -> int:
+        if args:
+            raise CommandError("Too many arguments")
         cmdoptions.check_release_control_exclusive(options)
 
         if options.outdated and options.uptodate:

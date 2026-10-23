@@ -1,1 +1,1 @@
-Reject extra arguments to ``pip debug`` instead of silently ignoring them.
+Reject extra positional arguments to ``pip check``, ``pip completion``, ``pip debug``, ``pip freeze``, ``pip inspect``, and ``pip list`` instead of silently ignoring them.
