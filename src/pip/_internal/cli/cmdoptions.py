@@ -139,7 +139,9 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         # Lazy import to keep CLI startup fast
         from pip._internal.utils import pylock as pylock_utils
 
-        for filename in options.requirements:
+        filenames = list(options.requirements)
+        filenames.extend(path for path, _ in options.dependency_groups)
+        for filename in filenames:
             if pylock_utils.is_valid_pylock_filename(filename):
                 raise CommandError(
                     "Platform and interpreter constraints using "
@@ -1062,8 +1064,7 @@ def _handle_dependency_group(
     """
     Process a value provided for the --group option.
 
-    Splits on the rightmost ":", and validates that the path (if present) ends
-    in `pyproject.toml`. Defaults the path to `pyproject.toml` when one is not given.
+    Splits on the rightmost ":", and validates an explicit source filename.
 
     `:` cannot appear in dependency group names, so this is a safe and simple parse.
 
@@ -1073,10 +1074,14 @@ def _handle_dependency_group(
     if not sep:
         path = "pyproject.toml"
     else:
-        # check for 'pyproject.toml' filenames using pathlib
+        # Local pyproject.toml paths may contain URL-like prefixes.
         if pathlib.PurePath(path).name != "pyproject.toml":
-            msg = "group paths use 'pyproject.toml' filenames"
-            raise_option_error(parser, option=option, msg=msg)
+            # Keep lock parsing imports confined to commands that request it.
+            from pip._internal.utils.pylock import is_valid_pylock_filename
+
+            if not is_valid_pylock_filename(path, allow_urls=False):
+                msg = "group paths use local 'pyproject.toml' or 'pylock.toml' files"
+                raise_option_error(parser, option=option, msg=msg)
 
     parser.values.dependency_groups.append((path, groupname))
 
@@ -1090,8 +1095,8 @@ dependency_groups: Callable[..., Option] = partial(
     action="callback",
     callback=_handle_dependency_group,
     metavar="[path:]group",
-    help='Install a named dependency-group from a "pyproject.toml" file. '
-    'If a path is given, the name of the file must be "pyproject.toml". '
+    help='Install a named dependency-group from a "pyproject.toml" or '
+    '"pylock.toml" file. Named "pylock.<name>.toml" files are also supported. '
     'Defaults to using "pyproject.toml" in the current directory.',
 )
 
