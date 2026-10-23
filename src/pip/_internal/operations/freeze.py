@@ -109,8 +109,8 @@ def freeze(
                             line.strip(),
                         )
                         logger.info(
-                            "  (add #egg=PackageName to the URL to avoid"
-                            " this warning)"
+                            "  (use 'PackageName @ URL', with an absolute file:// URL"
+                            " for local paths, to avoid this warning)"
                         )
                     else:
                         line_req_canonical_name = canonicalize_name(line_req.name)
