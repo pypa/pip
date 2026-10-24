@@ -381,3 +381,46 @@ def test_install_pylock_uploaded_prior_to_missing_upload_time(
         "pylock.certifi-without-upload_time.toml does not provide upload-time metadata"
         in result.stderr
     )
+
+
+def test_install_pylock_with_extras_no_extras(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """Installing from a lockfile with extras does not install extras by default."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.withextras.toml")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        shared_data.common_wheels,  # to obtain build backend to build sdist
+        "--no-deps",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install simple-2.0" in result.stdout
+    assert "simplewheel" not in result.stdout
+
+
+def test_install_pylock_with_extras_one_extras(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+) -> None:
+    """Installing from a lockfile with extras with one extra selected."""
+    pylock_path = shared_data.lockfiles.joinpath("pylock.withextras.toml[extra1]")
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        shared_data.common_wheels,  # to obtain build backend to build sdist
+        "--no-deps",
+        "--dry-run",
+        "-r",
+        pylock_path,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install simple-2.0 simplewheel-2.0" in result.stdout
