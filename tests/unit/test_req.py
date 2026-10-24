@@ -963,6 +963,38 @@ def test_parse_editable_vcs_extras() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "editable_req, expected_in_message",
+    [
+        (
+            "git+https://user:secret@example.com/repo.git",
+            "git+https://user:****@example.com/repo.git",
+        ),
+        (
+            "git://user:secret@example.com/repo.git",
+            "git://user:****@example.com/repo.git",
+        ),
+        (
+            "https://user:secret@example.com/pkg.zip",
+            "https://user:****@example.com/pkg.zip",
+        ),
+        (
+            "https://token-secret@example.com/pkg.zip",
+            "https://****@example.com/pkg.zip",
+        ),
+    ],
+)
+def test_parse_editable_error_redacts_credentials(
+    editable_req: str, expected_in_message: str
+) -> None:
+    with pytest.raises(InstallationError) as excinfo:
+        parse_editable(editable_req)
+
+    message = str(excinfo.value)
+    assert "secret" not in message
+    assert expected_in_message in message
+
+
 @mock.patch("pip._internal.req.req_install.os.path.abspath")
 @mock.patch("pip._internal.req.req_install.os.path.exists")
 @mock.patch("pip._internal.req.req_install.os.path.isdir")

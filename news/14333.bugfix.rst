@@ -1,0 +1,2 @@
+Redact credentials from URLs in the errors raised for a VCS URL with an
+empty revision and for an invalid or unnamed editable requirement.
