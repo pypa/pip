@@ -38,6 +38,7 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.metadata import (
     BaseDistribution,
     FilesystemWheel,
+    get_environment,
     get_wheel_distribution,
 )
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
@@ -438,6 +439,14 @@ class PipScriptMaker(ScriptMaker):
         return super().make(specification, options)
 
 
+def _get_conflicting_files_warning_message(conflicting_files: list[str]) -> str:
+    if len(conflicting_files) > 3:
+        return (
+            f"{', '.join(conflicting_files[:3])}, and {len(conflicting_files) - 3} more"
+        )
+    return f"{', '.join(conflicting_files)}"
+
+
 def _install_wheel(  # noqa: C901, PLR0915 function is too long
     name: str,
     wheel_zip: ZipFile,
@@ -479,6 +488,24 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     installed: dict[RecordPath, RecordPath] = {}
     changed: set[RecordPath] = set()
     generated: list[str] = []
+
+    # Track reocrd file owners and conflicting files
+    # file_owner_map: record_path -> owner
+    # conflicting_files_map: owner -> conflicting_files
+    file_owner_map: dict[str, str] = {}
+    conflicting_files_map: collections.defaultdict[str, list[str]] = (
+        collections.defaultdict(list)
+    )
+
+    distributions = get_environment(
+        [scheme.purelib, scheme.platlib]
+    ).iter_installed_distributions()
+    for installed_dist in distributions:
+        entries = installed_dist.iter_declared_entries()
+        if entries is None:
+            continue
+        for entry in entries:
+            file_owner_map[entry] = installed_dist.canonical_name
 
     def record_installed(
         srcfile: RecordPath, destfile: str, modified: bool = False
@@ -600,16 +627,37 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     files = chain(files, script_scheme_files)
 
     existing_parents = set()
+    canonicalized_wheel_name = canonicalize_name(name)
     for file in files:
         # directory creation is lazy and after file filtering
         # to ensure we don't install empty dirs; empty dirs can't be
         # uninstalled.
+        file_record_path = _fs_to_record_path(file.dest_path, lib_dir)
+        if (
+            file_record_path in file_owner_map
+            and file_owner_map[file_record_path] != canonicalized_wheel_name
+        ):
+            conflicting_files_map[file_owner_map[file_record_path]].append(
+                file_record_path
+            )
+
         parent_dir = os.path.dirname(file.dest_path)
         if parent_dir not in existing_parents:
             ensure_dir(parent_dir)
             existing_parents.add(parent_dir)
         file.save()
         record_installed(file.src_record_path, file.dest_path, file.changed)
+
+    if conflicting_files_map:
+        for victim in conflicting_files_map:
+            logger.warning(
+                "Installing %s overwrote %s files "
+                "(%s) which were already owned by %s",
+                canonicalized_wheel_name,
+                len(conflicting_files_map[victim]),
+                _get_conflicting_files_warning_message(conflicting_files_map[victim]),
+                victim,
+            )
 
     def pyc_source_file_paths() -> Generator[str, None, None]:
         # We de-duplicate installation paths, since there can be overlap (e.g.
