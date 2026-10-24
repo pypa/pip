@@ -118,6 +118,9 @@ def call_subprocess(
     # Only use the spinner if we're not showing the subprocess output
     # and we have a spinner.
     use_spinner = not showing_subprocess and spinner is not None
+    if use_spinner:
+        assert spinner is not None
+        spinner.start()
 
     log_subprocess("Running command %s", command_desc)
     env = os.environ.copy()
@@ -160,10 +163,6 @@ def call_subprocess(
 
             # Show the line immediately.
             log_subprocess(line)
-            # Update the spinner.
-            if use_spinner:
-                assert spinner
-                spinner.spin()
         try:
             proc.wait()
         finally:
@@ -237,7 +236,7 @@ def runner_with_spinner_message(message: str) -> Callable[..., None]:
         cwd: str | None = None,
         extra_environ: Mapping[str, Any] | None = None,
     ) -> None:
-        with open_spinner(message) as spinner:
+        with open_spinner(message, autostart=False) as spinner:
             call_subprocess(
                 cmd,
                 command_desc=message,
