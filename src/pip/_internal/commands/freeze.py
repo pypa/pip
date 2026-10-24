@@ -4,6 +4,7 @@ from optparse import Values
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.exceptions import CommandError
 from pip._internal.metadata.base import stdlib_pkgs
 from pip._internal.operations.freeze import freeze
 
@@ -85,6 +86,8 @@ class FreezeCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: list[str]) -> int:
+        if args:
+            raise CommandError("Too many arguments")
         skip = set(stdlib_pkgs)
         if not options.freeze_all:
             skip.update(_dev_pkgs())
