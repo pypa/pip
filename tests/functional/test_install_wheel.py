@@ -5,6 +5,8 @@ import os
 import platform
 import shutil
 import sysconfig
+import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -802,3 +804,100 @@ def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
 
     result = script.pip("install", "--no-index", str(wheel_path), expect_error=True)
     assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr
+
+
+def _set_wheel_entry_mtimes(
+    wheel_path: Path, date_times: dict[str, tuple[int, int, int, int, int, int]]
+) -> None:
+    """Rewrite a wheel's zip entries with explicit timestamps.
+
+    The zip format stores timestamps as naive local time, matching
+    ``ZipInfo.date_time``.
+    """
+    with zipfile.ZipFile(wheel_path) as wheel:
+        entries = [
+            (info.filename, wheel.read(info.filename)) for info in wheel.infolist()
+        ]
+    with zipfile.ZipFile(wheel_path, "w") as wheel:
+        for name, contents in entries:
+            info = zipfile.ZipInfo(name, date_times.get(name, (2018, 4, 17, 9, 57, 4)))
+            wheel.writestr(info, contents, compress_type=zipfile.ZIP_DEFLATED)
+
+
+def test_wheel_install_mtime(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test that installing a wheel preserves the file modification times
+    recorded in the wheel's zip metadata.
+    """
+    package = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
+    script.pip("install", package)
+
+    item = script.site_packages_path / "simplewheel" / "__init__.py"
+    assert datetime.fromtimestamp(item.stat().st_mtime) == datetime(
+        2018, 4, 17, 9, 57, 4
+    )
+
+
+def test_wheel_install_directory_mtimes_stable_across_reinstalls(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that directories created for an installed wheel get deterministic
+    mtimes: the maximum mtime among the wheel-provided items they contain
+    (files with preserved mtimes, plus child directories assigned by deeper
+    passes), identical across reinstalls of the same wheel. The
+    site-packages directory itself must not be given a wheel-derived mtime.
+    """
+    package = make_wheel(
+        "mtimepkg",
+        "1.0",
+        extra_files={
+            "mtimepkg/__init__.py": "#",
+            "mtimepkg/sub/__init__.py": "#",
+            "mtimepkg/sub/deep/mod.py": "#",
+        },
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(package),
+        {
+            "mtimepkg/__init__.py": (2016, 3, 4, 5, 6, 8),
+            "mtimepkg/sub/__init__.py": (2020, 2, 2, 1, 2, 4),
+            "mtimepkg/sub/deep/mod.py": (2015, 1, 1, 0, 0, 0),
+        },
+    )
+
+    script.pip("install", "--no-index", package)
+    pkg_dir = script.site_packages_path / "mtimepkg"
+    sub_dir = pkg_dir / "sub"
+    deep_dir = sub_dir / "deep"
+    after_first_install = (
+        pkg_dir.stat().st_mtime,
+        sub_dir.stat().st_mtime,
+        deep_dir.stat().st_mtime,
+    )
+
+    script.pip("install", "--no-index", "--force-reinstall", package)
+    after_second_install = (
+        pkg_dir.stat().st_mtime,
+        sub_dir.stat().st_mtime,
+        deep_dir.stat().st_mtime,
+    )
+
+    # Reinstalling the same wheel does not churn directory mtimes.
+    assert after_second_install == after_first_install
+    # Each directory's mtime is the max mtime of the wheel-provided items it
+    # contains: a deepest directory takes its files' mtime, and shallower
+    # ones can inherit a newer child directory's mtime.
+    assert datetime.fromtimestamp(deep_dir.stat().st_mtime) == datetime(
+        2015, 1, 1, 0, 0, 0
+    )
+    assert datetime.fromtimestamp(sub_dir.stat().st_mtime) == datetime(
+        2020, 2, 2, 1, 2, 4
+    )
+    assert datetime.fromtimestamp(pkg_dir.stat().st_mtime) == datetime(
+        2020, 2, 2, 1, 2, 4
+    )
+    # The site-packages directory is shared between distributions and must
+    # not be assigned a wheel-derived mtime.
+    newest_wheel_mtime = datetime(2020, 2, 2, 1, 2, 4).timestamp()
+    assert script.site_packages_path.stat().st_mtime > newest_wheel_mtime
