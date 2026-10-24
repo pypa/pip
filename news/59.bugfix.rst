@@ -1,0 +1,1 @@
+Apply PyPI's direct URL dependency restriction to extras and cached wheels.
