@@ -111,6 +111,7 @@ class IndexCommand(IndexGroupCommand):
             release_control=options.release_control,
             format_control=options.format_control,
             ignore_requires_python=ignore_requires_python,
+            index_strategy=options.index_strategy,
         )
 
         return PackageFinder.create(

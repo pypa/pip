@@ -215,10 +215,15 @@ found.
 Pip looks for packages in a number of places: on PyPI (or the index given as
 ``--index-url``, if not disabled via ``--no-index``), in the local filesystem,
 and in any additional repositories specified via ``--find-links`` or
-``--extra-index-url``. There is no priority in the locations that are searched.
-Rather they are all checked, and the "best" match for the requirements (in
-terms of version number - see the
-:ref:`specification <pypug:version-specifiers>` for details) is selected.
+``--extra-index-url``. By default, there is no priority among indexes: all
+are checked, and the "best" match for the requirements (in terms of version
+number - see the :ref:`specification <pypug:version-specifiers>` for details)
+is selected. With ``--index-strategy=first-index``, pip searches
+``--index-url`` first, followed by each ``--extra-index-url`` in order, and
+uses the first index with a project page. Lower-priority indexes are not
+searched for that project once its page is found, even if that page has no
+compatible files or versions satisfying a version constraint. ``--find-links``
+locations remain available alongside the selected index.
 
 See the :ref:`pip install Examples<pip install Examples>`.
 
@@ -485,6 +490,11 @@ Examples
        This is a class of security issue known as `dependency confusion <https://azure.microsoft.com/en-us/resources/3-ways-to-mitigate-risk-using-private-package-feeds/>`_: an
        attacker can publish a package with the same name to a public index,
        which may then be chosen instead of your private package.
+
+       To prefer a private index, use it as ``--index-url`` and put PyPI in
+       ``--extra-index-url`` with ``--index-strategy=first-index``. This only
+       changes the priority of indexes; ``--find-links`` locations are still
+       considered separately.
 
    .. tab:: Unix/macOS
 

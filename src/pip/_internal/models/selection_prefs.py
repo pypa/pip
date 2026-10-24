@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.release_control import ReleaseControl
+
+IndexStrategy = Literal["version-priority", "first-index"]
 
 
 @dataclass(slots=True)
@@ -23,6 +26,7 @@ class SelectionPreferences:
         dist over a new source dist.
     :param ignore_requires_python: Whether to ignore incompatible
         "Requires-Python" values in links. Defaults to False.
+    :param index_strategy: How to select candidates across multiple indexes.
     """
 
     # Don't include an allow_yanked default value to make sure each call
@@ -34,3 +38,4 @@ class SelectionPreferences:
     format_control: FormatControl | None = None
     prefer_binary: bool = False
     ignore_requires_python: bool = False
+    index_strategy: IndexStrategy = "version-priority"

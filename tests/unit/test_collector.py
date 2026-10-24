@@ -19,6 +19,7 @@ from pip._vendor.urllib3.exceptions import ProxyError, SSLError
 from pip._internal.exceptions import (
     ConnectionFailedError,
     ConnectionTimeoutError,
+    InstallationError,
     NetworkConnectionError,
     ProxyConnectionError,
     SSLVerificationError,
@@ -749,6 +750,25 @@ def test_request_retries(caplog: pytest.LogCaptureFixture) -> None:
     session.get.side_effect = requests.exceptions.RetryError("Retry error")
     assert _get_index_content(link, session=session) is None
     assert "Could not fetch URL http://localhost: Retry error - skipping" in caplog.text
+
+
+def test_priority_index_does_not_fall_through_on_network_error() -> None:
+    link = Link("https://example.org/simple/sample/")
+    session = mock.Mock(PipSession)
+    session.get.side_effect = requests.exceptions.RetryError("Retry error")
+
+    with pytest.raises(InstallationError, match="refusing to search"):
+        _get_index_content(link, session=session, fail_on_error=True)
+
+
+def test_priority_index_falls_through_on_not_found() -> None:
+    link = Link("https://example.org/simple/sample/")
+    session = mock.Mock(PipSession)
+    response = requests.Response()
+    response.status_code = 404
+    session.get.return_value = response
+
+    assert _get_index_content(link, session=session, fail_on_error=True) is None
 
 
 @pytest.mark.parametrize(

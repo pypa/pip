@@ -28,6 +28,7 @@ from pip._vendor.requests.exceptions import RetryError
 from pip._internal.exceptions import (
     ConnectionFailedError,
     ConnectionTimeoutError,
+    InstallationError,
     NetworkConnectionError,
     ProxyConnectionError,
     SSLMissingError,
@@ -323,12 +324,15 @@ def _get_index_content(
     *,
     session: PipSession,
     force_revalidate: bool = False,
+    fail_on_error: bool = False,
 ) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
     vcs_scheme = _match_vcs_scheme(url)
     if vcs_scheme:
+        if fail_on_error:
+            raise InstallationError(f"Cannot use {link} as a priority index")
         logger.warning(
             "Cannot look at %s URL %s because it does not support lookup as web pages.",
             vcs_scheme,
@@ -354,12 +358,19 @@ def _get_index_content(
             url, session=session, force_revalidate=force_revalidate
         )
     except _NotHTTP:
+        if fail_on_error:
+            raise InstallationError(f"Cannot read priority index {link} as a page")
         logger.warning(
             "Skipping page %s because it looks like an archive, and cannot "
             "be checked by a HTTP HEAD request.",
             link,
         )
     except _NotAPIContent as exc:
+        if fail_on_error:
+            raise InstallationError(
+                f"Priority index {link} returned unsupported content type "
+                f"{exc.content_type!r}"
+            ) from exc
         logger.warning(
             "Skipping page %s because the %s request got Content-Type: %s. "
             "The only supported Content-Types are application/vnd.pypi.simple.v1+json, "
@@ -369,15 +380,37 @@ def _get_index_content(
             exc.content_type,
         )
     except (RetryError, NetworkConnectionError) as exc:
+        if fail_on_error:
+            missing_project = (
+                isinstance(exc, NetworkConnectionError)
+                and exc.response is not None
+                and exc.response.status_code == 404
+            )
+            if missing_project and link.url.startswith("file:"):
+                index_root = os.path.dirname(os.path.normpath(url_to_path(link.url)))
+                missing_project = os.path.isdir(index_root)
+            if not missing_project:
+                raise InstallationError(
+                    f"Could not fetch priority index {link}; refusing to search "
+                    "lower-priority indexes"
+                ) from exc
         _handle_get_simple_fail(link, exc)
     except (SSLVerificationError, SSLMissingError) as exc:
+        if fail_on_error:
+            raise InstallationError(f"Could not fetch priority index {link}") from exc
         reason = f"There was a problem confirming the ssl certificate: {exc.context}"
         _handle_get_simple_fail(link, reason, meth=logger.info)
     except ConnectionFailedError as exc:
+        if fail_on_error:
+            raise InstallationError(f"Could not fetch priority index {link}") from exc
         _handle_get_simple_fail(link, f"connection error: {exc.context}")
     except ProxyConnectionError as exc:
+        if fail_on_error:
+            raise InstallationError(f"Could not fetch priority index {link}") from exc
         _handle_get_simple_fail(link, f"proxy connection error: {exc.context}")
     except ConnectionTimeoutError as exc:
+        if fail_on_error:
+            raise InstallationError(f"Could not fetch priority index {link}") from exc
         _handle_get_simple_fail(link, str(exc.context))
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
@@ -444,7 +477,10 @@ class LinkCollector:
         return self.search_scope.find_links
 
     def fetch_response(
-        self, location: Link, package_name: str | None = None
+        self,
+        location: Link,
+        package_name: str | None = None,
+        fail_on_error: bool = False,
     ) -> IndexContent | None:
         """
         Fetch an HTML page containing package links.
@@ -461,22 +497,25 @@ class LinkCollector:
             location,
             session=self.session,
             force_revalidate=should_force_revalidate,
+            fail_on_error=fail_on_error,
         )
 
     def collect_sources(
         self,
         project_name: str,
         candidates_from_page: CandidatesFromPage,
+        index_candidates_from_page: CandidatesFromPage | None = None,
     ) -> CollectedSources:
         # The OrderedDict calls deduplicate sources by URL.
         index_url_sources = collections.OrderedDict(
             build_source(
                 loc,
-                candidates_from_page=candidates_from_page,
+                candidates_from_page=index_candidates_from_page or candidates_from_page,
                 page_validator=self.session.is_secure_origin,
                 expand_dir=False,
                 cache_link_parsing=False,
                 project_name=project_name,
+                allow_missing_index=index_candidates_from_page is not None,
             )
             for loc in self.search_scope.get_index_urls_locations(project_name)
         ).values()

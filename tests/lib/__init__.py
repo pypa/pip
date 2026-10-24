@@ -33,7 +33,7 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
-from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.models.selection_prefs import IndexStrategy, SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 
@@ -96,6 +96,7 @@ def make_test_finder(
     session: PipSession | None = None,
     target_python: TargetPython | None = None,
     uploaded_prior_to: datetime.datetime | None = None,
+    index_strategy: IndexStrategy = "version-priority",
 ) -> PackageFinder:
     """
     Create a PackageFinder for testing purposes.
@@ -114,6 +115,7 @@ def make_test_finder(
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
         release_control=release_control,
+        index_strategy=index_strategy,
     )
 
     return PackageFinder.create(

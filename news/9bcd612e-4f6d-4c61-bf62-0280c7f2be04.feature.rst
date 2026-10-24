@@ -1,0 +1,2 @@
+Add an opt-in ``--index-strategy=first-index`` mode that searches package
+indexes in configured order and stops after the first index with a project page.

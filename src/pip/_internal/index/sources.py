@@ -232,6 +232,7 @@ def build_source(
     expand_dir: bool,
     cache_link_parsing: bool,
     project_name: str,
+    allow_missing_index: bool = False,
 ) -> tuple[str | None, LinkSource | None]:
     path: str | None = None
     url: str | None = None
@@ -275,6 +276,14 @@ def build_source(
         return (url, source)
     elif os.path.isfile(path):
         source = _LocalFileSource(
+            candidates_from_page=candidates_from_page,
+            link=Link(url, cache_link_parsing=cache_link_parsing),
+        )
+        return (url, source)
+    if allow_missing_index and location.startswith("file:"):
+        # Let the index callback distinguish a missing project page from an
+        # unavailable index root when this source is actually searched.
+        source = _IndexDirectorySource(
             candidates_from_page=candidates_from_page,
             link=Link(url, cache_link_parsing=cache_link_parsing),
         )

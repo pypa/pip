@@ -1,6 +1,7 @@
 import datetime
 import logging
 from collections.abc import Iterable
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -9,9 +10,14 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.requests.exceptions import RetryError
 
 import pip._internal.utils.compatibility_tags
-from pip._internal.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
+from pip._internal.exceptions import (
+    BestVersionAlreadyInstalled,
+    DistributionNotFound,
+    InstallationError,
+)
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
@@ -590,6 +596,110 @@ def test_find_all_candidates_find_links_and_index(data: TestData) -> None:
     versions = finder.find_all_candidates("simple")
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ["3.0", "2.0", "1.0", "1.0"]
+
+
+def _make_project_index(root: Path, version: str, *, requires_python: str = "") -> str:
+    project = root / "sample"
+    project.mkdir(parents=True)
+    (project / "index.html").write_text(
+        f'<a href="sample-{version}-py3-none-any.whl" '
+        f'data-requires-python="{requires_python}">sample</a>',
+        encoding="utf-8",
+    )
+    return root.as_uri()
+
+
+def test_first_index_skips_later_index(tmp_path: Path) -> None:
+    first = _make_project_index(tmp_path / "first", "1.0")
+    second = _make_project_index(tmp_path / "second", "2.0")
+    finder = make_test_finder(index_urls=[first, second], index_strategy="first-index")
+    with patch.object(
+        finder._link_collector,
+        "fetch_response",
+        wraps=finder._link_collector.fetch_response,
+    ) as fetch:
+        candidates = finder.find_all_candidates("sample")
+
+    assert [str(candidate.version) for candidate in candidates] == ["1.0"]
+    assert [call.args[0].url for call in fetch.call_args_list] == [f"{first}/sample/"]
+    # Version constraints do not make pip search a lower-priority index.
+    best = finder.find_best_candidate("sample", SpecifierSet(">=2"))
+    assert best.best_candidate is None
+
+
+def test_first_index_does_not_fall_through_without_compatible_files(
+    tmp_path: Path,
+) -> None:
+    first = _make_project_index(tmp_path / "first", "1.0", requires_python=">=999")
+    second = _make_project_index(tmp_path / "second", "2.0")
+    finder = make_test_finder(index_urls=[first, second], index_strategy="first-index")
+
+    assert finder.find_all_candidates("sample") == []
+
+
+def test_first_index_falls_through_when_project_missing(tmp_path: Path) -> None:
+    first = tmp_path / "first"
+    first.mkdir()
+    second = _make_project_index(tmp_path / "second", "2.0")
+    finder = make_test_finder(
+        index_urls=[first.as_uri(), second], index_strategy="first-index"
+    )
+
+    candidates = finder.find_all_candidates("sample")
+    assert [str(candidate.version) for candidate in candidates] == ["2.0"]
+
+
+def test_first_index_stops_when_local_index_root_missing(tmp_path: Path) -> None:
+    first = (tmp_path / "missing").as_uri()
+    second = _make_project_index(tmp_path / "second", "2.0")
+    finder = make_test_finder(index_urls=[first, second], index_strategy="first-index")
+
+    with pytest.raises(InstallationError, match="refusing to search"):
+        finder.find_all_candidates("sample")
+
+
+def test_version_priority_combines_indexes(tmp_path: Path) -> None:
+    first = _make_project_index(tmp_path / "first", "1.0")
+    second = _make_project_index(tmp_path / "second", "2.0")
+    finder = make_test_finder(index_urls=[first, second])
+
+    candidates = finder.find_all_candidates("sample")
+    assert [str(candidate.version) for candidate in candidates] == [
+        "1.0",
+        "2.0",
+    ]
+
+
+def test_first_index_keeps_find_links(tmp_path: Path) -> None:
+    first = _make_project_index(tmp_path / "first", "1.0")
+    second = _make_project_index(tmp_path / "second", "2.0")
+    wheelhouse = tmp_path / "wheels"
+    wheelhouse.mkdir()
+    (wheelhouse / "sample-3.0-py3-none-any.whl").touch()
+    finder = make_test_finder(
+        index_urls=[first, second],
+        find_links=[wheelhouse.as_uri()],
+        index_strategy="first-index",
+    )
+
+    candidates = finder.find_all_candidates("sample")
+    assert [str(candidate.version) for candidate in candidates] == ["3.0", "1.0"]
+
+
+def test_first_index_stops_on_network_error() -> None:
+    finder = make_test_finder(
+        index_urls=["https://first.example/simple", "https://second.example/simple"],
+        index_strategy="first-index",
+    )
+    with patch.object(
+        finder._link_collector.session,
+        "get",
+        side_effect=RetryError("index unavailable"),
+    ) as get:
+        with pytest.raises(InstallationError, match="refusing to search"):
+            finder.find_all_candidates("sample")
+
+    get.assert_called_once()
 
 
 class TestPackageFinderUploadedPriorTo:

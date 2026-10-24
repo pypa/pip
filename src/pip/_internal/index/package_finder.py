@@ -8,7 +8,7 @@ import functools
 import itertools
 import logging
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -28,13 +28,14 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.index.collector import LinkCollector, parse_links
+from pip._internal.index.sources import LinkSource
 from pip._internal.metadata import select_backend
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.models.release_control import ReleaseControl
 from pip._internal.models.search_scope import SearchScope
-from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.models.selection_prefs import IndexStrategy, SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.models.wheel import Wheel
 from pip._internal.req import InstallRequirement
@@ -625,6 +626,7 @@ class PackageFinder:
         candidate_prefs: CandidatePreferences | None = None,
         ignore_requires_python: bool = False,
         uploaded_prior_to: datetime.datetime | None = None,
+        index_strategy: IndexStrategy = "version-priority",
     ) -> None:
         """
         This constructor is primarily meant to be used by the create() class
@@ -647,6 +649,7 @@ class PackageFinder:
         self._link_collector = link_collector
         self._target_python = target_python
         self._uploaded_prior_to = uploaded_prior_to
+        self._index_strategy = index_strategy
 
         self.format_control = format_control
 
@@ -703,6 +706,7 @@ class PackageFinder:
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
             uploaded_prior_to=uploaded_prior_to,
+            index_strategy=selection_prefs.index_strategy,
         )
 
     @property
@@ -854,17 +858,25 @@ class PackageFinder:
         return candidates
 
     def process_project_url(
-        self, project_url: Link, link_evaluator: LinkEvaluator
+        self,
+        project_url: Link,
+        link_evaluator: LinkEvaluator,
+        fail_on_error: bool = False,
+        on_page_found: Callable[[Link], None] | None = None,
     ) -> list[InstallationCandidate]:
         logger.debug(
             "Fetching project page and analyzing links: %s",
             project_url,
         )
         index_response = self._link_collector.fetch_response(
-            project_url, package_name=link_evaluator.project_name
+            project_url,
+            package_name=link_evaluator.project_name,
+            fail_on_error=fail_on_error,
         )
         if index_response is None:
             return []
+        if on_page_found is not None:
+            on_page_found(project_url)
 
         page_links = list(parse_links(index_response))
 
@@ -908,31 +920,72 @@ class PackageFinder:
             ]
             return self._all_candidates[project_name]
 
+        index_pages_found: set[Link] = set()
         collected_sources = self._link_collector.collect_sources(
             project_name=project_name,
             candidates_from_page=functools.partial(
                 self.process_project_url,
                 link_evaluator=link_evaluator,
             ),
+            index_candidates_from_page=(
+                functools.partial(
+                    self.process_project_url,
+                    link_evaluator=link_evaluator,
+                    fail_on_error=True,
+                    on_page_found=index_pages_found.add,
+                )
+                if self._index_strategy == "first-index"
+                else None
+            ),
         )
 
-        page_candidates_it = itertools.chain.from_iterable(
-            source.page_candidates()
-            for sources in collected_sources
-            for source in sources
-            if source is not None
+        if self._index_strategy == "first-index":
+            # Check one index at a time, and avoid fetching lower-priority
+            # indexes once an index has a project page, even if it has no
+            # compatible files for this request.
+            index_page_candidates: list[InstallationCandidate] = []
+            index_file_candidates: list[InstallationCandidate] = []
+            for source in collected_sources.index_urls:
+                if source is None:
+                    continue
+                index_file_candidates = self.evaluate_links(
+                    link_evaluator, source.file_links()
+                )
+                if not index_file_candidates:
+                    index_page_candidates = list(source.page_candidates())
+                if index_file_candidates or source.link in index_pages_found:
+                    logger.debug("Using index %s for %s", source.link, project_name)
+                    break
+
+            page_sources: Iterable[LinkSource | None] = collected_sources.find_links
+            file_sources: Iterable[LinkSource | None] = collected_sources.find_links
+        else:
+            index_page_candidates = []
+            index_file_candidates = []
+            page_sources = itertools.chain(
+                collected_sources.find_links, collected_sources.index_urls
+            )
+            file_sources = itertools.chain(
+                collected_sources.find_links, collected_sources.index_urls
+            )
+
+        page_candidates = (
+            list(
+                itertools.chain.from_iterable(
+                    source.page_candidates()
+                    for source in page_sources
+                    if source is not None
+                )
+            )
+            + index_page_candidates
         )
-        page_candidates = list(page_candidates_it)
 
         file_links_it = itertools.chain.from_iterable(
-            source.file_links()
-            for sources in collected_sources
-            for source in sources
-            if source is not None
+            source.file_links() for source in file_sources if source is not None
         )
-        file_candidates = self.evaluate_links(
-            link_evaluator,
-            sorted(file_links_it, reverse=True),
+        file_candidates = (
+            self.evaluate_links(link_evaluator, sorted(file_links_it, reverse=True))
+            + index_file_candidates
         )
 
         if logger.isEnabledFor(logging.DEBUG) and file_candidates:

@@ -162,6 +162,7 @@ class ListCommand(IndexGroupCommand):
             release_control=options.release_control,
             format_control=options.format_control,
             prefer_binary=options.prefer_binary,
+            index_strategy=options.index_strategy,
         )
 
         return PackageFinder.create(

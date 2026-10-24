@@ -457,6 +457,22 @@ def extra_index_url() -> Option:
     )
 
 
+def index_strategy() -> Option:
+    return Option(
+        "--index-strategy",
+        dest="index_strategy",
+        type="choice",
+        choices=("version-priority", "first-index"),
+        default="version-priority",
+        help=(
+            "How to search multiple indexes: version-priority (default) "
+            "considers all indexes; first-index uses the first index with "
+            "a project page. --index-url is searched "
+            "before --extra-index-url."
+        ),
+    )
+
+
 no_index: Callable[..., Option] = partial(
     Option,
     "--no-index",
@@ -1389,6 +1405,7 @@ index_group: dict[str, Any] = {
     "options": [
         index_url,
         extra_index_url,
+        index_strategy,
         no_index,
         refresh_package,
         find_links,
