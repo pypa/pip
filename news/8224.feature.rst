@@ -1,0 +1,1 @@
+Add a ``first-index`` strategy for ordered package index lookup.
