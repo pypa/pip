@@ -73,6 +73,7 @@ class VirtualEnvironment:
                         "--no-setuptools",
                         os.fspath(self.location),
                     ],
+                    setup_logging=False,
                 )
             elif self._venv_type == "venv":
                 builder = _venv.EnvBuilder()

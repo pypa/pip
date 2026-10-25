@@ -1,0 +1,1 @@
+Report the incomplete-download error on Windows, not a ``PermissionError``.

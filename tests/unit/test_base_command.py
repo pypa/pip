@@ -14,11 +14,25 @@ import pytest
 
 from pip._internal.cli import base_command
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import BROKEN_STDOUT, SUCCESS, VIRTUALENV_NOT_FOUND
+from pip._internal.cli.status_codes import (
+    BROKEN_STDOUT,
+    SUCCESS,
+    UNKNOWN_ERROR,
+    VIRTUALENV_NOT_FOUND,
+)
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
+
+
+@pytest.fixture(autouse=True)
+def restore_logging_level() -> Iterator[None]:
+    """Restore the root level after a command configures logging."""
+    logger = logging.getLogger()
+    level = logger.level
+    yield
+    logger.setLevel(level)
 
 
 @pytest.fixture
@@ -256,3 +270,18 @@ def test_commands_ignore_require_virtualenv_is_explicit() -> None:
         assert not command_class.ignore_require_venv == (
             name in commands_that_require_venv
         )
+
+
+@pytest.mark.parametrize("command_name", commands_dict)
+def test_commands_reject_version_option(
+    command_name: str,
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    cmd = create_command(command_name)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cmd.main(["--version"])
+    stderr = capfd.readouterr().err
+
+    assert excinfo.value.code == UNKNOWN_ERROR
+    assert "no such option: --version" in stderr

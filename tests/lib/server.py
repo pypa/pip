@@ -5,12 +5,12 @@ import threading
 from base64 import b64encode
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import ExitStack, contextmanager
+from http.server import HTTPServer
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock, patch
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
-from werkzeug.serving import make_server as _make_server
 
 from .compat import blocked_signals
 
@@ -34,7 +34,9 @@ def patch_getfqdn() -> Iterator[None]:
 
 
 class _MockServer(BaseWSGIServer):
-    mock: Mock = Mock()
+    def __init__(self, **kwargs: Any) -> None:
+        self.mock = Mock()
+        super().__init__("localhost", 0, app=_mock_wsgi_adapter(self.mock), **kwargs)
 
 
 class _RequestHandler(WSGIRequestHandler):
@@ -109,18 +111,14 @@ def make_mock_server(**kwargs: Any) -> _MockServer:
     Note also for pip interactions that "localhost" is a "secure origin", so
     be careful using this for failure tests of `--trusted-host`.
     """
-    kwargs.setdefault("request_handler", _RequestHandler)
+    kwargs["handler"] = kwargs.pop("request_handler", _RequestHandler)
 
-    mock = Mock()
-    app = _mock_wsgi_adapter(mock)
     with patch_getfqdn():
-        server = _make_server("localhost", 0, app=app, **kwargs)
-    server.mock = mock
-    return server
+        return _MockServer(**kwargs)
 
 
 @contextmanager
-def server_running(server: BaseWSGIServer) -> Iterator[None]:
+def server_running(server: HTTPServer) -> Iterator[None]:
     """Context manager for running the provided server in a separate thread."""
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
