@@ -9,6 +9,23 @@
 
 .. towncrier release notes start
 
+26.2.2 (2026-10-20)
+===================
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2026.10.19
+
+26.2.1 (2026-08-04)
+===================
+
+Bug Fixes
+---------
+
+- Reallow keyring installed in a (non-activated) virtual environment to be be used
+  via the ``import`` provider method while installing build dependencies. (`#14227 <https://github.com/pypa/pip/issues/14227>`_)
+
 26.2 (2026-07-29)
 =================
 

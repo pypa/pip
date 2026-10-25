@@ -292,6 +292,290 @@ def test_install_self_referential_extras(
     script.assert_installed(pkg="1", dep_a="1", dep_b="1")
 
 
+def test_install_self_referential_extras_nested(
+    script: PipTestEnvironment,
+) -> None:
+    """Convenience extras can nest through other self-referential extras."""
+    create_basic_wheel_for_package(script, "pytest", "1")
+    create_basic_wheel_for_package(script, "sphinx", "1")
+    create_basic_wheel_for_package(script, "ruff", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "test": ["pytest"],
+            "docs": ["sphinx"],
+            "format": ["ruff"],
+            "dev": ["pkg[test]", "pkg[format]"],
+            "all": ["pkg[dev]", "pkg[docs]"],
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]",
+    )
+    script.assert_installed(pkg="1", pytest="1", sphinx="1", ruff="1")
+
+
+def test_install_self_referential_extras_with_external_dep(
+    script: PipTestEnvironment,
+) -> None:
+    """A self-referential extra can also pull in an unrelated package."""
+    create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(script, "other", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "a": ["dep_a"],
+            "all": ["pkg[a]", "other"],
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]",
+    )
+    script.assert_installed(pkg="1", dep_a="1", other="1")
+
+
+def test_install_self_referential_extras_after_partial_install(
+    script: PipTestEnvironment,
+) -> None:
+    """Installing more extras on an already-installed version adds missing deps."""
+    create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(script, "dep_b", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "a": ["dep_a"],
+            "b": ["dep_b"],
+            "all": ["pkg[a, b]"],
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[a]",
+    )
+    script.assert_installed(pkg="1", dep_a="1")
+    script.assert_not_installed("dep_b")
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]",
+    )
+    script.assert_installed(pkg="1", dep_a="1", dep_b="1")
+
+
+@pytest.mark.parametrize(
+    "initial_extras, initial_req",
+    [
+        ({}, "pkg==1"),
+        ({"a": ["dep_a"]}, "pkg[a]==1"),
+    ],
+    ids=["had-no-extra", "had-different-extras"],
+)
+def test_install_self_referential_extras_upgrade_different_extras(
+    script: PipTestEnvironment,
+    initial_extras: dict[str, list[str]],
+    initial_req: str,
+) -> None:
+    """Upgrading package can change which extras exist and which deps they pull in."""
+    create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(script, "dep_a", "2")
+    create_basic_wheel_for_package(script, "dep_b", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras=initial_extras,
+    )
+
+    # Ensure dep_a ver 2 is present so pkg ver 2's dep_a==1 pin is a downgrade.
+    initial_install = [initial_req] if initial_extras else [initial_req, "dep_a==2"]
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        *initial_install,
+    )
+    script.assert_installed(pkg="1", dep_a="2")
+    script.assert_not_installed("dep_b")
+
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "2",
+        extras={
+            "a": ["dep_a==1"],
+            "b": ["dep_b"],
+            "all": ["pkg[a]", "pkg[b]"],
+        },
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]==2",
+        expect_stderr=True,
+    )
+    assert "does not provide the extra" not in result.stderr, str(result)
+    script.assert_installed(pkg="2", dep_a="1", dep_b="1")
+
+
+def test_install_self_referential_extras_upgrade_changes_dep_version(
+    script: PipTestEnvironment,
+) -> None:
+    """Self-referential extras follow upgraded dependency pins."""
+    create_basic_wheel_for_package(script, "dep", "1")
+    create_basic_wheel_for_package(script, "dep", "2")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={"a": ["dep==1"]},
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[a]",
+    )
+    script.assert_installed(pkg="1", dep="1")
+
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "2",
+        extras={
+            "a": ["dep==2"],
+            "all": ["pkg[a]"],
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]==2",
+    )
+    script.assert_installed(pkg="2", dep="2")
+
+
+def test_install_self_referential_extras_circular(
+    script: PipTestEnvironment,
+) -> None:
+    """Circular self-referential extras resolve without looping forever."""
+    create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(script, "dep_b", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "a": ["dep_a", "pkg[b]"],
+            "b": ["dep_b", "pkg[a]"],
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[a]",
+    )
+    script.assert_installed(pkg="1", dep_a="1", dep_b="1")
+
+
+def test_install_self_referential_extras_unknown_nested(
+    script: PipTestEnvironment,
+) -> None:
+    """A nested unknown extra warns the same way as a direct unknown extra."""
+    create_basic_wheel_for_package(script, "dep_a", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "a": ["dep_a"],
+            "all": ["pkg[missing]"],
+        },
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]",
+        expect_stderr=True,
+    )
+    assert "pkg 1 does not provide the extra 'missing'" in result.stderr
+    script.assert_installed(pkg="1")
+    script.assert_not_installed("dep_a")
+
+
+def test_install_self_referential_extras_name_normalization(
+    script: PipTestEnvironment,
+) -> None:
+    """Self-referential extras honor PEP 685 extra name normalization."""
+    create_basic_wheel_for_package(script, "meh", "1")
+    create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1",
+        extras={
+            "x_y": ["meh"],
+            "all": ["pkg[x-y]"],
+        },
+    )
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "pkg[all]",
+    )
+    script.assert_installed(pkg="1", meh="1")
+
+
 def test_install_setuptools_extras_inconsistency(
     script: PipTestEnvironment, tmp_path: Path
 ) -> None:
