@@ -345,22 +345,25 @@ def vendoring(session: nox.Session) -> None:
 
 @nox.session
 def coverage(session: nox.Session) -> None:
+    get_common_wheels(session)
+
     # Install source distribution
     run_with_protected_pip(session, "install", ".")
 
     # Install test dependencies
-    run_with_protected_pip(session, "install", "--group", "tests")
+    run_with_protected_pip(session, "install", "--group", "test")
 
-    if not os.path.exists(".coverage-output"):
-        os.mkdir(".coverage-output")
+    coverage_output_dir = Path(".coverage-output").resolve()
+    coverage_output_dir.mkdir(exist_ok=True)
+
     session.run(
         "pytest",
         "--cov=pip",
-        "--cov-config=./setup.cfg",
+        "--cov-config=pyproject.toml",
         *session.posargs,
         env={
-            "COVERAGE_OUTPUT_DIR": "./.coverage-output",
-            "COVERAGE_PROCESS_START": os.fsdecode(Path("setup.cfg").resolve()),
+            "COVERAGE_OUTPUT_DIR": os.fsdecode(coverage_output_dir),
+            "COVERAGE_PROCESS_START": os.fsdecode(Path("pyproject.toml").resolve()),
         },
     )
 
