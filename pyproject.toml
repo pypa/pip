@@ -82,6 +82,7 @@ test-common-wheels = [
 
 typecheck = [
     {include-group = "test"},
+    "certifi >= 2026.10.23",
     "keyring",  # An optional runtime dependency.
     "nox",
     "packaging",
@@ -92,6 +93,7 @@ typecheck = [
 ]
 
 docs = [
+    "certifi >= 2026.10.23",
     "sphinx ~= 7.0",
     # currently incompatible with sphinxcontrib-towncrier
     # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
