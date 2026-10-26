@@ -1,3 +1,3 @@
 Request the PEP 658 sidecar metadata file at the distribution file path with
-`.metadata` appended, so a distribution URL with a query string keeps that
-query string instead of getting a `.metadata` suffix inside it.
+``.metadata`` appended, so a distribution URL with a query string keeps that
+query string instead of getting a ``.metadata`` suffix inside it.
