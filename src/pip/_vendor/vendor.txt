@@ -1,5 +1,5 @@
 CacheControl==0.14.4
-distlib==0.4.3
+distlib==0.4.4
 distro==1.9.0
 msgpack==1.2.1
 packaging==26.3
