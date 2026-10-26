@@ -395,7 +395,7 @@ class InstallCommand(RequirementCommand):
             upgrade_strategy = options.upgrade_strategy
 
         cmdoptions.check_only_deps_option_does_not_conflict(options)
-        cmdoptions.check_build_constraints(options)
+        self._check_build_constraints(options)
         cmdoptions.check_dist_restriction(options, check_target=True)
         cmdoptions.check_release_control_exclusive(options)
 
