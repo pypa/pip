@@ -1,0 +1,11 @@
+--- a/src/pip/_vendor/rich/_unicode_data/__init__.py
++++ b/src/pip/_vendor/rich/_unicode_data/__init__.py
+@@ -87,7 +87,7 @@
+ 
+     version_path_component = version.replace(".", "-")
+     module_name = f".unicode{version_path_component}"
+-    module = import_module(module_name, "rich._unicode_data")
++    module = import_module(module_name, __package__)
+     if TYPE_CHECKING:
+         assert isinstance(module.cell_table, CellTable)
+     return module.cell_table

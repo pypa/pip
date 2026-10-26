@@ -92,11 +92,11 @@
       "version": "1.2.1"
     },
     {
-      "bom-ref": "pkg:pypi/rich@14.2.0",
+      "bom-ref": "pkg:pypi/rich@15.0.0",
       "name": "rich",
-      "purl": "pkg:pypi/rich@14.2.0",
+      "purl": "pkg:pypi/rich@15.0.0",
       "type": "library",
-      "version": "14.2.0"
+      "version": "15.0.0"
     },
     {
       "bom-ref": "pkg:pypi/setuptools@70.3.0",
@@ -149,7 +149,7 @@
         "pkg:pypi/pyproject-hooks@1.3.3",
         "pkg:pypi/requests@2.34.2",
         "pkg:pypi/resolvelib@1.2.1",
-        "pkg:pypi/rich@14.2.0",
+        "pkg:pypi/rich@15.0.0",
         "pkg:pypi/setuptools@70.3.0",
         "pkg:pypi/tomli@2.4.1",
         "pkg:pypi/tomli-w@1.2.0",
@@ -195,7 +195,7 @@
       "ref": "pkg:pypi/resolvelib@1.2.1"
     },
     {
-      "ref": "pkg:pypi/rich@14.2.0"
+      "ref": "pkg:pypi/rich@15.0.0"
     },
     {
       "ref": "pkg:pypi/setuptools@70.3.0"

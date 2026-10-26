@@ -9,7 +9,7 @@ requests==2.34.2
     certifi==2026.10.23
     idna==3.20
     urllib3==2.7.0
-rich==14.2.0
+rich==15.0.0
     pygments==2.21.0
 resolvelib==1.2.1
 setuptools==70.3.0
