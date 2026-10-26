@@ -289,7 +289,7 @@ def vendoring(session: nox.Session) -> None:
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
 
-    session.install("vendoring~=1.4.0")
+    session.install("vendoring~=1.4.0", "--constraint", "tools/constraints.txt")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
@@ -423,7 +423,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("twine")
+    session.install("twine", "--constraint", "tools/constraints.txt")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -475,7 +475,7 @@ def upload_release(session: nox.Session) -> None:
         session.error("Usage: nox -s upload-release -- YY.N[.P]")
 
     session.log("# Install dependencies")
-    session.install("twine")
+    session.install("twine", "--constraint", "tools/constraints.txt")
 
     distribution_files = glob.glob("dist/*")
     session.log(f"# Distribution files: {distribution_files}")
