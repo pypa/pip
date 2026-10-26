@@ -146,7 +146,7 @@ class RequirementCommand(IndexGroupCommand):
         self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
-    def _check_build_constraints(self, options: Values) -> None:
+    def check_build_constraints(self, options: Values) -> None:
         """Check build constraints with the command's network session."""
         if not options.build_constraints:
             return

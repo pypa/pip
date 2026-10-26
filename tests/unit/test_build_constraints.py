@@ -47,7 +47,7 @@ def test_build_constraints_use_command_session(cert_factory: Callable[[], str]) 
         )
 
         with command.main_context(), server_running(server):
-            command._check_build_constraints(options)
+            command.check_build_constraints(options)
 
         assert server.mock.call_count == 1
 
@@ -67,7 +67,7 @@ def test_build_constraints_require_build_isolation() -> None:
         CommandError,
         match="--build-constraint cannot be used with --no-build-isolation",
     ):
-        command._check_build_constraints(options)
+        command.check_build_constraints(options)
 
 
 @pytest.mark.parametrize("command_name", ["download", "install", "lock", "wheel"])

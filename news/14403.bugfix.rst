@@ -1,1 +1,1 @@
-Use the configured network session when checking remote build constraint files.
+Respect configured network settings while checking build constraint files.
