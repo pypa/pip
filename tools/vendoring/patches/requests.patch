@@ -39,7 +39,7 @@ index ad842400b..2156a4d1d 100644
 +    # Note: This logic prevents upgrading cryptography on Windows, if imported
 +    #       as part of pip.
 +    from pip._internal.utils.compat import WINDOWS
-+    if not WINDOWS:
++    if WINDOWS:
 +        raise ImportError("pip internals: don't import cryptography on Windows")
      try:
          import ssl
