@@ -705,7 +705,8 @@ def test_download__python_version_used_for_python_requires(
     args = make_args("33")
     result = script.pip(*args, expect_error=True)
     expected_err = (
-        "ERROR: Package 'mypackage' requires a different Python: 3.3.0 not in '==3.2'"
+        "ERROR: Package 'mypackage' requires a different Python. "
+        "required: '==3.2', current python: 3.3.0"
     )
     assert expected_err in result.stderr, f"stderr: {result.stderr}"
 

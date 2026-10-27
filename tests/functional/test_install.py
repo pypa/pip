@@ -2068,9 +2068,10 @@ def test_double_install_fail(
 
 
 def _get_expected_error_text() -> str:
-    return ("Package 'pkga' requires a different Python: {} not in '<1.0'").format(
-        ".".join(map(str, sys.version_info[:3]))
-    )
+    return (
+        "Package 'pkga' requires a different Python. "
+        "required: '<1.0', current python: {}"
+    ).format(".".join(map(str, sys.version_info[:3])))
 
 
 def test_install_incompatible_python_requires(script: PipTestEnvironment) -> None:

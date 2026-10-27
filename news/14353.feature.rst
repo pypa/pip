@@ -1,0 +1,1 @@
+Improve the wording of the "requires a different Python" error message so that it spells out the required version specifier and the current Python version.
