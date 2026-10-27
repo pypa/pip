@@ -1,0 +1,1 @@
+Fold multiline metadata values in pip show output so they remain valid mail-style headers.

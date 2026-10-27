@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from pip._internal.commands.show import _PackageInfo, print_results
+from pip._internal.commands.show import _PackageInfo, _format_header_value, print_results
 
 
 def _package_info(metadata_version: str) -> _PackageInfo:
@@ -52,3 +52,10 @@ def test_print_results_license_for_metadata_version(
     messages = [record.getMessage() for record in caplog.records]
     assert expected in messages
     assert unexpected not in messages
+
+
+def test_format_header_value_folds_newlines() -> None:
+    assert _format_header_value("line1\nline2") == "line1\n line2"
+    assert _format_header_value("a\r\nb") == "a\n b"
+    assert _format_header_value("a\rb") == "a\n b"
+    assert _format_header_value("no newlines") == "no newlines"
