@@ -780,8 +780,10 @@ def mock_server() -> Iterator[MockServer]:
 
 
 @pytest.fixture
-def proxy(request: pytest.FixtureRequest) -> str:
-    return request.config.getoption("proxy")
+def proxy(request: pytest.FixtureRequest) -> str | None:
+    proxy = request.config.getoption("proxy")
+    assert proxy is None or isinstance(proxy, str)
+    return proxy
 
 
 @pytest.fixture

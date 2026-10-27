@@ -10,10 +10,10 @@ from tests.lib import (
     PipTestEnvironment,
     ResolverVariant,
     TestData,
-    _create_test_package,
     _create_test_package_with_subdirectory,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
+    create_test_package,
     need_svn,
     requirements_file,
 )
@@ -957,7 +957,7 @@ class TestEditableDirectURL:
     def test_install_local_git_repo(
         self, script: PipTestEnvironment, common_wheels: Path
     ) -> None:
-        repo_path = _create_test_package(script.scratch_path, "simple")
+        repo_path = create_test_package(script.scratch_path, "simple")
         url = "git+" + repo_path.as_uri()
         script.pip(
             "install", "--no-index", "-e", f"simple @ {url}", "-f", common_wheels
