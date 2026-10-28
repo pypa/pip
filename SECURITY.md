@@ -16,14 +16,29 @@ about the time and attention your report requires. Reports that
 repeatedly disregard this policy may be rejected regardless of
 technical merit.
 
-## What pip is expected to do with wheels
+## Wheel installation
 
 Pip downloads a wheel
 ([binary distribution](https://packaging.python.org/en/latest/specifications/binary-distribution-format/))
 by saving it as a file in the target directory, and installs a
-wheel by unpacking it into the target environment. If pip runs
-code from a wheel while downloading or installing it, or writes
-files outside the target directory, that should be reported.
+wheel by unpacking it into the target environment.
+
+Because Python's import system is dynamic, pip cannot guarantee that
+installing a wheel will not execute third-party code.
+
+Unexpected execution of wheel code or writes outside the target
+directory should still be reported. Whether a report identifies a
+pip vulnerability depends on the cause.
+
+## Reducing code execution risks
+
+To further reduce risk, you can keep standard-library files and
+directories unwritable by the account running pip, and use
+`python -P -m pip install ...`
+([`-P`](https://docs.python.org/3/using/cmdline.html#cmdoption-P)
+requires Python 3.11+; use `-I` on older Python). This avoids
+prepending the scripts directory or current directory to the import
+path. Only install wheels from sources you trust.
 
 ## What is not a pip vulnerability
 
@@ -35,11 +50,10 @@ following are not pip vulnerabilities:
 - A malicious or compromised package index.
 - A malicious package. Building a package from source runs the build
   tool the package itself chooses
-  ([PEP 517](https://peps.python.org/pep-0517/)). Installing a
-  wheel does not run code from it, but once any package is
-  installed, its code can run whenever Python runs in that
-  environment. Report malicious packages on PyPI through
-  its [malware reporting process](https://pypi.org/security/).
+  ([PEP 517](https://peps.python.org/pep-0517/)). Once installed,
+  its code can run whenever Python runs in that environment.
+  Report malicious packages on PyPI through its
+  [malware reporting process](https://pypi.org/security/).
 - An attacker who already controls the machine pip runs on. Anyone
   who can change pip's command line, environment variables,
   configuration, or cache can already make pip install anything.
