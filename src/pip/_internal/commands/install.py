@@ -55,6 +55,7 @@ from pip._internal.utils.misc import (
     check_externally_managed,
     ensure_dir,
     get_pip_version,
+    is_within_directory,
     protect_pip_from_modification_on_windows,
     warn_if_run_as_root,
     write_output,
@@ -628,7 +629,7 @@ class InstallCommand(RequirementCommand):
             for item in os.listdir(lib_dir):
                 if lib_dir == data_dir:
                     ddir = os.path.join(data_dir, item)
-                    if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
+                    if any(is_within_directory(ddir, s) for s in lib_dir_list[:-1]):
                         continue
                 target_item_dir = os.path.join(target_dir, item)
                 if os.path.exists(target_item_dir):

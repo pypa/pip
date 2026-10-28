@@ -16,6 +16,7 @@ from pip._internal.metadata import (
 )
 from pip._internal.metadata.base import FilesystemWheel
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME
+from pip._internal.utils.misc import normalize_path
 
 from tests.lib.wheel import make_wheel
 
@@ -147,3 +148,31 @@ def test_trailing_slash_directory_metadata(
     dist = get_directory_distribution(path)
     assert dist.raw_name == dist.canonical_name == "foo"
     assert dist.location == str(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "site_attr, prop",
+    [("user_site", "in_usersite"), ("site_packages", "in_site_packages")],
+)
+def test_dist_in_site_dir_compares_whole_path_components(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, site_attr: str, prop: str
+) -> None:
+    site = tmp_path / "site-packages"
+    monkeypatch.setattr(f"pip._internal.metadata.base.{site_attr}", str(site))
+
+    class FakeDistribution(BaseDistribution):
+        def __init__(self, location: Path) -> None:
+            self._location = normalize_path(str(location))
+
+        @property
+        def installed_location(self) -> str:
+            return self._location
+
+    def in_site(location: Path) -> bool:
+        return getattr(FakeDistribution(location), prop)  # type: ignore
+
+    assert in_site(site)
+    assert in_site(site / "foo.egg")
+    # A directory whose name merely starts with the site directory's name is
+    # a different directory.
+    assert not in_site(tmp_path / "site-packages-old")
