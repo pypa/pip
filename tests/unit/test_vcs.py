@@ -436,6 +436,33 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "url, expected_in_message",
+    [
+        (
+            "https://user:secret@github.com/MyUser/myProject.git",
+            "https://user:****@github.com/MyUser/myProject.git",
+        ),
+        (
+            "https://token-secret@github.com/MyUser/myProject.git",
+            "https://****@github.com/MyUser/myProject.git",
+        ),
+    ],
+)
+def test_version_control__get_url_rev_and_auth__missing_plus_redacts_auth(
+    url: str, expected_in_message: str
+) -> None:
+    """
+    The malformed VCS URL error must not include credentials from the URL.
+    """
+    with pytest.raises(ValueError) as excinfo:
+        VersionControl.get_url_rev_and_auth(url)
+
+    message = str(excinfo.value)
+    assert "secret" not in message
+    assert expected_in_message in message
+
+
+@pytest.mark.parametrize(
     "url",
     [
         # Test a URL with revision part as empty.

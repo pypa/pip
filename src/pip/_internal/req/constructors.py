@@ -137,6 +137,14 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
     return Link(url).egg_fragment, url, set()
 
 
+def _redact_editable_req(editable_req: str, url: str) -> str:
+    """Return editable_req with any credentials in its URL redacted."""
+    # _parse_pip_syntax_editable() may have added a "<vcs>+" prefix to url.
+    if url in editable_req:
+        return editable_req.replace(url, redact_auth_from_url(url))
+    return redact_auth_from_url(editable_req)
+
+
 def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
     """Parses an editable requirement into:
         - a requirement name with environment markers
@@ -153,24 +161,21 @@ def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
         package_name, url, extras = _parse_pip_syntax_editable(editable_req)
 
     link = Link(url)
-    # _parse_pip_syntax_editable() may have added a "<vcs>+" prefix to url.
-    if url in editable_req:
-        redacted_req = editable_req.replace(url, redact_auth_from_url(url))
-    else:
-        redacted_req = redact_auth_from_url(editable_req)
 
     if not link.is_vcs and not link.url.startswith("file:"):
         backends = ", ".join(vcs.all_schemes)
         raise InstallationError(
-            f"{redacted_req} is not a valid editable requirement. "
-            f"It should either be a path to a local project or a VCS URL "
+            f"{_redact_editable_req(editable_req, url)} is not a valid "
+            "editable requirement. It should either be a path to a local "
+            "project or a VCS URL "
             f"(beginning with {backends})."
         )
 
     # The project name can be inferred from local file URIs easily.
     if not package_name and not link.url.startswith("file:"):
         raise InstallationError(
-            f"Could not detect requirement name for '{redacted_req}', "
+            "Could not detect requirement name for "
+            f"'{_redact_editable_req(editable_req, url)}', "
             "please specify one with your_package_name @ URL"
         )
     return package_name, url, extras

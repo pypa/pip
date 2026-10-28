@@ -393,11 +393,10 @@ class VersionControl:
         if "@" in path:
             path, rev = path.rsplit("@", 1)
             if not rev:
-                redacted_url = redact_auth_from_url(url)
                 raise InstallationError(
-                    f"The URL {redacted_url!r} has an empty revision (after @) "
-                    "which is not supported. Include a revision after @ "
-                    "or remove @ from the URL."
+                    f"The URL {redact_auth_from_url(url)!r} has an empty revision "
+                    "(after @) which is not supported. Include a revision "
+                    "after @ or remove @ from the URL."
                 )
             rev = urllib.parse.unquote(rev)
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
