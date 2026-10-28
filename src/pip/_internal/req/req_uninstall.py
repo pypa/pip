@@ -14,7 +14,13 @@ from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.egg_link import egg_link_path_from_location
 from pip._internal.utils.logging import getLogger, indent_log
-from pip._internal.utils.misc import ask, normalize_path, renames, rmtree
+from pip._internal.utils.misc import (
+    ask,
+    is_within_directory,
+    normalize_path,
+    renames,
+    rmtree,
+)
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -324,7 +330,7 @@ class UninstallPathSet:
         # aka is_local, but caching normalized sys.prefix
         if not running_under_virtualenv():
             return True
-        return path.startswith(self._normalize_path_cached(sys.prefix))
+        return is_within_directory(self._normalize_path_cached(sys.prefix), path)
 
     def add(self, path: str) -> None:
         head, tail = os.path.split(path)

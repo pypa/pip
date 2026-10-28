@@ -1,0 +1,4 @@
+Treat a directory whose name merely starts with the environment's prefix (for
+example ``venv-shared`` next to ``venv``) as outside the environment when
+deciding which distributions are local and which files ``pip uninstall`` may
+remove.

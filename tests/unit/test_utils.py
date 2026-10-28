@@ -39,6 +39,7 @@ from pip._internal.utils.misc import (
     hide_url,
     hide_value,
     is_console_interactive,
+    is_local,
     normalize_path,
     normalize_version_info,
     parse_netloc,
@@ -389,6 +390,28 @@ class Test_normalize_path:
             )
         finally:
             os.chdir(orig_working_dir)
+
+
+class TestIsLocal:
+    @pytest.fixture
+    def venv(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        prefix = tmp_path / "venv"
+        monkeypatch.setattr(sys, "prefix", str(prefix))
+        monkeypatch.setattr(
+            "pip._internal.utils.misc.running_under_virtualenv", lambda: True
+        )
+        return prefix
+
+    def test_path_inside_prefix_is_local(self, venv: Path) -> None:
+        assert is_local(normalize_path(str(venv)))
+        assert is_local(normalize_path(str(venv / "lib" / "site-packages")))
+
+    def test_sibling_sharing_prefix_name_is_not_local(self, venv: Path) -> None:
+        # A directory whose name merely starts with sys.prefix's name
+        # (".../venv-shared" vs ".../venv") is outside the environment.
+        sibling = venv.with_name(venv.name + "-shared")
+        assert not is_local(normalize_path(str(sibling)))
+        assert not is_local(normalize_path(str(sibling / "lib" / "site-packages")))
 
 
 class TestHashes:

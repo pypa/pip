@@ -19,7 +19,7 @@ from pip._internal.utils.filetypes import (
     XZ_EXTENSIONS,
     ZIP_EXTENSIONS,
 )
-from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.misc import ensure_dir, is_within_directory
 
 logger = logging.getLogger(__name__)
 
@@ -74,26 +74,6 @@ def has_leading_dir(paths: Iterable[str]) -> bool:
         elif prefix != common_prefix:
             return False
     return True
-
-
-def is_within_directory(
-    directory: str, target: str, *, resolve_symlinks: bool = False
-) -> bool:
-    """
-    Return true if the absolute path of target is within the directory
-    (including when target is equal to the directory).
-
-    When ``resolve_symlinks`` is true, resolve symlinks before comparing so
-    traversal through a symlink (e.g. "link/../file") is also caught.
-    """
-    if resolve_symlinks:
-        abs_directory = os.path.realpath(directory)
-        abs_target = os.path.realpath(target)
-    else:
-        abs_directory = os.path.abspath(directory)
-        abs_target = os.path.abspath(target)
-
-    return abs_target == abs_directory or abs_target.startswith(abs_directory + os.sep)
 
 
 def _get_default_mode_plus_executable() -> int:

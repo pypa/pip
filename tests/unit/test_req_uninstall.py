@@ -18,6 +18,7 @@ from pip._internal.req.req_uninstall import (
     compress_for_rename,
     uninstallation_paths,
 )
+from pip._internal.utils.misc import normalize_path
 
 from tests.lib.filesystem import create_file
 
@@ -256,6 +257,27 @@ class TestUninstallPathSet:
         ups.add(path1)
         ups.add(path2)
         assert ups._paths == {path1}
+
+    def test_add_only_within_prefix(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        prefix = tmp_path / "venv"
+        monkeypatch.setattr(sys, "prefix", str(prefix))
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall, "running_under_virtualenv", lambda: True
+        )
+        inside_file = prefix / "lib" / "foo.py"
+        # A sibling directory whose name starts with the prefix's name is
+        # another environment, not this one.
+        sibling_file = tmp_path / "venv-shared" / "lib" / "foo.py"
+        create_file(str(inside_file))
+        create_file(str(sibling_file))
+
+        ups = UninstallPathSet(dist=Mock())
+        ups.add(str(inside_file))
+        ups.add(str(sibling_file))
+        assert ups._paths == {normalize_path(str(inside_file))}
+        assert ups._refuse == {normalize_path(str(sibling_file))}
 
 
 class TestStashedUninstallPathSet:

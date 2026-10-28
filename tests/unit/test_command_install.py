@@ -1,18 +1,23 @@
 import errno
+import os
 import sys
 import warnings
+from pathlib import Path
+from typing import cast
 from unittest import mock
 
 import pytest
 
 from pip._vendor.requests.exceptions import InvalidProxyURL
 
-from pip._internal.commands import install
+from pip._internal.commands import create_command, install
 from pip._internal.commands.install import (
+    InstallCommand,
     _prevent_further_imports,
     create_os_error_message,
     decide_user_install,
 )
+from pip._internal.locations import get_scheme
 from pip._internal.utils.deprecation import PipDeprecationWarning
 
 
@@ -222,3 +227,27 @@ def test_prevent_further_imports_warns_on_import() -> None:
         audit_hook("import", ("encodings.iso8859_15",))
 
     assert caught == []
+
+
+def test_handle_target_dir_moves_data_dir_sharing_lib_prefix(
+    tmp_path: Path,
+) -> None:
+    temp_dir = tmp_path / "temp"
+    target_dir = tmp_path / "target"
+    scheme = get_scheme("", home=str(temp_dir))
+    Path(scheme.purelib, "pkg").mkdir(parents=True)
+    # The data directory's "lib" item holds the lib directory, whose contents
+    # are moved on their own; "li" merely shares its name's start, so it is
+    # data and must be moved too.
+    lib_item = Path(os.path.relpath(scheme.purelib, scheme.data)).parts[0]
+    data_item = lib_item[:-1]
+    Path(scheme.data, data_item).mkdir()
+
+    command = cast(InstallCommand, create_command("install"))
+    command._handle_target_dir(
+        str(target_dir), mock.Mock(path=str(temp_dir)), upgrade=False
+    )
+
+    assert (target_dir / "pkg").is_dir()
+    assert (target_dir / data_item).is_dir()
+    assert not (target_dir / lib_item).exists()

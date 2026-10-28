@@ -397,6 +397,26 @@ def renames(old: str, new: str) -> None:
             pass
 
 
+def is_within_directory(
+    directory: str, target: str, *, resolve_symlinks: bool = False
+) -> bool:
+    """
+    Return true if the absolute path of target is within the directory
+    (including when target is equal to the directory).
+
+    When ``resolve_symlinks`` is true, resolve symlinks before comparing so
+    traversal through a symlink (e.g. "link/../file") is also caught.
+    """
+    if resolve_symlinks:
+        abs_directory = os.path.realpath(directory)
+        abs_target = os.path.realpath(target)
+    else:
+        abs_directory = os.path.abspath(directory)
+        abs_target = os.path.abspath(target)
+
+    return abs_target == abs_directory or abs_target.startswith(abs_directory + os.sep)
+
+
 def is_local(path: str) -> bool:
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
@@ -408,7 +428,7 @@ def is_local(path: str) -> bool:
     """
     if not running_under_virtualenv():
         return True
-    return path.startswith(normalize_path(sys.prefix))
+    return is_within_directory(normalize_path(sys.prefix), path)
 
 
 def write_output(msg: Any, *args: Any) -> None:
