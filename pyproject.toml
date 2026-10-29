@@ -35,8 +35,8 @@ authors = [
 requires-python = ">=3.10"
 
 [project.scripts]
-pip = "pip._internal.cli.main:main"
-pip3 = "pip._internal.cli.main:main"
+pip = "pip._internal.cli.main:cli"
+pip3 = "pip._internal.cli.main:cli"
 
 [project.urls]
 Homepage = "https://pip.pypa.io/"
@@ -78,6 +78,7 @@ test-common-wheels = [
     "pytest-subket >= 0.8.1",
     "keyring",
     "cmake",
+    "rich",
 ]
 
 typecheck = [

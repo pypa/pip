@@ -1,9 +1,14 @@
 import errno
 import functools
+import importlib
+import importlib.util
 import os
+import subprocess
 import sys
-import warnings
+from cmd import Cmd
 from collections.abc import Callable, Iterator
+from importlib.machinery import ExtensionFileLoader, PathFinder
+from io import StringIO
 from pathlib import Path
 from types import ModuleType
 from unittest import mock
@@ -19,7 +24,6 @@ from pip._internal.commands.install import (
     decide_user_install,
 )
 from pip._internal.locations import get_scheme
-from pip._internal.utils.deprecation import PipDeprecationWarning
 from pip._internal.utils.temp_dir import TempDirectory
 
 
@@ -110,9 +114,7 @@ class TestDecideUserInstall:
             OSError(errno.EACCES, "No file permission"),
             True,
             True,
-            "Could"
-            " not install packages due to an OSError.\nCheck the"
-            " permissions.\n",
+            "Could not install packages due to an OSError.\nCheck the permissions.\n",
         ),
         # show_traceback = True, using_user_site = False
         (
@@ -134,9 +136,7 @@ class TestDecideUserInstall:
             OSError("Illegal byte sequence"),
             False,
             True,
-            "Could not"
-            " install packages due to an OSError: Illegal byte"
-            " sequence\n",
+            "Could not install packages due to an OSError: Illegal byte sequence\n",
         ),
         (
             OSError(errno.EACCES, "No file permission"),
@@ -151,9 +151,7 @@ class TestDecideUserInstall:
             OSError("Illegal byte sequence"),
             False,
             False,
-            "Could not"
-            " install packages due to an OSError: Illegal byte sequence"
-            "\n",
+            "Could not install packages due to an OSError: Illegal byte sequence\n",
         ),
         (
             OSError(errno.EACCES, "No file permission"),
@@ -176,11 +174,11 @@ class TestDecideUserInstall:
         # Testing both long path error (ENOENT)
         # and long file/folder name error (EINVAL) on Windows
         pytest.param(
-            OSError(errno.ENOENT, "No such file or directory", f"C:{'/a'*261}"),
+            OSError(errno.ENOENT, "No such file or directory", f"C:{'/a' * 261}"),
             False,
             False,
             "Could not install packages due to an OSError: "
-            f"[Errno 2] No such file or directory: 'C:{'/a'*261}'\n"
+            f"[Errno 2] No such file or directory: 'C:{'/a' * 261}'\n"
             "HINT: This error might have occurred since "
             "this system does not have Windows Long Path "
             "support enabled. You can find information on "
@@ -191,11 +189,11 @@ class TestDecideUserInstall:
             ),
         ),
         pytest.param(
-            OSError(errno.EINVAL, "No such file or directory", f"C:/{'a'*256}"),
+            OSError(errno.EINVAL, "No such file or directory", f"C:/{'a' * 256}"),
             False,
             False,
             "Could not install packages due to an OSError: "
-            f"[Errno 22] No such file or directory: 'C:/{'a'*256}'\n"
+            f"[Errno 22] No such file or directory: 'C:/{'a' * 256}'\n"
             "HINT: This error might be caused by a file or folder name exceeding "
             "255 characters, which is a Windows limitation even if long paths "
             "are enabled.\n",
@@ -205,7 +203,7 @@ class TestDecideUserInstall:
         ),
         pytest.param(
             OSError(
-                errno.EINVAL, "No such file or directory", f"C:{'/a'*261}/{'b'*256}"
+                errno.EINVAL, "No such file or directory", f"C:{'/a' * 261}/{'b' * 256}"
             ),
             False,
             False,
@@ -237,37 +235,149 @@ def test_create_os_error_message(
     assert msg == expected
 
 
-def test_prevent_further_imports_warns_on_import() -> None:
-    """
-    An import issued after _prevent_further_imports() has run must emit a
-    deprecation warning via the registered audit hook, except when the
-    imported module lives in the standard library.
-    """
-    captured_hooks: list[mock.Mock] = []
+def test_prevent_further_imports_blocks_import(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Nested installations share one hook and return to warnings when all finish."""
+    monkeypatch.setattr(install, "_IMPORT_AUDIT_HOOK_INSTALLED", False)
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", set())
+    monkeypatch.setattr(install, "_WARNED_IMPORTS", set())
+    monkeypatch.setattr(sys, "meta_path", sys.meta_path.copy())
 
-    with mock.patch.object(install, "_IMPORT_AUDIT_HOOK_INSTALLED", False):
-        with mock.patch.object(sys, "addaudithook", side_effect=captured_hooks.append):
-            _prevent_further_imports()
+    add_hook = mock.Mock()
+    monkeypatch.setattr(sys, "addaudithook", add_hook)
 
-    assert len(captured_hooks) == 1, "Expected exactly one audit hook to be registered"
-    audit_hook = captured_hooks[0]
+    with _prevent_further_imports():
+        with _prevent_further_imports():
+            pass
 
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        audit_hook("import", ("unknown_module",))
+        for module in ("unknown_module", "os", "encodings.iso8859_15"):
+            with pytest.raises(install.BlockedImportError, match=module):
+                install._prevent_import_hook("import", (module,))
+        install._prevent_import_hook("open", ("unknown_module",))
 
-    assert len(caught) == 1
-    assert "unknown_module" in str(caught[0].message)
-    assert issubclass(caught[0].category, PipDeprecationWarning)
+    assert not install._ACTIVE_INSTALLATIONS
+    for _ in range(2):
+        install._prevent_import_hook("import", ("after_install",))
+    assert len(caplog.records) == 1
+    assert "Unsafe import" in caplog.text
+    assert "all required modules before running pip install" in caplog.text
+    assert (
+        "https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program"
+        in caplog.text
+    )
 
-    # Standard library imports must not emit a warning: pip cannot shadow
-    # them with a freshly installed distribution.
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        audit_hook("import", ("os",))
-        audit_hook("import", ("encodings.iso8859_15",))
+    with _prevent_further_imports():
+        with pytest.raises(install.BlockedImportError, match="after_install"):
+            install._prevent_import_hook("import", ("after_install",))
 
-    assert caught == []
+    add_hook.assert_called_once_with(install._prevent_import_hook)
+    assert sys.meta_path[0] is install._IMPORT_BLOCKER
+    assert sum(finder is install._IMPORT_BLOCKER for finder in sys.meta_path) == 1
+
+
+def test_import_blocker_preserves_other_finders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Move only the owned blocker, without comparing third-party finders."""
+
+    def reject_equality(self: object, other: object) -> bool:
+        raise AssertionError("Finder equality must not be called")
+
+    finder_type = type("Finder", (PathFinder,), {"__eq__": reject_equality})
+    first, second = finder_type(), finder_type()
+    blocker = install._IMPORT_BLOCKER
+    meta_path = [first, blocker, second, blocker]
+    monkeypatch.setattr(sys, "meta_path", meta_path)
+    monkeypatch.setattr(install, "_IMPORT_AUDIT_HOOK_INSTALLED", True)
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", set())
+
+    for _ in range(2):
+        with _prevent_further_imports():
+            assert sys.meta_path is meta_path
+            assert tuple(map(id, sys.meta_path)) == (id(blocker), id(first), id(second))
+
+
+def test_post_install_warning_allows_logging_imports(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A reentrant or failing logging handler must not prevent a caller's import."""
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", set())
+    monkeypatch.setattr(install, "_WARNED_IMPORTS", set())
+
+    def warning(*args: object) -> None:
+        install._prevent_import_hook("import", ("handler_module",))
+        raise RuntimeError("The caller's logging handler failed")
+
+    with mock.patch.object(install.logger, "warning", side_effect=warning) as log:
+        install._prevent_import_hook("import", ("handler_module",))
+
+    log.assert_called_once()
+
+
+@pytest.mark.parametrize("unicode_version", ["4.1.0", "latest"])
+def test_progress_rendering_after_import_guard(
+    monkeypatch: pytest.MonkeyPatch, unicode_version: str
+) -> None:
+    monkeypatch.setenv("UNICODE_VERSION", unicode_version)
+    script = (
+        Path(__file__).resolve().parents[1] / "lib" / "check_installation_imports.py"
+    )
+    subprocess.run([sys.executable, str(script), "progress"], check=True)
+
+
+@pytest.mark.skipif(
+    sys.implementation.name != "cpython",
+    reason="Checks CPython's native import audit events",
+)
+def test_native_extension_loader_is_blocked() -> None:
+    spec = importlib.util.find_spec("_sqlite3")
+    if spec is None or not isinstance(spec.loader, ExtensionFileLoader):
+        pytest.skip("A shared extension module is required")
+
+    script = (
+        Path(__file__).resolve().parents[1] / "lib" / "check_installation_imports.py"
+    )
+    subprocess.run([sys.executable, str(script), "extension"], check=True)
+
+
+def test_importlib_preserves_eager_import_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    name = "_pip_unavailable_backend"
+    monkeypatch.setattr(install, "_IMPORT_ERRORS", {})
+    install._eagerly_import_modules((name,))
+    original = install._IMPORT_ERRORS[name]
+
+    monkeypatch.setattr(sys, "meta_path", [install._ImportBlocker(), *sys.meta_path])
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", {object()})
+    with pytest.raises(ModuleNotFoundError) as caught:
+        importlib.import_module(name)
+
+    assert caught.value is original
+
+
+def test_command_loop_without_readline_after_import_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep cmd's optional-readline fallback working after installation."""
+    monkeypatch.setattr(install, "_IMPORT_ERRORS", {})
+    monkeypatch.setitem(sys.modules, "readline", None)
+    install._eagerly_import_modules(install._INTERNAL_EAGER_IMPORTS)
+    monkeypatch.delitem(sys.modules, "readline")
+
+    class ExitCommand(Cmd):
+        def do_exit(self, arg: str) -> bool:
+            return True
+
+    command = ExitCommand(stdout=StringIO())
+    command.cmdqueue.append("exit")
+    monkeypatch.setattr(sys, "meta_path", [install._ImportBlocker(), *sys.meta_path])
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", {object()})
+
+    command.cmdloop()
+
+    assert "readline" not in sys.modules
 
 
 @pytest.mark.parametrize(
@@ -280,7 +390,7 @@ def test_prevent_further_imports_warns_on_import() -> None:
 def test_eager_import_errors_are_preserved(
     monkeypatch: pytest.MonkeyPatch, error: ImportError
 ) -> None:
-    """Retain optional-import errors and import each registered name only once."""
+    """Reuse the original optional-import error across repeated guarded attempts."""
     monkeypatch.setattr(install, "_IMPORT_ERRORS", {"previous_backend": error})
     importer = mock.Mock(side_effect=error)
     monkeypatch.setattr(install, "__import__", importer, raising=False)
@@ -288,8 +398,17 @@ def test_eager_import_errors_are_preserved(
     install._eagerly_import_modules(("optional_backend", "optional_backend"))
     assert "previous_backend" not in install._IMPORT_ERRORS
 
-    assert install._IMPORT_ERRORS == {"optional_backend": error}
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", {object()})
+
+    for _ in range(2):
+        with pytest.raises(type(error)) as caught:
+            install._prevent_import_hook("import", ("optional_backend",))
+        assert caught.value is error
+
     importer.assert_called_once_with("optional_backend")
+
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", set())
+    install._prevent_import_hook("import", ("optional_backend",))
 
 
 @pytest.fixture
@@ -518,6 +637,7 @@ def test_reify_lazy_imports_attempts_failed_targets_once(
     tmp_path: Path,
     exception: str,
     named: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Failed optional imports must not be retried or resolve their lazy children."""
     attempts: list[int] = []
@@ -545,9 +665,11 @@ def test_reify_lazy_imports_attempts_failed_targets_once(
     )
 
     if exception == "ImportError":
-        cached = install._IMPORT_ERRORS["_pip_reify_failure"]
-        assert type(cached) is ImportError
-        assert str(cached) == "optional dependency unavailable"
+        monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", {object()})
+        with pytest.raises(ImportError) as cached:
+            install._prevent_import_hook("import", ("_pip_reify_failure",))
+        assert type(cached.value) is ImportError
+        assert str(cached.value) == "optional dependency unavailable"
 
 
 @pytest.mark.parametrize(
@@ -556,6 +678,7 @@ def test_reify_lazy_imports_attempts_failed_targets_once(
 def test_reify_lazy_imports_preserves_dependency_import_error(
     lazy_import_owner: ModuleType,
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
     module: str,
 ) -> None:
     """Preserve an optional backend's error when either module is retried."""
@@ -568,6 +691,7 @@ def test_reify_lazy_imports_preserves_dependency_import_error(
 
     assert "_pip_reify_missing_dependency" in install._IMPORT_ERRORS
 
-    missing = install._IMPORT_ERRORS[module]
-    assert isinstance(missing, ModuleNotFoundError)
-    assert missing.name == "_pip_reify_missing_dependency"
+    monkeypatch.setattr(install, "_ACTIVE_INSTALLATIONS", {object()})
+    with pytest.raises(ModuleNotFoundError, match="No module named") as missing:
+        install._prevent_import_hook("import", (module,))
+    assert missing.value.name == "_pip_reify_missing_dependency"
