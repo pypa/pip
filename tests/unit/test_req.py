@@ -698,14 +698,15 @@ class TestInstallRequirement:
             assert not req.match_markers()
 
     def test_format_without_marker_keeps_comes_from(self) -> None:
-        ireq = install_req_from_line(
-            'foo; extra == "x" and python_version >= "3"', comes_from="bar"
+        ireq = InstallRequirement(
+            get_requirement('foo; extra == "x" and python_version >= "3"'),
+            comes_from="bar",
         )
         assert ireq.format_without_marker() == "foo (from bar)"
+        assert str(ireq) != ireq.format_without_marker()
+        assert ireq.markers is not None
         assert ireq.req is not None
         assert ireq.req.marker is not None
-        assert ireq.markers is not None
-        assert str(ireq) != ireq.format_without_marker()
 
     def test_extras_for_line_path_requirement(self) -> None:
         line = "SomeProject[ex1,ex2]"

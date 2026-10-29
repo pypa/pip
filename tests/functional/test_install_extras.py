@@ -1,5 +1,6 @@
 import re
 import textwrap
+import zipfile
 from os.path import join
 from pathlib import Path
 
@@ -198,22 +199,31 @@ def test_install_special_extra(
 def test_install_extra_with_compound_marker_missing_dependency(
     script: PipTestEnvironment,
 ) -> None:
-    """A missing dependency behind `extra == "feature" and <other marker>`
-    should be reported with the parent and extra, not silently dropped."""
-    parent_path = create_basic_wheel_for_package(
-        script,
-        name="marker-parent",
-        version="0.1",
-        depends=[
-            'missing-dependency-xyz; extra == "feature" and python_version >= "3"'
-        ],
-        extras={"feature": []},
+    wheel_path = script.scratch_path / "marker_parent-0.1-py2.py3-none-any.whl"
+    metadata = (
+        "Metadata-Version: 2.1\n"
+        "Name: marker-parent\n"
+        "Version: 0.1\n"
+        "Provides-Extra: feature\n"
+        'Requires-Dist: missing-dependency-xyz; extra == "feature" '
+        'and python_version >= "3"\n'
     )
+    wheel_info = (
+        "Wheel-Version: 1.0\n"
+        "Generator: test\n"
+        "Root-Is-Purelib: true\n"
+        "Tag: py2-none-any\n"
+        "Tag: py3-none-any\n"
+    )
+    with zipfile.ZipFile(wheel_path, "w") as z:
+        z.writestr("marker_parent-0.1.dist-info/METADATA", metadata)
+        z.writestr("marker_parent-0.1.dist-info/WHEEL", wheel_info)
+        z.writestr("marker_parent-0.1.dist-info/RECORD", "")
 
     result = script.pip(
         "install",
         "--no-index",
-        f"marker-parent[feature] @ {parent_path.as_uri()}",
+        f"marker-parent[feature] @ {wheel_path.as_uri()}",
         expect_error=True,
     )
     assert (
