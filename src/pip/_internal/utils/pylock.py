@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Collection, Iterable, Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlsplit
@@ -270,6 +270,8 @@ def select_from_pylock_path_or_url(
     pylock_path_or_url: str,
     session: PipSession,
     format_control: FormatControl | None,
+    *,
+    extras: Collection[str] | None = None,
 ) -> Iterator[
     tuple[
         Package,
@@ -301,7 +303,9 @@ def select_from_pylock_path_or_url(
         return False
 
     try:
-        yield from lock.select(prefer_sdist_predicate=prefer_sdist_predicate)
+        yield from lock.select(
+            extras=extras, prefer_sdist_predicate=prefer_sdist_predicate
+        )
     except Exception as exc:
         raise InstallationError(
             f"Cannot select requirements from pylock file {pylock_path_or_url!r}: {exc}"

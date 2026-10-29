@@ -569,6 +569,29 @@ class TestMessageAboutScriptsNotOnPATH:
         )
         assert retval is None
 
+    def test_PATH_entries_are_not_resolved_when_a_string_match_settles_it(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        tmp_path = tmp_path.resolve()
+        scripts_dir = tmp_path / "bin"
+        unrelated_entry = tmp_path / "elsewhere"
+
+        resolved: list[str] = []
+        unpatched_resolve = Path.resolve
+
+        def recording_resolve(self: Path, strict: bool = False) -> Path:
+            resolved.append(str(self))
+            return unpatched_resolve(self, strict)
+
+        monkeypatch.setattr(Path, "resolve", recording_resolve)
+        retval = self._template(
+            paths=[str(scripts_dir), str(unrelated_entry)],
+            scripts=[str(scripts_dir / "foo")],
+        )
+
+        assert retval is None
+        assert str(unrelated_entry) not in resolved
+
     def test_missing_PATH_env_treated_as_empty_PATH_env(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

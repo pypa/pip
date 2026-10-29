@@ -35,6 +35,7 @@ from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
+from pip._internal.utils.urls import strip_extras
 
 logger = logging.getLogger(__name__)
 
@@ -140,11 +141,13 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         from pip._internal.utils import pylock as pylock_utils
 
         for filename in options.requirements:
-            if pylock_utils.is_valid_pylock_filename(filename):
+            filename_without_extras, _ = strip_extras(filename)
+            if pylock_utils.is_valid_pylock_filename(filename_without_extras):
                 raise CommandError(
                     "Platform and interpreter constraints using "
                     "--python-version, --platform, --abi, or --implementation, "
-                    f"are not supported when selecting requirements from {filename!r}"
+                    f"are not supported when selecting requirements "
+                    f"from {filename_without_extras!r}"
                 )
 
 
@@ -539,7 +542,8 @@ def uploaded_prior_to() -> Option:
         help=(
             "Only consider packages uploaded prior to the given value. "
             "Accepts an ISO 8601 datetime (e.g., '2023-01-01T00:00:00Z', "
-            "uses local timezone if none specified) or a duration in days "
+            "uses local timezone if none specified) "
+            "or duration in integer days with syntax `P<n>D` "
             "(e.g., 'P3D' for packages uploaded at least 3 days ago). "
             "Only effective when using indexes that provide "
             "upload-time metadata."
@@ -598,7 +602,10 @@ def requirements() -> Option:
         help=(
             "Install from the given requirements file. "
             "The file or URL can be in pip's requirements.txt format, "
-            "or pylock.toml format. pylock.toml support is experimental. "
+            "or pylock.toml format. "
+            "Extras may be selected from a pylock.toml file by "
+            "appending [extras] to the file name. "
+            "pylock.toml support is experimental. "
             "This option can be used multiple times."
         ),
     )
@@ -1360,7 +1367,6 @@ general_group: dict[str, Any] = {
         require_virtualenv,
         python,
         verbose,
-        version,
         quiet,
         log,
         no_input,

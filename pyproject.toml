@@ -45,13 +45,13 @@ Source = "https://github.com/pypa/pip"
 Changelog = "https://pip.pypa.io/en/stable/news/"
 
 [build-system]
-requires = ["flit-core >=3.11,<4"]
+requires = ["flit-core >=3.11,<5"]
 build-backend = "flit_core.buildapi"
 
 [dependency-groups]
 test = [
     "cryptography",
-    "flit-core >= 3.11, < 4",
+    "flit-core >= 3.11, < 5",
     "freezegun",
     "installer",
     # pytest-subket requires 7.0+
@@ -62,14 +62,14 @@ test = [
     "pytest-subket",
     "scripttest",
     "setuptools",
-    "virtualenv >= 20.0",
+    "virtualenv >= 20.0.28",
     "werkzeug",
     "tomli-w",
     "proxy.py",
 ]
 
 test-common-wheels = [
-    "flit-core >= 3.11, < 4",
+    "flit-core >= 3.11, < 5",
     # We pin setuptools<80 because our test suite currently
     # depends on setup.py develop to generate egg-link files.
     "setuptools >= 70.1.0, <80",
@@ -82,6 +82,7 @@ test-common-wheels = [
 
 typecheck = [
     {include-group = "test"},
+    "certifi >= 2026.10.23",
     "keyring",  # An optional runtime dependency.
     "nox",
     "packaging",
@@ -92,6 +93,7 @@ typecheck = [
 ]
 
 docs = [
+    "certifi >= 2026.10.23",
     "sphinx ~= 7.0",
     # currently incompatible with sphinxcontrib-towncrier
     # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
@@ -229,6 +231,7 @@ ignore = [
     "B904", # Ruff enables opinionated warnings by default
     "B905", # Ruff enables opinionated warnings by default
     "C420", # unnecessary-dict-comprehension-for-iterable (worsens readability)
+    "ISC004" # implicit-string-concatenation-in-collection-literal
 ]
 select = [
     "ASYNC",
@@ -354,7 +357,7 @@ filterwarnings = [
 [tool.coverage.run]
 branch = true
 # Do not gather coverage for vendored libraries.
-omit = "*/_vendor/*"
+omit = ["*/_vendor/*"]
 # Centralized absolute file prefix for coverage files.
 data_file = "${COVERAGE_OUTPUT_DIR}/.coverage"
 # By default, each covered process will try to truncate and then write to
@@ -364,7 +367,7 @@ parallel = true
 # If not set, then at the termination of each worker (when using pytest-xdist),
 # the following is traced: "Coverage.py warning: Module pip was previously
 # imported, but not measured (module-not-measured)"
-disable_warnings = "module-not-measured"
+disable_warnings = ["module-not-measured"]
 
 [tool.coverage.paths]
 # We intentionally use "source0" here because pytest-cov unconditionally sets

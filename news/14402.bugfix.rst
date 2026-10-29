@@ -1,0 +1,2 @@
+Restore vendored Requests' PyOpenSSL fallback on non-Windows systems without
+importing PyOpenSSL on Windows.

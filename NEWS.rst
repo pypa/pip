@@ -9,6 +9,14 @@
 
 .. towncrier release notes start
 
+26.2.2 (2026-10-20)
+===================
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2026.10.19
+
 26.2.1 (2026-08-04)
 ===================
 

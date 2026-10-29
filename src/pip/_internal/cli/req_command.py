@@ -56,9 +56,10 @@ from pip._internal.utils.pylock import (
 )
 from pip._internal.utils.temp_dir import (
     TempDirectory,
+    TempDirectoryKind,
     TempDirectoryTypeRegistry,
-    tempdir_kinds,
 )
+from pip._internal.utils.urls import strip_extras
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +78,9 @@ def should_ignore_regular_constraints() -> bool:
 
 
 KEEPABLE_TEMPDIR_TYPES = [
-    tempdir_kinds.BUILD_ENV,
-    tempdir_kinds.EPHEM_WHEEL_CACHE,
-    tempdir_kinds.REQ_BUILD,
+    TempDirectoryKind.BUILD_ENV,
+    TempDirectoryKind.EPHEM_WHEEL_CACHE,
+    TempDirectoryKind.REQ_BUILD,
 ]
 
 
@@ -360,7 +361,8 @@ class RequirementCommand(IndexGroupCommand):
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
-            if is_valid_pylock_filename(filename):
+            filename_without_extras, extras = strip_extras(filename)
+            if is_valid_pylock_filename(filename_without_extras):
                 logger.warning(
                     "Using pylock.toml as a requirements source "
                     "is an experimental feature. "
@@ -368,7 +370,10 @@ class RequirementCommand(IndexGroupCommand):
                     "without prior warning."
                 )
                 for package, package_dist in select_from_pylock_path_or_url(
-                    filename, session=session, format_control=options.format_control
+                    filename_without_extras,
+                    session,
+                    format_control=options.format_control,
+                    extras=extras,
                 ):
                     req_to_add, locked_link = install_req_from_pylock_package(
                         package,
