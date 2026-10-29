@@ -276,7 +276,7 @@ class Configuration:
                     is_env_redirect = (
                         variant == kinds.ENV
                         and fname == env_config_file
-                        and self.load_only in (kinds.USER, kinds.GLOBAL)
+                        and self.load_only == kinds.USER
                     )
                     if not is_env_redirect:
                         logger.debug("Skipping file '%s' (variant: %s)", fname, variant)
