@@ -1,2 +1,0 @@
-Ensure truststore feature remains active while initially connecting to
-a HTTPS proxy.

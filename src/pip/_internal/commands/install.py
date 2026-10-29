@@ -450,12 +450,6 @@ class InstallCommand(RequirementCommand):
 
             wheel_cache = WheelCache(options.cache_dir)
 
-            # Only when installing is it permitted to use PEP 660.
-            # In other circumstances (pip wheel, pip download) we generate
-            # regular (i.e. non editable) metadata and wheels.
-            for req in reqs:
-                req.permit_editable_wheels = True
-
             preparer = self.make_requirement_preparer(
                 temp_build_dir=directory,
                 options=options,
@@ -464,6 +458,7 @@ class InstallCommand(RequirementCommand):
                 finder=finder,
                 use_user_site=options.use_user_site,
                 verbosity=self.verbosity,
+                allow_editables=True,
             )
             resolver = self.make_resolver(
                 preparer=preparer,
@@ -529,6 +524,7 @@ class InstallCommand(RequirementCommand):
                 reqs_to_build,
                 wheel_cache=wheel_cache,
                 verify=True,
+                allow_editables=True,
             )
 
             if build_failures:

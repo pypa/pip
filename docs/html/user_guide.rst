@@ -442,6 +442,58 @@ You can combine this option with other filtering mechanisms like constraints fil
 
       py -m pip install -c constraints.txt --uploaded-prior-to=2025-03-16 SomePackage
 
+.. _`Refresh Package`:
+
+Refreshing Package Metadata
+===========================
+
+.. versionadded:: 26.2
+
+By default, pip may use cached package index information when looking for packages.
+If you have just published a new version of a package and want to
+install it immediately without waiting for the cache to expire, use
+``--refresh-package``:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --refresh-package=requests requests
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --refresh-package=requests requests
+
+The option accepts ``:all:`` to force refresh for all packages, ``:none:`` to
+disable refresh entirely, or a comma-separated list of package names to refresh
+only specific packages:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      # Refresh metadata for a single package
+      python -m pip install --refresh-package=requests requests
+
+      # Refresh metadata for multiple packages
+      python -m pip install --refresh-package=requests,urllib3 requests urllib3
+
+      # Refresh metadata for all packages
+      python -m pip install --refresh-package=:all: -r requirements.txt
+
+      # Disable refresh explicitly
+      python -m pip install --refresh-package=:none: -r requirements.txt
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --refresh-package=requests requests
+      py -m pip install --refresh-package=requests,urllib3 requests urllib3
+      py -m pip install --refresh-package=:all: -r requirements.txt
+      py -m pip install --refresh-package=:none: -r requirements.txt
 
 .. _`Dependency Groups`:
 

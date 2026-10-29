@@ -48,6 +48,7 @@ def preparer(finder: PackageFinder) -> Iterator[RequirementPreparer]:
                     finder=finder,
                     use_user_site=False,
                     verbosity=0,
+                    allow_editables=True,
                 )
 
                 yield preparer

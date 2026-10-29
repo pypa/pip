@@ -14,7 +14,7 @@ import sysconfig
 import urllib.parse
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial, wraps
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from pathlib import Path
@@ -22,19 +22,25 @@ from types import FunctionType, TracebackType
 from typing import (
     Any,
     BinaryIO,
+    NoReturn,
     TextIO,
     TypeVar,
     cast,
 )
 
 from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.pyproject_hooks import BuildBackendHookCaller
+from pip._vendor.pyproject_hooks import BackendUnavailable, BuildBackendHookCaller
 
 from pip import __file__ as pip_location
 from pip import __version__
-from pip._internal.exceptions import CommandError, ExternallyManagedEnvironment
+from pip._internal.exceptions import (
+    BackendUnavailableError,
+    CommandError,
+    ExternallyManagedEnvironment,
+)
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import build_backend_warnings
 from pip._internal.utils.retry import retry
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -52,12 +58,14 @@ __all__ = [
     "ensure_dir",
     "remove_auth_from_url",
     "check_externally_managed",
+    "looks_like_ci",
     "ConfiguredBuildBackendHookCaller",
 ]
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
 ExcInfo = tuple[type[BaseException], BaseException, TracebackType]
 VersionInfo = tuple[int, int, int]
 NetlocTuple = tuple[str, tuple[str | None, str | None]]
@@ -65,6 +73,23 @@ OnExc = Callable[[FunctionType, Path, BaseException], Any]
 OnErr = Callable[[FunctionType, Path, ExcInfo], Any]
 
 FILE_CHUNK_SIZE = 1024 * 1024
+# These are environment variables present when running under various
+# CI systems.  For each variable, some CI systems that use the variable
+# are indicated.  The collection was chosen so that for each of a number
+# of popular systems, at least one of the environment variables is used.
+# This list is used to provide some indication of and lower bound for
+# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
+# For more background, see: https://github.com/pypa/pip/issues/5499
+CI_ENVIRONMENT_VARIABLES = (
+    # Azure Pipelines
+    "BUILD_BUILDID",
+    # Jenkins
+    "BUILD_ID",
+    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
+    "CI",
+    # Explicit environment variable.
+    "PIP_IS_CI",
+)
 
 
 def get_pip_version() -> str:
@@ -72,6 +97,11 @@ def get_pip_version() -> str:
     pip_pkg_dir = os.path.abspath(pip_pkg_dir)
 
     return f"pip {__version__} from {pip_pkg_dir} (python {get_major_minor_version()})"
+
+
+@cache
+def running_under_zipapp() -> bool:
+    return not pathlib.Path(pip_location).resolve().parent.is_dir()
 
 
 def get_runnable_pip() -> str:
@@ -82,7 +112,7 @@ def get_runnable_pip() -> str:
     """
     source = pathlib.Path(pip_location).resolve().parent
 
-    if not source.is_dir():
+    if running_under_zipapp():
         # This would happen if someone is using pip from inside a zip file. In that
         # case, we can use that directly.
         return str(source)
@@ -401,14 +431,6 @@ class StreamWrapper(StringIO):
         return self.orig_stream.encoding
 
 
-# Simulates an enum
-def enum(*sequential: Any, **named: Any) -> type[Any]:
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = {value: key for key, value in enums.items()}
-    enums["reverse_mapping"] = reverse
-    return type("Enum", (), enums)
-
-
 def build_netloc(host: str, port: int | None) -> str:
     """
     Build a netloc from a host-port pair
@@ -664,6 +686,24 @@ def partition(
     return filterfalse(pred, t1), filter(pred, t2)
 
 
+def _build_backend_hook(func: F) -> F:
+    """Apply warning policy and translate failures for a public backend hook."""
+
+    @wraps(func)
+    def wrapper(
+        self: ConfiguredBuildBackendHookCaller,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        with build_backend_warnings(self.backend_warning_level):
+            try:
+                return func(self, *args, **kwargs)
+            except BackendUnavailable as error:
+                self._raise_backend_unavailable(func.__name__, error)
+
+    return cast(F, wrapper)
+
+
 class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
     def __init__(
         self,
@@ -673,12 +713,34 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         backend_path: str | None = None,
         runner: Callable[..., None] | None = None,
         python_executable: str | None = None,
+        *,
+        backend_warning_level: int = logging.DEBUG,
     ):
         super().__init__(
             source_dir, build_backend, backend_path, runner, python_executable
         )
         self.config_holder = config_holder
+        self.backend_warning_level = backend_warning_level
 
+    def _raise_backend_unavailable(
+        self, hook_name: str, error: BackendUnavailable
+    ) -> NoReturn:
+        backend_error = (
+            error.traceback.strip().splitlines()[-1] if error.traceback else str(error)
+        )
+        exception = BackendUnavailableError(
+            hook_name=hook_name,
+            backend_name=self.build_backend,
+            backend_error=backend_error,
+        )
+        logger.error("%s", exception, extra={"rich": True})
+        raise exception from error
+
+    @_build_backend_hook
+    def supports_feature(self, feature: str) -> bool:
+        return feature in self._supported_features()
+
+    @_build_backend_hook
     def build_wheel(
         self,
         wheel_directory: str,
@@ -690,6 +752,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             wheel_directory, config_settings=cs, metadata_directory=metadata_directory
         )
 
+    @_build_backend_hook
     def build_sdist(
         self,
         sdist_directory: str,
@@ -698,6 +761,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         cs = self.config_holder.config_settings
         return super().build_sdist(sdist_directory, config_settings=cs)
 
+    @_build_backend_hook
     def build_editable(
         self,
         wheel_directory: str,
@@ -709,24 +773,28 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             wheel_directory, config_settings=cs, metadata_directory=metadata_directory
         )
 
+    @_build_backend_hook
     def get_requires_for_build_wheel(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_wheel(config_settings=cs)
 
+    @_build_backend_hook
     def get_requires_for_build_sdist(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_sdist(config_settings=cs)
 
+    @_build_backend_hook
     def get_requires_for_build_editable(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_editable(config_settings=cs)
 
+    @_build_backend_hook
     def prepare_metadata_for_build_wheel(
         self,
         metadata_directory: str,
@@ -740,12 +808,13 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             _allow_fallback=_allow_fallback,
         )
 
+    @_build_backend_hook
     def prepare_metadata_for_build_editable(
         self,
         metadata_directory: str,
         config_settings: Mapping[str, Any] | None = None,
         _allow_fallback: bool = True,
-    ) -> str | None:
+    ) -> str:
         cs = self.config_holder.config_settings
         return super().prepare_metadata_for_build_editable(
             metadata_directory=metadata_directory,
@@ -785,3 +854,13 @@ def warn_if_run_as_root() -> None:
         "Use the --root-user-action option if you know what you are doing and "
         "want to suppress this warning."
     )
+
+
+def looks_like_ci() -> bool:
+    """
+    Return whether it looks like pip is running under CI.
+    """
+    # We don't use the method of checking for a tty (e.g. using isatty())
+    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
+    # method doesn't provide definitive information in either direction.
+    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)

@@ -120,6 +120,7 @@ class DownloadCommand(RequirementCommand):
             download_dir=options.download_dir,
             use_user_site=False,
             verbosity=self.verbosity,
+            allow_editables=False,
         )
 
         resolver = self.make_resolver(

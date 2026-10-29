@@ -126,6 +126,7 @@ class WheelCommand(RequirementCommand):
             download_dir=options.wheel_dir,
             use_user_site=False,
             verbosity=self.verbosity,
+            allow_editables=False,
         )
 
         resolver = self.make_resolver(
@@ -154,6 +155,7 @@ class WheelCommand(RequirementCommand):
             reqs_to_build,
             wheel_cache=wheel_cache,
             verify=(not options.no_verify),
+            allow_editables=False,
         )
         for req in build_successes:
             assert req.link and req.link.is_wheel

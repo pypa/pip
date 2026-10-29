@@ -56,8 +56,8 @@ from pip._internal.utils.pylock import (
 )
 from pip._internal.utils.temp_dir import (
     TempDirectory,
+    TempDirectoryKind,
     TempDirectoryTypeRegistry,
-    tempdir_kinds,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,9 +77,9 @@ def should_ignore_regular_constraints() -> bool:
 
 
 KEEPABLE_TEMPDIR_TYPES = [
-    tempdir_kinds.BUILD_ENV,
-    tempdir_kinds.EPHEM_WHEEL_CACHE,
-    tempdir_kinds.REQ_BUILD,
+    TempDirectoryKind.BUILD_ENV,
+    TempDirectoryKind.EPHEM_WHEEL_CACHE,
+    TempDirectoryKind.REQ_BUILD,
 ]
 
 
@@ -162,6 +162,8 @@ class RequirementCommand(IndexGroupCommand):
         build_tracker: BuildTracker,
         session: PipSession,
         finder: PackageFinder,
+        *,
+        allow_editables: bool,
         use_user_site: bool,
         download_dir: str | None = None,
         verbosity: int = 0,
@@ -242,6 +244,7 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
             verbosity=verbosity,
             legacy_resolver=legacy_resolver,
+            allow_editables=allow_editables,
         )
 
     @classmethod
@@ -367,15 +370,15 @@ class RequirementCommand(IndexGroupCommand):
                 for package, package_dist in select_from_pylock_path_or_url(
                     filename, session=session
                 ):
-                    requirements.append(
-                        install_req_from_pylock_package(
-                            package,
-                            package_dist,
-                            filename,
-                            options.format_control,
-                            user_supplied=True,
-                        )
+                    req_to_add, locked_link = install_req_from_pylock_package(
+                        package,
+                        package_dist,
+                        filename,
+                        user_supplied=True,
                     )
+                    requirements.append(req_to_add)
+                    if locked_link:
+                        finder.add_locked_link(package.name, locked_link)
                 continue
             for parsed_req in parse_requirements(
                 filename, finder=finder, options=options, session=session

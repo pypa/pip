@@ -101,7 +101,6 @@ def make_install_req_from_editable(
         comes_from=template.comes_from,
         isolated=template.isolated,
         constraint=template.constraint,
-        permit_editable_wheels=template.permit_editable_wheels,
         hash_options=template.hash_options,
         config_settings=template.config_settings,
     )
@@ -374,7 +373,7 @@ class AlreadyInstalledCandidate(Candidate):
         self.dist = dist
         self._ireq = _make_install_req_from_dist(dist, template)
         self._factory = factory
-        self._version = None
+        self._version: Version | None = None
 
         # This is just logging some messages, so we can do it eagerly.
         # The returned dist would be exactly the same as self.dist because we

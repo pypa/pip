@@ -1,1 +1,0 @@
-Prevent system packages from leaking into isolated build environments on Python 3.15

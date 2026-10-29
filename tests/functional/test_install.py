@@ -31,8 +31,8 @@ from tests.lib import (
     TestData,
     TestPipResult,
     _create_svn_repo,
-    _create_test_package,
     create_basic_wheel_for_package,
+    create_test_package,
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
@@ -47,6 +47,104 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
+
+
+def test_refresh_package_sends_cache_control_header(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check if --refresh-package=:all: adds max-age=0 to all request headers.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page(
+            {
+                "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+            }
+        ),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--refresh-package=:all:",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+        )
+    call_args = server.mock.call_args_list[0].args
+    environ = call_args[0]
+    assert "HTTP_CACHE_CONTROL" in environ
+    assert environ["HTTP_CACHE_CONTROL"] == "max-age=0"
+
+
+def test_refresh_package_per_package(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check that --refresh-package=<name> only adds max-age=0
+    for the specified package, not others.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+        package_page(
+            {
+                "simplewheel-2.0-py2.py3-none-any.whl": (
+                    "/files/simplewheel-2.0-py2.py3-none-any.whl"
+                )
+            }
+        ),
+        file_response(data.packages / "simplewheel-2.0-py2.py3-none-any.whl"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--refresh-package=simple",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+            "simplewheel",
+        )
+
+    environ_simple = server.mock.call_args_list[0].args[0]
+    assert "HTTP_CACHE_CONTROL" in environ_simple
+    assert environ_simple["HTTP_CACHE_CONTROL"] == "max-age=0"
+
+    environ_simplewheel = server.mock.call_args_list[2].args[0]
+    assert "HTTP_CACHE_CONTROL" not in environ_simplewheel
+
+
+def test_refresh_package_not_set_by_default(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    """
+    Check that without --refresh-package, no max-age=0 is sent.
+    """
+    server = make_mock_server()
+    server.mock.side_effect = [
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
+        file_response(data.packages / "simple-3.0.tar.gz"),
+    ]
+    url = f"http://{server.host}:{server.port}/simple/"
+    with server_running(server):
+        script.pip(
+            "install",
+            "--no-build-isolation",
+            "--index-url",
+            url,
+            "simple",
+        )
+    environ = server.mock.call_args_list[0].args[0]
+    assert "HTTP_CACHE_CONTROL" not in environ
 
 
 @pytest.mark.parametrize("command", ["install", "wheel"])
@@ -455,7 +553,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
     """
     Test checking out from svn.
     """
-    checkout_path = _create_test_package(script.scratch_path)
+    checkout_path = create_test_package(script.scratch_path)
     repo_url = _create_svn_repo(script.scratch_path, checkout_path)
     result = script.pip(
         "install", "--no-build-isolation", "-e", "svn+" + repo_url + "#egg=version-pkg"
@@ -465,7 +563,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
 
 def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
     """Test cloning from Git."""
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="git")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="git")
     args = [
         "install",
         "--no-build-isolation",
@@ -544,7 +642,7 @@ def test_install_editable_uninstalls_existing_from_path(
 @need_mercurial
 def test_basic_install_editable_from_hg(script: PipTestEnvironment) -> None:
     """Test cloning and hg+file install from Mercurial."""
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="hg")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="hg")
     url = f"hg+{pkg_path.as_uri()}#egg=testpackage"
     assert url.startswith("hg+file")
     args = ["install", "--no-build-isolation", "-e", url]
@@ -557,7 +655,7 @@ def test_vcs_url_final_slash_normalization(script: PipTestEnvironment) -> None:
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="hg")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="hg")
     args = [
         "install",
         "--no-build-isolation",
@@ -571,7 +669,7 @@ def test_vcs_url_final_slash_normalization(script: PipTestEnvironment) -> None:
 @need_bzr
 def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
     """Test checking out from Bazaar."""
-    pkg_path = _create_test_package(
+    pkg_path = create_test_package(
         script.scratch_path, name="testpackage", vcs="bazaar"
     )
     args = [
@@ -588,7 +686,7 @@ def test_vcs_url_urlquote_normalization(script: PipTestEnvironment) -> None:
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
-    pkg_path = _create_test_package(
+    pkg_path = create_test_package(
         script.scratch_path, name="django_wikiapp", vcs="git"
     )
     url = f"git+{pkg_path.as_uri().replace('django_', 'django%5F')}/#egg=django_wikiapp"

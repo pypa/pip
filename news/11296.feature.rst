@@ -1,1 +1,0 @@
-Support self-referential extras officially. pip has supported this by accident since version 21.2.

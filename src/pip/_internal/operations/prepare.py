@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
@@ -72,6 +72,7 @@ def _get_prepared_distribution(
     build_env_installer: BuildEnvironmentInstaller,
     build_isolation: BuildIsolationMode,
     check_build_deps: bool,
+    allow_editables: bool,
 ) -> BaseDistribution:
     """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
@@ -79,7 +80,7 @@ def _get_prepared_distribution(
     if tracker_id is not None:
         with build_tracker.track(req, tracker_id):
             abstract_dist.prepare_distribution_metadata(
-                build_env_installer, build_isolation, check_build_deps
+                build_env_installer, build_isolation, check_build_deps, allow_editables
             )
     return abstract_dist.get_metadata_distribution()
 
@@ -226,48 +227,21 @@ def _check_download_dir(
     return download_path
 
 
-def _canonicalize_requirement(raw: str) -> str:
-    """Return a normalized form of a PEP 508 requirement string.
-
-    Used to compare ``Requires-Dist`` entries from two sources of metadata
-    for the same distribution without being confused by superficial
-    differences in name casing, extra casing, or extras ordering. May raise
-    ``InvalidRequirement`` if ``raw`` is not a valid PEP 508 string.
-
-    TODO: once https://github.com/pypa/packaging/pull/1278 is released and
-    vendored, ``Requirement.__eq__`` will canonicalize requested extras and
-    this manual normalization can be dropped in favour of comparing
-    ``Requirement`` objects directly.
-    """
-    parsed = get_requirement(raw)
-    parts: list[str] = [canonicalize_name(parsed.name)]
-    if parsed.extras:
-        normalized_extras = sorted(canonicalize_name(e) for e in parsed.extras)
-        parts.append(f"[{','.join(normalized_extras)}]")
-    if parsed.specifier:
-        parts.append(str(parsed.specifier))
-    if parsed.url:
-        parts.append(f" @ {parsed.url}")
-    if parsed.marker:
-        parts.append(f"; {parsed.marker}")
-    return "".join(parts)
-
-
 def _canonical_requires(
     req: InstallRequirement, dist: BaseDistribution, source: str
-) -> frozenset[str]:
+) -> frozenset[Requirement]:
     """Return the canonicalized ``Requires-Dist`` entries of ``dist``.
 
     ``source`` describes which metadata file ``dist`` was parsed from, for
     use in error messages.
     """
-    canonical: set[str] = set()
+    canonical = set()
     for raw in dist.iter_raw_dependencies():
         try:
             # strip() because a folded metadata header may be returned
             # with a leading newline; iter_dependencies() strips for the
             # same reason.
-            canonical.add(_canonicalize_requirement(raw.strip()))
+            canonical.add(get_requirement(raw.strip()))
         except InvalidRequirement as e:
             raise MetadataInvalid(req, f"Requires-Dist in {source}: {e}")
     return frozenset(canonical)
@@ -315,8 +289,8 @@ def _check_sidecar_matches_wheel(
         raise SidecarMetadataInconsistent(
             req,
             "Requires-Dist",
-            ", ".join(sorted(sidecar_requires - wheel_requires)),
-            ", ".join(sorted(wheel_requires - sidecar_requires)),
+            ", ".join(sorted(map(str, sidecar_requires - wheel_requires))),
+            ", ".join(sorted(map(str, wheel_requires - sidecar_requires))),
         )
 
     if sidecar_dist.requires_python != wheel_dist.requires_python:
@@ -359,6 +333,7 @@ class RequirementPreparer:
         lazy_wheel: bool,
         verbosity: int,
         legacy_resolver: bool,
+        allow_editables: bool,
     ) -> None:
         super().__init__()
 
@@ -400,6 +375,10 @@ class RequirementPreparer:
 
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
+
+        # Do we allow preparing editable wheels?
+        # When using pip wheel, editables must still produce regular wheels
+        self.allow_editables = allow_editables
 
     def _log_preparing_link(self, req: InstallRequirement) -> None:
         """Provide context for the requirement being prepared."""
@@ -780,6 +759,7 @@ class RequirementPreparer:
             self.build_env_installer,
             self.build_isolation,
             self.check_build_deps,
+            self.allow_editables,
         )
 
         # If a PEP 658 .metadata file was used, check that fields relevant for
@@ -857,6 +837,7 @@ class RequirementPreparer:
                 self.build_env_installer,
                 self.build_isolation,
                 self.check_build_deps,
+                self.allow_editables,
             )
 
             req.check_if_exists(self.use_user_site)

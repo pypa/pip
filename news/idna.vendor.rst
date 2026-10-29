@@ -1,1 +1,1 @@
-Upgrade idna to 3.18
+Upgrade idna to 3.20

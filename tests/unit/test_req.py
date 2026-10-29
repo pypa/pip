@@ -120,6 +120,7 @@ class TestRequirementSet:
                 lazy_wheel=False,
                 verbosity=0,
                 legacy_resolver=True,
+                allow_editables=True,
             )
             yield Resolver(
                 preparer=preparer,
@@ -861,7 +862,6 @@ class TestInstallRequirement:
         assert without_extras.constraint == req.constraint
         assert without_extras.config_settings == req.config_settings
         assert without_extras.user_supplied == req.user_supplied
-        assert without_extras.permit_editable_wheels == req.permit_editable_wheels
 
     @pytest.mark.parametrize(
         "inp, extras, out",
@@ -908,7 +908,6 @@ class TestInstallRequirement:
         assert extended.constraint == req.constraint
         assert extended.config_settings == req.config_settings
         assert extended.user_supplied == req.user_supplied
-        assert extended.permit_editable_wheels == req.permit_editable_wheels
 
 
 @pytest.mark.parametrize(

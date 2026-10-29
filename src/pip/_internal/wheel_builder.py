@@ -208,6 +208,7 @@ def build(
     requirements: Iterable[InstallRequirement],
     wheel_cache: WheelCache,
     verify: bool,
+    allow_editables: bool,
 ) -> BuildResult:
     """Build wheels.
 
@@ -232,7 +233,7 @@ def build(
                 req,
                 cache_dir,
                 verify,
-                req.editable and req.permit_editable_wheels,
+                req.editable and allow_editables,
             )
             if wheel_file:
                 # Record the download origin in the cache

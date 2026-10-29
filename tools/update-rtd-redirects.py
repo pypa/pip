@@ -5,7 +5,7 @@ Relevant API reference: https://docs.readthedocs.io/en/stable/api/v3.html#redire
 
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["httpx", "rich", "pyyaml"]
+# dependencies = ["httpx", "rich", "pyyaml", "certifi>=2026.10.23"]
 # ///
 
 import operator
