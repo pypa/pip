@@ -460,6 +460,50 @@ def test_install_warns_on_unexpected_post_install_import(
     assert "run_install.py:7)" in result.stderr
 
 
+@pytest.mark.parametrize("cached_function", [False, True])
+def test_install_preloads_registered_import_before_replacing_module(
+    script: PipTestEnvironment,
+    cached_function: bool,
+) -> None:
+    """A post-install lazy reference must use the module loaded before replacement."""
+    dependency = "pip_reify_dependency.py"
+    script.site_packages_path.joinpath(dependency).write_text(
+        "import pip._internal.commands.install as install\n"
+        "assert not install._IMPORT_AUDIT_HOOK_INSTALLED\n"
+        'value = "before installation"\n'
+    )
+    owner = script.site_packages_path / "pip_eager_owner.py"
+    exports = (
+        script.site_packages_path / "pip_eager_exports.py" if cached_function else owner
+    )
+    definition = (
+        "from functools import lru_cache\n@lru_cache\n" if cached_function else ""
+    )
+    exports.write_text(
+        '__lazy_modules__ = ["pip_reify_dependency"]\n'
+        "import pip_reify_dependency as dependency\n"
+        + definition
+        + "def value():\n    return dependency.value\n"
+    )
+    if cached_function:
+        owner.write_text("from pip_eager_exports import value\n")
+
+    wheel_path = create_basic_wheel_for_package(
+        script,
+        "mypackage",
+        "1.0",
+        extra_files={dependency: 'raise AssertionError("New module executed")\n'},
+    )
+    runner = Path(__file__).parents[1] / "lib" / "install_with_registered_import.py"
+
+    result = script.run("python", str(runner), str(wheel_path))
+
+    assert result.returncode == SUCCESS
+    result.assert_installed("mypackage", editable=False)
+    result.did_update(script.site_packages / dependency)
+    result.did_create(script.site_packages / "mypackage-1.0.dist-info" / "RECORD")
+
+
 def test_install_exit_status_code_when_no_requirements(
     script: PipTestEnvironment,
 ) -> None:

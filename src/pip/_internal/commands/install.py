@@ -2,21 +2,28 @@ from __future__ import annotations
 
 import contextlib
 import errno
+import functools
+import inspect
 import json
 import operator
 import os
 import shutil
 import site
 import sys
-from collections.abc import Iterator
+import traceback
+import types
+from collections.abc import Iterable, Iterator
 from optparse import SUPPRESS_HELP, Values
 from pathlib import Path
 from typing import Any
 
+from pip._vendor import pygments, rich
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
-from pip._vendor.rich import print_json
+from pip._vendor.rich.text import Text
+
+import pip
 
 # Eagerly import self_outdated_check to avoid crashes. Otherwise,
 # this module would be imported *after* pip was replaced, resulting
@@ -24,7 +31,7 @@ from pip._vendor.rich import print_json
 # with the rest of pip that's already imported, or allowing a
 # wheel to execute arbitrary code on install by replacing
 # self_outdated_check.
-import pip._internal.self_outdated_check  # noqa: F401
+import pip._internal.self_outdated_check
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -70,15 +77,31 @@ logger = getLogger(__name__)
 
 
 _IMPORT_AUDIT_HOOK_INSTALLED = False
-_MISSING_MODULES: set[str] = set()
+_IMPORT_ERRORS: dict[str, ImportError] = {}
 
-# Non-stdlib modules pip (or its vendored dependencies) may import lazily
-# after installation has started. Importing them eagerly keeps the audit
-# hook from misattributing them to a freshly installed distribution.
-_EAGER_IMPORTS: tuple[str, ...] = (
+# Import dependencies directly where possible; otherwise list them here.
+_INTERNAL_EAGER_IMPORTS: tuple[str, ...] = (
     "pip._internal.operations.install.wheel",
-    # Used by rich when emitting output to a legacy Windows console.
-    "pip._vendor.rich._windows_renderer",
+    # Rich loads the Python lexer when rendering debug tracebacks.
+    f"{pygments.__name__}.lexers.python",
+    # Preload Python 3.13+ traceback helpers to preserve the original error.
+    "traceback",
+    "_colorize",
+    "_suggestions",
+    "ast",
+    "difflib",
+    "unicodedata",
+    # Preserve cmd's fallback when readline is unavailable.
+    "readline",
+    # weakref.finalize imports gc when running shutdown callbacks.
+    "gc",
+    # Use Rich's actual namespace when pip has been de-vendored.
+    # The renderer is used for output to a legacy Windows console.
+    f"{rich.__name__}._windows_renderer",
+    # zipfile may import these backends when reading compressed wheel contents.
+    "_bz2",
+    "_lzma",
+    "_zstd",
 )
 
 
@@ -93,8 +116,8 @@ def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
     if name != "import":
         return
     module = args[0]
-    if module in _MISSING_MODULES:
-        raise ImportError(f"No module named {module!r}")
+    if module in _IMPORT_ERRORS:
+        raise _IMPORT_ERRORS[module].with_traceback(None)
     if module.partition(".")[0] in _STDLIB_MODULE_NAMES:
         return
     deprecated(
@@ -107,15 +130,119 @@ def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
     )
 
 
-def _eagerly_import_modules() -> None:
-    """Import modules pip uses lazily so the audit hook ignores them later."""
-    for module in _EAGER_IMPORTS:
+def _eagerly_import_modules(module_names: Iterable[str]) -> None:
+    """Import selected dependencies before installation starts."""
+    # Load Rich's lazy emoji and width data before installation starts.
+    _ = Text.from_markup(":package:").cell_len
+
+    _IMPORT_ERRORS.clear()
+    for module in dict.fromkeys(module_names):
         try:
             __import__(module)
-        except ImportError:
-            # Record the module as missing so the hook can raise ImportError
-            # instead of trying to import it again.
-            _MISSING_MODULES.add(module)
+        except ImportError as error:
+            _IMPORT_ERRORS[module] = error.with_traceback(None)
+
+
+def _referenced_modules(module: types.ModuleType) -> Iterator[types.ModuleType]:
+    """Find dependencies referenced by modules and callables."""
+    for value in tuple(vars(module).values()):
+        if isinstance(value, types.ModuleType):
+            yield value
+            continue
+
+        # Standard callable adapters keep dependency globals on their function.
+        while True:
+            if type(value) is functools.partial:
+                value = value.func
+            elif type(value) is types.MethodType:
+                value = value.__func__
+            else:
+                break
+
+        names: tuple[object, ...]
+        if type(value) is types.FunctionType:
+            # Decorators can preserve the original module while changing globals.
+            names = (value.__globals__.get("__name__"), value.__module__)
+        elif callable(value):
+            # Read callable metadata without invoking descriptors.
+            names = (inspect.getattr_static(value, "__module__", None),)
+        else:
+            continue
+
+        for name in names:
+            dependency = sys.modules.get(name) if isinstance(name, str) else None
+            if isinstance(dependency, types.ModuleType):
+                yield dependency
+
+
+def _cache_lazy_import_error(error: ImportError) -> None:
+    """Preserve failures for both a missing dependency and its failed importers."""
+    # Import machinery removes failed modules before propagating their error.
+    for frame, _ in traceback.walk_tb(error.__traceback__):
+        module_name = frame.f_globals.get("__name__")
+        if isinstance(module_name, str) and module_name not in sys.modules:
+            _IMPORT_ERRORS[module_name] = error
+
+    if error.name is not None:
+        _IMPORT_ERRORS[error.name] = error
+
+    # Avoid retaining the import traceback in the cache.
+    error.with_traceback(None)
+
+
+def _reify_lazy_imports(module_names: Iterable[str]) -> None:
+    """Resolve lazy bindings in installation dependencies before installation starts."""
+    if sys.version_info < (3, 15):
+        return
+
+    modules = {
+        name: module
+        for name in module_names
+        if isinstance(module := sys.modules.get(name), types.ModuleType)
+    }
+    attempted: set[object] = set()
+
+    while True:
+        # A from-import can already hold an object from a lazy dependency.
+        dependencies = {
+            dependency.__name__: dependency
+            for module in modules.values()
+            for dependency in _referenced_modules(module)
+            if dependency.__name__ not in modules
+        }
+        modules.update(dependencies)
+
+        # Resolving a binding can add lazy imports to modules already scanned.
+        pending = [
+            (module, name, value)
+            for module in modules.values()
+            for name, value in tuple(vars(module).items())
+            if type(value) is types.LazyImportType and value not in attempted
+        ]
+        if not pending and not dependencies:
+            break
+
+        for module, name, value in pending:
+            attempted.add(value)
+            before = set(sys.modules)
+
+            try:
+                resolved = getattr(module, name)
+
+                # The binding may resolve to an already-loaded module.
+                if isinstance(resolved, types.ModuleType):
+                    modules[resolved.__name__] = resolved
+            except ImportError as error:
+                _cache_lazy_import_error(error)
+            except Exception:
+                # Optional lazy imports need not succeed for installation to proceed.
+                pass
+
+            # Include dependencies loaded indirectly, even by a failed import.
+            for dependency in sys.modules.keys() - before:
+                imported = sys.modules[dependency]
+                if isinstance(imported, types.ModuleType):
+                    modules[dependency] = imported
 
 
 def _prevent_further_imports() -> None:
@@ -482,7 +609,7 @@ class InstallCommand(RequirementCommand):
             if options.json_report_file:
                 report = InstallationReport(requirement_set.requirements_to_install)
                 if options.json_report_file == "-":
-                    print_json(data=report.to_dict())
+                    rich.print_json(data=report.to_dict())
                 else:
                     with open(options.json_report_file, "w", encoding="utf-8") as f:
                         json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
@@ -548,8 +675,10 @@ class InstallCommand(RequirementCommand):
 
             # Warn on late imports so we don't silently pick up a module
             # from a distribution pip is about to install.
+            module_names = (*_INTERNAL_EAGER_IMPORTS, *pip._EAGER_IMPORTS)
             try:
-                _eagerly_import_modules()
+                _eagerly_import_modules(module_names)
+                _reify_lazy_imports(module_names)
             finally:
                 _prevent_further_imports()
 
@@ -597,8 +726,10 @@ class InstallCommand(RequirementCommand):
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
+
         if options.root_user_action == "warn":
             warn_if_run_as_root()
+
         return SUCCESS
 
     def _handle_target_dir(
