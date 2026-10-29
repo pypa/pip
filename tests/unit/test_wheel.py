@@ -9,16 +9,17 @@ import sys
 import textwrap
 from email import message_from_string
 from pathlib import Path
-from typing import cast
-from unittest.mock import patch
+from typing import BinaryIO, cast
+from unittest.mock import Mock, patch
 
 import pytest
 
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import BlockedImportError, InstallationError
 from pip._internal.locations import get_scheme
+from pip._internal.metadata import get_environment
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
     ArchiveInfo,
@@ -213,6 +214,278 @@ class TestWheelFile:
         filepath = os.path.join(DATA_DIR, "packages", "meta-1.0-py2.py3-none-any.whl")
         unpack_file(filepath, os.fspath(tmpdir))
         assert os.path.isdir(os.path.join(tmpdir, "meta-1.0.dist-info"))
+
+
+@pytest.mark.parametrize(
+    "error",
+    [BlockedImportError("Unexpected import"), ModuleNotFoundError("Unavailable")],
+)
+def test_wheel_compilation_import_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, error: Exception
+) -> None:
+    path = tmp_path / "sample.py"
+    path.write_text("value = 42\n")
+    monkeypatch.setattr(wheel.compileall, "compile_file", Mock(side_effect=error))
+
+    assert wheel._compile_wheel_file(str(path)) is False
+
+
+def test_generated_file_does_not_remove_renamed_temporary_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        wheel.os, "unlink", Mock(side_effect=BlockedImportError("Unexpected removal"))
+    )
+    path = tmp_path / "INSTALLER"
+
+    with wheel._generate_file(str(path), 0o644) as file:
+        file.write(b"pip\n")
+
+    assert path.read_bytes() == b"pip\n"
+
+
+def test_blocked_preparation_preserves_existing_install(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed reinstall must leave the existing installation byte for byte intact."""
+    path = make_wheel(
+        "sample", "1.0", extra_files={"sample/__init__.py": "value = 42\n"}
+    ).save_to_dir(tmp_path)
+    installed = tmp_path / "installed"
+    scheme = get_scheme("sample", home=str(installed))
+
+    wheel.install_wheel("sample", str(path), scheme=scheme, req_description="sample")
+    before = {p: p.read_bytes() for p in installed.rglob("*") if p.is_file()}
+
+    monkeypatch.setattr(
+        wheel, "get_entrypoints", Mock(side_effect=BlockedImportError("preparation"))
+    )
+
+    with pytest.raises(InstallationError):
+        wheel.install_wheel(
+            "sample", str(path), scheme=scheme, req_description="sample"
+        )
+
+    assert {p: p.read_bytes() for p in installed.rglob("*") if p.is_file()} == before
+
+
+@pytest.mark.parametrize(
+    "partial_copy, rollback_on_error, recovery_error",
+    [
+        (False, False, None),
+        (True, False, None),
+        (False, True, None),
+        (True, True, None),
+        (True, True, PermissionError("Cannot remove copied file")),
+        (True, True, BlockedImportError("Cold import during cleanup")),
+        (True, False, PermissionError("Cannot write recovery metadata")),
+        (True, False, BlockedImportError("Cold import during recovery")),
+    ],
+)
+def test_blocked_copy_records_only_written_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    partial_copy: bool,
+    rollback_on_error: bool,
+    recovery_error: Exception | None,
+) -> None:
+    """Recovery must record partial writes without claiming untouched files."""
+    path = make_wheel(
+        "sample",
+        "1.0",
+        extra_files={
+            "sample/a_source.py": "value = 42\n",
+            "sample/z_foreign.py": "value = 43\n",
+        },
+    ).save_to_dir(tmp_path)
+    scheme = get_scheme("sample", home=str(tmp_path / "installed"))
+    lib = Path(scheme.purelib)
+
+    # Seed a file the wheel lists but has not written.
+    foreign = lib / "sample/z_foreign.py"
+    foreign.parent.mkdir(parents=True)
+    foreign.write_text("not installed by this wheel\n")
+
+    if partial_copy:
+        original = wheel.shutil.copyfileobj
+
+        def copyfileobj(source: BinaryIO, dest: BinaryIO, length: int) -> None:
+            if Path(dest.name).name == "a_source.py":
+                dest.write(b"partial")
+                raise BlockedImportError("Unexpected import during copying")
+            original(source, dest, length)
+
+        monkeypatch.setattr(wheel.shutil, "copyfileobj", copyfileobj)
+    else:
+        monkeypatch.setattr(
+            wheel.ZipBackedFile, "save", Mock(side_effect=BlockedImportError("cold"))
+        )
+
+    if recovery_error is not None and rollback_on_error:
+        original_unlink = wheel.os.unlink
+
+        def unlink(path: str) -> None:
+            if Path(path) == lib / "sample/a_source.py":
+                raise recovery_error
+            original_unlink(path)
+
+        monkeypatch.setattr(wheel.os, "unlink", unlink)
+    elif recovery_error is not None:
+        original_replace = wheel.replace
+
+        def replace(src: str, dest: str) -> None:
+            if Path(dest) == lib / "sample-1.0.dist-info/METADATA":
+                raise recovery_error
+            original_replace(src, dest)
+
+        monkeypatch.setattr(wheel, "replace", replace)
+
+    with pytest.raises(InstallationError) as error:
+        wheel.install_wheel(
+            "sample",
+            str(path),
+            scheme=scheme,
+            req_description="sample",
+            rollback_on_error=rollback_on_error,
+        )
+
+    assert foreign.read_text() == "not installed by this wheel\n"
+    if recovery_error is not None:
+        if rollback_on_error:
+            assert "Could not remove incomplete installation of 'sample'" in str(
+                error.value
+            )
+        else:
+            assert "Could not write recovery metadata for 'sample'" in str(error.value)
+            assert repr(str(lib / "sample-1.0.dist-info")) in str(error.value)
+        assert str(recovery_error) in str(error.value)
+        assert "Unexpected import during copying" in str(error.value)
+        assert error.value.__cause__ is not None
+        assert error.value.__cause__.__cause__ is recovery_error
+        return
+
+    if rollback_on_error:
+        assert not (lib / "sample-1.0.dist-info").exists()
+        assert not (lib / "sample/a_source.py").exists()
+        return
+
+    dist = get_environment([scheme.purelib]).get_distribution("sample")
+    assert dist is not None
+    assert dist.metadata["Name"] == "sample"
+    assert dist.metadata["Version"] == "1.0"
+
+    with (lib / "sample-1.0.dist-info/RECORD").open() as record:
+        recorded = {row[0] for row in csv.reader(record)}
+    assert "sample-1.0.dist-info/METADATA" in recorded
+    assert "sample-1.0.dist-info/RECORD" in recorded
+    assert "sample/z_foreign.py" not in recorded
+    assert ("sample/a_source.py" in recorded) == partial_copy
+    if partial_copy:
+        assert (lib / "sample/a_source.py").read_bytes() == b"partial"
+
+
+@pytest.mark.parametrize("stage", ["scripts", "record"])
+def test_blocked_finalization_retains_installed_file_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stage: str
+) -> None:
+    """Keep generated scripts uninstallable without claiming unwritten wrappers."""
+    path = make_wheel(
+        "sample",
+        "1.0",
+        extra_files={"sample/__init__.py": "def main(): pass\n"},
+        entry_points={
+            "console_scripts": ["created = sample:main", "unreached = sample:main"]
+        },
+    ).save_to_dir(tmp_path)
+    scheme = get_scheme("sample", home=str(tmp_path / "installed"))
+    suffix = ".exe" if WINDOWS else ""
+
+    # Detect recovery records that claim an unwritten script.
+    foreign = Path(scheme.scripts) / f"unreached{suffix}"
+    foreign.parent.mkdir(parents=True)
+    foreign.write_text("not installed by this wheel\n")
+
+    if stage == "scripts":
+        original_make = wheel.PipScriptMaker.make
+
+        def make(
+            maker: wheel.PipScriptMaker,
+            specification: str,
+            options: dict[str, object] | None = None,
+        ) -> list[str]:
+            paths = original_make(maker, specification, options)
+            # Fail before the caller receives the paths of the generated script.
+            if specification.startswith("created ="):
+                raise BlockedImportError("Unexpected import after writing a script")
+            return paths
+
+        monkeypatch.setattr(wheel.PipScriptMaker, "make", make)
+    else:
+        original_rows = wheel.get_csv_rows_for_installed
+
+        def rows(
+            old_csv_rows: list[list[str]],
+            installed: dict[RecordPath, RecordPath],
+            changed: set[RecordPath],
+            generated: list[str],
+            lib_dir: str,
+        ) -> list[InstalledCSVRow]:
+            original_rows(old_csv_rows, installed, changed, generated, lib_dir)
+            raise BlockedImportError("Unexpected import while writing RECORD")
+
+        monkeypatch.setattr(wheel, "get_csv_rows_for_installed", rows)
+
+    with pytest.raises(InstallationError, match="sample.*may be corrupt"):
+        wheel.install_wheel(
+            "sample", str(path), scheme=scheme, req_description="sample"
+        )
+
+    lib = Path(scheme.purelib)
+    with (lib / "sample-1.0.dist-info/RECORD").open() as record:
+        recorded = {row[0] for row in csv.reader(record)}
+    assert "sample/__init__.py" in recorded
+    scripts = Path(os.path.relpath(scheme.scripts, scheme.purelib)).as_posix()
+    assert f"{scripts}/created{suffix}" in recorded
+    assert (f"{scripts}/unreached{suffix}" in recorded) == (stage == "record")
+
+    if stage == "scripts":
+        dist = get_environment([scheme.purelib]).get_distribution("sample")
+        assert dist is not None
+        assert "unreached" not in {entry.name for entry in dist.iter_entry_points()}
+        assert foreign.read_text() == "not installed by this wheel\n"
+
+
+def test_blocked_rollback_preserves_unrelated_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Remove empty metadata subdirectories without deleting unrelated files."""
+    path = make_wheel(
+        "sample",
+        "1.0",
+        extra_files={"sample-1.0.dist-info/licenses/LICENSE": "Example license\n"},
+    ).save_to_dir(tmp_path)
+    scheme = get_scheme("sample", home=str(tmp_path / "installed"))
+    metadata = Path(scheme.purelib) / "sample-1.0.dist-info"
+    foreign = metadata / "foreign" / "keep.txt"
+    foreign.parent.mkdir(parents=True)
+    foreign.write_text("not installed by this wheel\n")
+    monkeypatch.setattr(
+        wheel.PipScriptMaker,
+        "make_multiple",
+        Mock(side_effect=BlockedImportError("cold import")),
+    )
+
+    with pytest.raises(InstallationError):
+        wheel.install_wheel(
+            "sample",
+            str(path),
+            scheme=scheme,
+            req_description="sample",
+            rollback_on_error=True,
+        )
+
+    assert foreign.read_text() == "not installed by this wheel\n"
+    assert not (metadata / "licenses").exists()
 
 
 class TestInstallUnpackedWheel:

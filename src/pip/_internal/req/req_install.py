@@ -776,6 +776,8 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
         script_executable: str | None = None,
+        *,
+        rollback_on_error: bool = False,
     ) -> None:
         # Lazy import to avoid transitively importing `_vendor.distlib.compat`
         # which in turn imports `urllib.request` which is slow.
@@ -807,6 +809,7 @@ class InstallRequirement:
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
             script_executable=script_executable,
+            rollback_on_error=rollback_on_error,
         )
         self.install_succeeded = True
 

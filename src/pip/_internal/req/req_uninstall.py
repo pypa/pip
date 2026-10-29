@@ -411,9 +411,13 @@ class UninstallPathSet:
 
         return ask("Proceed (Y/n)? ", ("y", "n", "")) != "n"
 
+    @property
+    def can_rollback(self) -> bool:
+        return self._moved_paths.can_rollback
+
     def rollback(self) -> None:
         """Rollback the changes previously made by remove()."""
-        if not self._moved_paths.can_rollback:
+        if not self.can_rollback:
             logger.error(
                 "Can't roll back %s; was not uninstalled",
                 self._dist.raw_name,
