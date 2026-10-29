@@ -195,6 +195,33 @@ def test_install_special_extra(
     assert "extra ==" not in result.stderr, str(result)
 
 
+def test_install_extra_with_compound_marker_missing_dependency(
+    script: PipTestEnvironment,
+) -> None:
+    """A missing dependency behind `extra == "feature" and <other marker>`
+    should be reported with the parent and extra, not silently dropped."""
+    parent_path = create_basic_wheel_for_package(
+        script,
+        name="marker-parent",
+        version="0.1",
+        depends=[
+            'missing-dependency-xyz; extra == "feature" and python_version >= "3"'
+        ],
+        extras={"feature": []},
+    )
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        f"marker-parent[feature] @ {parent_path.as_uri()}",
+        expect_error=True,
+    )
+    assert (
+        "No matching distribution found for missing-dependency-xyz "
+        "(from marker-parent[feature])"
+    ) in result.stderr, str(result)
+
+
 @pytest.mark.network
 def test_install_requirements_no_r_flag(script: PipTestEnvironment) -> None:
     """Beginners sometimes forget the -r and this leads to confusion"""

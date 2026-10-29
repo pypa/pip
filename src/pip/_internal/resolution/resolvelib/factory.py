@@ -4,7 +4,6 @@ import contextlib
 import copy
 import functools
 import logging
-import re
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -47,7 +46,7 @@ from pip._internal.req.req_install import (
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.packaging import get_requirement, requirement_without_marker
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Candidate, Constraint, Requirement
@@ -721,11 +720,12 @@ class Factory:
     def _report_single_requirement_conflict(
         self, req: Requirement, parent: Candidate | None
     ) -> DistributionNotFound:
-        if parent is None:
-            req_disp = str(req)
+        _, ireq = req.get_candidate_lookup()
+        if ireq is not None and ireq.req is not None:
+            req_str = str(requirement_without_marker(ireq.req))
         else:
-            req_disp = f"{req} (from {parent.name})"
-        req_disp = re.sub(r';\s*extra\s*==\s*".*?"', "", req_disp).strip()
+            req_str = str(req)
+        req_disp = req_str if parent is None else f"{req_str} (from {parent.name})"
         cands = self._finder.find_all_candidates(req.project_name)
         skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
 

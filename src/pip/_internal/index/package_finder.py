@@ -1014,10 +1014,7 @@ class PackageFinder:
                 )
                 if allows_pre is False:
                     version_type = "final version"
-            # pip sometimes includes environment markers like `;extra == "foo"`
-            # in requirement strings, which is confusing in error messages.
-            # Strip them so the user sees only the actual missing requirement.
-            req_disp = re.sub(r';\s*extra\s*==\s*".*?"', "", str(req)).strip()
+            req_disp = req.format_without_marker()
             logger.critical(
                 "Could not find a %s that satisfies the requirement %s "
                 "(from versions: %s)",
