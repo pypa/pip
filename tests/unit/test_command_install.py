@@ -1,5 +1,6 @@
 import errno
 import functools
+import os
 import sys
 import warnings
 from collections.abc import Callable, Iterator
@@ -17,7 +18,48 @@ from pip._internal.commands.install import (
     create_os_error_message,
     decide_user_install,
 )
+from pip._internal.locations import get_scheme
 from pip._internal.utils.deprecation import PipDeprecationWarning
+from pip._internal.utils.temp_dir import TempDirectory
+
+
+def test_target_upgrade_preserves_parent(tmp_path: Path) -> None:
+    staged = TempDirectory(path=str(tmp_path / "staged"))
+    source = Path(get_scheme("", home=staged.path).purelib) / "probe.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("replacement\n")
+    target = tmp_path / "target"
+    target.mkdir()
+    target.chmod(0o750)
+    original_stat = target.stat()
+    (target / "probe.py").write_text("original\n")
+
+    install.InstallCommand("install", "")._handle_target_dir(
+        str(target), staged, upgrade=True
+    )
+
+    assert (target / "probe.py").read_text() == "replacement\n"
+    assert target.stat().st_ino == original_stat.st_ino
+    assert target.stat().st_mode == original_stat.st_mode
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_target_upgrade_preserves_dangling_symlink(tmp_path: Path) -> None:
+    staged = TempDirectory(path=str(tmp_path / "staged"))
+    source = Path(get_scheme("", home=staged.path).purelib) / "probe"
+    source.mkdir(parents=True)
+    target = tmp_path / "target"
+    target.mkdir()
+    link = target / "probe"
+    link.symlink_to("missing", target_is_directory=True)
+
+    install.InstallCommand("install", "")._handle_target_dir(
+        str(target), staged, upgrade=True
+    )
+
+    assert link.is_symlink()
+    assert os.readlink(link) == "missing"
+    assert source.is_dir()
 
 
 class TestDecideUserInstall:

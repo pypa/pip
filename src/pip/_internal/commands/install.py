@@ -737,8 +737,6 @@ class InstallCommand(RequirementCommand):
     ) -> None:
         ensure_dir(target_dir)
 
-        # Checking both purelib and platlib directories for installed
-        # packages to be moved to target directory
         lib_dir_list = []
 
         # Checking both purelib and platlib directories for installed
@@ -757,12 +755,16 @@ class InstallCommand(RequirementCommand):
 
         for lib_dir in lib_dir_list:
             for item in os.listdir(lib_dir):
+                # Do not move library directories a second time as data.
                 if lib_dir == data_dir:
                     ddir = os.path.join(data_dir, item)
                     if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
                         continue
+
                 target_item_dir = os.path.join(target_dir, item)
-                if os.path.exists(target_item_dir):
+
+                # Keep dangling links subject to the same replacement policy.
+                if os.path.lexists(target_item_dir):
                     if not upgrade:
                         logger.warning(
                             "Target directory %s already exists. Specify "
@@ -770,6 +772,7 @@ class InstallCommand(RequirementCommand):
                             target_item_dir,
                         )
                         continue
+
                     if os.path.islink(target_item_dir):
                         logger.warning(
                             "Target directory %s already exists and is "
@@ -779,6 +782,7 @@ class InstallCommand(RequirementCommand):
                             target_item_dir,
                         )
                         continue
+
                     if os.path.isdir(target_item_dir):
                         shutil.rmtree(target_item_dir)
                     else:

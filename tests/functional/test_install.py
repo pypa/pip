@@ -47,6 +47,7 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
+from tests.lib.wheel import make_wheel
 
 
 def test_refresh_package_sends_cache_control_header(
@@ -1312,6 +1313,52 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
         "-t", target_dir, "singlemodule==0.0.1", "--upgrade"
     )
     result.did_update(singlemodule_py)
+
+
+@pytest.mark.parametrize(
+    "existing_directory, data_directory, package, data",
+    [
+        (False, False, "example", "~xample"),
+        (False, True, "example", "~xample"),
+        (True, False, "example", "~xample"),
+        (True, True, "example", "~xample"),
+        pytest.param(True, True, "example", "~Xample", id="case-alias"),
+        pytest.param(True, True, "excaf\u00e9", "~xcafe\u0301", id="unicode-alias"),
+        pytest.param(True, True, "Example", "example", id="destination-alias"),
+    ],
+)
+def test_target_upgrade_preserves_wheel_data(
+    script: PipTestEnvironment,
+    existing_directory: bool,
+    data_directory: bool,
+    package: str,
+    data: str,
+) -> None:
+    target = script.scratch_path / "target"
+    target.mkdir()
+    if existing_directory:
+        (target / package).mkdir()
+    else:
+        (target / package).write_text("original\n")
+    same_destination = (target / data).exists()
+
+    asset = f"{data}/asset.txt" if data_directory else data
+    wheel = make_wheel(
+        "targetprobe",
+        "1.0",
+        extra_files={
+            f"{package}/pkg.txt": "replacement\n",
+            f"targetprobe-1.0.data/data/{asset}": "wheel data\n",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip_install_local("--upgrade", "--target", target, wheel)
+
+    replacement = target / package / "pkg.txt"
+    if same_destination:
+        assert not replacement.exists()
+    else:
+        assert replacement.read_text() == "replacement\n"
+    assert (target / asset).read_text() == "wheel data\n"
 
 
 @pytest.mark.parametrize("target_option", ["--target", "-t"])
