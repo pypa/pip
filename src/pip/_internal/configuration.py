@@ -200,7 +200,7 @@ class Configuration:
 
         assert self.load_only
         fname, parser = self._get_parser_to_modify(key)
-        load_config = kinds.ENV if self._use_env else self.load_only
+        load_config = Kind.ENV if self._use_env else self.load_only
         file_config = self._config[load_config].get(fname, {})
         if key not in file_config:
             raise ConfigurationError(f"No such key - {orig_key}")
@@ -282,9 +282,9 @@ class Configuration:
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
                     is_env_redirect = (
-                        variant == kinds.ENV
+                        variant == Kind.ENV
                         and fname == env_config_file
-                        and self.load_only == kinds.USER
+                        and self.load_only == Kind.USER
                     )
                     if not is_env_redirect:
                         logger.debug("Skipping file '%s' (variant: %s)", fname, variant)
@@ -406,7 +406,7 @@ class Configuration:
                     "Cannot write to PIP_CONFIG_VALUE when it is set to "
                     f"{env_config_file}"
                 )
-            if env_config_file and self.load_only in (kinds.USER, kinds.GLOBAL):
+            if env_config_file and self.load_only in (Kind.USER, Kind.GLOBAL):
                 parser = self._construct_parser(env_config_file)
                 self._parsers[self.load_only].append((env_config_file, parser))
                 self._use_env = True
