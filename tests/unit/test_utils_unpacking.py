@@ -16,9 +16,9 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from pip._internal.exceptions import InstallationError
+from pip._internal.utils.misc import is_within_directory
 from pip._internal.utils.unpacking import (
     _get_default_mode_plus_executable,
-    is_within_directory,
     unpack_file,
     untar_file,
     unzip_file,
