@@ -16,7 +16,11 @@ from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, RemoteNotValidError, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
-from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
+from pip._internal.vcs.versioncontrol import (
+    RevOptions,
+    VersionControl,
+    redact_remote_url,
+)
 
 from tests.lib import is_svn_installed, need_svn
 
@@ -251,6 +255,97 @@ def test_git_get_src_requirements(
 
     target = f"{target_url_prefix}@{sha}#egg=pip_test_package"
     assert ret == target
+
+
+@mock.patch("pip._internal.vcs.git.Git.get_remote_url")
+@mock.patch("pip._internal.vcs.git.Git.get_revision")
+@mock.patch("pip._internal.vcs.git.Git.get_subdirectory")
+@pytest.mark.parametrize(
+    "remote_url, expected_url",
+    [
+        # user:password credentials are dropped.
+        (
+            "https://user:s3cret@github.com/pypa/pip-test-package",
+            "git+https://github.com/pypa/pip-test-package",
+        ),
+        # A token used as the user name is dropped too.
+        (
+            "https://ghp_s3cret@github.com/pypa/pip-test-package",
+            "git+https://github.com/pypa/pip-test-package",
+        ),
+        # The user name of ssh remotes is not a credential.
+        (
+            "ssh://git@github.com/pypa/pip-test-package",
+            "git+ssh://git@github.com/pypa/pip-test-package",
+        ),
+        (
+            "ssh://deploy@example.com/pip-test-package",
+            "git+ssh://deploy@example.com/pip-test-package",
+        ),
+        # But a password on an ssh remote is.
+        (
+            "ssh://deploy:s3cret@example.com/pip-test-package",
+            "git+ssh://example.com/pip-test-package",
+        ),
+        # Environment variable references, as allowed by PEP 610, are kept.
+        (
+            "https://${USER}:${TOKEN}@github.com/pypa/pip-test-package",
+            "git+https://${USER}:${TOKEN}@github.com/pypa/pip-test-package",
+        ),
+        (
+            "https://${TOKEN}@github.com/pypa/pip-test-package",
+            "git+https://${TOKEN}@github.com/pypa/pip-test-package",
+        ),
+        # No user info: unchanged.
+        (
+            "https://github.com/pypa/pip-test-package",
+            "git+https://github.com/pypa/pip-test-package",
+        ),
+    ],
+)
+def test_git_get_src_requirement_strips_credentials(
+    mock_get_subdirectory: mock.Mock,
+    mock_get_revision: mock.Mock,
+    mock_get_remote_url: mock.Mock,
+    remote_url: str,
+    expected_url: str,
+) -> None:
+    sha = "5547fa909e83df8bd743d3978d6667497983a4b7"
+
+    mock_get_remote_url.return_value = remote_url
+    mock_get_revision.return_value = sha
+    mock_get_subdirectory.return_value = None
+
+    ret = Git.get_src_requirement(".", "pip-test-package")
+
+    assert ret == f"{expected_url}@{sha}#egg=pip_test_package"
+    assert "s3cret" not in ret
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        ("ssh://hg@example.com/repo", "ssh://hg@example.com/repo"),
+        ("svn+ssh://user@example.com/repo", "svn+ssh://user@example.com/repo"),
+        ("bzr+ssh://user@example.com/repo", "bzr+ssh://user@example.com/repo"),
+        ("svn+ssh://user:s3cret@example.com/repo", "svn+ssh://example.com/repo"),
+        ("https://hg@example.com/repo", "https://example.com/repo"),
+    ],
+)
+def test_redact_remote_url(url: str, expected: str) -> None:
+    assert redact_remote_url(url) == expected
+
+
+@mock.patch("pip._internal.vcs.git.Git.get_remote_url")
+def test_git_get_src_requirement_malformed_remote(
+    mock_get_remote_url: mock.Mock,
+) -> None:
+    mock_get_remote_url.return_value = "https://user:s3cret@[::1/repo"
+
+    with pytest.raises(InstallationError) as excinfo:
+        Git.get_src_requirement(".", "pip-test-package")
+
+    assert "s3cret" not in str(excinfo.value)
 
 
 @mock.patch("pip._internal.vcs.git.Git.get_revision_sha")
