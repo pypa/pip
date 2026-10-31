@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import mimetypes
 import os
+import urllib.parse
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 FoundCandidates = Iterable[InstallationCandidate]
 FoundLinks = Iterable[Link]
 CandidatesFromPage = Callable[[Link], Iterable[InstallationCandidate]]
-PageValidator = Callable[[Link], bool]
+PageValidator = Callable[[str], bool]
 
 
 class LinkSource:
@@ -190,7 +191,16 @@ class _RemoteFileSource(LinkSource):
         return self._link
 
     def page_candidates(self) -> FoundCandidates:
-        if not self._page_validator(self._link):
+        if not self._page_validator(self._link.url):
+            host = urllib.parse.urlparse(self._link.url).hostname
+            logger.warning(
+                "The repository located at %s is not a trusted or secure host and "
+                "is being ignored. If this repository is available via HTTPS we "
+                "recommend you use HTTPS instead, otherwise you may silence "
+                "this warning and allow it anyway with '--trusted-host %s'.",
+                host,
+                host,
+            )
             return
         yield from self._candidates_from_page(self._link)
 
