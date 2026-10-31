@@ -28,7 +28,7 @@ from pip._internal.models.wheel import Wheel
 from pip._internal.req.req_file import ParsedRequirement
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
-from pip._internal.utils.misc import is_installable_dir
+from pip._internal.utils.misc import is_installable_dir, redact_auth_from_url
 from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.pylock import (
     package_archive_requirement_url,
@@ -118,6 +118,14 @@ def _parse_pip_syntax_editable(editable_req: str) -> tuple[str | None, str, set[
     return Link(url).egg_fragment, url, set()
 
 
+def _redact_editable_req(editable_req: str, url: str) -> str:
+    """Return editable_req with any credentials in its URL redacted."""
+    # _parse_pip_syntax_editable() may have added a "<vcs>+" prefix to url.
+    if url in editable_req:
+        return editable_req.replace(url, redact_auth_from_url(url))
+    return redact_auth_from_url(editable_req)
+
+
 def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
     """Parses an editable requirement into:
         - a requirement name with environment markers
@@ -138,15 +146,17 @@ def parse_editable(editable_req: str) -> tuple[str | None, str, set[str]]:
     if not link.is_vcs and not link.url.startswith("file:"):
         backends = ", ".join(vcs.all_schemes)
         raise InstallationError(
-            f"{editable_req} is not a valid editable requirement. "
-            f"It should either be a path to a local project or a VCS URL "
+            f"{_redact_editable_req(editable_req, url)} is not a valid "
+            "editable requirement. It should either be a path to a local "
+            "project or a VCS URL "
             f"(beginning with {backends})."
         )
 
     # The project name can be inferred from local file URIs easily.
     if not package_name and not link.url.startswith("file:"):
         raise InstallationError(
-            f"Could not detect requirement name for '{editable_req}', "
+            "Could not detect requirement name for "
+            f"'{_redact_editable_req(editable_req, url)}', "
             "please specify one with your_package_name @ URL"
         )
     return package_name, url, extras
