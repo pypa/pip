@@ -17,11 +17,11 @@ from pathlib import Path
 import pytest
 
 from pip._internal.cache import SimpleWheelCache
-from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.cli.status_codes import ERROR, SUCCESS, UNKNOWN_ERROR
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
-from pip._internal.utils.misc import rmtree
+from pip._internal.utils.misc import normalize_path, rmtree
 from pip._internal.utils.urls import path_to_url
 
 from tests.lib import (
@@ -47,6 +47,7 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
+from tests.lib.wheel import make_wheel
 
 
 def test_refresh_package_sends_cache_control_header(
@@ -411,53 +412,283 @@ def test_pip_second_command_line_interface_works(
     result.did_create(initools_folder)
 
 
-def test_install_warns_on_unexpected_post_install_import(
+@pytest.mark.parametrize("use_target", [False, True])
+@pytest.mark.parametrize("interrupt", [False, True])
+def test_install_blocked_import_preserves_uninstall(
     script: PipTestEnvironment,
+    use_target: bool,
+    interrupt: bool,
 ) -> None:
-    """
-    Verify that pip warns when an unexpected import happens after the
-    install audit hook has been registered. The hook is installed before
-    ``install_given_reqs`` runs, so imports issued from code running after
-    that point must trigger the deprecation warning.
-    """
+    """Imports stay blocked through cleanup, including for interrupted wheels."""
     wheel_path = create_basic_wheel_for_package(script, "mypackage", "1.0")
-    runner = script.scratch_path / "run_install.py"
-    runner.write_text(textwrap.dedent("""\
-            import sys
-            import pip._internal.commands.install as _install_mod
-            _orig_get_environment = _install_mod.get_environment
+    script.site_packages_path.joinpath("after_install.py").write_text("value = 42\n")
+    script.site_packages_path.joinpath("at_shutdown.py").write_text("value = 43\n")
+    runner = Path(__file__).parents[1] / "lib" / "install_with_blocked_import.py"
 
-            def _patched_get_environment(lib_locations):
-                try:
-                    import pip_unexpected_module_xyz
-                except ModuleNotFoundError:
-                    pass
-                return _orig_get_environment(lib_locations)
+    args = ["python", str(runner), str(wheel_path), str(interrupt)]
+    destination = script.site_packages
+    if use_target:
+        destination = script.scratch / "target"
+        args.extend(["--target", str(script.scratch_path / "target")])
 
-            _install_mod.get_environment = _patched_get_environment
+    result = script.run(*args, expect_error=interrupt, expect_stderr=True)
 
-            from pip._internal.cli.main import main
-            wheels_dir = sys.argv[1]
-            sys.exit(main([
-                "install",
-                "--no-index",
-                "--find-links",
-                wheels_dir,
-                "mypackage"
-                ])
-            )
-        """))
+    assert result.returncode == (ERROR if interrupt else SUCCESS)
+    assert "Traceback" not in result.stderr
+    if interrupt:
+        assert "Installation of 'mypackage' was interrupted" in result.stderr
+        assert "Blocked import of 'wave' after pip install started" in result.stderr
+        assert "the package may be corrupt" in result.stderr
+        assert "pip uninstall mypackage" in result.stderr
+    else:
+        assert "Successfully installed mypackage-1.0" in result.stdout
 
-    # Make sure PipDeprecationWarnings don't turn into errors
-    script.environ["_PIP_TEST_ENV"] = ""
-    result = script.run(
-        "python", str(runner), str(wheel_path.parent), expect_stderr=True
-    )
+    stages = ["version_check", "command_cleanup", "logging_shutdown"]
+    if not interrupt:
+        stages.insert(0, "summary")
+    for stage in stages:
+        assert f"Blocked import during {stage}" in result.stdout
+        assert f"Unsafe import of 'late_import_{stage}'" not in result.stderr
+
     assert (
-        "Unexpected import of 'pip_unexpected_module_xyz' "
-        "after pip install started" in result.stderr
+        "Unsafe import of 'after_install' after pip install completed" in result.stderr
     )
-    assert "run_install.py:7)" in result.stderr
+    assert "Unsafe import of 'at_shutdown' after pip install completed" in result.stderr
+    assert "all required modules before running pip install" in result.stderr
+    assert "Shutdown import succeeded" in result.stdout
+    assert "Weakref finalizer ran" in result.stdout
+    assert "Unsafe import of 'gc'" not in result.stderr
+
+    if interrupt and use_target:
+        assert not (script.scratch_path / "target").exists()
+        return
+
+    result.did_create(destination / "mypackage" / "__init__.py")
+    result.did_create(destination / "mypackage-1.0.dist-info" / "RECORD")
+
+    if not use_target:
+        result = script.pip("uninstall", "mypackage", "-y")
+        assert "Successfully uninstalled mypackage-1.0" in result.stdout
+        assert not (script.site_packages_path / "mypackage").exists()
+        assert not (script.site_packages_path / "mypackage-1.0.dist-info").exists()
+
+
+@pytest.mark.parametrize(
+    "failure, expected",
+    [
+        ("runtime", "RuntimeError: reporting failed"),
+        ("name", "NameError: name 'missing_name' is not defined"),
+        ("syntax", "SyntaxError: invalid syntax"),
+    ],
+)
+def test_install_preloads_traceback_dependencies(
+    script: PipTestEnvironment, failure: str, expected: str
+) -> None:
+    """Preserve the original exception when reporting errors under the import guard."""
+    wheel_path = create_basic_wheel_for_package(script, "mypackage", "1.0")
+    runner = Path(__file__).parents[1] / "lib" / "install_with_traceback.py"
+
+    result = script.run(
+        "python", str(runner), str(wheel_path), failure, "normal", expect_error=True
+    )
+
+    assert result.returncode == UNKNOWN_ERROR
+    assert expected in result.stderr
+    assert "Blocked import" not in result.stderr
+
+
+def test_debug_install_preloads_python_lexer(
+    script: PipTestEnvironment, pip_src: Path
+) -> None:
+    """Debug tracebacks must use the lexer loaded before its file is replaced."""
+    if script.zipapp:
+        pytest.skip("Zipapp loads the lexer from the archive")
+
+    # Use an installed copy so the wheel replaces the lexer pip will load.
+    shutil.copytree(pip_src / "src" / "pip", script.site_packages_path / "pip")
+    wheel_path = create_basic_wheel_for_package(
+        script,
+        "mypackage",
+        "1.0",
+        extra_files={
+            "pip/_vendor/pygments/lexers/python.py": (
+                'raise AssertionError("Replacement lexer executed")\n'
+            ),
+            "mypackage-1.0.data/purelib/bonus-NaN.dist-info/METADATA": (
+                "Metadata-Version: 2.1\nName: bonus\nVersion: 1.0\n"
+            ),
+        },
+    )
+
+    result = script.pip(
+        "--debug",
+        "install",
+        "--no-index",
+        "--no-compile",
+        wheel_path,
+        expect_error=True,
+    )
+
+    assert "InvalidVersion: Invalid version: 'NaN'" in result.stderr
+    assert "version = 'NaN'" in result.stderr
+    assert "Replacement lexer executed" not in result.stderr
+    assert "Error in sys.excepthook" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "entrypoint, failure",
+    [
+        ("cli", "runtime"),
+        ("cli", "interrupt"),
+        ("cli", "exit"),
+        ("cli", "success"),
+        ("main", "runtime"),
+        ("main", "interrupt"),
+        ("pip.main", "runtime"),
+    ],
+)
+def test_install_exception_reporting_lifetime(
+    script: PipTestEnvironment, entrypoint: str, failure: str
+) -> None:
+    """Keep CLI exit hooks guarded while releasing imports for programmatic callers."""
+    wheel_path = create_basic_wheel_for_package(
+        script,
+        "mypackage",
+        "1.0",
+        extra_files={
+            f"late_{stage}.py": "value = 42\n"
+            for stage in ("exception", "shutdown", "caller", "command_shutdown")
+        },
+    )
+    runner = Path(__file__).parents[1] / "lib" / "install_with_traceback.py"
+
+    result = script.run(
+        "python",
+        str(runner),
+        str(wheel_path),
+        failure,
+        entrypoint,
+        expect_error=entrypoint == "cli" and failure != "success",
+        allow_stderr_warning=True,
+    )
+
+    assert "Import blocked during command_shutdown" in result.stdout
+    if entrypoint == "cli":
+        assert "Import blocked during shutdown" in result.stdout
+        if failure in {"runtime", "interrupt"}:
+            assert "Import blocked during exception" in result.stdout
+            assert (
+                "KeyboardInterrupt"
+                if failure == "interrupt"
+                else "RuntimeError: reporting failed"
+            ) in result.stderr
+        if failure == "exit":
+            assert result.returncode == 7
+        assert "Unsafe import" not in result.stderr
+        assert "Error in sys.excepthook" not in result.stderr
+    else:
+        assert (
+            "KeyboardInterrupt" if failure == "interrupt" else "RuntimeError"
+        ) + " propagated to caller" in result.stdout
+        assert "Import allowed during caller" in result.stdout
+        assert "Import allowed during shutdown" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "command",
+        "vendor",
+        "resource",
+        "lexer",
+        "formatter",
+        "style",
+        "filter",
+        "importlib",
+        "late_finder",
+        "reload",
+        "entrypoint",
+        "spec",
+        "debundled",
+    ],
+)
+def test_dynamic_imports_respect_install_guard(
+    script: PipTestEnvironment, common_wheels: Path, kind: str
+) -> None:
+    """Check cold and cached imports of commands, resources and plugins."""
+    package = make_wheel(
+        "guarded_import_plugin",
+        "1.0",
+        entry_points={
+            f"pygments.{group}": ["guarded = guarded_import_plugin:VALUE"]
+            for group in ("lexers", "formatters", "styles", "filters")
+        },
+        extra_files={
+            "guarded_import_plugin.py": "VALUE = 42\n",
+            "guarded_import_resource/__init__.py": "",
+            "guarded_import_resource/resource.txt": "resource contents",
+        },
+    )
+    # Expose real entry points without importing any plugin code.
+    with package.as_zipfile() as wheel:
+        wheel.extractall(script.site_packages_path)
+
+    runner = Path(__file__).parents[1] / "lib" / "check_installation_imports.py"
+
+    if kind == "debundled":
+        script.pip("install", "--no-index", "--find-links", common_wheels, "rich")
+        script.run(
+            "python", str(runner), "lexer", "debundled", allow_stderr_warning=True
+        )
+        for unicode_version in ("4.1.0", "latest"):
+            script.environ["UNICODE_VERSION"] = unicode_version
+            script.run("python", str(runner), "progress", "debundled")
+    else:
+        script.run("python", str(runner), kind, allow_stderr_warning=True)
+
+
+@pytest.mark.parametrize("cached_function", [False, True])
+def test_install_preloads_registered_import_before_replacing_module(
+    script: PipTestEnvironment,
+    cached_function: bool,
+) -> None:
+    """A post-install lazy reference must use the module loaded before replacement."""
+    dependency = "pip_reify_dependency.py"
+    script.site_packages_path.joinpath(dependency).write_text(
+        "import pip._internal.commands.install as install\n"
+        "assert not install._ACTIVE_INSTALLATIONS\n"
+        'value = "before installation"\n'
+    )
+    owner = script.site_packages_path / "pip_eager_owner.py"
+    exports = (
+        script.site_packages_path / "pip_eager_exports.py" if cached_function else owner
+    )
+    definition = (
+        "from functools import lru_cache\n@lru_cache\n" if cached_function else ""
+    )
+    exports.write_text(
+        '__lazy_modules__ = ["pip_reify_dependency"]\n'
+        "import pip_reify_dependency as dependency\n"
+        + definition
+        + "def value():\n    return dependency.value\n"
+    )
+    if cached_function:
+        owner.write_text("from pip_eager_exports import value\n")
+
+    wheel_path = create_basic_wheel_for_package(
+        script,
+        "mypackage",
+        "1.0",
+        extra_files={dependency: 'raise AssertionError("New module executed")\n'},
+    )
+    runner = Path(__file__).parents[1] / "lib" / "install_with_registered_import.py"
+
+    result = script.run("python", str(runner), str(wheel_path))
+
+    assert result.returncode == SUCCESS
+    result.assert_installed("mypackage", editable=False)
+    result.did_update(script.site_packages / dependency)
+    result.did_create(script.site_packages / "mypackage-1.0.dist-info" / "RECORD")
 
 
 def test_install_exit_status_code_when_no_requirements(
@@ -1268,6 +1499,52 @@ def test_install_package_with_target(script: PipTestEnvironment) -> None:
         "-t", target_dir, "singlemodule==0.0.1", "--upgrade"
     )
     result.did_update(singlemodule_py)
+
+
+@pytest.mark.parametrize(
+    "existing_directory, data_directory, package, data",
+    [
+        (False, False, "example", "~xample"),
+        (False, True, "example", "~xample"),
+        (True, False, "example", "~xample"),
+        (True, True, "example", "~xample"),
+        pytest.param(True, True, "example", "~Xample", id="case-alias"),
+        pytest.param(True, True, "excaf\u00e9", "~xcafe\u0301", id="unicode-alias"),
+        pytest.param(True, True, "Example", "example", id="destination-alias"),
+    ],
+)
+def test_target_upgrade_preserves_wheel_data(
+    script: PipTestEnvironment,
+    existing_directory: bool,
+    data_directory: bool,
+    package: str,
+    data: str,
+) -> None:
+    target = script.scratch_path / "target"
+    target.mkdir()
+    if existing_directory:
+        (target / package).mkdir()
+    else:
+        (target / package).write_text("original\n")
+    same_destination = (target / data).exists()
+
+    asset = f"{data}/asset.txt" if data_directory else data
+    wheel = make_wheel(
+        "targetprobe",
+        "1.0",
+        extra_files={
+            f"{package}/pkg.txt": "replacement\n",
+            f"targetprobe-1.0.data/data/{asset}": "wheel data\n",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip_install_local("--upgrade", "--target", target, wheel)
+
+    replacement = target / package / "pkg.txt"
+    if same_destination:
+        assert not replacement.exists()
+    else:
+        assert replacement.read_text() == "replacement\n"
+    assert (target / asset).read_text() == "wheel data\n"
 
 
 @pytest.mark.parametrize("target_option", ["--target", "-t"])
@@ -2934,3 +3211,131 @@ def test_install_sdist_links(
     # Run the internal test
     result = script.run("python", "-m", "linktest")
     assert result.stdout.strip() == "8 files checked"
+
+
+@pytest.mark.parametrize("old_version", ["1.0", "2.0"])
+@pytest.mark.parametrize("stage", ["metadata", "scripts", "uninstall"])
+def test_blocked_upgrade_restores_original_distribution(
+    script: PipTestEnvironment, old_version: str, stage: str
+) -> None:
+    """Restore the old installation without leaving files from its replacement."""
+    original = make_wheel(
+        "recoveryprobe",
+        old_version,
+        extra_files={"recoveryprobe/__init__.py": "value = 'before'\n"},
+        entry_points={"console_scripts": ["original = recoveryprobe:main"]},
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", "--no-index", "--no-compile", original)
+
+    replacement = make_wheel(
+        "recoveryprobe",
+        "2.0",
+        extra_files={
+            "recoveryprobe/__init__.py": "value = 'after'\n",
+            "replacement_only.py": "value = 42\n",
+            "recoveryprobe-2.0.dist-info/licenses/LICENSE": "Example license\n",
+        },
+        entry_points={"console_scripts": ["replacement = recoveryprobe:main"]},
+    ).save_to_dir(script.scratch_path)
+    runner = Path(__file__).parents[1] / "lib" / "install_with_interrupted_upgrade.py"
+
+    result = script.run(
+        "python",
+        str(runner),
+        str(replacement),
+        stage,
+        expect_error=True,
+    )
+
+    installed = script.site_packages_path
+    assert result.returncode == ERROR
+    assert (installed / "recoveryprobe/__init__.py").read_text() == "value = 'before'\n"
+    assert {path.name for path in installed.glob("recoveryprobe-*.dist-info")} == {
+        f"recoveryprobe-{old_version}.dist-info"
+    }
+    assert not (installed / "replacement_only.py").exists()
+    script_suffix = ".exe" if sys.platform == "win32" else ""
+    assert (script.bin_path / f"original{script_suffix}").exists()
+    assert not (script.bin_path / f"replacement{script_suffix}").exists()
+
+    script.pip("uninstall", "-y", "recoveryprobe")
+    assert not (installed / "recoveryprobe").exists()
+    assert not list(installed.glob("recoveryprobe-*.dist-info"))
+
+
+@pytest.mark.parametrize("quiet", [False, True])
+def test_blocked_upgrade_reports_retained_backups(
+    script: PipTestEnvironment, quiet: bool
+) -> None:
+    original = make_wheel(
+        "recoveryprobe",
+        "1.0",
+        extra_files={"recoveryprobe/__init__.py": "value = 'before'\n"},
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", "--no-index", "--no-compile", original)
+    replacement = make_wheel("recoveryprobe", "2.0").save_to_dir(script.scratch_path)
+    runner = Path(__file__).parents[1] / "lib" / "install_with_interrupted_upgrade.py"
+
+    result = script.run(
+        "python",
+        str(runner),
+        str(replacement),
+        "rollback",
+        *(["-q"] if quiet else []),
+        expect_error=True,
+    )
+
+    installed = script.site_packages_path
+    metadata = next(installed.glob("~*.dist-info"))
+    package = next(path for path in installed.glob("~*") if path != metadata)
+    assert (package / "__init__.py").read_text() == "value = 'before'\n"
+    assert "Version: 1.0" in (metadata / "METADATA").read_text()
+    assert result.returncode == ERROR
+    assert "Blocked import of 'wave'" in result.stderr
+
+    for name, backup in [
+        ("recoveryprobe", package),
+        ("recoveryprobe-1.0.dist-info", metadata),
+    ]:
+        assert not (installed / name).exists()
+        assert repr(normalize_path(str(installed / name)) + os.sep) in result.stderr
+        assert repr(os.path.realpath(backup)) in result.stderr
+    assert result.stderr.count("Could not restore ") == 2
+
+
+@pytest.mark.parametrize("upgrade", [False, True])
+def test_blocked_target_move_reports_failure(
+    script: PipTestEnvironment, upgrade: bool
+) -> None:
+    target = script.scratch_path / "target"
+    target.mkdir()
+    (target / "unrelated.txt").write_text("keep me\n")
+    if upgrade:
+        original = make_wheel(
+            "recoveryprobe",
+            "1.0",
+            extra_files={"recoveryprobe/__init__.py": "value = 'before'\n"},
+        ).save_to_dir(script.scratch_path)
+        script.pip(
+            "install", "--no-index", "--no-compile", "--target", target, original
+        )
+
+    replacement = make_wheel(
+        "recoveryprobe",
+        "2.0",
+        extra_files={"recoveryprobe/__init__.py": "value = 'after'\n"},
+    ).save_to_dir(script.scratch_path)
+    runner = Path(__file__).parents[1] / "lib" / "install_with_interrupted_upgrade.py"
+
+    result = script.run(
+        "python",
+        str(runner),
+        str(replacement),
+        "target",
+        str(target),
+        expect_error=True,
+    )
+
+    assert result.returncode == ERROR
+    assert "Blocked import of 'wave'" in result.stderr
+    assert (target / "unrelated.txt").read_text() == "keep me\n"
