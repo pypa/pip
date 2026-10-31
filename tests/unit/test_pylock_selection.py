@@ -7,7 +7,12 @@ import pytest
 import tomli_w
 
 from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.pylock import Package, PackageDirectory, PackageWheel, Pylock
+from pip._vendor.packaging.pylock import (
+    Package,
+    PackageDirectory,
+    PackageWheel,
+    Pylock,
+)
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
@@ -153,6 +158,7 @@ def test_select_pylock_context(
         selected = select_from_pylock_path_or_url(
             str(selection_lock),
             session,
+            format_control=None,
             dependency_groups=groups,
             include_default_groups=include_defaults,
         )
@@ -179,6 +185,7 @@ def test_select_pylock_rejects_unavailable_names(
             select_from_pylock_path_or_url(
                 str(selection_lock),
                 session,
+                format_control=None,
                 dependency_groups=groups,
             )
         )
@@ -202,6 +209,7 @@ def test_select_pylock_escapes_group_names_in_errors(tmp_path: Path) -> None:
             select_from_pylock_path_or_url(
                 str(path),
                 session,
+                format_control=None,
                 dependency_groups=["\x1b[2Jrequested"],
             )
         )
@@ -222,6 +230,7 @@ def test_select_pylock_default_group_can_also_be_public(tmp_path: Path) -> None:
             select_from_pylock_path_or_url(
                 str(path),
                 session,
+                format_control=None,
                 dependency_groups=["dev"],
                 include_default_groups=False,
             )
@@ -249,7 +258,9 @@ def test_pylock_file_url_preserves_artifact_base(
     source = selection_lock.as_uri().replace("file://", prefix, 1)
 
     with PipSession() as session:
-        selected = list(select_from_pylock_path_or_url(source, session))
+        selected = list(
+            select_from_pylock_path_or_url(source, session, format_control=None)
+        )
 
     wheel = selected[0][1]
     assert isinstance(wheel, PackageWheel)

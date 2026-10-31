@@ -10,6 +10,8 @@ from pip._vendor.packaging.pylock import Package, PackageWheel, Pylock
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
+from pip._internal.utils.compat import tomllib
+
 from tests.lib import PipTestEnvironment, TestData, make_wheel
 
 
@@ -397,6 +399,44 @@ def test_install_pylock_select_error(
         "install", "--no-index", "--dry-run", "-r", pylock_path, expect_error=True
     )
     assert "Cannot select requirements from pylock file" in result.stderr
+
+
+@pytest.mark.parametrize("lock_option", ["-r", "--group"])
+def test_install_pylock_no_binary_selects_sdist(
+    script: PipTestEnvironment,
+    data: TestData,
+    tmp_path: Path,
+    lock_option: str,
+) -> None:
+    pylock_path = data.lockfiles.joinpath("pylock.onepackage.toml")
+    source = str(pylock_path)
+    if lock_option == "--group":
+        lock = tomllib.loads(pylock_path.read_text())
+        lock["dependency-groups"] = ["dev"]
+        lock["packages"][0]["marker"] = "'dev' in dependency_groups"
+        pylock_path.write_text(tomli_w.dumps(lock), encoding="utf-8")
+        source += ":dev"
+    report = tmp_path / "report.json"
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        data.common_wheels,  # to obtain build backend to build sdist
+        "--dry-run",
+        lock_option,
+        source,
+        "--no-binary=simplewheel",
+        "--report",
+        report,
+        allow_stderr_warning=True,
+    )
+    assert "experimental" in result.stderr
+    assert "Would install simplewheel-2.0" in result.stdout
+    # check that the sdist was selected
+    report_json = json.loads(report.read_text())
+    installed = report_json["install"]
+    assert installed[0]["metadata"]["name"] == "simplewheel"
+    assert installed[0]["download_info"]["url"].endswith(".tar.gz")
 
 
 def test_install_pylock_no_binary(

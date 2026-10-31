@@ -49,7 +49,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.pep723 import PEP723Exception, pep723_metadata
 from pip._internal.req.req_dependency_group import parse_dependency_groups
-from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.req_file import get_file_content, parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.packaging import check_requires_python
@@ -201,6 +201,20 @@ class RequirementCommand(IndexGroupCommand):
 
         self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
+
+    def check_build_constraints(self, options: Values) -> None:
+        """Check build constraints with the command's network session."""
+        if not options.build_constraints:
+            return
+
+        if not options.build_isolation:
+            raise CommandError(
+                "--build-constraint cannot be used with --no-build-isolation."
+            )
+
+        session = self.get_default_session(options)
+        for constraint_file in options.build_constraints:
+            get_file_content(constraint_file, session)
 
     @staticmethod
     def determine_resolver_variant(options: Values) -> str:
@@ -429,6 +443,7 @@ class RequirementCommand(IndexGroupCommand):
                 for package, package_dist in select_from_pylock_path_or_url(
                     source.filename,
                     session=session,
+                    format_control=options.format_control,
                     extras=source.extras,
                     dependency_groups=source.dependency_groups,
                     include_default_groups=source.include_default_groups,
