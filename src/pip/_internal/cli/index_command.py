@@ -203,8 +203,8 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             )
             with session:
                 upgrade_prompt = _pip_self_version_check_fetch(session, options)
-        except Exception:
-            logger.warning("There was an error checking the latest version of pip.")
+        except Exception as e:
+            logger.warning("Failed to check the latest version of pip: %s", e)
             logger.debug("See below for error", exc_info=True)
 
         try:
@@ -212,6 +212,6 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         finally:
             try:
                 _pip_self_version_check_emit(upgrade_prompt)
-            except Exception:
-                logger.warning("There was an error checking the latest version of pip.")
+            except Exception as e:
+                logger.warning("Failed to check the latest version of pip: %s", e)
                 logger.debug("See below for error", exc_info=True)
