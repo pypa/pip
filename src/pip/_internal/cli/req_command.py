@@ -46,7 +46,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.pep723 import PEP723Exception, pep723_metadata
 from pip._internal.req.req_dependency_group import parse_dependency_groups
-from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.req_file import get_file_content, parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.packaging import check_requires_python
@@ -59,6 +59,7 @@ from pip._internal.utils.temp_dir import (
     TempDirectoryKind,
     TempDirectoryTypeRegistry,
 )
+from pip._internal.utils.urls import strip_extras
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,20 @@ class RequirementCommand(IndexGroupCommand):
 
         self.cmd_opts.add_option(cmdoptions.dependency_groups())
         self.cmd_opts.add_option(cmdoptions.no_clean())
+
+    def check_build_constraints(self, options: Values) -> None:
+        """Check build constraints with the command's network session."""
+        if not options.build_constraints:
+            return
+
+        if not options.build_isolation:
+            raise CommandError(
+                "--build-constraint cannot be used with --no-build-isolation."
+            )
+
+        session = self.get_default_session(options)
+        for constraint_file in options.build_constraints:
+            get_file_content(constraint_file, session)
 
     @staticmethod
     def determine_resolver_variant(options: Values) -> str:
@@ -360,7 +375,8 @@ class RequirementCommand(IndexGroupCommand):
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
-            if is_valid_pylock_filename(filename):
+            filename_without_extras, extras = strip_extras(filename)
+            if is_valid_pylock_filename(filename_without_extras):
                 logger.warning(
                     "Using pylock.toml as a requirements source "
                     "is an experimental feature. "
@@ -368,7 +384,10 @@ class RequirementCommand(IndexGroupCommand):
                     "without prior warning."
                 )
                 for package, package_dist in select_from_pylock_path_or_url(
-                    filename, session=session
+                    filename_without_extras,
+                    session,
+                    format_control=options.format_control,
+                    extras=extras,
                 ):
                     req_to_add, locked_link = install_req_from_pylock_package(
                         package,
