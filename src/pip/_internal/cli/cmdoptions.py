@@ -1327,6 +1327,7 @@ use_deprecated_feature: Callable[..., Option] = partial(
     choices=[
         "legacy-resolver",
         "legacy-certs",
+        "legacy-mixed-certs",
     ],
     help=("Enable deprecated functionality, that will be removed in the future."),
 )
