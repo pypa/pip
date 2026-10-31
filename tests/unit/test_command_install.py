@@ -326,6 +326,19 @@ def test_progress_rendering_after_import_guard(
     subprocess.run([sys.executable, str(script), "progress"], check=True)
 
 
+def test_netrc_authentication_after_import_guard(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    netrc_file = tmp_path / "netrc"
+    netrc_file.write_text("machine example.com login username password secret\n")
+    netrc_file.chmod(0o600)
+    monkeypatch.setenv("NETRC", str(netrc_file))
+    script = (
+        Path(__file__).resolve().parents[1] / "lib" / "check_installation_imports.py"
+    )
+    subprocess.run([sys.executable, str(script), "netrc"], check=True)
+
+
 @pytest.mark.skipif(
     sys.implementation.name != "cpython",
     reason="Checks CPython's native import audit events",

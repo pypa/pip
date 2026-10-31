@@ -97,6 +97,8 @@ _INTERNAL_EAGER_IMPORTS: tuple[str, ...] = (
     "readline",
     # weakref.finalize imports gc when running shutdown callbacks.
     "gc",
+    # Requests imports netrc lazily when looking up credentials.
+    "netrc",
     # Use Rich's actual namespace when pip has been de-vendored.
     # The renderer is used for output to a legacy Windows console.
     f"{rich.__name__}._windows_renderer",

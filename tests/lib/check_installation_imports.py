@@ -51,6 +51,9 @@ def main() -> None:
     if kind == "progress":
         check_progress()
         return
+    if kind == "netrc":
+        check_netrc_authentication()
+        return
     if kind == "extension":
         check_extension_loader()
         return
@@ -252,6 +255,25 @@ def check_progress() -> None:
     }
     assert not late_rich_imports, late_rich_imports
     assert "📦 café" in output.getvalue()
+
+
+def check_netrc_authentication() -> None:
+    """Read netrc credentials for the first request after installation starts."""
+    from pip._internal.commands.install import (
+        _INTERNAL_EAGER_IMPORTS,
+        _eagerly_import_modules,
+        _prevent_further_imports,
+    )
+    from pip._internal.network.auth import MultiDomainBasicAuth
+
+    assert "netrc" not in sys.modules
+    _eagerly_import_modules(_INTERNAL_EAGER_IMPORTS)
+    auth = MultiDomainBasicAuth(prompting=False)
+
+    with _prevent_further_imports():
+        credentials = auth._get_new_credentials("https://example.com/simple/")
+
+    assert credentials == ("username", "secret")
 
 
 def read_resource() -> str:
