@@ -17,6 +17,7 @@ from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
 from pip._vendor.rich import print_json
+from pip._vendor.rich.text import Text
 
 # Eagerly import self_outdated_check to avoid crashes. Otherwise,
 # this module would be imported *after* pip was replaced, resulting
@@ -109,6 +110,9 @@ def _prevent_import_hook(name: str, args: tuple[Any, ...]) -> None:
 
 def _eagerly_import_modules() -> None:
     """Import modules pip uses lazily so the audit hook ignores them later."""
+    # Load Rich's lazy emoji and width data before installation starts.
+    _ = Text.from_markup(":package:").cell_len
+
     for module in _EAGER_IMPORTS:
         try:
             __import__(module)
