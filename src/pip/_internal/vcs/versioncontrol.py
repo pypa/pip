@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import logging
 import os
 import shutil
@@ -24,6 +25,7 @@ from pip._internal.utils.misc import (
     hide_url,
     hide_value,
     is_installable_dir,
+    redact_auth_from_url,
     rmtree,
 )
 from pip._internal.utils.subprocess import (
@@ -39,6 +41,8 @@ __all__ = ["vcs"]
 logger = logging.getLogger(__name__)
 
 AuthInfo = tuple[str | None, str | None]
+
+_KNOWN_FRAGMENT_PARAMS: frozenset[str] = frozenset({"egg", "subdirectory"})
 
 
 def is_url(name: str) -> bool:
@@ -385,6 +389,36 @@ class VersionControl:
                 "The format is <vcs>+<protocol>://<url>, "
                 "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
             )
+
+        # Warn about unrecognized fragment parameters, which are likely
+        # typos (e.g. #subdiretory=... instead of #subdirectory=...).
+        if frag:
+            fragment_params = urllib.parse.parse_qs(frag, keep_blank_values=True)
+            unknown_params = set(fragment_params) - _KNOWN_FRAGMENT_PARAMS
+            if unknown_params:
+                unknown_str = ", ".join(sorted(unknown_params))
+                known_str = ", ".join(f"'{p}'" for p in sorted(_KNOWN_FRAGMENT_PARAMS))
+                msg = (
+                    "Unrecognized fragment parameters in %s: %s. "
+                    "Only %s are recognized."
+                )
+                args = [redact_auth_from_url(url), unknown_str, known_str]
+                matches: list[str] = []
+                for param in sorted(unknown_params):
+                    for match in difflib.get_close_matches(
+                        param, sorted(_KNOWN_FRAGMENT_PARAMS)
+                    ):
+                        if match not in matches:
+                            matches.append(match)
+                if matches:
+                    msg += " Did you mean %s?"
+                    args.append(
+                        " or ".join(f"'{m}'" for m in matches)
+                        if len(matches) > 1
+                        else f"'{matches[0]}'"
+                    )
+                logger.warning(msg, *args)
+
         # Remove the vcs prefix.
         scheme = scheme.split("+", 1)[1]
         netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)

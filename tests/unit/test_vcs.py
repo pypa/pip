@@ -453,6 +453,94 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     assert "an empty revision (after @)" in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    "url, expected_unknown, expected_suggestion",
+    [
+        (
+            "git+https://github.com/user/proj.git#subdiretory=src",
+            ["subdiretory"],
+            "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://github.com/user/proj.git#egg_info=MyProject",
+            ["egg_info"],
+            None,
+        ),
+        (
+            "git+https://github.com/user/proj.git#foo=bar&baz=qux",
+            ["baz", "foo"],
+            None,
+        ),
+        (
+            "svn+https://svn.example.com/MyProject#egg=MyApp&subdir=src",
+            ["subdir"],
+            "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://github.com/user/proj.git#subdiretory=",
+            ["subdiretory"],
+            "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://user:secret@github.com/user/proj.git#subdiretory=src",
+            ["subdiretory"],
+            "Did you mean 'subdirectory'?",
+        ),
+    ],
+)
+def test_unknown_vcs_url_fragments(
+    url: str,
+    expected_unknown: list[str],
+    expected_suggestion: str | None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Test that unrecognized URL fragment parameters produce a warning.
+    """
+    with caplog.at_level(logging.WARNING):
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == "WARNING"
+    assert "Unrecognized fragment parameters" in record.message
+    assert record.args is not None
+    assert isinstance(record.args, tuple)
+    assert isinstance(record.args[0], str)
+    assert isinstance(record.args[1], str)
+    assert "secret" not in record.message
+    assert "secret" not in record.args[0]
+    if "user:secret" in url:
+        assert "user:****@github.com" in record.args[0]
+    for param in expected_unknown:
+        assert param in record.args[1]
+    assert [p.strip() for p in record.args[1].split(",")] == expected_unknown
+    if expected_suggestion:
+        assert expected_suggestion in record.message
+    else:
+        assert "Did you mean" not in record.message
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "svn+https://svn.example.com/MyProject@rev#egg=MyApp&subdirectory=src",
+        "git+https://github.com/user/proj.git@rev",
+    ],
+)
+def test_valid_vcs_url_fragments_no_warning(
+    url: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Test that valid fragment parameters do not produce any warning.
+    """
+    with caplog.at_level(logging.WARNING):
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert len(caplog.records) == 0
+
+
 @pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
 @pytest.mark.parametrize(
     "exc_cls, msg_re",
