@@ -88,9 +88,10 @@ def _check_link_requires_python(
             version = ".".join(map(str, version_info))
             if not ignore_requires_python:
                 logger.verbose(
-                    "Link requires a different Python (%s not in: %r): %s",
-                    version,
+                    "Link requires a different Python. "
+                    "required: %r, current python: %s: %s",
                     link.requires_python,
+                    version,
                     link,
                 )
                 return False

@@ -68,7 +68,8 @@ def check_caplog(
             (
                 False,
                 "VERBOSE",
-                "Link requires a different Python (3.6.5 not in: '== 3.6.4'): "
+                "Link requires a different Python. required: '== 3.6.4', "
+                "current python: 3.6.5: "
                 "https://example.com",
             ),
         ),
