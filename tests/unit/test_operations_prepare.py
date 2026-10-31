@@ -20,6 +20,7 @@ from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import (
+    RequirementPreparer,
     _check_sidecar_matches_wheel,
     unpack_url,
 )
@@ -27,6 +28,29 @@ from pip._internal.utils.hashes import Hashes
 
 from tests.lib import TestData
 from tests.lib.requests_mocks import MockResponse
+
+
+def test_save_linked_requirement_copy_failure_leaves_no_partial_file(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "download"
+    download_dir.mkdir()
+    preparer = Mock(download_dir=os.fspath(download_dir))
+    req = Mock(
+        link=Link("https://example.com/simple-1.0.tar.gz"),
+        editable=False,
+        local_file_path="source",
+    )
+
+    def fail_copy(_source: str, destination: str) -> None:
+        Path(destination).write_bytes(b"partial")
+        raise OSError("copy failed")
+
+    with patch("pip._internal.utils.filesystem.shutil.copy", new=fail_copy):
+        with pytest.raises(OSError):
+            RequirementPreparer.save_linked_requirement(preparer, req)
+
+    assert not list(download_dir.iterdir())
 
 
 def test_unpack_url_with_urllib_response_without_content_type(data: TestData) -> None:
