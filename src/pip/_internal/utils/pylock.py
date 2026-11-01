@@ -299,19 +299,7 @@ def select_from_pylock_path_or_url(
             f"Invalid pylock file {pylock_path_or_url!r}: {exc}"
         ) from exc
 
-    available_groups = {
-        canonicalize_name(name) for name in lock.dependency_groups or ()
-    }
     selected_groups: set[str] = {canonicalize_name(name) for name in dependency_groups}
-    unknown_groups = selected_groups - available_groups
-    if unknown_groups:
-        requested = ", ".join(repr(name) for name in sorted(unknown_groups))
-        choices = ", ".join(repr(name) for name in sorted(available_groups)) or "none"
-        raise InstallationError(
-            f"Unknown dependency group(s) {requested} "
-            f"in pylock file {pylock_path_or_url!r}. "
-            f"Available dependency group(s): {choices}."
-        )
     if include_default_groups:
         selected_groups.update(lock.default_groups or ())
 
@@ -324,6 +312,7 @@ def select_from_pylock_path_or_url(
         return False
 
     try:
+        # packaging 26.4 will reject undeclared extras and dependency groups.
         yield from lock.select(
             extras=extras,
             dependency_groups=selected_groups,

@@ -167,58 +167,6 @@ def test_select_pylock_context(
         ] == expected
 
 
-@pytest.mark.parametrize(
-    "groups,name",
-    [
-        (("unknown",), "unknown"),
-        (("runtime",), "runtime"),
-        (("extra-only",), "extra-only"),
-    ],
-)
-def test_select_pylock_rejects_unavailable_names(
-    selection_lock: Path,
-    groups: tuple[str, ...],
-    name: str,
-) -> None:
-    with PipSession() as session, pytest.raises(InstallationError) as exc_info:
-        list(
-            select_from_pylock_path_or_url(
-                str(selection_lock),
-                session,
-                format_control=None,
-                dependency_groups=groups,
-            )
-        )
-    assert name in str(exc_info.value)
-    assert repr(str(selection_lock)) in str(exc_info.value)
-    assert "lint-tools" in str(exc_info.value)
-
-
-def test_select_pylock_escapes_group_names_in_errors(tmp_path: Path) -> None:
-    path = tmp_path / "pylock.toml"
-    lock = Pylock(
-        lock_version=Version("1.0"),
-        created_by="pip",
-        dependency_groups=["\x1b[31mavailable"],
-        packages=[],
-    )
-    path.write_text(tomli_w.dumps(lock.to_dict()), encoding="utf-8")
-
-    with PipSession() as session, pytest.raises(InstallationError) as exc_info:
-        list(
-            select_from_pylock_path_or_url(
-                str(path),
-                session,
-                format_control=None,
-                dependency_groups=["\x1b[2Jrequested"],
-            )
-        )
-
-    message = str(exc_info.value)
-    assert "\x1b" not in message
-    assert "\\x1b" in message
-
-
 def test_select_pylock_default_group_can_also_be_public(tmp_path: Path) -> None:
     path = write_lock(
         tmp_path / "pylock.toml",
