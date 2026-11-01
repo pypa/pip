@@ -1,0 +1,2 @@
+When installing packages, pip will no longer show a misleading
+error message that included extra markers such as ``; extra == "..."``.

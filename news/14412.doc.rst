@@ -1,0 +1,3 @@
+Clarify in the security policy that pip has never considered installing
+untrusted wheels safe. This is because Python's import system is dynamic, so
+pip cannot guarantee that installing a wheel will not execute third-party code.

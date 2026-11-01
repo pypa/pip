@@ -1,0 +1,1 @@
+Clarify the warning for ``~``-prefixed leftover distribution directories.

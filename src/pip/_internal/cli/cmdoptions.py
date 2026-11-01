@@ -35,6 +35,7 @@ from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.datetime import parse_iso_datetime
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
+from pip._internal.utils.urls import strip_extras
 
 logger = logging.getLogger(__name__)
 
@@ -140,35 +141,14 @@ def check_dist_restriction(options: Values, check_target: bool = False) -> None:
         from pip._internal.utils import pylock as pylock_utils
 
         for filename in options.requirements:
-            if pylock_utils.is_valid_pylock_filename(filename):
+            filename_without_extras, _ = strip_extras(filename)
+            if pylock_utils.is_valid_pylock_filename(filename_without_extras):
                 raise CommandError(
                     "Platform and interpreter constraints using "
                     "--python-version, --platform, --abi, or --implementation, "
-                    f"are not supported when selecting requirements from {filename!r}"
+                    f"are not supported when selecting requirements "
+                    f"from {filename_without_extras!r}"
                 )
-
-
-def check_build_constraints(options: Values) -> None:
-    """Function for validating build constraints options.
-
-    :param options: The OptionParser options.
-    """
-    if hasattr(options, "build_constraints") and options.build_constraints:
-        if not options.build_isolation:
-            raise CommandError(
-                "--build-constraint cannot be used with --no-build-isolation."
-            )
-
-        # Import here to avoid circular imports
-        from pip._internal.network.session import PipSession
-        from pip._internal.req.req_file import get_file_content
-
-        # Eagerly check build constraints file contents
-        # is valid so that we don't fail in when trying
-        # to check constraints in isolated build process
-        with PipSession() as session:
-            for constraint_file in options.build_constraints:
-                get_file_content(constraint_file, session)
 
 
 def _path_option_check(option: Option, opt: str, value: str) -> str:
@@ -599,7 +579,10 @@ def requirements() -> Option:
         help=(
             "Install from the given requirements file. "
             "The file or URL can be in pip's requirements.txt format, "
-            "or pylock.toml format. pylock.toml support is experimental. "
+            "or pylock.toml format. "
+            "Extras may be selected from a pylock.toml file by "
+            "appending [extras] to the file name. "
+            "pylock.toml support is experimental. "
             "This option can be used multiple times."
         ),
     )

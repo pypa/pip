@@ -2183,10 +2183,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
         "pep-508-url-deps",
         expect_error=True,
     )
-    error_message = (
-        "Packages installed from PyPI cannot depend on packages "
-        "which are not also hosted on PyPI."
-    )
+    error_message = "Distributions from PyPI cannot declare direct URL dependencies."
     error_cause = (
         "pep-508-url-deps depends on sampleproject @ "
         "https://github.com/pypa/sampleproject/archive/master.zip"
