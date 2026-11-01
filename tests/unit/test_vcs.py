@@ -454,43 +454,56 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "url, expected_unknown, expected_suggestion",
+    "url, expected_url, expected_unknown, expected_suggestion",
     [
         (
             "git+https://github.com/user/proj.git#subdiretory=src",
-            ["subdiretory"],
+            "git+https://github.com/user/proj.git#subdiretory=src",
+            "subdiretory",
             "Did you mean 'subdirectory'?",
         ),
         (
             "git+https://github.com/user/proj.git#egg_info=MyProject",
-            ["egg_info"],
+            "git+https://github.com/user/proj.git#egg_info=MyProject",
+            "egg_info",
             None,
         ),
         (
             "git+https://github.com/user/proj.git#foo=bar&baz=qux",
-            ["baz", "foo"],
+            "git+https://github.com/user/proj.git#foo=bar&baz=qux",
+            "baz, foo",
             None,
         ),
         (
             "svn+https://svn.example.com/MyProject#egg=MyApp&subdir=src",
-            ["subdir"],
+            "svn+https://svn.example.com/MyProject#egg=MyApp&subdir=src",
+            "subdir",
             "Did you mean 'subdirectory'?",
         ),
         (
             "git+https://github.com/user/proj.git#subdiretory=",
-            ["subdiretory"],
+            "git+https://github.com/user/proj.git#subdiretory=",
+            "subdiretory",
             "Did you mean 'subdirectory'?",
         ),
         (
             "git+https://user:secret@github.com/user/proj.git#subdiretory=src",
-            ["subdiretory"],
+            "git+https://user:****@github.com/user/proj.git#subdiretory=src",
+            "subdiretory",
             "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://github.com/user/proj.git#sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            "git+https://github.com/user/proj.git#sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            "sha256",
+            None,
         ),
     ],
 )
 def test_unknown_vcs_url_fragments(
     url: str,
-    expected_unknown: list[str],
+    expected_url: str,
+    expected_unknown: str,
     expected_suggestion: str | None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -503,22 +516,16 @@ def test_unknown_vcs_url_fragments(
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.levelname == "WARNING"
-    assert "Unrecognized fragment parameters" in record.message
-    assert record.args is not None
-    assert isinstance(record.args, tuple)
-    assert isinstance(record.args[0], str)
-    assert isinstance(record.args[1], str)
-    assert "secret" not in record.message
-    assert "secret" not in record.args[0]
-    if "user:secret" in url:
-        assert "user:****@github.com" in record.args[0]
-    for param in expected_unknown:
-        assert param in record.args[1]
-    assert [p.strip() for p in record.args[1].split(",")] == expected_unknown
+    message = record.getMessage()
+    assert (
+        f"Unrecognized fragment parameters in {expected_url}: {expected_unknown}. "
+        "Only 'egg', 'subdirectory' are recognized."
+    ) in message
+    assert "secret" not in message
     if expected_suggestion:
-        assert expected_suggestion in record.message
+        assert expected_suggestion in message
     else:
-        assert "Did you mean" not in record.message
+        assert "Did you mean" not in message
 
 
 @pytest.mark.parametrize(

@@ -412,11 +412,7 @@ class VersionControl:
                             matches.append(match)
                 if matches:
                     msg += " Did you mean %s?"
-                    args.append(
-                        " or ".join(f"'{m}'" for m in matches)
-                        if len(matches) > 1
-                        else f"'{matches[0]}'"
-                    )
+                    args.append(" or ".join(f"'{m}'" for m in matches))
                 logger.warning(msg, *args)
 
         # Remove the vcs prefix.
