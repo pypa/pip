@@ -777,6 +777,103 @@ def test_correct_package_name_while_creating_wheel_bug(
     assert wheel_name == "simple_package-1.0-py2.py3-none-any.whl"
 
 
+@pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_wheel_install_replaces_file_symlink(
+    script: PipTestEnvironment, tmp_path: Path, target_exists: bool
+) -> None:
+    """Replace existing and dangling file links during wheel installation."""
+    package_dir = script.site_packages_path / "simple"
+    package_dir.mkdir()
+    outside = tmp_path / "outside.py"
+    if target_exists:
+        outside.write_text("outside")
+    installed = package_dir / "__init__.py"
+    installed.symlink_to(outside)
+    package = create_basic_wheel_for_package(script, "simple", "1.0")
+
+    script.pip("install", "--no-cache-dir", "--no-index", package)
+
+    assert installed.is_file()
+    assert not installed.is_symlink()
+    assert "__version__ = '1.0'" in installed.read_text()
+    assert outside.exists() is target_exists
+    if target_exists:
+        assert outside.read_text() == "outside"
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_wheel_upgrade_and_uninstall_through_directory_symlink(
+    script: PipTestEnvironment,
+) -> None:
+    """Keep linked package directories through upgrade, rollback, and uninstall."""
+    managed_package = script.venv_path / "managed" / "simple"
+    managed_package.mkdir(parents=True)
+    managed_cache = script.venv_path / "managed-cache"
+    managed_cache.mkdir()
+    (managed_package / "__pycache__").symlink_to(
+        managed_cache, target_is_directory=True
+    )
+    package_link = script.site_packages_path / "simple"
+    package_link.symlink_to(managed_package, target_is_directory=True)
+
+    version_1 = create_basic_wheel_for_package(script, "simple", "1.0")
+    version_2 = create_basic_wheel_for_package(script, "simple", "2.0")
+    invalid_version = make_wheel(
+        "simple",
+        "3.0",
+        extra_files={"simple/__init__.py": "__version__ = '3.0'"},
+        console_scripts=["broken = simple"],
+    ).save_to_dir(script.scratch_path)
+
+    script.pip("install", "--no-cache-dir", "--no-index", version_1)
+
+    assert "__version__ = '1.0'" in (managed_package / "__init__.py").read_text()
+
+    script.pip("install", "--no-cache-dir", "--no-index", "--upgrade", version_2)
+
+    assert "__version__ = '2.0'" in (managed_package / "__init__.py").read_text()
+
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--upgrade",
+        invalid_version,
+        expect_error=True,
+    )
+
+    assert "__version__ = '2.0'" in (managed_package / "__init__.py").read_text()
+
+    script.pip("uninstall", "--yes", "simple")
+
+    assert package_link.is_symlink()
+    assert managed_package.is_dir()
+    assert (managed_package / "__pycache__").is_symlink()
+    assert [p.name for p in managed_package.iterdir()] == ["__pycache__"]
+    assert managed_cache.is_dir()
+    assert not list(managed_cache.iterdir())
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_uninstall_package_does_not_follow_child_directory_symlink(
+    script: PipTestEnvironment, tmp_path: Path
+) -> None:
+    """Do not traverse child links when uninstall removes the whole package."""
+    package = create_basic_wheel_for_package(script, "simple", "1.0")
+    script.pip("install", "--no-cache-dir", "--no-index", package)
+    installed_package = script.site_packages_path / "simple"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "keep").write_text("keep")
+    (installed_package / "external").symlink_to(outside, target_is_directory=True)
+
+    script.pip("uninstall", "--yes", "simple")
+
+    assert not installed_package.exists()
+    assert (outside / "keep").read_text() == "keep"
+
+
 @pytest.mark.parametrize("name", ["purelib", "abc"])
 def test_wheel_with_file_in_data_dir_has_reasonable_error(
     script: PipTestEnvironment, tmpdir: Path, name: str

@@ -30,7 +30,7 @@ from typing import (
 from zipfile import ZipFile, ZipInfo
 
 from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor.distlib.util import get_export_entry
+from pip._vendor.distlib.util import FileOperator, get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InstallationError
@@ -42,7 +42,12 @@ from pip._internal.metadata import (
 )
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
-from pip._internal.utils.filesystem import adjacent_tmp_file, replace
+from pip._internal.utils.filesystem import (
+    adjacent_tmp_file,
+    replace,
+    unlink_dangling_symlink,
+    unlink_symlink,
+)
 from pip._internal.utils.misc import StreamWrapper, ensure_dir, hash_file, partition
 from pip._internal.utils.unpacking import (
     current_umask,
@@ -361,7 +366,8 @@ class ZipBackedFile:
         # symbol in it will then cause a segfault. Unlinking the file
         # allows writing of new contents while allowing the process to
         # continue to use the old copy.
-        if os.path.exists(self.dest_path):
+        # lexists() also catches dangling symlinks before open() follows them.
+        if os.path.lexists(self.dest_path):
             os.unlink(self.dest_path)
 
         zipinfo = self._getinfo()
@@ -418,6 +424,15 @@ def _raise_for_invalid_entrypoint(specification: str, scripts_dir: str) -> None:
             f"Invalid script entry point name {entry.name!r}: the script "
             f"would be installed outside the scripts directory ({scripts_dir})."
         )
+
+
+class _ScriptFileOperator(FileOperator):
+    """Prevent distlib from writing through dangling destination symlinks."""
+
+    def write_binary_file(self, path: str, data: bytes) -> None:
+        """Remove a dangling destination symlink before writing."""
+        unlink_dangling_symlink(path)
+        super().write_binary_file(path, data)
 
 
 class PipScriptMaker(ScriptMaker):
@@ -646,7 +661,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
                         record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
-    maker = PipScriptMaker(None, scheme.scripts)
+    maker = PipScriptMaker(None, scheme.scripts, fileop=_ScriptFileOperator())
 
     # Embed the target environment's interpreter in console-script launchers
     # rather than the one running pip, so an in-process install into another
@@ -710,6 +725,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     # Record the REQUESTED file
     if requested:
         requested_path = os.path.join(dest_info_dir, "REQUESTED")
+        unlink_symlink(requested_path)
         with open(requested_path, "wb"):
             pass
         generated.append(requested_path)

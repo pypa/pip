@@ -380,8 +380,11 @@ def splitext(path: str) -> tuple[str, str]:
     return base, ext
 
 
-def renames(old: str, new: str) -> None:
-    """Like os.renames(), but handles renaming across devices."""
+def renames(old: str, new: str, *, preserve_parent: str | None = None) -> None:
+    """Like os.renames(), but handle cross-device moves.
+
+    Never remove ``preserve_parent`` while cleaning empty source directories.
+    """
     # Implementation borrowed from os.renames().
     head, tail = os.path.split(new)
     if head and tail and not os.path.exists(head):
@@ -391,10 +394,24 @@ def renames(old: str, new: str) -> None:
 
     head, tail = os.path.split(old)
     if head and tail:
-        try:
-            os.removedirs(head)
-        except OSError:
-            pass
+        if preserve_parent is None:
+            try:
+                os.removedirs(head)
+            except OSError:
+                pass
+        else:
+            preserve_parent = os.path.normcase(preserve_parent.rstrip(os.path.sep))
+
+            # os.removedirs() cannot stop at the linked-directory boundary.
+            while os.path.normcase(head.rstrip(os.path.sep)) != preserve_parent:
+                try:
+                    os.rmdir(head)
+                except OSError:
+                    break
+                parent = os.path.dirname(head)
+                if parent == head:
+                    break
+                head = parent
 
 
 def is_local(path: str) -> bool:
