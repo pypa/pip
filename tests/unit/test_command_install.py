@@ -1,6 +1,8 @@
 import errno
+import subprocess
 import sys
 import warnings
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -222,3 +224,12 @@ def test_prevent_further_imports_warns_on_import() -> None:
         audit_hook("import", ("encodings.iso8859_15",))
 
     assert caught == []
+
+
+@pytest.mark.parametrize("unicode_version", ["4.1.0", "latest"])
+def test_progress_rendering_after_import_guard(
+    monkeypatch: pytest.MonkeyPatch, unicode_version: str
+) -> None:
+    monkeypatch.setenv("UNICODE_VERSION", unicode_version)
+    script = Path(__file__).resolve().parents[1] / "lib" / "check_install_progress.py"
+    subprocess.run([sys.executable, str(script)], check=True)
