@@ -413,6 +413,16 @@ class TestIsLocal:
         assert not is_local(normalize_path(str(sibling)))
         assert not is_local(normalize_path(str(sibling / "lib" / "site-packages")))
 
+    def test_path_under_root_prefix_is_local(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # An environment at the filesystem root contains every path.
+        monkeypatch.setattr(sys, "prefix", os.sep)
+        monkeypatch.setattr(
+            "pip._internal.utils.misc.running_under_virtualenv", lambda: True
+        )
+        assert is_local(normalize_path(os.path.join(os.sep, "usr", "lib")))
+
 
 class TestHashes:
     """Tests for pip._internal.utils.hashes"""

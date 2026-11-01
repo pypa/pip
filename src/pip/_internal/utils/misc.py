@@ -414,7 +414,11 @@ def is_within_directory(
         abs_directory = os.path.abspath(directory)
         abs_target = os.path.abspath(target)
 
-    return abs_target == abs_directory or abs_target.startswith(abs_directory + os.sep)
+    # Compare against the directory with a trailing separator, so that
+    # "/srv/env" does not contain "/srv/envfoo". os.path.join() adds one
+    # only when it is missing: a root ("/", "C:\\") already ends in one.
+    prefix = os.path.join(abs_directory, "")
+    return abs_target == abs_directory or abs_target.startswith(prefix)
 
 
 def is_local(path: str) -> bool:
