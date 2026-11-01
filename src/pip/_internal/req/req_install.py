@@ -48,7 +48,7 @@ from pip._internal.utils.misc import (
     redact_auth_from_requirement,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.packaging import get_requirement, requirement_without_marker
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, TempDirectoryKind
 from pip._internal.utils.unpacking import unpack_file
@@ -183,8 +183,20 @@ class InstallRequirement:
         self._archive_source: Path | None = None
 
     def __str__(self) -> str:
+        return self._format()
+
+    def format_without_marker(self) -> str:
+        """Like ``str(self)``, but without the requirement's environment marker.
+
+        For error messages, where markers such as ``extra == "foo"`` are noise.
+        ``self.req`` and ``self.markers`` are not modified.
+        """
+        return self._format(include_marker=False)
+
+    def _format(self, include_marker: bool = True) -> str:
         if self.req:
-            s = redact_auth_from_requirement(self.req)
+            req = self.req if include_marker else requirement_without_marker(self.req)
+            s = redact_auth_from_requirement(req)
             if self.link:
                 s += f" from {redact_auth_from_url(self.link.url)}"
         elif self.link:
