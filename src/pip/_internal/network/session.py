@@ -239,9 +239,11 @@ class _SSLContextAdapterMixin:
         self,
         *,
         ssl_context: SSLContext | None = None,
+        use_ssl_context_for_proxy: bool = True,
         **kwargs: Any,
     ) -> None:
         self._ssl_context = ssl_context
+        self._use_ssl_context_for_proxy = use_ssl_context_for_proxy
         super().__init__(**kwargs)
 
     def init_poolmanager(
@@ -265,11 +267,9 @@ class _SSLContextAdapterMixin:
         # context here too. https://github.com/pypa/pip/issues/13288
         if self._ssl_context is not None:
             proxy_kwargs.setdefault("ssl_context", self._ssl_context)
-            # For HTTPS proxies, urllib3 also opens a separate TLS connection
-            # to the proxy itself (before tunnelling to the destination) and
-            # uses "proxy_ssl_context" for that handshake.
-            # https://github.com/pypa/pip/issues/13465
-            proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
+            if self._use_ssl_context_for_proxy:
+                # Leave this unset when urllib3 must apply a custom proxy CA bundle.
+                proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
         return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
@@ -315,6 +315,7 @@ class PipSession(requests.Session):
         trusted_hosts: Sequence[str] = (),
         index_urls: list[str] | None = None,
         ssl_context: SSLContext | None = None,
+        use_ssl_context_for_proxy: bool = True,
         refresh_package: set[str] | None = None,
         **kwargs: Any,
     ) -> None:
@@ -381,13 +382,18 @@ class PipSession(requests.Session):
                 cache=SafeFileCache(cache),
                 max_retries=retries,
                 ssl_context=ssl_context,
+                use_ssl_context_for_proxy=use_ssl_context_for_proxy,
             )
             self._trusted_host_adapter = InsecureCacheControlAdapter(
                 cache=SafeFileCache(cache),
                 max_retries=retries,
             )
         else:
-            secure_adapter = HTTPAdapter(max_retries=retries, ssl_context=ssl_context)
+            secure_adapter = HTTPAdapter(
+                max_retries=retries,
+                ssl_context=ssl_context,
+                use_ssl_context_for_proxy=use_ssl_context_for_proxy,
+            )
             self._trusted_host_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
