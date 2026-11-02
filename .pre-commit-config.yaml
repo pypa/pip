@@ -17,12 +17,12 @@ repos:
     exclude: .patch
 
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 26.10.0
+  rev: 26.10.1
   hooks:
   - id: black
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.16.10
+  rev: v0.17.2
   hooks:
     - id: ruff-check
       args: [--fix]
@@ -67,7 +67,7 @@ repos:
       args: ["--ignore-words", tools/codespell-ignore.txt]
 
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: v1.30.1
+  rev: v1.31.1
   hooks:
   - id: zizmor
     args: ["--fix=all"]

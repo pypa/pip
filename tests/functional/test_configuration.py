@@ -85,6 +85,15 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "unset", "test.blah")
         script.pip("config", "get", "test.blah", expect_error=True)
 
+    def test_invalid_config_value_throws_error(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.pip("config", "set", "global.use-deprecated", "blah")
+
+        result = script.pip("list", expect_error=True)
+        assert "An error occurred during configuration:" in result.stderr
+        assert result.returncode == 3
+
     def test_listing_is_correct(self, script: PipTestEnvironment) -> None:
         script.pip("config", "set", "test.listing-beta", "2")
         script.pip("config", "set", "test.listing-alpha", "1")
@@ -145,6 +154,63 @@ class TestBasicLoading(ConfigurationMixin):
         assert "global.timeout: 60" in result.stdout
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"env:\n(  .+\n)+", result.stdout)
+
+    def test_env_set_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when setting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_unset_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when unsetting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        result = script.pip(
+            "config", "unset", "global.index-url", allow_stderr_warning=True
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_raises_error_on_devnull_directory(
+        self, script: PipTestEnvironment
+    ) -> None:
+        config_file = os.devnull
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            expect_error=True,
+        )
+        assert "Cannot write to PIP_CONFIG_VALUE" in result.stderr
+        assert result.returncode == 1
 
     def test_user_values(self, script: PipTestEnvironment) -> None:
         """Test that the user pip configuration set using --user

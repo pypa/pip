@@ -1,6 +1,6 @@
 import pytest
 
-from tests.lib import PipTestEnvironment, TestData, _create_test_package
+from tests.lib import PipTestEnvironment, TestData, create_test_package
 
 
 def test_install_find_links_no_direct_url(script: PipTestEnvironment) -> None:
@@ -9,7 +9,7 @@ def test_install_find_links_no_direct_url(script: PipTestEnvironment) -> None:
 
 
 def test_install_vcs_non_editable_direct_url(script: PipTestEnvironment) -> None:
-    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    pkg_path = create_test_package(script.scratch_path, name="testpkg")
     url = pkg_path.as_uri()
     args = ["install", "--no-build-isolation", f"git+{url}#egg=testpkg"]
     result = script.pip(*args)
@@ -40,7 +40,7 @@ def test_install_vcs_constraint_direct_url(script: PipTestEnvironment) -> None:
 
 
 def test_install_vcs_constraint_direct_file_url(script: PipTestEnvironment) -> None:
-    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    pkg_path = create_test_package(script.scratch_path, name="testpkg")
     url = pkg_path.as_uri()
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(f"git+{url}#egg=testpkg")

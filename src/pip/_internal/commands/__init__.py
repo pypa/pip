@@ -5,9 +5,10 @@ Package containing all pip commands
 from __future__ import annotations
 
 import importlib
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
-from pip._internal.cli.base_command import Command
+if TYPE_CHECKING:
+    from pip._internal.cli.base_command import Command
 
 
 class CommandInfo(NamedTuple):

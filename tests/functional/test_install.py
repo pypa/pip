@@ -31,8 +31,8 @@ from tests.lib import (
     TestData,
     TestPipResult,
     _create_svn_repo,
-    _create_test_package,
     create_basic_wheel_for_package,
+    create_test_package,
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
@@ -553,7 +553,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
     """
     Test checking out from svn.
     """
-    checkout_path = _create_test_package(script.scratch_path)
+    checkout_path = create_test_package(script.scratch_path)
     repo_url = _create_svn_repo(script.scratch_path, checkout_path)
     result = script.pip(
         "install", "--no-build-isolation", "-e", "svn+" + repo_url + "#egg=version-pkg"
@@ -563,7 +563,7 @@ def test_basic_install_editable_from_svn(script: PipTestEnvironment) -> None:
 
 def _test_install_editable_from_git(script: PipTestEnvironment) -> None:
     """Test cloning from Git."""
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="git")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="git")
     args = [
         "install",
         "--no-build-isolation",
@@ -642,7 +642,7 @@ def test_install_editable_uninstalls_existing_from_path(
 @need_mercurial
 def test_basic_install_editable_from_hg(script: PipTestEnvironment) -> None:
     """Test cloning and hg+file install from Mercurial."""
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="hg")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="hg")
     url = f"hg+{pkg_path.as_uri()}#egg=testpackage"
     assert url.startswith("hg+file")
     args = ["install", "--no-build-isolation", "-e", url]
@@ -655,7 +655,7 @@ def test_vcs_url_final_slash_normalization(script: PipTestEnvironment) -> None:
     """
     Test that presence or absence of final slash in VCS URL is normalized.
     """
-    pkg_path = _create_test_package(script.scratch_path, name="testpackage", vcs="hg")
+    pkg_path = create_test_package(script.scratch_path, name="testpackage", vcs="hg")
     args = [
         "install",
         "--no-build-isolation",
@@ -669,7 +669,7 @@ def test_vcs_url_final_slash_normalization(script: PipTestEnvironment) -> None:
 @need_bzr
 def test_install_editable_from_bazaar(script: PipTestEnvironment) -> None:
     """Test checking out from Bazaar."""
-    pkg_path = _create_test_package(
+    pkg_path = create_test_package(
         script.scratch_path, name="testpackage", vcs="bazaar"
     )
     args = [
@@ -686,7 +686,7 @@ def test_vcs_url_urlquote_normalization(script: PipTestEnvironment) -> None:
     """
     Test that urlquoted characters are normalized for repo URL comparison.
     """
-    pkg_path = _create_test_package(
+    pkg_path = create_test_package(
         script.scratch_path, name="django_wikiapp", vcs="git"
     )
     url = f"git+{pkg_path.as_uri().replace('django_', 'django%5F')}/#egg=django_wikiapp"
@@ -2183,10 +2183,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
         "pep-508-url-deps",
         expect_error=True,
     )
-    error_message = (
-        "Packages installed from PyPI cannot depend on packages "
-        "which are not also hosted on PyPI."
-    )
+    error_message = "Distributions from PyPI cannot declare direct URL dependencies."
     error_cause = (
         "pep-508-url-deps depends on sampleproject @ "
         "https://github.com/pypa/sampleproject/archive/master.zip"

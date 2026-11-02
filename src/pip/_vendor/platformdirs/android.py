@@ -5,8 +5,9 @@ from __future__ import annotations
 import os
 import re
 import sys
-from functools import lru_cache
-from typing import TYPE_CHECKING, cast
+from contextlib import suppress
+from functools import cache, lru_cache
+from typing import Final
 
 from .api import PlatformDirsABC
 
@@ -26,7 +27,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_data_dir(self) -> str:
         """Data directory tied to the user, e.g. ``/data/user/<userid>/<packagename>/files/<AppName>``."""
-        return self._append_app_name_and_version(_require_android_folder(), "files")
+        return self._append_app_name_and_version(_require_android_folder(), "files", private=True)
 
     @property
     def site_data_dir(self) -> str:
@@ -36,7 +37,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_config_dir(self) -> str:
         """Config directory tied to the user, e.g. ``/data/user/<userid>/<packagename>/shared_prefs/<AppName>``."""
-        return self._append_app_name_and_version(_require_android_folder(), "shared_prefs")
+        return self._append_app_name_and_version(_require_android_folder(), "shared_prefs", private=True)
 
     @property
     def site_config_dir(self) -> str:
@@ -46,7 +47,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_cache_dir(self) -> str:
         """Cache directory tied to the user, e.g.,``/data/user/<userid>/<packagename>/cache/<AppName>``."""
-        return self._append_app_name_and_version(_require_android_folder(), "cache")
+        return self._append_app_name_and_version(_require_android_folder(), "cache", private=True)
 
     @property
     def site_cache_dir(self) -> str:
@@ -69,7 +70,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
         path = self.user_cache_dir
         if self.opinion:
             path = os.path.join(path, "log")  # ruff:ignore[os-path-join]
-            self._optionally_create_directory(path)
+            self._optionally_create_directory(path, private=True)
         return path
 
     @property
@@ -80,52 +81,53 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
     @property
     def user_documents_dir(self) -> str:
         """Documents directory tied to the user e.g. ``/storage/emulated/0/Documents``."""
-        return _android_documents_folder()
+        return _android_public_folder("Documents")
 
     @property
     def user_downloads_dir(self) -> str:
-        """Downloads directory tied to the user e.g. ``/storage/emulated/0/Downloads``."""
-        return _android_downloads_folder()
+        """Downloads directory tied to the user e.g. ``/storage/emulated/0/Download``."""
+        return _android_public_folder("Download")
 
     @property
     def user_pictures_dir(self) -> str:
         """Pictures directory tied to the user e.g. ``/storage/emulated/0/Pictures``."""
-        return _android_pictures_folder()
+        return _android_public_folder("Pictures")
 
     @property
     def user_videos_dir(self) -> str:
-        """Videos directory tied to the user e.g. ``/storage/emulated/0/DCIM/Camera``."""
-        return _android_videos_folder()
+        """Videos directory tied to the user e.g. ``/storage/emulated/0/Movies``."""
+        return _android_public_folder("Movies")
 
     @property
     def user_music_dir(self) -> str:
         """Music directory tied to the user e.g. ``/storage/emulated/0/Music``."""
-        return _android_music_folder()
+        return _android_public_folder("Music")
 
+    # Android lets apps create top-level shared folders only from its standard list, so these live in Documents.
     @property
     def user_desktop_dir(self) -> str:
-        """Desktop directory tied to the user e.g. ``/storage/emulated/0/Desktop``."""
-        return "/storage/emulated/0/Desktop"
+        """Desktop directory tied to the user e.g. ``/storage/emulated/0/Documents/Desktop``."""
+        return f"{_shared_storage()}/Documents/Desktop"
 
     @property
     def user_projects_dir(self) -> str:
-        """Projects directory tied to the user e.g. ``/storage/emulated/0/Projects``."""
-        return "/storage/emulated/0/Projects"
+        """Projects directory tied to the user e.g. ``/storage/emulated/0/Documents/Projects``."""
+        return f"{_shared_storage()}/Documents/Projects"
 
     @property
     def user_publicshare_dir(self) -> str:
-        """Public share directory tied to the user e.g. ``/storage/emulated/0/Public``."""
-        return "/storage/emulated/0/Public"
+        """Public share directory tied to the user e.g. ``/storage/emulated/0/Documents/Public``."""
+        return f"{_shared_storage()}/Documents/Public"
 
     @property
     def user_templates_dir(self) -> str:
-        """Templates directory tied to the user e.g. ``/storage/emulated/0/Templates``."""
-        return "/storage/emulated/0/Templates"
+        """Templates directory tied to the user e.g. ``/storage/emulated/0/Documents/Templates``."""
+        return f"{_shared_storage()}/Documents/Templates"
 
     @property
     def user_fonts_dir(self) -> str:
-        """Fonts directory tied to the user e.g. ``/storage/emulated/0/fonts``."""
-        return "/storage/emulated/0/fonts"
+        """Fonts directory tied to the user e.g. ``/storage/emulated/0/Documents/fonts``."""
+        return f"{_shared_storage()}/Documents/fonts"
 
     @property
     def user_preference_dir(self) -> str:
@@ -158,7 +160,7 @@ class Android(PlatformDirsABC):  # ruff:ignore[too-many-public-methods]
         path = self.user_cache_dir
         if self.opinion:
             path = os.path.join(path, "tmp")  # ruff:ignore[os-path-join]
-            self._optionally_create_directory(path)
+            self._optionally_create_directory(path, private=True)
         return path
 
     @property
@@ -175,131 +177,88 @@ def _require_android_folder() -> str:
 
 
 @lru_cache(maxsize=1)
-def _android_folder() -> str | None:  # ruff:ignore[complex-structure]
+def _android_folder() -> str | None:
     """:returns: base folder for the Android OS or None if it cannot be found"""
-    result: str | None = None
-    # type checker isn't happy with our "import android", just don't do this when type checking see
-    # https://stackoverflow.com/a/61394121
-    if not TYPE_CHECKING:
-        try:
-            # First try to get a path to android app using python4android (if available)...
-            from android import mActivity  # ruff:ignore[import-outside-top-level]
-
-            context = cast("android.content.Context", mActivity.getApplicationContext())  # ruff:ignore[undefined-name]
-            result = context.getFilesDir().getParentFile().getAbsolutePath()
-        except Exception:  # ruff:ignore[blind-except]
-            result = None
-    if result is None:
-        try:
-            # ...and fall back to using plain pyjnius, if python4android isn't available or doesn't deliver any useful
-            # result...
-            from jnius import autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
-
-            context = autoclass("android.content.Context")
-            result = context.getFilesDir().getParentFile().getAbsolutePath()
-        except Exception:  # ruff:ignore[blind-except]
-            result = None
+    result = _python_for_android_folder()
     if result is None:
         # and if that fails, too, find an android folder looking at path on the sys.path
         # warning: only works for apps installed under /data, not adopted storage etc.
-        pattern = re.compile(r"/data/(data|user/\d+)/(.+)/files")
+        pattern = re.compile(
+            r"""
+            (?P<folder>
+                /data/(?:data|user/\d+)  # internal storage of the primary user or of user N
+                /[^/]+                   # package name, one path segment
+            )
+            /files                       # the files directory the interpreter runs from
+            """,
+            re.VERBOSE,
+        )
         for path in sys.path:
-            if pattern.match(path):
-                result = path.split("/files")[0]
+            if match := pattern.match(path):
+                result = match["folder"]
                 break
         else:
             result = None
     if result is None:
         # one last try: find an android folder looking at path on the sys.path taking adopted storage paths into
         # account
-        pattern = re.compile(r"/mnt/expand/[a-fA-F0-9-]{36}/(data|user/\d+)/(.+)/files")
+        pattern = re.compile(
+            r"""
+            (?P<folder>
+                /mnt/expand/[a-fA-F0-9-]{36}  # adopted storage volume, named by its UUID
+                /(?:data|user/\d+)             # the primary user or user N
+                /[^/]+                         # package name, one path segment
+            )
+            /files                             # the files directory the interpreter runs from
+            """,
+            re.VERBOSE,
+        )
         for path in sys.path:
-            if pattern.match(path):
-                result = path.split("/files")[0]
+            if match := pattern.match(path):
+                result = match["folder"]
                 break
         else:
             result = None
     return result
 
 
-@lru_cache(maxsize=1)
-def _android_documents_folder() -> str:
-    """:returns: documents folder for the Android OS"""
-    # Get directories with pyjnius
-    try:
-        from jnius import autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
-
-        context = autoclass("android.content.Context")
-        environment = autoclass("android.os.Environment")
-        documents_dir: str = context.getExternalFilesDir(environment.DIRECTORY_DOCUMENTS).getAbsolutePath()
-    except Exception:  # ruff:ignore[blind-except]
-        documents_dir = "/storage/emulated/0/Documents"
-
-    return documents_dir
+_USER_ID: Final = re.compile(
+    r"""
+    /user/         # the per-user data root, under /data or an adopted /mnt/expand volume
+    (?P<user>\d+)  # the Android user id
+    /              # followed by the package folder
+    """,
+    re.VERBOSE,
+)
 
 
-@lru_cache(maxsize=1)
-def _android_downloads_folder() -> str:
-    """:returns: downloads folder for the Android OS"""
-    # Get directories with pyjnius
-    try:
-        from jnius import autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
-
-        context = autoclass("android.content.Context")
-        environment = autoclass("android.os.Environment")
-        downloads_dir: str = context.getExternalFilesDir(environment.DIRECTORY_DOWNLOADS).getAbsolutePath()
-    except Exception:  # ruff:ignore[blind-except]
-        downloads_dir = "/storage/emulated/0/Downloads"
-
-    return downloads_dir
+def _shared_storage() -> str:
+    # Android mounts each user's shared storage at /storage/emulated/<user id>, and an app sees only its own user's.
+    user = match["user"] if (match := _USER_ID.search(_android_folder() or "")) else "0"
+    return f"/storage/emulated/{user}"
 
 
-@lru_cache(maxsize=1)
-def _android_pictures_folder() -> str:
-    """:returns: pictures folder for the Android OS"""
-    # Get directories with pyjnius
-    try:
-        from jnius import autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
+def _python_for_android_folder() -> str | None:
+    with suppress(ImportError):
+        from jnius import JavaException, autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
 
-        context = autoclass("android.content.Context")
-        environment = autoclass("android.os.Environment")
-        pictures_dir: str = context.getExternalFilesDir(environment.DIRECTORY_PICTURES).getAbsolutePath()
-    except Exception:  # ruff:ignore[blind-except]
-        pictures_dir = "/storage/emulated/0/Pictures"
-
-    return pictures_dir
+        with suppress(JavaException):
+            # A python-for-android service runs in its own process, where the activity is null.
+            if (context := autoclass("org.kivy.android.PythonActivity").mActivity) is None:
+                context = autoclass("org.kivy.android.PythonService").mService
+            if context is not None:
+                return context.getFilesDir().getParentFile().getAbsolutePath()
+    return None
 
 
-@lru_cache(maxsize=1)
-def _android_videos_folder() -> str:
-    """:returns: videos folder for the Android OS"""
-    # Get directories with pyjnius
-    try:
-        from jnius import autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
+@cache
+def _android_public_folder(name: str) -> str:
+    with suppress(ImportError):
+        from jnius import JavaException, autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
 
-        context = autoclass("android.content.Context")
-        environment = autoclass("android.os.Environment")
-        videos_dir: str = context.getExternalFilesDir(environment.DIRECTORY_DCIM).getAbsolutePath()
-    except Exception:  # ruff:ignore[blind-except]
-        videos_dir = "/storage/emulated/0/DCIM/Camera"
-
-    return videos_dir
-
-
-@lru_cache(maxsize=1)
-def _android_music_folder() -> str:
-    """:returns: music folder for the Android OS"""
-    # Get directories with pyjnius
-    try:
-        from jnius import autoclass  # ruff:ignore[import-outside-top-level]  # ty: ignore[unresolved-import]
-
-        context = autoclass("android.content.Context")
-        environment = autoclass("android.os.Environment")
-        music_dir: str = context.getExternalFilesDir(environment.DIRECTORY_MUSIC).getAbsolutePath()
-    except Exception:  # ruff:ignore[blind-except]
-        music_dir = "/storage/emulated/0/Music"
-
-    return music_dir
+        with suppress(JavaException):
+            return autoclass("android.os.Environment").getExternalStoragePublicDirectory(name).getAbsolutePath()
+    return f"{_shared_storage()}/{name}"
 
 
 __all__ = [
