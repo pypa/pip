@@ -1236,9 +1236,13 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(
     )
 
     script.assert_installed(A="1.0.0", B="1.0.0", C="1.0.0")
-    # These numbers are hard-coded in the code.
-    if N >= 1:
+    # These numbers are hard-coded in PipReporter._messages_at_reject_count.
+    # N versions of A means N-1 rejections before 1.0.0 is selected; the
+    # first message is emitted on the 2nd rejection of a package.
+    if N >= 3:
         assert "This could take a while." in result.stdout
+    else:
+        assert "This could take a while." not in result.stdout
     if N >= 8:
         assert result.stdout.count("This could take a while.") >= 2
     if N >= 13:
