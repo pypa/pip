@@ -1,0 +1,3 @@
+Added a ``-a`` and ``--all`` arguments to ``pip uninstall``
+so that if the developer wants to start afresh in a virtualenv
+by clearing up all dependencies, he/she can do that easily.
