@@ -43,11 +43,11 @@
       "version": "3.20"
     },
     {
-      "bom-ref": "pkg:pypi/msgpack@1.2.3",
+      "bom-ref": "pkg:pypi/msgpack@1.2.4",
       "name": "msgpack",
-      "purl": "pkg:pypi/msgpack@1.2.3",
+      "purl": "pkg:pypi/msgpack@1.2.4",
       "type": "library",
-      "version": "1.2.3"
+      "version": "1.2.4"
     },
     {
       "bom-ref": "pkg:pypi/packaging@26.3",
@@ -142,7 +142,7 @@
         "pkg:pypi/distlib@0.4.4",
         "pkg:pypi/distro@1.9.0",
         "pkg:pypi/idna@3.20",
-        "pkg:pypi/msgpack@1.2.3",
+        "pkg:pypi/msgpack@1.2.4",
         "pkg:pypi/packaging@26.3",
         "pkg:pypi/platformdirs@4.12.4",
         "pkg:pypi/pygments@2.21.0",
@@ -174,7 +174,7 @@
       "ref": "pkg:pypi/idna@3.20"
     },
     {
-      "ref": "pkg:pypi/msgpack@1.2.3"
+      "ref": "pkg:pypi/msgpack@1.2.4"
     },
     {
       "ref": "pkg:pypi/packaging@26.3"
