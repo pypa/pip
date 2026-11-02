@@ -1,2 +1,0 @@
-Fix a crash when installing or uninstalling a distribution with an invalid
-entry point.
