@@ -1,0 +1,2 @@
+Fix wheel installation with data files when the installation prefix is a
+filesystem root.

@@ -31,6 +31,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import BaseDistribution, get_metadata_distribution
+from pip._internal.metadata.direct_references import check_pypi_direct_references
 from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link, join_within_directory
 from pip._internal.models.wheel import Wheel
@@ -83,6 +84,17 @@ def _get_prepared_distribution(
                 build_env_installer, build_isolation, check_build_deps, allow_editables
             )
     return abstract_dist.get_metadata_distribution()
+
+
+def _check_linked_requirement_metadata(
+    req: InstallRequirement,
+    distribution: BaseDistribution,
+) -> None:
+    """Apply source-dependent checks to prepared metadata."""
+    source_link = req.source_link
+    if source_link is None:
+        raise InstallationError(f"Cannot prepare {req}: the source link is missing.")
+    check_pypi_direct_references(distribution, source_link)
 
 
 def unpack_vcs_link(link: Link, location: str, verbosity: int) -> None:
@@ -624,6 +636,7 @@ class RequirementPreparer:
                 # The file is not available, attempt to fetch only metadata
                 metadata_dist = self._fetch_metadata_only(req)
                 if metadata_dist is not None:
+                    _check_linked_requirement_metadata(req, metadata_dist)
                     req.needs_more_preparation = True
                     req.set_dist(metadata_dist)
                     # Ensure download_info is available even in dry-run mode
@@ -761,6 +774,7 @@ class RequirementPreparer:
             self.check_build_deps,
             self.allow_editables,
         )
+        _check_linked_requirement_metadata(req, dist)
 
         # If a PEP 658 .metadata file was used, check that fields relevant for
         # dependency resolution match with the wheel's METADATA file.

@@ -729,10 +729,7 @@ empty = []
 def test_install_dependency_group_bad_filename_error(
     script: PipTestEnvironment, file_exists: bool
 ) -> None:
-    """
-    Test install exit status code is 2 (usage error) when a dependency group path is
-    specified which isn't a `pyproject.toml`
-    """
+    """Reject group sources whose names are neither pyproject nor pylock files."""
     if file_exists:
         script.scratch_path.joinpath("not-pyproject.toml").write_text(
             textwrap.dedent("""
@@ -743,7 +740,7 @@ def test_install_dependency_group_bad_filename_error(
     result = script.pip(
         "install", "--group", "not-pyproject.toml:publish", expect_error=True
     )
-    assert "group paths use 'pyproject.toml' filenames" in result.stderr
+    assert "group paths use local 'pyproject.toml' or 'pylock.toml'" in result.stderr
     assert result.returncode == 2
 
 
@@ -2460,10 +2457,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(
         "pep-508-url-deps",
         expect_error=True,
     )
-    error_message = (
-        "Packages installed from PyPI cannot depend on packages "
-        "which are not also hosted on PyPI."
-    )
+    error_message = "Distributions from PyPI cannot declare direct URL dependencies."
     error_cause = (
         "pep-508-url-deps depends on sampleproject @ "
         "https://github.com/pypa/sampleproject/archive/master.zip"

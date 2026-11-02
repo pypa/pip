@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import codecs
 import os
 import re
 import subprocess
@@ -75,6 +76,32 @@ def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
 
 
 class TestBasicLoading(ConfigurationMixin):
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="locale.getencoding requires 3.11+"
+    )
+    def test_utf8_save_reload(self, script: PipTestEnvironment) -> None:
+        script.environ["LC_ALL"] = "C"
+        script.environ["PYTHONCOERCECLOCALE"] = "0"
+        script.environ["PYTHONUTF8"] = "0"
+        result = script.run(
+            "python",
+            "-c",
+            "from pip._internal.utils.compat import get_locale_encoding; "
+            "print(get_locale_encoding())",
+        )
+        if codecs.lookup(result.stdout.strip()).name == "utf-8":
+            pytest.skip("Requires a non-UTF-8 locale")
+
+        script.environ["PYTHONUTF8"] = "1"
+        value = "C:/丁/中文/cert.pem"
+
+        script.pip("config", "--site", "set", "global.cert", value)
+        script.environ["PYTHONWARNDEFAULTENCODING"] = "1"
+        script.environ["PYTHONWARNINGS"] = "error::EncodingWarning"
+        result = script.pip("config", "--site", "get", "global.cert")
+
+        assert result.stdout.strip() == value
+
     def test_basic_modification_pipeline(self, script: PipTestEnvironment) -> None:
         script.pip("config", "get", "test.blah", expect_error=True)
         script.pip("config", "set", "test.blah", "1")
@@ -154,6 +181,63 @@ class TestBasicLoading(ConfigurationMixin):
         assert "global.timeout: 60" in result.stdout
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"env:\n(  .+\n)+", result.stdout)
+
+    def test_env_set_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when setting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_unset_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when unsetting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        result = script.pip(
+            "config", "unset", "global.index-url", allow_stderr_warning=True
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_raises_error_on_devnull_directory(
+        self, script: PipTestEnvironment
+    ) -> None:
+        config_file = os.devnull
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            expect_error=True,
+        )
+        assert "Cannot write to PIP_CONFIG_VALUE" in result.stderr
+        assert result.returncode == 1
 
     def test_user_values(self, script: PipTestEnvironment) -> None:
         """Test that the user pip configuration set using --user
