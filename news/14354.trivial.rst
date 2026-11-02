@@ -1,1 +1,0 @@
-Improve type checking for installation scheme keys.

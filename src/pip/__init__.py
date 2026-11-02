@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "26.3.dev0"
+__version__ = "27.0.dev0"
 
 # External tools should import dependencies themselves. If technically unable,
 # add names here, not to pip's internal list.

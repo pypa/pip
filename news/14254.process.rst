@@ -1,1 +1,0 @@
-Allow pip itself to be built with flit-core 4.
