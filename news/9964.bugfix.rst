@@ -1,0 +1,2 @@
+Prevent ``pip download`` and ``pip install --target`` from leaving incomplete
+files or directories after a failed copy or move.
