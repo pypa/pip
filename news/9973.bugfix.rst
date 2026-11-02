@@ -1,0 +1,1 @@
+Mask the user when the password is empty.
