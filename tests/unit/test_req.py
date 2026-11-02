@@ -241,10 +241,18 @@ class TestRequirementSet:
             command.get_requirements(args, options, finder, session)
         assert not options.require_hashes
 
-    def test_no_require_hashes_prefers_user_hash(self, data: TestData) -> None:
-        user_hash = "a" * 64
+    @pytest.mark.parametrize(
+        "user_algorithm, user_hash",
+        [("sha256", "a" * 64), ("sha512", "a" * 128)],
+        ids=["sha256", "sha512"],
+    )
+    def test_no_require_hashes_prefers_user_hash(
+        self, data: TestData, user_algorithm: str, user_hash: str
+    ) -> None:
         index_hash = "b" * 64
-        req = get_processed_req_from_line(f"simple==1.0 --hash=sha256:{user_hash}")
+        req = get_processed_req_from_line(
+            f"simple==1.0 --hash={user_algorithm}:{user_hash}"
+        )
         req.link = Link(
             f"https://example.org/simple-1.0-py3-none-any.whl#sha256={index_hash}"
         )
@@ -254,7 +262,7 @@ class TestRequirementSet:
             hashes = resolver.preparer._get_linked_req_hashes(req)
 
         assert hashes.digest_count == 1
-        assert hashes.is_hash_allowed("sha256", user_hash)
+        assert hashes.is_hash_allowed(user_algorithm, user_hash)
         assert not hashes.is_hash_allowed("sha256", index_hash)
 
     def test_require_hashes_no_require_hashes_in_reqs_file(
