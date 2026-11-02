@@ -13,11 +13,11 @@ from pip._vendor.packaging.utils import canonicalize_name
 from tests.lib import (
     PipTestEnvironment,
     TestData,
-    _create_test_package,
     _create_test_package_with_srcdir,
-    _git_commit,
     _vcs_add,
+    create_test_package,
     create_test_package_with_setup,
+    git_commit,
     need_bzr,
     need_mercurial,
     need_svn,
@@ -173,6 +173,15 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
     for pkgname in valid_pkgnames + invalid_pkgnames:
         fake_install(pkgname, os.fspath(script.site_packages_path))
 
+    # Simulate a leftover of an interrupted uninstallation or upgrade, renamed
+    # to a tilde-prefixed name by pip's AdjacentTempDirectory.
+    leftover_dir = os.path.join(
+        os.fspath(script.site_packages_path), "~eftover-1.0.dist-info"
+    )
+    os.mkdir(leftover_dir)
+    with open(os.path.join(leftover_dir, "METADATA"), "w") as metadata_file:
+        metadata_file.write("Metadata-Version: 1.0\nName: leftover\nVersion: 1.0\n")
+
     result = script.pip("freeze", expect_stderr=True)
 
     # Check all valid names are in the output.
@@ -185,6 +194,7 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
     for line in output_lines:
         output_name, _, _ = line.partition("=")
         assert canonicalize_name(output_name) not in canonical_invalid_names
+    assert "eftover" not in result.stdout
 
     # The invalid names should be logged. The metadata backends normalize
     # paths (pkg_resources lowercases them on Windows), so compare
@@ -194,6 +204,12 @@ def test_freeze_with_invalid_names(script: PipTestEnvironment) -> None:
         assert (
             f"Ignoring distribution at {os.fspath(script.site_packages_path)}: {name!r}"
         ).lower() in result.stderr.lower()
+
+    # The tilde-prefixed leftover should be reported as incompletely removed.
+    assert (
+        "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
+        in result.stderr
+    )
 
 
 def test_freeze_skips_malformed_dist(script: PipTestEnvironment) -> None:
@@ -222,7 +238,7 @@ def test_freeze_editable_not_vcs(script: PipTestEnvironment) -> None:
     """
     Test an editable install that is not version controlled.
     """
-    pkg_path = _create_test_package(script.scratch_path)
+    pkg_path = create_test_package(script.scratch_path)
     # Rename the .git directory so the directory is no longer recognized
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, ".git"), os.path.join(pkg_path, ".bak"))
@@ -245,7 +261,7 @@ def test_freeze_editable_git_with_no_remote(
     """
     Test an editable Git install with no remote url.
     """
-    pkg_path = _create_test_package(script.scratch_path)
+    pkg_path = create_test_package(script.scratch_path)
     script.pip("install", "--no-build-isolation", "-e", pkg_path)
     result = script.pip("freeze")
 
@@ -265,7 +281,7 @@ def test_freeze_editable_git_with_no_remote(
 def test_freeze_svn(script: PipTestEnvironment) -> None:
     """Test freezing a svn checkout"""
 
-    checkout_path = _create_test_package(script.scratch_path, vcs="svn")
+    checkout_path = create_test_package(script.scratch_path, vcs="svn")
 
     # Install with develop
     script.run("python", "setup.py", "develop", cwd=checkout_path, expect_stderr=True)
@@ -288,7 +304,7 @@ def test_freeze_exclude_editable(script: PipTestEnvironment) -> None:
     Test excluding editable from freezing list.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script.scratch_path)
+    pkg_version = create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
@@ -319,7 +335,7 @@ def test_freeze_git_clone(script: PipTestEnvironment) -> None:
     Test freezing a Git clone.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script.scratch_path)
+    pkg_version = create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
@@ -358,7 +374,7 @@ def test_freeze_git_clone(script: PipTestEnvironment) -> None:
     # in issue #1867).
     (repo_dir / "newfile").touch()
     script.run("git", "add", "newfile", cwd=repo_dir)
-    _git_commit(repo_dir, message="...")
+    git_commit(repo_dir, message="...")
     result = script.pip("freeze", expect_stderr=True)
     expected = textwrap.dedent("""
             ...-e ...@...#egg=version_pkg
@@ -427,7 +443,7 @@ def test_freeze_git_remote(script: PipTestEnvironment) -> None:
     Test freezing a Git clone.
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script.scratch_path)
+    pkg_version = create_test_package(script.scratch_path)
 
     result = script.run(
         "git",
@@ -489,7 +505,7 @@ def test_freeze_mercurial_clone(script: PipTestEnvironment) -> None:
 
     """
     # Returns path to a generated package called "version_pkg"
-    pkg_version = _create_test_package(script.scratch_path, vcs="hg")
+    pkg_version = create_test_package(script.scratch_path, vcs="hg")
 
     result = script.run(
         "hg",
@@ -521,7 +537,7 @@ def test_freeze_bazaar_clone(script: PipTestEnvironment) -> None:
 
     """
     try:
-        checkout_path = _create_test_package(script.scratch_path, vcs="bazaar")
+        checkout_path = create_test_package(script.scratch_path, vcs="bazaar")
     except OSError as e:
         pytest.fail(f"Invoking `bzr` failed: {e}")
 
@@ -551,7 +567,7 @@ def test_freeze_nested_vcs(
 ) -> None:
     """Test VCS can be correctly freezed when resides inside another VCS repo."""
     # Create Python package.
-    pkg_path = _create_test_package(script.scratch_path, vcs=inner_vcs)
+    pkg_path = create_test_package(script.scratch_path, vcs=inner_vcs)
 
     # Create outer repo to clone into.
     root_path = script.scratch_path.joinpath("test_freeze_nested_vcs")
@@ -933,7 +949,7 @@ def test_freeze_pep610_editable(script: PipTestEnvironment) -> None:
     Test that a package installed with a direct_url.json with editable=true
     is correctly frozen as editable.
     """
-    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    pkg_path = create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", "--no-build-isolation", pkg_path)
     direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path

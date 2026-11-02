@@ -588,6 +588,34 @@ subprojects thusly:
       py -m pip install --group './sub1/pyproject.toml:groupA' --group './sub2/pyproject.toml:groupB'
 
 
+Non-default groups in lock files
+--------------------------------
+
+By default, ``-r pylock.toml`` installs the lock file's default groups. To select
+non-default groups instead, pass the local lock file's path and each group name
+to ``--group``:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python -m pip install --group pylock.toml:dev --group pylock.toml:docs
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py -m pip install --group pylock.toml:dev --group pylock.toml:docs
+
+Add ``-r pylock.toml`` to either command to include the default groups as well.
+Lock entries without markers are included in both cases. Named lock files such
+as ``pylock.tests.toml`` are also supported.
+
+Extras can be selected with ``--group "pylock.toml[extra]:dev"``. Repeated
+references to the same lock file combine their extras and groups before
+evaluating package markers.
+
+
 .. _`Installing from Wheels`:
 
 

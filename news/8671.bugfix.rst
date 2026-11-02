@@ -1,0 +1,1 @@
+Fail with a clearer error message on invalid configuration values.

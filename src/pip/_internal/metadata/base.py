@@ -663,6 +663,19 @@ class BaseEnvironment:
         return result
 
     def _validate_distribution(self, dist: BaseDistribution) -> bool:
+        info_location = dist.info_location
+        info_name = pathlib.Path(info_location).name if info_location else ""
+        # The pkg_resources backend normalizes a leading tilde in the name.
+        if info_name.startswith("~"):
+            logger.warning(
+                "Ignoring incompletely removed distribution %s (%s); "
+                "'~'-prefixed leftover directories are the result of a "
+                "previous incomplete installation, and can be deleted",
+                info_name,
+                dist.location,
+            )
+            return False
+
         # do dir name and version exist?
         dir_info = self._get_name_and_version_from_info_location(dist)
         # does METADATA have a Name value?
@@ -686,10 +699,9 @@ class BaseEnvironment:
             )
             return False
 
-        if not dist.info_location:
+        if not info_location:
             return True
 
-        info_name = pathlib.Path(dist.info_location).name
         if info_name.endswith(".egg"):
             return True
 

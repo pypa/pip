@@ -163,7 +163,7 @@ def test_invalid_package_with_invalid_dir_name_is_skipped(
         result = get_environment([str(tmp_path)]).iter_all_distributions()
 
     assert len(list(result)) == 0
-    assert "This may be a partial or interrupted installation" in caplog.text
+    assert "Ignoring incompletely removed distribution" in caplog.text
 
 
 def test_invalid_package_warning_is_only_emitted_once(
@@ -180,7 +180,7 @@ def test_invalid_package_warning_is_only_emitted_once(
         assert len(list(env.iter_all_distributions())) == 0
         assert len(list(env.iter_all_distributions())) == 0
 
-    assert caplog.text.count("is not a valid package name") == 1
+    assert caplog.text.count("Ignoring incompletely removed distribution") == 1
 
 
 def test_valid_package_is_only_validated_once(
@@ -374,3 +374,31 @@ def test_valid_package_is_not_skipped(
 
     assert len(list(result)) == 1
     assert len(caplog.text) == 0
+
+
+def test_iter_all_distributions_warns_on_incomplete_removal(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    valid_info = tmp_path / "valid-1.0.dist-info"
+    valid_info.mkdir()
+    valid_info.joinpath("METADATA").write_text(
+        "Metadata-Version: 1.0\nName: valid\nVersion: 1.0\n"
+    )
+
+    leftover_info = tmp_path / "~eftover-1.0.dist-info"
+    leftover_info.mkdir()
+    leftover_info.joinpath("METADATA").write_text(
+        "Metadata-Version: 1.0\nName: leftover\n"
+    )
+
+    env = get_environment([os.fspath(tmp_path)])
+    with caplog.at_level(logging.WARNING):
+        dists = list(env.iter_all_distributions())
+
+    assert [dist.canonical_name for dist in dists] == ["valid"]
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert message.startswith(
+        "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
+    )
+    assert "previous incomplete installation, and can be deleted" in message

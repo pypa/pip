@@ -271,24 +271,29 @@ class TestPipResult:
     def __getattr__(self, attr: str) -> Any:
         return getattr(self._impl, attr)
 
-    if sys.platform == "win32":
+    @property
+    def stdout(self) -> str:
+        stdout = self._impl.stdout
+        assert isinstance(stdout, str)
 
-        @property
-        def stdout(self) -> str:
-            return self._impl.stdout.replace("\r\n", "\n")
+        if sys.platform == "win32":
+            return stdout.replace("\r\n", "\n")
+        return stdout
 
-        @property
-        def stderr(self) -> str:
-            return self._impl.stderr.replace("\r\n", "\n")
+    @property
+    def stderr(self) -> str:
+        stderr = self._impl.stderr
+        assert isinstance(stderr, str)
 
-        def __str__(self) -> str:
-            return str(self._impl).replace("\r\n", "\n")
+        if sys.platform == "win32":
+            return stderr.replace("\r\n", "\n")
+        return stderr
 
-    else:
-        # Python doesn't automatically forward __str__ through __getattr__
-
-        def __str__(self) -> str:
-            return str(self._impl)
+    def __str__(self) -> str:
+        output = str(self._impl)
+        if sys.platform == "win32":
+            return output.replace("\r\n", "\n")
+        return output
 
     @property
     def files_created(self) -> FoundFiles:
@@ -310,7 +315,7 @@ class TestPipResult:
                 and filename.parent.name.endswith(".dist-info")
                 and filename.parent.name.startswith(dist_info_prefix)
             ):
-                return self.test_env.base_path / filename
+                return pathlib.Path(self.test_env.base_path) / filename
         return None
 
     def get_created_direct_url(self, pkg: str) -> DirectUrl | None:
@@ -761,7 +766,8 @@ class PipTestEnvironment(TestFileEnvironment):
             find_links=find_links,
             **kwargs,
         )
-        return json.loads(result.stdout)
+        report: dict[str, Any] = json.loads(result.stdout)
+        return report
 
     def easy_install(self, *args: str, **kwargs: Any) -> TestPipResult:
         args = ("-m", "easy_install") + args
@@ -897,7 +903,7 @@ def assert_all_changes(
     return diff
 
 
-def _create_main_file(
+def create_main_file(
     dir_path: pathlib.Path,
     name: str | None = None,
     output: str | None = None,
@@ -917,7 +923,7 @@ def _create_main_file(
     dir_path.joinpath(filename).write_text(text)
 
 
-def _git_commit(
+def git_commit(
     repo_dir: StrPath,
     message: str | None = None,
     allow_empty: bool = False,
@@ -959,7 +965,9 @@ def _vcs_add(
     vcs: str = "git",
 ) -> pathlib.Path:
     if vcs == "git":
-        subprocess.check_call(["git", "init"], cwd=os.fspath(version_pkg_path))
+        subprocess.check_call(
+            ["git", "init", "-b", "master"], cwd=os.fspath(version_pkg_path)
+        )
         subprocess.check_call(["git", "add", "."], cwd=os.fspath(version_pkg_path))
         subprocess.check_call(
             ["git", "commit", "-m", "initial version"], cwd=os.fspath(version_pkg_path)
@@ -1016,7 +1024,7 @@ def _create_test_package_with_subdirectory(
 ) -> pathlib.Path:
     script.scratch_path.joinpath("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / "version_pkg"
-    _create_main_file(version_pkg_path, name="version_pkg", output="0.1")
+    create_main_file(version_pkg_path, name="version_pkg", output="0.1")
     version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
             from setuptools import setup, find_packages
 
@@ -1031,7 +1039,7 @@ def _create_test_package_with_subdirectory(
 
     subdirectory_path = version_pkg_path.joinpath(subdirectory)
     subdirectory_path.mkdir()
-    _create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
+    create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
 
     subdirectory_path.joinpath("setup.py").write_text(textwrap.dedent("""
             from setuptools import find_packages, setup
@@ -1047,7 +1055,7 @@ def _create_test_package_with_subdirectory(
 
     script.run("git", "init", cwd=version_pkg_path)
     script.run("git", "add", ".", cwd=version_pkg_path)
-    _git_commit(version_pkg_path, message="initial version")
+    git_commit(version_pkg_path, message="initial version")
 
     return version_pkg_path
 
@@ -1076,12 +1084,12 @@ def _create_test_package_with_srcdir(
     return _vcs_add(dir_path, version_pkg_path, vcs)
 
 
-def _create_test_package(
+def create_test_package(
     dir_path: pathlib.Path, name: str = "version_pkg", vcs: str = "git"
 ) -> pathlib.Path:
     dir_path.joinpath(name).mkdir()
     version_pkg_path = dir_path / name
-    _create_main_file(version_pkg_path, name=name, output="0.1")
+    create_main_file(version_pkg_path, name=name, output="0.1")
     version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
                 from setuptools import setup, find_packages
                 setup(
@@ -1117,11 +1125,11 @@ def _create_svn_repo(repo_path: pathlib.Path, version_pkg_path: StrPath) -> str:
 def _change_test_package_version(
     script: PipTestEnvironment, version_pkg_path: pathlib.Path
 ) -> None:
-    _create_main_file(
+    create_main_file(
         version_pkg_path, name="version_pkg", output="some different version"
     )
     # Pass -a to stage the change to the main file.
-    _git_commit(version_pkg_path, message="messed version", stage_modified=True)
+    git_commit(version_pkg_path, message="messed version", stage_modified=True)
 
 
 @contextmanager
@@ -1140,11 +1148,12 @@ def requirements_file(contents: str, tmpdir: pathlib.Path) -> Iterator[pathlib.P
 
 
 def create_test_package_with_setup(
-    script: PipTestEnvironment, **setup_kwargs: Any
+    script: PipTestEnvironment, *, name: str, **setup_kwargs: Any
 ) -> pathlib.Path:
-    assert "name" in setup_kwargs, setup_kwargs
-    pkg_path = script.scratch_path / setup_kwargs["name"]
+    pkg_path = script.scratch_path / name
     pkg_path.mkdir()
+
+    setup_kwargs["name"] = name
     pkg_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
                 from setuptools import setup
                 kwargs = {setup_kwargs!r}

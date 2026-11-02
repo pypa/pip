@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import functools
 import os
+import shutil
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -9,6 +11,8 @@ from unittest.mock import Mock
 import pytest
 
 import pip._internal.req.req_uninstall
+from pip._internal.exceptions import BlockedImportError
+from pip._internal.metadata import get_environment
 from pip._internal.req.req_uninstall import (
     StashedUninstallPathSet,
     UninstallPathSet,
@@ -145,6 +149,124 @@ def test_compact_keeps_literal_trailing_star_paths(tmpdir: Path) -> None:
 
 
 class TestUninstallPathSet:
+    def test_blocked_first_move_preserves_original(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Discard an unused stash without removing the original installation."""
+        metadata = tmp_path / "sample-1.0.dist-info"
+        metadata.mkdir()
+        (metadata / "METADATA").write_text("Name: sample\nVersion: 1.0\n")
+        dist = get_environment([str(tmp_path)]).get_distribution("sample")
+        assert dist is not None
+
+        path = tmp_path / "data.txt"
+        path.write_text("original")
+
+        pathset = UninstallPathSet(dist)
+        monkeypatch.setattr(UninstallPathSet, "_permitted", mock_permitted)
+        pathset.add(str(path))
+        monkeypatch.setattr(os, "rename", Mock(side_effect=BlockedImportError("cold")))
+
+        with pytest.raises(BlockedImportError):
+            pathset.remove(auto_confirm=True)
+
+        assert path.read_text() == "original"
+        assert not pathset.can_rollback
+        assert not pathset._moved_paths._save_dirs
+
+    @pytest.mark.parametrize(
+        "error", [OSError("cannot delete"), BlockedImportError("cold")]
+    )
+    def test_failed_first_move_retains_backup(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        error: Exception,
+    ) -> None:
+        caplog.set_level("ERROR")
+
+        metadata = tmp_path / "sample-1.0.dist-info"
+        metadata.mkdir()
+        (metadata / "METADATA").write_text("Name: sample\nVersion: 1.0\n")
+        dist = get_environment([str(tmp_path)]).get_distribution("sample")
+        assert dist is not None
+
+        source = tmp_path / "package"
+        source.mkdir()
+        pathset = UninstallPathSet(dist)
+        monkeypatch.setattr(UninstallPathSet, "_permitted", mock_permitted)
+        for name in ("first", "second"):
+            path = source / f"{name}.txt"
+            path.write_text(name)
+            pathset.add(str(path))
+
+        def incomplete_removal(path: str) -> None:
+            (Path(path) / "first.txt").unlink()
+            raise error
+
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "rename", Mock(side_effect=OSError("cross-device")))
+            patch.setattr(shutil, "rmtree", incomplete_removal)
+            with pytest.raises(type(error)):
+                pathset.remove(auto_confirm=True)
+
+        ((original, saved),) = pathset._moved_paths.recovery_paths
+        backup = Path(saved)
+        assert Path(original) == source
+        assert not pathset.can_rollback
+        assert not (source / "first.txt").exists()
+        assert (source / "second.txt").read_text() == "second"
+
+        assert repr(original) in caplog.text
+        assert repr(saved) in caplog.text
+        assert len(caplog.records) == 1
+
+        (source / "first.txt").write_text("manually restored")
+        pathset.rollback()
+        pathset.commit()
+
+        assert (source / "first.txt").read_text() == "manually restored"
+        assert (backup / "first.txt").read_text() == "first"
+        assert (backup / "second.txt").read_text() == "second"
+
+    def test_manual_file_recovery_does_not_skip_pth_restoration(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        metadata = tmp_path / "sample-1.0.dist-info"
+        metadata.mkdir()
+        (metadata / "METADATA").write_text("Name: sample\nVersion: 1.0\n")
+        dist = get_environment([str(tmp_path)]).get_distribution("sample")
+        assert dist is not None
+
+        source = tmp_path / "file.txt"
+        source.write_text("original")
+        pth = tmp_path / "example.pth"
+        pth.write_bytes(b"keep\nremove\n")
+
+        pathset = UninstallPathSet(dist)
+        monkeypatch.setattr(UninstallPathSet, "_permitted", mock_permitted)
+        pathset.add(str(source))
+        pathset.add_pth(str(pth), "remove")
+
+        pathset.remove(auto_confirm=True)
+        assert pth.read_bytes() == b"keep\n"
+
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "rename", Mock(side_effect=BlockedImportError("cold")))
+            with pytest.raises(BlockedImportError):
+                pathset.rollback()
+
+        ((original, backup),) = pathset._moved_paths.recovery_paths
+        assert pth.read_bytes() == b"keep\n"
+
+        pathset.rollback()
+        pathset.commit()
+
+        assert pth.read_bytes() == b"keep\nremove\n"
+        assert not Path(original).exists()
+        assert Path(backup).read_text() == "original"
+
     def test_add(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
             pip._internal.req.req_uninstall.UninstallPathSet,
@@ -258,6 +380,68 @@ class TestUninstallPathSet:
         assert ups._paths == {path1}
 
 
+@pytest.mark.parametrize(
+    "original, remaining",
+    [
+        (b"keep\nremove\n", b"keep\n"),
+        (b"keep\nremove", b"keep\n"),
+        (b"keep\r\nremove\r\n", b"keep\r\n"),
+        (b"keep\r\nremove", b"keep\r\n"),
+    ],
+)
+def test_pth_rollback_restores_original(
+    tmp_path: Path, original: bytes, remaining: bytes
+) -> None:
+    path = tmp_path / "sample.pth"
+    path.write_bytes(original)
+    entries = UninstallPthEntries(str(path))
+    entries.add("remove")
+
+    entries.remove()
+    assert path.read_bytes() == remaining
+
+    assert entries.rollback()
+    assert path.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    "error", [OSError("cannot restore"), BlockedImportError("cold import")]
+)
+def test_pth_failed_rollback_reports_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    error: Exception,
+) -> None:
+    caplog.set_level("ERROR")
+    path = tmp_path / "sample.pth"
+    original = b"keep\nremove\n"
+    path.write_bytes(original)
+    entries = UninstallPthEntries(str(path))
+    entries.add("remove")
+    entries.remove()
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            pip._internal.req.req_uninstall,
+            "open",
+            Mock(side_effect=error),
+            raising=False,
+        )
+        with pytest.raises(type(error)) as caught:
+            entries.rollback()
+
+    assert caught.value is error
+    assert path.read_bytes() == b"keep\n"
+    assert len(caplog.records) == 1
+    assert repr(str(path)) in caplog.text
+
+    caplog.clear()
+    assert entries.rollback()
+    assert path.read_bytes() == original
+    assert not caplog.records
+
+
 class TestStashedUninstallPathSet:
     WALK_RESULT: list[tuple[str, list[str], list[str]]] = [
         ("A", ["B", "C"], ["a.py"]),
@@ -342,6 +526,49 @@ class TestStashedUninstallPathSet:
 
         assert stashed_paths == pathset._moves
 
+    @pytest.mark.parametrize(
+        "kind",
+        [
+            "file",
+            "directory",
+            pytest.param(
+                "symlink", marks=pytest.mark.skipif("sys.platform == 'win32'")
+            ),
+        ],
+    )
+    def test_stash_across_filesystems(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str
+    ) -> None:
+        source = tmp_path / "source"
+        if kind == "directory":
+            source.mkdir()
+            contents = source / "contents.txt"
+        elif kind == "symlink":
+            contents = tmp_path / "target.txt"
+            source.symlink_to(contents)
+        else:
+            contents = source
+        contents.write_text("original")
+        pathset = StashedUninstallPathSet()
+
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "rename", Mock(side_effect=OSError("cross-device")))
+            stashed = Path(pathset.stash(str(source)))
+
+        assert not source.exists()
+        assert stashed.is_symlink() == (kind == "symlink")
+        stashed_contents = stashed / "contents.txt" if kind == "directory" else stashed
+        assert stashed_contents.read_text() == "original"
+
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "rename", Mock(side_effect=OSError("cross-device")))
+            pathset.rollback()
+
+        assert not pathset.can_rollback
+        assert source.is_symlink() == (kind == "symlink")
+        assert contents.read_text() == "original"
+        assert not stashed.exists()
+
     def test_commit(self, tmpdir: Path) -> None:
         pathset, stashed_paths = self.make_stash(
             tmpdir,
@@ -359,7 +586,7 @@ class TestStashedUninstallPathSet:
             assert not os.path.exists(old_path)
             assert not os.path.exists(new_path)
 
-    def test_rollback(self, tmpdir: Path) -> None:
+    def test_rollback(self, tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         pathset, stashed_paths = self.make_stash(
             tmpdir,
             [
@@ -370,11 +597,283 @@ class TestStashedUninstallPathSet:
             ],
         )
 
+        original_rename = os.rename
+
+        def rename(src: str, dst: str) -> None:
+            # Windows cannot rename a directory over an existing directory.
+            if os.path.lexists(dst):
+                raise FileExistsError(dst)
+            original_rename(src, dst)
+
+        monkeypatch.setattr(os, "rename", rename)
         pathset.rollback()
+        assert not pathset.can_rollback
 
         for old_path, new_path in stashed_paths:
             assert os.path.exists(old_path)
             assert not os.path.exists(new_path)
+
+    @pytest.mark.parametrize("failure", ["os", "import", "mixed"])
+    def test_failed_rollback_keeps_pending_backups(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        failure: str,
+    ) -> None:
+        caplog.set_level("ERROR")
+
+        metadata = tmp_path / "sample-1.0.dist-info"
+        metadata.mkdir()
+        (metadata / "METADATA").write_text("Name: sample\nVersion: 1.0\n")
+        dist = get_environment([str(tmp_path)]).get_distribution("sample")
+        assert dist is not None
+
+        uninstall = UninstallPathSet(dist)
+        pathset = uninstall._moved_paths
+        paths = [tmp_path / f"file{index}.txt" for index in range(3)]
+        for path in paths:
+            path.write_text(path.name)
+        backups = [pathset.stash(str(path)) for path in paths]
+
+        errors: dict[str, Exception] = {}
+        if failure == "mixed":
+            errors[str(paths[0])] = OSError("cannot restore")
+            errors[str(paths[2])] = BlockedImportError("cold import")
+            pending = [0, 2]
+        elif failure == "import":
+            errors[str(paths[1])] = BlockedImportError("cold import")
+            pending = [1, 2]
+        else:
+            errors[str(paths[1])] = OSError("cannot restore")
+            pending = [1]
+
+        original_rename = os.rename
+        original_copy = shutil.copy2
+
+        def rename(src: str, dst: str) -> None:
+            if dst in errors:
+                raise errors[dst]
+            original_rename(src, dst)
+
+        def copy(src: str, dst: str) -> str:
+            if dst in errors:
+                raise errors[dst]
+            return original_copy(src, dst)
+
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "rename", rename)
+            patch.setattr(
+                shutil, "move", functools.partial(shutil.move, copy_function=copy)
+            )
+            if failure == "os":
+                uninstall.rollback()
+            else:
+                with pytest.raises(BlockedImportError, match="cold import"):
+                    uninstall.rollback()
+
+        assert set(pathset.recovery_paths) == {
+            (str(paths[index]), backups[index]) for index in pending
+        }
+        for index, path in enumerate(paths):
+            if index in pending:
+                assert Path(backups[index]).read_text() == path.name
+                assert repr(str(path)) in caplog.text
+                assert repr(backups[index]) in caplog.text
+            else:
+                assert path.read_text() == path.name
+                assert repr(str(path)) not in caplog.text
+                path.write_text("changed after restoration")
+        assert len(caplog.records) == len(pending)
+
+        caplog.clear()
+        uninstall.rollback()
+        pathset.commit()
+
+        assert not pathset.can_rollback
+        assert set(pathset.recovery_paths) == {
+            (str(path), backup)
+            for path, backup in zip(paths, backups)
+            if str(path) in errors
+        }
+        for index, path in enumerate(paths):
+            if str(path) in errors:
+                assert not path.exists()
+                assert Path(backups[index]).read_text() == path.name
+                assert repr(str(path)) in caplog.text
+                assert repr(backups[index]) in caplog.text
+                continue
+
+            expected = path.name if index in pending else "changed after restoration"
+            assert path.read_text() == expected
+            assert not os.path.exists(backups[index])
+
+    @pytest.mark.parametrize("stage", ["copy", "source_cleanup", "replacement_cleanup"])
+    def test_interrupted_restore_is_not_retried(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stage: str
+    ) -> None:
+        source = tmp_path / "package"
+        source.mkdir()
+        (source / "first.txt").write_text("first")
+        (source / "second.txt").write_text("second")
+        pathset = StashedUninstallPathSet()
+        backup = Path(pathset.stash(str(source)))
+        error = BlockedImportError("cold import")
+        original_copy = shutil.copy2
+
+        def incomplete_copy(src: str, dst: str) -> None:
+            original_copy(src, dst)
+            raise error
+
+        def incomplete_removal(path: str) -> None:
+            (Path(path) / "first.txt").unlink()
+            raise error
+
+        if stage == "replacement_cleanup":
+            source.mkdir()
+            (source / "first.txt").write_text("replacement")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "rename", Mock(side_effect=OSError("cross-device")))
+            if stage == "copy":
+                patch.setattr(
+                    shutil,
+                    "move",
+                    functools.partial(shutil.move, copy_function=incomplete_copy),
+                )
+            elif stage == "replacement_cleanup":
+                patch.setattr(
+                    pip._internal.req.req_uninstall, "rmtree", incomplete_removal
+                )
+            else:
+                patch.setattr(shutil, "rmtree", incomplete_removal)
+            with pytest.raises(BlockedImportError, match="cold import"):
+                pathset.rollback()
+
+        original_files = {path.name: path.read_text() for path in source.glob("*.txt")}
+        backup_files = {path.name: path.read_text() for path in backup.glob("*.txt")}
+        assert original_files | backup_files == {
+            "first.txt": "first",
+            "second.txt": "second",
+        }
+        if stage == "copy":
+            assert len(original_files) == 1
+        elif stage == "source_cleanup":
+            assert len(backup_files) == 1
+        assert not pathset.can_rollback
+        assert pathset.recovery_paths == ((str(source), str(backup)),)
+
+        (source / "first.txt").write_text("changed after interruption")
+
+        pathset.rollback()
+        pathset.commit()
+
+        assert (source / "first.txt").read_text() == "changed after interruption"
+        assert {
+            path.name: path.read_text() for path in backup.glob("*.txt")
+        } == backup_files
+
+    def test_rollback_missing_backup_keeps_destination(self, tmp_path: Path) -> None:
+        original = tmp_path / "file.txt"
+        original.write_text("original")
+        pathset = StashedUninstallPathSet()
+        backup = Path(pathset.stash(str(original)))
+        backup.unlink()
+        original.parent.mkdir(parents=True, exist_ok=True)
+        original.write_text("replacement")
+
+        pathset.rollback()
+        assert not pathset.can_rollback
+        assert pathset.recovery_paths == ((str(original), str(backup)),)
+        assert original.read_text() == "replacement"
+        pathset.commit()
+
+    @pytest.mark.parametrize(
+        "stage", ["rename", "parent_cleanup", "copy", "source_cleanup"]
+    )
+    @pytest.mark.parametrize("prior_move", [False, True])
+    def test_blocked_stash_preserves_data(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        stage: str,
+        prior_move: bool,
+    ) -> None:
+        """Leave interrupted transfers alone while restoring completed moves."""
+        previous = tmp_path / "previous.txt"
+        source = tmp_path / "package"
+        source.mkdir()
+        (source / "first.txt").write_text("first")
+        (source / "second.txt").write_text("second")
+        pathset = StashedUninstallPathSet()
+        if prior_move:
+            previous.write_text("previous")
+            pathset.stash(str(previous))
+        error = BlockedImportError("cold import")
+        original_copy = shutil.copy2
+
+        def incomplete_copy(src: str, dst: str) -> None:
+            original_copy(src, dst)
+            raise error
+
+        def incomplete_removal(path: str) -> None:
+            (Path(path) / "first.txt").unlink()
+            raise error
+
+        with monkeypatch.context() as patch:
+            if stage == "rename":
+                patch.setattr(os, "rename", Mock(side_effect=error))
+            elif stage == "parent_cleanup":
+                patch.setattr(os, "removedirs", Mock(side_effect=error))
+            else:
+                patch.setattr(os, "rename", Mock(side_effect=OSError("cross-device")))
+                if stage == "copy":
+                    patch.setattr(
+                        shutil,
+                        "move",
+                        functools.partial(shutil.move, copy_function=incomplete_copy),
+                    )
+                else:
+                    patch.setattr(shutil, "rmtree", incomplete_removal)
+
+            with pytest.raises(BlockedImportError) as caught:
+                pathset.stash(str(source))
+            assert caught.value is error
+
+        stash_directories = [
+            directory.path for directory in pathset._save_dirs.values()
+        ]
+        if pathset.can_rollback:
+            pathset.rollback()
+        else:
+            pathset.commit()
+        pathset.rollback()
+        pathset.commit()
+
+        if prior_move:
+            assert previous.read_text() == "previous"
+        assert not pathset.can_rollback
+        original_files = {path.name: path.read_text() for path in source.glob("*.txt")}
+        if stage == "copy":
+            assert original_files == {"first.txt": "first", "second.txt": "second"}
+        if stage in {"copy", "source_cleanup"}:
+            assert len(pathset.recovery_paths) == 1
+            original, backup = pathset.recovery_paths[0]
+            assert original == str(source)
+            backup_files = {
+                path.name: path.read_text() for path in Path(backup).glob("*.txt")
+            }
+            assert original_files | backup_files == {
+                "first.txt": "first",
+                "second.txt": "second",
+            }
+            if stage == "copy":
+                assert len(backup_files) == 1
+            assert all(os.path.exists(path) for path in stash_directories)
+        else:
+            assert original_files == {"first.txt": "first", "second.txt": "second"}
+            assert not pathset.recovery_paths
+            assert all(not os.path.exists(path) for path in stash_directories)
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_commit_symlinks(self, tmpdir: Path) -> None:
