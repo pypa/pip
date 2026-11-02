@@ -498,10 +498,7 @@ empty = []
 def test_install_dependency_group_bad_filename_error(
     script: PipTestEnvironment, file_exists: bool
 ) -> None:
-    """
-    Test install exit status code is 2 (usage error) when a dependency group path is
-    specified which isn't a `pyproject.toml`
-    """
+    """Reject group sources whose names are neither pyproject nor pylock files."""
     if file_exists:
         script.scratch_path.joinpath("not-pyproject.toml").write_text(
             textwrap.dedent("""
@@ -512,7 +509,7 @@ def test_install_dependency_group_bad_filename_error(
     result = script.pip(
         "install", "--group", "not-pyproject.toml:publish", expect_error=True
     )
-    assert "group paths use 'pyproject.toml' filenames" in result.stderr
+    assert "group paths use local 'pyproject.toml' or 'pylock.toml'" in result.stderr
     assert result.returncode == 2
 
 
