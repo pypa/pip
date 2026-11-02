@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import datetime
 import os
+import subprocess
+import sys
 from optparse import Option, OptionParser, Values
 from pathlib import Path
+from unittest.mock import MagicMock, Mock
 from venv import EnvBuilder
 
 import pytest
@@ -13,7 +16,7 @@ from pip._internal.cli.cmdoptions import (
     _handle_uploaded_prior_to,
     check_dist_restriction,
 )
-from pip._internal.cli.main_parser import identify_python_interpreter
+from pip._internal.cli.main_parser import identify_python_interpreter, parse_command
 from pip._internal.commands.download import DownloadCommand
 from pip._internal.exceptions import CommandError
 
@@ -101,6 +104,27 @@ def test_identify_python_interpreter_venv(tmpdir: Path) -> None:
 
     # Passing a non-existent file returns None
     assert identify_python_interpreter(str(tmpdir / "nonexistent")) is None
+
+
+def test_python_interrupt_reaps_child_without_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reap the child before rendering files it may have replaced."""
+    monkeypatch.delenv("_PIP_RUNNING_IN_SUBPROCESS", raising=False)
+    process = Mock()
+    process.wait.side_effect = [KeyboardInterrupt, 0]
+    popen = MagicMock()
+    popen.return_value.__enter__.return_value = process
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    with pytest.raises(SystemExit) as error:
+        parse_command(["--python", sys.executable, "install"])
+
+    assert error.value.code == 1
+    assert "_PIP_RUNNING_IN_SUBPROCESS" not in os.environ
+    assert popen.call_args.kwargs["env"]["_PIP_RUNNING_IN_SUBPROCESS"] == "1"
+    process.kill.assert_called_once_with()
+    assert process.wait.call_count == 2
 
 
 @pytest.mark.parametrize(
