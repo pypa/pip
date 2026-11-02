@@ -1,0 +1,1 @@
+Fix a crash when a requirements file declares an unknown or unusable encoding.

@@ -603,7 +603,21 @@ def _decode_req_file(data: bytes, url: str) -> str:
             result = PEP263_ENCODING_RE.search(line)
             if result is not None:
                 encoding = result.groups()[0].decode("ascii")
-                return data.decode(encoding)
+                try:
+                    return data.decode(encoding)
+                except (LookupError, UnicodeDecodeError):
+                    logging.warning(
+                        "unable to decode data from %s with the encoding %s "
+                        "declared in a PEP-263 style comment, falling back to "
+                        "default encoding %s. If this is intentional you should "
+                        "specify a supported encoding in the PEP-263 style "
+                        "comment, e.g. '# -*- coding: %s -*-'",
+                        url,
+                        encoding,
+                        DEFAULT_ENCODING,
+                        DEFAULT_ENCODING,
+                    )
+                    break
 
     try:
         return data.decode(DEFAULT_ENCODING)

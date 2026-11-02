@@ -993,6 +993,53 @@ class TestParseRequirements:
         assert reqs[0].specifier == expected_spec
 
     @pytest.mark.parametrize(
+        "raw_req_file,bad_encoding",
+        [
+            pytest.param(
+                b"# decoding: bogus-codec-123\nDjango==1.4.2\n",
+                "bogus-codec-123",
+                id="unknown encoding in PEP-263 style header",
+            ),
+            pytest.param(
+                b"# coding: utf-16\nDjango==1.4.2\n",
+                "utf-16",
+                id="data not decodable with the declared encoding",
+            ),
+        ],
+    )
+    def test_warns_and_falls_back_to_default_on_invalid_pep263_encoding(
+        self,
+        raw_req_file: bytes,
+        bad_encoding: str,
+        tmpdir: Path,
+        session: PipSession,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        req_file = tmpdir / "requirements.txt"
+        req_file.write_bytes(raw_req_file)
+
+        with caplog.at_level(logging.WARNING):
+            reqs = tuple(parse_reqfile(req_file.resolve(), session=session))
+
+        assert len(reqs) == 1
+        assert reqs[0].name == "Django"
+        assert reqs[0].specifier == "==1.4.2"
+        assert len(caplog.records) == 1
+        assert (
+            caplog.records[0].msg
+            == "unable to decode data from %s with the encoding %s declared in "
+            "a PEP-263 style comment, falling back to default encoding %s. "
+            "If this is intentional you should specify a supported encoding "
+            "in the PEP-263 style comment, e.g. '# -*- coding: %s -*-'"
+        )
+        assert caplog.records[0].args == (
+            str(req_file.resolve()),
+            bad_encoding,
+            "utf-8",
+            "utf-8",
+        )
+
+    @pytest.mark.parametrize(
         "bom,encoding",
         [
             (codecs.BOM_UTF8, "utf-8"),
