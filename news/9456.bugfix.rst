@@ -1,0 +1,1 @@
+Keep ``--version`` available only for pip and prevent its use in subcommands.

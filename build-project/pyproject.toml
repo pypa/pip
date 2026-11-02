@@ -1,2 +1,2 @@
 [dependency-groups]
-build = ["build", "flit-core"]
+build = ["build", "flit-core >=3.11,<5"]

@@ -4,6 +4,7 @@ import compileall
 import contextlib
 import fnmatch
 import http.server
+import logging
 import os
 import py_compile
 import re
@@ -376,6 +377,19 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
         fp.write(b"[user]\n\tname = pip\n\temail = distutils-sig@python.org\n")
+
+
+@pytest.fixture(autouse=True)
+def restore_root_logging() -> Iterator[None]:
+    """Keep command logging handlers from outliving test capture streams."""
+    logger = logging.getLogger()
+    handlers = logger.handlers[:]
+    level = logger.level
+
+    yield
+
+    logger.handlers[:] = handlers
+    logger.setLevel(level)
 
 
 @pytest.fixture(autouse=True)
@@ -780,8 +794,10 @@ def mock_server() -> Iterator[MockServer]:
 
 
 @pytest.fixture
-def proxy(request: pytest.FixtureRequest) -> str:
-    return request.config.getoption("proxy")
+def proxy(request: pytest.FixtureRequest) -> str | None:
+    proxy = request.config.getoption("proxy")
+    assert proxy is None or isinstance(proxy, str)
+    return proxy
 
 
 @pytest.fixture
