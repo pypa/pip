@@ -5,6 +5,7 @@ import collections
 import logging
 import os
 import re
+import sys
 import textwrap
 from collections.abc import Iterator
 from optparse import Values
@@ -1020,11 +1021,25 @@ class TestParseRequirements:
         assert reqs[0].name == req_name
         assert reqs[0].specifier == req_specifier
 
+    @pytest.mark.parametrize(
+        "locale_query",
+        [
+            "pip._internal.req.req_file.get_locale_encoding",
+            pytest.param(
+                "locale.getencoding",
+                marks=pytest.mark.skipif(
+                    sys.version_info < (3, 11),
+                    reason="locale.getencoding requires 3.11+",
+                ),
+            ),
+        ],
+    )
     def test_warns_and_falls_back_to_locale_on_utf8_decode_fail(
         self,
         tmpdir: Path,
         session: PipSession,
         caplog: pytest.LogCaptureFixture,
+        locale_query: str,
     ) -> None:
         # \xff is valid in latin-1 but not UTF-8
         data = b"pip<=24.0 # some comment\xff\n"
@@ -1037,7 +1052,7 @@ class TestParseRequirements:
         with (
             caplog.at_level(logging.WARNING),
             mock.patch(
-                "pip._internal.req.req_file.get_locale_encoding",
+                locale_query,
                 return_value=locale_encoding,
             ),
         ):
