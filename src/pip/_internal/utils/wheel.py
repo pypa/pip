@@ -1,6 +1,7 @@
 """Support functions for working with wheel files."""
 
 import logging
+import os.path
 from email.message import Message
 from email.parser import Parser
 from zipfile import BadZipFile, ZipFile
@@ -8,11 +9,20 @@ from zipfile import BadZipFile, ZipFile
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.utils.misc import normalize_path
 
 VERSION_COMPATIBLE = (1, 0)
 
 
 logger = logging.getLogger(__name__)
+
+
+def record_path_resolves_to_base(record_path: str, base: str) -> bool:
+    """Return whether a RECORD path resolves exactly to its base directory."""
+    path = os.path.join(base, record_path)
+    return normalize_path(path, resolve_symlinks=False) == normalize_path(
+        base, resolve_symlinks=False
+    )
 
 
 def parse_wheel(wheel_zip: ZipFile, name: str) -> tuple[str, Message]:

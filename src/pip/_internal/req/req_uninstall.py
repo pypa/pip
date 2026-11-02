@@ -8,7 +8,11 @@ from collections.abc import Callable, Generator, Iterable
 from importlib.util import cache_from_source
 from typing import Any
 
-from pip._internal.exceptions import LegacyDistutilsInstall, UninstallMissingRecord
+from pip._internal.exceptions import (
+    InstallationError,
+    LegacyDistutilsInstall,
+    UninstallMissingRecord,
+)
 from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.metadata import BaseDistribution
 from pip._internal.utils.compat import WINDOWS
@@ -17,6 +21,7 @@ from pip._internal.utils.logging import getLogger, indent_log
 from pip._internal.utils.misc import ask, normalize_path, renames, rmtree
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.virtualenv import running_under_virtualenv
+from pip._internal.utils.wheel import record_path_resolves_to_base
 
 logger = getLogger(__name__)
 
@@ -78,6 +83,17 @@ def uninstallation_paths(dist: BaseDistribution) -> Generator[str, None, None]:
 
     for entry in entries:
         path = os.path.join(location, entry)
+        if record_path_resolves_to_base(entry, location):
+            raise InstallationError(
+                f"Cannot uninstall {dist}: RECORD entry {entry!r} refers to the "
+                "installation root."
+            )
+        if os.path.isdir(path) and not os.path.islink(path):
+            raise InstallationError(
+                f"Cannot uninstall {dist}: RECORD entry {entry!r} refers to a "
+                "directory."
+            )
+
         yield path
         if path.endswith(".py"):
             dn, fn = os.path.split(path)
