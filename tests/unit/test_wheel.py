@@ -7,6 +7,7 @@ import os
 import pathlib
 import sys
 import textwrap
+from dataclasses import replace
 from email import message_from_string
 from pathlib import Path
 from typing import cast
@@ -395,6 +396,32 @@ class TestInstallUnpackedWheel:
         assert os.path.exists(os.path.join(tmpdir, "some", "path", bin_dir))
         assert os.path.exists(os.path.join(tmpdir, "some", "path", "my_data"))
 
+    def test_install_root_data_scheme(self, data: TestData, tmp_path: Path) -> None:
+        self.prep(data, tmp_path)
+        data_file = tmp_path / "root-data" / "data_file"
+        # Use a root scheme while keeping every destination under tmp_path.
+        data_path = data_file.relative_to(tmp_path.anchor).as_posix()
+        self.scheme = replace(self.scheme, data=tmp_path.anchor)
+        self.wheelpath = make_wheel(
+            self.name,
+            "1.2.0",
+            extra_data_files={f"data/{data_path}": "some data"},
+        ).save_to_dir(str(tmp_path))
+
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
+
+        assert data_file.read_text() == "some data"
+        record_path = os.path.relpath(data_file, self.scheme.purelib).replace(
+            os.sep, "/"
+        )
+        with open(os.path.join(self.dest_dist_info, "RECORD"), newline="") as record:
+            assert record_path in {row[0] for row in csv.reader(record)}
+
     def test_dist_info_contains_empty_dir(self, data: TestData, tmpdir: Path) -> None:
         """
         Test that empty dirs are not installed
@@ -734,6 +761,12 @@ def test_raise_for_invalid_entrypoint_allows_in_tree(name: str) -> None:
 def test_raise_for_invalid_entrypoint_rejects_escaping(name: str) -> None:
     with pytest.raises(InstallationError, match="outside the scripts directory"):
         wheel._raise_for_invalid_entrypoint(f"{name} = simple:main", "/srv/env/bin")
+
+
+def test_raise_for_invalid_entrypoint_allows_root(tmp_path: Path) -> None:
+    wheel._raise_for_invalid_entrypoint("pip = simple:main", tmp_path.anchor)
+    with pytest.raises(InstallationError, match="outside the scripts directory"):
+        wheel._raise_for_invalid_entrypoint(". = simple:main", tmp_path.anchor)
 
 
 def test_raise_for_invalid_entrypoint_allows_doubled_slash_root() -> None:

@@ -541,6 +541,38 @@ def test_is_within_directory(args: tuple[str, str], expected: bool) -> None:
     assert result == expected
 
 
+@pytest.mark.parametrize("resolve_symlinks", [False, True])
+def test_is_within_root(tmp_path: Path, resolve_symlinks: bool) -> None:
+    assert is_within_directory(
+        tmp_path.anchor, str(tmp_path), resolve_symlinks=resolve_symlinks
+    )
+    assert is_within_directory(
+        tmp_path.anchor, tmp_path.anchor, resolve_symlinks=resolve_symlinks
+    )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX doubled-slash root")
+@pytest.mark.parametrize("resolve_symlinks", [False, True])
+def test_is_within_doubled_slash_root(resolve_symlinks: bool) -> None:
+    assert is_within_directory("//", "//share/file", resolve_symlinks=resolve_symlinks)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows path roots")
+@pytest.mark.parametrize(
+    "directory, target, expected",
+    [
+        ("C:\\", "C:\\share\\file", True),
+        ("C:\\", "D:\\share\\file", False),
+        ("C:\\", "\\\\server\\share\\file", False),
+        ("\\\\server\\share\\", "\\\\server\\share\\file", True),
+        ("\\\\server\\share\\", "\\\\server\\other\\file", False),
+        ("\\\\server\\share\\", "\\\\other\\share\\file", False),
+    ],
+)
+def test_is_within_windows_root(directory: str, target: str, expected: bool) -> None:
+    assert is_within_directory(directory, target) == expected
+
+
 @pytest.mark.parametrize(
     "is_zip, is_tar, unzip, untar, exception",
     [
