@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.x"
       - run: python -m pip install .
@@ -48,7 +48,7 @@ jobs:
       vendoring: ${{ steps.filter.outputs.vendoring }}
     steps:
       # For pull requests it's not necessary to checkout the code
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           filters: |
@@ -63,6 +63,8 @@ jobs:
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              # Holds the pytest configuration and the test dependency groups.
+              - "pyproject.toml"
               # The test suite should also run when cutting a release
               # (which is the only time this file is modified).
               - "NEWS.rst"
@@ -79,7 +81,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.x"
       - name: Set up git credentials
@@ -106,7 +108,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.x"
 
@@ -137,26 +139,24 @@ jobs:
           - "3.15"
           - "3.14t"
         include:
-          # Oldest patch release per minor version on ubuntu-latest,
-          # to catch backport/bug fix regressions. Constrained by what
-          # actions/setup-python ships for the runner OS (ubuntu-24.04).
+          # Oldest patches catch backport regressions. Use their Ubuntu 24.04 builds.
           # See: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python: { key: "3.10", version: "3.10.4" }
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python: { key: "3.11", version: "3.11.0" }
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python: { key: "3.12", version: "3.12.0" }
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python: { key: "3.13", version: "3.13.0" }
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             python: { key: "3.14", version: "3.14.0" }
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
@@ -235,7 +235,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
@@ -274,10 +274,7 @@ jobs:
 
   tests-zipapp:
     name: tests / zipapp
-    # The macos-latest (M1) runners are the fastest available on GHA, even
-    # beating out the ubuntu-latest runners. The zipapp tests are slow by
-    # nature, and we don't care where they run, so we pick the fastest one.
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     needs: [determine-changes]
     if: >-
@@ -288,12 +285,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
-      - name: Install MacOS dependencies
-        run: brew install breezy subversion
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install brz subversion
 
       - run: python -m pip install .
       - run: python -m pip install nox
@@ -301,7 +300,7 @@ jobs:
       # Main check
       - name: Run integration tests
         run: >-
-          python -m nox -s test-3.10 --
+          python -m nox -s test-3.11 --
           tests/functional
           --verbose --numprocesses auto --showlocals
           --durations=15
@@ -323,7 +322,7 @@ jobs:
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # release/v1
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # release/v1
         with:
           allowed-skips: >-
             ${{
@@ -344,7 +343,6 @@ jobs:
                 tests-unix,
                 tests-windows,
                 tests-zipapp,
-                tests-importlib-metadata,
               '
               || ''
             }}

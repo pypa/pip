@@ -1,7 +1,8 @@
 import email.message
 import itertools
-from typing import cast
-from unittest import mock
+import logging
+import os
+from pathlib import Path
 
 import pytest
 
@@ -9,6 +10,7 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.pkg_resources import WorkingSet
 
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.metadata.pkg_resources import (
@@ -20,40 +22,20 @@ from pip._internal.metadata.pkg_resources import (
 pkg_resources = pytest.importorskip("pip._vendor.pkg_resources")
 
 
-def _dist_is_local(dist: mock.Mock) -> bool:
-    return dist.kind != "global" and dist.kind != "user"
+def _working_set(names: list[str]) -> WorkingSet:
+    """Build an isolated working set without scanning installed packages."""
+    ws = WorkingSet([])
+    for name in names:
+        ws.add(
+            pkg_resources.Distribution(
+                location="<in-memory>", project_name=name, version="1.0"
+            )
+        )
+    return ws
 
 
-def _dist_in_usersite(dist: mock.Mock) -> bool:
-    return dist.kind == "user"
-
-
-@pytest.fixture(autouse=True)
-def patch_distribution_lookups(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(Distribution, "local", property(_dist_is_local))
-    monkeypatch.setattr(Distribution, "in_usersite", property(_dist_in_usersite))
-
-
-class _MockWorkingSet(list[mock.Mock]):
-    def require(self, name: str) -> None:
-        pass
-
-
-workingset = _MockWorkingSet(
-    (
-        mock.Mock(test_name="global", project_name="global"),
-        mock.Mock(test_name="editable", project_name="editable"),
-        mock.Mock(test_name="normal", project_name="normal"),
-        mock.Mock(test_name="user", project_name="user"),
-    )
-)
-
-workingset_stdlib = _MockWorkingSet(
-    (
-        mock.Mock(test_name="normal", project_name="argparse"),
-        mock.Mock(test_name="normal", project_name="wsgiref"),
-    )
-)
+workingset = _working_set(["global", "editable", "normal", "user"])
+workingset_stdlib = _working_set(["argparse", "wsgiref"])
 
 
 @pytest.mark.parametrize(
@@ -69,11 +51,11 @@ workingset_stdlib = _MockWorkingSet(
         ),
     ],
 )
-def test_get_distribution(ws: _MockWorkingSet, req_name: str) -> None:
+def test_get_distribution(ws: WorkingSet, req_name: str) -> None:
     """Ensure get_distribution() finds all kinds of distributions."""
     dist = Environment(ws).get_distribution(req_name)
     assert dist is not None
-    assert cast(Distribution, dist)._dist.project_name == req_name
+    assert dist.canonical_name == canonicalize_name(req_name)
 
 
 def test_get_distribution_nonexist() -> None:
@@ -124,6 +106,28 @@ def test_wheel_metadata_throws_on_bad_unicode() -> None:
     with pytest.raises(UnsupportedWheel) as e:
         metadata.get_metadata("METADATA")
     assert "METADATA" in str(e.value)
+
+
+def test_iter_all_distributions_warns_on_incomplete_removal(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    leftover_info = tmp_path / "~eftover-1.0.dist-info"
+    leftover_info.mkdir()
+    leftover_info.joinpath("METADATA").write_text(
+        "Metadata-Version: 1.0\nName: leftover\n"
+    )
+
+    env = Environment.from_paths([os.fspath(tmp_path)])
+    with caplog.at_level(logging.WARNING):
+        dists = list(env.iter_all_distributions())
+
+    assert dists == []
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert message.startswith(
+        "Ignoring incompletely removed distribution ~eftover-1.0.dist-info ("
+    )
+    assert "previous incomplete installation, and can be deleted" in message
 
 
 def test_iter_entry_points_throws_on_invalid_entry_point() -> None:

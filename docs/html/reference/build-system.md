@@ -120,6 +120,12 @@ files.
 It is the responsibility of the build backend to ensure that the output is
 in the correct encoding, as described in {pep}`517`.
 
+### Build backend warnings
+
+pip reports backend `UserWarning`s as `BuildBackendWarning`. They are shown
+when building local source directories; warnings from sdists and other sources
+are logged at DEBUG (`-vv`).
+
 ## Fallback Behaviour
 
 ```{warning}

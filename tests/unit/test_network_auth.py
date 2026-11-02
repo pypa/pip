@@ -4,6 +4,7 @@ import base64
 import contextlib
 import functools
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -713,6 +714,8 @@ def test_keyring_cli_outdated_version(
     url: str,
     expect: tuple[str | None, str | None],
 ) -> None:
+    caplog.set_level(logging.INFO)
+
     keyring_subprocess = KeyringSubprocessResult()
     keyring_subprocess.old_version = True
 

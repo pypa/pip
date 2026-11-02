@@ -1,0 +1,2 @@
+Block unexpected imports during installation, warn about unsafe imports
+afterward, and improve recovery from interrupted installations.

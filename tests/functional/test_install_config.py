@@ -368,22 +368,26 @@ def test_do_not_prompt_for_authentication_git(
 
 @pytest.fixture(params=(True, False), ids=("interactive", "noninteractive"))
 def interactive(request: pytest.FixtureRequest) -> bool:
-    return request.param
+    return bool(request.param)
 
 
 @pytest.fixture(params=(True, False), ids=("auth_needed", "auth_not_needed"))
 def auth_needed(request: pytest.FixtureRequest) -> bool:
-    return request.param
+    return bool(request.param)
 
 
 @pytest.fixture(params=(None, "disabled", "import", "subprocess", "auto"))
-def keyring_provider(request: pytest.FixtureRequest) -> str:
-    return request.param
+def keyring_provider(request: pytest.FixtureRequest) -> str | None:
+    value = request.param
+    assert value is None or isinstance(value, str)
+    return value
 
 
 @pytest.fixture(params=("disabled", "import", "subprocess"))
 def keyring_provider_implementation(request: pytest.FixtureRequest) -> str:
-    return request.param
+    value = request.param
+    assert isinstance(value, str)
+    return value
 
 
 @pytest.fixture
@@ -391,7 +395,7 @@ def flags(
     request: pytest.FixtureRequest,
     interactive: bool,
     auth_needed: bool,
-    keyring_provider: str,
+    keyring_provider: str | None,
     keyring_provider_implementation: str,
 ) -> list[str]:
     if (

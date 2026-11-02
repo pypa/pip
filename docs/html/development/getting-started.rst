@@ -157,6 +157,12 @@ In order to debug pip's behavior, you can run it under a debugger like so:
 
     $ python -m pdb -m pip --debug ...
 
+On Python 3.10, run the script from your pip checkout instead:
+
+.. code-block:: console
+
+    $ python -m pdb src/pip/__main__.py --debug ...
+
 
 Replace the ``...`` with arguments you'd like to run pip with. Give PDB the
 ``c`` ("continue") command afterwards, to run the process.
@@ -165,6 +171,29 @@ The ``--debug`` flag disables pip's exception handler, which would normally
 catch all unhandled exceptions. With this flag, pip will let these exceptions
 propagate outside of its main subroutine, letting them get caught by the
 debugger. This way you'll be able to debug an exception post-mortem via PDB.
+
+
+Profiling pip
+=============
+
+Use ``cProfile`` to profile pip:
+
+.. code-block:: console
+
+    $ python -m cProfile -o pip.prof -m pip install ...
+
+Omit ``-o pip.prof`` to print the results instead.
+
+For the pure Python ``profile`` module, save the results and inspect them in a
+separate process:
+
+.. code-block:: console
+
+    $ python -m profile -o pip.prof -m pip install ...
+    $ python -m pstats pip.prof
+
+Its default printed report imports ``pstats`` after installation, when pip
+blocks new imports.
 
 
 Building Documentation

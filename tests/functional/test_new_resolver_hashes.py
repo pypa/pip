@@ -33,6 +33,68 @@ def _create_find_links(script: PipTestEnvironment) -> _FindLinks:
 
 
 @pytest.mark.parametrize(
+    "use_constraints_file", [False, True], ids=["requirements", "constraints"]
+)
+def test_no_require_hashes_prefers_user_hash(
+    script: PipTestEnvironment, use_constraints_file: bool
+) -> None:
+    wheel_path = create_basic_wheel_for_package(
+        script, "base", "0.1.0", depends=["child"]
+    )
+    child_path = create_basic_wheel_for_package(script, "child", "0.1.0")
+    wheel_hash = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
+    child_hash = hashlib.sha256(child_path.read_bytes()).hexdigest()
+    wrong_hash = "0" * 64
+
+    index_html = script.scratch_path / "index.html"
+    index_html.write_text(
+        f'<a href="{wheel_path.as_uri()}#sha256={wheel_hash}">base</a>\n'
+        f'<a href="{child_path.as_uri()}#sha256={wrong_hash}">child</a>\n'
+    )
+    requirements_txt = script.scratch_path / "requirements.txt"
+    hashes_txt = requirements_txt
+    if use_constraints_file:
+        requirements_txt.write_text("base\n")
+        hashes_txt = script.scratch_path / "constraints.txt"
+    hashes_txt.write_text(f"base==0.1.0 --hash=sha256:{wrong_hash}\n")
+
+    args = (
+        "--no-cache-dir",
+        "--no-require-hashes",
+        *(("--constraint", hashes_txt) if use_constraints_file else ()),
+        "--requirement",
+        requirements_txt,
+    )
+    result = script.pip_install_local(*args, find_links=index_html, expect_error=True)
+
+    assert "THESE PACKAGES DO NOT MATCH THE HASHES" in result.stderr
+    assert f"Expected sha256 {wrong_hash}" in result.stderr
+    assert f"Got        {wheel_hash}" in result.stderr
+    result.assert_not_installed("base")
+    result.assert_not_installed("child")
+
+    # Requirements without supplied hashes still use index hashes.
+    hashes_txt.write_text(f"base==0.1.0 --hash=sha256:{wheel_hash}\n")
+    result = script.pip_install_local(*args, find_links=index_html, expect_error=True)
+
+    assert "THESE PACKAGES DO NOT MATCH THE HASHES" in result.stderr
+    assert f"Expected sha256 {wrong_hash}" in result.stderr
+    assert f"Got        {child_hash}" in result.stderr
+    result.assert_not_installed("base")
+    result.assert_not_installed("child")
+
+    # A matching supplied hash must also allow a mismatching index hash.
+    index_html.write_text(
+        f'<a href="{wheel_path.as_uri()}#sha256={wrong_hash}">base</a>\n'
+        f'<a href="{child_path.as_uri()}#sha256={child_hash}">child</a>\n'
+    )
+    result = script.pip_install_local(*args, find_links=index_html)
+
+    result.assert_installed("base", editable=False)
+    result.assert_installed("child", editable=False)
+
+
+@pytest.mark.parametrize(
     "requirements_template, message",
     [
         (

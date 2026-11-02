@@ -15,7 +15,7 @@ from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
 
-from tests.lib import PipTestEnvironment, _create_test_package, _git_commit
+from tests.lib import PipTestEnvironment, create_test_package, git_commit
 
 
 def test_get_backend_for_scheme() -> None:
@@ -45,7 +45,7 @@ def checkout_new_branch(script: PipTestEnvironment, repo_dir: str, branch: str) 
 
 
 def do_commit(script: PipTestEnvironment, dest: str) -> str:
-    _git_commit(dest, message="test commit", allow_empty=True)
+    git_commit(dest, message="test commit", allow_empty=True)
     return get_head_sha(script, dest)
 
 
@@ -128,7 +128,7 @@ def test_get_remote_url__no_remote(
 def test_get_current_branch(script: PipTestEnvironment) -> None:
     repo_dir = str(script.scratch_path)
 
-    script.run("git", "init", cwd=repo_dir)
+    script.run("git", "init", "-b", "master", cwd=repo_dir)
     sha = do_commit(script, repo_dir)
 
     assert Git.get_current_branch(repo_dir) == "master"
@@ -224,7 +224,7 @@ def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
     """
     Test Git.is_commit_id_equal().
     """
-    version_pkg_path = os.fspath(_create_test_package(script.scratch_path))
+    version_pkg_path = os.fspath(create_test_package(script.scratch_path))
     script.run("git", "branch", "branch0.1", cwd=version_pkg_path)
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
 
@@ -237,7 +237,7 @@ def test_is_commit_id_equal(script: PipTestEnvironment) -> None:
 
 
 def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
-    version_pkg_path = os.fspath(_create_test_package(script.scratch_path))
+    version_pkg_path = os.fspath(create_test_package(script.scratch_path))
     commit = script.run("git", "rev-parse", "HEAD", cwd=version_pkg_path).stdout.strip()
     assert Git().is_immutable_rev_checkout(
         "git+https://g.c/o/r@" + commit, version_pkg_path
@@ -249,7 +249,7 @@ def test_is_immutable_rev_checkout(script: PipTestEnvironment) -> None:
 
 
 def test_get_repository_root(script: PipTestEnvironment) -> None:
-    version_pkg_path = _create_test_package(script.scratch_path)
+    version_pkg_path = create_test_package(script.scratch_path)
     tests_path = version_pkg_path.joinpath("tests")
     tests_path.mkdir()
 
@@ -269,7 +269,7 @@ def test_resolve_commit_not_on_branch(
     repo_file = repo_path / "file.txt"
     clone_path = repo_path / "clone"
     repo_path.mkdir()
-    script.run("git", "init", cwd=str(repo_path))
+    script.run("git", "init", "-b", "master", cwd=str(repo_path))
 
     repo_file.write_text(".")
     script.run("git", "add", "file.txt", cwd=str(repo_path))

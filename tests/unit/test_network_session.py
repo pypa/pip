@@ -39,9 +39,10 @@ from pip._internal.network.session import (
     user_agent,
 )
 from pip._internal.utils.misc import CI_ENVIRONMENT_VARIABLES
+from pip._internal.utils.urls import path_to_url
 
 from tests.lib.output import render_to_text
-from tests.lib.server import make_mock_server, server_running
+from tests.lib.server import make_mock_server, server_running, text_html_response
 
 
 def render_diagnostic_error(error: DiagnosticPipError) -> tuple[str, str | None]:
@@ -461,6 +462,49 @@ class TestSessionProxy:
         assert self._resolved_proxy(session, "http://example.com") is not None
 
 
+class TestRedirectScheme:
+    @staticmethod
+    def _make_redirect_response(location: str) -> requests.Response:
+        resp = requests.Response()
+        resp.status_code = 302
+        resp.headers["Location"] = location
+        resp.url = "https://example.com/simple/foo/"
+        request = requests.PreparedRequest()
+        request.prepare(method="GET", url=resp.url, headers={})
+        resp.request = request
+        return resp
+
+    def test_get_redirect_target_refuses_file_scheme(
+        self, tmpdir: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        # A remote server must not be able to redirect pip into the file:// adapter
+        # and have it read a local file.
+        secret = tmpdir.joinpath("secret.txt")
+        secret.write_text("s3cr3t", encoding="utf-8")
+        resp = self._make_redirect_response(path_to_url(str(secret)))
+
+        session = PipSession()
+        with caplog.at_level(logging.WARNING):
+            assert session.get_redirect_target(resp) is None
+        assert "non-http(s) location is not allowed" in caplog.text
+
+        # Following the redirect the way requests does must not read the file.
+        followed = list(session.resolve_redirects(resp, resp.request))
+        assert followed == []
+
+    @pytest.mark.parametrize(
+        "location",
+        [
+            "https://other.example.com/elsewhere/",
+            "http://other.example.com/elsewhere/",
+            "/relative/path/",
+        ],
+    )
+    def test_get_redirect_target_allows_http_schemes(self, location: str) -> None:
+        resp = self._make_redirect_response(location)
+        assert PipSession().get_redirect_target(resp) == location
+
+
 class TestSSLContextAdapterMixinProxy:
     """Regression tests for https://github.com/pypa/pip/issues/13465
 
@@ -476,7 +520,8 @@ class TestSSLContextAdapterMixinProxy:
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         session = PipSession(ssl_context=ssl_context)
 
-        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        adapter = session.adapters["https://"]
+        assert isinstance(adapter, HTTPAdapter)
         proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
 
         assert proxy_manager.proxy_ssl_context is ssl_context
@@ -485,10 +530,51 @@ class TestSSLContextAdapterMixinProxy:
     def test_no_ssl_context_leaves_proxy_ssl_context_unset(self) -> None:
         session = PipSession()
 
-        adapter = cast(HTTPAdapter, session.adapters["https://"])
+        adapter = session.adapters["https://"]
+        assert isinstance(adapter, HTTPAdapter)
         proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
 
         assert proxy_manager.proxy_ssl_context is None
+
+
+@pytest.mark.parametrize("cached", [False, True], ids=["direct", "cached"])
+@pytest.mark.parametrize(
+    "ca_source",
+    ["cli", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"],
+)
+def test_https_proxy_uses_custom_ca_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    cert_factory: Callable[[], str],
+    cached: bool,
+    ca_source: str,
+) -> None:
+    for name in ("PIP_CERT", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"):
+        monkeypatch.delenv(name, raising=False)
+
+    proxy_cert = cert_factory()
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(proxy_cert)
+    server = make_mock_server(ssl_context=context)
+    server.mock.return_value = text_html_response("proxy response")
+
+    args = ["--retries", "0"]
+    if ca_source == "cli":
+        args.extend(["--cert", proxy_cert])
+    else:
+        monkeypatch.setenv(ca_source, proxy_cert)
+    args.extend(
+        ["--cache-dir", str(tmp_path / "cache")] if cached else ["--no-cache-dir"]
+    )
+    _, session = TestSessionProxy._build_session(monkeypatch, [*args, "example"])
+    session.proxies = {"https": f"https://{server.host}:{server.port}"}
+
+    with session, server_running(server):
+        with pytest.raises((SSLVerificationError, ConnectionFailedError)):
+            session.get("https://origin.example/", timeout=5)
+
+    environ, _ = server.mock.call_args.args
+    assert environ["REQUEST_METHOD"] == "CONNECT"
 
 
 class TestConnectionErrors:

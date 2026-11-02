@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -21,6 +21,7 @@ from pip._internal.exceptions import (
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     Downloader,
+    _FileDownload,
     _get_http_response_size,
     _log_download,
     parse_content_disposition,
@@ -361,12 +362,10 @@ def test_downloader(
 
     with patch.object(Downloader, "_http_get", _http_get_mock):
         if expected_bytes is None:
-            remove = MagicMock(return_value=None)
-            with patch("os.remove", remove):
-                with pytest.raises(IncompleteDownloadError):
-                    downloader(link, str(tmpdir))
+            with pytest.raises(IncompleteDownloadError):
+                downloader(link, str(tmpdir))
             # Make sure the incomplete file is removed
-            remove.assert_called_once()
+            assert not (tmpdir / "foo.tgz").exists()
         else:
             filepath, _ = downloader(link, str(tmpdir))
             with open(filepath, "rb") as downloaded_file:
@@ -382,6 +381,66 @@ def test_downloader(
 
     # Make sure that the downloader makes additional requests for resumption
     _http_get_mock.assert_has_calls(calls)
+
+
+def _incomplete_response() -> MockResponse:
+    response = MockResponse(b"partial")
+    response.headers.update({"content-length": "12"})
+    response.status_code = 200
+    return response
+
+
+def test_incomplete_download_is_closed_before_removal(tmpdir: Path) -> None:
+    """Windows can't delete an open file."""
+    session = PipSession(resume_retries=0)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    downloads: list[_FileDownload] = []
+
+    def record_download(
+        link: Link, output_file: BinaryIO, size: int | None
+    ) -> _FileDownload:
+        download = _FileDownload(link, output_file, size)
+        downloads.append(download)
+        return download
+
+    def remove_like_windows(filename: str) -> None:
+        if not downloads[-1].output_file.closed:
+            raise PermissionError("The file is being used by another process")
+        Path(filename).unlink()
+
+    with (
+        patch.object(
+            Downloader, "_http_get", MagicMock(return_value=_incomplete_response())
+        ),
+        patch("pip._internal.network.download._FileDownload", record_download),
+        patch("pip._internal.network.download.os.remove", remove_like_windows),
+        pytest.raises(IncompleteDownloadError),
+    ):
+        downloader(link, str(tmpdir))
+
+    assert not (tmpdir / "foo.tgz").exists()
+
+
+def test_failed_removal_does_not_mask_incomplete_download(tmpdir: Path) -> None:
+    session = PipSession(resume_retries=0)
+    link = Link("http://example.com/foo.tgz")
+    downloader = Downloader(session, "on")
+
+    def remove_denied(filename: str) -> None:
+        raise PermissionError("The file is being used by another process")
+
+    with (
+        patch.object(
+            Downloader, "_http_get", MagicMock(return_value=_incomplete_response())
+        ),
+        patch("pip._internal.network.download.os.remove", remove_denied),
+        pytest.raises(IncompleteDownloadError),
+    ):
+        downloader(link, str(tmpdir))
+
+    assert (tmpdir / "foo.tgz").exists()
 
 
 def test_downloader_resumes_on_protocol_error(tmpdir: Path) -> None:
@@ -573,6 +632,8 @@ def test_downloader_crashes_on_mismatched_resume_offset(tmpdir: Path) -> None:
     with patch.object(Downloader, "_http_get", _http_get_mock):
         with pytest.raises(IncompleteDownloadError):
             downloader(link, str(tmpdir))
+
+    assert not (tmpdir / "foo.tgz").exists()
 
 
 def test_downloader_without_content_length(tmpdir: Path) -> None:
