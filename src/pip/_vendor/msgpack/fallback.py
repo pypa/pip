@@ -356,7 +356,8 @@ class Unpacker:
     def read_bytes(self, n):
         ret = self._read(n, raise_outofdata=False)
         self._consume()
-        return ret
+        # The C extension returns bytes. A bytearray slice cannot be a dict key.
+        return bytes(ret)
 
     def _read(self, n, raise_outofdata=True):
         # (int) -> bytearray
@@ -501,10 +502,13 @@ class Unpacker:
 
         if execute == EX_READ_ARRAY_HEADER:
             if typ != TYPE_ARRAY:
+                # Leave the object unread, as the C extension does.
+                self._buff_i = self._buf_checkpoint
                 raise ValueError("Expected array")
             return n
         if execute == EX_READ_MAP_HEADER:
             if typ != TYPE_MAP:
+                self._buff_i = self._buf_checkpoint
                 raise ValueError("Expected map")
             return n
         # TODO should we eliminate the recursion?
@@ -514,7 +518,7 @@ class Unpacker:
                     # TODO check whether we need to call `list_hook`
                     self._unpack(EX_SKIP)
                 return
-            ret = newlist_hint(n)
+            ret = newlist_hint(min(n, 10000))
             for i in range(n):
                 ret.append(self._unpack(EX_CONSTRUCT))
             if self._list_hook is not None:
@@ -529,15 +533,15 @@ class Unpacker:
                     self._unpack(EX_SKIP)
                 return
             if self._object_pairs_hook is not None:
-
-                def _gen():
-                    for _ in range(n):
-                        key = self._unpack(EX_CONSTRUCT)
-                        if self._strict_map_key and type(key) not in (str, bytes):
-                            raise ValueError("%s is not allowed for map key" % str(type(key)))
-                        yield key, self._unpack(EX_CONSTRUCT)
-
-                ret = self._object_pairs_hook(_gen())
+                # Pass a list, as the C extension does, so the whole map is
+                # consumed even if the hook does not iterate it.
+                pairs = []
+                for _ in range(n):
+                    key = self._unpack(EX_CONSTRUCT)
+                    if self._strict_map_key and type(key) not in (str, bytes):
+                        raise ValueError("%s is not allowed for map key" % str(type(key)))
+                    pairs.append((key, self._unpack(EX_CONSTRUCT)))
+                ret = self._object_pairs_hook(pairs)
             else:
                 ret = {}
                 for _ in range(n):
