@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import warnings
 import zlib
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
@@ -38,6 +39,7 @@ from installer.destinations import SchemeDictionaryDestination
 from installer.sources import WheelFile
 
 from pip._internal.locations import _USE_SYSCONFIG
+from pip._internal.utils import deprecation
 from pip._internal.utils.temp_dir import global_tempdir_manager
 
 from tests.lib import (
@@ -380,8 +382,10 @@ def isolate(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
-def restore_root_logging() -> Iterator[None]:
-    """Keep command logging handlers from outliving test capture streams."""
+def restore_logging_and_warning_hooks() -> Iterator[None]:
+    """Keep command logging handlers and warning hooks scoped to each test."""
+    showwarning = warnings.showwarning
+    original_showwarning = deprecation._original_showwarning
     logger = logging.getLogger()
     handlers = logger.handlers[:]
     level = logger.level
@@ -390,6 +394,8 @@ def restore_root_logging() -> Iterator[None]:
 
     logger.handlers[:] = handlers
     logger.setLevel(level)
+    warnings.showwarning = showwarning
+    deprecation._original_showwarning = original_showwarning
 
 
 @pytest.fixture(autouse=True)
