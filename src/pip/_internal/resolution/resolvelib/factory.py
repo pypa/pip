@@ -22,7 +22,9 @@ from pip._vendor.rich.markup import escape
 
 from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
+    DiagnosticPipError,
     DistributionNotFound,
+    IndexUnavailableError,
     InstallationError,
     InvalidInstalledPackage,
     MetadataInconsistent,
@@ -786,7 +788,7 @@ class Factory:
         self,
         e: ResolutionImpossible[Requirement, Candidate],
         constraints: dict[str, Constraint],
-    ) -> InstallationError:
+    ) -> InstallationError | DiagnosticPipError:
         assert e.causes, "Installation error reported with no cause"
 
         # If one of the things we can't solve is "we need Python X.Y",
@@ -803,6 +805,15 @@ class Factory:
             return self._report_requires_python_error(
                 cast("Sequence[ConflictCause]", requires_python_causes),
             )
+
+        for cause in e.causes:
+            errors = self._finder.get_index_errors(cause.requirement.project_name)
+            if errors is not None:
+                return IndexUnavailableError(
+                    project_name=cause.requirement.project_name,
+                    missing_sources=errors.package_missing_sources,
+                    unavailable_sources=errors.unavailable_sources,
+                )
 
         # Otherwise, we have a set of causes which can't all be satisfied
         # at once.

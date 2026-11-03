@@ -24,7 +24,6 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DiagnosticPipError,
     DistributionNotFound,
-    IndexUnavailableError,
     InstallationError,
     InvalidWheelFilename,
     NetworkConnectionError,
@@ -691,6 +690,8 @@ class PackageFinder:
             BestCandidateResult,
         ] = {}
 
+        self._index_errors: dict[str, IndexErrorContext] = {}
+
         # projects for which a link is locked from a pylock
         self._locked_links: dict[NormalizedName, Link] = {}
 
@@ -802,6 +803,9 @@ class PackageFinder:
     @property
     def uploaded_prior_to(self) -> datetime.datetime | None:
         return self._uploaded_prior_to
+
+    def get_index_errors(self, project_name: str) -> IndexErrorContext | None:
+        return self._index_errors.get(canonicalize_name(project_name))
 
     def requires_python_skipped_reasons(self) -> list[str]:
         return sorted(self._requires_python_skipped)
@@ -956,11 +960,9 @@ class PackageFinder:
 
         # No candidates, and at least one source had a real error
         if has_unavailable:
-            raise IndexUnavailableError(
-                project_name=project_name,
-                missing_sources=error_context.package_missing_sources,
-                unavailable_sources=error_context.unavailable_sources,
-            )
+            self._log_errors(project_name, error_context)
+            self._log_missing(project_name, error_context)
+            self._index_errors[canonicalize_name(project_name)] = error_context
 
     def find_all_candidates(self, project_name: str) -> list[InstallationCandidate]:
         """Find all available InstallationCandidate for project_name
