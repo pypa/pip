@@ -42,10 +42,12 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.server import (
+    authorization_response,
     file_response,
     make_mock_server,
     package_page,
     server_running,
+    service_unavailable_response,
 )
 from tests.lib.wheel import make_wheel
 
@@ -689,6 +691,57 @@ def test_install_preloads_registered_import_before_replacing_module(
     result.assert_installed("mypackage", editable=False)
     result.did_update(script.site_packages / dependency)
     result.did_create(script.site_packages / "mypackage-1.0.dist-info" / "RECORD")
+
+
+def test_install_401_error(script: PipTestEnvironment, data: TestData) -> None:
+    server = make_mock_server()
+    server.mock.side_effect = lambda _, __: authorization_response(
+        data.packages / "simple-3.0.tar.gz"
+    )
+    index_url = f"http://{server.host}:{server.port}/simple"
+    with server_running(server):
+        result = script.pip(
+            "install",
+            "--no-input",
+            "--index-url",
+            index_url,
+            "simple",
+            expect_error=True,
+        )
+    assert result.returncode != 0
+    assert "401 Client Error" in result.stderr
+
+
+def test_install_backtracks_when_dependency_index_unavailable(
+    script: PipTestEnvironment,
+) -> None:
+    create_basic_wheel_for_package(script, "a", "1.0")
+    create_basic_wheel_for_package(script, "a", "2.0", depends=["b"])
+
+    server = make_mock_server()
+    server.mock.side_effect = lambda _, __: service_unavailable_response()
+    index_url = f"http://{server.host}:{server.port}/simple"
+
+    with server_running(server):
+        result = script.pip(
+            "install",
+            "--no-input",
+            "--no-cache-dir",
+            "--retries",
+            "0",
+            "--find-links",
+            script.scratch_path,
+            "--index-url",
+            index_url,
+            "a",
+            expect_stderr=True,
+        )
+
+    assert "Failed to fetch" in result.stderr
+    assert index_url in result.stderr
+
+    result.did_create(script.site_packages / "a-1.0.dist-info")
+    result.did_not_create(script.site_packages / "a-2.0.dist-info")
 
 
 def test_install_exit_status_code_when_no_requirements(

@@ -55,6 +55,7 @@ from pip._internal.exceptions.network import (
     ConnectionFailedError,
     ConnectionTimeoutError,
     IncompleteDownloadError,
+    IndexUnavailableError,
     NetworkConnectionError,
     ProxyConnectionError,
     SSLMissingError,
@@ -108,6 +109,7 @@ __all__ = [
     "ProxyConnectionError",
     "SSLMissingError",
     "SSLVerificationError",
+    "IndexUnavailableError",
     # pyproject
     "InvalidPyProjectBuildRequires",
     "MissingPyProjectBuildRequires",

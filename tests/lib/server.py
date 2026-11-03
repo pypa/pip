@@ -147,6 +147,14 @@ def text_html_response(text: str) -> "WSGIApplication":
     return responder
 
 
+def service_unavailable_response() -> "WSGIApplication":
+    def responder(environ: "WSGIEnvironment", start_response: "StartResponse") -> Body:
+        start_response("503 Service Unavailable", [])
+        return ()
+
+    return responder
+
+
 def html5_page(text: str) -> str:
     return dedent("""
     <!DOCTYPE html>
