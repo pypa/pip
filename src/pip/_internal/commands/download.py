@@ -24,6 +24,10 @@ class DownloadCommand(RequirementCommand):
 
     pip also supports downloading from "requirements files", which provide
     an easy way to specify a whole environment to be downloaded.
+
+    Downloading source distributions can execute project-controlled build code
+    while preparing package metadata, even with --no-deps. Only download source
+    projects you trust.
     """
 
     usage = """
