@@ -233,6 +233,28 @@ def test_show_verbose(script: PipTestEnvironment) -> None:
     assert "Project-URLs:" in lines
 
 
+def test_show_includes_malformed_dist(script: PipTestEnvironment) -> None:
+    """
+    Test that show can still find and display a malformed distribution,
+    so the user has the option to recover.
+    """
+    dist_info_path = os.path.join(
+        os.fspath(script.site_packages_path),
+        "foo-1.0.dist-info",
+    )
+    os.makedirs(dist_info_path)
+    with open(os.path.join(dist_info_path, "METADATA"), "w") as f:
+        f.write(textwrap.dedent("""\
+            Metadata-Version: 1.0
+            Name: foo
+            Version: 2.0
+            """))
+
+    result = script.pip("show", "foo", allow_stderr_warning=True)
+    assert "Name: foo" in result.stdout
+    assert len(result.stderr) == 0
+
+
 def test_all_fields(script: PipTestEnvironment) -> None:
     """
     Test that all the fields are present

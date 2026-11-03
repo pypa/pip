@@ -108,7 +108,7 @@ def test_wheel_metadata_throws_on_bad_unicode() -> None:
     assert "METADATA" in str(e.value)
 
 
-def test_iter_all_distributions_warns_on_incomplete_removal(
+def test_pkg_resources_warns_on_incomplete_removal(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     leftover_info = tmp_path / "~eftover-1.0.dist-info"

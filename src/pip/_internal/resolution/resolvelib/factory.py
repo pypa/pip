@@ -122,7 +122,9 @@ class Factory:
             env = get_default_environment()
             self._installed_dists = {
                 dist.canonical_name: dist
-                for dist in env.iter_installed_distributions(local_only=False)
+                for dist in env.iter_installed_distributions(
+                    local_only=False, skip_invalid=False
+                )
             }
         else:
             self._installed_dists = {}

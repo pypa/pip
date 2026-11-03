@@ -59,3 +59,32 @@ def test_force_reinstall_with_same_version_specifier(
     version and the installed version is not the newest version.
     """
     check_force_reinstall(script, "simplewheel==1.0", "1.0")
+
+
+def test_force_reinstall_malformed_dist(script: PipTestEnvironment) -> None:
+    """
+    Check that --force-reinstall still uninstalls (using the old RECORD) a
+    distribution whose METADATA disagrees with its .dist-info directory,
+    and that the resulting summary reports name-version.
+    """
+    script.pip_install_local("simplewheel==1.0")
+
+    site_packages = script.site_packages_path
+    dist_info = site_packages / "simplewheel-1.0.dist-info"
+
+    stale_file = site_packages / "simplewheel" / "stale_file.py"
+    stale_file.write_text("# left over from the old install\n")
+    record = dist_info / "RECORD"
+    record.write_text(record.read_text() + "simplewheel/stale_file.py,,\n")
+
+    metadata = dist_info / "METADATA"
+    metadata.write_text(metadata.read_text().replace("Version: 1.0", "Version: 2.0"))
+
+    result = script.pip_install_local(
+        "--force-reinstall",
+        "simplewheel==1.0",
+        allow_stderr_warning=True,
+    )
+
+    assert not stale_file.exists()
+    assert "Successfully installed simplewheel-1.0" in result.stdout
