@@ -1,0 +1,1 @@
+Strip credentials embedded in the remote URL of an editable VCS install from ``pip freeze`` output.
