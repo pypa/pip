@@ -1,0 +1,1 @@
+Warn when a VCS URL contains unrecognized fragment parameters, such as a misspelled ``#subdirectory=``.
