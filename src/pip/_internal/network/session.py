@@ -13,7 +13,6 @@ import logging
 import mimetypes
 import os
 import platform
-import shutil
 import subprocess
 import sys
 import urllib.parse
@@ -49,6 +48,7 @@ from pip._internal.utils.misc import (
     looks_like_ci,
     parse_netloc,
     redact_auth_from_url,
+    which_outside_cwd,
 )
 from pip._internal.utils.urls import url_to_path
 
@@ -151,11 +151,12 @@ def user_agent() -> str:
     if setuptools_dist is not None:
         data["setuptools_version"] = str(setuptools_dist.version)
 
-    if shutil.which("rustc") is not None:
+    rustc_path = which_outside_cwd("rustc")
+    if rustc_path is not None:
         # If for any reason `rustc --version` fails, silently ignore it
         try:
             rustc_output = subprocess.check_output(
-                ["rustc", "--version"], stderr=subprocess.STDOUT, timeout=0.5
+                [rustc_path, "--version"], stderr=subprocess.STDOUT, timeout=0.5
             )
         except Exception:
             pass
