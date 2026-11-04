@@ -1,0 +1,2 @@
+Include the underlying error when pip cannot check for a newer pip version, making
+inaccessible cache directories and other local failures actionable.
