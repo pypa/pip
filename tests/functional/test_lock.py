@@ -1,3 +1,4 @@
+import sys
 import textwrap
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,49 @@ from pip._internal.utils.compat import tomllib
 from pip._internal.utils.urls import path_to_url
 
 from ..lib import PipTestEnvironment, TestData
+
+
+@pytest.mark.parametrize(
+    "requires_python, expect_error",
+    [
+        (">=3.10", False),
+        (f"!={sys.version_info.major}.{sys.version_info.minor}.*", True),
+    ],
+)
+def test_lock_script_python_version(
+    script: PipTestEnvironment,
+    shared_data: TestData,
+    requires_python: str,
+    expect_error: bool,
+) -> None:
+    script_path = script.scratch_path / "script.py"
+    script_path.write_text(textwrap.dedent(f"""\
+        # /// script
+        # requires-python = "{requires_python}"
+        # dependencies = ["simplewheel==2.0"]
+        # ///
+        """))
+    lock_path = script.scratch_path / "pylock.toml"
+
+    result = script.pip(
+        "lock",
+        "--requirements-from-script",
+        script_path,
+        "--no-index",
+        "--find-links",
+        shared_data.root / "packages",
+        expect_stderr=True,  # for the experimental warning
+        expect_error=expect_error,
+    )
+
+    if expect_error:
+        assert "requires a different Python" in result.stderr
+        assert not lock_path.exists()
+    else:
+        lock = tomllib.loads(lock_path.read_text())
+        assert [(p["name"], p["version"]) for p in lock["packages"]] == [
+            ("simplewheel", "2.0")
+        ]
 
 
 def test_lock_wheel_from_findlinks(
