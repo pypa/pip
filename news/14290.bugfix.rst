@@ -1,0 +1,5 @@
+Unset ``GIT_INDEX_FILE`` (in addition to the already-unset ``GIT_DIR`` and
+``GIT_WORK_TREE``) before running git subprocesses for ``git+`` VCS installs,
+preventing an ambient ``GIT_INDEX_FILE`` (e.g. one set by git itself when
+invoking hooks) from causing pip's git operations to write into an unrelated
+repository's index.
