@@ -551,6 +551,8 @@ def constraints() -> Option:
         default=[],
         metavar="file",
         help="Constrain versions using the given constraints file. "
+        "The file or URL can be in pip's requirements.txt format, "
+        "or pylock.toml format. pylock.toml support is experimental. "
         "This option can be used multiple times.",
     )
 
@@ -565,6 +567,8 @@ def build_constraints() -> Option:
         metavar="file",
         help=(
             "Constrain build dependencies using the given constraints file. "
+            "The file or URL can be in pip's requirements.txt format, "
+            "or pylock.toml format. pylock.toml support is experimental. "
             "This option can be used multiple times."
         ),
     )
