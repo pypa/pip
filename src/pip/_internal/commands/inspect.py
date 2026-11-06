@@ -9,6 +9,7 @@ from pip import __version__
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.exceptions import CommandError
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.metadata.base import stdlib_pkgs
 from pip._internal.utils.urls import path_to_url
@@ -46,6 +47,8 @@ class InspectCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options: Values, args: list[str]) -> int:
+        if args:
+            raise CommandError("Too many arguments")
         cmdoptions.check_list_path_option(options)
         dists = get_environment(options.path).iter_installed_distributions(
             local_only=options.local,

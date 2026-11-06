@@ -17,6 +17,7 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.configuration import Configuration
+from pip._internal.exceptions import CommandError
 from pip._internal.metadata import get_environment
 from pip._internal.utils.compat import get_locale_encoding, open_text_resource
 from pip._internal.utils.logging import indent_log
@@ -164,6 +165,9 @@ class DebugCommand(Command):
         self.parser.config.load()
 
     def run(self, options: Values, args: list[str]) -> int:
+        if args:
+            raise CommandError("Too many arguments")
+
         logger.warning(
             "This command is only meant for debugging. "
             "Do not use this with automation for parsing and getting these "

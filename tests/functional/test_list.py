@@ -984,3 +984,11 @@ def test_outdated_all_releases_for_specific_package(
     assert len(outdated) == 1
     assert outdated[0]["name"] == "simple"
     assert outdated[0]["latest_version"] == "2.0a1"
+
+
+def test_list_rejects_extra_argument(
+    simple_script: PipTestEnvironment,
+) -> None:
+    result = simple_script.pip("list", "unexpected_arg", expect_error=True)
+    assert "ERROR: Too many arguments" in result.stderr
+    assert result.returncode != 0
