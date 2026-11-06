@@ -109,7 +109,7 @@ class Factory:
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
 
-        self._build_failures: Cache[InstallationError] = {}
+        self._candidate_failures: Cache[InstallationError] = {}
         self._link_candidate_cache: Cache[LinkCandidate] = {}
         self._editable_candidate_cache: Cache[EditableCandidate] = {}
         self._installed_candidate_cache: dict[str, AlreadyInstalledCandidate] = {}
@@ -139,6 +139,47 @@ class Factory:
             return
         msg = f"{link.filename} is not a supported wheel on this platform."
         raise UnsupportedWheel(msg)
+
+    def _get_format_policy_failure(
+        self,
+        link: Link,
+        name: NormalizedName | None,
+    ) -> str | None:
+        """Return why an artifact conflicts with format control."""
+        formats = self._finder.format_control.get_allowed_formats(name or "")
+        if link.is_wheel and "binary" not in formats:
+            return f"No binaries permitted for {name or link.filename}"
+        if not link.is_wheel and "source" not in formats:
+            return f"No sources permitted for {name or link.filename}"
+        return None
+
+    def _get_candidate_policy_failure(
+        self,
+        candidate: BaseCandidate,
+        source_link: Link,
+    ) -> str | None:
+        """Return why a prepared candidate conflicts with selection policy."""
+        name = candidate.project_name
+        format_failure = self._get_format_policy_failure(source_link, name)
+        if format_failure is not None:
+            return format_failure
+
+        release_control = self._finder.release_control
+        if (
+            release_control is not None
+            and release_control.allows_prereleases(name) is False
+            and candidate.version.is_prerelease
+        ):
+            return f"Only final releases are permitted for {name}"
+        return None
+
+    def _reject_candidate(self, candidate: BaseCandidate, source_link: Link) -> bool:
+        """Record a policy failure and return whether the candidate was rejected."""
+        failure = self._get_candidate_policy_failure(candidate, source_link)
+        if failure is None:
+            return False
+        self._candidate_failures[source_link] = InstallationError(failure)
+        return True
 
     def _make_extras_candidate(
         self,
@@ -195,15 +236,22 @@ class Factory:
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
 
-        if link in self._build_failures:
-            # We already tried this candidate before, and it does not build.
-            # Don't bother trying again.
+        self._fail_if_link_is_unsupported_wheel(link)
+
+        policy_name = name
+        if policy_name is None and template.name is not None:
+            policy_name = canonicalize_name(template.name)
+        if failure := self._get_format_policy_failure(link, policy_name):
+            self._candidate_failures[link] = InstallationError(failure)
+            return None
+
+        if link in self._candidate_failures:
             return None
 
         if template.editable:
             if link not in self._editable_candidate_cache:
                 try:
-                    self._editable_candidate_cache[link] = EditableCandidate(
+                    editable_candidate = EditableCandidate(
                         link,
                         template,
                         factory=self,
@@ -217,14 +265,18 @@ class Factory:
                         escape(str(e)),
                         extra={"markup": True},
                     )
-                    self._build_failures[link] = e
+                    self._candidate_failures[link] = e
                     return None
+
+                if self._reject_candidate(editable_candidate, link):
+                    return None
+                self._editable_candidate_cache[link] = editable_candidate
 
             return self._editable_candidate_cache[link]
         else:
             if link not in self._link_candidate_cache:
                 try:
-                    self._link_candidate_cache[link] = LinkCandidate(
+                    link_candidate = LinkCandidate(
                         link,
                         template,
                         factory=self,
@@ -238,8 +290,12 @@ class Factory:
                         escape(str(e)),
                         extra={"markup": True},
                     )
-                    self._build_failures[link] = e
+                    self._candidate_failures[link] = e
                     return None
+
+                if self._reject_candidate(link_candidate, link):
+                    return None
+                self._link_candidate_cache[link] = link_candidate
             return self._link_candidate_cache[link]
 
     def _iter_found_candidates(
@@ -397,7 +453,6 @@ class Factory:
                 extras = frozenset(parsed_requirement.extras)
 
         for link in constraint.links:
-            self._fail_if_link_is_unsupported_wheel(link)
             base_candidate = self._make_base_candidate_from_link(
                 link,
                 template=install_req_from_link_and_ireq(link, template),
@@ -471,6 +526,9 @@ class Factory:
         # If none of the requirements want an explicit candidate, we can ask
         # the finder for candidates.
         if not explicit_candidates:
+            # A direct constraint cannot fall back to a different artifact.
+            if constraint.links:
+                return ()
             return self._iter_found_candidates(
                 ireqs,
                 constraint.specifier,
@@ -511,7 +569,6 @@ class Factory:
                 yield SpecifierWithoutExtrasRequirement(ireq)
             yield SpecifierRequirement(ireq)
         else:
-            self._fail_if_link_is_unsupported_wheel(ireq.link)
             # Always make the link candidate for the base requirement to make it
             # available to `find_candidates` for explicit candidate lookup for any
             # set of extras.
@@ -523,15 +580,15 @@ class Factory:
                 version=None,
             )
             if cand is None:
-                # There's no way we can satisfy a URL requirement if the underlying
-                # candidate fails to build. An unnamed URL must be user-supplied, so
-                # we fail eagerly. If the URL is named, an unsatisfiable requirement
-                # can make the resolver do the right thing, either backtrack (and
-                # maybe find some other requirement that's buildable) or raise a
-                # ResolutionImpossible eventually.
+                # Keep a named failure in the resolver so its parent can backtrack.
+                # An unnamed URL can only be user-supplied, so fail it eagerly.
+                failure = self._candidate_failures[ireq.link]
                 if not ireq.name:
-                    raise self._build_failures[ireq.link]
-                yield UnsatisfiableRequirement(canonicalize_name(ireq.name))
+                    raise failure
+                yield UnsatisfiableRequirement(
+                    canonicalize_name(ireq.name),
+                    str(failure),
+                )
             else:
                 # require the base from the link
                 yield self.make_requirement_from_candidate(cand)
