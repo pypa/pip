@@ -540,7 +540,13 @@ class Link:
         """Return a link to the associated core metadata file (if any)."""
         if self.metadata_file_data is None:
             return None
-        metadata_url = f"{self.url_without_fragment}.metadata"
+        # The metadata file is the distribution file's name with ".metadata"
+        # appended, so the suffix belongs to the path. Appending it to the whole
+        # URL would put it inside the query string of a URL that carries one.
+        scheme, netloc, path, query, _ = self._parsed_url
+        metadata_url = urllib.parse.urlunsplit(
+            (scheme, netloc, f"{path}.metadata", query, "")
+        )
         if self.metadata_file_data.hashes is None:
             return Link(metadata_url)
         return Link(metadata_url, hashes=self.metadata_file_data.hashes)
