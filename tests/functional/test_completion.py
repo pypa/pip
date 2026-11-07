@@ -487,3 +487,11 @@ def test_completion_for_action_handler_handler_not_repeated(
     res, _ = autocomplete("pip cache remove re", cword="3")
 
     assert [] == res.stdout.split()
+
+
+def test_completion_rejects_extra_argument(
+    autocomplete_script: PipTestEnvironment,
+) -> None:
+    result = autocomplete_script.pip("completion", "unexpected_arg", expect_error=True)
+    assert "ERROR: Too many arguments" in result.stderr
+    assert result.returncode != 0
