@@ -140,6 +140,64 @@ class TestBasicLoading(ConfigurationMixin):
 
         assert lines == textwrap.dedent(expected).strip().splitlines()
 
+    def test_listing_redacts_credentials(self, script: PipTestEnvironment) -> None:
+        script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://user:s3cr3t@example.com/simple",
+        )
+
+        result = script.pip("config", "list")
+        assert (
+            "global.index-url='https://user:****@example.com/simple'" in result.stdout
+        )
+        assert "s3cr3t" not in result.stdout
+
+        result = script.pip("config", "list", "--show-secrets")
+        assert (
+            "global.index-url='https://user:s3cr3t@example.com/simple'" in result.stdout
+        )
+
+        script.pip(
+            "config",
+            "set",
+            "global.find-links",
+            "https://a:one@x.example/simple https://b:two@y.example/simple",
+        )
+        result = script.pip("config", "list")
+        assert (
+            "global.find-links='https://a:****@x.example/simple "
+            "https://b:****@y.example/simple'" in result.stdout
+        )
+        assert "one@x.example" not in result.stdout
+        assert "two@y.example" not in result.stdout
+
+    def test_debug_redacts_config_credentials(self, script: PipTestEnvironment) -> None:
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text(
+            "[global]\nindex-url = https://user:s3cr3t@example.com/simple\n"
+        )
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip("config", "debug")
+        assert "global.index-url: https://user:****@example.com/simple" in result.stdout
+        assert "s3cr3t" not in result.stdout
+
+        result = script.pip("config", "debug", "--show-secrets")
+        assert (
+            "global.index-url: https://user:s3cr3t@example.com/simple" in result.stdout
+        )
+
+    def test_debug_redacts_env_var_credentials(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.environ["PIP_INDEX_URL"] = "https://user:s3cr3t@example.com/simple"
+
+        result = script.pip("config", "debug")
+        assert "PIP_INDEX_URL='https://user:****@example.com/simple'" in result.stdout
+        assert "s3cr3t" not in result.stdout
+
     def test_forget_section(self, script: PipTestEnvironment) -> None:
         result = script.pip("config", "set", "isolated", "true", expect_error=True)
         assert "global.isolated" in result.stderr
