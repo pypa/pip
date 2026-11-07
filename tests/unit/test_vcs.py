@@ -453,6 +453,101 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     assert "an empty revision (after @)" in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    "url, expected_url, expected_unknown, expected_suggestion",
+    [
+        (
+            "git+https://github.com/user/proj.git#subdiretory=src",
+            "git+https://github.com/user/proj.git#subdiretory=src",
+            "subdiretory",
+            "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://github.com/user/proj.git#egg_info=MyProject",
+            "git+https://github.com/user/proj.git#egg_info=MyProject",
+            "egg_info",
+            None,
+        ),
+        (
+            "git+https://github.com/user/proj.git#foo=bar&baz=qux",
+            "git+https://github.com/user/proj.git#foo=bar&baz=qux",
+            "baz, foo",
+            None,
+        ),
+        (
+            "svn+https://svn.example.com/MyProject#egg=MyApp&subdir=src",
+            "svn+https://svn.example.com/MyProject#egg=MyApp&subdir=src",
+            "subdir",
+            "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://github.com/user/proj.git#subdiretory=",
+            "git+https://github.com/user/proj.git#subdiretory=",
+            "subdiretory",
+            "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://user:secret@github.com/user/proj.git#subdiretory=src",
+            "git+https://user:****@github.com/user/proj.git#subdiretory=src",
+            "subdiretory",
+            "Did you mean 'subdirectory'?",
+        ),
+        (
+            "git+https://github.com/user/proj.git#sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            "git+https://github.com/user/proj.git#sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            "sha256",
+            None,
+        ),
+    ],
+)
+def test_unknown_vcs_url_fragments(
+    url: str,
+    expected_url: str,
+    expected_unknown: str,
+    expected_suggestion: str | None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Test that unrecognized URL fragment parameters produce a warning.
+    """
+    with caplog.at_level(logging.WARNING):
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == "WARNING"
+    message = record.getMessage()
+    assert (
+        f"Unrecognized fragment parameters in {expected_url}: {expected_unknown}. "
+        "Only 'egg', 'subdirectory' are recognized."
+    ) in message
+    assert "secret" not in message
+    if expected_suggestion:
+        assert expected_suggestion in message
+    else:
+        assert "Did you mean" not in message
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "svn+https://svn.example.com/MyProject@rev#egg=MyApp&subdirectory=src",
+        "git+https://github.com/user/proj.git@rev",
+    ],
+)
+def test_valid_vcs_url_fragments_no_warning(
+    url: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Test that valid fragment parameters do not produce any warning.
+    """
+    with caplog.at_level(logging.WARNING):
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert len(caplog.records) == 0
+
+
 @pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
 @pytest.mark.parametrize(
     "exc_cls, msg_re",
