@@ -1,0 +1,1 @@
+Redact credentials in ``pip config list`` and ``pip config debug`` output, and add a ``--show-secrets`` option to display the raw values.

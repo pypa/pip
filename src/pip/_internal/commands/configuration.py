@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 import os
+import re
 import subprocess
 from collections.abc import Callable
 from optparse import Values
@@ -16,9 +17,22 @@ from pip._internal.configuration import (
 )
 from pip._internal.exceptions import PipError
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import get_prog, write_output
+from pip._internal.utils.misc import get_prog, redact_auth_from_url, write_output
 
 logger = logging.getLogger(__name__)
+
+_CONFIG_VALUE_TOKEN_RE = re.compile(r"\S+")
+
+
+def _redact_config_value(value: str) -> str:
+    """Redact credentials embedded in a configuration value.
+
+    A value can be a single URL or a whitespace-separated list of URLs (for
+    example ``find-links``), so each token is redacted separately.
+    """
+    return _CONFIG_VALUE_TOKEN_RE.sub(
+        lambda match: redact_auth_from_url(match.group(0)), value
+    )
 
 
 def _config_handler(
@@ -117,6 +131,14 @@ class ConfigurationCommand(Command):
             help="Use the current environment configuration file only",
         )
 
+        self.cmd_opts.add_option(
+            "--show-secrets",
+            dest="show_secrets",
+            action="store_true",
+            default=False,
+            help="Show credentials in the output instead of redacting them",
+        )
+
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def handler_map(self) -> dict[str, Callable[[Values, list[str]], None]]:
@@ -204,7 +226,7 @@ class ConfigurationCommand(Command):
     def list_values(self, options: Values) -> None:
         for key, value in sorted(self.configuration.items()):
             for key, value in sorted(value.items()):
-                write_output("%s=%r", key, value)
+                write_output("%s=%r", key, self._display_value(options, value))
 
     def get_name(self, options: Values, name: str) -> None:
         value = self.configuration.get_value(name)
@@ -224,7 +246,7 @@ class ConfigurationCommand(Command):
     def list_config_values(self, options: Values) -> None:
         """List config key-value pairs across different config files"""
 
-        self.print_env_var_values()
+        self.print_env_var_values(options)
         # Iterate over config files and print if they exist, and the
         # key-value pairs present in them if they do
         for variant, files in sorted(self.configuration.iter_config_files()):
@@ -234,23 +256,34 @@ class ConfigurationCommand(Command):
                     file_exists = os.path.exists(fname)
                     write_output("%s, exists: %r", fname, file_exists)
                     if file_exists:
-                        self.print_config_file_values(variant, fname)
+                        self.print_config_file_values(options, variant, fname)
 
-    def print_config_file_values(self, variant: Kind, fname: str) -> None:
+    def print_config_file_values(
+        self, options: Values, variant: Kind, fname: str
+    ) -> None:
         """Get key-value pairs from the file of a variant"""
         for name, value in self.configuration.get_values_in_config(variant).items():
             with indent_log():
                 if name == fname:
                     for confname, confvalue in value.items():
-                        write_output("%s: %s", confname, confvalue)
+                        write_output(
+                            "%s: %s",
+                            confname,
+                            self._display_value(options, confvalue),
+                        )
 
-    def print_env_var_values(self) -> None:
+    def print_env_var_values(self, options: Values) -> None:
         """Get key-values pairs present as environment variables"""
         write_output("%s:", "env_var")
         with indent_log():
             for key, value in sorted(self.configuration.get_environ_vars()):
                 env_var = f"PIP_{key.upper()}"
-                write_output("%s=%r", env_var, value)
+                write_output("%s=%r", env_var, self._display_value(options, value))
+
+    def _display_value(self, options: Values, value: str) -> str:
+        if options.show_secrets:
+            return value
+        return _redact_config_value(value)
 
     def open_in_editor(self, options: Values) -> None:
         editor = self._determine_editor(options)
