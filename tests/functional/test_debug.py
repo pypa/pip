@@ -116,3 +116,9 @@ def test_no_encoding_warning_under_utf8_mode(script: PipTestEnvironment) -> None
     )
     assert "EncodingWarning" not in result.stderr
     assert "EncodingWarning" not in result.stdout
+
+
+def test_debug__unexpected_argument(script: PipTestEnvironment) -> None:
+    result = script.pip("debug", "unexpected_arg", expect_error=True)
+    assert result.stdout == ""
+    assert "ERROR: Too many arguments" in result.stderr.splitlines()

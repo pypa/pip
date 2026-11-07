@@ -4,6 +4,7 @@ from optparse import Values
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_prog
 
 BASE_COMPLETION = """
@@ -121,6 +122,8 @@ class CompletionCommand(Command):
 
     def run(self, options: Values, args: list[str]) -> int:
         """Prints the completion code of the given shell"""
+        if args:
+            raise CommandError("Too many arguments")
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ["--" + shell for shell in sorted(shells)]
         if options.shell in shells:

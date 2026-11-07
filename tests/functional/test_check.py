@@ -363,3 +363,9 @@ def test_check_unsupported(
     result = script.pip("check", expect_error=True)
     assert "base 0.1.0 is not supported on this platform" in result.stdout
     assert result.returncode == 1
+
+
+def test_check_rejects_extra_argument(script: PipTestEnvironment) -> None:
+    result = script.pip("check", "unexpected_arg", expect_error=True)
+    assert "ERROR: Too many arguments" in result.stderr
+    assert result.returncode != 0
