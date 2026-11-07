@@ -7,6 +7,7 @@ import pytest
 from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 
 from pip._internal.cache import SimpleWheelCache, WheelCache, _hash_dict
+from pip._internal.models.direct_url import ArchiveInfo, DirectUrl
 from pip._internal.models.link import Link
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.urls import path_to_url
@@ -152,3 +153,40 @@ def test_wheel_cache_entry_none_for_existing_directory(tmpdir: Path) -> None:
 
     assert wc.get_cache_entry(link, "example", supported_tags) is None
     assert wc.get(link, "example", supported_tags) is link
+
+
+def test_record_download_origin_ignores_stripped_auth_difference(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    download_info = DirectUrl(
+        url="https://user:secret@example.com/pkg.tar.gz",
+        archive_info=ArchiveInfo(),
+    )
+
+    WheelCache.record_download_origin(str(tmp_path), download_info)
+    WheelCache.record_download_origin(str(tmp_path), download_info)
+
+    assert caplog.records == []
+
+
+def test_record_download_origin_redacts_auth_from_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    old_info = DirectUrl(
+        url="https://old-user:old-secret@old.example/pkg.tar.gz",
+        archive_info=ArchiveInfo(),
+    )
+    new_info = DirectUrl(
+        url="https://new-user:new-secret@new.example/pkg.tar.gz",
+        archive_info=ArchiveInfo(),
+    )
+    WheelCache.record_download_origin(str(tmp_path), old_info)
+
+    WheelCache.record_download_origin(str(tmp_path), new_info)
+
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert "old-secret" not in message
+    assert "new-secret" not in message
+    assert "https://old.example/pkg.tar.gz" in message
+    assert "https://new.example/pkg.tar.gz" in message

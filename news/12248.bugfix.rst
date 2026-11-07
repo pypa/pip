@@ -1,2 +1,0 @@
-Report build-backend import failures as pip errors instead of displaying an
-uncaught traceback.

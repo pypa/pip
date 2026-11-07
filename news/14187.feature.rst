@@ -1,3 +1,0 @@
-Support ``--no-binary`` with ``-r pylock.toml``. Before, pip would get the
-sdist from the index instead of the locked URL, or fail if no wheel were
-available available in the lock file.

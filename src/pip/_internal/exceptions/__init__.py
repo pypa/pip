@@ -30,6 +30,7 @@ from pip._vendor.rich.markup import escape
 from pip._vendor.rich.text import Text
 
 from pip._internal.exceptions._base import (
+    BlockedImportError,
     DiagnosticPipError,
     InstallationError,
     PipError,
@@ -81,6 +82,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     # base
+    "BlockedImportError",
     "DiagnosticPipError",
     "InstallationError",
     "PipError",

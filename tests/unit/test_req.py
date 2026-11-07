@@ -55,6 +55,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.resolution.legacy.resolver import Resolver
+from pip._internal.utils.packaging import get_requirement, requirement_without_marker
 from pip._internal.utils.urls import path_to_url
 
 from tests.lib import TestData, make_test_finder, requirements_file, wheel
@@ -240,6 +241,30 @@ class TestRequirementSet:
             options, args = command.parse_args(["-r", os.fspath(reqs_file)])
             command.get_requirements(args, options, finder, session)
         assert not options.require_hashes
+
+    @pytest.mark.parametrize(
+        "user_algorithm, user_hash",
+        [("sha256", "a" * 64), ("sha512", "a" * 128)],
+        ids=["sha256", "sha512"],
+    )
+    def test_no_require_hashes_prefers_user_hash(
+        self, data: TestData, user_algorithm: str, user_hash: str
+    ) -> None:
+        index_hash = "b" * 64
+        req = get_processed_req_from_line(
+            f"simple==1.0 --hash={user_algorithm}:{user_hash}"
+        )
+        req.link = Link(
+            f"https://example.org/simple-1.0-py3-none-any.whl#sha256={index_hash}"
+        )
+        finder = make_test_finder(find_links=[data.find_links])
+
+        with self._basic_resolver(finder) as resolver:
+            hashes = resolver.preparer._get_linked_req_hashes(req)
+
+        assert hashes.digest_count == 1
+        assert hashes.is_hash_allowed(user_algorithm, user_hash)
+        assert not hashes.is_hash_allowed("sha256", index_hash)
 
     def test_require_hashes_no_require_hashes_in_reqs_file(
         self, data: TestData, tmpdir: Path
@@ -756,6 +781,17 @@ class TestInstallRequirement:
             assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
+    def test_format_without_marker_keeps_comes_from(self) -> None:
+        ireq = InstallRequirement(
+            get_requirement('foo; extra == "x" and python_version >= "3"'),
+            comes_from="bar",
+        )
+        assert ireq.format_without_marker() == "foo (from bar)"
+        assert str(ireq) != ireq.format_without_marker()
+        assert ireq.markers is not None
+        assert ireq.req is not None
+        assert ireq.req.marker is not None
+
     def test_extras_for_line_path_requirement(self) -> None:
         line = "SomeProject[ex1,ex2]"
         filename = "filename"
@@ -1012,6 +1048,21 @@ def test_mismatched_versions(caplog: pytest.LogCaptureFixture) -> None:
     assert caplog.records[-1].message == (
         "Requested simplewheel==2.0, but installing version 1.0"
     )
+
+
+@pytest.mark.parametrize(
+    "marker",
+    [
+        'extra == "feature"',
+        'extra == "feature" and python_version >= "3"',
+        'python_version >= "3" and extra == "feature"',
+        '(extra == "a" or extra == "b") and os_name == "posix"',
+    ],
+)
+def test_requirement_without_marker(marker: str) -> None:
+    req = get_requirement(f"missing-dependency-xyz; {marker}")
+    assert str(requirement_without_marker(req)) == "missing-dependency-xyz"
+    assert req.marker is not None  # the cached original is untouched
 
 
 @pytest.mark.parametrize(
