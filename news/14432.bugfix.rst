@@ -1,0 +1,2 @@
+Avoid using a shell when launching the editor in ``pip config edit``,
+preventing shell expansion of the configuration file path.

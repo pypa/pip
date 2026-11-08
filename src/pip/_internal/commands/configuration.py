@@ -3,6 +3,8 @@ from __future__ import annotations
 import inspect
 import logging
 import os
+import shlex
+import shutil
 import subprocess
 from collections.abc import Callable
 from optparse import Values
@@ -15,6 +17,7 @@ from pip._internal.configuration import (
     get_configuration_files,
 )
 from pip._internal.exceptions import PipError
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
 
@@ -252,24 +255,40 @@ class ConfigurationCommand(Command):
                 env_var = f"PIP_{key.upper()}"
                 write_output("%s=%r", env_var, value)
 
+    @staticmethod
+    def _split_editor(editor: str) -> list[str]:
+        try:
+            if WINDOWS:
+                raw_args = shlex.split(editor, posix=False)
+                return [
+                    (
+                        arg[1:-1]
+                        if (arg.startswith('"') and arg.endswith('"') and len(arg) >= 2)
+                        else arg
+                    )
+                    for arg in raw_args
+                ]
+            return shlex.split(editor)
+        except ValueError as e:
+            raise PipError(f"Cannot parse editor command {editor!r}: {e}") from None
+
     def open_in_editor(self, options: Values) -> None:
         editor = self._determine_editor(options)
+        cmd_args = self._split_editor(editor)
+        if not cmd_args:
+            raise PipError("Cannot parse editor command.")
 
         fname = self.configuration.get_file_to_edit()
         if fname is None:
             raise PipError("Could not determine appropriate file.")
-        elif '"' in fname:
-            # This shouldn't happen, unless we see a username like that.
-            # If that happens, we'd appreciate a pull request fixing this.
-            raise PipError(
-                f'Can not open an editor for a file name containing "\n{fname}'
-            )
 
+        executable = shutil.which(cmd_args[0]) or cmd_args[0]
+        cmd = [executable, *cmd_args[1:], fname]
         try:
-            subprocess.check_call(f'{editor} "{fname}"', shell=True)
+            subprocess.check_call(cmd)
         except FileNotFoundError as e:
             if not e.filename:
-                e.filename = editor
+                e.filename = cmd_args[0]
             raise
         except subprocess.CalledProcessError as e:
             raise PipError(f"Editor Subprocess exited with exit code {e.returncode}")
