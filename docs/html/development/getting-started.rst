@@ -27,7 +27,13 @@ Development Environment
 Pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
-For developing pip, you need to install :pypi:`nox`. The full development setup would then be:
+You can use :pypi:`nox` to manage development environments, or install the
+dependencies in your own virtual environment.
+
+Using Nox
+---------
+
+Install Nox in a virtual environment:
 
 .. tab:: Unix/macOS
 
@@ -44,6 +50,82 @@ For developing pip, you need to install :pypi:`nox`. The full development setup 
         py -m venv .venv
         .venv\Scripts\activate
         py -m pip install nox
+
+Nox installs each session's dependencies from ``pylock.dev.toml`` by default.
+
+To try different dependency versions or use a platform outside the lock,
+set ``PIP_NOX_USE_LOCK=0`` and use ``-N`` to create a fresh environment:
+
+.. tab:: Unix/macOS
+
+    .. code-block:: shell
+
+        PIP_NOX_USE_LOCK=0 nox -N -s test-3.10
+
+.. tab:: Windows
+
+    .. code-block:: powershell
+
+        $env:PIP_NOX_USE_LOCK = "0"
+        nox -N -s test-3.10
+        Remove-Item Env:PIP_NOX_USE_LOCK
+
+Installing dependencies yourself
+--------------------------------
+
+To install the test, type-checking, lint and documentation dependencies together,
+activate a virtual environment and run:
+
+.. code-block:: shell
+
+    python -m pip install --upgrade "pip>=26.3"
+    python -m pip install --group pylock.dev.toml:dev --group pylock.dev.toml:build
+    python -m pip install --no-build-isolation -e .
+
+For an individual task, replace ``dev`` with ``test``, ``typecheck``, ``lint``
+or ``docs``. Keep ``build`` to install the locked build backend.
+
+Run tools directly in this environment:
+
+.. list-table::
+    :header-rows: 1
+
+    * - Group
+      - Command
+    * - ``test``
+      - ``python -m pytest -n auto``
+    * - ``typecheck``
+      - ``python -m mypy --config-file=tests/typing/pyproject.toml src/pip tests tools noxfile.py``
+    * - ``lint``
+      - ``pre-commit run --all-files``
+    * - ``docs``
+      - ``python -m sphinx -W -t html -c docs/html -b html docs/html docs/build/html``
+
+Before running tests directly, populate the test wheel cache:
+
+.. code-block:: shell
+
+    python -m pip wheel --wheel-dir tests/data/common_wheels --group pylock.dev.toml:test-common-wheels
+
+Remove ``tests/data/common_wheels`` before rebuilding it with different versions;
+the tests expect one wheel per package. Nox manages this cache automatically.
+
+For unlocked dependencies, use ``python -m pip install --group dev`` and
+``python -m pip install -e .`` instead.
+
+Updating the locks
+------------------
+
+After changing dependencies, regenerate the development and script locks with:
+
+.. code-block:: shell
+
+    python -m nox -s lock
+
+This uses Nab to update ``pylock.dev.toml`` and
+``tools/pylock.update-rtd-redirects.toml``. CI checks that both locks match
+their dependency declarations.
+
 
 Running pip From Source Tree
 ============================
@@ -89,7 +171,8 @@ To run tests without parallelization, run:
     $ nox -s test-3.10
 
 The example above runs tests against Python 3.10. You can also use other
-versions like ``3.15`` and ``pypy3``.
+versions like ``3.15`` and ``pypy3``. The PyPy test toolchain requires PyPy 3.11
+because the current cryptography dependency does not support PyPy 3.10.
 
 ``nox`` has been configured to forward any additional arguments it is given to
 ``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you

@@ -1,0 +1,249 @@
+lock-version = "1.0"
+environments = [
+    "python_version == \"3.11\" and sys_platform == \"linux\" and platform_machine == \"x86_64\" and platform_python_implementation == \"CPython\"",
+]
+requires-python = ">=3.11"
+created-by = "nab"
+
+[[packages]]
+name = "anyio"
+version = "4.15.1"
+requires-python = ">=3.10"
+dependencies = [
+    { name = "idna" },
+    { name = "typing-extensions" },
+]
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "anyio-4.15.1-py3-none-any.whl"
+upload-time = 2026-09-05T10:42:37.923487+00:00
+url = "https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl"
+size = 132079
+
+[packages.wheels.hashes]
+sha256 = "6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101"
+
+[[packages]]
+name = "certifi"
+version = "2026.10.23"
+requires-python = ">=3.7"
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "certifi-2026.10.23-py3-none-any.whl"
+upload-time = 2026-10-23T11:36:14.763067+00:00
+url = "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl"
+size = 135082
+
+[packages.wheels.hashes]
+sha256 = "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1"
+
+[[packages]]
+name = "h11"
+version = "0.16.0"
+requires-python = ">=3.8"
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "h11-0.16.0-py3-none-any.whl"
+upload-time = 2025-04-24T03:35:24.344199+00:00
+url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl"
+size = 37515
+
+[packages.wheels.hashes]
+sha256 = "63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86"
+
+[[packages]]
+name = "httpcore"
+version = "1.0.9"
+requires-python = ">=3.8"
+dependencies = [
+    { name = "certifi" },
+    { name = "h11" },
+]
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "httpcore-1.0.9-py3-none-any.whl"
+upload-time = 2025-04-24T22:06:20.566605+00:00
+url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl"
+size = 78784
+
+[packages.wheels.hashes]
+sha256 = "2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55"
+
+[[packages]]
+name = "httpx"
+version = "0.28.1"
+requires-python = ">=3.8"
+dependencies = [
+    { name = "anyio" },
+    { name = "certifi" },
+    { name = "httpcore" },
+    { name = "idna" },
+]
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "httpx-0.28.1-py3-none-any.whl"
+upload-time = 2024-12-06T15:37:21.509172+00:00
+url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl"
+size = 73517
+
+[packages.wheels.hashes]
+sha256 = "d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad"
+
+[[packages]]
+name = "idna"
+version = "3.20"
+requires-python = ">=3.9"
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "idna-3.20-py3-none-any.whl"
+upload-time = 2026-09-17T14:11:03.168153+00:00
+url = "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl"
+size = 69583
+
+[packages.wheels.hashes]
+sha256 = "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c"
+
+[[packages]]
+name = "markdown-it-py"
+version = "4.2.0"
+requires-python = ">=3.10"
+dependencies = [
+    { name = "mdurl" },
+]
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "markdown_it_py-4.2.0-py3-none-any.whl"
+upload-time = 2026-05-07T12:08:27.182789+00:00
+url = "https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl"
+size = 91687
+
+[packages.wheels.hashes]
+sha256 = "9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a"
+
+[[packages]]
+name = "mdurl"
+version = "0.1.2"
+requires-python = ">=3.7"
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "mdurl-0.1.2-py3-none-any.whl"
+upload-time = 2022-08-14T12:40:09.779676+00:00
+url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl"
+size = 9979
+
+[packages.wheels.hashes]
+sha256 = "84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"
+
+[[packages]]
+name = "pygments"
+version = "2.21.0"
+requires-python = ">=3.9"
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "pygments-2.21.0-py3-none-any.whl"
+upload-time = 2026-08-17T08:02:44.912148+00:00
+url = "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl"
+size = 1250147
+
+[packages.wheels.hashes]
+sha256 = "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"
+
+[[packages]]
+name = "pyyaml"
+version = "6.0.3"
+requires-python = ">=3.8"
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+upload-time = 2025-09-25T21:32:04.553491+00:00
+url = "https://files.pythonhosted.org/packages/71/60/917329f640924b18ff085ab889a11c763e0b573da888e8404ff486657602/pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+size = 806638
+
+[packages.wheels.hashes]
+sha256 = "b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d"
+
+[[packages]]
+name = "rich"
+version = "15.0.0"
+requires-python = ">=3.9.0"
+dependencies = [
+    { name = "markdown-it-py" },
+    { name = "pygments" },
+]
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "rich-15.0.0-py3-none-any.whl"
+upload-time = 2026-04-12T08:24:02.830783+00:00
+url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl"
+size = 310654
+
+[packages.wheels.hashes]
+sha256 = "33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb"
+
+[[packages]]
+name = "typing-extensions"
+version = "4.16.0"
+requires-python = ">=3.9"
+index = "https://pypi.org/simple/"
+
+[[packages.wheels]]
+name = "typing_extensions-4.16.0-py3-none-any.whl"
+upload-time = 2026-07-02T08:40:04.659120+00:00
+url = "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl"
+size = 45571
+
+[packages.wheels.hashes]
+sha256 = "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+
+[tool.nab]
+nab-version = "0.0.27"
+created-at = 2026-11-08T04:27:53.810513+00:00
+command-line = [
+    "nab",
+    "lock",
+    "--script",
+    "tools/update-rtd-redirects.py",
+    "--project-mode",
+    "specific",
+    "--project-environment-python",
+    "3.11",
+    "--project-environment-platform",
+    "linux_x86_64",
+    "--project-environment-implementation",
+    "cpython",
+    "--project-uploaded-prior-to",
+    "P7D",
+    "--project-dist-policy",
+    "sdist-if-needed",
+    "--project-build-policy",
+    "never",
+]
+input-path = "tools/update-rtd-redirects.py"
+mode = "specific"
+python-specifier = ">=3.11"
+cli-project-overrides = [
+    "--project-mode=specific",
+    "--project-uploaded-prior-to=P7D",
+    "--project-dist-policy=sdist-if-needed",
+    "--project-build-policy=never",
+    "--project-environment-python=3.11",
+    "--project-environment-platform=linux_x86_64",
+    "--project-environment-implementation=cpython",
+]
+
+[tool.nab.validation]
+version = 1
+all-inputs-sha256 = "b3b1a972470dbcfc71576c881f0e3a9aec257104c775fce3b0a90507bee0aba0"
+selection-inputs-sha256 = "a68e1e991e393948452d365b1b5710a2ba75afb1e0de1e3844b80527c09adf30"
+contents-sha256 = "1284e86ef5829faa86eab1a48e8543b9430b177ab40eb6d549a3a05640646b2c"

@@ -38,8 +38,22 @@ jobs:
         with:
           python-version: "3.x"
       - run: python -m pip install .
-      - run: python -m pip install nox
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
       - run: python -m nox -s docs
+
+  dev-lock:
+    name: dev-lock
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - run: python -m pip install .
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
+      - run: python -m nox -s lock -- --locked
 
   determine-changes:
     runs-on: ubuntu-latest
@@ -57,12 +71,16 @@ jobs:
               - "src/pip/_vendor/**"
               - "pyproject.toml"
               - "noxfile.py"
+              - "pylock.dev.toml"
             tests:
               # Anything that's touching code-related stuff
               - ".github/workflows/ci.yml"
               - "src/**"
               - "tests/**"
               - "noxfile.py"
+              - "pylock.dev.toml"
+              - "tools/protected_pip.py"
+              - "tools/release/**"
               # Holds the pytest configuration and the test dependency groups.
               - "pyproject.toml"
               # The test suite should also run when cutting a release
@@ -90,10 +108,9 @@ jobs:
           git config --global user.name "pip"
 
       - run: python -m pip install .
-      - run: python -m pip install nox
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
       - run: python -m nox -s prepare-release -- 99.9
       - run: python -m nox -s build-release -- 99.9
-      - run: pipx run check-sdist
 
   vendoring:
     name: vendoring
@@ -113,7 +130,7 @@ jobs:
           python-version: "3.x"
 
       - run: python -m pip install .
-      - run: python -m pip install nox
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
       - run: python -m nox -s vendoring
       - run: git diff --exit-code
 
@@ -138,6 +155,7 @@ jobs:
           - "3.14"
           - "3.15"
           - "3.14t"
+          - "3.15t"
         include:
           # Oldest patches catch backport regressions. Use their Ubuntu 24.04 builds.
           # See: https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
@@ -161,11 +179,6 @@ jobs:
           python-version: ${{ matrix.python.version || matrix.python }}
           allow-prereleases: true
 
-      - name: Set PYTHON_GIL
-        if: endsWith(matrix.python.version || matrix.python, 't')
-        run: |
-          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
-
       - name: Install Ubuntu dependencies
         if: runner.os == 'Linux'
         run: |
@@ -182,7 +195,7 @@ jobs:
           brew install ${DEPS}
 
       - run: python -m pip install .
-      - run: python -m pip install nox
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
 
       # Main check
       - name: Run unit tests
@@ -220,6 +233,7 @@ jobs:
           - "3.14"
           - "3.15"
           - "3.14t"
+          - "3.15t"
         # Windows is slow, so shard unit + functional across runners, split by a
         # stable hash of each test's node id (see --num-test-groups in conftest).
         group: [1, 2, 3]
@@ -240,11 +254,6 @@ jobs:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
 
-      - name: Set PYTHON_GIL
-        if: endsWith(matrix.python, 't')
-        run: |
-          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
-
       - name: Install Subversion
         shell: pwsh
         run: |
@@ -259,7 +268,7 @@ jobs:
           echo "C:\Program Files\SlikSvn\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - run: python -m pip install .
-      - run: python -m pip install nox
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
 
       # Main check. worksteal rebalances the long tail of slow install tests
       # onto idle workers:
@@ -295,7 +304,7 @@ jobs:
           sudo apt-get install brz subversion
 
       - run: python -m pip install .
-      - run: python -m pip install nox
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
 
       # Main check
       - name: Run integration tests
@@ -311,6 +320,7 @@ jobs:
 
     needs:
       - determine-changes
+      - dev-lock
       - docs
       - packaging
       - tests-unix
