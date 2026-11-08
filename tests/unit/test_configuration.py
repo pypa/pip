@@ -1,14 +1,56 @@
 """Tests for all things related to the configuration"""
 
 import re
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from pip._internal.configuration import Configuration, Kind, get_configuration_files
-from pip._internal.exceptions import ConfigurationError
+from pip._internal.exceptions import (
+    ConfigurationError,
+    ConfigurationFileCouldNotBeLoaded,
+)
 
 from tests.lib.configuration_helpers import ConfigurationMixin
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="locale.getencoding requires 3.11+"
+)
+def test_configuration_encoding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("locale.getencoding", lambda: "latin-1")
+    encoding = "utf-8" if sys.flags.utf8_mode else "latin-1"
+    value = "café"
+    config_file = tmp_path / "pip.ini"
+    config_file.write_text(f"[global]\n# {value}\ncert = {value}\n", encoding=encoding)
+
+    parser = Configuration(isolated=True)._construct_parser(str(config_file))
+
+    assert parser.get("global", "cert") == value
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="locale.getencoding requires 3.11+"
+)
+def test_configuration_invalid_encoding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("locale.getencoding", lambda: "ascii")
+    encoding = "utf-8" if sys.flags.utf8_mode else "ascii"
+    config_file = tmp_path / "pip.ini"
+    config_file.write_bytes(b"[global]\ncert = \xff\n")
+
+    with pytest.raises(
+        ConfigurationFileCouldNotBeLoaded,
+        match=f"contains invalid {encoding} characters",
+    ) as error:
+        Configuration(isolated=True)._construct_parser(str(config_file))
+
+    assert str(config_file) in str(error.value)
 
 
 def test_invalid_load_only_lists_source_values() -> None:

@@ -40,6 +40,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import build_backend_warnings
 from pip._internal.utils.retry import retry
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -379,11 +380,8 @@ def splitext(path: str) -> tuple[str, str]:
     return base, ext
 
 
-def renames(old: str, new: str, *, preserve_parent: str | None = None) -> None:
-    """Like os.renames(), but handle cross-device moves.
-
-    Never remove ``preserve_parent`` while cleaning empty source directories.
-    """
+def renames(old: str, new: str) -> None:
+    """Like os.renames(), but handles renaming across devices."""
     # Implementation borrowed from os.renames().
     head, tail = os.path.split(new)
     if head and tail and not os.path.exists(head):
@@ -393,24 +391,10 @@ def renames(old: str, new: str, *, preserve_parent: str | None = None) -> None:
 
     head, tail = os.path.split(old)
     if head and tail:
-        if preserve_parent is None:
-            try:
-                os.removedirs(head)
-            except OSError:
-                pass
-        else:
-            preserve_parent = os.path.normcase(preserve_parent.rstrip(os.path.sep))
-
-            # os.removedirs() cannot stop at the linked-directory boundary.
-            while os.path.normcase(head.rstrip(os.path.sep)) != preserve_parent:
-                try:
-                    os.rmdir(head)
-                except OSError:
-                    break
-                parent = os.path.dirname(head)
-                if parent == head:
-                    break
-                head = parent
+        try:
+            os.removedirs(head)
+        except OSError:
+            pass
 
 
 def is_local(path: str) -> bool:
@@ -702,17 +686,20 @@ def partition(
     return filterfalse(pred, t1), filter(pred, t2)
 
 
-def _handle_backend_unavailable(func: F) -> F:
+def _build_backend_hook(func: F) -> F:
+    """Apply warning policy and translate failures for a public backend hook."""
+
     @wraps(func)
     def wrapper(
         self: ConfiguredBuildBackendHookCaller,
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-        try:
-            return func(self, *args, **kwargs)
-        except BackendUnavailable as error:
-            self._raise_backend_unavailable(func.__name__, error)
+        with build_backend_warnings(self.backend_warning_level):
+            try:
+                return func(self, *args, **kwargs)
+            except BackendUnavailable as error:
+                self._raise_backend_unavailable(func.__name__, error)
 
     return cast(F, wrapper)
 
@@ -726,11 +713,14 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         backend_path: str | None = None,
         runner: Callable[..., None] | None = None,
         python_executable: str | None = None,
+        *,
+        backend_warning_level: int = logging.DEBUG,
     ):
         super().__init__(
             source_dir, build_backend, backend_path, runner, python_executable
         )
         self.config_holder = config_holder
+        self.backend_warning_level = backend_warning_level
 
     def _raise_backend_unavailable(
         self, hook_name: str, error: BackendUnavailable
@@ -746,11 +736,11 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         logger.error("%s", exception, extra={"rich": True})
         raise exception from error
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def supports_feature(self, feature: str) -> bool:
         return feature in self._supported_features()
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def build_wheel(
         self,
         wheel_directory: str,
@@ -762,7 +752,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             wheel_directory, config_settings=cs, metadata_directory=metadata_directory
         )
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def build_sdist(
         self,
         sdist_directory: str,
@@ -771,7 +761,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
         cs = self.config_holder.config_settings
         return super().build_sdist(sdist_directory, config_settings=cs)
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def build_editable(
         self,
         wheel_directory: str,
@@ -783,28 +773,28 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             wheel_directory, config_settings=cs, metadata_directory=metadata_directory
         )
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def get_requires_for_build_wheel(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_wheel(config_settings=cs)
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def get_requires_for_build_sdist(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_sdist(config_settings=cs)
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def get_requires_for_build_editable(
         self, config_settings: Mapping[str, Any] | None = None
     ) -> Sequence[str]:
         cs = self.config_holder.config_settings
         return super().get_requires_for_build_editable(config_settings=cs)
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def prepare_metadata_for_build_wheel(
         self,
         metadata_directory: str,
@@ -818,13 +808,13 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             _allow_fallback=_allow_fallback,
         )
 
-    @_handle_backend_unavailable
+    @_build_backend_hook
     def prepare_metadata_for_build_editable(
         self,
         metadata_directory: str,
         config_settings: Mapping[str, Any] | None = None,
         _allow_fallback: bool = True,
-    ) -> str | None:
+    ) -> str:
         cs = self.config_holder.config_settings
         return super().prepare_metadata_for_build_editable(
             metadata_directory=metadata_directory,

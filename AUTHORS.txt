@@ -207,6 +207,7 @@ Daniele Procida
 Daniil Konovalenko
 Danny Hermes
 Danny McClanahan
+Darren Carreras
 Darren Kavanagh
 Dav Clark
 Dave Abrahams
@@ -321,6 +322,7 @@ Gertjan van Zwieten
 ghost
 Giancarlo Cicellyn Comneno
 Giftlin Rajaiah
+github-actions[bot]
 gizmoguy1
 gkdoc
 Godefroid Chapelle
@@ -330,6 +332,7 @@ gousaiyang
 gpiks
 Greg Roodt
 Greg Ward
+Gregory P. Smith
 Guido Diepen
 Guilherme Espada
 Guillaume Seguin
@@ -372,6 +375,7 @@ Ilya Baryshev
 Inada Naoki
 Ionel Cristian Mărieș
 Ionel Maries Cristian
+Islam Asabaev
 Itamar Turner-Trauring
 iTrooz
 Ivan Pozdeev
@@ -467,6 +471,7 @@ Keith Maxwell
 Kelsey Hightower
 Kenneth Belitzky
 Kenneth Reitz
+Keto D. Zhang
 Kevin Burke
 Kevin Carter
 Kevin Frommelt
@@ -551,6 +556,7 @@ Maurits van Rees
 Max W Chase
 Maxim Kurnikov
 Maxime Rouyrre
+MaxxxDong
 mayeut
 mbaluna
 Md Sujauddin Sekh
@@ -796,6 +802,7 @@ Sviatoslav Sydorenko (Святослав Сидоренко)
 Swat009
 Sylvain
 S​age Abdullah
+T.Yamada
 Takayuki SHIMIZUKAWA
 Taneli Hukkinen
 tbeswick

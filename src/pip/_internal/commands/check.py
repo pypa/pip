@@ -3,6 +3,7 @@ from optparse import Values
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.exceptions import CommandError
 from pip._internal.metadata import get_default_environment
 from pip._internal.operations.check import (
     check_package_set,
@@ -23,6 +24,8 @@ class CheckCommand(Command):
       %prog [options]"""
 
     def run(self, options: Values, args: list[str]) -> int:
+        if args:
+            raise CommandError("Too many arguments")
         package_set, parsing_probs = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)
         unsupported = list(

@@ -49,7 +49,7 @@ from pip._internal.utils.misc import (
     redact_auth_from_requirement,
     redact_auth_from_url,
 )
-from pip._internal.utils.packaging import get_requirement
+from pip._internal.utils.packaging import get_requirement, requirement_without_marker
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory, TempDirectoryKind
 from pip._internal.utils.unpacking import unpack_file
@@ -75,6 +75,7 @@ class InstallRequirement:
         markers: Marker | None = None,
         isolated: bool = False,
         *,
+        source_link: Link | None = None,
         hash_options: dict[str, list[str]] | None = None,
         config_settings: dict[str, str | list[str]] | None = None,
         constraint: bool = False,
@@ -104,6 +105,10 @@ class InstallRequirement:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
+
+        # The link selected before wheel-cache substitution. Unlike ``link``, this
+        # does not change when pip substitutes a locally built cached wheel.
+        self._source_link = source_link if source_link is not None else link
 
         # When this InstallRequirement is a wheel obtained from the cache of locally
         # built wheels, this is the source link corresponding to the cache entry, which
@@ -179,8 +184,20 @@ class InstallRequirement:
         self._archive_source: Path | None = None
 
     def __str__(self) -> str:
+        return self._format()
+
+    def format_without_marker(self) -> str:
+        """Like ``str(self)``, but without the requirement's environment marker.
+
+        For error messages, where markers such as ``extra == "foo"`` are noise.
+        ``self.req`` and ``self.markers`` are not modified.
+        """
+        return self._format(include_marker=False)
+
+    def _format(self, include_marker: bool = True) -> str:
         if self.req:
-            s = redact_auth_from_requirement(self.req)
+            req = self.req if include_marker else requirement_without_marker(self.req)
+            s = redact_auth_from_requirement(req)
             if self.link:
                 s += f" from {redact_auth_from_url(self.link.url)}"
         elif self.link:
@@ -246,6 +263,19 @@ class InstallRequirement:
     def is_direct(self) -> bool:
         """Whether this requirement was specified as a direct URL."""
         return self.original_link is not None
+
+    @property
+    def source_link(self) -> Link | None:
+        """The link selected before wheel-cache substitution."""
+        return self._source_link
+
+    def set_source_link(self, link: Link) -> None:
+        """Record the selected source link, rejecting later changes."""
+        if self._source_link is None:
+            self._source_link = link
+            return
+        if self._source_link != link:
+            raise InstallationError(f"Cannot change the source link for {self}.")
 
     @property
     def is_pinned(self) -> bool:
@@ -502,6 +532,11 @@ class InstallRequirement:
             self._pep517_backend_spec,
             backend_path=self._pep517_backend_path,
             python_executable=python_executable,
+            backend_warning_level=(
+                logging.WARNING
+                if self.link and self.link.is_existing_dir()
+                else logging.DEBUG
+            ),
         )
 
     def editable_sanity_check(self) -> None:
@@ -775,6 +810,8 @@ class InstallRequirement:
         use_user_site: bool = False,
         pycompile: bool = True,
         script_executable: str | None = None,
+        *,
+        rollback_on_error: bool = False,
     ) -> None:
         # Lazy import to avoid transitively importing `_vendor.distlib.compat`
         # which in turn imports `urllib.request` which is slow.
@@ -806,6 +843,7 @@ class InstallRequirement:
             direct_url=self.download_info if self.is_direct else None,
             requested=self.user_supplied,
             script_executable=script_executable,
+            rollback_on_error=rollback_on_error,
         )
         self.install_succeeded = True
 

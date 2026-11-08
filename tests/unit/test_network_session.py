@@ -42,7 +42,7 @@ from pip._internal.utils.misc import CI_ENVIRONMENT_VARIABLES
 from pip._internal.utils.urls import path_to_url
 
 from tests.lib.output import render_to_text
-from tests.lib.server import make_mock_server, server_running
+from tests.lib.server import make_mock_server, server_running, text_html_response
 
 
 def render_diagnostic_error(error: DiagnosticPipError) -> tuple[str, str | None]:
@@ -535,6 +535,46 @@ class TestSSLContextAdapterMixinProxy:
         proxy_manager = adapter.proxy_manager_for("https://proxy.example:443")
 
         assert proxy_manager.proxy_ssl_context is None
+
+
+@pytest.mark.parametrize("cached", [False, True], ids=["direct", "cached"])
+@pytest.mark.parametrize(
+    "ca_source",
+    ["cli", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"],
+)
+def test_https_proxy_uses_custom_ca_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    cert_factory: Callable[[], str],
+    cached: bool,
+    ca_source: str,
+) -> None:
+    for name in ("PIP_CERT", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"):
+        monkeypatch.delenv(name, raising=False)
+
+    proxy_cert = cert_factory()
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(proxy_cert)
+    server = make_mock_server(ssl_context=context)
+    server.mock.return_value = text_html_response("proxy response")
+
+    args = ["--retries", "0"]
+    if ca_source == "cli":
+        args.extend(["--cert", proxy_cert])
+    else:
+        monkeypatch.setenv(ca_source, proxy_cert)
+    args.extend(
+        ["--cache-dir", str(tmp_path / "cache")] if cached else ["--no-cache-dir"]
+    )
+    _, session = TestSessionProxy._build_session(monkeypatch, [*args, "example"])
+    session.proxies = {"https": f"https://{server.host}:{server.port}"}
+
+    with session, server_running(server):
+        with pytest.raises((SSLVerificationError, ConnectionFailedError)):
+            session.get("https://origin.example/", timeout=5)
+
+    environ, _ = server.mock.call_args.args
+    assert environ["REQUEST_METHOD"] == "CONNECT"
 
 
 class TestConnectionErrors:

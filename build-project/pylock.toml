@@ -14,14 +14,14 @@ sha256 = "ecd351a4be9d35a9eaaba244a7687143c9c7d4aea6ac964e7e7ddab20cbcf4e7"
 
 [[packages]]
 name = "flit-core"
-version = "4.1.0"
+version = "4.2.0"
 
 [[packages.wheels]]
-name = "flit_core-4.1.0-py3-none-any.whl"
-url = "https://files.pythonhosted.org/packages/38/2a/8ea4bd54734f0fcbb507c28cb6b79d72f528e40498178a01cb35fc5d686f/flit_core-4.1.0-py3-none-any.whl"
+name = "flit_core-4.2.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/d9/f0/e546c28b937f094b354ca29b9060c5f1dd5043a332b2905049a51420b7a2/flit_core-4.2.0-py3-none-any.whl"
 
 [packages.wheels.hashes]
-sha256 = "17398cdd2c38b24047a5a9c93089ec5c0bf12ec3d1469bbf69c27ed7965299db"
+sha256 = "2bee22dc8ba89c2e35b4e1ad575e596aac945c85672dd8f3cad21b629036e044"
 
 [[packages]]
 name = "packaging"

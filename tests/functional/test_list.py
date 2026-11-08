@@ -8,9 +8,9 @@ from tests.lib import (
     PipTestEnvironment,
     ScriptFactory,
     TestData,
-    _create_test_package,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
+    create_test_package,
     create_test_package_with_setup,
     make_wheel,
     wheel,
@@ -883,7 +883,7 @@ def test_list_pep610_editable(script: PipTestEnvironment) -> None:
     Test that a package installed with a direct_url.json with editable=true
     is correctly listed as editable.
     """
-    pkg_path = _create_test_package(script.scratch_path, name="testpkg")
+    pkg_path = create_test_package(script.scratch_path, name="testpkg")
     result = script.pip("install", "--no-build-isolation", pkg_path)
     direct_url_path = result.get_created_direct_url_path("testpkg")
     assert direct_url_path
@@ -984,3 +984,11 @@ def test_outdated_all_releases_for_specific_package(
     assert len(outdated) == 1
     assert outdated[0]["name"] == "simple"
     assert outdated[0]["latest_version"] == "2.0a1"
+
+
+def test_list_rejects_extra_argument(
+    simple_script: PipTestEnvironment,
+) -> None:
+    result = simple_script.pip("list", "unexpected_arg", expect_error=True)
+    assert "ERROR: Too many arguments" in result.stderr
+    assert result.returncode != 0
