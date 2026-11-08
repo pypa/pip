@@ -17,8 +17,9 @@ import pytest
 
 from pip._vendor.requests.exceptions import InvalidProxyURL
 
-from pip._internal.commands import install
+from pip._internal.commands import create_command, install
 from pip._internal.commands.install import (
+    InstallCommand,
     _prevent_further_imports,
     create_os_error_message,
     decide_user_install,
@@ -708,3 +709,33 @@ def test_reify_lazy_imports_preserves_dependency_import_error(
     with pytest.raises(ModuleNotFoundError, match="No module named") as missing:
         install._prevent_import_hook("import", (module,))
     assert missing.value.name == "_pip_reify_missing_dependency"
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_handle_target_dir_preserves_dangling_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Leave a dangling file link in place across filesystems."""
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    outside = tmp_path / "outside"
+    (target_dir / "topmod.py").symlink_to(outside)
+
+    temp_dir = TempDirectory(path=str(tmp_path / "temp"))
+    purelib = Path(get_scheme("", home=temp_dir.path).purelib)
+    purelib.mkdir(parents=True)
+    (purelib / "topmod.py").write_text("installed")
+
+    def no_rename(src: str, dst: str) -> None:
+        """Force shutil.move() to use its cross-device fallback."""
+        raise OSError(errno.EXDEV, "Invalid cross-device link")
+
+    monkeypatch.setattr(os, "rename", no_rename)
+
+    command = create_command("install")
+    assert isinstance(command, InstallCommand)
+    command._handle_target_dir(str(target_dir), temp_dir, upgrade=True)
+
+    assert not outside.exists()
+    assert (target_dir / "topmod.py").is_symlink()
+    assert (purelib / "topmod.py").read_text() == "installed"
