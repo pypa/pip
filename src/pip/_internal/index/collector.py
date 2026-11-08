@@ -284,7 +284,7 @@ class HTMLLinkParser(HTMLParser):
         if tag == "base" and self.base_url is None:
             href = self.get_href(attrs)
             if href is not None:
-                self.base_url = href
+                self.base_url = urllib.parse.urljoin(self.url, href)
         elif tag == "a":
             self.anchors.append(dict(attrs))
 

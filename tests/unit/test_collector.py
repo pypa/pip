@@ -679,6 +679,47 @@ def test_parse_links__metadata_file_data(
     assert link._hashes == hashes
 
 
+@pytest.mark.parametrize(
+    "base_tags, expected",
+    [
+        ("", "https://example.com/simple/demo/demo-1.tar.gz"),
+        ('<base href="../../files/">', "https://example.com/files/demo-1.tar.gz"),
+        ('<base href="/files/">', "https://example.com/files/demo-1.tar.gz"),
+        ('<base href="//files.example/">', "https://files.example/demo-1.tar.gz"),
+        ('<base href="https://files.example/">', "https://files.example/demo-1.tar.gz"),
+        (
+            '<base target="_blank"><base href="../../files/">',
+            "https://example.com/files/demo-1.tar.gz",
+        ),
+        (
+            '<base href="../../files/"><base href="https://other.example/">',
+            "https://example.com/files/demo-1.tar.gz",
+        ),
+        (
+            '<base href=""><base href="https://other.example/">',
+            "https://example.com/simple/demo/demo-1.tar.gz",
+        ),
+    ],
+)
+def test_parse_links_base_url(base_tags: str, expected: str) -> None:
+    html = (
+        f"<!DOCTYPE html><html><head>{base_tags}</head>"
+        '<body><a href="demo-1.tar.gz">demo-1.tar.gz</a></body></html>'
+    )
+    page = IndexContent(
+        html.encode(),
+        "text/html",
+        encoding="utf-8",
+        url="https://example.com/simple/demo/",
+        cache_link_parsing=False,
+    )
+
+    (link,) = parse_links(page)
+
+    assert link.url == expected
+    assert link.comes_from == page.url
+
+
 def test_parse_links_caches_same_page_by_url() -> None:
     html = (
         "<!DOCTYPE html>"
