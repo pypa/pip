@@ -379,6 +379,12 @@ def _set_installed_directory_mtimes(
     directories already assigned by deeper passes. Directories that may be
     shared with other distributions -- the scheme directories, such as
     site-packages itself -- are left untouched.
+
+    A directory counts as part of the distribution even when no file sits
+    directly inside it: a wheel may install ``pkg/sub/mod.py`` without any
+    file directly in ``pkg/``, and ``pkg`` still gets a wheel-derived mtime
+    (the maximum among the wheel-provided items it contains at any depth)
+    instead of an install-time mtime that churns on every reinstall.
     """
     scheme_dirs = {
         os.path.normcase(os.path.abspath(getattr(scheme, key))) for key in SCHEME_KEYS
@@ -390,15 +396,28 @@ def _set_installed_directory_mtimes(
         if current is None or mtime > current:
             max_file_mtime_by_dir[parent_dir] = mtime
 
-    dist_dirs = {
-        dir_path
-        for dir_path in max_file_mtime_by_dir
-        if os.path.normcase(os.path.abspath(dir_path)) not in scheme_dirs
-    }
+    # Collect every directory that directly received files from the wheel,
+    # plus its ancestors up to (but not including) the scheme directories.
+    # Every such directory was created by pip while extracting the wheel,
+    # since wheels contain no directory entries; the scheme directories
+    # themselves may predate the install and be shared with other
+    # distributions, so they are never included.
+    dist_dirs: set[str] = set()
+    for dir_path in max_file_mtime_by_dir:
+        current = dir_path
+        while (
+            os.path.dirname(current) != current
+            and os.path.normcase(os.path.abspath(current)) not in scheme_dirs
+        ):
+            dist_dirs.add(current)
+            current = os.path.dirname(current)
     # A parent directory always has fewer separators than its children, so
     # sorting by separator count guarantees children are assigned (and
     # propagated to their parent) before the parent is assigned.
-    dir_mtimes = {dir_path: max_file_mtime_by_dir[dir_path] for dir_path in dist_dirs}
+    dir_mtimes = {
+        dir_path: max_file_mtime_by_dir.get(dir_path, float("-inf"))
+        for dir_path in dist_dirs
+    }
     for dir_path in sorted(
         dist_dirs, key=lambda dir_path: dir_path.count(os.path.sep), reverse=True
     ):

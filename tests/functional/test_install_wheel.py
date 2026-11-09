@@ -845,8 +845,10 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
     Test that directories created for an installed wheel get deterministic
     mtimes: the maximum mtime among the wheel-provided items they contain
     (files with preserved mtimes, plus child directories assigned by deeper
-    passes), identical across reinstalls of the same wheel. The
-    site-packages directory itself must not be given a wheel-derived mtime.
+    passes), identical across reinstalls of the same wheel. This includes
+    directories with no file directly inside them, such as a package whose
+    only contents sit in a subpackage. The site-packages directory itself
+    must not be given a wheel-derived mtime.
     """
     package = make_wheel(
         "mtimepkg",
@@ -855,6 +857,8 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
             "mtimepkg/__init__.py": "#",
             "mtimepkg/sub/__init__.py": "#",
             "mtimepkg/sub/deep/mod.py": "#",
+            # No file sits directly in mtimepkg2/, only in its subpackage.
+            "mtimepkg2/sub/mod.py": "#",
         },
     ).save_to_dir(tmpdir)
     _set_wheel_entry_mtimes(
@@ -863,6 +867,7 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
             "mtimepkg/__init__.py": (2016, 3, 4, 5, 6, 8),
             "mtimepkg/sub/__init__.py": (2020, 2, 2, 1, 2, 4),
             "mtimepkg/sub/deep/mod.py": (2015, 1, 1, 0, 0, 0),
+            "mtimepkg2/sub/mod.py": (2019, 12, 31, 23, 59, 58),
         },
     )
 
@@ -870,10 +875,14 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
     pkg_dir = script.site_packages_path / "mtimepkg"
     sub_dir = pkg_dir / "sub"
     deep_dir = sub_dir / "deep"
+    pkg2_dir = script.site_packages_path / "mtimepkg2"
+    pkg2_sub_dir = pkg2_dir / "sub"
     after_first_install = (
         pkg_dir.stat().st_mtime,
         sub_dir.stat().st_mtime,
         deep_dir.stat().st_mtime,
+        pkg2_dir.stat().st_mtime,
+        pkg2_sub_dir.stat().st_mtime,
     )
 
     script.pip("install", "--no-index", "--force-reinstall", package)
@@ -881,6 +890,8 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
         pkg_dir.stat().st_mtime,
         sub_dir.stat().st_mtime,
         deep_dir.stat().st_mtime,
+        pkg2_dir.stat().st_mtime,
+        pkg2_sub_dir.stat().st_mtime,
     )
 
     # Reinstalling the same wheel does not churn directory mtimes.
@@ -896,6 +907,16 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
     )
     assert datetime.fromtimestamp(pkg_dir.stat().st_mtime) == datetime(
         2020, 2, 2, 1, 2, 4
+    )
+    # Directories with no file directly inside them still get the max mtime
+    # of the wheel-provided items they contain at any depth, so a package
+    # directory is not left with an install-time mtime that churns on every
+    # reinstall.
+    assert datetime.fromtimestamp(pkg2_sub_dir.stat().st_mtime) == datetime(
+        2019, 12, 31, 23, 59, 58
+    )
+    assert datetime.fromtimestamp(pkg2_dir.stat().st_mtime) == datetime(
+        2019, 12, 31, 23, 59, 58
     )
     # The site-packages directory is shared between distributions and must
     # not be assigned a wheel-derived mtime.
