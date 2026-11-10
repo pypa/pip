@@ -563,14 +563,24 @@ def test_check_submodule_addition(script: PipTestEnvironment) -> None:
     update_result.did_create(script.venv / "src/version-pkg/testpkg/static/testfile2")
 
 
-def test_install_git_branch_not_cached(script: PipTestEnvironment) -> None:
-    """
-    Installing git urls with a branch revision does not cause wheel caching.
-    """
+def test_install_git_branch_obeys_only_binary_and_is_not_cached(
+    script: PipTestEnvironment,
+) -> None:
+    """A Git branch obeys format control and does not populate the wheel cache."""
     PKG = "gitbranchnotcached"
     repo_dir = create_test_package(script.scratch_path, name=PKG)
     url = _make_version_pkg_url(repo_dir, rev="master", name=PKG)
-    result = script.pip("install", "--no-build-isolation", url, "--only-binary=:all:")
+    result = script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "--only-binary=:all:",
+        url,
+        expect_error=True,
+    )
+    assert f"No sources permitted for {PKG}" in result.stderr
+
+    result = script.pip("install", "--no-build-isolation", url)
     assert f"Successfully built {PKG}" in result.stdout, result.stdout
     script.pip("uninstall", "-y", PKG)
     # build occurs on the second install too because it is not cached
