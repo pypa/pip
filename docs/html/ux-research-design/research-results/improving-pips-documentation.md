@@ -55,7 +55,7 @@ In response to the question "When you have a problem using pip, what do you do?"
 - 56.9% of respondents search or ask on Stack Overflow
 - 33.8% of respondents use pip help from the command line
 - **25.6% of respondents go to the pip docs**
-- 20.6% of respondents go the the Python Packaging User Guide
+- 20.6% of respondents go to the Python Packaging User Guide
 - 8.1% of respondents ask on a forum, community board, or chat channel
 
 ![screenshot of survey results](https://i.imgur.com/qlt1b4n.png)
