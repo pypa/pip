@@ -69,6 +69,7 @@ from pip._internal.exceptions.uninstall import (
     UninstallMissingRecord,
 )
 from pip._internal.exceptions.wheel import (
+    IncompatibleWheelError,
     InvalidWheel,
     InvalidWheelFilename,
     UnsupportedWheel,
@@ -115,6 +116,7 @@ __all__ = [
     "LegacyDistutilsInstall",
     "UninstallMissingRecord",
     # wheel
+    "IncompatibleWheelError",
     "InvalidWheel",
     "InvalidWheelFilename",
     "UnsupportedWheel",
