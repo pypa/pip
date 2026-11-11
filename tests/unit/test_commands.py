@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import Callable
 from unittest import mock
@@ -132,6 +133,29 @@ def test_index_group_pip_version_check(
         mock_version_check.assert_called_once()
     else:
         mock_version_check.assert_not_called()
+
+
+@mock.patch(
+    "pip._internal.cli.index_command._pip_self_version_check_fetch",
+    side_effect=PermissionError("[WinError 5] Access is denied: 'D:\\packages'"),
+)
+def test_pip_version_check_logs_fetch_error(
+    mock_version_check: mock.Mock, caplog: pytest.LogCaptureFixture
+) -> None:
+    command = create_command("install")
+    options = command.parser.get_default_values()
+    options.disable_pip_version_check = False
+    options.no_index = False
+
+    with caplog.at_level(logging.WARNING):
+        with command.pip_version_check(options, []):
+            pass
+
+    mock_version_check.assert_called_once()
+    assert caplog.messages == [
+        "Failed to check the latest version of pip: "
+        "[WinError 5] Access is denied: 'D:\\packages'"
+    ]
 
 
 @mock.patch("pip._internal.cli.index_command._pip_self_version_check_fetch")
