@@ -54,6 +54,19 @@ and let pip download know where to find them using ``--find-links``.
    - For the Python version, use :func:`sysconfig.get_python_version() <sysconfig.get_python_version>`.
    - For the platform, use :func:`packaging.tags.platform_tags() <packaging.tags.platform_tags>`.
 
+Downloading without running build code
+--------------------------------------
+
+To download a source archive without preparing its metadata, open the project's
+page on your trusted package index, select the desired release, and download the
+specific archive from its file listing using a browser or HTTP client. On PyPI,
+use the release's **Download files** section.
+
+Fetching the file directly bypasses pip's dependency selection and metadata
+preparation. ``--no-deps`` skips dependency downloads, but it does not
+prevent build code from running when pip prepares a source distribution's
+metadata.
+
 Options
 =======
 
