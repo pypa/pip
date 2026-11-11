@@ -396,6 +396,15 @@ class Factory:
                 base_identifier = canonicalize_name(parsed_requirement.name)
                 extras = frozenset(parsed_requirement.extras)
 
+        # install_req_from_link_and_ireq() below copies hash_options from
+        # *template*, which for a transitively-needed package is the
+        # requirement that pulled it in, not the constraint -- fall back to
+        # the constraint's own hashes, same as _iter_found_candidates() does.
+        if constraint.hash_options and not template.hash_options:
+            template = copy.copy(template)
+            template.hash_options = {
+                k: list(v) for k, v in constraint.hash_options.items()
+            }
         for link in constraint.links:
             self._fail_if_link_is_unsupported_wheel(link)
             base_candidate = self._make_base_candidate_from_link(
