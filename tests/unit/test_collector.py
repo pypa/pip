@@ -354,6 +354,21 @@ def test_clean_url_path_with_local_path(path: str, expected: str) -> None:
             "https://localhost.localdomain/pkg-1.0+local-py3-none-any.whl",
             "https://localhost.localdomain/pkg-1.0%2Blocal-py3-none-any.whl",
         ),
+        # Already quoted URL with a query string and a hash fragment.
+        (
+            "https://example.com/simple/pkg/pkg-1.0.tar.gz?token=abc&x=1#sha256=abc123",
+            "https://example.com/simple/pkg/pkg-1.0.tar.gz?token=abc&x=1#sha256=abc123",
+        ),
+        # An empty query is still dropped.
+        (
+            "https://example.com/pkg-1.0.tar.gz?",
+            "https://example.com/pkg-1.0.tar.gz",
+        ),
+        # The path is still quoted when there is a query string.
+        (
+            "https://example.com/pkg-1.0+local.tar.gz?token=abc",
+            "https://example.com/pkg-1.0%2Blocal.tar.gz?token=abc",
+        ),
         # An upper-case scheme is still normalized.
         (
             "HTTPS://localhost.localdomain/pkg-1.0-py3-none-any.whl",
