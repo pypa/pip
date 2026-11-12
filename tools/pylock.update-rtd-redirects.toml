@@ -7,7 +7,7 @@ created-by = "nab"
 
 [[packages]]
 name = "anyio"
-version = "4.15.1"
+version = "4.16.0"
 requires-python = ">=3.10"
 dependencies = [
     { name = "idna" },
@@ -16,13 +16,13 @@ dependencies = [
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "anyio-4.15.1-py3-none-any.whl"
-upload-time = 2026-09-05T10:42:37.923487+00:00
-url = "https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl"
-size = 132079
+name = "anyio-4.16.0-py3-none-any.whl"
+upload-time = 2026-11-01T11:20:05.590351+00:00
+url = "https://files.pythonhosted.org/packages/a9/16/7757fb84c819accc7d7e9af5291b261e4abb8627ee040f99e7d35ef2457a/anyio-4.16.0-py3-none-any.whl"
+size = 134521
 
 [packages.wheels.hashes]
-sha256 = "6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101"
+sha256 = "c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026"
 
 [[packages]]
 name = "certifi"
@@ -207,8 +207,8 @@ size = 45571
 sha256 = "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
 
 [tool.nab]
-nab-version = "0.0.27"
-created-at = 2026-11-08T04:27:53.810513+00:00
+nab-version = "0.0.29"
+created-at = 2026-11-12T21:59:20.395544+00:00
 command-line = [
     "nab",
     "lock",
@@ -228,6 +228,7 @@ command-line = [
     "sdist-if-needed",
     "--project-build-policy",
     "never",
+    "--upgrade",
 ]
 input-path = "tools/update-rtd-redirects.py"
 mode = "specific"
@@ -244,6 +245,6 @@ cli-project-overrides = [
 
 [tool.nab.validation]
 version = 1
-all-inputs-sha256 = "b3b1a972470dbcfc71576c881f0e3a9aec257104c775fce3b0a90507bee0aba0"
-selection-inputs-sha256 = "a68e1e991e393948452d365b1b5710a2ba75afb1e0de1e3844b80527c09adf30"
-contents-sha256 = "1284e86ef5829faa86eab1a48e8543b9430b177ab40eb6d549a3a05640646b2c"
+all-inputs-sha256 = "d0eaaf54b6d99a3dfbcfbcd5d98355793f12473192f333ed46bd7f69ad4e5d23"
+selection-inputs-sha256 = "842a65daf604060707ad6c5c9152b25ba3339d9b1f4c5348ca5e4032d9cb02a5"
+contents-sha256 = "a8d6139e92501e3c89f727acfd6ed285c657a225e0b4949ff730be21b2f51f92"

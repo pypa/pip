@@ -148,7 +148,7 @@ def get_common_wheels(session: nox.Session) -> None:
 @nox.session(venv_backend="venv")
 def lock(session: nox.Session) -> None:
     """Update development and script locks with a pinned resolver."""
-    session.install("nab==0.0.27")
+    session.install("nab==0.0.29")
 
     session.run("nab", "lock", "--all-groups", "--output", DEV_LOCK, *session.posargs)
 

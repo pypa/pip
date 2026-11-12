@@ -105,7 +105,7 @@ sha256 = "b46733c07dce03ae4e150330b975c75737fa60f0a7c591b6c8bf4928a28e2c92"
 
 [[packages]]
 name = "anyio"
-version = "4.15.1"
+version = "4.16.0"
 marker = "\"dev\" in dependency_groups or \"docs-live\" in dependency_groups or \"typecheck\" in dependency_groups"
 requires-python = ">=3.10"
 dependencies = [
@@ -116,13 +116,13 @@ dependencies = [
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "anyio-4.15.1-py3-none-any.whl"
-upload-time = 2026-09-05T10:42:37.923487+00:00
-url = "https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl"
-size = 132079
+name = "anyio-4.16.0-py3-none-any.whl"
+upload-time = 2026-11-01T11:20:05.590351+00:00
+url = "https://files.pythonhosted.org/packages/a9/16/7757fb84c819accc7d7e9af5291b261e4abb8627ee040f99e7d35ef2457a/anyio-4.16.0-py3-none-any.whl"
+size = 134521
 
 [packages.wheels.hashes]
-sha256 = "6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101"
+sha256 = "c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026"
 
 [[packages]]
 name = "argcomplete"
@@ -4087,19 +4087,19 @@ sha256 = "1784648d6ec8c2b5465e3f26241b845a0b3cb4e56c993c64abe16989e7698999"
 
 [[packages]]
 name = "mypy-extensions"
-version = "1.1.0"
+version = "1.2.0"
 marker = "\"dev\" in dependency_groups or \"typecheck\" in dependency_groups"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "mypy_extensions-1.1.0-py3-none-any.whl"
-upload-time = 2025-04-22T14:54:22.983092+00:00
-url = "https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl"
-size = 4963
+name = "mypy_extensions-1.2.0-py3-none-any.whl"
+upload-time = 2026-11-03T16:26:32.731548+00:00
+url = "https://files.pythonhosted.org/packages/b5/99/7b1adac7e97ce7bbda34792dc6e9b2f5cc5cffd1875883f78a818b2a2687/mypy_extensions-1.2.0-py3-none-any.whl"
+size = 5114
 
 [packages.wheels.hashes]
-sha256 = "1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505"
+sha256 = "993e7a20aa5671eb41a7132cf555af30062da99729601601b9a8382b11cae768"
 
 [[packages]]
 name = "myst-parser"
@@ -4269,7 +4269,7 @@ sha256 = "7aff12bb01471f5b087ada34cf0dbe452b02d840593f2e2afecc4bf6e6d6cd3f"
 [[packages]]
 name = "packaging"
 version = "26.3"
-marker = "((python_version == \"3.11\" or python_version == \"3.12\" or python_version == \"3.13\") and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or ((python_version == \"3.14\" and sys_platform == \"darwin\" and platform_machine == \"arm64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.14\" and sys_platform == \"darwin\" and platform_machine == \"x86_64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.14\" and sys_platform == \"linux\" and platform_machine == \"aarch64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.14\" and sys_platform == \"linux\" and platform_machine == \"x86_64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.14\" and sys_platform == \"win32\" and platform_machine == \"AMD64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.14\" and sys_platform == \"win32\" and platform_machine == \"ARM64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.15\" and sys_platform == \"darwin\" and platform_machine == \"arm64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.15\" and sys_platform == \"darwin\" and platform_machine == \"x86_64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.15\" and sys_platform == \"linux\" and platform_machine == \"aarch64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.15\" and sys_platform == \"linux\" and platform_machine == \"x86_64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.15\" and sys_platform == \"win32\" and platform_machine == \"AMD64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.15\" and sys_platform == \"win32\" and platform_machine == \"ARM64\" and implementation_name == \"cpython\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups))) or (python_version == \"3.10\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups))"
+marker = "((python_version == \"3.11\" or python_version == \"3.12\" or python_version == \"3.13\") and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or ((python_version == \"3.14\" or python_version == \"3.15\") and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.10\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups))"
 requires-python = ">=3.9"
 index = "https://pypi.org/simple/"
 
@@ -4300,19 +4300,19 @@ sha256 = "a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"
 
 [[packages]]
 name = "pip"
-version = "26.2.2"
+version = "26.3"
 marker = "\"vendoring\" in dependency_groups and (python_version == \"3.11\" or python_version == \"3.12\" or python_version == \"3.13\" or python_version == \"3.14\" or python_version == \"3.15\")"
 requires-python = ">=3.10"
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "pip-26.2.2-py3-none-any.whl"
-upload-time = 2026-10-20T16:36:27.046054+00:00
-url = "https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl"
-size = 1819850
+name = "pip-26.3-py3-none-any.whl"
+upload-time = 2026-11-02T20:34:25.728168+00:00
+url = "https://files.pythonhosted.org/packages/07/25/ee8c38ae72d66b844ce8eb9711ba905dba21ca1a8a0c960057c41cd23337/pip-26.3-py3-none-any.whl"
+size = 1950951
 
 [packages.wheels.hashes]
-sha256 = "fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
+sha256 = "f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13"
 
 [[packages]]
 name = "platformdirs"
@@ -4404,7 +4404,7 @@ sha256 = "51d5a8ba2be0bbe440b99d2112604c95bbbc3c2748a64260186c541e1729cd80"
 [[packages]]
 name = "pygments"
 version = "2.21.0"
-marker = "((\"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups) and (python_version == \"3.14\" or python_version == \"3.15\")) or ((python_version == \"3.11\" or python_version == \"3.12\" or python_version == \"3.13\") and (\"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.10\" and (\"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups))"
+marker = "((python_version == \"3.11\" or python_version == \"3.12\" or python_version == \"3.13\") and (\"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or ((python_version == \"3.14\" or python_version == \"3.15\") and (\"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.10\" and (\"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups))"
 requires-python = ">=3.9"
 index = "https://pypi.org/simple/"
 
@@ -4557,7 +4557,7 @@ sha256 = "3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd"
 
 [[packages]]
 name = "python-discovery"
-version = "1.9.0"
+version = "1.9.4"
 marker = "\"bootstrap\" in dependency_groups or \"dev\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups"
 requires-python = ">=3.9"
 dependencies = [
@@ -4566,13 +4566,13 @@ dependencies = [
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "python_discovery-1.9.0-py3-none-any.whl"
-upload-time = 2026-10-30T23:24:23.452190+00:00
-url = "https://files.pythonhosted.org/packages/cb/3c/da1cae963a076132dbc4d3c1f0292dd2f373b9d3e072d42f4620801159c1/python_discovery-1.9.0-py3-none-any.whl"
-size = 39841
+name = "python_discovery-1.9.4-py3-none-any.whl"
+upload-time = 2026-11-04T05:25:50.514535+00:00
+url = "https://files.pythonhosted.org/packages/c5/44/b248f3b1a23f44d8de172e2767748082c41cbd9353009af72f4b11b00afa/python_discovery-1.9.4-py3-none-any.whl"
+size = 44220
 
 [packages.wheels.hashes]
-sha256 = "fb65edfff3541b7ceb3a39be334a0f69f4cb5148287a053e1874748742fda93b"
+sha256 = "b468f365040b40f4cb39918b0766d3e5a2f340968e07df752fbc96f1bb4641ab"
 
 [[packages]]
 name = "pywin32-ctypes"
@@ -5799,7 +5799,7 @@ sha256 = "67f8e99895493dd2911a03f11314af6ceebeae4e704bb9f43dfc6a9db151c93e"
 [[packages]]
 name = "tomli"
 version = "2.5.0"
-marker = "(\"vendoring\" in dependency_groups and (python_version == \"3.14\" or python_version == \"3.15\")) or ((python_version == \"3.11\" or python_version == \"3.12\" or python_version == \"3.13\") and \"vendoring\" in dependency_groups) or (python_version == \"3.10\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups))"
+marker = "((python_version == \"3.11\" or python_version == \"3.12\" or python_version == \"3.13\") and \"vendoring\" in dependency_groups) or ((python_version == \"3.14\" or python_version == \"3.15\") and \"vendoring\" in dependency_groups) or (python_version == \"3.10\" and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"prepare-release\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups))"
 requires-python = ">=3.8"
 index = "https://pypi.org/simple/"
 
@@ -6257,40 +6257,40 @@ sha256 = "b854164df26db268af05f49aa5c0344b10e27a494343ff05b1e0bad3b135f5a7"
 
 [[packages]]
 name = "types-pyyaml"
-version = "6.0.12.20261030"
+version = "6.0.12.20261103"
 marker = "\"dev\" in dependency_groups or \"typecheck\" in dependency_groups"
 requires-python = ">=3.10"
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "types_pyyaml-6.0.12.20261030-py3-none-any.whl"
-upload-time = 2026-10-30T07:50:18.389848+00:00
-url = "https://files.pythonhosted.org/packages/34/99/7e2c7c7202108220fb664ce4c5ac313a564ab5babb153516a3ac0ad8a681/types_pyyaml-6.0.12.20261030-py3-none-any.whl"
-size = 21283
+name = "types_pyyaml-6.0.12.20261103-py3-none-any.whl"
+upload-time = 2026-11-03T08:45:22.749525+00:00
+url = "https://files.pythonhosted.org/packages/e8/10/4353eb86278f6a59aeb9fe2be4d979c20b110b4009fa455a3ea6467cf5cb/types_pyyaml-6.0.12.20261103-py3-none-any.whl"
+size = 21299
 
 [packages.wheels.hashes]
-sha256 = "508cc80546918201026a955356222111224e1f4f7deab0b91f2a95933f764e67"
+sha256 = "444654c61f635dab82c092a511aa96a0ce31164810784b9a37314e3e56532ac8"
 
 [[packages]]
 name = "types-setuptools"
-version = "84.0.0.20261006"
+version = "84.2.0.20261104"
 marker = "\"dev\" in dependency_groups or \"typecheck\" in dependency_groups"
 requires-python = ">=3.10"
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "types_setuptools-84.0.0.20261006-py3-none-any.whl"
-upload-time = 2026-10-06T08:15:26.289512+00:00
-url = "https://files.pythonhosted.org/packages/de/24/add82014f533f2ebf62088b39db86d6a341bb0fd94af50b3a3c1e8886683/types_setuptools-84.0.0.20261006-py3-none-any.whl"
-size = 70326
+name = "types_setuptools-84.2.0.20261104-py3-none-any.whl"
+upload-time = 2026-11-04T08:14:05.067112+00:00
+url = "https://files.pythonhosted.org/packages/bd/50/84d3ea21646c5039660e9fa08d9fb180ac43a8cb93a8f45e045d312c7e2d/types_setuptools-84.2.0.20261104-py3-none-any.whl"
+size = 70377
 
 [packages.wheels.hashes]
-sha256 = "f435ec88f8f2319316969e37b5a1ca49496b276889124de249b422b061b492fe"
+sha256 = "23e9bf876adca8df2285a68f76c355128b1e679b27cfec4854faf350cd7999e5"
 
 [[packages]]
 name = "typing-extensions"
 version = "4.16.0"
-marker = "((\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"typecheck\" in dependency_groups) and (python_version == \"3.14\" or python_version == \"3.15\")) or ((python_version == \"3.10\" and (sys_platform == \"darwin\" or sys_platform == \"win32\")) and (\"bootstrap\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups)) or ((python_version == \"3.10\" and sys_platform == \"linux\") and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups)) or ((python_version == \"3.11\" or python_version == \"3.12\") and (\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"typecheck\" in dependency_groups or \"vendoring\" in dependency_groups)) or (python_version == \"3.13\" and (\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"typecheck\" in dependency_groups))"
+marker = "((python_version == \"3.10\" and (sys_platform == \"darwin\" or sys_platform == \"win32\")) and (\"bootstrap\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups)) or ((python_version == \"3.10\" and sys_platform == \"linux\") and (\"bootstrap\" in dependency_groups or \"build-release\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups or \"test-common-wheels\" in dependency_groups or \"typecheck\" in dependency_groups or \"upload-release\" in dependency_groups)) or ((python_version == \"3.11\" or python_version == \"3.12\") and (\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"typecheck\" in dependency_groups or \"vendoring\" in dependency_groups)) or ((python_version == \"3.14\" or python_version == \"3.15\") and (\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"typecheck\" in dependency_groups)) or (python_version == \"3.13\" and (\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"typecheck\" in dependency_groups))"
 requires-python = ">=3.9"
 index = "https://pypi.org/simple/"
 
@@ -6383,7 +6383,7 @@ sha256 = "3a5b5c44bdec2683a94cd4c7c25bad556b38539cf316defca65948d76107eb30"
 
 [[packages]]
 name = "virtualenv"
-version = "21.15.2"
+version = "21.15.5"
 marker = "\"bootstrap\" in dependency_groups or \"dev\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups or \"typecheck\" in dependency_groups"
 requires-python = ">=3.9"
 dependencies = [
@@ -6397,13 +6397,13 @@ dependencies = [
 index = "https://pypi.org/simple/"
 
 [[packages.wheels]]
-name = "virtualenv-21.15.2-py3-none-any.whl"
-upload-time = 2026-10-30T19:18:01.134751+00:00
-url = "https://files.pythonhosted.org/packages/f7/d8/09c9d6df253b2016312dd5ccbb962dfa86a5202f2452604b52e0a9844661/virtualenv-21.15.2-py3-none-any.whl"
-size = 5559530
+name = "virtualenv-21.15.5-py3-none-any.whl"
+upload-time = 2026-11-04T05:13:19.057458+00:00
+url = "https://files.pythonhosted.org/packages/9d/d6/f9ac78f115e32e0d76adda9db72b74425b86495ae274cd7b58c660f5d1c1/virtualenv-21.15.5-py3-none-any.whl"
+size = 5680750
 
 [packages.wheels.hashes]
-sha256 = "fb8c62c7c328e0238061c721068f06b7bc6bd10f7a0f5987195cef1008837ee6"
+sha256 = "bcf98c32139cf3df7f0cc2c8c48ca150645c20e66f8c4fe6c1e5e40bcae73947"
 
 [[packages]]
 name = "watchfiles"
@@ -6953,14 +6953,15 @@ size = 10581
 sha256 = "b30cb6cd253122169c47de245ca24a86bac2a5d3802ba15bf7ba6414eb9e144d"
 
 [tool.nab]
-nab-version = "0.0.27"
-created-at = 2026-11-08T04:27:32.916513+00:00
+nab-version = "0.0.29"
+created-at = 2026-11-12T21:58:56.926861+00:00
 command-line = [
     "nab",
     "lock",
     "--all-groups",
     "--output",
     "pylock.dev.toml",
+    "--upgrade",
 ]
 input-path = "pyproject.toml"
 mode = "universal"
@@ -6976,6 +6977,6 @@ platforms = [
 
 [tool.nab.validation]
 version = 1
-all-inputs-sha256 = "693b3eca9f890a12a4880da373f3524a89a2fc334c8df581aff614a2b047bb61"
-selection-inputs-sha256 = "385ea0930f95d55dee4868ae871d44f8c333363fffc2ad9bdf845d7fe72a3aee"
-contents-sha256 = "3ade80ce7f98b22b6a2088a764322e7773b5a361d2578e0d78b72f3f1a68f424"
+all-inputs-sha256 = "61c8a17f49af20e805b36617a4c8a41e2113f58d7e28fd48cdcd97c8d43d923d"
+selection-inputs-sha256 = "208ad60269bbf4e071baa5293d718848add0a19d810e7a269a4c91445e31cf98"
+contents-sha256 = "c1b995740b1d9dd5d682f1efa10fcab524b44b2cdc35b9e3c18282aa9c912a84"
