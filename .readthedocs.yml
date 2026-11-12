@@ -6,8 +6,9 @@ build:
     python: "3.11"
   jobs:
     install:
-      - pip install .
-      - pip install --group docs
+      - python -m pip install "pip>=26.3"
+      - python -m pip install --group pylock.dev.toml:docs --group pylock.dev.toml:build
+      - python -m pip install --no-deps --no-build-isolation .
 
 sphinx:
   builder: dirhtml
