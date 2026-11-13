@@ -136,9 +136,9 @@ def test(session: nox.Session) -> None:
     if not no_install and os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
 
-    # build 1.4.1 doesn't fall back to virtualenv when pip is missing,
-    # breaking the uninstall workaround below. See pypa/build#1003.
-    run_with_protected_pip(session, "install", "build<1.4.1")
+    # build 1.4.2 fixed a bug that broke the uninstall workaround below by
+    # failing to fall back to virtualenv when pip is missing.
+    run_with_protected_pip(session, "install", "build>=1.4.2")
     # build uses the pip present in the outer environment (aka the nox environment)
     # as an optimization. This will crash if the last test run installed a broken
     # pip, so uninstall pip to force build to provision a known good version of pip.
@@ -289,7 +289,7 @@ def vendoring(session: nox.Session) -> None:
     parser.add_argument("--skip", action="append", default=[])
     args = parser.parse_args(session.posargs)
 
-    session.install("vendoring~=1.4.0")
+    session.install("vendoring~=1.4.0", "--constraint", "tools/constraints.txt")
 
     if not (args.upgrade or args.upgrade_all):
         session.run("vendoring", "sync", "-v")
@@ -345,22 +345,25 @@ def vendoring(session: nox.Session) -> None:
 
 @nox.session
 def coverage(session: nox.Session) -> None:
+    get_common_wheels(session)
+
     # Install source distribution
     run_with_protected_pip(session, "install", ".")
 
     # Install test dependencies
-    run_with_protected_pip(session, "install", "--group", "tests")
+    run_with_protected_pip(session, "install", "--group", "test")
 
-    if not os.path.exists(".coverage-output"):
-        os.mkdir(".coverage-output")
+    coverage_output_dir = Path(".coverage-output").resolve()
+    coverage_output_dir.mkdir(exist_ok=True)
+
     session.run(
         "pytest",
         "--cov=pip",
-        "--cov-config=./setup.cfg",
+        "--cov-config=pyproject.toml",
         *session.posargs,
         env={
-            "COVERAGE_OUTPUT_DIR": "./.coverage-output",
-            "COVERAGE_PROCESS_START": os.fsdecode(Path("setup.cfg").resolve()),
+            "COVERAGE_OUTPUT_DIR": os.fsdecode(coverage_output_dir),
+            "COVERAGE_PROCESS_START": os.fsdecode(Path("pyproject.toml").resolve()),
         },
     )
 
@@ -420,7 +423,7 @@ def build_release(session: nox.Session) -> None:
         )
 
     session.log("# Install dependencies")
-    session.install("twine")
+    session.install("twine", "--constraint", "tools/constraints.txt")
 
     with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
@@ -472,7 +475,7 @@ def upload_release(session: nox.Session) -> None:
         session.error("Usage: nox -s upload-release -- YY.N[.P]")
 
     session.log("# Install dependencies")
-    session.install("twine")
+    session.install("twine", "--constraint", "tools/constraints.txt")
 
     distribution_files = glob.glob("dist/*")
     session.log(f"# Distribution files: {distribution_files}")

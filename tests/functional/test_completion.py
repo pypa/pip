@@ -286,6 +286,30 @@ def test_completion_files_after_option(
     ), "autocomplete function could not complete <dir> after options in command"
 
 
+def test_completion_options_after_option_value(autocomplete: DoAutocomplete) -> None:
+    """Exclude entered and hidden option names while retaining other matching names."""
+    result, _ = autocomplete("pip cache --timeout=5 --", "3")
+    options = result.stdout.splitlines()
+
+    assert "--help" in options
+    assert "--default-timeout=" in options
+
+    assert "--timeout=" not in options
+    assert "--no-python-version-warning" not in options
+
+
+def test_completion_path_starting_with_dashes(
+    autocomplete: DoAutocomplete, tmp_path: Path
+) -> None:
+    """A filename starting with dashes is a path argument, not an option suggestion."""
+    tmp_path.joinpath("--logfile").touch()
+
+    result, _ = autocomplete("pip cache --log --l", "3", cwd=tmp_path)
+
+    assert result.returncode == 1
+    assert result.stdout.splitlines() == ["--logfile"]
+
+
 def test_completion_not_files_after_option(
     autocomplete: DoAutocomplete, data: TestData
 ) -> None:
@@ -463,3 +487,11 @@ def test_completion_for_action_handler_handler_not_repeated(
     res, _ = autocomplete("pip cache remove re", cword="3")
 
     assert [] == res.stdout.split()
+
+
+def test_completion_rejects_extra_argument(
+    autocomplete_script: PipTestEnvironment,
+) -> None:
+    result = autocomplete_script.pip("completion", "unexpected_arg", expect_error=True)
+    assert "ERROR: Too many arguments" in result.stderr
+    assert result.returncode != 0

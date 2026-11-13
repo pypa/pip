@@ -9,6 +9,97 @@
 
 .. towncrier release notes start
 
+26.3 (2026-11-02)
+=================
+
+Improved Documentation
+----------------------
+
+- Clarify in the security policy that pip has never considered installing
+  untrusted wheels safe. This is because Python's import system is dynamic, so
+  pip cannot guarantee that installing a wheel will not execute third-party code. (`#14412 <https://github.com/pypa/pip/issues/14412>`_)
+
+Deprecations and Removals
+-------------------------
+
+- Block unexpected imports during installation, warn about unsafe imports
+  afterward, and improve recovery from interrupted installations. (`#13842 <https://github.com/pypa/pip/issues/13842>`_)
+
+Features
+--------
+
+- Show build backend warnings for local source directories and log them at debug level for other sources. (`#14372 <https://github.com/pypa/pip/issues/14372>`_)
+- Add support for selecting extras in pylock.toml files with ``-r pylock.toml[extra1,extra2]``. (`#14205 <https://github.com/pypa/pip/issues/14205>`_)
+- Allow ``--group`` to select non-default groups from local pylock files,
+  e.g. ``--group pylock.toml:docs``. (`#14390 <https://github.com/pypa/pip/issues/14390>`_)
+- Support ``--no-binary`` with ``-r pylock.toml``. Before, pip would get the
+  sdist from the index instead of the locked URL, or fail if no wheel were
+  available in the lock file. (`#14187 <https://github.com/pypa/pip/issues/14187>`_)
+- Speed up installing a wheel with console scripts by not resolving every ``PATH`` entry. (`#14235 <https://github.com/pypa/pip/issues/14235>`_)
+- Clarify the warning for ``~``-prefixed leftover distribution directories. (`#11849 <https://github.com/pypa/pip/issues/11849>`_)
+
+Bug Fixes
+---------
+
+- Report build-backend import failures as pip errors instead of displaying an
+  uncaught traceback. (`#12248 <https://github.com/pypa/pip/issues/12248>`_)
+- No longer log the "pip is looking at multiple versions of a package" message until pip has looked at at least two versions of that package. (`#12928 <https://github.com/pypa/pip/issues/12928>`_)
+- Fix ``pip``'s self version check reporting an outdated version from the
+  environment instead of the running pip when run as a zipapp. (`#13084 <https://github.com/pypa/pip/issues/13084>`_)
+- Fix a fatal error when using the ``PIP_CONFIG_FILE`` environment variable with ``pip config set``. (`#13279 <https://github.com/pypa/pip/issues/13279>`_)
+- Avoid misleading error messages that include extra markers such as
+  ``; extra == "..."`` when installing packages. (`#13618 <https://github.com/pypa/pip/issues/13618>`_)
+- When installing to a custom ``--prefix``, use the ``posix_prefix`` scheme
+  when running from a Debian patched Python distribution to avoid a superfluous
+  ``/local/`` subdirectory. (`#13634 <https://github.com/pypa/pip/issues/13634>`_)
+- Refuse to follow an HTTP redirect to a ``file:`` URL. (`#14171 <https://github.com/pypa/pip/issues/14171>`_)
+- Prevent wheel cache origin mismatch warnings from exposing URL credentials. (`#14232 <https://github.com/pypa/pip/issues/14232>`_)
+- Report the incomplete-download error on Windows, not a ``PermissionError``. (`#14237 <https://github.com/pypa/pip/issues/14237>`_)
+- Fix the global configuration location on macOS in virtual environments created
+  from Homebrew Python. (`#14303 <https://github.com/pypa/pip/issues/14303>`_)
+- Reject extra arguments to ``pip config edit`` instead of silently ignoring them. (`#14347 <https://github.com/pypa/pip/issues/14347>`_)
+- Honor supplied hashes when using ``--no-require-hashes``. (`#14355 <https://github.com/pypa/pip/issues/14355>`_)
+- Fix wheel installation with data files when the installation prefix is a
+  filesystem root. (`#14358 <https://github.com/pypa/pip/issues/14358>`_)
+- Restore support for UTF-8 configuration files when Python's UTF-8 mode is enabled. (`#14367 <https://github.com/pypa/pip/issues/14367>`_)
+- Restore vendored Requests' PyOpenSSL fallback on non-Windows systems without
+  importing PyOpenSSL on Windows. (`#14402 <https://github.com/pypa/pip/issues/14402>`_)
+- Respect configured network settings while checking build constraint files. (`#14403 <https://github.com/pypa/pip/issues/14403>`_)
+- Apply PyPI's direct URL dependency restriction to extras and cached wheels. (`#14341 <https://github.com/pypa/pip/issues/14341>`_)
+- Fix a crash when installing or uninstalling a distribution with an invalid
+  entry point. (`#8573 <https://github.com/pypa/pip/issues/8573>`_)
+- Fail with a clearer error message on invalid configuration values. (`#8671 <https://github.com/pypa/pip/issues/8671>`_)
+- Keep ``--version`` available only for pip and prevent its use in subcommands. (`#9456 <https://github.com/pypa/pip/issues/9456>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2026.10.23
+- Upgrade distlib to 0.4.4
+- Upgrade idna to 3.20
+- Upgrade msgpack to 1.2.4
+- Upgrade packaging to 26.3
+- Upgrade platformdirs to 4.12.4
+- Upgrade pygments to 2.21.0
+- Upgrade pyproject-hooks to 1.3.3
+- Upgrade rich to 15.0.0
+- Downgrade tomli to 2.3.2 to retain TOML 1.0 parsing on Python 3.10.
+- Upgrade truststore to 0.10.5
+- Upgrade urllib3 to 2.8.0
+
+Process
+-------
+
+- Allow pip itself to be built with flit-core 4.
+
+26.2.2 (2026-10-20)
+===================
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2026.10.19
+
 26.2.1 (2026-08-04)
 ===================
 

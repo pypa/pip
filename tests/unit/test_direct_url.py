@@ -128,14 +128,18 @@ def test_redact_url() -> None:
             url=url,
             vcs_info=VcsInfo(vcs="git", commit_id="1"),
         )
-        return direct_url.to_dict()["url"]
+        serialized_url = direct_url.to_dict()["url"]
+        assert isinstance(serialized_url, str)
+        return serialized_url
 
     def _redact_archive(url: str) -> str:
         direct_url = DirectUrl(
             url=url,
             archive_info=ArchiveInfo(),
         )
-        return direct_url.to_dict()["url"]
+        serialized_url = direct_url.to_dict()["url"]
+        assert isinstance(serialized_url, str)
+        return serialized_url
 
     assert (
         _redact_git("https://user:password@g.c/u/p.git@branch#egg=pkg")

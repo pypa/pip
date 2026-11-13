@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import codecs
 import os
 import re
 import subprocess
@@ -18,27 +19,55 @@ from pip._internal.configuration import get_configuration_files as _get_config_f
 from pip._internal.utils.compat import WINDOWS
 
 from tests.lib import PipTestEnvironment, TestData
-from tests.lib.configuration_helpers import ConfigurationMixin, kinds
+from tests.lib.configuration_helpers import ConfigurationMixin
 from tests.lib.venv import VirtualEnvironment
 
 
 def get_configuration_files() -> dict[Kind, list[str]]:
     """Wrapper over pip._internal.configuration.get_configuration_files()."""
-    if WINDOWS:
-        # The user configuration directory is updated in the isolate fixture using the
-        # APPDATA environment variable. This will only take effect in new subprocesses,
-        # however. To ensure that get_configuration_files() never returns stale data,
-        # call it in a subprocess on Windows.
-        code = (
-            "from pip._internal.configuration import get_configuration_files; "
-            "print(get_configuration_files())"
-        )
-        proc = subprocess.run(
-            [sys.executable, "-c", code], capture_output=True, encoding="utf-8"
-        )
-        return ast.literal_eval(proc.stdout)
-    else:
+    if not WINDOWS:
         return _get_config_files()
+
+    # The user configuration directory is updated in the isolate fixture using the
+    # APPDATA environment variable. This will only take effect in new subprocesses,
+    # however. To ensure that get_configuration_files() never returns stale data,
+    # call it in a subprocess on Windows.
+    code = (
+        "from pip._internal.configuration import get_configuration_files; "
+        "print(get_configuration_files())"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, encoding="utf-8"
+    )
+
+    # Validate the serialized result before rebuilding the typed mapping. Kind
+    # keys arrive as plain strings because Kind.__repr__ uses str.__repr__.
+    files = ast.literal_eval(proc.stdout)
+    assert isinstance(files, dict)
+
+    configuration_files: dict[Kind, list[str]] = {}
+    for kind, paths in files.items():
+        assert isinstance(kind, str)
+        assert isinstance(paths, list)
+
+        validated_paths: list[str] = []
+        for path in paths:
+            assert isinstance(path, str)
+            validated_paths.append(path)
+
+        configuration_files[Kind(kind)] = validated_paths
+
+    return configuration_files
+
+
+def test_configuration_files_from_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys.modules[__name__], "WINDOWS", True)
+
+    files = get_configuration_files()
+
+    assert set(files) == {Kind.GLOBAL, Kind.SITE, Kind.USER}
+    assert all(isinstance(kind, Kind) for kind in files)
+    assert all(paths for paths in files.values())
 
 
 def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
@@ -47,6 +76,32 @@ def test_no_options_passed_should_error(script: PipTestEnvironment) -> None:
 
 
 class TestBasicLoading(ConfigurationMixin):
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="locale.getencoding requires 3.11+"
+    )
+    def test_utf8_save_reload(self, script: PipTestEnvironment) -> None:
+        script.environ["LC_ALL"] = "C"
+        script.environ["PYTHONCOERCECLOCALE"] = "0"
+        script.environ["PYTHONUTF8"] = "0"
+        result = script.run(
+            "python",
+            "-c",
+            "from pip._internal.utils.compat import get_locale_encoding; "
+            "print(get_locale_encoding())",
+        )
+        if codecs.lookup(result.stdout.strip()).name == "utf-8":
+            pytest.skip("Requires a non-UTF-8 locale")
+
+        script.environ["PYTHONUTF8"] = "1"
+        value = "C:/丁/中文/cert.pem"
+
+        script.pip("config", "--site", "set", "global.cert", value)
+        script.environ["PYTHONWARNDEFAULTENCODING"] = "1"
+        script.environ["PYTHONWARNINGS"] = "error::EncodingWarning"
+        result = script.pip("config", "--site", "get", "global.cert")
+
+        assert result.stdout.strip() == value
+
     def test_basic_modification_pipeline(self, script: PipTestEnvironment) -> None:
         script.pip("config", "get", "test.blah", expect_error=True)
         script.pip("config", "set", "test.blah", "1")
@@ -56,6 +111,15 @@ class TestBasicLoading(ConfigurationMixin):
 
         script.pip("config", "unset", "test.blah")
         script.pip("config", "get", "test.blah", expect_error=True)
+
+    def test_invalid_config_value_throws_error(
+        self, script: PipTestEnvironment
+    ) -> None:
+        script.pip("config", "set", "global.use-deprecated", "blah")
+
+        result = script.pip("list", expect_error=True)
+        assert "An error occurred during configuration:" in result.stderr
+        assert result.returncode == 3
 
     def test_listing_is_correct(self, script: PipTestEnvironment) -> None:
         script.pip("config", "set", "test.listing-beta", "2")
@@ -118,6 +182,63 @@ class TestBasicLoading(ConfigurationMixin):
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"env:\n(  .+\n)+", result.stdout)
 
+    def test_env_set_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when setting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_unset_values(self, script: PipTestEnvironment) -> None:
+        """Test that custom pip configuration using the environment variable
+        PIP_CONFIG_FILE doesn't fail when unsetting values."""
+
+        config_file = script.scratch_path / "test-pip.cfg"
+        config_file.write_text("")
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            allow_stderr_warning=True,
+        )
+        result = script.pip(
+            "config", "unset", "global.index-url", allow_stderr_warning=True
+        )
+        assert "Because PIP_CONFIG_FILE is set, changes" in result.stderr
+        assert "Writing to" in result.stdout
+        assert result.returncode == 0
+
+    def test_env_raises_error_on_devnull_directory(
+        self, script: PipTestEnvironment
+    ) -> None:
+        config_file = os.devnull
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+
+        result = script.pip(
+            "config",
+            "set",
+            "global.index-url",
+            "https://example.com/",
+            expect_error=True,
+        )
+        assert "Cannot write to PIP_CONFIG_VALUE" in result.stderr
+        assert result.returncode == 1
+
     def test_user_values(self, script: PipTestEnvironment) -> None:
         """Test that the user pip configuration set using --user
         is correctly displayed under "user".  This configuration takes place
@@ -126,7 +247,7 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         # Use new config file
-        new_config_file = get_configuration_files()[kinds.USER][1]
+        new_config_file = get_configuration_files()[Kind.USER][1]
 
         script.pip("config", "--user", "set", "global.timeout", "60")
         script.pip("config", "--user", "set", "freeze.timeout", "10")
@@ -164,7 +285,7 @@ class TestBasicLoading(ConfigurationMixin):
         # locations. Additionally we cannot patch those paths since pip config
         # commands runs inside a subprocess.
         # So we just check if the file can be identified
-        global_config_file = get_configuration_files()[kinds.GLOBAL][0]
+        global_config_file = get_configuration_files()[Kind.GLOBAL][0]
         result = script.pip("config", "debug")
         assert f"{global_config_file}, exists:" in result.stdout
 
@@ -183,10 +304,10 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         # Use new config file
-        new_config_file = get_configuration_files()[kinds.USER][1]
+        new_config_file = get_configuration_files()[Kind.USER][1]
 
         # Get legacy config file and touch it for testing purposes
-        legacy_config_file = get_configuration_files()[kinds.USER][0]
+        legacy_config_file = get_configuration_files()[Kind.USER][0]
         os.makedirs(os.path.dirname(legacy_config_file))
         open(legacy_config_file, "a").close()
 
