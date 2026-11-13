@@ -362,7 +362,9 @@ def _set_extracted_file_mtime(extracted_file: str, zipinfo: ZipInfo) -> float:
 
 
 def _set_installed_directory_mtimes(
-    extracted_files: list[tuple[str, float]], scheme: Scheme
+    extracted_files: list[tuple[str, float]],
+    scheme: Scheme,
+    produced_paths: Iterable[str] = (),
 ) -> None:
     """Give the directories that received files from a wheel deterministic
     mtimes derived from the wheel's own file timestamps.
@@ -385,6 +387,16 @@ def _set_installed_directory_mtimes(
     file directly in ``pkg/``, and ``pkg`` still gets a wheel-derived mtime
     (the maximum among the wheel-provided items it contains at any depth)
     instead of an install-time mtime that churns on every reinstall.
+
+    A directory below the scheme roots can still be shared with another
+    distribution -- an implicit namespace package holding modules from two
+    wheels, say. Assigning such a directory purely from this wheel's
+    timestamps could move its mtime *backwards*, hiding the other
+    distribution's change from mtime-based watchers, and would make the
+    result depend on install order. So each directory is floored at the
+    newest mtime among the entries other distributions left in it: a shared
+    directory ends up at the maximum mtime of everything it actually
+    contains, whichever wheel was installed last.
     """
     scheme_dirs = {
         os.path.normcase(os.path.abspath(getattr(scheme, key))) for key in SCHEME_KEYS
@@ -411,6 +423,47 @@ def _set_installed_directory_mtimes(
         ):
             dist_dirs.add(current)
             current = os.path.dirname(current)
+
+    # Basenames written into each directory by this install (extracted plus
+    # generated files), and the distribution's own subdirectories, so that
+    # anything else found in a directory can be attributed to another
+    # distribution.
+    produced_names_by_dir: dict[str, set[str]] = {}
+    for path in chain((dest_path for dest_path, _ in extracted_files), produced_paths):
+        produced_names_by_dir.setdefault(os.path.dirname(path), set()).add(
+            os.path.basename(path)
+        )
+    child_dist_dir_names: dict[str, set[str]] = {}
+    for dir_path in dist_dirs:
+        child_dist_dir_names.setdefault(os.path.dirname(dir_path), set()).add(
+            os.path.basename(dir_path)
+        )
+
+    def shared_dir_floor(dir_path: str) -> float:
+        """Newest mtime among the entries other distributions left here."""
+        floor = float("-inf")
+        try:
+            entry_names = os.listdir(dir_path)
+        except OSError:
+            return floor
+        for entry in entry_names:
+            if entry == "__pycache__":
+                # Byte-compilation output is install-time churn, not
+                # content: counting it would pin shared directories to
+                # "now" on every install.
+                continue
+            produced = produced_names_by_dir.get(dir_path, ())
+            own_dirs = child_dist_dir_names.get(dir_path, ())
+            if entry in produced or entry in own_dirs:
+                continue
+            try:
+                entry_mtime = os.stat(os.path.join(dir_path, entry)).st_mtime
+            except OSError:
+                continue
+            if entry_mtime > floor:
+                floor = entry_mtime
+        return floor
+
     # A parent directory always has fewer separators than its children, so
     # sorting by separator count guarantees children are assigned (and
     # propagated to their parent) before the parent is assigned.
@@ -422,6 +475,9 @@ def _set_installed_directory_mtimes(
         dist_dirs, key=lambda dir_path: dir_path.count(os.path.sep), reverse=True
     ):
         mtime = dir_mtimes[dir_path]
+        floor = shared_dir_floor(dir_path)
+        if floor > mtime:
+            mtime = floor
         os.utime(dir_path, (mtime, mtime))
         parent_dir = os.path.dirname(dir_path)
         if parent_dir in dir_mtimes and mtime > dir_mtimes[parent_dir]:
@@ -840,7 +896,9 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     # the distribution -- including generated ones such as RECORD entries
     # and __pycache__ contents -- has been written, since writing into a
     # directory updates its mtime.
-    _set_installed_directory_mtimes(extracted_files, scheme)
+    _set_installed_directory_mtimes(
+        extracted_files, scheme, produced_paths=[*generated, record_path]
+    )
 
 
 @contextlib.contextmanager

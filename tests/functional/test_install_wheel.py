@@ -893,7 +893,6 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
         pkg2_dir.stat().st_mtime,
         pkg2_sub_dir.stat().st_mtime,
     )
-
     # Reinstalling the same wheel does not churn directory mtimes.
     assert after_second_install == after_first_install
     # Each directory's mtime is the max mtime of the wheel-provided items it
@@ -922,3 +921,57 @@ def test_wheel_install_directory_mtimes_stable_across_reinstalls(
     # not be assigned a wheel-derived mtime.
     newest_wheel_mtime = datetime(2020, 2, 2, 1, 2, 4).timestamp()
     assert script.site_packages_path.stat().st_mtime > newest_wheel_mtime
+
+
+def test_wheel_install_shared_directory_mtime(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that a directory below a scheme root that is shared with another
+    distribution -- an implicit namespace package holding modules from two
+    wheels -- never has its mtime moved backwards by a wheel with older
+    timestamps, and that its mtime does not depend on install order.
+    """
+    wheel_a = make_wheel(
+        "nsa", "1.0", extra_files={"shared_ns/mod_a.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_a), {"shared_ns/mod_a.py": (2026, 6, 15, 12, 0, 0)}
+    )
+    wheel_b = make_wheel(
+        "nsb", "1.0", extra_files={"shared_ns/mod_b.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_b), {"shared_ns/mod_b.py": (2020, 1, 10, 8, 0, 0)}
+    )
+
+    ns_dir = script.site_packages_path / "shared_ns"
+    # Installing the wheel with the older module over the one with the newer
+    # module must not drag the shared directory below the mtime the newer
+    # wheel's install had given it: the directory keeps the newest mtime
+    # among the modules from either wheel.
+    script.pip("install", "--no-index", wheel_a)
+    script.pip("install", "--no-index", wheel_b)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+
+    # Reinstalling either wheel keeps the shared directory stable: pip's
+    # uninstaller removes only that wheel's file, and the reinstall must
+    # land back on the same value.
+    script.pip("install", "--no-index", "--force-reinstall", wheel_a)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+    script.pip("install", "--no-index", "--force-reinstall", wheel_b)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+
+    # The value does not depend on the order the wheels were installed in.
+    script.pip("uninstall", "-y", "nsa", "nsb")
+    script.pip("install", "--no-index", wheel_b)
+    script.pip("install", "--no-index", wheel_a)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
