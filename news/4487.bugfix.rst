@@ -1,0 +1,3 @@
+On Windows, rolling back a failed install/uninstall no longer lowercases the
+names of restored files and directories, which previously broke packages
+containing mixed-case filenames (e.g. ``CamelCase.py``).
