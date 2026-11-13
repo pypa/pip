@@ -146,7 +146,8 @@ def compress_for_rename(paths: Iterable[str]) -> set[str]:
         return os.path.normcase(os.path.join(*a))
 
     for root in unchecked:
-        if any(os.path.normcase(root).startswith(w) for w in wildcards):
+        normcased_root = os.path.normcase(root)
+        if any(normcased_root.startswith(os.path.normcase(w)) for w in wildcards):
             # This directory has already been handled.
             continue
 
