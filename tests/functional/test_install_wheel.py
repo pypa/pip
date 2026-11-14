@@ -1030,3 +1030,42 @@ def test_wheel_install_shared_directory_mtime(
     assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
         2026, 6, 15, 12, 0, 0
     )
+
+
+def test_wheel_install_shared_directory_older_addition_leaves_mtime(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that adding an entry dated older than a shared directory's current
+    contents leaves the directory's mtime unchanged: the mtime is a
+    fingerprint of the contents, not a signal that something happened, so
+    an mtime-only watcher of the directory will not see such an addition --
+    the added entry's own file mtime is the reliable signal. The same
+    tradeoff as the upgrade case, where a reinstall reproduces identical
+    mtimes.
+    """
+    wheel_a = make_wheel(
+        "nsa", "1.0", extra_files={"shared_ns/mod_a.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_a), {"shared_ns/mod_a.py": (2026, 6, 15, 12, 0, 0)}
+    )
+    wheel_b = make_wheel(
+        "nsb", "1.0", extra_files={"shared_ns/mod_b.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_b), {"shared_ns/mod_b.py": (2020, 1, 10, 8, 0, 0)}
+    )
+
+    ns_dir = script.site_packages_path / "shared_ns"
+    script.pip("install", "--no-index", wheel_a)
+    mtime_before = ns_dir.stat().st_mtime
+
+    # The second wheel adds an entry dated years before the directory's
+    # current contents; the directory's mtime must not move -- neither back
+    # to the new entry's old date nor forward to now.
+    script.pip("install", "--no-index", wheel_b)
+    assert ns_dir.stat().st_mtime == mtime_before
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )

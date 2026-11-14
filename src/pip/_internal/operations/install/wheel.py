@@ -401,6 +401,13 @@ def _set_installed_directory_mtimes(
     newest mtime among the entries other distributions left in it: a shared
     directory ends up at the maximum mtime of everything it actually
     contains, whichever wheel was installed last.
+
+    Consequently a directory's mtime is a fingerprint of its contents
+    rather than a signal that something happened: adding an entry dated
+    older than the current contents -- in a shared namespace or anywhere
+    else -- leaves the directory's mtime unchanged, so mtime-only watchers
+    of the directory will not see such an addition; the entries' own file
+    mtimes are the reliable change signal.
     """
     scheme_dirs = {
         os.path.normcase(os.path.abspath(getattr(scheme, key))) for key in SCHEME_KEYS
