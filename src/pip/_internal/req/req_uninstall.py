@@ -147,13 +147,13 @@ def compress_for_rename(paths: Iterable[str], location: str | None = None) -> se
                     break
                 unchecked.add(parent)
                 parent = os.path.dirname(parent)
-    unchecked = sorted(unchecked, key=len)
+    unchecked_sorted = sorted(unchecked, key=len)
     wildcards: set[str] = set()
 
     def norm_join(*a: str) -> str:
         return os.path.normcase(os.path.join(*a))
 
-    for root in unchecked:
+    for root in unchecked_sorted:
         if any(os.path.normcase(root).startswith(w) for w in wildcards):
             # This directory has already been handled.
             continue

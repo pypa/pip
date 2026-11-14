@@ -420,13 +420,13 @@ def _set_installed_directory_mtimes(
     # distributions, so they are never included.
     dist_dirs: set[str] = set()
     for dir_path in max_file_mtime_by_dir:
-        current = dir_path
+        ancestor = dir_path
         while (
-            os.path.dirname(current) != current
-            and os.path.normcase(os.path.abspath(current)) not in scheme_dirs
+            os.path.dirname(ancestor) != ancestor
+            and os.path.normcase(os.path.abspath(ancestor)) not in scheme_dirs
         ):
-            dist_dirs.add(current)
-            current = os.path.dirname(current)
+            dist_dirs.add(ancestor)
+            ancestor = os.path.dirname(ancestor)
 
     # Basenames written into each directory by this install (extracted plus
     # generated files), and the distribution's own subdirectories, so that
