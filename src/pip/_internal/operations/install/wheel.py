@@ -16,6 +16,7 @@ import textwrap
 import warnings
 from base64 import urlsafe_b64encode
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
+from datetime import datetime
 from email.message import Message
 from itertools import chain, filterfalse, starmap
 from pathlib import Path
@@ -344,13 +345,173 @@ def get_console_script_specs(console: dict[str, str]) -> list[str]:
     return scripts_to_generate
 
 
+def _zipinfo_mtime(zipinfo: ZipInfo) -> float:
+    # The zip format stores timestamps in local time and without timezone
+    # information, so attach the local timezone before converting to a POSIX
+    # timestamp. A naive ``.timestamp()`` call would misconvert on platforms
+    # where the local timezone rules for the stored date differ from the
+    # rules used by ``datetime.fromtimestamp`` (seen on macOS CI).
+    return datetime(*zipinfo.date_time).astimezone().timestamp()
+
+
+def _set_extracted_file_mtime(extracted_file: str, zipinfo: ZipInfo) -> float:
+    """Set the atime and mtime of an extracted file from its zip metadata.
+
+    Return the mtime that was set, so callers can reuse it without
+    re-statting the file.
+    """
+    mtime = _zipinfo_mtime(zipinfo)
+    os.utime(extracted_file, (mtime, mtime))
+    return mtime
+
+
+def _set_installed_directory_mtimes(
+    extracted_files: list[tuple[str, float]],
+    scheme: Scheme,
+    produced_paths: Iterable[str] = (),
+) -> None:
+    """Give the directories that received files from a wheel deterministic
+    mtimes derived from the wheel's own file timestamps.
+
+    Wheels contain no directory entries, so every directory of an installed
+    distribution is created by pip, and writing into a directory updates its
+    mtime. Without this pass, directory mtimes would only reflect whenever
+    pip last ran, churning on every reinstall even when the contents are
+    unchanged.
+
+    Walk the distribution's directories deepest first, setting each
+    directory's mtime to the maximum mtime among the wheel-provided items it
+    contains: files extracted with their mtimes preserved, and child
+    directories already assigned by deeper passes. Directories that may be
+    shared with other distributions -- the scheme directories, such as
+    site-packages itself -- are left untouched.
+
+    A directory counts as part of the distribution even when no file sits
+    directly inside it: a wheel may install ``pkg/sub/mod.py`` without any
+    file directly in ``pkg/``, and ``pkg`` still gets a wheel-derived mtime
+    (the maximum among the wheel-provided items it contains at any depth)
+    instead of an install-time mtime that churns on every reinstall.
+
+    A directory below the scheme roots can still be shared with another
+    distribution -- an implicit namespace package holding modules from two
+    wheels, say. Assigning such a directory purely from this wheel's
+    timestamps could move its mtime *backwards*, hiding the other
+    distribution's change from mtime-based watchers, and would make the
+    result depend on install order. So each directory is floored at the
+    newest mtime among the entries other distributions left in it: a shared
+    directory ends up at the maximum mtime of everything it actually
+    contains, whichever wheel was installed last.
+    """
+    scheme_dirs = {
+        os.path.normcase(os.path.abspath(getattr(scheme, key))) for key in SCHEME_KEYS
+    }
+    max_file_mtime_by_dir: dict[str, float] = {}
+    for dest_path, mtime in extracted_files:
+        parent_dir = os.path.dirname(dest_path)
+        current = max_file_mtime_by_dir.get(parent_dir)
+        if current is None or mtime > current:
+            max_file_mtime_by_dir[parent_dir] = mtime
+
+    # Collect every directory that directly received files from the wheel,
+    # plus its ancestors up to (but not including) the scheme directories.
+    # Every such directory was created by pip while extracting the wheel,
+    # since wheels contain no directory entries; the scheme directories
+    # themselves may predate the install and be shared with other
+    # distributions, so they are never included.
+    dist_dirs: set[str] = set()
+    for dir_path in max_file_mtime_by_dir:
+        ancestor = dir_path
+        while (
+            os.path.dirname(ancestor) != ancestor
+            and os.path.normcase(os.path.abspath(ancestor)) not in scheme_dirs
+        ):
+            dist_dirs.add(ancestor)
+            ancestor = os.path.dirname(ancestor)
+
+    # Basenames written into each directory by this install (extracted plus
+    # generated files), and the distribution's own subdirectories, so that
+    # anything else found in a directory can be attributed to another
+    # distribution.
+    produced_names_by_dir: dict[str, set[str]] = {}
+    for path in chain((dest_path for dest_path, _ in extracted_files), produced_paths):
+        produced_names_by_dir.setdefault(os.path.dirname(path), set()).add(
+            os.path.basename(path)
+        )
+    child_dist_dir_names: dict[str, set[str]] = {}
+    for dir_path in dist_dirs:
+        child_dist_dir_names.setdefault(os.path.dirname(dir_path), set()).add(
+            os.path.basename(dir_path)
+        )
+
+    def shared_dir_floor(dir_path: str) -> float:
+        """Newest mtime among the entries other distributions left here."""
+        floor = float("-inf")
+        try:
+            entry_names = os.listdir(dir_path)
+        except OSError:
+            return floor
+        for entry in entry_names:
+            if entry == "__pycache__":
+                # Byte-compilation output is install-time churn, not
+                # content: counting it would pin shared directories to
+                # "now" on every install.
+                continue
+            produced = produced_names_by_dir.get(dir_path, ())
+            own_dirs = child_dist_dir_names.get(dir_path, ())
+            if entry in produced or entry in own_dirs:
+                continue
+            try:
+                entry_mtime = os.stat(os.path.join(dir_path, entry)).st_mtime
+            except OSError:
+                continue
+            if entry_mtime > floor:
+                floor = entry_mtime
+        return floor
+
+    # A parent directory always has fewer separators than its children, so
+    # sorting by separator count guarantees children are assigned (and
+    # propagated to their parent) before the parent is assigned.
+    dir_mtimes = {
+        dir_path: max_file_mtime_by_dir.get(dir_path, float("-inf"))
+        for dir_path in dist_dirs
+    }
+    for dir_path in sorted(
+        dist_dirs, key=lambda dir_path: dir_path.count(os.path.sep), reverse=True
+    ):
+        mtime = dir_mtimes[dir_path]
+        floor = shared_dir_floor(dir_path)
+        if floor > mtime:
+            mtime = floor
+        if mtime == float("-inf"):
+            # Nothing wheel-derived was assigned here — for example, an
+            # ancestor above a directory that could not be updated. There
+            # is no meaningful mtime to set, so leave the directory alone.
+            continue
+        try:
+            os.utime(dir_path, (mtime, mtime))
+        except PermissionError:
+            # A root scheme (data=/) can put arbitrary system directories on
+            # the ancestor chain; their mtimes are not ours to manage. The
+            # floor already keeps such directories at the newest mtime of
+            # what they contain, so skipping them changes nothing.
+            continue
+        parent_dir = os.path.dirname(dir_path)
+        if parent_dir in dir_mtimes and mtime > dir_mtimes[parent_dir]:
+            dir_mtimes[parent_dir] = mtime
+
+
 class ZipBackedFile:
     def __init__(
-        self, src_record_path: RecordPath, dest_path: str, zip_file: ZipFile
+        self,
+        src_record_path: RecordPath,
+        dest_path: str,
+        zip_file: ZipFile,
+        extracted_files: list[tuple[str, float]] | None = None,
     ) -> None:
         self.src_record_path = src_record_path
         self.dest_path = dest_path
         self._zip_file = zip_file
+        self._extracted_files = extracted_files
         self.changed = False
         self.written = False
 
@@ -380,8 +541,13 @@ class ZipBackedFile:
                     blocksize = min(zipinfo.file_size, 1024 * 1024)
                     shutil.copyfileobj(f, dest, blocksize)
 
+        mtime = _set_extracted_file_mtime(self.dest_path, zipinfo)
+
         if zip_item_is_executable(zipinfo):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
+
+        if self._extracted_files is not None:
+            self._extracted_files.append((self.dest_path, mtime))
 
 
 class ScriptFile:
@@ -611,6 +777,9 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     installed = record.installed
     changed: set[RecordPath] = set()
     generated = record.generated
+    # (destination path, preserved mtime) for every file extracted from the
+    # wheel, collected during extraction to avoid re-statting files.
+    extracted_files: list[tuple[str, float]] = []
 
     def record_installed(
         srcfile: RecordPath, destfile: str, modified: bool = False
@@ -641,7 +810,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
             normed_path = os.path.normpath(record_path)
             dest_path = os.path.join(dest, normed_path)
             assert_no_path_traversal(dest, dest_path)
-            return ZipBackedFile(record_path, dest_path, zip_file)
+            return ZipBackedFile(record_path, dest_path, zip_file, extracted_files)
 
         return make_root_scheme_file
 
@@ -675,7 +844,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
 
             dest_path = os.path.join(scheme_path, dest_subpath)
             assert_no_path_traversal(scheme_path, dest_path)
-            return ZipBackedFile(record_path, dest_path, zip_file)
+            return ZipBackedFile(record_path, dest_path, zip_file, extracted_files)
 
         return make_data_scheme_file
 
@@ -870,6 +1039,15 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         # "writer" has incompatible type "BinaryIO"; expected "_Writer"
         writer = csv.writer(cast("IO[str]", record_file))
         writer.writerows(_normalized_outrows(rows))
+
+    # Assign the distribution's directories deterministic mtimes derived
+    # from the wheel's file timestamps. This must run after every file of
+    # the distribution -- including generated ones such as RECORD entries
+    # and __pycache__ contents -- has been written, since writing into a
+    # directory updates its mtime.
+    _set_installed_directory_mtimes(
+        extracted_files, scheme, produced_paths=[*generated, record_path]
+    )
 
 
 @contextlib.contextmanager
