@@ -5,8 +5,7 @@ set -Eeuo pipefail
 WORKSPACE_DIR="${WORKSPACE_DIR:-/workspaces/pip}"
 cd "$WORKSPACE_DIR"
 
-# Upgrade pip and install development dependencies
-python -m pip install --upgrade pip
-python -m pip install nox --group test
-python -m nox -s common-wheels
+# Install this checkout and the locked development dependencies
 python -m pip install -e .
+python -m pip install --group pylock.dev.toml:dev
+python -m nox -s common-wheels
