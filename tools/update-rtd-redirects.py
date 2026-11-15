@@ -6,6 +6,17 @@ Relevant API reference: https://docs.readthedocs.io/en/stable/api/v3.html#redire
 # /// script
 # requires-python = ">=3.11"
 # dependencies = ["httpx", "rich", "pyyaml", "certifi>=2026.10.23"]
+#
+# [tool.nab]
+# mode = "specific"
+# uploaded-prior-to = "P7D"
+# dist-policy = "sdist-if-needed"
+# build-policy = "never"
+#
+# [tool.nab.environment]
+# python = "3.11"
+# platform = "linux_x86_64"
+# implementation = "cpython"
 # ///
 
 import operator

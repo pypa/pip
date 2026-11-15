@@ -40,7 +40,7 @@ repos:
       - "--no-warn-unused-ignores"
     additional_dependencies: [
         'keyring==24.2.0',
-        'nox==2024.03.02',
+        'nox==2024.04.15',
         'pytest',
         'types-docutils==0.20.0.3',
         'types-setuptools==68.2.0.0',

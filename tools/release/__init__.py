@@ -15,6 +15,8 @@ from collections.abc import Iterator
 
 from nox.sessions import Session
 
+from tools.release.check_version import is_this_a_good_version_number
+
 
 def get_version_from_arguments(session: Session) -> str | None:
     """Checks the arguments passed to `nox -s release`.
@@ -26,18 +28,11 @@ def get_version_from_arguments(session: Session) -> str | None:
         return None
     version = session.posargs[0]
 
-    # We delegate to a script here, so that it can depend on packaging.
-    session.install("packaging")
-    cmd = [
-        os.path.join(session.bin, "python"),
-        "tools/release/check_version.py",
-        version,
-    ]
-    not_ok = subprocess.run(cmd).returncode
-    if not_ok:
+    problem = is_this_a_good_version_number(version)
+    if problem is not None:
+        session.log(f"ERROR: {problem}")
         return None
 
-    # All is good.
     return version
 
 
@@ -117,7 +112,6 @@ def commit_file(session: Session, filename: str, *, message: str) -> None:
 
 
 def generate_news(session: Session, version: str) -> None:
-    session.install("towncrier")
     session.run("towncrier", "build", "--yes", "--version", version, silent=True)
 
 
