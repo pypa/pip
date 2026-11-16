@@ -1,2 +1,0 @@
-# Upgrade certifi in reused environments to remove distrusted emSign roots.
-certifi>=2026.10.23

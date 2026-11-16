@@ -7,7 +7,7 @@ build:
   jobs:
     install:
       - pip install .
-      - pip install --group docs
+      - pip install --group pylock.dev.toml:docs
 
 sphinx:
   builder: dirhtml
