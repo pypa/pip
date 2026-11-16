@@ -39,6 +39,8 @@ FooProject == 1.2 \
 
   If there is a dependency that is not spelled out and hashed in the requirements file, it will result in an error.
 
+  This does not extend to build dependencies: the packages pip installs into an isolated build environment when building a package from source are not subject to hash-checking mode.
+
 - Requirements must be pinned (either to a URL, filesystem path or using `==`).
 
   This prevents a surprising hash mismatch upon the release of a new version that matches the requirement specifier.
