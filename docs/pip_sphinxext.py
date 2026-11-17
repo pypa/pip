@@ -35,11 +35,11 @@ def convert_cli_opt_names_to_envvars(original_cli_opt_names: list[str]) -> list[
 class PipNewsInclude(rst.Directive):
     required_arguments = 1
 
-    def _is_version_section_title_underline(self, prev: str | None, curr: str) -> bool:
-        """Find a ==== line that marks the version section title."""
+    def _is_title_underline(self, prev: str | None, curr: str, char: str) -> bool:
+        """Find a line of ``char`` that marks a section title."""
         if prev is None:
             return False
-        if re.match(r"^=+$", curr) is None:
+        if re.match(rf"^{char}+$", curr) is None:
             return False
         if len(curr) < len(prev):
             return False
@@ -52,17 +52,24 @@ class PipNewsInclude(rst.Directive):
         and add a ref before the title text.
 
         Dots in the version is converted into dash, and a ``v`` is prefixed.
+        A subsection's ref is its version's ref followed by its title, e.g.
+        ``v20-1-features``.
         This makes Sphinx use them as HTML ``id`` verbatim without generating
         auto numbering (which would make the the anchors unstable).
         """
         prev = None
+        vref = None
         for line in lines:
             # Transform the previous line to include an explicit ref.
-            if self._is_version_section_title_underline(prev, line):
+            if self._is_title_underline(prev, line, "="):
                 assert prev is not None
                 vref = prev.split(None, 1)[0].replace(".", "-")
                 yield f".. _`v{vref}`:"
                 yield ""  # Empty line between ref and the title.
+            elif vref is not None and self._is_title_underline(prev, line, "-"):
+                assert prev is not None
+                yield f".. _`v{vref}-{nodes.make_id(prev)}`:"
+                yield ""
             if prev is not None:
                 yield prev
             prev = line

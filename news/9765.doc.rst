@@ -1,0 +1,1 @@
+Add stable anchors to the subsections of each release in the changelog.
