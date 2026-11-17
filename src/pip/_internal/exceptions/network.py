@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from pip._vendor.rich.markup import escape
-from pip._vendor.rich.text import Text
-
+from pip._internal.cli.terminal import StyledText, escape
 from pip._internal.exceptions._base import DiagnosticPipError, PipError
 
 if TYPE_CHECKING:
@@ -81,7 +79,7 @@ class ConnectionFailedError(DiagnosticPipError):
                 f"Failed to connect to [magenta]{escape(host)}[/] while fetching "
                 f"{escape(url)}"
             ),
-            context=Text(details),
+            context=StyledText(details),
             hint_stmt=(
                 "Are you connected to the Internet? If so, check whether your system "
                 f"can connect to [magenta]{escape(host)}[/] before trying again. "
@@ -101,7 +99,7 @@ class ConnectionTimeoutError(DiagnosticPipError):
         kind: Literal["connect", "read"],
         timeout: float,
     ) -> None:
-        context = Text.assemble(
+        context = StyledText.from_parts(
             (host, "magenta"), f" didn't respond within {timeout} seconds"
         )
         if kind == "connect":
@@ -138,7 +136,9 @@ class SSLVerificationError(DiagnosticPipError):
             f"[magenta]{escape(host)}[/] while fetching {escape(url)}"
         )
         hint = "You may need to use --cert or check your proxy/firewall configuration"
-        super().__init__(message=message, context=Text(str(error)), hint_stmt=hint)
+        super().__init__(
+            message=message, context=StyledText(str(error)), hint_stmt=hint
+        )
 
 
 class ProxyConnectionError(DiagnosticPipError):
@@ -152,7 +152,7 @@ class ProxyConnectionError(DiagnosticPipError):
                 "Failed to connect to proxy "
                 f"[magenta]{escape(proxy)}[/] while fetching {escape(url)}"
             ),
-            context=Text(str(error)),
+            context=StyledText(str(error)),
             hint_stmt="This is likely a proxy configuration issue.",
         )
 
@@ -178,14 +178,14 @@ class IncompleteDownloadError(DiagnosticPipError):
             # Download retrying is not enabled.
             retry_status = ""
             hint = "Consider using --resume-retries to enable download resumption."
-        message = Text(
+        message = StyledText(
             f"Download failed {retry_status}because not enough bytes "
             f"were received ({download_status})"
         )
 
         super().__init__(
             message=message,
-            context=f"URL: {download.link.redacted_url}",
+            context=StyledText(f"URL: {download.link.redacted_url}"),
             hint_stmt=hint,
             note_stmt="This is an issue with network connectivity, not pip.",
         )

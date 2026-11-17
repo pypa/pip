@@ -17,11 +17,9 @@ from optparse import SUPPRESS_HELP, Values
 from pathlib import Path
 from typing import Any
 
-from pip._vendor import pygments, rich
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import InvalidProxyURL
-from pip._vendor.rich.text import Text
 
 import pip
 
@@ -40,6 +38,7 @@ from pip._internal.cli.req_command import (
     with_cleanup,
 )
 from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.cli.terminal import print_json
 from pip._internal.exceptions import (
     BlockedImportError,
     CommandError,
@@ -57,7 +56,7 @@ from pip._internal.req.req_install import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import test_writable_dir
-from pip._internal.utils.logging import getLogger
+from pip._internal.utils.logging import get_console, getLogger
 from pip._internal.utils.misc import (
     check_externally_managed,
     ensure_dir,
@@ -84,8 +83,6 @@ _IMPORT_ERRORS: dict[str, ImportError] = {}
 # Import dependencies directly where possible; otherwise list them here.
 _INTERNAL_EAGER_IMPORTS: tuple[str, ...] = (
     "pip._internal.operations.install.wheel",
-    # Rich loads the Python lexer when rendering debug tracebacks.
-    f"{pygments.__name__}.lexers.python",
     # Preload Python 3.13+ traceback helpers to preserve the original error.
     "traceback",
     "_colorize",
@@ -99,9 +96,6 @@ _INTERNAL_EAGER_IMPORTS: tuple[str, ...] = (
     "gc",
     # Requests imports netrc lazily when looking up credentials.
     "netrc",
-    # Use Rich's actual namespace when pip has been de-vendored.
-    # The renderer is used for output to a legacy Windows console.
-    f"{rich.__name__}._windows_renderer",
     # zipfile may import these backends when reading compressed wheel contents.
     "_bz2",
     "_lzma",
@@ -167,9 +161,6 @@ _IMPORT_BLOCKER = _ImportBlocker()
 
 def _eagerly_import_modules(module_names: Iterable[str]) -> None:
     """Import selected dependencies before installation starts."""
-    # Load Rich's lazy emoji and width data before installation starts.
-    _ = Text.from_markup(":package:").cell_len
-
     _IMPORT_ERRORS.clear()
     for module in dict.fromkeys(module_names):
         try:
@@ -659,7 +650,7 @@ class InstallCommand(RequirementCommand):
             if options.json_report_file:
                 report = InstallationReport(requirement_set.requirements_to_install)
                 if options.json_report_file == "-":
-                    rich.print_json(data=report.to_dict())
+                    print_json(report.to_dict(), get_console())
                 else:
                     with open(options.json_report_file, "w", encoding="utf-8") as f:
                         json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)

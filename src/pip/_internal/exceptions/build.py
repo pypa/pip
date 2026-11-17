@@ -8,9 +8,7 @@ import traceback
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from pip._vendor.rich.markup import escape
-from pip._vendor.rich.text import Text
-
+from pip._internal.cli.terminal import StyledText, escape
 from pip._internal.exceptions._base import (
     DiagnosticPipError,
     InstallationError,
@@ -44,7 +42,7 @@ class BuildDependencyInstallError(DiagnosticPipError):
 
         if log_lines is None:
             # No logs are available, they must have been printed earlier.
-            context = Text("See above for more details.")
+            context = StyledText("See above for more details.")
         else:
             if isinstance(cause, PipError):
                 log_lines.append(f"ERROR: {cause}")
@@ -54,16 +52,16 @@ class BuildDependencyInstallError(DiagnosticPipError):
                     "".join(traceback.format_exception(cause)).splitlines()
                 )
 
-            context = Text.assemble(
+            context = StyledText.from_parts(
                 f"Installing {' '.join(build_reqs)}\n",
                 (f"[{len(log_lines)} lines of output]\n", "red"),
                 "\n".join(log_lines),
                 ("\n[end of output]", "red"),
             )
 
-        message = Text("Cannot install build dependencies", "green")
+        message = StyledText("Cannot install build dependencies", "green")
         if req:
-            message += Text(f" for {req}")
+            message += StyledText(f" for {req}")
         super().__init__(
             message=message, context=context, hint_stmt=None, note_stmt=note
         )
@@ -106,7 +104,7 @@ class VenvCreationError(DiagnosticPipError):
             hint = None
         super().__init__(
             message="Cannot create a virtual environment",
-            context=Text(context),
+            context=StyledText(context),
             hint_stmt=hint,
         )
 
@@ -124,18 +122,21 @@ class InstallationSubprocessError(DiagnosticPipError, InstallationError):
         output_lines: list[str] | None,
     ) -> None:
         if output_lines is None:
-            output_prompt = Text("No available output.")
+            output_prompt = StyledText("No available output.")
         else:
             output_prompt = (
-                Text.from_markup(f"[red][{len(output_lines)} lines of output][/]\n")
-                + Text("".join(output_lines))
-                + Text.from_markup(R"[red]\[end of output][/]")
+                StyledText.from_markup(
+                    f"[red][{len(output_lines)} lines of output][/]\n"
+                )
+                + StyledText("".join(output_lines))
+                + StyledText.from_markup(R"[red]\[end of output][/]")
             )
 
         super().__init__(
-            message=(
-                f"[green]{escape(command_description)}[/] did not run successfully.\n"
-                f"exit code: {exit_code}"
+            message=StyledText.from_parts(
+                (command_description, "green"),
+                " did not run successfully.\nexit code: ",
+                (str(exit_code), "bold cyan"),
             ),
             context=output_prompt,
             hint_stmt=None,
@@ -163,7 +164,7 @@ class BackendUnavailableError(InstallationSubprocessError):
         DiagnosticPipError.__init__(
             self,
             message=f"Cannot import build backend {escape(backend_name)!r}.",
-            context=backend_error,
+            context=StyledText(backend_error),
             hint_stmt=None,
             note_stmt="This is likely not a problem with pip.",
         )

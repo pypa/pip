@@ -11,17 +11,12 @@ import sys
 import textwrap
 from collections.abc import Generator
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, NoReturn
-
-from pip._vendor.rich.markup import escape
-from pip._vendor.rich.theme import Theme
+from typing import Any, NoReturn
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
+from pip._internal.cli.terminal import Terminal, escape
 from pip._internal.configuration import Configuration, ConfigurationError
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
-
-if TYPE_CHECKING:
-    from pip._internal.utils.logging import PipConsole
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +24,6 @@ logger = logging.getLogger(__name__)
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
     """A prettier/less verbose help formatter for optparse."""
 
-    styles = {
-        "optparse.shortargs": "green",
-        "optparse.longargs": "cyan",
-        "optparse.groups": "bold blue",
-        "optparse.metavar": "yellow",
-    }
     highlights = {
         r"\s(-{1}[\w]+[\w-]*)": "shortargs",  # highlight -letter as short args
         r"\s(-{2}[\w]+[\w-]*)": "longargs",  # highlight --words as long args
@@ -66,12 +55,12 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         return "".join(opts)
 
     def format_option(self, option: optparse.Option) -> str:
-        """Overridden method with Rich support."""
+        """Format styled options using their visible width."""
         # fmt: off
         result = []
         opts = self.option_strings[option]
         opt_width = self.help_position - self.current_indent - 2
-        # Remove the rich style tags before calculating width during
+        # Remove the style tags before calculating width during
         # text wrap calculations. Also store the length removed to adjust
         # the padding in the else branch.
         stripped = re.sub(r"(\[[a-z.]+\])|(\[\/\])", "", opts)
@@ -246,7 +235,6 @@ class ConfigOptionParser(CustomOptionParser):
 
         for _, value in self.config.items():
             for section_key, val in value.items():
-
                 section, key = section_key.split(".", 1)
                 if section in override_order:
                     section_items_dict[section][key] = val
@@ -352,27 +340,21 @@ class ConfigOptionParser(CustomOptionParser):
         self.print_usage(sys.stderr)
         self.exit(UNKNOWN_ERROR, f"{msg}\n")
 
-    def _create_console_for_help(self, file: Any = None) -> PipConsole:
+    def _create_console_for_help(self, file: Any = None) -> Terminal:
         # This is unfortunate but necessary since arguments may have not been
         # parsed yet at this point, so detect --no-color manually.
         no_color = (
             "--no-color" in sys.argv
             or bool(strtobool(os.environ.get("PIP_NO_COLOR", "no") or "no"))
-            or "NO_COLOR" in os.environ
+            or bool(os.environ.get("NO_COLOR"))
         )
-        # Imported lazily: rich's console stack is only needed when help is
-        # actually rendered, not when this module is imported for `--version`.
-        from pip._internal.utils.logging import PipConsole
-
-        return PipConsole(
-            theme=Theme(PrettyHelpFormatter.styles), no_color=no_color, file=file
-        )
+        return Terminal(no_color=no_color, file=file)
 
     def print_usage(self, file: Any = None) -> None:
         if self.usage:
             console = self._create_console_for_help(file)
-            console.print(self.get_usage(), highlight=False)
+            console.print(self.get_usage())
 
     def print_help(self, file: Any = None) -> None:
         console = self._create_console_for_help(file)
-        console.print(self.format_help().rstrip(), highlight=False)
+        console.print(self.format_help().rstrip())

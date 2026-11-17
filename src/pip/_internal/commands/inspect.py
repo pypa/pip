@@ -3,15 +3,16 @@ from optparse import Values
 from typing import Any
 
 from pip._vendor.packaging.markers import default_environment
-from pip._vendor.rich import print_json
 
 from pip import __version__
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.cli.terminal import print_json
 from pip._internal.exceptions import CommandError
 from pip._internal.metadata import BaseDistribution, get_environment
 from pip._internal.metadata.base import stdlib_pkgs
+from pip._internal.utils.logging import get_console
 from pip._internal.utils.urls import path_to_url
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ class InspectCommand(Command):
             "environment": default_environment(),
             # TODO tags? scheme?
         }
-        print_json(data=output)
+        print_json(output, get_console())
         return SUCCESS
 
     def _dist_to_dict(self, dist: BaseDistribution) -> dict[str, Any]:

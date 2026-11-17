@@ -11,11 +11,44 @@ import textwrap
 
 import pytest
 
-from pip._vendor import rich
-
+from pip._internal.cli.terminal import Terminal
 from pip._internal.exceptions import DiagnosticPipError, ExternallyManagedEnvironment
+from pip._internal.exceptions.build import (
+    BackendUnavailableError,
+    InstallationSubprocessError,
+)
+from pip._internal.exceptions.network import IncompleteDownloadError
+from pip._internal.models.link import Link
+from pip._internal.network.download import _FileDownload
 
 from tests.lib.output import render_to_text as rendered
+
+
+def test_subprocess_exit_code_highlight() -> None:
+    error = InstallationSubprocessError(
+        command_description="Building wheel for example", exit_code=1, output_lines=None
+    )
+    output = error.format(Terminal(io.StringIO(), color=True))
+    assert "exit code: \x1b[1;36m1\x1b[0m" in output
+
+
+def test_backend_traceback_is_literal() -> None:
+    traceback = r"\\server\share\[red]\backend.py"
+    error = BackendUnavailableError(
+        hook_name="get_requires_for_build_wheel",
+        backend_name="backend",
+        backend_error=traceback,
+    )
+
+    assert traceback in error.format(Terminal(color=False))
+
+
+def test_incomplete_download_url_is_literal() -> None:
+    link = Link("https://example.test/[red]/wheel.whl#ignored=\\\\")
+    download = _FileDownload(link, io.BytesIO(), size=100)
+    error = IncompleteDownloadError(download)
+
+    assert link.redacted_url in error.format(Terminal(color=False))
 
 
 class TestDiagnosticPipErrorCreation:
@@ -70,10 +103,9 @@ class TestDiagnosticPipErrorCreation:
 
 def rendered_in_ascii(error: DiagnosticPipError, *, color: bool = False) -> str:
     with io.BytesIO() as stream:
-        console = rich.console.Console(
-            force_terminal=False,
+        console = Terminal(
             file=io.TextIOWrapper(stream, encoding="ascii", newline=""),
-            color_system="truecolor" if color else None,
+            color=color,
         )
         console.print(error)
         return stream.getvalue().decode("ascii")

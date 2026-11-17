@@ -18,9 +18,9 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import InvalidVersion, Version
 from pip._vendor.resolvelib import ResolutionImpossible
-from pip._vendor.rich.markup import escape
 
 from pip._internal.cache import CacheEntry, WheelCache
+from pip._internal.cli.terminal import escape
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,

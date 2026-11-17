@@ -497,22 +497,22 @@ def test_install_preloads_traceback_dependencies(
     assert "Blocked import" not in result.stderr
 
 
-def test_debug_install_preloads_python_lexer(
+def test_debug_install_preloads_terminal_renderer(
     script: PipTestEnvironment, pip_src: Path
 ) -> None:
-    """Debug tracebacks must use the lexer loaded before its file is replaced."""
+    """Debug tracebacks use the renderer loaded before its file is replaced."""
     if script.zipapp:
-        pytest.skip("Zipapp loads the lexer from the archive")
+        pytest.skip("Zipapp loads the renderer from the archive")
 
-    # Use an installed copy so the wheel replaces the lexer pip will load.
+    # Use an installed copy so the wheel replaces the renderer pip will load.
     shutil.copytree(pip_src / "src" / "pip", script.site_packages_path / "pip")
     wheel_path = create_basic_wheel_for_package(
         script,
         "mypackage",
         "1.0",
         extra_files={
-            "pip/_vendor/pygments/lexers/python.py": (
-                'raise AssertionError("Replacement lexer executed")\n'
+            "pip/_internal/cli/terminal.py": (
+                'raise AssertionError("Replacement renderer executed")\n'
             ),
             "mypackage-1.0.data/purelib/bonus-NaN.dist-info/METADATA": (
                 "Metadata-Version: 2.1\nName: bonus\nVersion: 1.0\n"
@@ -531,7 +531,7 @@ def test_debug_install_preloads_python_lexer(
 
     assert "InvalidVersion: Invalid version: 'NaN'" in result.stderr
     assert "version = 'NaN'" in result.stderr
-    assert "Replacement lexer executed" not in result.stderr
+    assert "Replacement renderer executed" not in result.stderr
     assert "Error in sys.excepthook" not in result.stderr
 
 
@@ -600,29 +600,22 @@ def test_install_exception_reporting_lifetime(
         "command",
         "vendor",
         "resource",
-        "lexer",
-        "formatter",
-        "style",
-        "filter",
+        "progress",
         "importlib",
         "late_finder",
         "reload",
         "entrypoint",
         "spec",
-        "debundled",
     ],
 )
 def test_dynamic_imports_respect_install_guard(
-    script: PipTestEnvironment, common_wheels: Path, kind: str
+    script: PipTestEnvironment, kind: str
 ) -> None:
     """Check cold and cached imports of commands, resources and plugins."""
     package = make_wheel(
         "guarded_import_plugin",
         "1.0",
-        entry_points={
-            f"pygments.{group}": ["guarded = guarded_import_plugin:VALUE"]
-            for group in ("lexers", "formatters", "styles", "filters")
-        },
+        entry_points={"pip.tests": ["guarded = guarded_import_plugin:VALUE"]},
         extra_files={
             "guarded_import_plugin.py": "VALUE = 42\n",
             "guarded_import_resource/__init__.py": "",
@@ -635,16 +628,7 @@ def test_dynamic_imports_respect_install_guard(
 
     runner = Path(__file__).parents[1] / "lib" / "check_installation_imports.py"
 
-    if kind == "debundled":
-        script.pip("install", "--no-index", "--find-links", common_wheels, "rich")
-        script.run(
-            "python", str(runner), "lexer", "debundled", allow_stderr_warning=True
-        )
-        for unicode_version in ("4.1.0", "latest"):
-            script.environ["UNICODE_VERSION"] = unicode_version
-            script.run("python", str(runner), "progress", "debundled")
-    else:
-        script.run("python", str(runner), kind, allow_stderr_warning=True)
+    script.run("python", str(runner), kind, allow_stderr_warning=True)
 
 
 @pytest.mark.parametrize("cached_function", [False, True])

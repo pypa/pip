@@ -11,11 +11,9 @@ from dataclasses import dataclass
 
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.rich.console import Group
-from pip._vendor.rich.markup import escape
-from pip._vendor.rich.text import Text
 
 from pip import __version__
+from pip._internal.cli.terminal import StyledText, Terminal, escape
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import get_default_environment
@@ -137,11 +135,11 @@ class UpgradePrompt:
     new: str
     show_upgrade_hint: bool = True
 
-    def __rich__(self) -> Group:
+    def format(self, terminal: Terminal) -> str:
         notice = "[bold][[reset][blue]notice[reset][bold]][reset]"
         lines = [
-            Text(),
-            Text.from_markup(
+            StyledText(),
+            StyledText.from_markup(
                 f"{notice} A new release of pip is available: "
                 f"[red]{self.old}[reset] -> [green]{self.new}[reset]"
             ),
@@ -153,12 +151,12 @@ class UpgradePrompt:
                 pip_cmd = get_best_invocation_for_this_pip()
 
             lines.append(
-                Text.from_markup(
+                StyledText.from_markup(
                     f"{notice} To update, run: "
                     f"[green]{escape(pip_cmd)} install --upgrade pip"
                 )
             )
-        return Group(*lines)
+        return "\n".join(line.format(terminal) for line in lines)
 
 
 def _get_current_remote_pip_version(
@@ -267,4 +265,4 @@ def pip_self_version_check_fetch(
 def pip_self_version_check_emit(upgrade_prompt: UpgradePrompt | None) -> None:
     """Emit the upgrade prompt captured by :func:`pip_self_version_check_fetch`."""
     if upgrade_prompt is not None:
-        logger.warning("%s", upgrade_prompt, extra={"rich": True})
+        logger.warning("%s", upgrade_prompt, extra={"diagnostic": True})

@@ -3,43 +3,31 @@ from __future__ import annotations
 import contextlib
 import errno
 import logging
+import logging.config
 import logging.handlers
 import os
 import sys
 import threading
 from collections.abc import Generator
-from dataclasses import dataclass
 from io import StringIO, TextIOWrapper
 from logging import Filter
-from typing import Any, ClassVar
+from typing import Any
 
-from pip._vendor.rich.console import (
-    Console,
-    ConsoleOptions,
-    ConsoleRenderable,
-    RenderableType,
-    RenderResult,
-    RichCast,
-)
-from pip._vendor.rich.highlighter import NullHighlighter
-from pip._vendor.rich.logging import RichHandler
-from pip._vendor.rich.segment import Segment
-from pip._vendor.rich.style import Style
-
+from pip._internal.cli.terminal import Renderable, StyledText, Terminal
 from pip._internal.utils._log import VERBOSE, getLogger
-from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.compat import WINDOWS, override
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import StreamWrapper, ensure_dir, looks_like_ci
 
 _log_state = threading.local()
-_stdout_console = None
-_stderr_console = None
+_stdout_console: Terminal | None = None
+_stderr_console: Terminal | None = None
 subprocess_logger = getLogger("pip.subprocessor")
 
 
 class BrokenStdoutLoggingError(Exception):
     """
-    Raised if BrokenPipeError occurs for the stdout stream while logging.
+    Raised when the configured stdout stream breaks.
     """
 
 
@@ -56,16 +44,26 @@ def _is_broken_pipe_error(exc_class: type[BaseException], exc: BaseException) ->
     return isinstance(exc, OSError) and exc.errno in (errno.EINVAL, errno.EPIPE)
 
 
+class PipConsole(Terminal):
+    """Route stdout write failures through pip's command error handling."""
+
+    @override
+    def write(self, text: str) -> None:
+        try:
+            super().write(text)
+        except OSError as exc:
+            if self.file is sys.stdout and _is_broken_pipe_error(type(exc), exc):
+                raise BrokenStdoutLoggingError() from exc
+            raise
+
+
 @contextlib.contextmanager
 def capture_logging() -> Generator[StringIO, None, None]:
     """Capture all pip logs in a buffer temporarily."""
-    # Patching sys.std(out|err) directly is not viable as the caller
-    # may want to emit non-logging output (e.g. a rich spinner). To
-    # avoid capturing that, temporarily patch the root logging handlers
-    # to use new rich consoles that write to a StringIO.
+    # Capture logs without capturing progress written to the same stream.
     handlers = {}
     for handler in logging.getLogger().handlers:
-        if isinstance(handler, RichPipStreamHandler):
+        if isinstance(handler, PipStreamHandler):
             # Also store the handler's original console so it can be
             # restored on context exit.
             handlers[handler] = handler.console
@@ -75,10 +73,7 @@ def capture_logging() -> Generator[StringIO, None, None]:
         yield fake_stream
         return
 
-    # HACK: grab no_color attribute from a random handler console since
-    # it's a global option anyway.
-    no_color = next(iter(handlers.values())).no_color
-    fake_console = PipConsole(file=fake_stream, no_color=no_color, soft_wrap=True)
+    fake_console = Terminal(file=fake_stream, color=False)
     try:
         for handler in handlers:
             handler.console = fake_console
@@ -158,83 +153,65 @@ class IndentingFormatter(logging.Formatter):
         return formatted
 
 
-@dataclass
-class IndentedRenderable:
-    renderable: RenderableType
-    indent: int
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        segments = console.render(self.renderable, options)
-        lines = Segment.split_lines(segments)
-        for line in lines:
-            yield Segment(" " * self.indent)
-            yield from line
-            yield Segment("\n")
+def get_console(*, stderr: bool = False) -> Terminal:
+    global _stdout_console, _stderr_console
+    console = _stderr_console if stderr else _stdout_console
+    if console is None:
+        console = PipConsole(sys.stderr if stderr else sys.stdout)
+        if looks_like_ci():
+            console.interactive = False
+        if stderr:
+            _stderr_console = console
+        else:
+            _stdout_console = console
+    return console
 
 
-class PipConsole(Console):
-    def on_broken_pipe(self) -> None:
-        # Reraise the original exception, rich 13.8.0+ exits by default
-        # instead, preventing our handler from firing.
-        raise BrokenPipeError() from None
+class PipStreamHandler(logging.Handler):
+    def __init__(self, console: Terminal) -> None:
+        super().__init__()
+        self.console = console
 
-
-def get_console(*, stderr: bool = False) -> Console:
-    if stderr:
-        assert _stderr_console is not None, "stderr rich console is missing!"
-        return _stderr_console
-    else:
-        assert _stdout_console is not None, "stdout rich console is missing!"
-        return _stdout_console
-
-
-class RichPipStreamHandler(RichHandler):
-    KEYWORDS: ClassVar[list[str] | None] = []
-
-    def __init__(self, console: Console) -> None:
-        super().__init__(
-            console=console,
-            show_time=False,
-            show_level=False,
-            show_path=False,
-            highlighter=NullHighlighter(),
-        )
-
-    # Our custom override on Rich's logger, to make things work as we need them to.
+    @override
     def emit(self, record: logging.LogRecord) -> None:
-        style: Style | None = None
-
-        # If we are given a diagnostic error to present, present it with indentation.
-        if getattr(record, "rich", False):
+        renderable: str | Renderable
+        indent = 0
+        if record.__dict__.get("diagnostic", False):
             assert isinstance(record.args, tuple)
-            (rich_renderable,) = record.args
-            assert isinstance(
-                rich_renderable, (ConsoleRenderable, RichCast, str)
-            ), f"{rich_renderable} is not rich-console-renderable"
-
-            renderable: RenderableType = IndentedRenderable(
-                rich_renderable, indent=get_indentation()
-            )
+            (diagnostic,) = record.args
+            assert isinstance(diagnostic, (str, Renderable))
+            renderable = diagnostic
+            indent = get_indentation()
         else:
             message = self.format(record)
-            renderable = self.render_message(record, message)
-            if record.levelno is not None:
-                if record.levelno >= logging.ERROR:
-                    style = Style(color="red")
-                elif record.levelno >= logging.WARNING:
-                    style = Style(color="yellow")
+            level = record.levelno or 0
+            if level >= logging.ERROR:
+                style = "red"
+            elif level >= logging.WARNING:
+                style = "yellow"
+            else:
+                style = ""
+
+            # Only explicitly marked messages interpret diagnostic markup.
+            renderable = (
+                StyledText.from_markup(message)
+                if record.__dict__.get("markup", False)
+                else StyledText(message, style)
+            )
 
         try:
-            self.console.print(renderable, overflow="ignore", crop=False, style=style)
+            self.console.print(renderable, indent=indent)
         except Exception:
             self.handleError(record)
 
+    @override
     def handleError(self, record: logging.LogRecord) -> None:
         """Called when logging is unable to log some output."""
 
         exc_class, exc = sys.exc_info()[:2]
+        if isinstance(exc, BrokenStdoutLoggingError):
+            raise exc
+
         # If a broken pipe occurred while calling write() or flush() on the
         # stdout stream in logging's Handler.emit(), then raise our special
         # exception so we can handle it in main() instead of logging the
@@ -313,23 +290,19 @@ def setup_logging(verbosity: int, no_color: bool, user_log_file: str | None) -> 
 
     # Shorthands for clarity
     handler_classes = {
-        "stream": "pip._internal.utils.logging.RichPipStreamHandler",
+        "stream": "pip._internal.utils.logging.PipStreamHandler",
         "file": "pip._internal.utils.logging.BetterRotatingFileHandler",
     }
     handlers = ["console", "console_errors", "console_subprocess"] + (
         ["user_log"] if include_user_log else []
     )
-    global _stdout_console, stderr_console
-    console_options: dict[str, Any] = {"no_color": no_color, "soft_wrap": True}
+    global _stdout_console, _stderr_console
+    _stdout_console = PipConsole(file=sys.stdout, no_color=no_color)
+    _stderr_console = PipConsole(file=sys.stderr, no_color=no_color)
+    _stderr_console.share_display(_stdout_console)
     if looks_like_ci():
-        # Don't animate progress bars and status spinners when running
-        # in CI. A lot of CI workflows use FORCE_COLOR and similar envvars
-        # so their CI output remains colorized, but this causes rich to
-        # assume a fully interactive terminal, resulting in any animated
-        # output to span many lines which is distracting (and unhelpful).
-        console_options["force_interactive"] = False
-    _stdout_console = PipConsole(file=sys.stdout, **console_options)
-    _stderr_console = PipConsole(file=sys.stderr, **console_options)
+        _stdout_console.interactive = False
+        _stderr_console.interactive = False
 
     logging.config.dictConfig(
         {

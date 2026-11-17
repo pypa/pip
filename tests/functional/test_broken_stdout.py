@@ -1,8 +1,52 @@
 import os
 import subprocess
+import sys
+import threading
 from pathlib import Path
 
+import pytest
+
+from pip._internal.utils.misc import CI_ENVIRONMENT_VARIABLES
+
 _BROKEN_STDOUT_RETURN_CODE = 120
+
+
+def test_stdout_closes_during_spinner(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in CI_ENVIRONMENT_VARIABLES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.setenv("TTY_COMPATIBLE", "1")
+    monkeypatch.setenv("TTY_INTERACTIVE", "1")
+    monkeypatch.setenv("COLUMNS", "80")
+    runner = Path(__file__).parents[1] / "lib" / "spinner_with_broken_stdout.py"
+    with subprocess.Popen(
+        [sys.executable, str(runner)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as proc:
+        assert proc.stdout is not None
+        watchdog = threading.Timer(10, proc.kill)
+        watchdog.start()
+        try:
+            frame = b""
+            while not frame.endswith(b"working ... -"):
+                byte = proc.stdout.read(1)
+                assert byte, "spinner exited before its initial frame"
+                frame += byte
+            proc.stdout.close()
+            assert proc.stdin is not None
+            proc.stdin.write(b"x")
+            proc.stdin.close()
+            proc.wait(timeout=10)
+            assert proc.stderr is not None
+            stderr = proc.stderr.read()
+        finally:
+            watchdog.cancel()
+            watchdog.join()
+
+    assert proc.returncode == _BROKEN_STDOUT_RETURN_CODE
+    assert stderr.splitlines() == [b"ERROR: Pipe to stdout was broken"]
 
 
 def setup_broken_stdout_test(
@@ -29,12 +73,13 @@ def setup_broken_stdout_test(
     return stderr, returncode
 
 
-def test_broken_stdout_pipe(deprecated_python: bool) -> None:
+@pytest.mark.parametrize("command", ["list", "inspect"])
+def test_broken_stdout_pipe(deprecated_python: bool, command: str) -> None:
     """
     Test a broken pipe to stdout.
     """
     stderr, returncode = setup_broken_stdout_test(
-        ["pip", "list"],
+        ["pip", command],
         deprecated_python=deprecated_python,
     )
 
