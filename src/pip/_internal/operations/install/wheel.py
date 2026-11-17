@@ -748,6 +748,54 @@ def _compile_wheel_file(path: str) -> bool:
         return False
 
 
+def _remove_cached_bytecode(source_path: str) -> None:
+    """Remove every ``__pycache__`` entry compiled from ``source_path``.
+
+    Cache entries are named ``<stem>.<tag>.pyc`` -- one per interpreter and
+    optimization level, like ``mod.cpython-312.pyc`` and
+    ``mod.cpython-312.opt-1.pyc`` -- so every entry sharing the source's
+    stem is removed rather than only the current interpreter's
+    ``cache_from_source()`` name. A cache entry validates against nothing
+    but the source's mtime and size, and this module preserves the mtime,
+    so a stale entry for another optimization level would otherwise keep
+    validating against replaced same-size source.
+
+    Bytecode caches under an application-specific ``PYTHONPYCACHEPREFIX``
+    cannot be discovered from the source path and are left alone.
+
+    A missing ``__pycache__`` directory (the common case) is not an error.
+    Removal is best-effort: a cache directory that cannot be listed, or an
+    entry that cannot be removed (the source can be writable while its
+    cache directory is not), is reported as a warning and left in place
+    rather than failing the install.
+    """
+    source_dir, source_name = os.path.split(source_path)
+    stem = os.path.splitext(source_name)[0]
+    cache_dir = os.path.join(source_dir, "__pycache__")
+    try:
+        cache_entries = os.listdir(cache_dir)
+    except (FileNotFoundError, NotADirectoryError):
+        return
+    except OSError as error:
+        logger.warning(
+            "Could not list %s to remove stale bytecode caches: %s",
+            cache_dir,
+            error,
+        )
+        return
+    stem_prefix = stem + "."
+    for entry in cache_entries:
+        if not (entry.startswith(stem_prefix) and entry.endswith(".pyc")):
+            continue
+        cache_path = os.path.join(cache_dir, entry)
+        try:
+            os.unlink(cache_path)
+        except OSError as error:
+            logger.warning(
+                "Could not remove stale bytecode cache %s: %s", cache_path, error
+            )
+
+
 def _install_wheel(  # noqa: C901, PLR0915 function is too long
     name: str,
     wheel_zip: ZipFile,
@@ -944,6 +992,19 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     def pyc_output_path(path: str) -> str:
         """Return the path the pyc file would have been written to."""
         return importlib.util.cache_from_source(path)
+
+    # Cached bytecode for the paths this wheel installs is stale: it was
+    # compiled from an older file at the same location. Invalidation must
+    # not depend on detecting an overwrite -- an uninstall (which only
+    # removes the cache variant it knows about) may already have removed
+    # the old source -- so it is keyed on every installed .py path, and
+    # matches all cache variants since caches for other optimization
+    # levels are written by applications, not by pip. Removing rather
+    # than recompiling keeps --no-compile installs free of eager
+    # regeneration; the compilation below restores the current
+    # interpreter's variant when pycompile is enabled.
+    for path in pyc_source_file_paths():
+        _remove_cached_bytecode(path)
 
     # Compile all of the pyc files for the installed files
     if pycompile:

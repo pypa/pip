@@ -1,1 +1,1 @@
-Preserve file modification times when installing wheels, and give the installed directories deterministic modification times derived from the wheel's own timestamps.
+Preserve file modification times when installing wheels, and give the installed directories deterministic modification times derived from the wheel's own timestamps. Remove the cached bytecode of every installed ``.py`` file so preserved timestamps cannot make stale ``__pycache__`` entries validate against replaced sources.

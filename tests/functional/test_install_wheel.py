@@ -1069,3 +1069,103 @@ def test_wheel_install_shared_directory_older_addition_leaves_mtime(
     assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
         2026, 6, 15, 12, 0, 0
     )
+
+
+# The fixed zip timestamp both wheels below share for their module. A
+# bytecode cache entry embeds only the source's mtime and size, so
+# reinstalling same-size changed source with this same preserved timestamp
+# is exactly the case where a leftover cache would keep validating.
+_STALE_BYTECODE_SOURCE_MTIME = (2020, 2, 2, 1, 2, 4)
+
+
+def _make_stale_bytecode_wheel(tmpdir: Path, version: str, value: str) -> Path:
+    """Build a wheel with a single module whose VALUE is ``value``.
+
+    ``"old"`` and ``"new"`` have the same length, so the two wheels' module
+    files have identical sizes as well as identical zip timestamps.
+    """
+    package = make_wheel(
+        "stalebyte",
+        version,
+        extra_files={"stalebyte.py": f'VALUE = "{value}"\n'},
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(package),
+        {"stalebyte.py": _STALE_BYTECODE_SOURCE_MTIME},
+    )
+    return Path(package)
+
+
+def _import_stalebyte_value(script: PipTestEnvironment, *interpreter_args: str) -> str:
+    """Import the installed module in a fresh process and return its VALUE.
+
+    The test harness disables bytecode writing in child processes, so the
+    import re-enables it before importing: these tests are about the
+    interpreter's real caching behavior, which an application's imports
+    exercise.
+    """
+    result = script.run(
+        "python",
+        *interpreter_args,
+        "-c",
+        "import sys; sys.dont_write_bytecode = False; "
+        "import stalebyte; print(stalebyte.VALUE)",
+    )
+    return result.stdout.strip()
+
+
+def test_wheel_reinstall_no_compile_invalidates_cached_bytecode(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that reinstalling over an existing installation with
+    --ignore-installed --no-compile removes the old cached bytecode instead
+    of leaving it validating against the new source. The caches are created
+    by imports under every optimization level, none of which pip rewrites
+    when --no-compile is given.
+    """
+    old_wheel = _make_stale_bytecode_wheel(tmpdir, "1.0", "old")
+    script.pip("install", "--no-index", old_wheel)
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "old"
+
+    new_wheel = _make_stale_bytecode_wheel(tmpdir, "1.1", "new")
+    script.pip("install", "--no-index", "--ignore-installed", "--no-compile", new_wheel)
+
+    # The replaced source keeps the wheel's timestamp instead of getting a
+    # fresh one, which is what would make a leftover cache validate.
+    source = script.site_packages_path / "stalebyte.py"
+    assert datetime.fromtimestamp(source.stat().st_mtime) == datetime(
+        *_STALE_BYTECODE_SOURCE_MTIME
+    )
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "new"
+
+
+def test_wheel_upgrade_default_compile_invalidates_cached_bytecode(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that an ordinary --upgrade with default compilation invalidates
+    cached bytecode for every optimization level. The uninstall removes
+    only the cache variant matching the current cache_from_source() path;
+    caches the application created under -O and -OO survive it, and
+    preserved mtimes make them validate against the new same-size source.
+    """
+    old_wheel = _make_stale_bytecode_wheel(tmpdir, "1.0", "old")
+    script.pip("install", "--no-index", old_wheel)
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "old"
+
+    new_wheel = _make_stale_bytecode_wheel(tmpdir, "1.1", "new")
+    result = script.pip("install", "--no-index", "--upgrade", new_wheel)
+    assert "Successfully uninstalled stalebyte-1.0" in result.stdout
+
+    # The upgraded source keeps the wheel's timestamp instead of getting a
+    # fresh one, which is what would make a leftover cache validate.
+    source = script.site_packages_path / "stalebyte.py"
+    assert datetime.fromtimestamp(source.stat().st_mtime) == datetime(
+        *_STALE_BYTECODE_SOURCE_MTIME
+    )
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "new"
