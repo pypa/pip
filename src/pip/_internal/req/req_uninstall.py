@@ -117,21 +117,43 @@ def compact(paths: Iterable[str]) -> set[str]:
     return short_paths
 
 
-def compress_for_rename(paths: Iterable[str]) -> set[str]:
+def compress_for_rename(paths: Iterable[str], location: str | None = None) -> set[str]:
     """Returns a set containing the paths that need to be renamed.
 
     This set may include directories when the original sequence of paths
     included every file on disk.
+
+    Ancestor directories of the given paths are considered too, up to (but
+    not including) ``location``. A distribution may own directories that
+    contain no declared file directly (a package whose only contents sit in
+    subpackages, for instance); those directories must be renamed as a whole
+    like any other, or their contents would be stashed inside them one by
+    one, touching the directory itself after the stash is cleaned up.
     """
     case_map = {os.path.normcase(p): p for p in paths}
     remaining = set(case_map)
-    unchecked = sorted({os.path.split(p)[0] for p in case_map.values()}, key=len)
+    unchecked = {os.path.split(p)[0] for p in case_map.values()}
+    if location is not None:
+        norm_location = os.path.normcase(os.path.abspath(location))
+        for path in list(unchecked):
+            parent = os.path.dirname(path)
+            while parent:
+                norm_parent = os.path.normcase(os.path.abspath(parent))
+                if norm_parent == norm_location:
+                    break
+                if not norm_parent.startswith(norm_location + os.sep):
+                    # The path lives outside ``location`` (a script in the
+                    # scripts directory, say); leave its ancestors alone.
+                    break
+                unchecked.add(parent)
+                parent = os.path.dirname(parent)
+    unchecked_sorted = sorted(unchecked, key=len)
     wildcards: set[str] = set()
 
     def norm_join(*a: str) -> str:
         return os.path.normcase(os.path.join(*a))
 
-    for root in unchecked:
+    for root in unchecked_sorted:
         if any(os.path.normcase(root).startswith(w) for w in wildcards):
             # This directory has already been handled.
             continue
@@ -430,7 +452,9 @@ class UninstallPathSet:
             if auto_confirm or self._allowed_to_proceed(verbose):
                 moved = self._moved_paths
 
-                for_rename = compress_for_rename(self._paths)
+                for_rename = compress_for_rename(
+                    self._paths, location=self._dist.location
+                )
 
                 try:
                     for path in sorted(compact(for_rename)):
@@ -473,7 +497,10 @@ class UninstallPathSet:
         _display("Would not remove (might be manually added):", will_skip)
         _display("Would not remove (outside of prefix):", self._refuse)
         if verbose:
-            _display("Will actually move:", compress_for_rename(self._paths))
+            _display(
+                "Will actually move:",
+                compress_for_rename(self._paths, location=self._dist.location),
+            )
 
         return ask("Proceed (Y/n)? ", ("y", "n", "")) != "n"
 
