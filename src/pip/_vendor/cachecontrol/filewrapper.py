@@ -37,6 +37,7 @@ class CallbackFileWrapper:
         self.__buf = NamedTemporaryFile("rb+", delete=True)
         self.__fp = fp
         self.__callback = callback
+        self.__chunk_bytes_remaining = 0
 
     def __getattr__(self, name: str) -> Any:
         # The vagaries of garbage collection means that self.__fp is
@@ -107,14 +108,16 @@ class CallbackFileWrapper:
 
         return data
 
+    def _set_chunk_bytes_remaining(self, chunk_bytes_remaining: int) -> None:
+        self.__chunk_bytes_remaining = chunk_bytes_remaining
+
     def _safe_read(self, amt: int) -> bytes:
         data: bytes = self.__fp._safe_read(amt)  # type: ignore[attr-defined]
-        if amt == 2 and data == b"\r\n":
-            # urllib executes this read to toss the CRLF at the end
-            # of the chunk.
+        if self.__chunk_bytes_remaining == 0 and amt == 2:
             return data
 
         self.__buf.write(data)
+        self.__chunk_bytes_remaining -= len(data)
         if self.__is_fp_closed():
             self._close()
 

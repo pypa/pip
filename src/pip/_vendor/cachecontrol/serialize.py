@@ -68,6 +68,11 @@ class Serializer:
         data: bytes,
         body_file: IO[bytes] | None = None,
     ) -> HTTPResponse | None:
+        """Return a fresh response owned by the caller, or None for a cache miss.
+
+        A returned response owns the supplied body file. On a miss or an
+        exception, the caller retains ownership of the file.
+        """
         # Short circuit if we've been given an empty set of data
         if not data:
             return None

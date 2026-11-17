@@ -144,6 +144,10 @@ class CacheControlAdapter(HTTPAdapter):
                         super_update_chunk_length(self)
                         if self.chunk_left == 0:
                             self._fp._close()  # type: ignore[union-attr]
+                        elif self.chunk_left is not None:
+                            self._fp._set_chunk_bytes_remaining(  # type: ignore[union-attr]
+                                self.chunk_left
+                            )
 
                     response._update_chunk_length = functools.partial(  # type: ignore[method-assign]
                         _update_chunk_length, weakref.ref(response)

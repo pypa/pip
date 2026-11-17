@@ -8,11 +8,11 @@
       "type": "library"
     },
     {
-      "bom-ref": "pkg:pypi/CacheControl@0.14.4",
+      "bom-ref": "pkg:pypi/CacheControl@0.15.0",
       "name": "CacheControl",
-      "purl": "pkg:pypi/CacheControl@0.14.4",
+      "purl": "pkg:pypi/CacheControl@0.15.0",
       "type": "library",
-      "version": "0.14.4"
+      "version": "0.15.0"
     },
     {
       "bom-ref": "pkg:pypi/certifi@2026.10.23",
@@ -137,7 +137,7 @@
   "dependencies": [
     {
       "dependsOn": [
-        "pkg:pypi/CacheControl@0.14.4",
+        "pkg:pypi/CacheControl@0.15.0",
         "pkg:pypi/certifi@2026.10.23",
         "pkg:pypi/distlib@0.4.4",
         "pkg:pypi/distro@1.9.0",
@@ -159,7 +159,7 @@
       "ref": "bom-ref:pip"
     },
     {
-      "ref": "pkg:pypi/CacheControl@0.14.4"
+      "ref": "pkg:pypi/CacheControl@0.15.0"
     },
     {
       "ref": "pkg:pypi/certifi@2026.10.23"
