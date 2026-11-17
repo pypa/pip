@@ -329,49 +329,85 @@ def site_log_dir(
     ).site_log_dir
 
 
-def user_documents_dir() -> str:
-    """:returns: documents directory tied to the user"""
-    return PlatformDirs().user_documents_dir
+def user_documents_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: documents directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_documents_dir
 
 
-def user_downloads_dir() -> str:
-    """:returns: downloads directory tied to the user"""
-    return PlatformDirs().user_downloads_dir
+def user_downloads_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: downloads directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_downloads_dir
 
 
-def user_pictures_dir() -> str:
-    """:returns: pictures directory tied to the user"""
-    return PlatformDirs().user_pictures_dir
+def user_pictures_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: pictures directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_pictures_dir
 
 
-def user_videos_dir() -> str:
-    """:returns: videos directory tied to the user"""
-    return PlatformDirs().user_videos_dir
+def user_videos_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: videos directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_videos_dir
 
 
-def user_music_dir() -> str:
-    """:returns: music directory tied to the user"""
-    return PlatformDirs().user_music_dir
+def user_music_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: music directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_music_dir
 
 
-def user_desktop_dir() -> str:
-    """:returns: desktop directory tied to the user"""
-    return PlatformDirs().user_desktop_dir
+def user_desktop_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: desktop directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_desktop_dir
 
 
-def user_projects_dir() -> str:
-    """:returns: projects directory tied to the user"""
-    return PlatformDirs().user_projects_dir
+def user_projects_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: projects directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_projects_dir
 
 
-def user_publicshare_dir() -> str:
-    """:returns: public share directory tied to the user"""
-    return PlatformDirs().user_publicshare_dir
+def user_publicshare_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: public share directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_publicshare_dir
 
 
-def user_templates_dir() -> str:
-    """:returns: templates directory tied to the user"""
-    return PlatformDirs().user_templates_dir
+def user_templates_dir(*, ensure_exists: bool = False) -> str:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: templates directory tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_templates_dir
 
 
 def user_fonts_dir() -> str:
@@ -797,49 +833,85 @@ def site_log_path(
     ).site_log_path
 
 
-def user_documents_path() -> Path:
-    """:returns: documents path tied to the user"""
-    return PlatformDirs().user_documents_path
+def user_documents_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: documents path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_documents_path
 
 
-def user_downloads_path() -> Path:
-    """:returns: downloads path tied to the user"""
-    return PlatformDirs().user_downloads_path
+def user_downloads_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: downloads path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_downloads_path
 
 
-def user_pictures_path() -> Path:
-    """:returns: pictures path tied to the user"""
-    return PlatformDirs().user_pictures_path
+def user_pictures_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: pictures path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_pictures_path
 
 
-def user_videos_path() -> Path:
-    """:returns: videos path tied to the user"""
-    return PlatformDirs().user_videos_path
+def user_videos_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: videos path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_videos_path
 
 
-def user_music_path() -> Path:
-    """:returns: music path tied to the user"""
-    return PlatformDirs().user_music_path
+def user_music_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: music path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_music_path
 
 
-def user_desktop_path() -> Path:
-    """:returns: desktop path tied to the user"""
-    return PlatformDirs().user_desktop_path
+def user_desktop_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: desktop path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_desktop_path
 
 
-def user_projects_path() -> Path:
-    """:returns: projects path tied to the user"""
-    return PlatformDirs().user_projects_path
+def user_projects_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: projects path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_projects_path
 
 
-def user_publicshare_path() -> Path:
-    """:returns: public share path tied to the user"""
-    return PlatformDirs().user_publicshare_path
+def user_publicshare_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: public share path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_publicshare_path
 
 
-def user_templates_path() -> Path:
-    """:returns: templates path tied to the user"""
-    return PlatformDirs().user_templates_path
+def user_templates_path(*, ensure_exists: bool = False) -> Path:
+    """:param ensure_exists: See `ensure_exists <platformdirs.api.PlatformDirsABC.ensure_exists>`.
+
+    :returns: templates path tied to the user
+
+    """
+    return PlatformDirs(ensure_exists=ensure_exists).user_templates_path
 
 
 def user_fonts_path() -> Path:

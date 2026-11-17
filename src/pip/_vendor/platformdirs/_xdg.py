@@ -6,6 +6,7 @@ import os
 import posixpath
 import sys
 from contextlib import suppress
+from pathlib import Path
 from typing import Final
 
 from .api import PlatformDirsABC
@@ -66,9 +67,16 @@ class XDGMixin(PlatformDirsABC):
 
     @property
     def user_runtime_dir(self) -> str:
-        """Runtime directory tied to the user, from ``$XDG_RUNTIME_DIR`` if set, else platform default."""
+        """Runtime directory tied to the user, from ``$XDG_RUNTIME_DIR`` if set and private, else platform default."""
+        from .unix import _runtime_dir_problem, _warn_once  # ruff:ignore[import-outside-top-level]  # unix imports _xdg
+
         if path := _xdg_dir("XDG_RUNTIME_DIR"):
-            return self._append_app_name_and_version(path, private=True)
+            with suppress(OSError):
+                self._optionally_create_directory(path, private=True)
+            # Another user can pre-create the path in a shared parent, and XDG requires an owned runtime dir with mode 0700.
+            if not (problem := _runtime_dir_problem(path, missing_ok=not self.ensure_exists)):
+                return self._append_app_name_and_version(path, private=True)
+            _warn_once(f"XDG_RUNTIME_DIR {problem}, falling back to the platform default")
         return super().user_runtime_dir
 
     @property
@@ -132,7 +140,8 @@ class XDGMixin(PlatformDirsABC):
     def user_fonts_dir(self) -> str:
         """Fonts directory tied to the user, from ``$XDG_DATA_HOME/fonts`` if set, else platform default."""
         if path := _xdg_dir("XDG_DATA_HOME"):
-            return f"{os.path.expanduser(path)}/fonts"  # ruff:ignore[os-path-expanduser]  # API returns str, not Path
+            # posixpath keeps the XDG separator even when this mixin runs on a non-POSIX host.
+            return posixpath.join(path, "fonts")
         return super().user_fonts_dir
 
     @property
@@ -156,41 +165,38 @@ class XDGMixin(PlatformDirsABC):
 
 
 def _xdg_dir(env_var: str) -> str | None:
-    path: Final = os.environ.get(env_var, "").strip()
+    path: Final = os.environ.get(env_var, "")
     return path if posixpath.isabs(path) else None
 
 
 def _xdg_dir_list(env_var: str) -> list[str]:
-    return [
-        stripped for path in os.environ.get(env_var, "").split(os.pathsep) if posixpath.isabs(stripped := path.strip())
-    ]
+    return [path for path in os.environ.get(env_var, "").split(os.pathsep) if posixpath.isabs(path)]
 
 
 def _expand_user(path: str) -> str:
-    """Expand the leading ``~`` of ``path`` like :func:`os.path.expanduser`, treating an empty ``HOME`` as unset.
+    """Expand the leading ``~`` of ``path`` like :func:`os.path.expanduser`, treating a relative ``HOME`` as unset on POSIX.
 
-    :raises RuntimeError: if neither ``HOME`` nor the password database gives a home directory.
+    :raises RuntimeError: if the home directory cannot be resolved to an absolute path.
 
     """
-    if "HOME" in os.environ and not os.environ["HOME"]:
-        # expanduser roots the path at / for an empty HOME; Rust's std::env::home_dir treats it as unset too
-        expanded = path if (home := _passwd_home()) is None else (home.rstrip("/") + path[1:] or "/")
+    if sys.platform != "win32" and "HOME" in os.environ and not _is_absolute(os.environ["HOME"]):
+        # expanduser uses HOME verbatim, so an empty one roots the path at / and a relative one at the working directory
+        expanded = path
+        with suppress(ImportError, KeyError):
+            import pwd  # ruff:ignore[import-outside-top-level]  # missing on WASI
+
+            expanded = pwd.getpwuid(os.getuid()).pw_dir.rstrip("/") + path[1:] or "/"
     else:
         expanded = os.path.expanduser(path)  # ruff:ignore[os-path-expanduser]  # str(Path) rewrites separators on Windows
-    if expanded.startswith("~"):
-        msg = f"could not determine the home directory for {path!r}, set HOME or an absolute XDG variable"
+    if not _is_absolute(expanded):
+        msg = f"could not determine the home directory for {path!r}, set an absolute HOME or XDG variable"
         raise RuntimeError(msg)
     return expanded
 
 
-def _passwd_home() -> str | None:
-    if sys.platform == "win32":  # pragma: win32 cover  # narrows pwd and os.getuid for ty
-        return None
-    with suppress(ImportError, KeyError):
-        import pwd  # ruff:ignore[import-outside-top-level]  # missing on WASI
-
-        return pwd.getpwuid(os.getuid()).pw_dir
-    return None
+def _is_absolute(path: str) -> bool:
+    # is_absolute accepts a Windows drive path, posixpath.isabs the POSIX home the Unix class gets on any host
+    return posixpath.isabs(path) or Path(path).is_absolute()
 
 
 __all__ = [
