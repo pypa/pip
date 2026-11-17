@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from contextlib import suppress
 from copy import copy
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -60,7 +59,9 @@ class PlatformDirsABC(ABC):  # ruff:ignore[too-many-public-methods]
         """An optional parameter which indicates that the entire list of data dirs should be returned.
 
         When ``False``, only the first item is returned. Affects ``site_data_dir``, ``site_config_dir`` and
-        ``site_applications_dir`` on Unix and macOS, and ``site_cache_dir`` on macOS under Homebrew.
+        ``site_applications_dir`` on Unix and macOS, and ``site_cache_dir`` on macOS under Homebrew. All but
+        ``site_applications_dir`` raise :class:`ValueError` under it when `appname` or `version` contains
+        :data:`os.pathsep`.
 
         """
         self.opinion = opinion
@@ -78,7 +79,7 @@ class PlatformDirsABC(ABC):  # ruff:ignore[too-many-public-methods]
 
         """
         self.use_site_for_root = use_site_for_root
-        """Whether to redirect ``user_*_dir`` calls to their ``site_*_dir`` equivalents when running as root (uid 0).
+        """Whether to redirect ``user_*_dir`` calls to their ``site_*_dir`` equivalents when the effective uid is 0.
 
         Only has an effect on Unix. Disabled by default for backwards compatibility. When enabled, XDG user environment
         variables (e.g. ``XDG_DATA_HOME``) are bypassed for the redirected directories.
@@ -156,12 +157,19 @@ class PlatformDirsABC(ABC):  # ruff:ignore[too-many-public-methods]
     def _optionally_create_media_directory(self, path: str) -> None:
         # Only called for a media directory the user configured. Media directories are often symlinks to removable or
         # network storage, so a dangling link is returned as-is, like before ensure_exists covered them.
-        with suppress(FileExistsError):
+        try:
             self._optionally_create_directory(path, private=False)
+        except FileExistsError:
+            if not (directory := Path(path)).is_symlink() or directory.exists():
+                raise
 
     def _select_site_dirs(self, dirs: list[str]) -> str:
         # Site lists are built without touching the disk, so ensure_exists only creates what the caller gets back.
         selected = dirs if self.multipath else dirs[:1]
+        if self.multipath and any(os.pathsep in path for path in selected):
+            # Callers split the joined string on os.pathsep, so a separator inside one entry reads as two directories.
+            msg = f"multipath cannot join site directories that contain {os.pathsep!r}, got {selected!r}"
+            raise ValueError(msg)
         for path in selected:
             self._optionally_create_directory(path, private=False)
         return os.pathsep.join(selected)
@@ -566,6 +574,7 @@ class PlatformDirsABC(ABC):  # ruff:ignore[too-many-public-methods]
 
         :raises ValueError: if ``name`` is empty, absolute, has a drive or climbs out through ``..``.
         :raises RuntimeError: if the user directory starts with ``~`` because the home directory is unknown.
+        :raises OSError: if it cannot create a missing directory, e.g. one on a missing drive or network share.
 
         """
         return self._place_file(lambda dirs: dirs.user_config_path, name)
@@ -621,7 +630,7 @@ class PlatformDirsABC(ABC):  # ruff:ignore[too-many-public-methods]
         :raises ValueError: if ``name`` is absolute, has a drive or climbs out with ``..``.
 
         """
-        return next(self._find_files(PlatformDirsABC.iter_config_paths, name), None)
+        return next(self._find_files(lambda dirs: dirs.iter_config_paths(), name), None)
 
     def find_config_files(self, name: str | os.PathLike[str]) -> list[Path]:
         """Find every ``name`` file in :meth:`iter_config_paths` order, without creating any directory.
@@ -633,47 +642,50 @@ class PlatformDirsABC(ABC):  # ruff:ignore[too-many-public-methods]
         :raises ValueError: see :meth:`find_config_file`.
 
         """
-        return list(self._find_files(PlatformDirsABC.iter_config_paths, name))
+        return list(self._find_files(lambda dirs: dirs.iter_config_paths(), name))
 
     def find_data_file(self, name: str | os.PathLike[str]) -> Path | None:
         """Like :meth:`find_config_file`, searching :meth:`iter_data_paths`."""
-        return next(self._find_files(PlatformDirsABC.iter_data_paths, name), None)
+        return next(self._find_files(lambda dirs: dirs.iter_data_paths(), name), None)
 
     def find_data_files(self, name: str | os.PathLike[str]) -> list[Path]:
         """Like :meth:`find_config_files`, searching :meth:`iter_data_paths`."""
-        return list(self._find_files(PlatformDirsABC.iter_data_paths, name))
+        return list(self._find_files(lambda dirs: dirs.iter_data_paths(), name))
 
     def find_cache_file(self, name: str | os.PathLike[str]) -> Path | None:
         """Like :meth:`find_config_file`, searching :meth:`iter_cache_paths`."""
-        return next(self._find_files(PlatformDirsABC.iter_cache_paths, name), None)
+        return next(self._find_files(lambda dirs: dirs.iter_cache_paths(), name), None)
 
     def find_cache_files(self, name: str | os.PathLike[str]) -> list[Path]:
         """Like :meth:`find_config_files`, searching :meth:`iter_cache_paths`."""
-        return list(self._find_files(PlatformDirsABC.iter_cache_paths, name))
+        return list(self._find_files(lambda dirs: dirs.iter_cache_paths(), name))
 
     def find_state_file(self, name: str | os.PathLike[str]) -> Path | None:
         """Like :meth:`find_config_file`, searching :meth:`iter_state_paths`."""
-        return next(self._find_files(PlatformDirsABC.iter_state_paths, name), None)
+        return next(self._find_files(lambda dirs: dirs.iter_state_paths(), name), None)
 
     def find_state_files(self, name: str | os.PathLike[str]) -> list[Path]:
         """Like :meth:`find_config_files`, searching :meth:`iter_state_paths`."""
-        return list(self._find_files(PlatformDirsABC.iter_state_paths, name))
+        return list(self._find_files(lambda dirs: dirs.iter_state_paths(), name))
 
     def find_log_file(self, name: str | os.PathLike[str]) -> Path | None:
         """Like :meth:`find_config_file`, searching :meth:`iter_log_paths`."""
-        return next(self._find_files(PlatformDirsABC.iter_log_paths, name), None)
+        return next(self._find_files(lambda dirs: dirs.iter_log_paths(), name), None)
 
     def find_log_files(self, name: str | os.PathLike[str]) -> list[Path]:
         """Like :meth:`find_config_files`, searching :meth:`iter_log_paths`."""
-        return list(self._find_files(PlatformDirsABC.iter_log_paths, name))
+        return list(self._find_files(lambda dirs: dirs.iter_log_paths(), name))
 
     def find_runtime_file(self, name: str | os.PathLike[str]) -> Path | None:
         """Like :meth:`find_config_file`, searching :meth:`iter_runtime_paths`."""
-        return next(self._find_files(PlatformDirsABC.iter_runtime_paths, name), None)
+        return next(self._find_runtime_files(name), None)
 
     def find_runtime_files(self, name: str | os.PathLike[str]) -> list[Path]:
         """Like :meth:`find_config_files`, searching :meth:`iter_runtime_paths`."""
-        return list(self._find_files(PlatformDirsABC.iter_runtime_paths, name))
+        return list(self._find_runtime_files(name))
+
+    def _find_runtime_files(self, name: str | os.PathLike[str]) -> Iterator[Path]:
+        return self._find_files(lambda dirs: dirs.iter_runtime_paths(), name)
 
     def _find_files(
         self, iter_paths: Callable[[PlatformDirsABC], Iterator[Path]], name: str | os.PathLike[str]
@@ -705,10 +717,10 @@ def _unique(dirs: Iterable[str]) -> Iterator[str]:
     """:yield: ``dirs`` in order, skipping any directory already yielded."""
     # Lazy on purpose: under ensure_exists reading a site_*_dir creates it, so draining ``dirs`` up front would
     # create directories for a caller that stops after the first entry.
-    seen: set[str] = set()
+    seen: set[Path] = set()
     for path in dirs:
-        if path not in seen:
-            seen.add(path)
+        if (normalized := Path(path)) not in seen:
+            seen.add(normalized)
             yield path
 
 
@@ -717,9 +729,11 @@ def _make_private_directories(path: Path) -> None:
     try:
         path.mkdir(mode=0o700, exist_ok=True)
     except FileNotFoundError:
+        if path.parent == path:  # a missing drive or network share has no parent to create
+            raise
         _make_private_directories(path.parent)
         path.mkdir(mode=0o700, exist_ok=True)
 
 
 class RuntimeDirWarning(UserWarning):
-    """Emitted when the Unix :attr:`~platformdirs.unix.Unix.user_runtime_dir` cannot use ``$XDG_RUNTIME_DIR``."""
+    """Emitted when the Unix or macOS ``user_runtime_dir`` cannot use ``$XDG_RUNTIME_DIR``."""

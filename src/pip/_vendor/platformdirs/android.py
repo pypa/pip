@@ -189,7 +189,7 @@ def _android_folder() -> str | None:
                 /data/(?:data|user/\d+)  # internal storage of the primary user or of user N
                 /[^/]+                   # package name, one path segment
             )
-            /files                       # the files directory the interpreter runs from
+            /files(?=/|\Z)               # the files directory the interpreter runs from
             """,
             re.VERBOSE,
         )
@@ -209,7 +209,7 @@ def _android_folder() -> str | None:
                 /(?:data|user/\d+)             # the primary user or user N
                 /[^/]+                         # package name, one path segment
             )
-            /files                             # the files directory the interpreter runs from
+            /files(?=/|\Z)                     # the files directory the interpreter runs from
             """,
             re.VERBOSE,
         )

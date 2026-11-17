@@ -66,10 +66,10 @@ def _print_dirs(dirs: PlatformDirsABC) -> None:
 
 
 def _dir_or_error(dirs: PlatformDirsABC, prop: str) -> str:
-    # user_runtime_dir raises when its temporary fallback is not a directory the user owns.
+    # A missing home or an unusable runtime directory should not stop the diagnostic report.
     try:
         return getattr(dirs, prop)
-    except PermissionError as error:
+    except (PermissionError, RuntimeError) as error:
         return str(error)
 
 
