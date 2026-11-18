@@ -733,7 +733,7 @@ class ConfiguredBuildBackendHookCaller(BuildBackendHookCaller):
             backend_name=self.build_backend,
             backend_error=backend_error,
         )
-        logger.error("%s", exception, extra={"rich": True})
+        logger.error("%s", exception, extra={"diagnostic": True})
         raise exception from error
 
     @_build_backend_hook

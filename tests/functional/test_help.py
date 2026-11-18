@@ -1,49 +1,11 @@
-import functools
-from unittest.mock import Mock
+import re
 
 import pytest
 
-from pip._vendor.rich.text import Text
-
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.commands import commands_dict, create_command
-from pip._internal.exceptions import CommandError
-from pip._internal.utils import logging as pip_logging
+from pip._internal.commands import commands_dict
 
 from tests.lib import InMemoryPip, PipTestEnvironment
-
-
-def test_run_method_should_return_success_when_finds_command_name() -> None:
-    """
-    Test HelpCommand.run for existing command
-    """
-    options_mock = Mock()
-    args = ["freeze"]
-    help_cmd = create_command("help")
-    status = help_cmd.run(options_mock, args)
-    assert status == SUCCESS
-
-
-def test_run_method_should_return_success_when_command_name_not_specified() -> None:
-    """
-    Test HelpCommand.run when there are no args
-    """
-    options_mock = Mock()
-    help_cmd = create_command("help")
-    status = help_cmd.run(options_mock, [])
-    assert status == SUCCESS
-
-
-def test_run_method_should_raise_command_error_when_command_does_not_exist() -> None:
-    """
-    Test HelpCommand.run for non-existing command
-    """
-    options_mock = Mock()
-    args = ["mycommand"]
-    help_cmd = create_command("help")
-
-    with pytest.raises(CommandError):
-        help_cmd.run(options_mock, args)
 
 
 def test_help_command_should_exit_status_ok_when_command_exists(
@@ -133,28 +95,21 @@ def test_help_command_colors(
     monkeypatch.delenv("PIP_NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
 
-    PipConsole = pip_logging.PipConsole
-
-    TestConsole = functools.partial(
-        PipConsole, force_terminal=True, color_system="standard", width=80
-    )
-    monkeypatch.setattr(pip_logging, "PipConsole", TestConsole)
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.setenv("TTY_COMPATIBLE", "1")
 
     if envvar:
         monkeypatch.setenv(envvar, "1")
 
     res = in_memory_pip.pip("help")
-    text = Text.from_ansi(res.stdout)
-
-    bold_spans = [s for s in text.spans if getattr(s.style, "bold", None)]
-    bold_text = [text.plain[s.start : s.end] for s in bold_spans]
-
-    assert bold_text == ["Usage:", "Commands:", "General Options:"]
-
-    for span in bold_spans:
-        style = span.style
-        assert not isinstance(style, str)
-        if envvar:
-            assert style.color is None
-        else:
-            assert style.color is not None
+    headings = re.findall(r"\x1b\[([0-9;]+)m([^\x1b]+)\x1b\[0m", res.stdout)
+    bold_headings = [
+        (style, text) for style, text in headings if "1" in style.split(";")
+    ]
+    assert [text for _, text in bold_headings] == [
+        "Usage:",
+        "Commands:",
+        "General Options:",
+    ]
+    for style, _ in bold_headings:
+        assert ("34" in style.split(";")) is (not envvar)

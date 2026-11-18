@@ -3,33 +3,17 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
-from pip._vendor.rich.text import Text
-
-if TYPE_CHECKING:
-    from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
+from pip._internal.cli.terminal import StyledText, Terminal
 
 
 def _is_kebab_case(s: str) -> bool:
     return re.match(r"^[a-z]+(-[a-z]+)*$", s) is not None
 
 
-def _prefix_with_indent(
-    s: Text | str,
-    console: Console,
-    *,
-    prefix: str,
-    indent: str,
-) -> Text:
-    if isinstance(s, Text):
-        text = s
-    else:
-        text = console.render_str(s)
-
-    return console.render_str(prefix, overflow="ignore") + console.render_str(
-        f"\n{indent}", overflow="ignore"
-    ).join(text.split(allow_blank=True))
+def _prefix_with_indent(text: str, *, prefix: str, indent: str) -> str:
+    return prefix + ("\n" + indent).join(text.split("\n"))
 
 
 class PipError(Exception):
@@ -65,10 +49,10 @@ class DiagnosticPipError(PipError):
         *,
         kind: Literal["error", "warning"] = "error",
         reference: str | None = None,
-        message: str | Text,
-        context: str | Text | None,
-        hint_stmt: str | Text | None,
-        note_stmt: str | Text | None = None,
+        message: str | StyledText,
+        context: str | StyledText | None,
+        hint_stmt: str | StyledText | None,
+        note_stmt: str | StyledText | None = None,
         link: str | None = None,
     ) -> None:
         # Ensure a proper reference is provided.
@@ -101,62 +85,58 @@ class DiagnosticPipError(PipError):
             ")>"
         )
 
-    def __rich_console__(
-        self,
-        console: Console,
-        options: ConsoleOptions,
-    ) -> RenderResult:
+    def format(self, terminal: Terminal) -> str:
+        """Render the diagnostic with plain ASCII or tree prefixes."""
         colour = "red" if self.kind == "error" else "yellow"
+        lines = [
+            terminal.style(self.kind, colour + " bold")
+            + ": "
+            + terminal.style(self.reference, "bold"),
+            "",
+        ]
 
-        yield f"[{colour} bold]{self.kind}[/]: [bold]{self.reference}[/]"
-        yield ""
-
-        if not options.ascii_only:
-            # Present the main message, with relevant context indented.
-            if self.context is not None:
-                yield _prefix_with_indent(
-                    self.message,
-                    console,
-                    prefix=f"[{colour}]×[/] ",
-                    indent=f"[{colour}]│[/] ",
-                )
-                yield _prefix_with_indent(
-                    self.context,
-                    console,
-                    prefix=f"[{colour}]╰─>[/] ",
-                    indent=f"[{colour}]   [/] ",
-                )
-            else:
-                yield _prefix_with_indent(
-                    self.message,
-                    console,
-                    prefix="[red]×[/] ",
-                    indent="  ",
-                )
+        message = terminal.format(self.message)
+        context = terminal.format(self.context) if self.context is not None else None
+        if terminal.ascii_only:
+            lines.append(message)
+            if context is not None:
+                lines.extend(["", context])
         else:
-            yield self.message
-            if self.context is not None:
-                yield ""
-                yield self.context
+            continuation = (
+                terminal.style("│", colour) + " " if context is not None else "  "
+            )
+            lines.append(
+                _prefix_with_indent(
+                    message,
+                    prefix=terminal.style("×", colour) + " ",
+                    indent=continuation,
+                )
+            )
+            if context is not None:
+                lines.append(
+                    _prefix_with_indent(
+                        context,
+                        prefix=terminal.style("╰─>", colour) + " ",
+                        indent=terminal.style("   ", colour) + " ",
+                    )
+                )
 
         if self.note_stmt is not None or self.hint_stmt is not None:
-            yield ""
-
-        if self.note_stmt is not None:
-            yield _prefix_with_indent(
-                self.note_stmt,
-                console,
-                prefix="[magenta bold]note[/]: ",
-                indent="      ",
-            )
-        if self.hint_stmt is not None:
-            yield _prefix_with_indent(
-                self.hint_stmt,
-                console,
-                prefix="[cyan bold]hint[/]: ",
-                indent="      ",
-            )
+            lines.append("")
+        for label, style, statement in (
+            ("note", "magenta bold", self.note_stmt),
+            ("hint", "cyan bold", self.hint_stmt),
+        ):
+            if statement is not None:
+                lines.append(
+                    _prefix_with_indent(
+                        terminal.format(statement),
+                        prefix=terminal.style(label, style) + ": ",
+                        indent="      ",
+                    )
+                )
 
         if self.link is not None:
-            yield ""
-            yield f"Link: {self.link}"
+            lines.extend(["", f"Link: {self.link}"])
+
+        return "\n".join(lines)

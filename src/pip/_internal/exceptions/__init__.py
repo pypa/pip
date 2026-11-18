@@ -26,9 +26,8 @@ from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.requirements import InvalidRequirement
 from pip._vendor.packaging.version import InvalidVersion
-from pip._vendor.rich.markup import escape
-from pip._vendor.rich.text import Text
 
+from pip._internal.cli.terminal import StyledText, escape
 from pip._internal.exceptions._base import (
     BlockedImportError,
     DiagnosticPipError,
@@ -329,9 +328,9 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
 
     def __init__(self, error: str | None) -> None:
         if error is None:
-            context = Text(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
+            context = StyledText(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
         else:
-            context = Text(error)
+            context = StyledText(error)
         super().__init__(
             message="This environment is externally managed",
             context=context,
@@ -341,7 +340,7 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
                 "You can override this, at the risk of breaking your Python "
                 "installation or OS, by passing --break-system-packages."
             ),
-            hint_stmt=Text("See PEP 668 for the detailed specification."),
+            hint_stmt=StyledText("See PEP 668 for the detailed specification."),
         )
 
     @staticmethod
@@ -405,7 +404,7 @@ class InvalidInstalledPackage(DiagnosticPipError):
             invalid_type = "version"
 
         super().__init__(
-            message=Text(
+            message=StyledText(
                 f"Cannot process installed package {dist} "
                 + (f"in {installed_location!r} " if installed_location else "")
                 + f"because it has an invalid {invalid_type}:\n{invalid_exc.args[0]}"

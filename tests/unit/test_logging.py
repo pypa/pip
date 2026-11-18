@@ -10,12 +10,12 @@ import pytest
 
 from pip._vendor.pyproject_hooks import BuildBackendWarning
 
+from pip._internal.cli.terminal import Terminal, escape
 from pip._internal.utils import deprecation
 from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
     IndentingFormatter,
-    PipConsole,
-    RichPipStreamHandler,
+    PipStreamHandler,
     indent_log,
 )
 
@@ -99,8 +99,7 @@ class TestIndentingFormatter:
             ("INFO", "2019-01-17T06:00:37,040 hello\n2019-01-17T06:00:37,040 world"),
             (
                 "WARNING",
-                "2019-01-17T06:00:37,040 WARNING: hello\n"
-                "2019-01-17T06:00:37,040 world",
+                "2019-01-17T06:00:37,040 WARNING: hello\n2019-01-17T06:00:37,040 world",
             ),
         ],
     )
@@ -183,8 +182,8 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with redirect_stderr(StringIO()) as stderr:
-            console = PipConsole(file=stderr, no_color=True, soft_wrap=True)
-            handler = RichPipStreamHandler(console)
+            console = Terminal(file=stderr, no_color=True)
+            handler = PipStreamHandler(console)
             with patch("sys.stderr.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 # The emit() call raises no exception.
@@ -207,8 +206,8 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with redirect_stdout(StringIO()) as stdout:
-            console = PipConsole(file=stdout, no_color=True, soft_wrap=True)
-            handler = RichPipStreamHandler(console)
+            console = Terminal(file=stdout, no_color=True)
+            handler = PipStreamHandler(console)
             with patch("sys.stdout.write") as mock_write:
                 mock_write.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
@@ -223,8 +222,8 @@ class TestColorizedStreamHandler:
         record = self._make_log_record()
 
         with redirect_stdout(StringIO()) as stdout:
-            console = PipConsole(file=stdout, no_color=True, soft_wrap=True)
-            handler = RichPipStreamHandler(console)
+            console = Terminal(file=stdout, no_color=True)
+            handler = PipStreamHandler(console)
             with patch("sys.stdout.flush") as mock_flush:
                 mock_flush.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
@@ -235,3 +234,23 @@ class TestColorizedStreamHandler:
         # Sanity check that the log record was written, since flush() happens
         # after write().
         assert output.startswith("my error")
+
+
+@pytest.mark.parametrize("markup", [False, True])
+def test_log_markup_is_explicit(markup: bool) -> None:
+    stream = StringIO()
+    handler = PipStreamHandler(Terminal(stream, color=False))
+    value = r"C:\[red]"
+    message = "[blue underline]%s[/]" if markup else "%s"
+    record = logging.getLogger("pip.test").makeRecord(
+        "pip.test",
+        logging.INFO,
+        __file__,
+        1,
+        message,
+        (escape(value) if markup else value,),
+        None,
+        extra={"markup": markup},
+    )
+    handler.emit(record)
+    assert stream.getvalue() == value + "\n"

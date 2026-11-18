@@ -10,7 +10,7 @@ from io import StringIO
 from typing import TYPE_CHECKING
 
 from pip._internal.build_env.base import Prefix
-from pip._internal.cli.spinners import open_rich_spinner, open_spinner
+from pip._internal.cli.spinners import open_auto_spinner, open_spinner
 from pip._internal.exceptions import (
     BuildDependencyInstallError,
     DiagnosticPipError,
@@ -225,7 +225,7 @@ class InprocessBuildEnvironmentInstaller:
             # Hide the logs from the installation of build dependencies.
             # They will be shown only if an error occurs.
             capture_ctx: ContextManager[StringIO] = capture_logging()
-            spinner: ContextManager[None] = open_rich_spinner(f"Installing {kind}")
+            spinner: ContextManager[None] = open_auto_spinner(f"Installing {kind}")
         else:
             # Otherwise, pass-through all logs (with a header).
             capture_ctx, spinner = nullcontext(StringIO()), nullcontext()
@@ -240,7 +240,7 @@ class InprocessBuildEnvironmentInstaller:
             # Format similar to a nested subprocess error, where the
             # causing error is shown first, followed by the build error.
             logger.info(textwrap.dedent(stream.getvalue()))
-            logger.error("%s", exc, extra={"rich": True})
+            logger.error("%s", exc, extra={"diagnostic": True})
             logger.info("")
             raise BuildDependencyInstallError(
                 for_req, requirements, cause=exc, log_lines=None

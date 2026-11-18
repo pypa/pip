@@ -12,9 +12,6 @@ import traceback
 from collections.abc import Callable, Iterator
 from optparse import Values
 
-from pip._vendor.rich import reconfigure
-from pip._vendor.rich import traceback as rich_traceback
-
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
@@ -25,6 +22,7 @@ from pip._internal.cli.status_codes import (
     UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
+from pip._internal.cli.terminal import debug_traceback
 from pip._internal.exceptions import (
     BadCommand,
     CommandError,
@@ -103,7 +101,7 @@ class Command(CommandContextMixIn):
                 return self.run(options, args)
 
         if options.debug_mode:
-            rich_traceback.install(show_locals=True)
+            sys.excepthook = debug_traceback
             return _inner_run()
 
         try:
@@ -111,7 +109,7 @@ class Command(CommandContextMixIn):
             assert isinstance(status, int)
             return status
         except DiagnosticPipError as exc:
-            logger.error("%s", exc, extra={"rich": True})
+            logger.error("%s", exc, extra={"diagnostic": True})
             logger.debug("Exception information:", exc_info=True)
 
             return ERROR
@@ -197,7 +195,6 @@ class Command(CommandContextMixIn):
         if hasattr(options, "progress_bar") and options.progress_bar == "auto":
             options.progress_bar = "on" if self.verbosity >= 0 else "off"
 
-        reconfigure(no_color=options.no_color)
         level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,

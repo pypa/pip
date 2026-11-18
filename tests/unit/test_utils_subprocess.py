@@ -248,14 +248,14 @@ class TestCallSubprocess:
         result = None
         exception = exc.value
         assert exception.reference == "subprocess-exited-with-error"
-        assert "exit code: 1" in exception.message
+        assert "exit code: 1" in str(exception.message)
         assert exception.note_stmt
-        assert "not a problem with pip" in exception.note_stmt
+        assert "not a problem with pip" in str(exception.note_stmt)
         # Check that the process output is captured, and would be shown.
         assert exception.context
-        assert "Hello\n" in exception.context
-        assert "fail\n" in exception.context
-        assert "world\n" in exception.context
+        assert "Hello\n" in str(exception.context)
+        assert "fail\n" in str(exception.context)
+        assert "world\n" in str(exception.context)
 
         expected = (
             None,

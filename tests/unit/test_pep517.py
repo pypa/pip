@@ -33,12 +33,12 @@ def test_pep517_parsing_checks_requirements(tmpdir: Path, spec: tuple[str]) -> N
 
     error = e.value
 
-    assert str(req) in error.message
+    assert str(req) in str(error.message)
     assert error.context
-    assert "build-system.requires" in error.context
-    assert "contains an invalid requirement" in error.context
+    assert "build-system.requires" in str(error.context)
+    assert "contains an invalid requirement" in str(error.context)
     assert error.hint_stmt
-    assert "PEP 518" in error.hint_stmt
+    assert "PEP 518" in str(error.hint_stmt)
 
 
 @pytest.mark.parametrize(
@@ -99,4 +99,4 @@ def test_backend_unavailable_is_converted_by_public_hook_adapters(
         call_hook(backend)
     error = exc_info.value
     assert error.command_description == f"Calling build backend hook {hook_name}"
-    assert error.context == "ModuleNotFoundError: No module named 'setuptools'"
+    assert str(error.context) == "ModuleNotFoundError: No module named 'setuptools'"
