@@ -428,7 +428,10 @@ To override a duration set in configuration, pass ``P0D`` on the command line.
     package file, pip will fail immediately with an error message indicating
     that upload-time metadata is required when using ``--uploaded-prior-to``.
 
-You can combine this option with other filtering mechanisms like constraints files:
+These filters apply together: a package version must satisfy both the upload-time
+cutoff and the version constraints. A constraint does not override the cutoff. If a
+constraint pins a version uploaded after the cutoff, that version is excluded, and pip
+will report a resolution conflict if no other allowed version satisfies the constraint.
 
 .. tab:: Unix/macOS
 

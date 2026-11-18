@@ -1,0 +1,1 @@
+Clarify how ``--uploaded-prior-to`` combines with constraint files.
