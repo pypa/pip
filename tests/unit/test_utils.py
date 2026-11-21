@@ -700,7 +700,7 @@ def test_split_auth_netloc_from_url(
         # Test with username and password.
         ("user:pass@example.com", "user:****@example.com"),
         # Test with username and empty password.
-        ("user:@example.com", "user:****@example.com"),
+        ("user:@example.com", "****@example.com"),
         # Test the password containing an @ symbol.
         ("user:pass@word@example.com", "user:****@example.com"),
         # Test the password containing a : symbol.
@@ -748,7 +748,7 @@ def test_remove_auth_from_url(auth_url: str, expected_url: str) -> None:
     [
         ("https://accesstoken@example.com/abc", "https://****@example.com/abc"),
         ("https://user:password@example.com", "https://user:****@example.com"),
-        ("https://user:@example.com", "https://user:****@example.com"),
+        ("https://user:@example.com", "https://****@example.com"),
         ("https://example.com", "https://example.com"),
         # Test URL-encoded reserved characters.
         (
