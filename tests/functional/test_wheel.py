@@ -6,6 +6,7 @@ import shutil
 import sys
 import textwrap
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -164,6 +165,54 @@ def test_pip_wheel_build_cache(script: PipTestEnvironment, data: TestData) -> No
     )
     result.did_create(wheel_file_path)
     assert "Successfully built simple" not in result.stdout, result.stdout
+
+
+def test_pip_wheel_cache_respects_config_settings(script: PipTestEnvironment) -> None:
+    sdist = script.scratch_path / "example-1.0.zip"
+    with ZipFile(sdist, "w") as archive:
+        archive.writestr(
+            "pyproject.toml",
+            "[build-system]\nrequires = []\n"
+            'build-backend = "backend"\nbackend-path = ["."]\n',
+        )
+        archive.writestr(
+            "backend.py",
+            textwrap.dedent("""\
+                from pathlib import Path
+                from shutil import copyfile
+
+                def build_wheel(wheel_directory, config_settings=None,
+                                metadata_directory=None):
+                    flavor = (config_settings or {}).get("flavor", "default")
+                    wheel, = Path(flavor).glob("*.whl")
+                    copyfile(wheel, Path(wheel_directory) / wheel.name)
+                    return wheel.name
+                """),
+        )
+        for flavor in ("default", "vanilla", "chocolate"):
+            wheel = create_basic_wheel_for_package(
+                script, "example", "1.0", extra_files={"flavor.txt": flavor}
+            )
+            archive.write(wheel, f"{flavor}/{wheel.name}")
+            wheel.unlink()
+
+    def build(flavor: str, *, cached: bool) -> None:
+        settings = [] if flavor == "default" else ["-C", f"flavor={flavor}"]
+        result = script.pip(
+            "wheel", "--no-index", *settings, f"example @ {sdist.as_uri()}"
+        )
+        assert ("Successfully built example" not in result.stdout) == cached
+        (wheel,) = script.scratch_path.glob("example-*.whl")
+        with ZipFile(wheel) as archive:
+            assert archive.read("flavor.txt").decode() == flavor
+        wheel.unlink()
+
+    build("default", cached=False)
+    build("vanilla", cached=False)
+    build("chocolate", cached=False)
+    build("vanilla", cached=True)
+    build("chocolate", cached=True)
+    build("default", cached=True)
 
 
 def test_basic_pip_wheel_downloads_wheels(

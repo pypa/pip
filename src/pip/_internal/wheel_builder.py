@@ -83,9 +83,13 @@ def _get_cache_dir(
     cache_available = bool(wheel_cache.cache_dir)
     assert req.link
     if cache_available and _should_cache(req):
-        cache_dir = wheel_cache.get_path_for_link(req.link)
+        cache_dir = wheel_cache.get_path_for_link(
+            req.link, config_settings=req.config_settings
+        )
     else:
-        cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
+        cache_dir = wheel_cache.get_ephem_path_for_link(
+            req.link, config_settings=req.config_settings
+        )
     return cache_dir
 
 

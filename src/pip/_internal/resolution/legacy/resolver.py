@@ -426,6 +426,7 @@ class Resolver(BaseResolver):
             link=req.link,
             package_name=req.name,
             supported_tags=get_supported(),
+            config_settings=req.config_settings,
         )
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)

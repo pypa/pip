@@ -617,7 +617,13 @@ class Factory:
             return None
         return RequiresPythonRequirement(specifier, self._python_candidate)
 
-    def get_wheel_cache_entry(self, link: Link, name: str | None) -> CacheEntry | None:
+    def get_wheel_cache_entry(
+        self,
+        link: Link,
+        name: str | None,
+        *,
+        config_settings: dict[str, str | list[str]] | None,
+    ) -> CacheEntry | None:
         """Look up the link in the wheel cache.
 
         If ``preparer.require_hashes`` is True, don't use the wheel cache,
@@ -632,6 +638,7 @@ class Factory:
             link=link,
             package_name=name,
             supported_tags=self._supported_tags_cache,
+            config_settings=config_settings,
         )
 
     def get_dist_to_uninstall(self, candidate: Candidate) -> BaseDistribution | None:
