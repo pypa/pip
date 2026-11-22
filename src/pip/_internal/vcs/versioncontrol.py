@@ -25,7 +25,6 @@ from pip._internal.utils.misc import (
     hide_url,
     hide_value,
     is_installable_dir,
-    redact_auth_from_url,
     rmtree,
 )
 from pip._internal.utils.subprocess import (
@@ -101,6 +100,35 @@ def find_path_to_project_root_from_repo_root(
         return None
 
     return os.path.relpath(location, repo_root)
+
+
+def _check_url_fragment_params(url: HiddenText) -> None:
+    """
+    Warn about unrecognized fragment parameters, which are likely
+    typos (e.g. #subdiretory=... instead of #subdirectory=...).
+    """
+    frag = urllib.parse.urlsplit(url.secret).fragment
+    if not frag:
+        return
+
+    fragment_params = urllib.parse.parse_qs(frag, keep_blank_values=True)
+    unknown_params = set(fragment_params) - _KNOWN_FRAGMENT_PARAMS
+    if not unknown_params:
+        return
+
+    unknown_str = ", ".join(sorted(unknown_params))
+    known_str = ", ".join(f"'{p}'" for p in sorted(_KNOWN_FRAGMENT_PARAMS))
+    msg = "Unrecognized fragment parameters in %s: %s. Recognized parameters are: %s."
+    args = [url, unknown_str, known_str]
+    matches: list[str] = []
+    for param in sorted(unknown_params):
+        for match in difflib.get_close_matches(param, sorted(_KNOWN_FRAGMENT_PARAMS)):
+            if match not in matches:
+                matches.append(match)
+    if matches:
+        msg += " Did you mean %s?"
+        args.append(" or ".join(f"'{m}'" for m in matches))
+    logger.warning(msg, *args)
 
 
 class RemoteNotFoundError(Exception):
@@ -390,31 +418,6 @@ class VersionControl:
                 "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
             )
 
-        # Warn about unrecognized fragment parameters, which are likely
-        # typos (e.g. #subdiretory=... instead of #subdirectory=...).
-        if frag:
-            fragment_params = urllib.parse.parse_qs(frag, keep_blank_values=True)
-            unknown_params = set(fragment_params) - _KNOWN_FRAGMENT_PARAMS
-            if unknown_params:
-                unknown_str = ", ".join(sorted(unknown_params))
-                known_str = ", ".join(f"'{p}'" for p in sorted(_KNOWN_FRAGMENT_PARAMS))
-                msg = (
-                    "Unrecognized fragment parameters in %s: %s. "
-                    "Only %s are recognized."
-                )
-                args = [redact_auth_from_url(url), unknown_str, known_str]
-                matches: list[str] = []
-                for param in sorted(unknown_params):
-                    for match in difflib.get_close_matches(
-                        param, sorted(_KNOWN_FRAGMENT_PARAMS)
-                    ):
-                        if match not in matches:
-                            matches.append(match)
-                if matches:
-                    msg += " Did you mean %s?"
-                    args.append(" or ".join(f"'{m}'" for m in matches))
-                logger.warning(msg, *args)
-
         # Remove the vcs prefix.
         scheme = scheme.split("+", 1)[1]
         netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)
@@ -532,6 +535,7 @@ class VersionControl:
         :param url: the repository URL starting with a vcs prefix.
         :param verbosity: verbosity level.
         """
+        _check_url_fragment_params(url)
         url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
