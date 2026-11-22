@@ -398,6 +398,13 @@ class VersionControl:
                     "or remove @ from the URL."
                 )
             rev = urllib.parse.unquote(rev)
+            if rev.startswith("-"):
+                raise InstallationError(
+                    f"The URL {url!r} has a revision (after @) that starts "
+                    "with a dash, which is not supported because it could "
+                    "be interpreted as a command-line option instead of a "
+                    "revision. Escape or reformat the revision in the URL."
+                )
         url = urllib.parse.urlunsplit((scheme, netloc, path, query, ""))
         return url, rev, user_pass
 
