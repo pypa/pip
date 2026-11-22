@@ -1,0 +1,1 @@
+Reject VCS revisions starting with a dash (from URLs like ``git+https://host/repo@--option``) instead of passing them to the VCS command, where they could be interpreted as command-line options rather than revisions.
