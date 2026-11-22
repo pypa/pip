@@ -247,6 +247,18 @@ organisation and use that everywhere. If the thing being installed requires
 "helloworld" to be installed, your fixed version specified in your constraints
 file will be used.
 
+A named direct URL in a constraints file, such as
+``helloworld @ git+https://example.com/helloworld.git@v1.2.3``, can provide the
+source when another requirement asks for ``helloworld`` by name. If the
+requirement already specifies a direct URL, the URL in the constraint must
+match it. For example, a constraint pointing to a Git tag cannot override a
+requirement pointing to the same repository's default branch.
+
+To install from a specific Git revision, put the pinned URL in the requirements
+file. To keep the URL from the requirement and constrain only the package
+version, use a version specifier such as ``helloworld==1.2.3`` in the constraints
+file.
+
 Constraints file support was added in pip 7.1. In :ref:`Resolver
 changes 2020` we did a fairly comprehensive overhaul, removing several
 undocumented and unsupported quirks from the previous implementation,
