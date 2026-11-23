@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+__lazy_modules__ = {"collections.abc", "urllib.parse"}
+
 import dataclasses
 import re
 import urllib.parse
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+
+from ._structures import dict_state_pickle_compat
 
 if TYPE_CHECKING:  # pragma: no cover
     import sys
@@ -115,7 +119,7 @@ def _file_url_has_absolute_path(parsed_url: SplitResult) -> bool:
 
 
 class DirectUrlValidationError(Exception):
-    """Raised when when input data is not spec-compliant.
+    """Raised when input data is not spec-compliant.
 
     .. versionadded:: 26.1
     """
@@ -152,24 +156,14 @@ class _DirectUrlRequiredKeyError(DirectUrlValidationError):
         super().__init__("Missing required value", context=key)
 
 
-@dataclasses.dataclass(frozen=True, init=False)
+@dict_state_pickle_compat
+@dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
 class VcsInfo:
     """The version control information of a :class:`DirectUrl`."""
 
     vcs: str
     commit_id: str
     requested_revision: str | None = None
-
-    def __init__(
-        self,
-        *,
-        vcs: str,
-        commit_id: str,
-        requested_revision: str | None = None,
-    ) -> None:
-        object.__setattr__(self, "vcs", vcs)
-        object.__setattr__(self, "commit_id", commit_id)
-        object.__setattr__(self, "requested_revision", requested_revision)
 
     @classmethod
     def _from_dict(cls, d: Mapping[str, Any]) -> Self:
@@ -181,18 +175,12 @@ class VcsInfo:
         )
 
 
-@dataclasses.dataclass(frozen=True, init=False)
+@dict_state_pickle_compat
+@dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
 class ArchiveInfo:
     """The archive information of a :class:`DirectUrl`."""
 
     hashes: Mapping[str, str] | None = None
-
-    def __init__(
-        self,
-        *,
-        hashes: Mapping[str, str] | None = None,
-    ) -> None:
-        object.__setattr__(self, "hashes", hashes)
 
     @classmethod
     def _from_dict(cls, d: Mapping[str, Any]) -> Self:
@@ -229,18 +217,12 @@ class ArchiveInfo:
         return cls(hashes=hashes)
 
 
-@dataclasses.dataclass(frozen=True, init=False)
+@dict_state_pickle_compat
+@dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
 class DirInfo:
     """The local directory information of a :class:`DirectUrl`."""
 
     editable: bool | None = None
-
-    def __init__(
-        self,
-        *,
-        editable: bool | None = None,
-    ) -> None:
-        object.__setattr__(self, "editable", editable)
 
     @classmethod
     def _from_dict(cls, d: Mapping[str, Any]) -> Self:
@@ -249,7 +231,8 @@ class DirInfo:
         )
 
 
-@dataclasses.dataclass(frozen=True, init=False)
+@dict_state_pickle_compat
+@dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
 class DirectUrl:
     """A class representing a direct URL.
 
@@ -261,21 +244,6 @@ class DirectUrl:
     vcs_info: VcsInfo | None = None
     dir_info: DirInfo | None = None
     subdirectory: str | None = None  # XXX Path or str?
-
-    def __init__(
-        self,
-        *,
-        url: str,
-        archive_info: ArchiveInfo | None = None,
-        vcs_info: VcsInfo | None = None,
-        dir_info: DirInfo | None = None,
-        subdirectory: str | None = None,
-    ) -> None:
-        object.__setattr__(self, "url", url)
-        object.__setattr__(self, "archive_info", archive_info)
-        object.__setattr__(self, "vcs_info", vcs_info)
-        object.__setattr__(self, "dir_info", dir_info)
-        object.__setattr__(self, "subdirectory", subdirectory)
 
     @classmethod
     def _from_dict(cls, d: Mapping[str, Any]) -> Self:

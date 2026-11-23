@@ -1,4 +1,13 @@
+# This file is dual licensed under the terms of the Apache License, Version
+# 2.0, and the BSD License. See the LICENSE file in the root of this repository
+# for complete details.
 from __future__ import annotations
+
+__lazy_modules__ = {
+    "collections.abc",
+    f"{__spec__.parent}.errors",
+    f"{__spec__.parent}.requirements",
+}
 
 import re
 from collections.abc import Mapping, Sequence
@@ -123,8 +132,6 @@ class DependencyGroupResolver:
         self._parsed_groups: dict[
             str, tuple[Requirement | DependencyGroupInclude, ...]
         ] = {}
-        # a map of group names to their ancestors, used for cycle detection
-        self._include_graph_ancestors: dict[str, tuple[str, ...]] = {}
         # a cache of completed resolutions to Requirement lists
         self._resolve_cache: dict[str, tuple[Requirement, ...]] = {}
 
@@ -152,67 +159,62 @@ class DependencyGroupResolver:
         """
         group = _normalize_name(group)
 
-        with _ErrorCollector().on_exit(
-            f"[dependency-groups] data for {group!r} was malformed"
-        ) as errors:
-            return self._resolve(group, group, errors)
+        if group not in self._resolve_cache:
+            with _ErrorCollector().on_exit(
+                f"[dependency-groups] data for {group!r} was malformed"
+            ) as errors:
+                self._validate(group, group, [], set(), errors)
 
-    def _resolve(
-        self, group: str, requested_group: str, errors: _ErrorCollector
-    ) -> tuple[Requirement, ...]:
+        return self._resolve(group)
+
+    def _validate(
+        self,
+        group: str,
+        requested_group: str,
+        stack: list[str],
+        visited: set[str],
+        errors: _ErrorCollector,
+    ) -> None:
         """
-        This is a helper for cached resolution to strings. It preserves the name of the
-        group which the user initially requested in order to present a clearer error in
-        the event that a cycle is detected.
+        Parse every group reachable from ``group`` exactly once and record parse
+        errors and include cycles in ``errors``.
 
-        :param group: The normalized name of the group to resolve.
+        :param group: The normalized name of the group to validate.
         :param requested_group: The group which was used in the original, user-facing
             request.
+        :param stack: The groups on the current include path.
+        :param visited: The groups which were already validated in this call.
+        :param errors: An error collector in active use.
         """
-        if group in self._resolve_cache:
-            return self._resolve_cache[group]
-
-        parsed = self._parse_group(group, errors)
-
-        resolved_group = []
-
-        for item in parsed:
-            if isinstance(item, Requirement):
-                resolved_group.append(item)
-            elif isinstance(item, DependencyGroupInclude):
+        visited.add(group)
+        stack.append(group)
+        for item in self._parse_group(group, errors):
+            if isinstance(item, DependencyGroupInclude):
                 include_group = _normalize_name(item.include_group)
-
-                # if a group is cyclic, record the error
-                # otherwise, follow the include_group reference
-                #
-                # this allows us to examine all includes in a group, even in the
-                # presence of errors
-                if include_group in self._include_graph_ancestors.get(group, ()):
+                if include_group in stack:
                     errors.error(
-                        CyclicDependencyGroup(
-                            requested_group, group, item.include_group
-                        )
+                        CyclicDependencyGroup(requested_group, group, include_group)
                     )
+                elif include_group not in visited:
+                    self._validate(
+                        include_group, requested_group, stack, visited, errors
+                    )
+        stack.pop()
+
+    def _resolve(self, group: str) -> tuple[Requirement, ...]:
+        """
+        Resolve a group which ``_validate`` accepted, using the cache.
+
+        :param group: The normalized name of the group to resolve.
+        """
+        if group not in self._resolve_cache:
+            resolved: list[Requirement] = []
+            for item in self._parsed_groups[group]:
+                if isinstance(item, Requirement):
+                    resolved.append(item)
                 else:
-                    self._include_graph_ancestors[include_group] = (
-                        *self._include_graph_ancestors.get(group, ()),
-                        group,
-                    )
-                    resolved_group.extend(
-                        self._resolve(include_group, requested_group, errors)
-                    )
-            else:  # pragma: no cover
-                raise NotImplementedError(
-                    f"Invalid dependency group item after parse: {item}"
-                )
-
-        # in the event that errors were detected, present the group as empty and do not
-        # cache the result
-        # this ensures that repeated access to a cyclic group will raise multiple errors
-        if errors.errors:
-            return ()
-
-        self._resolve_cache[group] = tuple(resolved_group)
+                    resolved.extend(self._resolve(_normalize_name(item.include_group)))
+            self._resolve_cache[group] = tuple(resolved)
         return self._resolve_cache[group]
 
     def _parse_group(
@@ -242,6 +244,7 @@ class DependencyGroupResolver:
             return ()
 
         elements: list[Requirement | DependencyGroupInclude] = []
+        error_count_before_parse = len(errors.errors)
         for item in raw_group:
             if isinstance(item, str):
                 # packaging.requirements.Requirement parsing ensures that this is a
@@ -271,11 +274,12 @@ class DependencyGroupResolver:
             else:
                 errors.error(TypeError(f"Invalid dependency group item: {item!r}"))
 
-        if errors.errors:
-            return ()
-
-        self._parsed_groups[group] = tuple(elements)
-        return self._parsed_groups[group]
+        # Return valid includes for validation even if other items failed.
+        # Cache only complete, successful parses.
+        parsed = tuple(elements)
+        if len(errors.errors) == error_count_before_parse:
+            self._parsed_groups[group] = parsed
+        return parsed
 
 
 # --------------------

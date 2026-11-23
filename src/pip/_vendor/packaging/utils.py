@@ -4,11 +4,13 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = {f"{__spec__.parent}.tags", f"{__spec__.parent}.version"}
+
 import re
-from typing import NewType, Union, cast
+from typing import NewType, cast
 
 from .tags import InvalidTag, Tag, UnsortedTagsError, parse_tag
-from .version import InvalidVersion, Version, _TrimmedRelease
+from .version import InvalidVersion, Version
 
 __all__ = [
     "BuildTag",
@@ -28,7 +30,7 @@ def __dir__() -> list[str]:
     return __all__
 
 
-BuildTag = Union[tuple[()], tuple[int, str]]
+BuildTag = tuple[()] | tuple[int, str]
 """
 A wheel build tag: an empty tuple, or a ``(build number, build tag suffix)`` pair.
 
@@ -73,7 +75,7 @@ _validate_regex = re.compile(
 )
 _normalized_regex = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*", re.ASCII)
 # PEP 427: The build number must start with a digit.
-_build_tag_regex = re.compile(r"(\d+)(.*)", re.ASCII)
+_build_tag_regex = re.compile(r"(\d+)(.*)\Z", re.ASCII)
 # PEP 427: Valid characters for an escaped project name in a wheel filename.
 # Requires at least one character so an empty project name is rejected.
 _wheel_name_regex = re.compile(r"^[\w._]+\Z", re.UNICODE)
@@ -194,7 +196,7 @@ def canonicalize_version(
             version = Version(version)
         except InvalidVersion:
             return str(version)
-    return str(_TrimmedRelease(version) if strip_trailing_zero else version)
+    return str(version._trim_release() if strip_trailing_zero else version)
 
 
 def parse_wheel_filename(

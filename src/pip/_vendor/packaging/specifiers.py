@@ -10,43 +10,42 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = {f"{__spec__.parent}._ranges"}
+
 import abc
+import builtins
 import re
+import sys
 import typing
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     TypeVar,
-    Union,
 )
 
 from ._ranges import (
     FULL_RANGE,
+    IntervalIndex,
     bounds_for_spec,
     coerce_version,
     filter_by_ranges,
+    index_intervals,
     intersect_specifier_bounds,
     matches_bounds_only,
     ranges_are_prerelease_only,
     resolve_prereleases,
-    trim_release,
 )
-from .utils import canonicalize_version
-from .version import Version
+from .version import Version, _adapt_possessive
 
 if TYPE_CHECKING:
-    import sys
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator
+    from typing import TypeGuard
 
-    if sys.version_info >= (3, 10):
-        from typing import TypeGuard
-    else:
-        from typing_extensions import TypeGuard
+    from typing_extensions import Self
 
     from . import ranges
-    from ._ranges import Interval
+    from ._ranges import Interval, SearchBounds
 
 
 __all__ = [
@@ -75,19 +74,13 @@ def _validate_pre(pre: object, /) -> TypeGuard[bool | None]:
 
 
 T = TypeVar("T")
-UnparsedVersion = Union[Version, str]
+UnparsedVersion = Version | str
 UnparsedVersionVar = TypeVar("UnparsedVersionVar", bound=UnparsedVersion)
 
 
-# Operators whose result is just a direct Version comparison, given a parsed
-# item with no local. ``<=``/``==``/``!=`` need that no-local guard because
-# PEP 440 strips locals on those; ``>=`` works regardless.
-_DIRECT_COMPARE_OPS: dict[str, Callable[[Version, Version], bool]] = {
-    ">=": Version.__ge__,
-    "<=": Version.__le__,
-    "==": Version.__eq__,
-    "!=": Version.__ne__,
-}
+# Sentinel for __replace__, typed as Any so it can be the default for any field.
+# mypy is missing sentinel currently
+_UNSET: Any = object() if sys.version_info < (3, 15) else builtins.sentinel("_UNSET")  # type: ignore[attr-defined]
 
 
 def _fast_match(specifier: Specifier, parsed: Version) -> bool | None:
@@ -95,28 +88,51 @@ def _fast_match(specifier: Specifier, parsed: Version) -> bool | None:
 
     Handles ``>=``, ``<=``, ``==``, ``!=``, ``<``, ``>`` when the spec is
     not a wildcard and ``parsed`` has no local. Returns ``None`` when the
-    range path must be used. Pre-release policy is left to the caller.
+    range path must be used: for ``===``, ``~=``, wildcards, a local
+    ``parsed``, and ``<V`` where ``parsed`` has V's release and V is a final
+    release with a post segment. Pre-release policy is left to the caller.
+
+    The comparison keys are compared directly; that is what the rich
+    comparisons on :class:`Version` do, without the call overhead.
     """
     op_str, ver_str = specifier._spec
-    if ver_str.endswith(".*") or parsed.local is not None:
+    # All locals use the range path, which handles how PEP 440 strips them
+    # for ``<=``/``==``/``!=``.
+    if parsed._local is not None or op_str in {"~=", "==="} or ver_str.endswith(".*"):
         return None
 
-    direct_compare = _DIRECT_COMPARE_OPS.get(op_str)
-    if direct_compare is not None:
-        return direct_compare(parsed, specifier._require_spec_version(ver_str))
+    spec_v = specifier._spec_version or specifier._require_spec_version()
 
-    if op_str in ("<", ">"):
-        spec_v = specifier._require_spec_version(ver_str)
-        # ``<V``/``>V`` carve out V's family (pre/dev/post); that only
-        # matters when parsed shares V's epoch and trimmed release.
-        # Otherwise a direct cmpkey comparison is correct.
-        if parsed.epoch != spec_v.epoch or trim_release(parsed.release) != trim_release(
-            spec_v.release
-        ):
-            return parsed < spec_v if op_str == "<" else parsed > spec_v
-        return None
+    key = parsed._key_cache or parsed._key
+    spec_key = spec_v._key_cache or spec_v._key
 
-    return None
+    if op_str == ">=":
+        return key >= spec_key
+    if op_str == "<=":
+        return key <= spec_key
+    if op_str == "==":
+        return key == spec_key
+    if op_str == "!=":
+        return key != spec_key
+
+    # ``<V``/``>V`` carve out V's family (pre/dev/post); that only matters
+    # when parsed shares V's epoch and trimmed release, the first two key
+    # items. Otherwise a direct comparison is correct.
+    if key[0] != spec_key[0] or key[1] != spec_key[1]:
+        return key < spec_key if op_str == "<" else key > spec_key
+
+    if op_str == "<":
+        # ``<V`` is ``< V.dev0`` unless V is a pre-release. Nothing with V's
+        # release sorts below a final V's ``.dev0``.
+        if spec_v._pre is not None or spec_v._dev is not None:
+            return key < spec_key
+        return False if spec_v._post is None else None
+
+    # Only ``>`` is left. ``>V`` excludes the post-releases of a final or
+    # pre-release V; those are the later versions that share V's pre segment.
+    if spec_v._dev is not None or spec_v._post is not None:
+        return key > spec_key
+    return key > spec_key and parsed._pre != spec_v._pre
 
 
 class InvalidSpecifier(ValueError):
@@ -238,13 +254,15 @@ class Specifier(BaseSpecifier):
     """
 
     __slots__ = (
+        "_canonical_spec_cache",
         "_prereleases",
         "_ranges",
         "_spec",
         "_spec_version",
     )
 
-    _specifier_regex_str = r"""
+    _specifier_regex_str = _adapt_possessive(
+        r"""
         (?:
             (?:
                 # The identity operators allow for an escape hatch that will
@@ -253,8 +271,8 @@ class Specifier(BaseSpecifier):
                 # any semantic meaning from it. This operator is discouraged
                 # but included entirely as an escape hatch.
                 ===  # Only match for the identity operator
-                \s*
-                [^\s;)]*  # The arbitrary version can be just about anything,
+                \s*+
+                [^\s;)]++ # The arbitrary version can be just about anything,
                           # we match everything except for whitespace, a
                           # semi-colon for marker support, and a closing paren
                           # since versions can be enclosed in them.
@@ -266,10 +284,10 @@ class Specifier(BaseSpecifier):
                 # operators separately to enable that.
                 (?:==|!=)            # Only match for equals and not equals
 
-                \s*
-                v?
-                (?:[0-9]+!)?          # epoch
-                [0-9]+(?:\.[0-9]+)*   # release
+                \s*+
+                v?+
+                (?:[0-9]++!)?+          # epoch
+                [0-9]++(?:\.[0-9]++)*+  # release
 
                 # You cannot use a wild card and a pre-release, post-release, a dev or
                 # local version together so group them with a | and make them optional.
@@ -277,17 +295,17 @@ class Specifier(BaseSpecifier):
                     \.\*  # Wild card syntax of .*
                     |
                     (?a:                                  # pre release
-                        [-_\.]?
-                        (alpha|beta|preview|pre|a|b|c|rc)
-                        [-_\.]?
-                        [0-9]*
-                    )?
+                        [-_\.]?+
+                        (?:alpha|beta|preview|pre|a|b|c|rc)
+                        [-_\.]?+
+                        [0-9]*+
+                    )?+
                     (?a:                                  # post release
-                        (?:-[0-9]+)|(?:[-_\.]?(post|rev|r)[-_\.]?[0-9]*)
-                    )?
-                    (?a:[-_\.]?dev[-_\.]?[0-9]*)?         # dev release
-                    (?a:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)? # local
-                )?
+                        (?:-[0-9]++)|(?:[-_\.]?+(?:post|rev|r)[-_\.]?+[0-9]*+)
+                    )?+
+                    (?a:[-_\.]?+dev[-_\.]?+[0-9]*+)?+          # dev release
+                    (?a:\+[a-z0-9]++(?:[-_\.][a-z0-9]++)*+)?+  # local
+                )?+
             )
             |
             (?:
@@ -295,20 +313,20 @@ class Specifier(BaseSpecifier):
                 # release segment.
                 (?:~=)               # Only match for the compatible operator
 
-                \s*
-                v?
-                (?:[0-9]+!)?          # epoch
-                [0-9]+(?:\.[0-9]+)+   # release  (We have a + instead of a *)
-                (?:                   # pre release
-                    [-_\.]?
-                    (alpha|beta|preview|pre|a|b|c|rc)
-                    [-_\.]?
-                    [0-9]*
-                )?
-                (?:                                   # post release
-                    (?:-[0-9]+)|(?:[-_\.]?(post|rev|r)[-_\.]?[0-9]*)
-                )?
-                (?:[-_\.]?dev[-_\.]?[0-9]*)?          # dev release
+                \s*+
+                v?+
+                (?:[0-9]++!)?+          # epoch
+                [0-9]++(?:\.[0-9]++)++  # release (We have a + instead of a *)
+                (?a:                  # pre release
+                    [-_\.]?+
+                    (?:alpha|beta|preview|pre|a|b|c|rc)
+                    [-_\.]?+
+                    [0-9]*+
+                )?+
+                (?a:                                  # post release
+                    (?:-[0-9]++)|(?:[-_\.]?+(?:post|rev|r)[-_\.]?+[0-9]*+)
+                )?+
+                (?a:[-_\.]?+dev[-_\.]?+[0-9]*+)?+          # dev release
             )
             |
             (?:
@@ -318,23 +336,24 @@ class Specifier(BaseSpecifier):
                 # matching wild cards.
                 (?:<=|>=|<|>)
 
-                \s*
-                v?
-                (?:[0-9]+!)?          # epoch
-                [0-9]+(?:\.[0-9]+)*   # release
+                \s*+
+                v?+
+                (?:[0-9]++!)?+          # epoch
+                [0-9]++(?:\.[0-9]++)*+  # release
                 (?a:                   # pre release
-                    [-_\.]?
-                    (alpha|beta|preview|pre|a|b|c|rc)
-                    [-_\.]?
-                    [0-9]*
-                )?
+                    [-_\.]?+
+                    (?:alpha|beta|preview|pre|a|b|c|rc)
+                    [-_\.]?+
+                    [0-9]*+
+                )?+
                 (?a:                                   # post release
-                    (?:-[0-9]+)|(?:[-_\.]?(post|rev|r)[-_\.]?[0-9]*)
-                )?
-                (?a:[-_\.]?dev[-_\.]?[0-9]*)?          # dev release
+                    (?:-[0-9]++)|(?:[-_\.]?+(?:post|rev|r)[-_\.]?+[0-9]*+)
+                )?+
+                (?a:[-_\.]?+dev[-_\.]?+[0-9]*+)?+           # dev release
             )
         )
         """
+    )
 
     _regex = re.compile(
         r"\s*" + _specifier_regex_str + r"\s*", re.VERBOSE | re.IGNORECASE
@@ -382,51 +401,95 @@ class Specifier(BaseSpecifier):
         self._prereleases = prereleases
 
         # Specifier version cache
-        self._spec_version: tuple[str, Version] | None = None
+        self._spec_version: Version | None = None
 
-        # Version range cache (populated by _to_ranges)
-        self._ranges: Sequence[Interval] | None = None
+        # Cached intervals, with an index once this specifier needs one.
+        self._ranges: tuple[Interval, ...] | IntervalIndex | None = None
 
-    def _get_spec_version(self, version: str) -> Version | None:
-        """One element cache, as only one spec Version is needed per Specifier."""
-        if self._spec_version is not None and self._spec_version[0] == version:
-            return self._spec_version[1]
+        # Canonical (operator, version) cache (populated by _canonical_spec)
+        self._canonical_spec_cache: tuple[str, str] | None = None
 
-        version_specifier = coerce_version(version)
-        if version_specifier is None:
-            return None
+    def __replace__(
+        self,
+        *,
+        operator: str = _UNSET,
+        version: str = _UNSET,
+        prereleases: bool | None = _UNSET,
+    ) -> Self:
+        """__replace__(*, operator=..., version=..., prereleases=...)
 
-        self._spec_version = (version, version_specifier)
-        return version_specifier
+        Return a specifier with the given parts replaced. If no part changes,
+        return ``self``.
 
-    def _require_spec_version(self, version: str) -> Version:
+        :param str operator:
+            Replacement comparison operator. Omit to retain the current operator.
+        :param str version:
+            Replacement version string. Omit to retain the current version.
+        :param prereleases:
+            Replacement prerelease override. Omit to retain the current override;
+            ``None`` restores automatic detection.
+        :type prereleases: bool | None
+
+        .. versionadded:: 26.4
+        """
+        new_operator = self.operator if operator is _UNSET else operator
+        new_version = self.version if version is _UNSET else version
+        new_prereleases = self._prereleases if prereleases is _UNSET else prereleases
+        if (
+            new_operator == self.operator
+            and new_version == self.version
+            and new_prereleases == self._prereleases
+        ):
+            return self
+
+        return self.__class__(
+            f"{new_operator}{new_version}", prereleases=new_prereleases
+        )
+
+    def _get_spec_version(self) -> Version | None:
+        """Parse and cache the spec version, without any ``.*`` suffix.
+
+        Returns ``None`` if it is not a valid version (only for ``===``).
+        """
+        if (cached := self._spec_version) is not None:
+            return cached
+
+        operator, version = self._spec
+        if operator != "===":
+            version = version.removesuffix(".*")
+        self._spec_version = coerce_version(version)
+        return self._spec_version
+
+    def _require_spec_version(self) -> Version:
         """Get spec version, asserting it's valid (not for === operator).
 
         This method should only be called for operators where version
         strings are guaranteed to be valid PEP 440 versions (not ===).
         """
-        spec_version = self._get_spec_version(version)
+        spec_version = self._get_spec_version()
         assert spec_version is not None
         return spec_version
 
-    def _to_ranges(self) -> Sequence[Interval]:
-        """Convert this specifier to sorted, non-overlapping version ranges.
+    def _to_intervals(self) -> tuple[Interval, ...]:
+        """Get the intervals for intersection without preparing an index."""
+        ranges = self._ranges
+        if ranges is None:
+            op, version = self.operator, self.version
+            ranges = self._ranges = (
+                FULL_RANGE
+                if op == "==="
+                else bounds_for_spec(op, version, self._require_spec_version())
+            )
 
-        Each standard operator maps to one or two ranges.  ``===`` is
-        modeled as full range (actual check done separately).  Cached.
-        """
-        if self._ranges is not None:
-            return self._ranges
+        return ranges.intervals if isinstance(ranges, IntervalIndex) else ranges
 
-        op = self.operator
-        ver_str = self.version
+    def _to_ranges(self) -> SearchBounds:
+        """Prepare these intervals for direct membership checks."""
+        ranges = self._ranges
+        if isinstance(ranges, IntervalIndex):
+            return ranges
 
-        if op == "===":
-            result: Sequence[Interval] = FULL_RANGE
-        else:
-            version = self._require_spec_version(ver_str.removesuffix(".*"))
-            result = bounds_for_spec(op, ver_str, version)
-
+        result = index_intervals(self._to_intervals() if ranges is None else ranges)
         self._ranges = result
         return result
 
@@ -450,7 +513,7 @@ class Specifier(BaseSpecifier):
 
         # "===" can have arbitrary string versions, so we cannot parse
         # those, we take prereleases as unknown (None) for those.
-        version = self._get_spec_version(version_str)
+        version = self._get_spec_version()
         if version is None:
             return None
 
@@ -472,6 +535,7 @@ class Specifier(BaseSpecifier):
         # Always discard cached values - they will be recomputed on demand.
         self._spec_version = None
         self._ranges = None
+        self._canonical_spec_cache = None
 
         if isinstance(state, tuple):
             if len(state) == 2:
@@ -545,24 +609,35 @@ class Specifier(BaseSpecifier):
         >>> str(Specifier('>=1.0.0', prereleases=False))
         '>=1.0.0'
         """
-        return "{}{}".format(*self._spec)
+        operator, version = self._spec
+        return operator + version
 
     @property
     def _canonical_spec(self) -> tuple[str, str]:
+        cached = self._canonical_spec_cache
+        if cached is not None:
+            return cached
+
         operator, version = self._spec
         if operator == "===" or version.endswith(".*"):
-            return operator, version
+            result = self._spec
+        else:
+            spec_version = self._require_spec_version()
+            canonical = str(
+                spec_version if operator == "~=" else spec_version._trim_release()
+            )
+            # Most versions are already canonical, so reuse the existing tuple rather
+            # than retaining a second copy of a string equal to the one we hold.
+            result = self._spec if canonical == version else (operator, canonical)
 
-        spec_version = self._require_spec_version(version)
-
-        canonical_version = canonicalize_version(
-            spec_version, strip_trailing_zero=(operator != "~=")
-        )
-
-        return operator, canonical_version
+        self._canonical_spec_cache = result
+        return result
 
     def __hash__(self) -> int:
-        return hash(self._canonical_spec)
+        # Read the cache directly to skip the property call on warm specifiers.
+        if (canonical := self._canonical_spec_cache) is None:
+            canonical = self._canonical_spec
+        return hash(canonical)
 
     def __eq__(self, other: object) -> bool:
         """Whether or not the two Specifier-like objects are equal.
@@ -591,7 +666,11 @@ class Specifier(BaseSpecifier):
         elif not isinstance(other, self.__class__):
             return NotImplemented
 
-        return self._canonical_spec == other._canonical_spec
+        if (canonical := self._canonical_spec_cache) is None:
+            canonical = self._canonical_spec
+        if (other_canonical := other._canonical_spec_cache) is None:
+            other_canonical = other._canonical_spec
+        return canonical == other_canonical
 
     def __contains__(self, item: str | Version) -> bool:
         """Return whether or not the item is contained in this specifier.
@@ -793,7 +872,7 @@ class SpecifierSet(BaseSpecifier):
 
     def __init__(
         self,
-        specifiers: str | Iterable[Specifier] = "",
+        specifiers: str | Iterable[Specifier | str] = "",
         prereleases: bool | None = None,
     ) -> None:
         """Initialize a SpecifierSet instance.
@@ -802,7 +881,9 @@ class SpecifierSet(BaseSpecifier):
             The string representation of a specifier or a comma-separated list of
             specifiers which will be parsed and normalized before use.
             May also be an iterable of ``Specifier`` instances, which will be used
-            as is.
+            as is. Plain ``str`` elements are parsed as if passed to
+            :class:`Specifier`, so ``SpecifierSet([">=1.0"])`` equals
+            ``SpecifierSet(">=1.0")``.
         :param prereleases:
             This tells the SpecifierSet if it should accept prerelease versions if
             applicable or not. The default of ``None`` will autodetect it from the
@@ -811,6 +892,9 @@ class SpecifierSet(BaseSpecifier):
         :raises InvalidSpecifier:
             If the given ``specifiers`` are not parseable than this exception will be
             raised.
+        :raises TypeError:
+            If an element of the iterable form is neither a :class:`Specifier`
+            nor a ``str``.
         """
 
         if isinstance(specifiers, str):
@@ -822,18 +906,48 @@ class SpecifierSet(BaseSpecifier):
             # Fast substring check; avoids iterating parsed specs.
             self._has_arbitrary = "===" in specifiers
         else:
-            self._specs = tuple(specifiers)
-            # Substring check works for both Specifier objects and plain
-            # strings (setuptools passes lists of strings).
-            self._has_arbitrary = any("===" in str(s) for s in self._specs)
+            # List comprehension is faster than generator below
+            self._specs = tuple(
+                [s if isinstance(s, Specifier) else Specifier(s) for s in specifiers]
+            )
+            self._has_arbitrary = any(s.operator == "===" for s in self._specs)
 
         self._canonicalized = len(self._specs) <= 1
         self._is_unsatisfiable: bool | None = None
-        self._ranges: Sequence[Interval] | None = None
+        self._ranges: SearchBounds | None = None
 
         # Store our prereleases value so we can use it later to determine if
         # we accept prereleases or not.
         self._prereleases = prereleases
+
+    def __replace__(
+        self,
+        *,
+        specifiers: str | Iterable[Specifier | str] = _UNSET,
+        prereleases: bool | None = _UNSET,
+    ) -> Self:
+        """__replace__(*, specifiers=..., prereleases=...)
+
+        Return a specifier set with the given parts replaced. If ``specifiers``
+        is omitted and the prerelease override is unchanged, return ``self``.
+
+        :param specifiers:
+            Replacement specifiers as a string or an iterable of ``Specifier``
+            and ``str`` instances. Omit to retain the current specifiers.
+        :type specifiers: str | Iterable[Specifier | str]
+        :param prereleases:
+            Replacement prerelease override. Omit to retain the current override;
+            ``None`` restores automatic detection.
+        :type prereleases: bool | None
+
+        .. versionadded:: 26.4
+        """
+        new_specifiers = self._specs if specifiers is _UNSET else specifiers
+        new_prereleases = self._prereleases if prereleases is _UNSET else prereleases
+        if specifiers is _UNSET and new_prereleases == self._prereleases:
+            return self
+
+        return self.__class__(new_specifiers, prereleases=new_prereleases)
 
     def _canonical_specs(self) -> tuple[Specifier, ...]:
         """Deduplicate, sort, and cache specs for order-sensitive operations."""
@@ -1039,8 +1153,8 @@ class SpecifierSet(BaseSpecifier):
         """
         return iter(self._specs)
 
-    def _get_ranges(self) -> Sequence[Interval]:
-        """Intersect all specifiers into a single sequence of version ranges.
+    def _get_ranges(self) -> SearchBounds:
+        """Return the search bounds shared by all specifiers in this set.
 
         Empty when unsatisfiable. Callers must ensure ``self._specs``
         is non-empty.
@@ -1048,7 +1162,12 @@ class SpecifierSet(BaseSpecifier):
         if self._ranges is not None:
             return self._ranges
 
-        self._ranges = intersect_specifier_bounds(s._to_ranges() for s in self._specs)
+        if len(self._specs) == 1:
+            self._ranges = self._specs[0]._to_ranges()
+        else:
+            self._ranges = intersect_specifier_bounds(
+                s._to_intervals() for s in self._specs
+            )
         return self._ranges
 
     def is_unsatisfiable(self) -> bool:
@@ -1265,9 +1384,9 @@ class SpecifierSet(BaseSpecifier):
             Earlier versions rejected it. An unparsable version now returns
             ``False`` instead of raising :exc:`~packaging.version.InvalidVersion`.
         """
-        version = coerce_version(item)
+        version = item if isinstance(item, Version) else coerce_version(item)
 
-        if version is not None and installed and version.is_prerelease:
+        if installed and version is not None and version.is_prerelease:
             prereleases = True
 
         # When item is a string and === is involved, keep it as-is
@@ -1277,16 +1396,9 @@ class SpecifierSet(BaseSpecifier):
         else:
             check_item = version
 
-        # Fast path: a parseable, local-free version against a rangelike set.
-        # A local on ``version`` needs PEP 440 stripping that the range path
-        # applies.
-        if (
-            version is not None
-            and not self._has_arbitrary
-            and version.local is None
-            and self._specs
-        ):
-            if version.is_prerelease and (
+        # Fast path: a parseable version against a rangelike set.
+        if version is not None and not self._has_arbitrary and self._specs:
+            if (version._pre is not None or version._dev is not None) and (
                 prereleases is False
                 or (prereleases is None and self._prereleases is False)
             ):

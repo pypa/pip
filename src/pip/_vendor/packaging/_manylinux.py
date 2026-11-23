@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = {"re", "warnings", f"{__spec__.parent}._elffile"}
+
 import collections
 import contextlib
 import functools
@@ -31,7 +33,7 @@ _ALLOWED_ARCHS = {
 
 
 @contextlib.contextmanager
-def _parse_elf(path: str) -> Generator[ELFFile | None, None, None]:
+def _parse_elf(path: str) -> Generator[ELFFile | None]:
     try:
         with open(path, "rb") as f:
             yield ELFFile(f)
