@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import os
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 ORIGIN_JSON_NAME = "origin.json"
 
 
-def _hash_dict(d: dict[str, str]) -> str:
+def _hash_dict(d: Mapping[str, object]) -> str:
     """Return a stable sha224 of a dictionary."""
     s = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha224(s.encode("ascii")).hexdigest()
@@ -41,13 +42,18 @@ class Cache:
         assert not cache_dir or os.path.isabs(cache_dir)
         self.cache_dir = cache_dir or None
 
-    def _get_cache_path_parts(self, link: Link) -> list[str]:
+    def _get_cache_path_parts(
+        self, link: Link, *, config_settings: dict[str, str | list[str]] | None = None
+    ) -> list[str]:
         """Get parts of part that must be os.path.joined with cache_dir"""
 
         # We want to generate an url to use as our cache key, we don't want to
         # just reuse the URL because it might have other items in the fragment
         # and we don't care about those.
-        key_parts = {"url": link.url_without_fragment}
+        key_parts: dict[str, object] = {"url": link.url_without_fragment}
+        # Builds with different settings can produce different wheels.
+        if config_settings:
+            key_parts["config_settings"] = config_settings
         if link.hash_name is not None and link.hash is not None:
             key_parts[link.hash_name] = link.hash
         if link.subdirectory_fragment:
@@ -74,17 +80,25 @@ class Cache:
 
         return parts
 
-    def _get_candidates(self, link: Link, canonical_package_name: str) -> list[Any]:
+    def _get_candidates(
+        self,
+        link: Link,
+        canonical_package_name: str,
+        *,
+        config_settings: dict[str, str | list[str]] | None = None,
+    ) -> list[Any]:
         can_not_cache = not self.cache_dir or not canonical_package_name or not link
         if can_not_cache:
             return []
 
-        path = self.get_path_for_link(link)
+        path = self.get_path_for_link(link, config_settings=config_settings)
         if os.path.isdir(path):
             return [(candidate, path) for candidate in os.listdir(path)]
         return []
 
-    def get_path_for_link(self, link: Link) -> str:
+    def get_path_for_link(
+        self, link: Link, *, config_settings: dict[str, str | list[str]] | None = None
+    ) -> str:
         """Return a directory to store cached items in for link."""
         raise NotImplementedError()
 
@@ -93,6 +107,8 @@ class Cache:
         link: Link,
         package_name: str | None,
         supported_tags: list[Tag],
+        *,
+        config_settings: dict[str, str | list[str]] | None = None,
     ) -> Link:
         """Returns a link to a cached item if it exists, otherwise returns the
         passed link.
@@ -106,7 +122,9 @@ class SimpleWheelCache(Cache):
     def __init__(self, cache_dir: str) -> None:
         super().__init__(cache_dir)
 
-    def get_path_for_link(self, link: Link) -> str:
+    def get_path_for_link(
+        self, link: Link, *, config_settings: dict[str, str | list[str]] | None = None
+    ) -> str:
         """Return a directory to store cached wheels for link
 
         Because there are M wheels for any one sdist, we provide a directory
@@ -121,7 +139,7 @@ class SimpleWheelCache(Cache):
 
         :param link: The link of the sdist for which this will cache wheels.
         """
-        parts = self._get_cache_path_parts(link)
+        parts = self._get_cache_path_parts(link, config_settings=config_settings)
         assert self.cache_dir
         # Store wheels within the root cache_dir
         return os.path.join(self.cache_dir, "wheels", *parts)
@@ -131,6 +149,8 @@ class SimpleWheelCache(Cache):
         link: Link,
         package_name: str | None,
         supported_tags: list[Tag],
+        *,
+        config_settings: dict[str, str | list[str]] | None = None,
     ) -> Link:
         candidates = []
 
@@ -141,7 +161,9 @@ class SimpleWheelCache(Cache):
 
         canonical_package_name = canonicalize_name(package_name)
         supported_tags_set = set(supported_tags)
-        for wheel_name, wheel_dir in self._get_candidates(link, canonical_package_name):
+        for wheel_name, wheel_dir in self._get_candidates(
+            link, canonical_package_name, config_settings=config_settings
+        ):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
@@ -221,19 +243,31 @@ class WheelCache(Cache):
         self._wheel_cache = SimpleWheelCache(cache_dir)
         self._ephem_cache = EphemWheelCache()
 
-    def get_path_for_link(self, link: Link) -> str:
-        return self._wheel_cache.get_path_for_link(link)
+    def get_path_for_link(
+        self, link: Link, *, config_settings: dict[str, str | list[str]] | None = None
+    ) -> str:
+        return self._wheel_cache.get_path_for_link(
+            link, config_settings=config_settings
+        )
 
-    def get_ephem_path_for_link(self, link: Link) -> str:
-        return self._ephem_cache.get_path_for_link(link)
+    def get_ephem_path_for_link(
+        self, link: Link, *, config_settings: dict[str, str | list[str]] | None = None
+    ) -> str:
+        return self._ephem_cache.get_path_for_link(
+            link, config_settings=config_settings
+        )
 
     def get(
         self,
         link: Link,
         package_name: str | None,
         supported_tags: list[Tag],
+        *,
+        config_settings: dict[str, str | list[str]] | None = None,
     ) -> Link:
-        cache_entry = self.get_cache_entry(link, package_name, supported_tags)
+        cache_entry = self.get_cache_entry(
+            link, package_name, supported_tags, config_settings=config_settings
+        )
         if cache_entry is None:
             return link
         return cache_entry.link
@@ -243,6 +277,8 @@ class WheelCache(Cache):
         link: Link,
         package_name: str | None,
         supported_tags: list[Tag],
+        *,
+        config_settings: dict[str, str | list[str]] | None = None,
     ) -> CacheEntry | None:
         """Returns a CacheEntry with a link to a cached item if it exists or
         None. The cache entry indicates if the item was found in the persistent
@@ -252,6 +288,7 @@ class WheelCache(Cache):
             link=link,
             package_name=package_name,
             supported_tags=supported_tags,
+            config_settings=config_settings,
         )
         if retval is not link:
             return CacheEntry(retval, persistent=True)
@@ -260,6 +297,7 @@ class WheelCache(Cache):
             link=link,
             package_name=package_name,
             supported_tags=supported_tags,
+            config_settings=config_settings,
         )
         if retval is not link:
             return CacheEntry(retval, persistent=False)

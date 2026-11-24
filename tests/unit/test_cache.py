@@ -28,6 +28,24 @@ def test_subdirectory_fragment(tmp_path: Path) -> None:
     assert wc.get_path_for_link(link1) != wc.get_path_for_link(link2)
 
 
+def test_config_settings_cache_key(tmp_path: Path) -> None:
+    cache = WheelCache(str(tmp_path))
+    link = Link("https://example.com/example-1.0.tar.gz")
+    configured = cache.get_path_for_link(
+        link, config_settings={"first": "value", "second": ["a", "b"]}
+    )
+
+    assert cache.get_path_for_link(link) == cache.get_path_for_link(
+        link, config_settings={}
+    )
+    assert configured == cache.get_path_for_link(
+        link, config_settings={"second": ["a", "b"], "first": "value"}
+    )
+    assert configured != cache.get_path_for_link(
+        link, config_settings={"first": "value", "second": ["b", "a"]}
+    )
+
+
 def test_wheel_name_filter(tmpdir: Path) -> None:
     """
     Test the wheel cache filters on wheel name when several wheels
