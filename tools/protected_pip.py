@@ -10,8 +10,8 @@ from glob import glob
 
 VIRTUAL_ENV = os.environ["VIRTUAL_ENV"]
 TOX_PIP_DIR = os.path.join(VIRTUAL_ENV, "pip")
-# pip 26.2.2 includes the certifi fix for the emSign compromise.
-PIP_REQUIREMENT = "pip>=26.2.2"
+# Selecting dependency groups from Pylock files requires pip 26.3.
+PIP_REQUIREMENT = "pip>=26.3"
 
 
 def pip(args: Iterable[str | pathlib.Path]) -> None:

@@ -1,4 +1,4 @@
-name: Update build-project lock
+name: Update lock files
 
 on:
   schedule:
@@ -25,41 +25,24 @@ jobs:
         with:
           persist-credentials: true  # because we'll git push
 
-      # remove this step when the GitHub runner has pip>=26.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.x"
 
-      - name: Update the lock file
+      - run: python -m pip install .
+      - run: python -m pip install --group pylock.dev.toml:bootstrap
+
+      - name: Update development and script locks
+        run: python -m nox -s lock -- --upgrade
+
+      - name: Update the build-project lock
         working-directory: build-project
         run: "python -m pip lock --group build --uploaded-prior-to P3D --only-binary=:all:"
 
       - name: Test the build works with the new lock file
         run: python build-project/build-project.py
 
-      - name: Create a pull request if the lock file changed
+      - name: Create a pull request if the locks changed
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          if git diff --quiet -- build-project/pylock.toml; then
-            echo "build-project/pylock.toml is already up to date."
-            exit 0
-          fi
-
-          branch="update-build-project-lock"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$branch"
-          git add build-project/pylock.toml
-          git commit -m "Update build-project/pylock.toml"
-          git push --force origin "$branch"
-
-          if gh pr view "$branch" --json state --jq .state 2>/dev/null | grep -q OPEN; then
-            echo "An open pull request already exists; its branch was updated."
-          else
-            gh pr create \
-              --base "${GITHUB_REF}" \
-              --head "$branch" \
-              --title "Update build-project/pylock.toml" \
-              --body "Automated update of the build-project lock file produced by \`pip lock --group build\`."
-          fi
+        run: bash .github/scripts/create_lock_update_pr.sh
