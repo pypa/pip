@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import functools
 import logging
 
@@ -51,6 +50,4 @@ def requirement_without_marker(req: Requirement) -> Requirement:
     Intended for error messages. The original is left unchanged, which
     matters because ``get_requirement`` caches and shares instances.
     """
-    stripped = copy.copy(req)
-    stripped.marker = None
-    return stripped
+    return req.__replace__(marker=None)
