@@ -15,7 +15,7 @@ from unittest import mock
 import pytest
 
 from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.build_env import (
     BuildIsolationMode,
@@ -842,8 +842,23 @@ class TestInstallRequirement:
         test_name = "-"
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
-        err_msg = e.value.args[0]
-        assert err_msg.startswith(f"Invalid requirement: '{test_name}'")
+        assert e.value.args[0] == (
+            "Invalid requirement: "
+            "Expected package name at the start of dependency specifier\n"
+            "    -\n"
+            "    ^"
+        )
+
+    def test_invalid_requirement_without_source(self) -> None:
+        exc = InvalidRequirement("Invalid specifier: '>=1.0.*'")
+        with mock.patch(
+            "pip._internal.req.constructors.get_requirement", side_effect=exc
+        ):
+            with pytest.raises(InstallationError) as e:
+                install_req_from_line("foo>=1.0.*")
+        assert e.value.args[0] == (
+            "Invalid requirement: 'foo>=1.0.*': Invalid specifier: '>=1.0.*'"
+        )
 
     def test_requirement_file(self) -> None:
         req_file_path = os.path.join(self.tempdir, "test.txt")

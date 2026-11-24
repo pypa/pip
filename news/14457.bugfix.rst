@@ -1,0 +1,1 @@
+Do not repeat the requirement text in invalid requirement errors when the error already shows it.

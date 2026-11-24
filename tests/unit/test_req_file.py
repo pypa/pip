@@ -281,7 +281,7 @@ class TestProcessLine:
             )
 
         expected = (
-            "Invalid requirement: 'my-package=1.0': "
+            "Invalid requirement: "
             "Expected semicolon (after name with no version specifier) or end\n"
             "    my-package=1.0\n"
             "              ^ (from line 3 of path/requirements.txt)\n"

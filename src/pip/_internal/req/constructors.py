@@ -205,6 +205,13 @@ def deduce_helpful_msg(req: str) -> str:
     return msg
 
 
+def _invalid_requirement_message(req_string: str, exc: InvalidRequirement) -> str:
+    # For syntax errors, str(exc) already shows req_string with a caret.
+    if exc.source is not None:
+        return f"Invalid requirement: {exc}"
+    return f"Invalid requirement: {req_string!r}: {exc}"
+
+
 @dataclass(frozen=True)
 class RequirementParts:
     requirement: Requirement | None
@@ -220,7 +227,7 @@ def parse_req_from_editable(editable_req: str) -> RequirementParts:
         try:
             req: Requirement | None = get_requirement(name)
         except InvalidRequirement as exc:
-            raise InstallationError(f"Invalid requirement: {name!r}: {exc}")
+            raise InstallationError(_invalid_requirement_message(name, exc))
     else:
         req = None
 
@@ -380,7 +387,7 @@ def parse_req_from_line(name: str, line_source: str | None) -> RequirementParts:
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
                 add_msg = ""
-            msg = with_source(f"Invalid requirement: {req_as_string!r}: {exc}")
+            msg = with_source(_invalid_requirement_message(req_as_string, exc))
             if add_msg:
                 msg += f"\nHint: {add_msg}"
             raise InstallationError(msg)
@@ -435,7 +442,7 @@ def install_req_from_req_string(
     try:
         req = get_requirement(req_string)
     except InvalidRequirement as exc:
-        raise InstallationError(f"Invalid requirement: {req_string!r}: {exc}")
+        raise InstallationError(_invalid_requirement_message(req_string, exc))
 
     return InstallRequirement(
         req,
