@@ -5,6 +5,8 @@ import os
 import platform
 import shutil
 import sysconfig
+import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -857,3 +859,313 @@ def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
 
     result = script.pip("install", "--no-index", str(wheel_path), expect_error=True)
     assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr
+
+
+def _set_wheel_entry_mtimes(
+    wheel_path: Path, date_times: dict[str, tuple[int, int, int, int, int, int]]
+) -> None:
+    """Rewrite a wheel's zip entries with explicit timestamps.
+
+    The zip format stores timestamps as naive local time, matching
+    ``ZipInfo.date_time``.
+    """
+    with zipfile.ZipFile(wheel_path) as wheel:
+        entries = [
+            (info.filename, wheel.read(info.filename)) for info in wheel.infolist()
+        ]
+    with zipfile.ZipFile(wheel_path, "w") as wheel:
+        for name, contents in entries:
+            info = zipfile.ZipInfo(name, date_times.get(name, (2018, 4, 17, 9, 57, 4)))
+            wheel.writestr(info, contents, compress_type=zipfile.ZIP_DEFLATED)
+
+
+def test_wheel_install_mtime(script: PipTestEnvironment, data: TestData) -> None:
+    """
+    Test that installing a wheel preserves the file modification times
+    recorded in the wheel's zip metadata.
+    """
+    package = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
+    script.pip("install", package)
+
+    item = script.site_packages_path / "simplewheel" / "__init__.py"
+    assert datetime.fromtimestamp(item.stat().st_mtime) == datetime(
+        2018, 4, 17, 9, 57, 4
+    )
+
+
+def test_wheel_install_directory_mtimes_stable_across_reinstalls(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that directories created for an installed wheel get deterministic
+    mtimes: the maximum mtime among the wheel-provided items they contain
+    (files with preserved mtimes, plus child directories assigned by deeper
+    passes), identical across reinstalls of the same wheel. This includes
+    directories with no file directly inside them, such as a package whose
+    only contents sit in a subpackage. The site-packages directory itself
+    must not be given a wheel-derived mtime.
+    """
+    package = make_wheel(
+        "mtimepkg",
+        "1.0",
+        extra_files={
+            "mtimepkg/__init__.py": "#",
+            "mtimepkg/sub/__init__.py": "#",
+            "mtimepkg/sub/deep/mod.py": "#",
+            # No file sits directly in mtimepkg2/, only in its subpackage.
+            "mtimepkg2/sub/mod.py": "#",
+        },
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(package),
+        {
+            "mtimepkg/__init__.py": (2016, 3, 4, 5, 6, 8),
+            "mtimepkg/sub/__init__.py": (2020, 2, 2, 1, 2, 4),
+            "mtimepkg/sub/deep/mod.py": (2015, 1, 1, 0, 0, 0),
+            "mtimepkg2/sub/mod.py": (2019, 12, 31, 23, 59, 58),
+        },
+    )
+
+    script.pip("install", "--no-index", package)
+    pkg_dir = script.site_packages_path / "mtimepkg"
+    sub_dir = pkg_dir / "sub"
+    deep_dir = sub_dir / "deep"
+    pkg2_dir = script.site_packages_path / "mtimepkg2"
+    pkg2_sub_dir = pkg2_dir / "sub"
+    after_first_install = (
+        pkg_dir.stat().st_mtime,
+        sub_dir.stat().st_mtime,
+        deep_dir.stat().st_mtime,
+        pkg2_dir.stat().st_mtime,
+        pkg2_sub_dir.stat().st_mtime,
+    )
+
+    script.pip("install", "--no-index", "--force-reinstall", package)
+    after_second_install = (
+        pkg_dir.stat().st_mtime,
+        sub_dir.stat().st_mtime,
+        deep_dir.stat().st_mtime,
+        pkg2_dir.stat().st_mtime,
+        pkg2_sub_dir.stat().st_mtime,
+    )
+    # Reinstalling the same wheel does not churn directory mtimes.
+    assert after_second_install == after_first_install
+    # Each directory's mtime is the max mtime of the wheel-provided items it
+    # contains: a deepest directory takes its files' mtime, and shallower
+    # ones can inherit a newer child directory's mtime.
+    assert datetime.fromtimestamp(deep_dir.stat().st_mtime) == datetime(
+        2015, 1, 1, 0, 0, 0
+    )
+    assert datetime.fromtimestamp(sub_dir.stat().st_mtime) == datetime(
+        2020, 2, 2, 1, 2, 4
+    )
+    assert datetime.fromtimestamp(pkg_dir.stat().st_mtime) == datetime(
+        2020, 2, 2, 1, 2, 4
+    )
+    # Directories with no file directly inside them still get the max mtime
+    # of the wheel-provided items they contain at any depth, so a package
+    # directory is not left with an install-time mtime that churns on every
+    # reinstall.
+    assert datetime.fromtimestamp(pkg2_sub_dir.stat().st_mtime) == datetime(
+        2019, 12, 31, 23, 59, 58
+    )
+    assert datetime.fromtimestamp(pkg2_dir.stat().st_mtime) == datetime(
+        2019, 12, 31, 23, 59, 58
+    )
+    # The site-packages directory is shared between distributions and must
+    # not be assigned a wheel-derived mtime.
+    newest_wheel_mtime = datetime(2020, 2, 2, 1, 2, 4).timestamp()
+    assert script.site_packages_path.stat().st_mtime > newest_wheel_mtime
+
+
+def test_wheel_install_shared_directory_mtime(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that a directory below a scheme root that is shared with another
+    distribution -- an implicit namespace package holding modules from two
+    wheels -- never has its mtime moved backwards by a wheel with older
+    timestamps, and that its mtime does not depend on install order.
+    """
+    wheel_a = make_wheel(
+        "nsa", "1.0", extra_files={"shared_ns/mod_a.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_a), {"shared_ns/mod_a.py": (2026, 6, 15, 12, 0, 0)}
+    )
+    wheel_b = make_wheel(
+        "nsb", "1.0", extra_files={"shared_ns/mod_b.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_b), {"shared_ns/mod_b.py": (2020, 1, 10, 8, 0, 0)}
+    )
+
+    ns_dir = script.site_packages_path / "shared_ns"
+    # Installing the wheel with the older module over the one with the newer
+    # module must not drag the shared directory below the mtime the newer
+    # wheel's install had given it: the directory keeps the newest mtime
+    # among the modules from either wheel.
+    script.pip("install", "--no-index", wheel_a)
+    script.pip("install", "--no-index", wheel_b)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+
+    # Reinstalling either wheel keeps the shared directory stable: pip's
+    # uninstaller removes only that wheel's file, and the reinstall must
+    # land back on the same value.
+    script.pip("install", "--no-index", "--force-reinstall", wheel_a)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+    script.pip("install", "--no-index", "--force-reinstall", wheel_b)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+
+    # The value does not depend on the order the wheels were installed in.
+    script.pip("uninstall", "-y", "nsa", "nsb")
+    script.pip("install", "--no-index", wheel_b)
+    script.pip("install", "--no-index", wheel_a)
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+
+
+def test_wheel_install_shared_directory_older_addition_leaves_mtime(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that adding an entry dated older than a shared directory's current
+    contents leaves the directory's mtime unchanged: the mtime is a
+    fingerprint of the contents, not a signal that something happened, so
+    an mtime-only watcher of the directory will not see such an addition --
+    the added entry's own file mtime is the reliable signal. The same
+    tradeoff as the upgrade case, where a reinstall reproduces identical
+    mtimes.
+    """
+    wheel_a = make_wheel(
+        "nsa", "1.0", extra_files={"shared_ns/mod_a.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_a), {"shared_ns/mod_a.py": (2026, 6, 15, 12, 0, 0)}
+    )
+    wheel_b = make_wheel(
+        "nsb", "1.0", extra_files={"shared_ns/mod_b.py": "#"}
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(wheel_b), {"shared_ns/mod_b.py": (2020, 1, 10, 8, 0, 0)}
+    )
+
+    ns_dir = script.site_packages_path / "shared_ns"
+    script.pip("install", "--no-index", wheel_a)
+    mtime_before = ns_dir.stat().st_mtime
+
+    # The second wheel adds an entry dated years before the directory's
+    # current contents; the directory's mtime must not move -- neither back
+    # to the new entry's old date nor forward to now.
+    script.pip("install", "--no-index", wheel_b)
+    assert ns_dir.stat().st_mtime == mtime_before
+    assert datetime.fromtimestamp(ns_dir.stat().st_mtime) == datetime(
+        2026, 6, 15, 12, 0, 0
+    )
+
+
+# The fixed zip timestamp both wheels below share for their module. A
+# bytecode cache entry embeds only the source's mtime and size, so
+# reinstalling same-size changed source with this same preserved timestamp
+# is exactly the case where a leftover cache would keep validating.
+_STALE_BYTECODE_SOURCE_MTIME = (2020, 2, 2, 1, 2, 4)
+
+
+def _make_stale_bytecode_wheel(tmpdir: Path, version: str, value: str) -> Path:
+    """Build a wheel with a single module whose VALUE is ``value``.
+
+    ``"old"`` and ``"new"`` have the same length, so the two wheels' module
+    files have identical sizes as well as identical zip timestamps.
+    """
+    package = make_wheel(
+        "stalebyte",
+        version,
+        extra_files={"stalebyte.py": f'VALUE = "{value}"\n'},
+    ).save_to_dir(tmpdir)
+    _set_wheel_entry_mtimes(
+        Path(package),
+        {"stalebyte.py": _STALE_BYTECODE_SOURCE_MTIME},
+    )
+    return Path(package)
+
+
+def _import_stalebyte_value(script: PipTestEnvironment, *interpreter_args: str) -> str:
+    """Import the installed module in a fresh process and return its VALUE.
+
+    The test harness disables bytecode writing in child processes, so the
+    import re-enables it before importing: these tests are about the
+    interpreter's real caching behavior, which an application's imports
+    exercise.
+    """
+    result = script.run(
+        "python",
+        *interpreter_args,
+        "-c",
+        "import sys; sys.dont_write_bytecode = False; "
+        "import stalebyte; print(stalebyte.VALUE)",
+    )
+    return result.stdout.strip()
+
+
+def test_wheel_reinstall_no_compile_invalidates_cached_bytecode(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that reinstalling over an existing installation with
+    --ignore-installed --no-compile removes the old cached bytecode instead
+    of leaving it validating against the new source. The caches are created
+    by imports under every optimization level, none of which pip rewrites
+    when --no-compile is given.
+    """
+    old_wheel = _make_stale_bytecode_wheel(tmpdir, "1.0", "old")
+    script.pip("install", "--no-index", old_wheel)
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "old"
+
+    new_wheel = _make_stale_bytecode_wheel(tmpdir, "1.1", "new")
+    script.pip("install", "--no-index", "--ignore-installed", "--no-compile", new_wheel)
+
+    # The replaced source keeps the wheel's timestamp instead of getting a
+    # fresh one, which is what would make a leftover cache validate.
+    source = script.site_packages_path / "stalebyte.py"
+    assert datetime.fromtimestamp(source.stat().st_mtime) == datetime(
+        *_STALE_BYTECODE_SOURCE_MTIME
+    )
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "new"
+
+
+def test_wheel_upgrade_default_compile_invalidates_cached_bytecode(
+    script: PipTestEnvironment, tmpdir: Path
+) -> None:
+    """
+    Test that an ordinary --upgrade with default compilation invalidates
+    cached bytecode for every optimization level. The uninstall removes
+    only the cache variant matching the current cache_from_source() path;
+    caches the application created under -O and -OO survive it, and
+    preserved mtimes make them validate against the new same-size source.
+    """
+    old_wheel = _make_stale_bytecode_wheel(tmpdir, "1.0", "old")
+    script.pip("install", "--no-index", old_wheel)
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "old"
+
+    new_wheel = _make_stale_bytecode_wheel(tmpdir, "1.1", "new")
+    result = script.pip("install", "--no-index", "--upgrade", new_wheel)
+    assert "Successfully uninstalled stalebyte-1.0" in result.stdout
+
+    # The upgraded source keeps the wheel's timestamp instead of getting a
+    # fresh one, which is what would make a leftover cache validate.
+    source = script.site_packages_path / "stalebyte.py"
+    assert datetime.fromtimestamp(source.stat().st_mtime) == datetime(
+        *_STALE_BYTECODE_SOURCE_MTIME
+    )
+    for interpreter_args in ([], ["-O"], ["-OO"]):
+        assert _import_stalebyte_value(script, *interpreter_args) == "new"
