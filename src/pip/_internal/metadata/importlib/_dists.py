@@ -4,12 +4,13 @@ import email.message
 import importlib.metadata
 import pathlib
 import zipfile
-from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from os import PathLike
 from typing import (
     cast,
 )
 
+from pip._vendor.packaging.markers import prepare_environment
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.packaging.version import Version
@@ -228,14 +229,12 @@ class Distribution(BaseDistribution):
         ]
 
     def iter_dependencies(self, extras: Collection[str] = ()) -> Iterable[Requirement]:
-        contexts: Sequence[dict[str, str]] = [{"extra": e} for e in extras]
+        environments = [prepare_environment({"extra": e}) for e in extras or ("",)]
         for req_string in self.metadata.get_all("Requires-Dist", []):
             # strip() because email.message.Message.get_all() may return a leading \n
             # in case a long header was wrapped.
             req = get_requirement(req_string.strip())
             if not req.marker:
                 yield req
-            elif not extras and req.marker.evaluate({"extra": ""}):
-                yield req
-            elif any(req.marker.evaluate(context) for context in contexts):
+            elif any(req.marker.evaluate_prepared(env) for env in environments):
                 yield req

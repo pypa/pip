@@ -11,6 +11,7 @@ from typing import (
     NamedTuple,
 )
 
+from pip._vendor.packaging.markers import prepare_environment
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.tags import Tag, parse_tag
 from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
@@ -68,6 +69,7 @@ def check_package_set(
 
     missing = {}
     conflicting = {}
+    marker_env = prepare_environment({"extra": ""})
 
     for package_name, package_detail in package_set.items():
         # Info about dependencies of package_name
@@ -84,7 +86,7 @@ def check_package_set(
             if name not in package_set:
                 missed = True
                 if req.marker is not None:
-                    missed = req.marker.evaluate({"extra": ""})
+                    missed = req.marker.evaluate_prepared(marker_env)
                 if missed:
                     missing_deps.add((name, req))
                 continue
