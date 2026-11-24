@@ -15,6 +15,7 @@ from pip._internal.metadata import (
     get_wheel_distribution,
 )
 from pip._internal.metadata.base import FilesystemWheel
+from pip._internal.metadata.importlib import Distribution as ImportlibDistribution
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME
 
 from tests.lib.wheel import make_wheel
@@ -75,6 +76,31 @@ def test_metadata_pkg_info_requires_priority(tmp_path: Path) -> None:
     )
     egg_info_path.joinpath("requires.txt").write_text("pkga\npkgb\n")
     assert dist.metadata.get_all("Requires-Dist") == ["pkgc", "pkgd"]
+
+
+@pytest.mark.parametrize(
+    "extras, expected",
+    [
+        ((), ["base", "not-a"]),
+        (("A",), ["base", "a"]),
+        (("a", "b"), ["base", "a", "not-a", "b"]),
+    ],
+)
+def test_iter_dependencies_markers(
+    tmp_path: Path, extras: tuple[str, ...], expected: list[str]
+) -> None:
+    egg_info_path = tmp_path / "whatever.egg-info"
+    egg_info_path.mkdir()
+    egg_info_path.joinpath("PKG-INFO").write_text(
+        "Name: whatever\n"
+        "Requires-Dist: base\n"
+        "Requires-Dist: a; extra == 'a'\n"
+        "Requires-Dist: not-a; extra != 'a'\n"
+        "Requires-Dist: b; extra == 'b'\n"
+        "Requires-Dist: never; python_version < '3'\n"
+    )
+    dist = ImportlibDistribution.from_directory(str(egg_info_path))
+    assert [r.name for r in dist.iter_dependencies(extras)] == expected
 
 
 @mock.patch.object(
