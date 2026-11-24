@@ -396,6 +396,12 @@ class PipSession(requests.Session):
             )
             self._trusted_host_adapter = insecure_adapter
 
+        # Keep references to the non-trusted adapters so get_adapter() can
+        # fall back to them when a URL only string-matches a trusted host's
+        # mount prefix (see get_adapter).
+        self._secure_adapter = secure_adapter
+        self._insecure_adapter = insecure_adapter
+
         self.mount("https://", secure_adapter)
         self.mount("http://", insecure_adapter)
 
@@ -404,6 +410,35 @@ class PipSession(requests.Session):
 
         for host in trusted_hosts:
             self.add_trusted_host(host, suppress_logging=True)
+
+    def get_adapter(self, url: str) -> BaseAdapter:
+        adapter = super().get_adapter(url)
+        if adapter is not self._trusted_host_adapter:
+            return adapter
+        # requests selects adapters by URL string prefix. A URL whose
+        # userinfo begins with a trusted host and a colon -- for example
+        # https://trusted.example:443@evil.example/, which redirect
+        # handling produces verbatim from a Location header -- therefore
+        # string-matches the trusted host's mount prefix while its real
+        # host is evil.example. Re-check the parsed host and port against
+        # the trusted origins before handing out the adapter that disables
+        # TLS verification, and fall back to the ordinary adapter when the
+        # real host was never trusted.
+        parsed = urllib.parse.urlparse(url)
+        try:
+            port = parsed.port
+        except ValueError:
+            port = None
+        for trusted_host, trusted_port in self.pip_trusted_origins:
+            if (
+                parsed.hostname
+                and parsed.hostname.lower() == trusted_host.lower()
+                and (trusted_port is None or trusted_port == port)
+            ):
+                return adapter
+        if parsed.scheme == "https":
+            return self._secure_adapter
+        return self._insecure_adapter
 
     def update_index_urls(self, new_index_urls: list[str]) -> None:
         """
