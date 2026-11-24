@@ -157,7 +157,11 @@ def test_install_fails_if_extra_at_end(
         script.scratch_path / "requirements.txt",
         expect_error=True,
     )
-    assert "Invalid requirement: 'requires_simple_extra>=0.1[extra]'" in result.stderr
+    assert (
+        "Invalid requirement: Expected comma (within version specifier), "
+        "semicolon (after version specifier) or end\n"
+        "    requires_simple_extra>=0.1[extra]\n"
+    ) in result.stderr
 
 
 @pytest.mark.parametrize(

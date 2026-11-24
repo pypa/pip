@@ -62,7 +62,7 @@ class TestInstallRequirementFrom:
             install_req_from_req_string("http:/this/is/invalid")
 
         assert str(excinfo.value) == (
-            "Invalid requirement: 'http:/this/is/invalid': "
+            "Invalid requirement: "
             "Expected semicolon (after name with no version specifier) or end\n"
             "    http:/this/is/invalid\n"
             "        ^"
