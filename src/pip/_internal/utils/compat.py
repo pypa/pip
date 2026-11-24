@@ -6,9 +6,16 @@ import locale
 import logging
 import os
 import sys
-from typing import IO
+import typing
+from typing import IO, TYPE_CHECKING
 
-__all__ = ["get_locale_encoding", "get_path_uid", "tomllib", "WINDOWS"]
+__all__ = ["get_locale_encoding", "get_path_uid", "tomllib", "WINDOWS", "override"]
+
+# Keep override checking available without a runtime typing_extensions dependency.
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+    override = getattr(typing, "override", lambda method: method)
 
 
 logger = logging.getLogger(__name__)

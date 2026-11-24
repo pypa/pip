@@ -3,6 +3,7 @@
 import importlib
 import importlib.metadata
 import importlib.util
+import os
 import sys
 from collections.abc import Callable, Sequence
 from importlib.machinery import ExtensionFileLoader, ModuleSpec, PathFinder
@@ -10,38 +11,9 @@ from io import StringIO
 from pathlib import Path
 from types import ModuleType
 
-import pip._vendor
-
-if sys.argv[-1] == "debundled":
-    pip._vendor.vendored("pygments")
-    for module in (
-        "rich",
-        "rich.console",
-        "rich.highlighter",
-        "rich.logging",
-        "rich.markup",
-        "rich.progress",
-        "rich.segment",
-        "rich.style",
-        "rich.text",
-        "rich.traceback",
-    ):
-        pip._vendor.vendored(module)
-    assert sys.modules["pip._vendor.pygments"] is sys.modules["pygments"]
-    assert sys.modules["pip._vendor.rich"] is sys.modules["rich"]
-
 
 def main() -> None:
     """Check a fresh module import, then repeat it after the module is cached."""
-    # Select the external namespaces before importing installation dependencies.
-    from pip._vendor.pygments.plugin import (
-        find_plugin_filters,
-        find_plugin_formatters,
-        find_plugin_lexers,
-        find_plugin_styles,
-        iter_entry_points,
-    )
-
     from pip._internal.commands import create_command
     from pip._internal.commands.debug import get_module_from_module_name
     from pip._internal.commands.install import _prevent_further_imports
@@ -62,7 +34,7 @@ def main() -> None:
         return
 
     entrypoint = importlib.metadata.EntryPoint(
-        name="guarded", group="pygments.lexers", value="guarded_import_plugin:VALUE"
+        name="guarded", group="pip.tests", value="guarded_import_plugin:VALUE"
     )
     imports: dict[str, tuple[str, Callable[[], object]]] = {
         "importlib": (
@@ -87,21 +59,8 @@ def main() -> None:
             lambda: get_module_from_module_name("distlib").__name__,
         ),
         "resource": ("guarded_import_resource", read_resource),
-        "lexer": ("guarded_import_plugin", lambda: list(find_plugin_lexers())),
-        "formatter": ("guarded_import_plugin", lambda: list(find_plugin_formatters())),
-        "style": ("guarded_import_plugin", lambda: list(find_plugin_styles())),
-        "filter": ("guarded_import_plugin", lambda: list(find_plugin_filters())),
     }
     module_name, load = imports[kind]
-    groups = {
-        "lexer": "lexers",
-        "formatter": "formatters",
-        "style": "styles",
-        "filter": "filters",
-    }
-    if kind in groups:
-        # Discover metadata before blocking, keeping only the plugin module cold.
-        iter_entry_points(f"pygments.{groups[kind]}")
     assert importlib.metadata.version("guarded_import_plugin") == "1.0"
 
     assert module_name not in sys.modules
@@ -162,10 +121,8 @@ def main() -> None:
         assert loaded == "resource contents"
     elif kind in {"importlib", "late_finder", "spec"}:
         assert loaded is not None
-    elif kind in {"lexer", "entrypoint"}:
-        assert loaded == ([42] if kind == "lexer" else 42)
-    else:
-        assert loaded == [("guarded", 42)]
+    elif kind == "entrypoint":
+        assert loaded == 42
 
 
 def check_reload() -> None:
@@ -217,11 +174,8 @@ def check_extension_loader() -> None:
 
 
 def check_progress() -> None:
-    """Render emoji and non-ASCII text without loading data during installation."""
-    from pip._vendor import rich
-    from pip._vendor.rich.console import Console
-    from pip._vendor.rich.progress import Progress, TextColumn
-
+    """Render non-ASCII labels without loading modules during installation."""
+    from pip._internal.cli.terminal import LiveLine, StyledText, Terminal
     from pip._internal.commands.install import (
         _INTERNAL_EAGER_IMPORTS,
         _eagerly_import_modules,
@@ -229,31 +183,15 @@ def check_progress() -> None:
     )
 
     output = StringIO()
+    os.environ.update(TERM="xterm", TTY_COMPATIBLE="1", TTY_INTERACTIVE="1")
+    terminal = Terminal(output, color=False)
     _eagerly_import_modules(_INTERNAL_EAGER_IMPORTS)
-    loaded_modules = set(sys.modules)
 
     with _prevent_further_imports():
-        console = Console(
-            file=output,
-            force_terminal=True,
-            legacy_windows=False,
-            color_system=None,
-            width=40,
-        )
-        with Progress(
-            TextColumn("{task.description}"),
-            console=console,
-            auto_refresh=False,
-        ) as progress:
-            task = progress.add_task(":package: café", total=1)
-            progress.update(task, completed=1)
+        with LiveLine(terminal) as line:
+            line.update("📦 café")
+            terminal.print(StyledText("📦 café"))
 
-    late_rich_imports = {
-        name
-        for name in sys.modules.keys() - loaded_modules
-        if name.startswith(f"{rich.__name__}.")
-    }
-    assert not late_rich_imports, late_rich_imports
     assert "📦 café" in output.getvalue()
 
 

@@ -78,7 +78,6 @@ test-common-wheels = [
     "pytest-subket >= 0.8.1",
     "keyring",
     "cmake",
-    "rich",
 ]
 
 typecheck = [
@@ -174,7 +173,6 @@ substitute = [
   # pkg_resource's vendored packages are directly vendored in pip.
   { match='pkg_resources\.extern', replace="pip._vendor" },
   { match='from \.extern', replace="from pip._vendor" },
-  { match='''\('pygments\.lexers\.''', replace="('pip._vendor.pygments.lexers." },
 ]
 drop = [
   # Don't include dist-info directories in the vendored code
@@ -190,13 +188,6 @@ drop = [
   "_distutils_hack",
   "distutils-precedence.pth",
   "pkg_resources/extern/",
-  # trim vendored pygments styles, lexers, formatters, and CLI
-  "pygments/styles/[!_]*.py",
-  '^pygments/lexers/(?!python|__init__|_mapping).*\.py$',
-  '^pygments/formatters/(?!__init__|_mapping).*\.py$',
-  '^pygments/cmdline\.py$',
-  # trim rich's markdown support
-  "rich/markdown.py",
   # trim parts of distlib that aren't related to scripts
   '^distlib/(?!__init__|compat|resources|scripts|util).*\.py$',
 ]

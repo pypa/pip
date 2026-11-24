@@ -1,8 +1,6 @@
 """pyproject.toml related pip exceptions."""
 
-from pip._vendor.rich.markup import escape
-from pip._vendor.rich.text import Text
-
+from pip._internal.cli.terminal import StyledText, escape
 from pip._internal.exceptions._base import DiagnosticPipError
 
 
@@ -14,12 +12,12 @@ class MissingPyProjectBuildRequires(DiagnosticPipError):
     def __init__(self, *, package: str) -> None:
         super().__init__(
             message=f"Can not process {escape(package)}",
-            context=Text(
+            context=StyledText(
                 "This package has an invalid pyproject.toml file.\n"
                 "The [build-system] table is missing the mandatory `requires` key."
             ),
             note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt=Text("See PEP 518 for the detailed specification."),
+            hint_stmt=StyledText("See PEP 518 for the detailed specification."),
         )
 
 
@@ -31,10 +29,10 @@ class InvalidPyProjectBuildRequires(DiagnosticPipError):
     def __init__(self, *, package: str, reason: str) -> None:
         super().__init__(
             message=f"Can not process {escape(package)}",
-            context=Text(
+            context=StyledText(
                 "This package has an invalid `build-system.requires` key in "
                 f"pyproject.toml.\n{reason}"
             ),
             note_stmt="This is an issue with the package mentioned above, not pip.",
-            hint_stmt=Text("See PEP 518 for the detailed specification."),
+            hint_stmt=StyledText("See PEP 518 for the detailed specification."),
         )

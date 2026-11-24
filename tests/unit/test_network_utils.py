@@ -169,7 +169,7 @@ def test_raise_connection_error_classifies_bare_ssl_error() -> None:
 
 
 def test_ssl_verification_error_details_do_not_escape_text() -> None:
-    """Diagnostic details stored as Text should not include markup backslashes."""
+    """Diagnostic details stored as StyledText should not include markup backslashes."""
     error = SSLVerificationError(
         "https://example.com/whatever.tgz",
         "example.com",

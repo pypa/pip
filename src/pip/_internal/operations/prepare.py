@@ -10,12 +10,12 @@ import shutil
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.build_env import BuildEnvironmentInstaller, BuildIsolationMode
+from pip._internal.cli.progress_bars import BarType
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
@@ -60,9 +60,6 @@ from pip._internal.utils.packaging import get_requirement
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
-
-if TYPE_CHECKING:
-    from pip._internal.cli.progress_bars import BarType
 
 logger = getLogger(__name__)
 
@@ -810,8 +807,7 @@ class RequirementPreparer:
 
         if link.is_existing_dir():
             logger.debug(
-                "Not copying link to destination directory "
-                "since it is a directory: %s",
+                "Not copying link to destination directory since it is a directory: %s",
                 link,
             )
             return
