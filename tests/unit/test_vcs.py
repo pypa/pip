@@ -453,6 +453,29 @@ def test_version_control__get_url_rev_and_auth__no_revision(url: str) -> None:
     assert "an empty revision (after @)" in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        # A revision that starts with a dash could be interpreted as a
+        # command-line option of the VCS command instead of a revision.
+        "git+https://github.com/MyUser/myProject.git@--upload-pack=evil",
+        "git+https://github.com/MyUser/myProject.git@--config=ui.ssh=evil",
+        "git+https://github.com/MyUser/myProject.git@%2D%2Dupload-pack%3Devil",
+    ],
+)
+def test_version_control__get_url_rev_and_auth__revision_starts_with_dash(
+    url: str,
+) -> None:
+    """
+    Test passing a URL to VersionControl.get_url_rev_and_auth() with a
+    revision starting with a dash.
+    """
+    with pytest.raises(InstallationError) as excinfo:
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert "revision (after @) that starts with a dash" in str(excinfo.value)
+
+
 @pytest.mark.parametrize("vcs_cls", [Bazaar, Git, Mercurial, Subversion])
 @pytest.mark.parametrize(
     "exc_cls, msg_re",
