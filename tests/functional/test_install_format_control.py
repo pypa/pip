@@ -1,16 +1,16 @@
-"""Tests for --only-binary and --no-binary format control flags.
-
-These tests verify edge case CLI and requirements file interaction behavior,
-matching the pattern established by --all-releases and --only-final tests.
-"""
+"""Tests for --only-binary and --no-binary format control flags."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from tests.lib import (
     PipTestEnvironment,
+    TestData,
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
 )
+from tests.lib.wheel import make_wheel
 
 
 def test_order_no_binary_then_only_binary(script: PipTestEnvironment) -> None:
@@ -111,3 +111,73 @@ def test_package_specific_overrides_all_in_requirements_file(
     result.assert_installed("simple", editable=False)
     # Package-specific --only-binary should override --no-binary :all:
     assert "Building wheel for simple" not in result.stdout
+
+
+def test_direct_source_format_control(
+    script: PipTestEnvironment,
+    data: TestData,
+) -> None:
+    source = data.packages.joinpath("simple-1.0.tar.gz")
+    requirement = f"simple @ {source.as_uri()}"
+
+    result = script.pip(
+        "install",
+        "--dry-run",
+        "--no-build-isolation",
+        "--no-index",
+        "--only-binary=simple",
+        requirement,
+        expect_error=True,
+    )
+    assert "No sources permitted for simple" in result.stderr
+
+    script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        requirement,
+    )
+    script.pip("uninstall", "-y", "simple")
+
+    result = script.pip(
+        "install",
+        "--no-build-isolation",
+        "--no-index",
+        "--no-binary=simple",
+        requirement,
+    )
+
+    assert "Successfully installed simple-1.0" in result.stdout
+    assert "Building wheel for simple" not in result.stdout
+
+
+def test_format_rejection_allows_parent_backtracking(
+    script: PipTestEnvironment,
+    data: TestData,
+    tmp_path: Path,
+) -> None:
+    source = data.packages.joinpath("simple-1.0.tar.gz")
+    make_wheel("parent", "1.0").save_to_dir(tmp_path)
+    make_wheel(
+        "parent",
+        "2.0",
+        metadata=(
+            "Metadata-Version: 2.1\n"
+            "Name: parent\n"
+            "Version: 2.0\n"
+            f"Requires-Dist: simple @ {source.as_uri()}\n"
+        ),
+    ).save_to_dir(tmp_path)
+
+    result = script.pip(
+        "install",
+        "--dry-run",
+        "--no-build-isolation",
+        "--no-index",
+        "--find-links",
+        tmp_path,
+        "--only-binary=simple",
+        "parent",
+    )
+
+    assert "Would install parent-1.0" in result.stdout

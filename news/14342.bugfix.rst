@@ -1,0 +1,1 @@
+Apply ``--only-binary``, ``--no-binary``, and ``--only-final`` to direct references, including archive URLs selected from ``pylock.toml`` files.
