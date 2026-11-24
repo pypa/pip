@@ -31,6 +31,8 @@
 #######################################################################################
 from __future__ import annotations
 
+__lazy_modules__ = {f"{__spec__.parent}._spdx"}
+
 import re
 from typing import NewType, cast
 
@@ -50,6 +52,9 @@ def __dir__() -> list[str]:
 
 license_ref_allowed = re.compile("^[A-Za-z0-9.-]+$")
 
+# Match CPython's tokenizer limit for nested parentheses.
+_MAX_PARENTHESIS_DEPTH = 200
+
 NormalizedLicenseExpression = NewType("NormalizedLicenseExpression", str)
 """
 A :class:`typing.NewType` of :class:`str`, representing a normalized
@@ -66,6 +71,46 @@ class InvalidLicenseExpression(ValueError):
         ...
     packaging.licenses.InvalidLicenseExpression: Unknown license: 'invalid'
     """
+
+
+def _validate_expression_syntax(tokens: list[str], source: str) -> None:
+    """
+    Check token order and matching parentheses.
+
+    Ignoring parentheses, names and operators follow this order::
+
+        name -> AND/OR/WITH -> name -> ...
+
+    An expression must end with a name or a closed group. Parentheses must
+    be balanced. The caller checks the names and the rules for WITH.
+    """
+    parenthesis_depth = 0
+    expect_operand = True
+
+    for token in tokens:
+        if token == "(":
+            if not expect_operand or parenthesis_depth >= _MAX_PARENTHESIS_DEPTH:
+                break
+            parenthesis_depth += 1
+        elif token == ")":
+            if expect_operand or parenthesis_depth == 0:
+                break
+            parenthesis_depth -= 1
+        elif token in {"or", "and", "with"}:
+            if expect_operand:
+                break
+            expect_operand = True
+        else:
+            if not expect_operand:
+                break
+            expect_operand = False
+    else:
+        # All tokens were read: require a final name or group and no open parentheses.
+        if not expect_operand and parenthesis_depth == 0:
+            return
+
+    message = f"Invalid license expression: {source!r}"
+    raise InvalidLicenseExpression(message)
 
 
 def canonicalize_license_expression(
@@ -107,44 +152,23 @@ def canonicalize_license_expression(
     # whitespace.
     license_expression = raw_license_expression.replace("(", " ( ").replace(")", " ) ")
     licenseref_prefix = "LicenseRef-"
-    license_refs = {
-        ref.lower(): "LicenseRef-" + ref[len(licenseref_prefix) :]
-        for ref in license_expression.split()
-        if ref.lower().startswith(licenseref_prefix.lower())
-    }
 
-    # Normalize to lower case so we can look up licenses/exceptions
-    # and so boolean operators are Python-compatible.
-    license_expression = license_expression.lower()
+    # The idstring of a LicenseRef- is case-insensitive in SPDX, so all case
+    # variants of one ref use the spelling of the first occurrence.
+    license_refs: dict[str, str] = {}
+    tokens = []
+    for ref in license_expression.split():
+        normalized = ref.lower()
+        tokens.append(normalized)
+        if normalized.startswith("licenseref-"):
+            if not ref.isascii():
+                message = f"Invalid licenseref (non-ASCII): {ref!r}"
+                raise InvalidLicenseExpression(message)
+            license_refs.setdefault(
+                normalized, licenseref_prefix + ref[len(licenseref_prefix) :]
+            )
 
-    tokens = license_expression.split()
-
-    # Rather than implementing a parenthesis/boolean logic parser, create an
-    # expression that Python can parse. Everything that is not involved with the
-    # grammar itself is replaced with the placeholder `False` and the resultant
-    # expression should become a valid Python expression.
-    python_tokens = []
-    for token in tokens:
-        if token not in {"or", "and", "with", "(", ")"}:
-            python_tokens.append("False")
-        elif token == "with":
-            python_tokens.append("or")
-        elif (
-            token == "("
-            and python_tokens
-            and python_tokens[-1] not in {"or", "and", "("}
-        ) or (token == ")" and python_tokens and python_tokens[-1] == "("):
-            message = f"Invalid license expression: {raw_license_expression!r}"
-            raise InvalidLicenseExpression(message)
-        else:
-            python_tokens.append(token)
-
-    python_expression = " ".join(python_tokens)
-    try:
-        compile(python_expression, "", "eval")
-    except SyntaxError:
-        message = f"Invalid license expression: {raw_license_expression!r}"
-        raise InvalidLicenseExpression(message) from None
+    _validate_expression_syntax(tokens, raw_license_expression)
 
     # Take a final pass to check for unknown licenses/exceptions.
     normalized_tokens = []

@@ -6,6 +6,8 @@ linked against musl, and what musl version is used.
 
 from __future__ import annotations
 
+__lazy_modules__ = {"subprocess", f"{__spec__.parent}._elffile"}
+
 import functools
 import re
 import subprocess

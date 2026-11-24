@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = {"typing"}
+
 import contextlib
 import dataclasses
 import sys
@@ -34,7 +36,7 @@ else:  # pragma: no cover
             return f"{self.__class__.__name__}({self.message!r}, {self.exceptions!r})"
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class _ErrorCollector:
     """
     Collect errors into ExceptionGroups.
@@ -62,7 +64,7 @@ class _ErrorCollector:
             raise ExceptionGroup(msg, self.errors)
 
     @contextlib.contextmanager
-    def on_exit(self, msg: str) -> typing.Generator[_ErrorCollector, None, None]:
+    def on_exit(self, msg: str) -> typing.Generator[_ErrorCollector]:
         """
         Calls finalize if no uncollected errors were present.
 
@@ -72,7 +74,7 @@ class _ErrorCollector:
         self.finalize(msg)
 
     @contextlib.contextmanager
-    def collect(self, *err_cls: type[Exception]) -> typing.Generator[None, None, None]:
+    def collect(self, *err_cls: type[Exception]) -> typing.Generator[None]:
         """
         Context manager to collect errors into the error list.
 

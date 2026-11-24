@@ -4,6 +4,16 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = {
+    "importlib.machinery",
+    "operator",
+    "platform",
+    "struct",
+    "subprocess",
+    "sysconfig",
+    f"{__spec__.parent}",
+}
+
 import logging
 import operator
 import platform
@@ -40,6 +50,7 @@ __all__ = [
     "cpython_tags",
     "create_compatible_tags_selector",
     "generic_tags",
+    "interpreter_abi",
     "interpreter_name",
     "interpreter_version",
     "ios_platforms",
@@ -79,6 +90,10 @@ INTERPRETER_SHORT_NAMES: dict[str, str] = {
     "ironpython": "ip",
     "jython": "jy",
 }
+"""
+A dictionary mapping interpreter names to their `abbreviation codes`_
+(e.g. ``"cpython"`` is ``"cp"``). All interpreter names are lower-case.
+"""
 
 
 # This function can be unit tested without reloading the module
@@ -323,20 +338,22 @@ def _normalize_string(string: str) -> str:
     return string.replace(".", "_").replace("-", "_").replace(" ", "_")
 
 
+_CPYTHON_ABI_RE = re.compile(r"cp\d+(.*)")
+
+
 def _is_threaded_cpython(abis: list[str]) -> bool:
     """
-    Determine if the ABI corresponds to a threaded (`--disable-gil`) build.
+    Determine if the ABIs describe a free-threaded build.
 
-    The threaded builds are indicated by a "t" in the abiflags.
+    The first version-specific CPython ABI or ``abi3t`` decides. The threaded
+    builds are indicated by a "t" in the abiflags.
     """
-    if len(abis) == 0:
-        return False
-    # expect e.g., cp313
-    m = re.match(r"cp\d+(.*)", abis[0])
-    if not m:
-        return False
-    abiflags = m.group(1)
-    return "t" in abiflags
+    for abi in abis:
+        if abi == "abi3t":
+            return True
+        if match := _CPYTHON_ABI_RE.match(abi):
+            return "t" in match[1]
+    return False
 
 
 def _abi3_applies(python_version: PythonVersion, threading: bool) -> bool:
@@ -362,9 +379,8 @@ def _abi3t_applies(python_version: PythonVersion, threading: bool) -> bool:
     return len(python_version) > 1 and tuple(python_version) >= (3, 2) and threading
 
 
-def _cpython_abis(py_version: PythonVersion, warn: bool = False) -> list[str]:
+def _cpython_abis(py_version: PythonVersion, warn: bool = False) -> Iterator[str]:
     py_version = tuple(py_version)  # To allow for version comparison.
-    abis = []
     version = _version_nodot(py_version[:2])
     threading = debug = pymalloc = ucs4 = ""
     with_debug = _get_config_var("Py_DEBUG", warn)
@@ -387,12 +403,11 @@ def _cpython_abis(py_version: PythonVersion, warn: bool = False) -> list[str]:
                 unicode_size is None and sys.maxunicode == 0x10FFFF
             ):
                 ucs4 = "u"
-    elif debug:
+    yield f"cp{version}{threading}{debug}{pymalloc}{ucs4}"
+    if py_version >= (3, 8) and debug:
         # Debug builds can also load "normal" extension modules.
         # We can also assume no UCS-4 or pymalloc requirement.
-        abis.append(f"cp{version}{threading}")
-    abis.insert(0, f"cp{version}{threading}{debug}{pymalloc}{ucs4}")
-    return abis
+        yield f"cp{version}{threading}"
 
 
 def cpython_tags(
@@ -448,7 +463,7 @@ def cpython_tags(
         except ValueError:  # noqa: PERF203
             pass
 
-    platforms = list(platforms or platform_tags())
+    platforms = list(platform_tags() if platforms is None else platforms)
     for abi in abis:
         for platform_ in platforms:
             yield Tag(interpreter, abi, platform_)
@@ -476,9 +491,9 @@ def cpython_tags(
                     yield Tag(interpreter, "abi3t", platform_)
 
 
-def _generic_abi() -> list[str]:
+def _generic_abi() -> Iterator[str]:
     """
-    Return the ABI tag based on EXT_SUFFIX.
+    Yield the ABI tag based on EXT_SUFFIX.
     """
     # The following are examples of `EXT_SUFFIX`.
     # We want to keep the parts which are related to the ABI and remove the
@@ -497,7 +512,8 @@ def _generic_abi() -> list[str]:
     parts = ext_suffix.split(".")
     if len(parts) < 3:
         # CPython3.7 and earlier uses ".pyd" on Windows.
-        return _cpython_abis(sys.version_info[:2])
+        yield from _cpython_abis(sys.version_info[:2])
+        return
     soabi = parts[1]
     if soabi.startswith("cpython"):
         # non-windows
@@ -516,8 +532,8 @@ def _generic_abi() -> list[str]:
         # pyston, ironpython, others?
         abi = soabi
     else:
-        return []
-    return [_normalize_string(abi)]
+        return
+    yield _normalize_string(abi)
 
 
 def generic_tags(
@@ -554,8 +570,8 @@ def generic_tags(
         interp_name = interpreter_name()
         interp_version = interpreter_version(warn=warn)
         interpreter = f"{interp_name}{interp_version}"
-    abis = _generic_abi() if abis is None else list(abis)
-    platforms = list(platforms or platform_tags())
+    abis = list(_generic_abi()) if abis is None else list(abis)
+    platforms = list(platform_tags() if platforms is None else platforms)
     if "none" not in abis:
         abis.append("none")
     for abi in abis:
@@ -629,7 +645,7 @@ def compatible_tags(
     """
     if not python_version:
         python_version = sys.version_info[:2]
-    platforms = list(platforms or platform_tags())
+    platforms = list(platform_tags() if platforms is None else platforms)
     for version in _py_interpreter_range(python_version):
         for platform_ in platforms:
             yield Tag(version, "none", platform_)
@@ -913,18 +929,19 @@ def platform_tags() -> Iterator[str]:
 
     .. versionadded:: 21.1
     """
-    if platform.system() == "Darwin":
-        return mac_platforms()
-    elif platform.system() == "iOS":
-        return ios_platforms()
-    elif platform.system() == "Android":
-        return android_platforms()
-    elif platform.system() == "Linux":
-        return _linux_platforms()
-    elif platform.system() == "Emscripten":
-        return _emscripten_platforms()
-    else:
-        return _generic_platforms()
+    match platform.system():
+        case "Darwin":
+            return mac_platforms()
+        case "iOS":
+            return ios_platforms()
+        case "Android":
+            return android_platforms()
+        case "Linux":
+            return _linux_platforms()
+        case "Emscripten":
+            return _emscripten_platforms()
+        case _:
+            return _generic_platforms()
 
 
 def interpreter_name() -> str:
@@ -958,6 +975,18 @@ def interpreter_version(*, warn: bool = False) -> str:
 
 def _version_nodot(version: PythonVersion) -> str:
     return "".join(map(str, version))
+
+
+def interpreter_abi() -> str:
+    """
+    Returns the running interpreter's ABI tag.
+
+    This typically acts as the :attr:`~Tag.abi` tag of the most specific tag
+    for the running interpreter.
+    """
+    if interpreter_name() == "cp":
+        return next(iter(_cpython_abis(sys.version_info[:2])))
+    return next(iter(_generic_abi()))
 
 
 def sys_tags(*, warn: bool = False) -> Iterator[Tag]:
