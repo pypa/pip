@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache
-def _create_truststore_ssl_context() -> SSLContext | None:
+def _create_truststore_ssl_context(use_certifi: bool) -> SSLContext | None:
     try:
         import ssl
     except ImportError:
@@ -47,7 +47,8 @@ def _create_truststore_ssl_context() -> SSLContext | None:
         return None
 
     ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.load_verify_locations(certifi.where())
+    if use_certifi:
+        ctx.load_verify_locations(certifi.where())
     return ctx
 
 
@@ -96,7 +97,9 @@ class SessionCommandMixin(CommandContextMixIn):
         assert not cache_dir or os.path.isabs(cache_dir)
 
         if "legacy-certs" not in options.deprecated_features_enabled:
-            ssl_context = _create_truststore_ssl_context()
+            ssl_context = _create_truststore_ssl_context(
+                use_certifi="legacy-mixed-certs" in options.deprecated_features_enabled
+            )
         else:
             ssl_context = None
 
