@@ -957,6 +957,44 @@ class TestInstallRequirement:
         assert extended.config_settings == req.config_settings
         assert extended.user_supplied == req.user_supplied
 
+    @pytest.mark.parametrize(
+        "inp, extras, dropped, extended",
+        [
+            (
+                "pkg @ https://example.com/x.whl ; os_name=='posix'",
+                {"ext"},
+                'pkg @ https://example.com/x.whl ; os_name == "posix"',
+                'pkg[ext] @ https://example.com/x.whl ; os_name == "posix"',
+            ),
+            (
+                "pkg [ext] == 1.0; python_version<='3.6'",
+                {"ext2"},
+                'pkg==1.0; python_version <= "3.6"',
+                'pkg[ext,ext2]==1.0; python_version <= "3.6"',
+            ),
+            (
+                "Foo_Bar.Baz[Ex_Tra]==1.0.0",
+                {"b.c"},
+                "Foo_Bar.Baz==1.0.0",
+                "Foo_Bar.Baz[Ex_Tra,b.c]==1.0.0",
+            ),
+            (
+                "pkg[a] @ git+https://example.com/r.git@main ; extra == 'Foo_Bar'",
+                {"Z"},
+                'pkg @ git+https://example.com/r.git@main ; extra == "foo-bar"',
+                'pkg[Z,a] @ git+https://example.com/r.git@main ; extra == "foo-bar"',
+            ),
+        ],
+    )
+    def test_install_req_change_extras_keeps_marker(
+        self, inp: str, extras: set[str], dropped: str, extended: str
+    ) -> None:
+        req = install_req_from_req_string(inp)
+        original = str(req.req)
+        assert str(install_req_drop_extras(req).req) == dropped
+        assert str(install_req_extend_extras(req, extras).req) == extended
+        assert str(req.req) == original
+
 
 @pytest.mark.parametrize(
     "req_str, expected",
