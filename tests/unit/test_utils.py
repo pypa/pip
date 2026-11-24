@@ -51,6 +51,7 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
     split_auth_netloc_from_url,
     tabulate,
+    which_outside_cwd,
 )
 
 
@@ -389,6 +390,55 @@ class Test_normalize_path:
             )
         finally:
             os.chdir(orig_working_dir)
+
+
+def test_which_outside_cwd_returns_absolute_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    rustc = str(tmp_path / "rustc")
+    monkeypatch.setattr(shutil, "which", lambda cmd, path=None: rustc)
+
+    assert which_outside_cwd("rustc") == rustc
+
+
+def test_which_outside_cwd_ignores_implicit_match_in_cwd(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # What shutil.which() returns on Windows for a hit in the cwd.
+    monkeypatch.setattr(
+        shutil, "which", lambda cmd, path=None: os.path.join(os.curdir, "rustc")
+    )
+    monkeypatch.setenv("PATH", str(tmp_path))
+
+    assert which_outside_cwd("rustc") is None
+
+
+def test_which_outside_cwd_keeps_match_when_cwd_is_on_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # An explicit PATH entry for the cwd is the user asking for this.
+    monkeypatch.setattr(
+        shutil, "which", lambda cmd, path=None: os.path.join(os.curdir, "rustc")
+    )
+    monkeypatch.setenv("PATH", os.pathsep.join([os.curdir, "/usr/bin"]))
+
+    assert which_outside_cwd("rustc") == os.path.join(os.getcwd(), "rustc")
+
+
+def test_which_outside_cwd_tolerates_missing_cwd(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Callers use this for optional probes, so a current directory that has
+    # been removed out from under pip must not turn one into a crash.
+    rustc = str(tmp_path / "rustc")
+    monkeypatch.setattr(shutil, "which", lambda cmd, path=None: rustc)
+
+    def no_cwd() -> str:
+        raise FileNotFoundError(2, "No such file or directory")
+
+    monkeypatch.setattr(os, "getcwd", no_cwd)
+
+    assert which_outside_cwd("rustc") == rustc
 
 
 class TestHashes:
