@@ -21,7 +21,7 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS, UNKNOWN_ERROR
 from pip._internal.models.direct_url import DirectUrl
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
-from pip._internal.utils.misc import normalize_path, rmtree
+from pip._internal.utils.misc import rmtree
 from pip._internal.utils.urls import path_to_url
 
 from tests.lib import (
@@ -3295,7 +3295,8 @@ def test_blocked_upgrade_reports_retained_backups(
         ("recoveryprobe-1.0.dist-info", metadata),
     ]:
         assert not (installed / name).exists()
-        assert repr(normalize_path(str(installed / name)) + os.sep) in result.stderr
+        expected = os.path.join(os.path.realpath(installed), name) + os.sep
+        assert repr(expected) in result.stderr
         assert repr(os.path.realpath(backup)) in result.stderr
     assert result.stderr.count("Could not restore ") == 2
 
