@@ -38,6 +38,10 @@ class InstallationReport:
         if ireq.user_supplied and ireq.extras:
             # For top level requirements, the list of requested extras, if any.
             res["requested_extras"] = sorted(ireq.extras)
+        if ireq.link and ireq.link.size is not None:
+            # Size in bytes of the artifact described by download_info, as
+            # advertised by the index. Absent when the index does not provide it.
+            res["download_size"] = ireq.link.size
         return res
 
     def to_dict(self) -> dict[str, Any]:

@@ -7,6 +7,12 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from ..lib import PipTestEnvironment, TestData
+from ..lib.server import (
+    file_response,
+    json_index_page,
+    make_mock_server,
+    server_running,
+)
 
 
 def _install_dict(report: dict[str, Any]) -> dict[str, Any]:
@@ -41,6 +47,41 @@ def test_install_report_basic(
         simplewheel_report["download_info"]["archive_info"]["hash"]
         == "sha256=71e1ca6b16ae3382a698c284013f66504f2581099b2ce4801f60e9536236ceee"
     )
+    # --find-links does not advertise file sizes.
+    assert "download_size" not in simplewheel_report
+
+
+def test_install_report_download_size(
+    script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
+) -> None:
+    """Test that the size advertised by a JSON index is reported."""
+    wheel_name = "simplewheel-2.0-1-py2.py3-none-any.whl"
+    wheel_path = shared_data.packages / wheel_name
+    wheel_size = wheel_path.stat().st_size
+    report_path = tmp_path / "report.json"
+    server = make_mock_server()
+    server.mock.side_effect = [
+        json_index_page(
+            "simplewheel",
+            [{"url": f"/files/{wheel_name}", "hashes": {}, "size": wheel_size}],
+        ),
+        file_response(wheel_path),
+    ]
+
+    with server_running(server):
+        script.pip(
+            "install",
+            "simplewheel",
+            "--dry-run",
+            "--index-url",
+            f"http://{server.host}:{server.port}",
+            "--report",
+            str(report_path),
+        )
+
+    report = json.loads(report_path.read_text())
+    simplewheel_report = _install_dict(report)["simplewheel"]
+    assert simplewheel_report["download_size"] == wheel_size
 
 
 def test_install_report_dep(
