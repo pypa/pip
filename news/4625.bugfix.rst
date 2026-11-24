@@ -1,0 +1,1 @@
+Warn when installing a package overwrites files owned by another package
