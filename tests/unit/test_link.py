@@ -8,6 +8,7 @@ import pytest
 from pip._internal.exceptions import InvalidEggFragment, PipError
 from pip._internal.models.link import (
     Link,
+    MetadataFile,
     as_path_component,
     join_within_directory,
     links_equivalent,
@@ -252,6 +253,33 @@ class TestLink:
     def test_is_vcs(self, url: str, expected: bool) -> None:
         link = Link(url)
         assert link.is_vcs is expected
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        pytest.param(
+            "https://example.com/files/demo-1.0-py3-none-any.whl?token=abc",
+            "https://example.com/files/demo-1.0-py3-none-any.whl.metadata?token=abc",
+            id="query-string",
+        ),
+        pytest.param(
+            "https://example.com/files/demo-1.0-py3-none-any.whl?token=abc#sha256=deadbeef",
+            "https://example.com/files/demo-1.0-py3-none-any.whl.metadata?token=abc",
+            id="query-string-and-fragment",
+        ),
+        pytest.param(
+            "https://example.com/files/demo-1.0-py3-none-any.whl",
+            "https://example.com/files/demo-1.0-py3-none-any.whl.metadata",
+            id="no-query-string",
+        ),
+    ],
+)
+def test_metadata_link_appends_suffix_to_path(url: str, expected: str) -> None:
+    link = Link(url, metadata_file_data=MetadataFile(None))
+    metadata_link = link.metadata_link()
+    assert metadata_link is not None
+    assert metadata_link.url == expected
 
 
 @pytest.mark.parametrize(
