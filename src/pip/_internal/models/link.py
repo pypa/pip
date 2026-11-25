@@ -208,12 +208,25 @@ def _clean_url_path(path: str, is_local_path: bool) -> str:
     return "".join(cleaned_parts)
 
 
+# URLs matched by this regex aren't changed by the cleaner and we can exit early
+_unchanged_http_url_re = re.compile(
+    r"https?://[A-Za-z0-9._~-]+(?::[0-9]+)?"
+    r"(?:/[A-Za-z0-9._~/-]*)?"
+    r"(?:\?[^\r\n\t#]+)?"
+    r"(?:#[A-Za-z0-9._~=-]+)?"
+)
+
+
 def _ensure_quoted_url(url: str) -> str:
     """
     Make sure a link is fully quoted.
     For example, if ' ' occurs in the URL, it will be replaced with "%20",
     and without double-quoting other characters.
     """
+    # match() and an end check is much cheaper than fullmatch() on a miss.
+    match = _unchanged_http_url_re.match(url)
+    if match is not None and match.end() == len(url):
+        return url
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path?query#fragment`.
     result = urllib.parse.urlsplit(url)
