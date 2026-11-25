@@ -71,7 +71,10 @@ class Git(VersionControl):
     )
     # Prevent the user's environment variables from interfering with pip:
     # https://github.com/pypa/pip/issues/1130
-    unset_environ = ("GIT_DIR", "GIT_WORK_TREE")
+    # GIT_INDEX_FILE is also unset, since git sets it for hooks and it can
+    # otherwise leak into pip's own git subprocesses:
+    # https://github.com/pypa/pip/issues/14290
+    unset_environ = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")
     default_arg_rev = "HEAD"
 
     @staticmethod
