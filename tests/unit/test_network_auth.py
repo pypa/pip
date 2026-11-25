@@ -798,3 +798,57 @@ def test_handle_401_extracts_credentials_embedded_in_url(
     scheme, _, encoded = sent_headers["Authorization"].partition(" ")
     assert scheme == "Basic"
     assert base64.b64decode(encoded).decode() == "user:pass"
+
+
+def test_https_index_url_credentials_not_sent_to_http() -> None:
+    auth = MultiDomainBasicAuth(
+        index_urls=["https://user:pass@example.com/simple/"],
+    )
+    get = functools.partial(
+        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
+    )
+
+    assert get("https://example.com/simple/pkg/") == ("user", "pass")
+    assert get("http://example.com/simple/pkg/") == (None, None)
+
+
+def test_https_cached_credentials_not_reused_for_http() -> None:
+    auth = MultiDomainBasicAuth()
+    monkeypatch_get_new = functools.partial(
+        auth._get_new_credentials, allow_netrc=False, allow_keyring=False
+    )
+    auth._get_new_credentials = monkeypatch_get_new  # type: ignore[method-assign]
+
+    assert auth._get_url_and_credentials("https://user:pass@example.com/path") == (
+        "https://example.com/path",
+        "user",
+        "pass",
+    )
+    assert auth._get_url_and_credentials("https://example.com/other") == (
+        "https://example.com/other",
+        "user",
+        "pass",
+    )
+    assert auth._get_url_and_credentials("http://example.com/other") == (
+        "http://example.com/other",
+        None,
+        None,
+    )
+
+
+def test_handle_401_does_not_send_https_index_credentials_over_http() -> None:
+    auth = MultiDomainBasicAuth(
+        prompting=False,
+        index_urls=["https://user:pass@example.com/simple/"],
+        keyring_provider="disabled",
+    )
+
+    req = MockRequest("http://example.com/simple/pkg/")
+    resp = MockResponse(b"")
+    resp.request = req
+    resp.url = req.url
+    resp.status_code = 401
+
+    new_resp = auth.handle_401(resp)
+    assert new_resp is resp
+    assert "Authorization" not in req.headers
