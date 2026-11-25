@@ -1,0 +1,2 @@
+Fix ``Git.get_url_rev_and_auth()`` failing on scp-style stub URLs with Python
+versions whose ``urlsplit()`` rejects non-numeric ports.

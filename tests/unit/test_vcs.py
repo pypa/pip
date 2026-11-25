@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import pathlib
+import urllib.parse
 from typing import Any
 from unittest import mock
 
@@ -385,6 +386,42 @@ def test_git__get_url_rev__idempotent() -> None:
     expected = ("git@git.example.com:MyProject", None, (None, None))
     assert result1 == expected
     assert result2 == expected
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        (
+            "git+git@github.com:pypa/sampleproject.git",
+            ("git@github.com:pypa/sampleproject.git", None, (None, None)),
+        ),
+        (
+            "git+git@github.com:pypa/sampleproject.git@v1.0",
+            ("git@github.com:pypa/sampleproject.git", "v1.0", (None, None)),
+        ),
+        (
+            "git+git@git.example.com:/srv/repo.git#egg=repo",
+            ("git@git.example.com:/srv/repo.git", None, (None, None)),
+        ),
+    ],
+)
+def test_git__get_url_rev_and_auth__stub_url_path_not_parsed_as_port(
+    url: str, expected: tuple[str, str | None, tuple[None, None]]
+) -> None:
+    """
+    Newer Python versions make urlsplit() reject a non-numeric port, so the
+    path of an scp-style stub URL must not end up where the port goes.
+    """
+    real_urlsplit = urllib.parse.urlsplit
+
+    def strict_urlsplit(*args: Any, **kwargs: Any) -> urllib.parse.SplitResult:
+        result = real_urlsplit(*args, **kwargs)
+        # Raises ValueError for a non-numeric port, like Python 3.16 does.
+        _ = result.port
+        return result
+
+    with mock.patch("urllib.parse.urlsplit", strict_urlsplit):
+        assert Git.get_url_rev_and_auth(url) == expected
 
 
 @pytest.mark.parametrize(

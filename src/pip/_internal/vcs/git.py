@@ -519,8 +519,18 @@ class Git(VersionControl):
         if "://" not in url:
             assert "file:" not in url
             url = url.replace("git+", "git+ssh://")
+            # Replace the scp-style ":" after the host with "/" so that
+            # urlsplit() doesn't read the start of the path as a port.
+            # It is put back after parsing.
+            prefix, _, rest = url.partition("://")
+            host, colon, path = rest.partition(":")
+            swap_colon = bool(colon) and "/" not in host
+            if swap_colon:
+                url = f"{prefix}://{host}/{path}"
             url, rev, user_pass = super().get_url_rev_and_auth(url)
             url = url.replace("ssh://", "")
+            if swap_colon:
+                url = url.replace("/", ":", 1)
         else:
             url, rev, user_pass = super().get_url_rev_and_auth(url)
 
