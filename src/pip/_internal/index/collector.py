@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from optparse import Values
 from typing import (
+    TYPE_CHECKING,
     NamedTuple,
     Protocol,
 )
@@ -41,6 +42,9 @@ from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.utils.urls import url_to_path
 from pip._internal.vcs import vcs
+
+if TYPE_CHECKING:
+    from pip._internal.index.package_finder import IndexErrorContext
 
 from .sources import CandidatesFromPage, LinkSource, build_source
 
@@ -318,10 +322,27 @@ def _make_index_content(
     )
 
 
+def _record_error_if_present(
+    error_context: IndexErrorContext | None,
+    url: str,
+    exc: Exception,
+) -> None:
+    if error_context is not None:
+        if (
+            isinstance(exc, NetworkConnectionError)
+            and exc.response is not None
+            and exc.response.status_code == 404
+        ):
+            error_context.record_not_found(redact_auth_from_url(url), exc)
+        else:
+            error_context.record_unavailable(redact_auth_from_url(url), exc)
+
+
 def _get_index_content(
     link: Link,
     *,
     session: PipSession,
+    error_context: IndexErrorContext | None = None,
     force_revalidate: bool = False,
 ) -> IndexContent | None:
     url = link.url.split("#", 1)[0]
@@ -348,7 +369,6 @@ def _get_index_content(
         #       so we'll need to come up with something on our own.
         url = urllib.parse.urljoin(url, "index.html")
         logger.debug(" file: URL is directory, getting %s", url)
-
     try:
         resp = _get_simple_response(
             url, session=session, force_revalidate=force_revalidate
@@ -370,15 +390,20 @@ def _get_index_content(
         )
     except (RetryError, NetworkConnectionError) as exc:
         _handle_get_simple_fail(link, exc)
+        _record_error_if_present(error_context, str(link.url), exc)
     except (SSLVerificationError, SSLMissingError) as exc:
         reason = f"There was a problem confirming the ssl certificate: {exc.context}"
         _handle_get_simple_fail(link, reason, meth=logger.info)
+        _record_error_if_present(error_context, str(link.url), exc)
     except ConnectionFailedError as exc:
         _handle_get_simple_fail(link, f"connection error: {exc.context}")
+        _record_error_if_present(error_context, str(link.url), exc)
     except ProxyConnectionError as exc:
         _handle_get_simple_fail(link, f"proxy connection error: {exc.context}")
+        _record_error_if_present(error_context, str(link.url), exc)
     except ConnectionTimeoutError as exc:
         _handle_get_simple_fail(link, str(exc.context))
+        _record_error_if_present(error_context, str(link.url), exc)
     else:
         return _make_index_content(resp, cache_link_parsing=link.cache_link_parsing)
     return None
@@ -444,7 +469,10 @@ class LinkCollector:
         return self.search_scope.find_links
 
     def fetch_response(
-        self, location: Link, package_name: str | None = None
+        self,
+        location: Link,
+        error_context: IndexErrorContext | None = None,
+        package_name: str | None = None,
     ) -> IndexContent | None:
         """
         Fetch an HTML page containing package links.
@@ -461,6 +489,7 @@ class LinkCollector:
             location,
             session=self.session,
             force_revalidate=should_force_revalidate,
+            error_context=error_context,
         )
 
     def collect_sources(
