@@ -1,0 +1,2 @@
+When a "wheel is incompatible with this platform" error is shown, attempt to provide a
+specific reason why.

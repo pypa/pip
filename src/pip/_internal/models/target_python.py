@@ -64,7 +64,18 @@ class TargetPython:
 
         # This is used to cache the return value of get_(un)sorted_tags.
         self._valid_tags: list[Tag] | None = None
-        self._valid_tags_set: set[Tag] | None = None
+        self._valid_tags_set: frozenset[Tag] | None = None
+
+    def is_current_interpreter(self) -> bool:
+        """
+        Does this target Python match the current interpreter?
+        """
+        return not bool(
+            self.abis
+            or self.implementation
+            or self.platforms
+            or (self.py_version_info != sys.version_info[:3])
+        )
 
     def format_given(self) -> str:
         """
@@ -111,12 +122,12 @@ class TargetPython:
 
         return self._valid_tags
 
-    def get_unsorted_tags(self) -> set[Tag]:
+    def get_unsorted_tags(self) -> frozenset[Tag]:
         """Exactly the same as get_sorted_tags, but returns a set.
 
         This is important for performance.
         """
         if self._valid_tags_set is None:
-            self._valid_tags_set = set(self.get_sorted_tags())
+            self._valid_tags_set = frozenset(self.get_sorted_tags())
 
         return self._valid_tags_set
