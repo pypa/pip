@@ -1,0 +1,1 @@
+Fix requirements-file hint detection for lines with backslash continuations.
