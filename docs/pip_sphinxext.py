@@ -166,12 +166,17 @@ class PipOptions(rst.Directive):
                 self.view_list.append(line, "")
 
     def run(self) -> list[nodes.Node]:
-        node = nodes.paragraph()
+        # A scratch parent to parse into: the generated content is block-level
+        # (a bullet list, definition lists), so it must not be wrapped in a
+        # paragraph. Doing so produced invalid HTML (``<p><ul>``) and made the
+        # gettext builder extract the whole list as one merged msgid, because
+        # a paragraph is itself a translatable unit. See GH-14261.
+        node = nodes.Element()
         node.document = self.state.document
         self.view_list = ViewList()
         self.process_options()
         self.state.nested_parse(self.view_list, 0, node)
-        return [node]
+        return node.children
 
 
 class PipGeneralOptions(PipOptions):
@@ -222,6 +227,10 @@ class PipReqFileOptionsReference(PipOptions):
         raise KeyError(f"Could not identify prefix of opt {opt_name}")
 
     def process_options(self) -> None:
+        # Attribute every generated entry to the directive itself. Without an
+        # explicit source, docutils records a bogus location, which the gettext
+        # builder then emits as a malformed ``#:`` comment (see GH-14261).
+        source, line = self.state_machine.get_source_and_line(self.lineno)
         for option in SUPPORTED_OPTIONS:
             if getattr(option, "deprecated", False):
                 continue
@@ -239,8 +248,9 @@ class PipReqFileOptionsReference(PipOptions):
                 prefix = f"{self.determine_opt_prefix(opt_name)}_"
 
             self.view_list.append(
-                f"*  :ref:`{short_opt_name}{opt_name}<{prefix}{opt_name}>`",
-                "\n",
+                f"*  {{ref}}`{short_opt_name}{opt_name}<{prefix}{opt_name}>`",
+                source,
+                line,
             )
 
 
