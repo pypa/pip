@@ -128,31 +128,7 @@ class SpecifierWithoutExtrasRequirement(SpecifierRequirement):
     """
 
     def __init__(self, ireq: InstallRequirement) -> None:
-        assert ireq.link is None, "This is a link, not a specifier"
-        self._ireq = install_req_drop_extras(ireq)
-        self._equal_cache: str | None = None
-        self._hash: int | None = None
-        self._extras = frozenset(canonicalize_name(e) for e in self._ireq.extras)
-
-    @property
-    def _equal(self) -> str:
-        if self._equal_cache is not None:
-            return self._equal_cache
-
-        self._equal_cache = str(self._ireq)
-        return self._equal_cache
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, SpecifierWithoutExtrasRequirement):
-            return NotImplemented
-        return self._equal == other._equal
-
-    def __hash__(self) -> int:
-        if self._hash is not None:
-            return self._hash
-
-        self._hash = hash(self._equal)
-        return self._hash
+        super().__init__(install_req_drop_extras(ireq))
 
 
 class RequiresPythonRequirement(Requirement):
