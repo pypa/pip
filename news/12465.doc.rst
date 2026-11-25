@@ -1,0 +1,2 @@
+Documented that ``pip download`` can execute build code while preparing source
+distribution metadata, and explained how to download artifacts directly.
