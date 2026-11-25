@@ -175,7 +175,7 @@ def check_first_requirement_in_file(filename: str) -> None:
                 line = line[: line.find(" #")]
             # If there is a line continuation, drop it, and append the next line.
             if line.endswith("\\"):
-                line = line[:-2].strip() + next(lines, "")
+                line = line[:-1].strip() + next(lines, "")
             get_requirement(line)
             return
 

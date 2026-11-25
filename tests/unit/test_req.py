@@ -857,6 +857,16 @@ class TestInstallRequirement:
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
 
+    def test_requirement_file_with_backslash_continuation(self) -> None:
+        req_file_path = os.path.join(self.tempdir, "test.txt")
+        with open(req_file_path, "w") as req_file:
+            req_file.write("requests==2.31.0\\\n    ; python_version >= '3.8'\n")
+        with pytest.raises(InstallationError) as e:
+            install_req_from_line(req_file_path)
+        err_msg = e.value.args[0]
+        assert "appears to be a requirements file." in err_msg
+        assert "use the '-r' flag to install" in err_msg
+
     @pytest.mark.parametrize(
         "inp, out",
         [
