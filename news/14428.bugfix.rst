@@ -1,0 +1,1 @@
+Fix ``pip lock --requirements-from-script`` crashing when the script declares ``requires-python``.

@@ -46,6 +46,13 @@ class LockCommand(RequirementCommand):
       %prog [options] <archive url/path> ..."""
 
     def add_options(self) -> None:
+        # Locking targets the running interpreter.
+        self.parser.set_defaults(
+            platforms=None,
+            python_version=None,
+            abis=None,
+            implementation=None,
+        )
         self.cmd_opts.add_option(
             cmdoptions.PipOption(
                 "--output",
