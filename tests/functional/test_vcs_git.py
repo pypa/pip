@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 import os
 import pathlib
+import sys
 from unittest.mock import Mock, patch
 
 import pytest
@@ -473,3 +474,58 @@ def test_git_has_commit(script: PipTestEnvironment) -> None:
 
     assert Git.has_commit(repo_dir, sha)
     assert not Git.has_commit(repo_dir, "0" * 40)
+
+
+@pytest.mark.parametrize("use_branch", [False, True])
+def test_fetch_new_with_global_clean_filter(
+    script: PipTestEnvironment, tmp_path: pathlib.Path, use_branch: bool
+) -> None:
+    """
+    Test that Git.fetch_new() succeeds when a global git clean filter
+    modifies files on the default branch before checking out the target rev.
+    """
+    repo_path = tmp_path / "repo"
+    repo_path.mkdir()
+    script.run("git", "init", "-b", "main", cwd=str(repo_path))
+
+    repo_file = repo_path / "module.py"
+    repo_file.write_text("x = 'first'\n")
+    script.run("git", "add", "module.py", cwd=str(repo_path))
+    script.run("git", "commit", "-m", "first commit", cwd=str(repo_path))
+    target_sha = get_head_sha(script, str(repo_path))
+
+    script.run("git", "branch", "feature", target_sha, cwd=str(repo_path))
+
+    repo_file.write_text("x = 'second'\n")
+    script.run("git", "commit", "-am", "second commit", cwd=str(repo_path))
+
+    # Configure a global clean filter in the isolated test home directory
+    # that transforms tracked Python files so the default branch appears dirty.
+    attributes_file = tmp_path / "gitattributes"
+    attributes_file.write_text("*.py filter=reformat\n")
+    clean_cmd = (
+        f'"{pathlib.Path(sys.executable).as_posix()}" '
+        '-c "import sys; sys.stdout.write(sys.stdin.read().upper())"'
+    )
+    script.run(
+        "git",
+        "config",
+        "--global",
+        "core.attributesfile",
+        attributes_file.as_posix(),
+    )
+    script.run("git", "config", "--global", "filter.reformat.clean", clean_cmd)
+
+    clone_path = tmp_path / "clone"
+    target_rev = "feature" if use_branch else target_sha
+    Git().fetch_new(
+        str(clone_path),
+        HiddenText(repo_path.as_uri(), redacted="*"),
+        Git.make_rev_options(target_rev),
+        verbosity=0,
+    )
+
+    assert Git.get_revision(str(clone_path)) == target_sha
+    if use_branch:
+        assert Git.get_current_branch(str(clone_path)) == "feature"
+    assert (clone_path / "module.py").read_text() == "x = 'first'\n"

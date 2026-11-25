@@ -962,6 +962,46 @@ class TestGitArgs(_TestVcsArgs):
 
         update_submodules_mock.assert_called_with(self.dest, verbosity=0)
 
+    def test_fetch_new_rev_uses_force(self) -> None:
+        rev_options = RevOptions(Git, rev="abc123")
+        with (
+            mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)),
+            mock.patch.object(self.svn, "resolve_revision", return_value=rev_options),
+            mock.patch.object(self.svn, "is_commit_id_equal", return_value=False),
+            mock.patch.object(self.svn, "update_submodules") as update_submodules_mock,
+        ):
+            self.svn.fetch_new(self.dest, hide_url(self.url), rev_options, verbosity=1)
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "git",
+            "checkout",
+            "-q",
+            "--force",
+            "abc123",
+        ]
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
+    def test_fetch_new_branch_uses_force(self) -> None:
+        rev_options = RevOptions(Git, rev="abc123", branch_name="feature")
+        with (
+            mock.patch.object(self.svn, "get_git_version", return_value=(2, 17)),
+            mock.patch.object(self.svn, "resolve_revision", return_value=rev_options),
+            mock.patch.object(self.svn, "get_current_branch", return_value="main"),
+            mock.patch.object(self.svn, "update_submodules") as update_submodules_mock,
+        ):
+            self.svn.fetch_new(self.dest, hide_url(self.url), rev_options, verbosity=1)
+
+        assert self.call_subprocess_mock.call_args_list[1][0][0] == [
+            "git",
+            "checkout",
+            "--force",
+            "-b",
+            "feature",
+            "--track",
+            "origin/feature",
+        ]
+        update_submodules_mock.assert_called_with(self.dest, verbosity=1)
+
     def test_switch(self) -> None:
         with mock.patch.object(self.svn, "update_submodules") as update_submodules_mock:
             self.svn.switch(

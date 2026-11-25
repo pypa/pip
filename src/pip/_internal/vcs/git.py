@@ -310,6 +310,7 @@ class Git(VersionControl):
                     cmd_args = make_command(
                         "checkout",
                         "-q",
+                        "--force",
                         rev_options.to_args(),
                     )
                     self.run_command(cmd_args, cwd=dest)
@@ -319,6 +320,7 @@ class Git(VersionControl):
                 track_branch = f"origin/{branch_name}"
                 cmd_args = [
                     "checkout",
+                    "--force",
                     "-b",
                     branch_name,
                     "--track",
