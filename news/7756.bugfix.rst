@@ -1,0 +1,1 @@
+Pass ``--force`` to ``git checkout`` when checking out a requested revision or branch in a freshly cloned repository, preventing global Git clean filters from blocking checkout.
