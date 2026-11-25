@@ -18,6 +18,21 @@ Over the course of the dependency resolution process, pip will need to download
 distribution files of the packages which are used to get the dependencies of a
 package.
 
+## Yanked releases
+
+An index can mark a release as yanked when a project detects that it might be broken. Yanking is a non-destructive alternative to deleting a release: it discourages inadvertent installations while leaving the release available to users who have pinned that version. Any Python package index that implements the yanking specification can provide this behavior.
+
+During dependency resolution, pip ignores yanked releases when a non-yanked
+version satisfies the requirements. If an exact version pin (for example,
+`package==1.2.3`) can only be satisfied by yanked releases, pip can still install
+one and warns that the selected version is yanked. The warning includes the
+reason provided by the project, when one is available.
+
+For more information, see the
+[File yanking specification](https://packaging.python.org/en/latest/specifications/file-yanking/)
+and [PyPI's guide to yanking releases](https://docs.pypi.org/project-management/yanking/).
+
+
 ## Backtracking
 
 ```{versionchanged} 20.3
