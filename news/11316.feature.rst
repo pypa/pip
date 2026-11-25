@@ -1,0 +1,1 @@
+Report installation errors and dependency resolution failures in JSON format when using ``--report``.
