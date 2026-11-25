@@ -3,6 +3,7 @@ import sys
 
 from tests.lib import (
     PipTestEnvironment,
+    create_basic_sdist_for_package,
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
@@ -192,4 +193,83 @@ def test_new_resolver_no_versions_available_hint(script: PipTestEnvironment) -> 
         "Additionally, some packages in these conflicts have no "
         "matching distributions available for your environment:\n"
         "    incompatible-dep\n" in result.stdout
+    ), str(result)
+
+
+def test_new_resolver_single_conflict_names_format_restriction(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    A dependency that only ships source distributions should be named as
+    such under --only-binary, instead of the failure reading as a bare
+    "versions: none" (issue #12999).
+    """
+    create_basic_sdist_for_package(script, "sdist-dep", "1.0.0")
+
+    requesting_pkg = make_wheel(
+        name="requesting-pkg",
+        version="1.0.0",
+        metadata_updates={"Requires-Dist": ["sdist-dep==1.0.0"]},
+    )
+    requesting_pkg.save_to(
+        script.scratch_path.joinpath("requesting_pkg-1.0.0-py2.py3-none-any.whl")
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        str(script.scratch_path),
+        "--only-binary",
+        ":all:",
+        "requesting-pkg",
+        expect_error=True,
+    )
+
+    # The reason is named instead of an unexplained "from versions: none"
+    assert "no compatible binary packages are available" in result.stderr, str(result)
+    assert "only source distributions were found" in result.stderr, str(result)
+
+
+def test_new_resolver_multi_conflict_names_format_restriction(
+    script: PipTestEnvironment,
+) -> None:
+    """
+    The multi-cause conflict report should also name the format settings
+    when they are why a dependency cannot be installed (issue #12999).
+    """
+    create_basic_sdist_for_package(script, "sdist-dep", "1.0.0")
+
+    # Two requesting versions so the resolver accumulates one unsatisfied
+    # cause per parent and takes the multi-cause conflict report path.
+    for version in ("1.0.0", "2.0.0"):
+        make_wheel(
+            name="requesting-pkg",
+            version=version,
+            metadata_updates={"Requires-Dist": ["sdist-dep==1.0.0"]},
+        ).save_to(
+            script.scratch_path.joinpath(
+                f"requesting_pkg-{version}-py2.py3-none-any.whl"
+            )
+        )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        str(script.scratch_path),
+        "--only-binary",
+        ":all:",
+        "requesting-pkg",
+        expect_error=True,
+    )
+
+    assert (
+        "Additionally, some packages in these conflicts have no "
+        "matching distributions available for your environment:" in result.stdout
+    ), str(result)
+    assert (
+        "\n    sdist-dep: no compatible binary packages are available" in result.stdout
     ), str(result)

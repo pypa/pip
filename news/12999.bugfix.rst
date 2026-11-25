@@ -1,0 +1,6 @@
+When resolution fails because a package only ships distributions that the
+``--only-binary``/``--no-binary`` settings exclude, the error now says so
+explicitly ("no compatible binary packages are available; only source
+distributions were found, which the current binary-only setting
+(--only-binary) excludes") instead of reading as a plain dependency
+conflict.
