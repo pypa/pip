@@ -246,6 +246,47 @@ class TestPipSession:
         assert session.adapters[prefix4] is trusted_host_adapter
         assert session.adapters[prefix4_http] is trusted_host_adapter
 
+    def test_trusted_host_still_gets_insecure_adapter(self) -> None:
+        session = PipSession(trusted_hosts=["trusted.local"])
+        assert session.get_adapter("https://trusted.local/pkg") is (
+            session._trusted_host_adapter
+        )
+        assert session.get_adapter("https://trusted.local:8443/pkg") is (
+            session._trusted_host_adapter
+        )
+        assert session.get_adapter("https://TRUSTED.LOCAL/pkg") is (
+            session._trusted_host_adapter
+        )
+
+    def test_userinfo_redirect_form_does_not_get_trusted_adapter(self) -> None:
+        session = PipSession(trusted_hosts=["trusted.local"])
+        for url in (
+            "https://trusted.local:8443@evil.local/pkg",
+            "https://trusted.local:@evil.local/pkg",
+            "https://trusted.local:8443@evil.local:9443/pkg",
+        ):
+            adapter = session.get_adapter(url)
+            assert adapter is not session._trusted_host_adapter, url
+            assert adapter is session._secure_adapter, url
+
+    def test_untrusted_hosts_unaffected(self) -> None:
+        session = PipSession(trusted_hosts=["trusted.local"])
+        assert session.get_adapter("https://evil.local/pkg") is session._secure_adapter
+        assert (
+            session.get_adapter("https://trusted.local.evil.local/pkg")
+            is session._secure_adapter
+        )
+
+    def test_port_scoped_trusted_host(self) -> None:
+        session = PipSession(trusted_hosts=["trusted.local:8443"])
+        assert session.get_adapter("https://trusted.local:8443/pkg") is (
+            session._trusted_host_adapter
+        )
+        assert (
+            session.get_adapter("https://trusted.local:8443@evil.local/pkg")
+            is session._secure_adapter
+        )
+
     def test_add_trusted_host__logging(self, caplog: pytest.LogCaptureFixture) -> None:
         """
         Test logging when add_trusted_host() is called.

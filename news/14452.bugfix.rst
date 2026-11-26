@@ -1,0 +1,1 @@
+Prevent ``--trusted-host`` TLS verification bypass when redirect URLs contain the trusted host in userinfo.
