@@ -7,6 +7,7 @@ import compileall
 import contextlib
 import csv
 import importlib
+import io
 import logging
 import os.path
 import re
@@ -683,6 +684,16 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         return path.split("/", 1)[0].endswith(".data")
 
     paths = cast(list[RecordPath], wheel_zip.namelist())
+    # The metadata validators (parse_wheel, get_wheel_distribution) read raw
+    # archive names, while the destinations below are built with normpath.
+    # Refuse members that normalization would map onto another name, such as
+    # "./pkg.dist-info/entry_points.txt", so both read the same archive.
+    for path in paths:
+        if os.path.normpath(path).replace(os.path.sep, "/") != path.rstrip("/"):
+            raise InstallationError(
+                f"The wheel {wheel_path!r} has a file {path!r} whose path "
+                "is not normalized"
+            )
     file_paths = filterfalse(is_dir_path, paths)
     root_scheme_paths, data_scheme_paths = partition(is_data_scheme_path, file_paths)
 
@@ -849,7 +860,7 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
         generated.append(requested_path)
 
     record_text = distribution.read_text("RECORD")
-    record_rows = list(csv.reader(record_text.splitlines()))
+    record_rows = list(csv.reader(io.StringIO(record_text, newline="")))
 
     # RECORD generation consumes its input; recovery still needs the journal.
     rows = get_csv_rows_for_installed(

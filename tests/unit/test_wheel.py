@@ -773,6 +773,65 @@ class TestInstallUnpackedWheel:
         # Nothing was written outside the install destination.
         assert not os.path.exists(os.path.join(str(tmpdir), "outside"))
 
+    def test_record_entry_with_unicode_line_separator(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        """A file name containing a character that str.splitlines() treats
+        as a line break (but csv does not) stays one RECORD entry.
+        """
+        self.prep(data, tmpdir)
+        name = "simple/a\u2028b.txt"
+        wheel_path = make_wheel(
+            "simple", "0.1.0", extra_files={name: "contents\n"}
+        ).save_to_dir(tmpdir)
+        wheel.install_wheel(
+            "simple",
+            str(wheel_path),
+            scheme=self.scheme,
+            req_description="simple",
+        )
+
+        record = os.path.join(self.scheme.purelib, "simple-0.1.0.dist-info", "RECORD")
+        with open(record, newline="") as f:
+            recorded = {row[0] for row in csv.reader(f)}
+        assert name in recorded
+        assert "b.txt" not in recorded
+
+        dist = get_environment([self.scheme.purelib]).get_distribution("simple")
+        assert dist is not None
+        entries = set(dist.iter_declared_entries() or [])
+        assert str(pathlib.Path(name)) in entries
+        assert "b.txt" not in entries
+
+    def test_wheel_install_rejects_non_normalized_paths(
+        self, data: TestData, tmpdir: Path
+    ) -> None:
+        """Metadata is validated using the raw archive names, so a member whose
+        name normalizes onto another path must not be installed.
+        """
+        self.prep(data, tmpdir)
+        wheel_path = make_wheel(
+            "simple",
+            "0.1.0",
+            extra_files={
+                "./simple-0.1.0.dist-info/entry_points.txt": (
+                    "[console_scripts]\nsimple = simple:main\n"
+                )
+            },
+        ).save_to_dir(tmpdir)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
+
+        assert "is not normalized" in str(e.value)
+        assert not os.path.exists(
+            os.path.join(self.scheme.purelib, "simple-0.1.0.dist-info")
+        )
+
 
 class TestMessageAboutScriptsNotOnPATH:
     tilde_warning_msg = (
