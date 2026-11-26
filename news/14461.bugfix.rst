@@ -1,0 +1,1 @@
+No longer allow an authentication for HTTPS to be used for HTTP.

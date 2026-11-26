@@ -249,7 +249,7 @@ class MultiDomainBasicAuth(AuthBase):
         self.prompting = prompting
         self.index_urls = index_urls
         self.keyring_provider = keyring_provider
-        self.passwords: dict[str, AuthInfo] = {}
+        self.passwords: dict[tuple[str, str], AuthInfo] = {}
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
         # this value is set to the credentials they entered. After the
@@ -329,7 +329,10 @@ class MultiDomainBasicAuth(AuthBase):
             if parsed_url == parsed_index:
                 return index
 
-            if parsed_url.netloc != parsed_index.netloc:
+            if (
+                parsed_url.scheme != parsed_index.scheme
+                or parsed_url.netloc != parsed_index.netloc
+            ):
                 continue
 
             candidate = urllib.parse.urlsplit(index)
@@ -422,6 +425,8 @@ class MultiDomainBasicAuth(AuthBase):
         function may return a different username and password.
         """
         url, netloc, _ = split_auth_netloc_from_url(original_url)
+        scheme = urllib.parse.urlsplit(original_url).scheme
+        password_key = (scheme, netloc)
 
         # Try to get credentials from original url
         username, password = self._get_new_credentials(original_url)
@@ -430,8 +435,8 @@ class MultiDomainBasicAuth(AuthBase):
         # Do this if either the username or the password is missing.
         # This accounts for the situation in which the user has specified
         # the username in the index url, but the password comes from keyring.
-        if (username is None or password is None) and netloc in self.passwords:
-            un, pw = self.passwords[netloc]
+        if (username is None or password is None) and password_key in self.passwords:
+            un, pw = self.passwords[password_key]
             # It is possible that the cached credentials are for a different username,
             # in which case the cache should be ignored.
             if username is None or username == un:
@@ -446,7 +451,7 @@ class MultiDomainBasicAuth(AuthBase):
             password = password or ""
 
             # Store any acquired credentials.
-            self.passwords[netloc] = (username, password)
+            self.passwords[password_key] = (username, password)
 
         assert (
             # Credentials were found
@@ -528,7 +533,7 @@ class MultiDomainBasicAuth(AuthBase):
         # Store the new username and password to use for future requests
         self._credentials_to_save = None
         if username is not None and password is not None:
-            self.passwords[parsed.netloc] = (username, password)
+            self.passwords[(parsed.scheme, parsed.netloc)] = (username, password)
 
             # Prompt to save the password to keyring
             if save and self._should_save_password_to_keyring():
