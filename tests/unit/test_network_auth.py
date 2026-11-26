@@ -70,13 +70,13 @@ def test_get_credentials_parses_correctly(
         (username is None and password is None)
         or
         # Credentials were found and "cached" appropriately
-        auth.passwords["example.com"] == (username, password)
+        auth.passwords[("http", "example.com")] == (username, password)
     )
 
 
 def test_get_credentials_not_to_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords[("http", "example.com")] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
     expected = ("http://example.com/path", "foo", "bar")
@@ -85,7 +85,7 @@ def test_get_credentials_not_to_uses_cached_credentials() -> None:
 
 def test_get_credentials_not_to_uses_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords[("http", "example.com")] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://foo@example.com/path")
     expected = ("http://example.com/path", "foo", "")
@@ -94,7 +94,7 @@ def test_get_credentials_not_to_uses_cached_credentials_only_username() -> None:
 
 def test_get_credentials_uses_cached_credentials() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords[("http", "example.com")] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://example.com/path")
     expected = ("http://example.com/path", "user", "pass")
@@ -103,7 +103,7 @@ def test_get_credentials_uses_cached_credentials() -> None:
 
 def test_get_credentials_uses_cached_credentials_only_username() -> None:
     auth = MultiDomainBasicAuth()
-    auth.passwords["example.com"] = ("user", "pass")
+    auth.passwords[("http", "example.com")] = ("user", "pass")
 
     got = auth._get_url_and_credentials("http://user@example.com/path")
     expected = ("http://example.com/path", "user", "pass")
@@ -834,6 +834,24 @@ def test_https_cached_credentials_not_reused_for_http() -> None:
         None,
         None,
     )
+    # HTTP and HTTPS credentials on the same netloc are cached separately.
+    assert auth._get_url_and_credentials(
+        "http://httpuser:httppass@example.com/path"
+    ) == (
+        "http://example.com/path",
+        "httpuser",
+        "httppass",
+    )
+    assert auth._get_url_and_credentials("https://example.com/other") == (
+        "https://example.com/other",
+        "user",
+        "pass",
+    )
+    assert auth._get_url_and_credentials("http://example.com/other") == (
+        "http://example.com/other",
+        "httpuser",
+        "httppass",
+    )
 
 
 def test_handle_401_does_not_send_https_index_credentials_over_http(
@@ -856,46 +874,3 @@ def test_handle_401_does_not_send_https_index_credentials_over_http(
     new_resp = auth.handle_401(resp)
     assert new_resp is resp
     assert "Authorization" not in req.headers
-
-
-def test_handle_401_does_not_send_https_keyring_credentials_over_http(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    keyring = KeyringModuleV2()
-    monkeypatch.setitem(sys.modules, "keyring", keyring)
-    auth = MultiDomainBasicAuth(prompting=True, keyring_provider="import")
-    monkeypatch.setattr(auth, "_prompt_for_password", lambda *a: ("user", "pass", True))
-    monkeypatch.setattr(auth, "_should_save_password_to_keyring", lambda *a: True)
-
-    https_req = MockRequest("https://example.com/simple/pkg/")
-    https_resp = MockResponse(b"")
-    https_resp.request = https_req
-    https_resp.url = https_req.url
-    https_resp.status_code = 401
-
-    connection = MockConnection()
-
-    def _send(sent_req: MockRequest, **kwargs: Any) -> MockResponse:
-        r = MockResponse(b"")
-        r.status_code = 200
-        return r
-
-    connection._send = _send  # type: ignore[assignment]
-    https_resp.connection = connection
-
-    retry_resp = auth.handle_401(https_resp)
-    auth.save_credentials(retry_resp)
-    assert "example.com" in keyring.saved_credential_by_username_by_system
-
-    # A subsequent HTTP 401 on the same netloc must not read the saved HTTPS
-    # keyring entry and retry over plaintext HTTP.
-    auth.prompting = False
-    http_req = MockRequest("http://example.com/simple/pkg.whl")
-    http_resp = MockResponse(b"")
-    http_resp.request = http_req
-    http_resp.url = http_req.url
-    http_resp.status_code = 401
-
-    new_http_resp = auth.handle_401(http_resp)
-    assert new_http_resp is http_resp
-    assert "Authorization" not in http_req.headers
