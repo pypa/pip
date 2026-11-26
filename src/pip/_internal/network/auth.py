@@ -368,6 +368,7 @@ class MultiDomainBasicAuth(AuthBase):
         url, netloc, url_user_password = split_auth_netloc_from_url(
             original_url,
         )
+        is_https = urllib.parse.urlsplit(original_url).scheme == "https"
 
         # Start with the credentials embedded in the url
         username, password = url_user_password
@@ -401,12 +402,9 @@ class MultiDomainBasicAuth(AuthBase):
         # If we don't have a password and keyring is available, use it.
         if allow_keyring:
             # The index url is more specific than the netloc, so try it first
-            # fmt: off
-            kr_auth = (
-                self._get_keyring_auth(index_url, username) or
-                self._get_keyring_auth(netloc, username)
-            )
-            # fmt: on
+            kr_auth = self._get_keyring_auth(index_url, username)
+            if not kr_auth and (is_https or netloc not in self._https_passwords):
+                kr_auth = self._get_keyring_auth(netloc, username)
             if kr_auth:
                 logger.debug("Found credentials in keyring for %s", netloc)
                 return kr_auth

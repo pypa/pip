@@ -1,1 +1,1 @@
-Prevent ``MultiDomainBasicAuth`` from sending ``https://`` index or cached credentials over plaintext ``http://`` requests.
+Prevent ``MultiDomainBasicAuth`` from sending ``https://`` index or cached credentials over plaintext ``http://`` requests. Indexes that serve the Simple API over HTTPS and authenticated files over HTTP on the same host must now use HTTPS for file downloads or include credentials explicitly in the HTTP URL.
