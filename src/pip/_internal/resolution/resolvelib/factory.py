@@ -694,7 +694,9 @@ class Factory:
             req_str = str(req)
         req_disp = req_str if parent is None else f"{req_str} (from {parent.name})"
         cands = self._finder.find_all_candidates(req.project_name)
-        skipped_by_requires_python = self._finder.requires_python_skipped_reasons()
+        skipped_by_requires_python = self._finder.requires_python_skipped_reasons(
+            req.project_name
+        )
 
         versions_set: set[Version] = set()
         yanked_versions_set: set[Version] = set()

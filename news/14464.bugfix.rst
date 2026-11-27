@@ -1,0 +1,3 @@
+When a requirement cannot be satisfied, only report the versions of that project
+that were ignored because of ``Requires-Python``, instead of also listing
+ignored versions of other projects.
