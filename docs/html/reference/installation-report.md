@@ -74,6 +74,11 @@ package with the following properties:
   record the origin URL of the downloaded artifact.
   ```
 
+- `download_size`: the size in bytes of the artifact described by `download_info`, as
+  advertised by the index. This field is only present when the index provides the size
+  of its files, which requires version 1.1 or later of the [JSON-based Simple
+  API](https://packaging.python.org/en/latest/specifications/simple-repository-api/).
+
 - `requested`: `true` if the requirement was explicitly provided by the user, either
   directly via a command line argument or indirectly via a requirements file. `false`
   if the requirement was installed as a dependency of another requirement.

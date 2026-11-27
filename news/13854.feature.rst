@@ -1,0 +1,1 @@
+Add ``download_size`` to the installation report when the index provides it.

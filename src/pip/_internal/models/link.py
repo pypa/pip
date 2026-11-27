@@ -252,6 +252,7 @@ class Link:
         "yanked_reason",
         "metadata_file_data",
         "upload_time",
+        "size",
         "cache_link_parsing",
         "egg_fragment",
     ]
@@ -266,6 +267,7 @@ class Link:
         upload_time: datetime.datetime | None = None,
         cache_link_parsing: bool = True,
         hashes: Mapping[str, str] | None = None,
+        size: int | None = None,
     ) -> None:
         """
         :param url: url of the resource pointed to (href of the link)
@@ -291,6 +293,8 @@ class Link:
             URLs should generally have this set to False, for example.
         :param hashes: A mapping of hash names to digests to allow us to
             determine the validity of a download.
+        :param size: the size of the file in bytes, or None if the information
+            is not available from the server.
         """
 
         # The comes_from, requires_python, and metadata_file_data arguments are
@@ -320,6 +324,7 @@ class Link:
         self.yanked_reason = yanked_reason
         self.metadata_file_data = metadata_file_data
         self.upload_time = upload_time
+        self.size = size
 
         self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
@@ -353,6 +358,13 @@ class Link:
         else:
             upload_time = None
 
+        # The size is only provided by indexes implementing version 1.1 or
+        # later of the JSON simple API (PEP 700). Ignore anything that is not
+        # a non-negative integer.
+        size = file_data.get("size")
+        if not isinstance(size, int) or isinstance(size, bool) or size < 0:
+            size = None
+
         # The metadata info value may be a boolean, or a dict of hashes.
         if isinstance(metadata_info, dict):
             # The file exists, and hashes have been supplied
@@ -379,6 +391,7 @@ class Link:
             hashes=hashes,
             metadata_file_data=metadata_file_data,
             upload_time=upload_time,
+            size=size,
         )
 
     @classmethod

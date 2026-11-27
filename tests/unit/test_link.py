@@ -355,3 +355,25 @@ def test_join_within_directory_stays_inside(name: str) -> None:
     joined = join_within_directory(directory, as_path_component(name))
     assert joined == os.path.join(directory, name)
     assert os.path.basename(joined) == name
+
+
+@pytest.mark.parametrize(
+    "file_data, expected",
+    [
+        ({"size": 1234}, 1234),
+        ({"size": 0}, 0),
+        # Indexes implementing version 1.0 of the JSON API do not provide a size.
+        ({}, None),
+        # Anything that is not a non-negative integer is ignored.
+        ({"size": -1}, None),
+        ({"size": "1234"}, None),
+        ({"size": True}, None),
+    ],
+)
+def test_from_json_size(file_data: dict[str, object], expected: int | None) -> None:
+    link = Link.from_json(
+        {"url": "pkg-1.0-py3-none-any.whl", "hashes": {}, **file_data},
+        page_url="https://example.com/simple/pkg/",
+    )
+    assert link is not None
+    assert link.size == expected

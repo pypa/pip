@@ -38,6 +38,13 @@ class InstallationReport:
         if ireq.user_supplied and ireq.extras:
             # For top level requirements, the list of requested extras, if any.
             res["requested_extras"] = sorted(ireq.extras)
+        # On a wheel cache hit, ireq.link is the cached wheel, while download_info
+        # describes the artifact it was built from.
+        link = ireq.cached_wheel_source_link or ireq.link
+        if link and link.size is not None:
+            # Size in bytes of the artifact described by download_info, as
+            # advertised by the index. Absent when the index does not provide it.
+            res["download_size"] = link.size
         return res
 
     def to_dict(self) -> dict[str, Any]:

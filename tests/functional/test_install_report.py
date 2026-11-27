@@ -7,6 +7,12 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from ..lib import PipTestEnvironment, TestData
+from ..lib.server import (
+    file_response,
+    json_index_page,
+    make_mock_server,
+    server_running,
+)
 
 
 def _install_dict(report: dict[str, Any]) -> dict[str, Any]:
@@ -41,6 +47,75 @@ def test_install_report_basic(
         simplewheel_report["download_info"]["archive_info"]["hash"]
         == "sha256=71e1ca6b16ae3382a698c284013f66504f2581099b2ce4801f60e9536236ceee"
     )
+    # --find-links does not advertise file sizes.
+    assert "download_size" not in simplewheel_report
+
+
+def test_install_report_download_size(
+    script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
+) -> None:
+    """Test that the size advertised by a JSON index is reported."""
+    wheel_name = "simplewheel-2.0-1-py2.py3-none-any.whl"
+    wheel_path = shared_data.packages / wheel_name
+    wheel_size = wheel_path.stat().st_size
+    report_path = tmp_path / "report.json"
+    server = make_mock_server()
+    server.mock.side_effect = [
+        json_index_page(
+            "simplewheel",
+            [{"url": f"/files/{wheel_name}", "hashes": {}, "size": wheel_size}],
+        ),
+        file_response(wheel_path),
+    ]
+
+    with server_running(server):
+        script.pip(
+            "install",
+            "simplewheel",
+            "--dry-run",
+            "--index-url",
+            f"http://{server.host}:{server.port}",
+            "--report",
+            str(report_path),
+        )
+
+    report = json.loads(report_path.read_text())
+    simplewheel_report = _install_dict(report)["simplewheel"]
+    assert simplewheel_report["download_size"] == wheel_size
+
+
+def test_install_report_download_size_wheel_cache(
+    script: PipTestEnvironment, shared_data: TestData, tmp_path: Path
+) -> None:
+    """Test that the size is still reported when a cached built wheel is reused."""
+    sdist_name = "simple-1.0.tar.gz"
+    sdist_path = shared_data.packages / sdist_name
+    sdist_size = sdist_path.stat().st_size
+    cache_dir = tmp_path / "cache"
+    report_path = tmp_path / "report.json"
+    index_page = json_index_page(
+        "simple",
+        [{"url": f"/files/{sdist_name}", "hashes": {}, "size": sdist_size}],
+    )
+    server = make_mock_server()
+    # The second run finds the built wheel in the cache and downloads nothing.
+    server.mock.side_effect = [index_page, file_response(sdist_path), index_page]
+
+    with server_running(server):
+        args = [
+            "install",
+            "simple",
+            "--no-build-isolation",
+            "--index-url",
+            f"http://{server.host}:{server.port}",
+            "--cache-dir",
+            str(cache_dir),
+        ]
+        script.pip(*args)
+        result = script.pip(*args, "--ignore-installed", "--report", str(report_path))
+    assert "Using cached simple" in result.stdout
+    report = json.loads(report_path.read_text())
+    assert _install_dict(report)["simple"]["download_size"] == sdist_size
 
 
 def test_install_report_dep(
