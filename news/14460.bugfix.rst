@@ -1,0 +1,3 @@
+Fix ``check_first_requirement_in_file`` truncating the character before a
+``\`` line continuation, which suppressed the ``-r`` hint when running
+``pip install ./requirements.txt`` without ``-r``.
