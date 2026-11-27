@@ -650,10 +650,11 @@ class PackageFinder:
 
         self.format_control = format_control
 
-        # Collects the detail strings for links skipped due to Requires-Python
-        # incompatibility.  Used by requires_python_skipped_reasons() to build
-        # the error message when resolution fails.
-        self._requires_python_skipped: set[str] = set()
+        # Collects, per project, the detail strings for links skipped due to
+        # Requires-Python incompatibility.  Used by
+        # requires_python_skipped_reasons() to build the error message when
+        # resolution fails.
+        self._requires_python_skipped: dict[NormalizedName, set[str]] = {}
 
         # Cache of the result of finding candidates
         self._all_candidates: dict[str, list[InstallationCandidate]] = {}
@@ -774,8 +775,9 @@ class PackageFinder:
     def uploaded_prior_to(self) -> datetime.datetime | None:
         return self._uploaded_prior_to
 
-    def requires_python_skipped_reasons(self) -> list[str]:
-        return sorted(self._requires_python_skipped)
+    def requires_python_skipped_reasons(self, project_name: str) -> list[str]:
+        canonical_name = canonicalize_name(project_name)
+        return sorted(self._requires_python_skipped.get(canonical_name, ()))
 
     def make_link_evaluator(self, project_name: str) -> LinkEvaluator:
         canonical_name = canonicalize_name(project_name)
@@ -807,12 +809,15 @@ class PackageFinder:
                     no_eggs.append(link)
         return no_eggs + eggs
 
-    def _log_skipped_link(self, link: Link, result: LinkType, detail: str) -> None:
+    def _log_skipped_link(
+        self, project_name: str, link: Link, result: LinkType, detail: str
+    ) -> None:
         # Put the link at the end so the reason is more visible and because
         # the link string is usually very long.
         logger.debug("Skipping link: %s: %s", detail, link)
         if result == LinkType.requires_python_mismatch:
-            self._requires_python_skipped.add(detail)
+            canonical_name = canonicalize_name(project_name)
+            self._requires_python_skipped.setdefault(canonical_name, set()).add(detail)
 
     def get_install_candidate(
         self, link_evaluator: LinkEvaluator, link: Link
@@ -827,7 +832,7 @@ class PackageFinder:
             # when --uploaded-prior-to is specified
             raise InstallationError(detail)
         if result != LinkType.candidate:
-            self._log_skipped_link(link, result, detail)
+            self._log_skipped_link(link_evaluator.project_name, link, result, detail)
             return None
 
         try:

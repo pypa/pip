@@ -417,7 +417,7 @@ def test_finder_records_requires_python_skips_without_debug_logging(
 
     finder.find_all_candidates("fakepackage")
 
-    assert finder.requires_python_skipped_reasons() == [
+    assert finder.requires_python_skipped_reasons("fakepackage") == [
         "2.6.0 Requires-Python <2.7",
         "2.7.0 Requires-Python <3,>=2.7",
     ]
