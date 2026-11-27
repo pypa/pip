@@ -792,7 +792,7 @@ class TestInstallUnpackedWheel:
         )
 
         record = os.path.join(self.scheme.purelib, "simple-0.1.0.dist-info", "RECORD")
-        with open(record, newline="") as f:
+        with open(record, newline="", encoding="utf-8") as f:
             recorded = {row[0] for row in csv.reader(f)}
         assert name in recorded
         assert "b.txt" not in recorded
