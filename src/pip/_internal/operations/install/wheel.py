@@ -688,10 +688,10 @@ def _install_wheel(  # noqa: C901, PLR0915 function is too long
     # archive names, while the destinations below are built with normpath.
     # Refuse members that normalization would map onto another name, such as
     # "./pkg.dist-info/entry_points.txt", so both read the same archive.
-    for path in paths:
-        if os.path.normpath(path).replace(os.path.sep, "/") != path.rstrip("/"):
+    for member in paths:
+        if os.path.normpath(member).replace(os.path.sep, "/") != member.rstrip("/"):
             raise InstallationError(
-                f"The wheel {wheel_path!r} has a file {path!r} whose path "
+                f"The wheel {wheel_path!r} has a file {member!r} whose path "
                 "is not normalized"
             )
     file_paths = filterfalse(is_dir_path, paths)
