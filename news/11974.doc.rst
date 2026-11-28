@@ -1,2 +1,2 @@
-Clarify that hash-checking mode does not apply to build dependencies installed
+Clarify that hash-checking mode does not extend to build dependencies installed
 in an isolated build environment.
