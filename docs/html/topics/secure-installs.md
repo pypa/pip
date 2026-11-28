@@ -37,6 +37,8 @@ FooProject == 1.2 \
 
 - Hashes are required for _all_ dependencies.
 
+  This does not extend to build dependencies: when hash-checking mode is activated by `--hash` in a requirements file or forced with `--require-hashes`, the requirements pip installs into an isolated build environment are not checked against hashes.
+
   If there is a dependency that is not spelled out and hashed in the requirements file, it will result in an error.
 
 - Requirements must be pinned (either to a URL, filesystem path or using `==`).
